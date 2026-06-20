@@ -1,0 +1,29 @@
+# Entorno
+.env
+
+# Java / Maven
+Backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node / Angular
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.angular/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Planes/Documentos del proyecto
+Plan_Entrega1B_PFC.md
+plan.md

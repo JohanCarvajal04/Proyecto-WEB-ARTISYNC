@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, "entrega-*"]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Compilar
+        working-directory: Backend
+        run: ./mvnw -B clean compile
+
+      - name: Ejecutar pruebas
+        working-directory: Backend
+        run: ./mvnw -B test
+
+      - name: Construir imagen Docker
+        working-directory: Backend
+        run: docker build -t pfc-backend:ci .
