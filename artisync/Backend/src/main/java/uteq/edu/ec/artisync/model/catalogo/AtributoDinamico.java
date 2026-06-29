@@ -17,7 +17,7 @@ public class AtributoDinamico {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_atributo")
-    private Long idAtributo;
+    private Integer idAtributo;
 
     @NotBlank(message = "El nombre del atributo es obligatorio")
     @Size(max = 100, message = "El nombre del atributo no puede superar los 100 caracteres")
