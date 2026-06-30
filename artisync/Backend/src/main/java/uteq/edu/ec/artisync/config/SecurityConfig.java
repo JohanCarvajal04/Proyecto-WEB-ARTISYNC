@@ -73,6 +73,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas
                 .requestMatchers("/api/auth/**").permitAll()
+                
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs", "/api/docs/**", "/api/docs", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
+
                 // Solo ADMIN puede gestionar roles y permisos
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Cualquier usuario autenticado
