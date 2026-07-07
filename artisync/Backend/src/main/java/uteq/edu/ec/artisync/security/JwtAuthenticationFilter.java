@@ -49,10 +49,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-            String jti = claims.getId();
-            if (jti != null && Boolean.TRUE.equals(redisTemplate.hasKey("jti:" + jti))) {
-                log.debug("Token revocado rechazado en filtro (JTI: {})", jti);
-                filterChain.doFilter(request, response);
+            try {
+                String jti = claims.getId();
+                if (jti != null && Boolean.TRUE.equals(redisTemplate.hasKey("jti:" + jti))) {
+                    log.debug("Token revocado rechazado en filtro (JTI: {})", jti);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+            } catch (org.springframework.dao.DataAccessException e) {
+                log.error("🚨 ALERTA CRÍTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).", e);
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Servicio de autenticación temporalmente no disponible (Redis Blacklist inalcanzable).");
                 return;
             }
 

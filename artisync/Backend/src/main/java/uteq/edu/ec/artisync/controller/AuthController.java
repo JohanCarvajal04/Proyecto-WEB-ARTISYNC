@@ -17,12 +17,16 @@ import uteq.edu.ec.artisync.dto.response.MessageResponse;
 import uteq.edu.ec.artisync.dto.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.response.UserResponse;
 import uteq.edu.ec.artisync.service.AuthService;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Tag(name = "Autenticación", description = "Endpoints públicos para registro (RNF-12), login, 2FA, refresh token y recuperación de contraseña")
 public class AuthController {
+
+    @Value("${app.security.cookie-secure:false}")
+    private boolean cookieSecure;
 
     private final AuthService authService;
 
@@ -92,7 +96,7 @@ public class AuthController {
         if (refreshToken != null) {
             ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                     .httpOnly(true)
-                    .secure(false) // En producción debe cambiarse a true cuando se use HTTPS
+                    .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)
                     .path("/api/auth")
                     .maxAge(604800) // 7 días en segundos
                     .sameSite("Strict")
@@ -104,7 +108,7 @@ public class AuthController {
     private void clearRefreshTokenCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/api/auth")
                 .maxAge(0)
                 .sameSite("Strict")

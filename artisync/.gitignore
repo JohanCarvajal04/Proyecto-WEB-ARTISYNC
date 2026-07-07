@@ -23,6 +23,7 @@ Thumbs.db
 
 # Logs
 *.log
+.gitignore
 
 # Documentación / Archivos Markdown del proyecto
 *.md
