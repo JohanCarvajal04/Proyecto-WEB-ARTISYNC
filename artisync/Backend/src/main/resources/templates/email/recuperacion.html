@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Recuperación de Contraseña</title>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 40px 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; padding: 40px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #38bdf8; font-size: 28px; margin: 0; letter-spacing: 1px;">ARTISYNC</h1>
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">Plataforma de Creadores</p>
+        </div>
+
+        <h2 style="font-size: 20px; color: #ffffff; margin-bottom: 20px;">Hola, <span th:text="${nombres}">Creador</span> 👋</h2>
+        
+        <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6;">
+            Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en Artisync. Si fuiste tú, haz clic en el siguiente botón para crear una nueva contraseña:
+        </p>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a th:href="${enlaceRecuperacion}" 
+               style="background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; font-weight: bold; border-radius: 8px; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+               Restablecer Contraseña
+            </a>
+        </div>
+
+        <p style="color: #94a3b8; font-size: 13px; line-height: 1.5; border-top: 1px solid #334155; padding-top: 20px;">
+            ⚠️ Este enlace caducará en <strong>24 horas</strong> y solo puede utilizarse una vez. Si no solicitaste este cambio, puedes ignorar este correo de forma segura; tu contraseña seguirá siendo la misma.
+        </p>
+        
+    </div>
+</body>
+</html>

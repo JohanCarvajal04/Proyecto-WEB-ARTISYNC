@@ -1,116 +1,114 @@
 package uteq.edu.ec.artisync.controller;
 
-import uteq.edu.ec.artisync.dto.request.*;
-import uteq.edu.ec.artisync.dto.response.*;
-import uteq.edu.ec.artisync.security.UsuarioPrincipal;
-import uteq.edu.ec.artisync.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.request.*;
+import uteq.edu.ec.artisync.dto.response.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.TokenResponse;
+import uteq.edu.ec.artisync.dto.response.UserResponse;
+import uteq.edu.ec.artisync.service.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
-@Tag(name = "Autenticación", description = "Endpoints para registro, login y gestión de cuenta")
+@RequiredArgsConstructor
+@Tag(name = "Autenticación", description = "Endpoints públicos para registro (RNF-12), login, 2FA, refresh token y recuperación de contraseña")
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
 
-    /**
-     * POST /api/auth/login
-     * Autentica usuario y devuelve JWT
-     */
-    @Operation(summary = "Iniciar sesión", description = "Autentica las credenciales de un usuario y devuelve un token JWT")
-    @ApiResponse(responseCode = "200", description = "Autenticación exitosa")
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
-            @Valid @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest) {
-        AuthResponse response = authService.login(request, httpRequest);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * POST /api/auth/registro
-     * Registra un nuevo usuario
-     */
-    @Operation(summary = "Registrar usuario", description = "Crea una nueva cuenta de usuario en el sistema")
-    @ApiResponse(responseCode = "201", description = "Usuario registrado exitosamente")
+    @Operation(summary = "Registrar nuevo usuario con validación de mayoría de edad (RNF-12)")
     @PostMapping("/registro")
-    public ResponseEntity<UsuarioResponse> registro(
-            @Valid @RequestBody RegistroRequest request) {
-        UsuarioResponse response = authService.registro(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        UserResponse userResponse = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
 
-    /**
-     * POST /api/auth/logout
-     * Cierra sesión invalidando el token en BD
-     */
-    @Operation(summary = "Cerrar sesión", description = "Invalida el token JWT actual en la base de datos")
-    @ApiResponse(responseCode = "200", description = "Sesión cerrada exitosamente")
-    @PostMapping("/logout")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<MensajeResponse> logout(HttpServletRequest request) {
-        String token = parseJwt(request);
-        MensajeResponse response = authService.logout(token);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Iniciar sesión y obtener token JWT o requerimiento 2FA")
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+        TokenResponse tokenResponse = authService.login(request);
+        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());
+        return ResponseEntity.ok(tokenResponse);
     }
 
-    /**
-     * POST /api/auth/recuperar-password
-     * Solicita token de recuperación (envía email)
-     */
-    @Operation(summary = "Solicitar recuperación de contraseña", description = "Genera y envía un token de recuperación al correo electrónico especificado")
-    @ApiResponse(responseCode = "200", description = "Solicitud procesada exitosamente")
-    @PostMapping("/recuperar-password")
-    public ResponseEntity<MensajeResponse> solicitarRecuperacion(
-            @RequestParam String correo) {
-        MensajeResponse response = authService.solicitarRecuperacion(correo);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Verificar código de autenticación de doble factor (2FA)")
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<TokenResponse> verify2Fa(@Valid @RequestBody TwoFactorRequest request, HttpServletResponse response) {
+        TokenResponse tokenResponse = authService.verify2Fa(request);
+        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());
+        return ResponseEntity.ok(tokenResponse);
     }
 
-    /**
-     * POST /api/auth/cambiar-password
-     * Cambia password con token de recuperación
-     */
-    @Operation(summary = "Cambiar contraseña", description = "Actualiza la contraseña utilizando el token de recuperación recibido por correo")
-    @ApiResponse(responseCode = "200", description = "Contraseña cambiada exitosamente")
-    @PostMapping("/cambiar-password")
-    public ResponseEntity<MensajeResponse> cambiarPassword(
-            @Valid @RequestBody CambioPasswordRequest request) {
-        MensajeResponse response = authService.cambiarPassword(request);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * GET /api/auth/perfil
-     * Obtiene perfil del usuario autenticado
-     */
-    @Operation(summary = "Obtener perfil de usuario", description = "Devuelve la información del usuario autenticado actualmente")
-    @ApiResponse(responseCode = "200", description = "Perfil obtenido exitosamente")
-    @GetMapping("/perfil")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UsuarioResponse> obtenerPerfil(
-            @AuthenticationPrincipal UsuarioPrincipal principal) {
-        UsuarioResponse response = authService.obtenerPerfil(principal.getCorreo());
-        return ResponseEntity.ok(response);
-    }
-
-    private String parseJwt(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
-            return header.substring(7);
+    @Operation(summary = "Refrescar token de acceso utilizando Refresh Token en cookie HttpOnly o cuerpo JSON")
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(
+            @CookieValue(name = "refreshToken", required = false) String refreshTokenCookie,
+            @RequestBody(required = false) RefreshTokenRequest requestBody,
+            HttpServletResponse response) {
+        String tokenToRefresh = refreshTokenCookie;
+        if (tokenToRefresh == null && requestBody != null) {
+            tokenToRefresh = requestBody.getRefreshToken();
         }
-        return null;
+        if (tokenToRefresh == null || tokenToRefresh.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        TokenResponse tokenResponse = authService.refreshToken(tokenToRefresh);
+        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());
+        return ResponseEntity.ok(tokenResponse);
+    }
+
+    @Operation(summary = "Cerrar sesión e invalidar token JWT y Refresh Token en Redis Blacklist y BD", security = @SecurityRequirement(name = "bearerAuth"))
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request, @CookieValue(name = "refreshToken", required = false) String refreshTokenCookie, HttpServletResponse response) {
+        String authHeader = request.getHeader("Authorization");
+        authService.logout(authHeader, refreshTokenCookie);
+        clearRefreshTokenCookie(response);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Solicitar enlace/token de recuperación de contraseña")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok(authService.forgotPassword(request));
+    }
+
+    @Operation(summary = "Reestablecer contraseña utilizando token válido")
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request));
+    }
+
+    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        if (refreshToken != null) {
+            ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                    .httpOnly(true)
+                    .secure(false) // En producción debe cambiarse a true cuando se use HTTPS
+                    .path("/api/auth")
+                    .maxAge(604800) // 7 días en segundos
+                    .sameSite("Strict")
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        }
+    }
+
+    private void clearRefreshTokenCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/api/auth")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

@@ -1,9 +1,16 @@
 package uteq.edu.ec.artisync.repository;
 
-import uteq.edu.ec.artisync.model.seguridad.Permiso;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
+import org.springframework.stereotype.Repository;
+import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 
-public interface PermisoRepository extends JpaRepository<Permiso, Integer> {
-    List<Permiso> findByModuloAplicacion(String modulo);
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface PermisoRepository extends JpaRepository<Permiso, Long> {
+
+    Optional<Permiso> findByNombrePermiso(String nombrePermiso);
+
+    List<Permiso> findByModuloAplicacion(String moduloAplicacion);
 }

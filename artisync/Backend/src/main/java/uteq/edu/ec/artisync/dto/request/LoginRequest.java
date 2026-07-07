@@ -1,15 +1,22 @@
 package uteq.edu.ec.artisync.dto.request;
 
-import jakarta.validation.constraints.*;
-import lombok.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Data @NoArgsConstructor @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class LoginRequest {
-    @NotBlank(message = "El correo es obligatorio")
-    @Email(message = "Formato de correo inválido")
+
+    @NotBlank(message = "El correo electrónico es obligatorio")
+    @Email(message = "El formato de correo no es válido")
     private String correo;
 
     @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String contrasena;
 }

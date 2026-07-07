@@ -1,178 +1,349 @@
 package uteq.edu.ec.artisync.service.impl;
 
-import uteq.edu.ec.artisync.dto.request.*;
-import uteq.edu.ec.artisync.dto.response.*;
-import uteq.edu.ec.artisync.model.seguridad.*;
-import uteq.edu.ec.artisync.model.seguridad.SesionUsuario;
-import uteq.edu.ec.artisync.model.seguridad.Usuario;
-import uteq.edu.ec.artisync.repository.*;
-import uteq.edu.ec.artisync.security.*;
-import uteq.edu.ec.artisync.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.request.*;
+import uteq.edu.ec.artisync.dto.response.MessageResponse;
+import uteq.edu.ec.artisync.dto.response.TokenResponse;
+import uteq.edu.ec.artisync.dto.response.UserResponse;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.seguridad.*;
+import uteq.edu.ec.artisync.repository.*;
+import uteq.edu.ec.artisync.security.CustomUserDetailsService;
+import uteq.edu.ec.artisync.security.JwtService;
+import uteq.edu.ec.artisync.service.AuthService;
+import uteq.edu.ec.artisync.service.TwoFactorService;
+import uteq.edu.ec.artisync.service.shared.EmailService;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired private AuthenticationManager authManager;
-    @Autowired private UsuarioRepository usuarioRepo;
-    @Autowired private RolRepository rolRepo;
-    @Autowired private SesionUsuarioRepository sesionRepo;
-    @Autowired private TokenRecuperacionRepository tokenRecuperacionRepo;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private JwtUtils jwtUtils;
+    private final UsuarioRepository usuarioRepository;
+    private final RolRepository rolRepository;
+    private final UsuarioRolRepository usuarioRolRepository;
+    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+    private final TokenRecuperacionRepository tokenRecuperacionRepository;
+    private final SesionUsuarioRepository sesionUsuarioRepository;
+
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
+    private final CustomUserDetailsService userDetailsService;
+    private final SessionRevocationService sessionRevocationService;
+    private final EmailService emailService;
+    private final TwoFactorService twoFactorService;
 
     @Override
     @Transactional
-    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
-        Authentication auth = authManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())
-        );
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        String jwt = jwtUtils.generarToken(auth);
-        UsuarioPrincipal userPrincipal = (UsuarioPrincipal) auth.getPrincipal();
-
-        // Guardar sesión en BD
-        Usuario usuario = usuarioRepo.findByCorreo(request.getCorreo()).orElseThrow();
-        SesionUsuario sesion = new SesionUsuario();
-        sesion.setUsuario(usuario);
-        sesion.setTokenJwt(jwt);
-        sesion.setDireccionIp(httpRequest.getRemoteAddr());
-        sesion.setFechaCreacion(LocalDateTime.now());
-        sesion.setFechaExpiracion(LocalDateTime.now().plusDays(1));
-        sesionRepo.save(sesion);
-
-        List<String> roles = userPrincipal.getAuthorities().stream()
-            .map(a -> a.getAuthority())
-            .filter(a -> a.startsWith("ROLE_"))
-            .collect(Collectors.toList());
-
-        List<String> permisos = userPrincipal.getAuthorities().stream()
-            .map(a -> a.getAuthority())
-            .filter(a -> !a.startsWith("ROLE_"))
-            .collect(Collectors.toList());
-
-        return AuthResponse.builder()
-            .token(jwt)
-            .tipo("Bearer")
-            .idUsuario(userPrincipal.getId())
-            .nombres(userPrincipal.getNombres())
-            .correo(userPrincipal.getCorreo())
-            .roles(roles)
-            .permisos(permisos)
-            .build();
-    }
-
-    @Override
-    @Transactional
-    public UsuarioResponse registro(RegistroRequest request) {
-        if (usuarioRepo.existsByCorreo(request.getCorreo())) {
-            throw new RuntimeException("El correo ya está registrado: " + request.getCorreo());
+    public UserResponse register(RegisterRequest request) {
+        if (usuarioRepository.existsByCorreo(request.getCorreo())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado en la plataforma");
         }
 
-        Usuario usuario = new Usuario();
-        usuario.setNombres(request.getNombres());
-        usuario.setApellidos(request.getApellidos());
-        usuario.setCorreo(request.getCorreo());
-        usuario.setContrasenaHash(passwordEncoder.encode(request.getContrasena()));
-        usuario.setFechaRegistro(LocalDateTime.now());
-        usuario.setEstadoCuenta(true);
+        // Validación RNF-12: Mayoría de edad (>= 18 años)
+        if (request.getFechaNacimiento() == null || LocalDate.now().minusYears(18).isBefore(request.getFechaNacimiento())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes tener al menos 18 años para registrarte en ARTISYNC (RNF-12)");
+        }
 
-        // Asignar rol por defecto: CLIENTE
-        Rol rolCliente = rolRepo.findByNombreRol("CLIENTE")
-            .orElseThrow(() -> new RuntimeException("Rol CLIENTE no encontrado en BD"));
-        usuario.setRoles(List.of(rolCliente));
+        Usuario usuario = Usuario.builder()
+                .nombres(request.getNombres())
+                .apellidos(request.getApellidos())
+                .correo(request.getCorreo())
+                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))
+                .fechaNacimiento(request.getFechaNacimiento())
+                .estadoCuenta(true)
+                .build();
+        usuario = usuarioRepository.save(usuario);
 
-        Usuario guardado = usuarioRepo.save(usuario);
-        return mapToUsuarioResponse(guardado);
+        String rolNombre = request.getRol() != null && !request.getRol().isBlank() ? request.getRol().toUpperCase() : "CLIENTE";
+        if (!List.of("CLIENTE", "CREADOR").contains(rolNombre)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no permitido en registro. Solo se permiten CLIENTE o CREADOR");
+        }
+        Rol rol = rolRepository.findByNombreRol(rolNombre)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol especificado no existe en el sistema: " + rolNombre));
+
+        UsuarioRol usuarioRol = UsuarioRol.builder()
+                .usuario(usuario)
+                .rol(rol)
+                .build();
+        usuarioRolRepository.save(usuarioRol);
+
+        if ("CREADOR".equals(rolNombre)) {
+            PerfilCreador perfil = PerfilCreador.builder()
+                    .usuario(usuario)
+                    .biografia("¡Hola! Soy un creador en ARTISYNC.")
+                    .build();
+            perfilCreadorRepository.save(perfil);
+        }
+
+        return UserResponse.builder()
+                .idUsuario(usuario.getIdUsuario())
+                .nombres(usuario.getNombres())
+                .apellidos(usuario.getApellidos())
+                .correo(usuario.getCorreo())
+                .fechaNacimiento(usuario.getFechaNacimiento())
+                .fechaRegistro(usuario.getFechaRegistro())
+                .estadoCuenta(usuario.getEstadoCuenta())
+                .roles(List.of(rolNombre))
+                .dosFactoresHabilitado(false)
+                .build();
     }
 
     @Override
     @Transactional
-    public MensajeResponse logout(String token) {
-        // Eliminar la sesión activa del token
-        sesionRepo.findByTokenJwt(token).ifPresent(sesionRepo::delete);
-        SecurityContextHolder.clearContext();
-        return new MensajeResponse("Sesión cerrada correctamente", true);
+    public TokenResponse login(LoginRequest request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())
+        );
+
+        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
+                .orElse(null);
+
+        if (dosFactores != null && Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {
+            return TokenResponse.builder()
+                    .correo(usuario.getCorreo())
+                    .idUsuario(usuario.getIdUsuario())
+                    .requiere2fa(true)
+                    .build();
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
+        String accessToken = jwtService.generarToken(userDetails);
+        String refreshToken = jwtService.generarRefreshToken(userDetails);
+
+        List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
+                .map(ur -> ur.getRol().getNombreRol())
+                .toList();
+
+        List<String> permisos = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> !a.startsWith("ROLE_"))
+                .toList();
+
+        registrarSesion(usuario, accessToken, jwtService.getExpirationMs());
+        registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());
+
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .idUsuario(usuario.getIdUsuario())
+                .correo(usuario.getCorreo())
+                .roles(roles)
+                .permisos(permisos)
+                .requiere2fa(false)
+                .build();
     }
 
     @Override
     @Transactional
-    public MensajeResponse solicitarRecuperacion(String correo) {
-        usuarioRepo.findByCorreo(correo).ifPresent(usuario -> {
-            String token = UUID.randomUUID().toString();
-            TokenRecuperacion tr = new TokenRecuperacion();
-            tr.setUsuario(usuario);
-            tr.setHashToken(token);
-            tr.setFechaGeneracion(LocalDateTime.now());
-            tr.setUsado(false);
-            tokenRecuperacionRepo.save(tr);
-            // Aquí iría el envío de email con el token
-            // emailService.enviarRecuperacion(correo, token);
+    public TokenResponse verify2Fa(TwoFactorRequest request) {
+        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "2FA no configurado para este usuario"));
+
+        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no se encuentra habilitado");
+        }
+
+        if (!twoFactorService.validarCodigoOBackup(request.getCorreo(), request.getCodigo())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código 2FA o de respaldo incorrecto");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
+        String accessToken = jwtService.generarToken(userDetails);
+        String refreshToken = jwtService.generarRefreshToken(userDetails);
+
+        List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
+                .map(ur -> ur.getRol().getNombreRol())
+                .toList();
+
+        List<String> permisos = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> !a.startsWith("ROLE_"))
+                .toList();
+
+        registrarSesion(usuario, accessToken, jwtService.getExpirationMs());
+        registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());
+
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .idUsuario(usuario.getIdUsuario())
+                .correo(usuario.getCorreo())
+                .roles(roles)
+                .permisos(permisos)
+                .requiere2fa(false)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token no proporcionado");
+        }
+
+        try {
+            String jti = jwtService.extraerJti(refreshToken);
+            if (jti != null && sesionUsuarioRepository.findByTokenJwt(refreshToken).isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revocado o expirado");
+            }
+
+            String username = jwtService.extraerUsername(refreshToken);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+            if (!jwtService.esRefreshTokenValido(refreshToken, userDetails)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido");
+            }
+
+            Usuario usuario = usuarioRepository.findByCorreo(username)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+            if (!Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta del usuario está inactiva");
+            }
+
+            sessionRevocationService.revocarToken(refreshToken);
+            sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);
+
+            String nuevoAccessToken = jwtService.generarToken(userDetails);
+            String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);
+
+            registrarSesion(usuario, nuevoAccessToken, jwtService.getExpirationMs());
+            registrarSesion(usuario, nuevoRefreshToken, jwtService.getRefreshExpirationMs());
+
+            List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
+                    .map(ur -> ur.getRol().getNombreRol())
+                    .toList();
+
+            List<String> permisos = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(a -> !a.startsWith("ROLE_"))
+                    .toList();
+
+            return TokenResponse.builder()
+                    .accessToken(nuevoAccessToken)
+                    .refreshToken(nuevoRefreshToken)
+                    .idUsuario(usuario.getIdUsuario())
+                    .correo(usuario.getCorreo())
+                    .roles(roles)
+                    .permisos(permisos)
+                    .requiere2fa(false)
+                    .build();
+
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Error al procesar refresh token: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido o malformado");
+        }
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse logout(String tokenHeader, String refreshToken) {
+        sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            sessionRevocationService.revocarToken(refreshToken);
+            sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);
+        }
+        return new MessageResponse("Sesión cerrada exitosamente");
+    }
+
+    @Override
+    @Transactional
+    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
+        usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -> {
+            String tokenPlain = UUID.randomUUID().toString();
+            String tokenHash = hashSha256(tokenPlain);
+            TokenRecuperacion tokenRec = TokenRecuperacion.builder()
+                    .usuario(usuario)
+                    .hashToken(tokenHash)
+                    .usado(false)
+                    .build();
+            tokenRecuperacionRepository.save(tokenRec);
+            log.debug("Generado token de recuperación para usuario ID: {}", usuario.getIdUsuario());
+            emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), tokenPlain);
         });
-        return new MensajeResponse(
-            "Si el correo existe, recibirás instrucciones de recuperación", true);
+        return new MessageResponse("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
     }
 
     @Override
     @Transactional
-    public MensajeResponse cambiarPassword(CambioPasswordRequest request) {
-        TokenRecuperacion tr = tokenRecuperacionRepo
-            .findByHashTokenAndUsadoFalse(request.getTokenRecuperacion())
-            .orElseThrow(() -> new RuntimeException("Token inválido o ya utilizado"));
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
+        String tokenHash = hashSha256(request.getToken());
+        TokenRecuperacion tokenRec = tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(tokenHash)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token de recuperación inválido o ya utilizado"));
 
-        Usuario usuario = tr.getUsuario();
+        if (tokenRec.getFechaGeneracion().plusHours(24).isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El token de recuperación ha expirado");
+        }
+
+        Usuario usuario = tokenRec.getUsuario();
         usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));
-        usuarioRepo.save(usuario);
+        usuarioRepository.save(usuario);
 
-        tr.setUsado(true);
-        tokenRecuperacionRepo.save(tr);
+        tokenRec.setUsado(true);
+        tokenRecuperacionRepository.save(tokenRec);
 
-        // Invalidar todas las sesiones activas del usuario
-        sesionRepo.deleteAllByUsuarioId(usuario.getIdUsuario());
-
-        return new MensajeResponse("Contraseña actualizada correctamente", true);
+        return new MessageResponse("Contraseña reestablecida exitosamente");
     }
 
-    @Override
-    public UsuarioResponse obtenerPerfil(String correo) {
-        Usuario usuario = usuarioRepo.findByCorreo(correo)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        return mapToUsuarioResponse(usuario);
+    private void registrarSesion(Usuario usuario, String token, long expirationMs) {
+        try {
+            String ip = null;
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null && attributes.getRequest() != null) {
+                ip = attributes.getRequest().getRemoteAddr();
+            }
+            SesionUsuario sesion = SesionUsuario.builder()
+                    .usuario(usuario)
+                    .tokenJwt(token)
+                    .direccionIp(ip)
+                    .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))
+                    .build();
+            sesionUsuarioRepository.save(sesion);
+        } catch (Exception e) {
+            log.error("Error registrando sesión de usuario: {}", e.getMessage());
+        }
     }
 
-    private UsuarioResponse mapToUsuarioResponse(Usuario u) {
-        List<String> roles = u.getRoles() == null ? List.of() :
-            u.getRoles().stream().map(Rol::getNombreRol).collect(Collectors.toList());
-
-        List<String> permisos = u.getRoles() == null ? List.of() :
-            u.getRoles().stream()
-                .flatMap(r -> r.getPermisos().stream())
-                .map(Permiso::getNombrePermiso)
-                .distinct()
-                .collect(Collectors.toList());
-
-        return UsuarioResponse.builder()
-            .idUsuario(u.getIdUsuario())
-            .nombres(u.getNombres())
-            .apellidos(u.getApellidos())
-            .correo(u.getCorreo())
-            .pais(u.getPais() != null ? u.getPais().getNombrePais() : null)
-            .fechaRegistro(u.getFechaRegistro())
-            .estadoCuenta(u.getEstadoCuenta())
-            .roles(roles)
-            .permisos(permisos)
-            .build();
+    private String hashSha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(encodedhash);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al generar hash SHA-256", e);
+        }
     }
 }

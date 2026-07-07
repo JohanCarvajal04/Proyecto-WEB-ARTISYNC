@@ -24,6 +24,5 @@ Thumbs.db
 # Logs
 *.log
 
-# Planes/Documentos del proyecto
-Plan_Entrega1B_PFC.md
-plan.md
+# Documentación / Archivos Markdown del proyecto
+*.md
