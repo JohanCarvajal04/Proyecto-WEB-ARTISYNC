@@ -6,7 +6,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.entity.seguridad.SesionUsuario;
-import uteq.edu.ec.artisync.repository.SesionUsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.SesionUsuarioRepository;
 import uteq.edu.ec.artisync.security.JwtService;
 
 import java.time.Duration;

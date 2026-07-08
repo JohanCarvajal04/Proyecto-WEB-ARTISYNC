@@ -1,4 +1,13 @@
 package uteq.edu.ec.artisync.security;
+import uteq.edu.ec.artisync.controller.seguridad.*;
+import uteq.edu.ec.artisync.repository.seguridad.*;
+import uteq.edu.ec.artisync.repository.perfil.*;
+import uteq.edu.ec.artisync.dto.seguridad.request.*;
+import uteq.edu.ec.artisync.dto.seguridad.response.*;
+import uteq.edu.ec.artisync.dto.shared.*;
+import uteq.edu.ec.artisync.service.seguridad.*;
+import uteq.edu.ec.artisync.service.seguridad.impl.*;
+import uteq.edu.ec.artisync.service.shared.*;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;

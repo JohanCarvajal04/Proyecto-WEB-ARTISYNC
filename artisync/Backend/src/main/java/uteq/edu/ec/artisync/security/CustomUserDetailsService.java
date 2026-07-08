@@ -12,8 +12,8 @@ import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
-import uteq.edu.ec.artisync.repository.UsuarioRepository;
-import uteq.edu.ec.artisync.repository.UsuarioRolRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 
 import java.util.ArrayList;
 import java.util.HashSet;

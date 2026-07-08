@@ -2,13 +2,13 @@ package uteq.edu.ec.artisync.service.shared;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.dto.response.UserResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
-import uteq.edu.ec.artisync.repository.AutenticacionDosFactoresRepository;
-import uteq.edu.ec.artisync.repository.UsuarioRolRepository;
+import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 
 import java.util.List;
 
