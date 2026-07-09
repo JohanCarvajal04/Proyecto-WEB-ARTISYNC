@@ -17,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import uteq.edu.ec.artisync.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import uteq.edu.ec.artisync.security.CustomAuthenticationEntryPoint;
 
 import java.time.Duration;
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
     private List<String> allowedOrigins;
@@ -51,6 +53,7 @@ public class SecurityConfig {
                 )
             )
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/registro", "/api/auth/login", "/api/auth/2fa/verify",
                                  "/api/auth/refresh", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()

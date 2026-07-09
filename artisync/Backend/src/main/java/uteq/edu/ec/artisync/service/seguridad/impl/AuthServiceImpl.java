@@ -182,7 +182,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!twoFactorService.validarCodigoOBackup(request.getCorreo(), request.getCodigo())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código 2FA o de respaldo incorrecto");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
@@ -309,10 +309,10 @@ public class AuthServiceImpl implements AuthService {
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         String tokenHash = hashSha256(request.getToken());
         TokenRecuperacion tokenRec = tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(tokenHash)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token de recuperación inválido o ya utilizado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este enlace ya ha sido utilizado o ha expirado"));
 
-        if (tokenRec.getFechaGeneracion().plusHours(24).isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El token de recuperación ha expirado");
+        if (tokenRec.getFechaGeneracion().plusMinutes(60).isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este enlace ya ha sido utilizado o ha expirado");
         }
 
         Usuario usuario = tokenRec.getUsuario();

@@ -36,4 +36,8 @@ public class RegisterRequest {
     private LocalDate fechaNacimiento;
 
     private String rol; // Ejemplo: "CLIENTE" o "CREADOR". Si es nulo, por defecto será "CLIENTE"
+
+    @NotNull(message = "Debes aceptar los términos y condiciones")
+    @AssertTrue(message = "Debes aceptar los términos y condiciones")
+    private Boolean aceptaTerminos;
 }

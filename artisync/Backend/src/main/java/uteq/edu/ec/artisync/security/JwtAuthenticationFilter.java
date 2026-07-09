@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -53,6 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String jti = claims.getId();
                 if (jti != null && Boolean.TRUE.equals(redisTemplate.hasKey("jti:" + jti))) {
                     log.debug("Token revocado rechazado en filtro (JTI: {})", jti);
+                    request.setAttribute("JWT_ERROR", "Token revocado u obsoleto");
                     filterChain.doFilter(request, response);
                     return;
                 }
@@ -79,8 +81,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+        } catch (ExpiredJwtException e) {
+            log.debug("Token JWT expirado: {}", e.getMessage());
+            request.setAttribute("JWT_ERROR", "Token expirado");
         } catch (Exception e) {
-            log.debug("Token JWT inválido o expirado: {}", e.getMessage());
+            log.debug("Token JWT inválido o malformado: {}", e.getMessage());
+            request.setAttribute("JWT_ERROR", "Credenciales inválidas o token malformado");
         }
 
         filterChain.doFilter(request, response);
