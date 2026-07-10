@@ -15,7 +15,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
@@ -277,18 +277,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public MessageResponse logout(String tokenHeader, String refreshToken) {
+    public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
             sessionRevocationService.revocarToken(refreshToken);
             sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);
         }
-        return new MessageResponse("Sesión cerrada exitosamente");
+        return new RespuestaMensaje("Sesión cerrada exitosamente");
     }
 
     @Override
     @Transactional
-    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
+    public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -> {
             String tokenPlain = UUID.randomUUID().toString();
             String tokenHash = hashSha256(tokenPlain);
@@ -301,12 +301,12 @@ public class AuthServiceImpl implements AuthService {
             log.debug("Generado token de recuperación para usuario ID: {}", usuario.getIdUsuario());
             emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), tokenPlain);
         });
-        return new MessageResponse("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
+        return new RespuestaMensaje("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
     }
 
     @Override
     @Transactional
-    public MessageResponse resetPassword(ResetPasswordRequest request) {
+    public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
         String tokenHash = hashSha256(request.getToken());
         TokenRecuperacion tokenRec = tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(tokenHash)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este enlace ya ha sido utilizado o ha expirado"));
@@ -322,7 +322,7 @@ public class AuthServiceImpl implements AuthService {
         tokenRec.setUsado(true);
         tokenRecuperacionRepository.save(tokenRec);
 
-        return new MessageResponse("Contraseña reestablecida exitosamente");
+        return new RespuestaMensaje("Contraseña reestablecida exitosamente");
     }
 
     private void registrarSesion(Usuario usuario, String token, long expirationMs) {
@@ -354,3 +354,4 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 }
+

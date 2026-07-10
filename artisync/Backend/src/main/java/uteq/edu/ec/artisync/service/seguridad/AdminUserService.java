@@ -4,7 +4,7 @@ import uteq.edu.ec.artisync.repository.perfil.*;
 
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
@@ -15,6 +15,7 @@ public interface AdminUserService {
     UserResponse updateUser(Long id, AdminUpdateUserRequest request);
     UserResponse changeEstado(Long id, ChangeEstadoRequest request);
     UserResponse assignRoles(Long id, AssignRolesRequest request);
-    MessageResponse revokeUserSessions(Long id);
+    RespuestaMensaje revokeUserSessions(Long id);
     void deleteUser(Long id);
 }
+

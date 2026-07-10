@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorConfirmRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 
@@ -31,13 +31,14 @@ public class TwoFactorController {
 
     @Operation(summary = "Confirmar y activar 2FA verificando el primer código TOTP generado por el autenticador")
     @PostMapping("/confirm")
-    public ResponseEntity<MessageResponse> confirm2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
+    public ResponseEntity<RespuestaMensaje> confirm2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
         return ResponseEntity.ok(twoFactorService.confirm2Fa(principal.getName(), request.getCodigo()));
     }
 
     @Operation(summary = "Desactivar 2FA verificando con un código TOTP o de respaldo")
     @DeleteMapping("/disable")
-    public ResponseEntity<MessageResponse> disable2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
+    public ResponseEntity<RespuestaMensaje> disable2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
         return ResponseEntity.ok(twoFactorService.disable2Fa(principal.getName(), request.getCodigo()));
     }
 }
+

@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
 import uteq.edu.ec.artisync.service.seguridad.PaisService;
 
@@ -53,7 +53,8 @@ public class PaisController {
     @Operation(summary = "Eliminar un país si no tiene usuarios asociados", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<MessageResponse> deletePais(@PathVariable Long id) {
+    public ResponseEntity<RespuestaMensaje> deletePais(@PathVariable Long id) {
         return ResponseEntity.ok(paisService.deletePais(id));
     }
 }
+

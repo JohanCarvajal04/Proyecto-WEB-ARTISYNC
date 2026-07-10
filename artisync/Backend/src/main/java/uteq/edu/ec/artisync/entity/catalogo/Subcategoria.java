@@ -1,6 +1,5 @@
 package uteq.edu.ec.artisync.entity.catalogo;
 
-import uteq.edu.ec.artisync.entity.perfil.Categoria;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,4 +29,8 @@ public class Subcategoria {
     @Size(max = 100, message = "El nombre de la subcategoria no puede superar los 100 caracteres")
     @Column(name = "nombre_subcategoria", nullable = false, length = 100)
     private String nombreSubcategoria;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

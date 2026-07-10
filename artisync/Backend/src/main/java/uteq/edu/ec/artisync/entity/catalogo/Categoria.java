@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.perfil;
+package uteq.edu.ec.artisync.entity.catalogo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -27,4 +27,8 @@ public class Categoria {
     @Builder.Default
     @Column(name = "estado_activa", nullable = false)
     private Boolean estadoActiva = true;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

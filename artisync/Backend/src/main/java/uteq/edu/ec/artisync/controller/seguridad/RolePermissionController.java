@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.RolResponse;
 import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
@@ -49,9 +49,9 @@ public class RolePermissionController {
     @Operation(summary = "Sincronizar la lista de permisos de un rol transaccionalmente")
     @PutMapping("/sync")
     @PreAuthorize("hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')")
-    public ResponseEntity<MessageResponse> syncPermissions(@Valid @RequestBody SyncPermissionsRequest request) {
+    public ResponseEntity<RespuestaMensaje> syncPermissions(@Valid @RequestBody SyncPermissionsRequest request) {
         service.syncPermissions(request.getRoleName(), request.getPermissionCodes());
-        return ResponseEntity.ok(new MessageResponse("Permisos sincronizados con éxito para el rol: " + request.getRoleName()));
+        return ResponseEntity.ok(new RespuestaMensaje("Permisos sincronizados con éxito para el rol: " + request.getRoleName()));
     }
 
     @Operation(summary = "Crear un nuevo rol personalizado con su matriz inicial de permisos")
@@ -71,8 +71,9 @@ public class RolePermissionController {
     @Operation(summary = "Eliminar un rol personalizado")
     @DeleteMapping("/roles/{idRol}")
     @PreAuthorize("hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<MessageResponse> deleteRole(@PathVariable Long idRol) {
+    public ResponseEntity<RespuestaMensaje> deleteRole(@PathVariable Long idRol) {
         service.deleteRole(idRol);
-        return ResponseEntity.ok(new MessageResponse("Rol eliminado exitosamente"));
+        return ResponseEntity.ok(new RespuestaMensaje("Rol eliminado exitosamente"));
     }
 }
+

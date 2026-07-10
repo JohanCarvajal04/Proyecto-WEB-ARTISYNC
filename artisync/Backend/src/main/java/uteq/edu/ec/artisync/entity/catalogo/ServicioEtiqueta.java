@@ -27,4 +27,8 @@ public class ServicioEtiqueta {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_etiqueta", nullable = false)
     private Etiqueta etiqueta;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

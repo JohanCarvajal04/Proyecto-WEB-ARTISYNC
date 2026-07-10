@@ -34,4 +34,8 @@ public class ServicioAtributo {
     @Size(max = 255, message = "El valor asignado no puede superar los 255 caracteres")
     @Column(name = "valor_asignado", nullable = false, length = 255)
     private String valorAsignado;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

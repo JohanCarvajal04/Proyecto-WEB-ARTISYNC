@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.dto.shared.ErrorResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaError;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -46,7 +46,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
+        RespuestaError respuestaError = RespuestaError.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
@@ -55,6 +55,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
                 .fieldErrors(null)
                 .build();
 
-        objectMapper.writeValue(response.getWriter(), errorResponse);
+        objectMapper.writeValue(response.getWriter(), respuestaError);
     }
 }
+

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.*;
@@ -199,12 +199,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    public MessageResponse revokeUserSessions(Long id) {
+    public RespuestaMensaje revokeUserSessions(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + id);
         }
         sessionRevocationService.revocarSesionesUsuario(id);
-        return new MessageResponse("Se han revocado exitosamente todas las sesiones del usuario ID: " + id);
+        return new RespuestaMensaje("Se han revocado exitosamente todas las sesiones del usuario ID: " + id);
     }
 
     private void actualizarRoles(Usuario usuario, List<String> nuevosRoles) {
@@ -224,3 +224,4 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 }
+

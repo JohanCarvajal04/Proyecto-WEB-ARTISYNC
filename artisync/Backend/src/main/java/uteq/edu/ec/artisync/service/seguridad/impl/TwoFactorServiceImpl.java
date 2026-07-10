@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
@@ -98,7 +98,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
-    public MessageResponse confirm2Fa(String correo, String codigo) {
+    public RespuestaMensaje confirm2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -112,12 +112,12 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         dosFactores.setEstaHabilitado(true);
         autenticacionDosFactoresRepository.save(dosFactores);
 
-        return new MessageResponse("Autenticación de dos factores activada exitosamente");
+        return new RespuestaMensaje("Autenticación de dos factores activada exitosamente");
     }
 
     @Override
     @Transactional
-    public MessageResponse disable2Fa(String correo, String codigo) {
+    public RespuestaMensaje disable2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -136,7 +136,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         autenticacionDosFactoresRepository.save(dosFactores);
         codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());
 
-        return new MessageResponse("Autenticación de dos factores desactivada exitosamente");
+        return new RespuestaMensaje("Autenticación de dos factores desactivada exitosamente");
     }
 
     @Override
@@ -198,3 +198,4 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
     }
 }
+

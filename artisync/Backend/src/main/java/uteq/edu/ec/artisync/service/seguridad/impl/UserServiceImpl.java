@@ -10,7 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.*;
 import uteq.edu.ec.artisync.repository.seguridad.*;
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public MessageResponse changePassword(String correo, ChangePasswordRequest request) {
+    public RespuestaMensaje changePassword(String correo, ChangePasswordRequest request) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -86,12 +86,12 @@ public class UserServiceImpl implements UserService {
 
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
 
-        return new MessageResponse("Contraseña cambiada exitosamente. Vuelve a iniciar sesión.");
+        return new RespuestaMensaje("Contraseña cambiada exitosamente. Vuelve a iniciar sesión.");
     }
 
     @Override
     @Transactional
-    public MessageResponse deleteOwnAccount(String correo) {
+    public RespuestaMensaje deleteOwnAccount(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -99,14 +99,15 @@ public class UserServiceImpl implements UserService {
         usuario.setEstadoCuenta(false); // Soft delete
         usuarioRepository.save(usuario);
 
-        return new MessageResponse("Cuenta desactivada exitosamente");
+        return new RespuestaMensaje("Cuenta desactivada exitosamente");
     }
 
     @Override
-    public MessageResponse revokeAllMySessions(String correo) {
+    public RespuestaMensaje revokeAllMySessions(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
-        return new MessageResponse("Todas las sesiones activas han sido cerradas.");
+        return new RespuestaMensaje("Todas las sesiones activas han sido cerradas.");
     }
 }
+

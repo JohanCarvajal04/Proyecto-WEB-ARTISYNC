@@ -28,4 +28,8 @@ public class AtributoDinamico {
     @Size(max = 50, message = "El tipo de dato no puede superar los 50 caracteres")
     @Column(name = "tipo_dato", nullable = false, length = 50)
     private String tipoDato;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

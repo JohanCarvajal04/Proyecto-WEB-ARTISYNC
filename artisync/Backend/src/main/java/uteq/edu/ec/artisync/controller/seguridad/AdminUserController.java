@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.util.PagedResponse;
@@ -79,7 +79,7 @@ public class AdminUserController {
     @Operation(summary = "Revocar inmediatamente todas las sesiones activas de un usuario")
     @DeleteMapping("/{id}/sesiones")
     @PreAuthorize("hasAuthority('SESION_REVOCAR') or hasRole('ADMIN')")
-    public ResponseEntity<MessageResponse> revokeUserSessions(@PathVariable Long id) {
+    public ResponseEntity<RespuestaMensaje> revokeUserSessions(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.revokeUserSessions(id));
     }
 
@@ -91,3 +91,4 @@ public class AdminUserController {
         return ResponseEntity.noContent().build();
     }
 }
+

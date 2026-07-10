@@ -6,11 +6,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
-import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.exception.DuplicateResourceException;
-import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
@@ -37,7 +37,7 @@ public class PaisServiceImpl implements PaisService {
     @Transactional(readOnly = true)
     public PaisResponse getPaisById(Long id) {
         Pais pais = paisRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("País no encontrado con ID: " + id));
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
         return toResponse(pais);
     }
 
@@ -46,7 +46,7 @@ public class PaisServiceImpl implements PaisService {
     public PaisResponse createPais(PaisRequest request) {
         String nombreTrimmed = request.getNombrePais().trim();
         if (paisRepository.findByNombrePais(nombreTrimmed).isPresent()) {
-            throw new DuplicateResourceException("Ya existe un país registrado con el nombre: " + nombreTrimmed);
+            throw new ExcepcionRecursoDuplicado("Ya existe un país registrado con el nombre: " + nombreTrimmed);
         }
 
         Pais pais = Pais.builder()
@@ -60,12 +60,12 @@ public class PaisServiceImpl implements PaisService {
     @Transactional
     public PaisResponse updatePais(Long id, PaisRequest request) {
         Pais pais = paisRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("País no encontrado con ID: " + id));
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
 
         String nombreTrimmed = request.getNombrePais().trim();
         paisRepository.findByNombrePais(nombreTrimmed).ifPresent(p -> {
             if (!p.getIdPais().equals(id)) {
-                throw new DuplicateResourceException("Ya existe otro país registrado con el nombre: " + nombreTrimmed);
+                throw new ExcepcionRecursoDuplicado("Ya existe otro país registrado con el nombre: " + nombreTrimmed);
             }
         });
 
@@ -75,16 +75,16 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional
-    public MessageResponse deletePais(Long id) {
+    public RespuestaMensaje deletePais(Long id) {
         Pais pais = paisRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("País no encontrado con ID: " + id));
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
 
         if (usuarioRepository.existsByPaisIdPais(id)) {
-            throw new BusinessRuleException("No se puede eliminar el país porque tiene usuarios asociados.");
+            throw new ExcepcionReglaNegocio("No se puede eliminar el país porque tiene usuarios asociados.");
         }
 
         paisRepository.delete(pais);
-        return new MessageResponse("País eliminado exitosamente");
+        return new RespuestaMensaje("País eliminado exitosamente");
     }
 
     private PaisResponse toResponse(Pais pais) {
@@ -94,3 +94,5 @@ public class PaisServiceImpl implements PaisService {
                 .build();
     }
 }
+
+

@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 
@@ -62,11 +62,12 @@ class UserControllerTest {
 
     @Test
     void deleteOwnAccount_ShouldReturnOk() {
-        when(userService.deleteOwnAccount("test@example.com")).thenReturn(new MessageResponse("Eliminado"));
+        when(userService.deleteOwnAccount("test@example.com")).thenReturn(new RespuestaMensaje("Eliminado"));
 
-        ResponseEntity<MessageResponse> result = userController.deleteOwnAccount(principal);
+        ResponseEntity<RespuestaMensaje> result = userController.deleteOwnAccount(principal);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals("Eliminado", result.getBody().getMensaje());
     }
 }
+

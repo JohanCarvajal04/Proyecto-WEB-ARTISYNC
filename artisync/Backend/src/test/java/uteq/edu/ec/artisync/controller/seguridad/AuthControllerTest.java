@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
 import uteq.edu.ec.artisync.dto.seguridad.request.LoginRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.RefreshTokenRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.service.seguridad.AuthService;
 
@@ -108,7 +108,7 @@ class AuthControllerTest {
     @Test
     void logout_ShouldReturnNoContentAndClearCookie() {
         when(request.getHeader("Authorization")).thenReturn("Bearer access-token");
-        when(authService.logout("Bearer access-token", "refresh-token")).thenReturn(new MessageResponse("Sesión cerrada exitosamente"));
+        when(authService.logout("Bearer access-token", "refresh-token")).thenReturn(new RespuestaMensaje("Sesión cerrada exitosamente"));
 
         ResponseEntity<Void> result = authController.logout(request, "refresh-token", response);
 
@@ -119,3 +119,4 @@ class AuthControllerTest {
         assertTrue(cookieHeader.contains("Max-Age=0"));
     }
 }
+

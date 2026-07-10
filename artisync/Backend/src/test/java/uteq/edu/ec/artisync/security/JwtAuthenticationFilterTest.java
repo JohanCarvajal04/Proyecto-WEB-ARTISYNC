@@ -4,7 +4,7 @@ import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.seguridad.response.*;
-import uteq.edu.ec.artisync.dto.shared.*;
+import uteq.edu.ec.artisync.dto.respuesta.comun.*;
 import uteq.edu.ec.artisync.service.seguridad.*;
 import uteq.edu.ec.artisync.service.seguridad.impl.*;
 import uteq.edu.ec.artisync.service.shared.*;
@@ -93,3 +93,4 @@ class JwtAuthenticationFilterTest {
         verify(userDetailsService, never()).loadUserByUsername(anyString());
     }
 }
+

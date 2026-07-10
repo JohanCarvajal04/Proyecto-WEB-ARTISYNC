@@ -12,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.util.PagedResponse;
@@ -76,3 +76,4 @@ class AdminUserControllerTest {
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
     }
 }
+

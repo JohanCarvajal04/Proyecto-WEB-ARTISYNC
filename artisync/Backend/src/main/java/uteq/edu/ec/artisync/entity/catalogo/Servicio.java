@@ -52,4 +52,26 @@ public class Servicio {
     @Size(max = 255, message = "La URL de la miniatura no puede superar los 255 caracteres")
     @Column(name = "url_miniatura", length = 255)
     private String urlMiniatura;
+
+    @NotBlank(message = "El tipo de item es obligatorio")
+    @Builder.Default
+    @Column(name = "tipo_item", nullable = false, length = 20)
+    private String tipoItem = "SERVICIO";
+
+    @NotBlank(message = "El estado de publicacion es obligatorio")
+    @Builder.Default
+    @Column(name = "estado_publicacion", nullable = false, length = 20)
+    private String estadoPublicacion = "ACTIVO";
+
+    @Builder.Default
+    @Column(name = "cargo_revision_adicional", precision = 10, scale = 2)
+    private BigDecimal cargoRevisionAdicional = BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "limite_revisiones_base")
+    private Integer limiteRevisionesBase = 0;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

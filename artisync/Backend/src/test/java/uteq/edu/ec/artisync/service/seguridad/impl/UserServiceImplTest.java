@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
@@ -112,7 +112,7 @@ class UserServiceImplTest {
     void deleteOwnAccount_ShouldRevokeSessionsAndDeleteUser() {
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
 
-        MessageResponse response = userService.deleteOwnAccount("user@example.com");
+        RespuestaMensaje response = userService.deleteOwnAccount("user@example.com");
 
         assertNotNull(response);
         assertEquals("Cuenta desactivada exitosamente", response.getMensaje());
@@ -121,3 +121,4 @@ class UserServiceImplTest {
         assertFalse(usuario.getEstadoCuenta());
     }
 }
+

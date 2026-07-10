@@ -11,10 +11,14 @@ import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 @Repository
-public interface ServicioRepository extends JpaRepository<Servicio, Long> {
+public interface ServicioRepository extends JpaRepository<Servicio, Long>, JpaSpecificationExecutor<Servicio> {
 
     List<Servicio> findByPerfilIdPerfil(Long idPerfil);
+
+    List<Servicio> findByPerfilIdPerfilAndEstadoPublicacion(Long idPerfil, String estadoPublicacion);
 
     List<Servicio> findBySubcategoriaIdSubcategoria(Long idSubcategoria);
 

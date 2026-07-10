@@ -23,4 +23,8 @@ public class Etiqueta {
     @Size(max = 50, message = "El nombre de la etiqueta no puede superar los 50 caracteres")
     @Column(name = "nombre_etiqueta", nullable = false, unique = true, length = 50)
     private String nombreEtiqueta;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "actualizado_en")
+    private java.time.LocalDateTime actualizadoEn;
 }

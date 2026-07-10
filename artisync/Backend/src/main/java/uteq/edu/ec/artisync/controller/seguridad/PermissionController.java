@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.controller.seguridad;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.seguridad.response.*;
-import uteq.edu.ec.artisync.dto.shared.*;
+import uteq.edu.ec.artisync.dto.respuesta.comun.*;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,3 +39,4 @@ public class PermissionController {
         return ResponseEntity.ok(permissions);
     }
 }
+

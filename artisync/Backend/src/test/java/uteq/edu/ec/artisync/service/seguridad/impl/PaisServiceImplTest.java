@@ -12,11 +12,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
-import uteq.edu.ec.artisync.dto.shared.MessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
-import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.exception.DuplicateResourceException;
-import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
@@ -61,7 +61,7 @@ class PaisServiceImplTest {
         PaisRequest request = new PaisRequest("Ecuador");
         when(paisRepository.findByNombrePais("Ecuador")).thenReturn(Optional.of(pais));
 
-        assertThrows(DuplicateResourceException.class, () -> paisService.createPais(request));
+        assertThrows(ExcepcionRecursoDuplicado.class, () -> paisService.createPais(request));
     }
 
     @Test
@@ -81,7 +81,7 @@ class PaisServiceImplTest {
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
         when(usuarioRepository.existsByPaisIdPais(1L)).thenReturn(true);
 
-        assertThrows(BusinessRuleException.class, () -> paisService.deletePais(1L));
+        assertThrows(ExcepcionReglaNegocio.class, () -> paisService.deletePais(1L));
     }
 
     @Test
@@ -89,9 +89,10 @@ class PaisServiceImplTest {
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
         when(usuarioRepository.existsByPaisIdPais(1L)).thenReturn(false);
 
-        MessageResponse response = paisService.deletePais(1L);
+        RespuestaMensaje response = paisService.deletePais(1L);
 
         assertEquals("País eliminado exitosamente", response.getMensaje());
         verify(paisRepository).delete(pais);
     }
 }
+
