@@ -1,0 +1,827 @@
+% ==============================================================================
+% PRESENTACIÓN LaTeX (Beamer) — Seguridad de BD ArtiSync
+% Universidad Técnica Estatal de Quevedo
+% ==============================================================================
+\documentclass[aspectratio=169]{beamer}
+
+% --- Tema y colores ---
+\usetheme{Madrid}
+\usecolortheme{whale}
+
+% Colores personalizados UTEQ
+\definecolor{uteqgreen}{RGB}{0,100,60}
+\definecolor{uteqdark}{RGB}{20,40,30}
+\definecolor{uteqlight}{RGB}{220,245,230}
+\definecolor{uteqaccent}{RGB}{0,150,90}
+\definecolor{sqlbg}{RGB}{245,245,250}
+\definecolor{sqlkey}{RGB}{0,0,170}
+\definecolor{sqlcom}{RGB}{0,128,0}
+
+\setbeamercolor{palette primary}{bg=uteqgreen,fg=white}
+\setbeamercolor{palette secondary}{bg=uteqdark,fg=white}
+\setbeamercolor{palette tertiary}{bg=uteqgreen,fg=white}
+\setbeamercolor{palette quaternary}{bg=uteqdark,fg=white}
+\setbeamercolor{structure}{fg=uteqgreen}
+\setbeamercolor{title}{fg=white,bg=uteqgreen}
+\setbeamercolor{frametitle}{fg=white,bg=uteqgreen}
+\setbeamercolor{block title}{bg=uteqgreen,fg=white}
+\setbeamercolor{block body}{bg=uteqlight,fg=black}
+\setbeamercolor{block title alerted}{bg=red!70!black,fg=white}
+\setbeamercolor{block body alerted}{bg=red!10,fg=black}
+\setbeamercolor{block title example}{bg=uteqaccent,fg=white}
+\setbeamercolor{block body example}{bg=green!5,fg=black}
+\setbeamercolor{item}{fg=uteqgreen}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{fontawesome5}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, calc}
+\usepackage{multicol}
+
+% --- Configuración SQL ---
+\lstdefinestyle{sqlbeamer}{
+    language=SQL,
+    backgroundcolor=\color{sqlbg},
+    basicstyle=\ttfamily\tiny,
+    keywordstyle=\color{sqlkey}\bfseries,
+    commentstyle=\color{sqlcom}\itshape,
+    stringstyle=\color{red!70!black},
+    frame=single,
+    rulecolor=\color{gray!40},
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=2,
+    morekeywords={SERIAL,BOOLEAN,TEXT,TIMESTAMP,DECIMAL,VARCHAR,
+                  REFERENCES,CASCADE,UNIQUE,DEFAULT,NOLOGIN,LOGIN,
+                  NOSUPERUSER,NOCREATEDB,NOCREATEROLE,NOINHERIT,
+                  CREATEDB,CREATEROLE,INHERIT,GRANT,REVOKE,ROLE,
+                  PASSWORD,CONNECTION,LIMIT,VALID,UNTIL,USAGE,
+                  SCHEMA,ALL,PRIVILEGES,ON,TO,CONNECT,OWNER,
+                  ENCODING,TABLESPACE,COMMENT}
+}
+\lstset{style=sqlbeamer}
+
+% --- Quitar navegación ---
+\setbeamertemplate{navigation symbols}{}
+
+% --- Pie de página ---
+\setbeamertemplate{footline}{
+    \leavevmode%
+    \hbox{%
+        \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{palette primary}%
+            \usebeamerfont{author in head/foot}\insertshortauthor
+        \end{beamercolorbox}%
+        \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{palette secondary}%
+            \usebeamerfont{title in head/foot}\insertshorttitle
+        \end{beamercolorbox}%
+        \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{palette tertiary}%
+            \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}
+            \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}
+        \end{beamercolorbox}}%
+    \vskip0pt%
+}
+
+% --- Datos ---
+\title[Seguridad BD ArtiSync]{Análisis de Seguridad de Base de Datos}
+\subtitle{Usuarios, Roles y Privilegios en PostgreSQL --- ArtiSync}
+\author[Bone, Carvajal, Figueroa, Rios]{
+    Bone Niurca \and Carvajal Johan \and Figueroa Bryan \and Rios Jhon
+}
+\institute[UTEQ]{
+    Facultad de Ciencias de la Ingeniería\\
+    Universidad Técnica Estatal de Quevedo
+}
+\date{\today}
+
+% ==============================================================================
+\begin{document}
+
+% --- PORTADA ---
+\begin{frame}
+\titlepage
+\end{frame}
+
+% --- ÍNDICE ---
+\begin{frame}{Contenido}
+\tableofcontents
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 1: INTRODUCCIÓN
+% ==============================================================================
+\section{Introducción}
+
+\begin{frame}{¿Qué es ArtiSync?}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \begin{block}{Plataforma de Marketplace Creativo}
+                ArtiSync conecta \textbf{artistas digitales} con \textbf{clientes} que buscan servicios creativos personalizados.
+            \end{block}
+            \vspace{0.3cm}
+            \textbf{Stack tecnológico:}
+            \begin{itemize}
+                \item \faJava\ Java 21 + Spring Boot 3.2
+                \item \faAngular\ Angular 17+
+                \item \faDatabase\ PostgreSQL 16
+                \item \faDocker\ Docker Compose
+                \item \faKey\ JWT + Spring Security 6
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.42\textwidth}
+            \begin{exampleblock}{7 Módulos Funcionales}
+                \scriptsize
+                \begin{enumerate}
+                    \item Seguridad y Control de Acceso
+                    \item Perfiles y Portafolio
+                    \item Catálogo de Servicios
+                    \item Pedidos y Flujos de Trabajo
+                    \item Legal y Finanzas (Escrow)
+                    \item Comunicación
+                    \item Social y Comunidad
+                \end{enumerate}
+            \end{exampleblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Objetivos del Análisis}
+    \begin{block}{Objetivo General}
+        Diseñar e implementar el modelo de seguridad a nivel de base de datos para ArtiSync aplicando el \textbf{principio de mínimo privilegio}.
+    \end{block}
+    \vspace{0.3cm}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{enumerate}
+                \item[\faUsers] Identificar los usuarios del sistema.
+                \item[\faUserShield] Definir roles para cada usuario.
+            \end{enumerate}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{enumerate}
+                \item[\faCog] Establecer privilegios del sistema.
+                \item[\faLock] Definir privilegios sobre objetos.
+            \end{enumerate}
+        \end{column}
+    \end{columns}
+    \vspace{0.3cm}
+    \begin{alertblock}{Principio Rector}
+        \centering \textbf{Principio de Mínimo Privilegio (PoLP):} cada rol recibe \textit{únicamente} los permisos necesarios para cumplir su función.
+    \end{alertblock}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 2: BASE DE DATOS
+% ==============================================================================
+\section{Estructura de la Base de Datos}
+
+\begin{frame}{Base de Datos: 37 Tablas en 7 Módulos}
+    \centering
+    \scriptsize
+    \begin{tabular}{>{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}p{9cm} c}
+        \toprule
+        \textbf{Módulo} & \textbf{Tablas principales} & \textbf{Cant.} \\
+        \midrule
+        \faShieldAlt\ Seguridad & \texttt{roles, permisos, usuarios, sesiones\_usuario, tokens\_recuperacion, autenticacion\_dos\_factores} & 9 \\
+        \midrule
+        \faUserCircle\ Perfiles & \texttt{perfiles\_creadores, certificados\_ia, habilidades, portafolios, portafolio\_items} & 7 \\
+        \midrule
+        \faStore\ Catálogo & \texttt{categorias, subcategorias, servicios, atributos\_dinamicos, etiquetas} & 7 \\
+        \midrule
+        \faClipboardList\ Pedidos & \texttt{flujos\_trabajo, etapas\_flujo, pedidos, historial\_estados\_pedido, tickets\_revision} & 7 \\
+        \midrule
+        \faFileContract\ Finanzas & \texttt{contratos, pagos\_garantia, transacciones\_pago, entregables\_finales} & 5 \\
+        \midrule
+        \faComments\ Comunicación & \texttt{salas\_chat, mensajes, documentos\_adjuntos, notificaciones\_sistema} & 5 \\
+        \midrule
+        \faHeart\ Social & \texttt{seguidores, comentarios\_portafolio, likes\_portafolio, resenas\_servicios, sorteos} & 6 \\
+        \bottomrule
+    \end{tabular}
+\end{frame}
+
+\begin{frame}{Creación de la Base de Datos}
+    \begin{lstlisting}[title={Fase 0: CREATE DATABASE}]
+CREATE DATABASE artisyncbd
+    WITH
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'es_EC.UTF-8'
+    LC_CTYPE = 'es_EC.UTF-8'
+    LOCALE_PROVIDER = 'libc'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1
+    IS_TEMPLATE = False;
+
+COMMENT ON DATABASE artisyncbd IS
+    'Base de datos principal de la plataforma ArtiSync - '
+    'Marketplace creativo para artistas digitales.';
+    \end{lstlisting}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 3: USUARIOS
+% ==============================================================================
+\section{Identificación de Usuarios}
+
+\begin{frame}{Usuarios del Sistema}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\faUsers\ Usuarios de Negocio (6)}
+                \scriptsize
+                \begin{description}
+                    \item[\faUserCog\ Administrador] Superusuario. Gestiona usuarios, roles, catálogos y configuración global.
+                    \item[\faPaintBrush\ Creador] Artista que ofrece servicios, gestiona perfil y portafolio.
+                    \item[\faShoppingCart\ Cliente] Contrata servicios, realiza pedidos y evalúa trabajos.
+                    \item[\faEye\ Moderador] Revisa certificados IA, modera comentarios y reportes.
+                    \item[\faHeadset\ Soporte] Atiende incidencias consultando cuentas y pedidos.
+                    \item[\faChartLine\ Auditor Fin.] Supervisa transacciones y genera reportes contables.
+                \end{description}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\faRobot\ Usuarios Técnicos (3)}
+                \scriptsize
+                \begin{description}
+                    \item[\faServer\ App Backend] Usuario no humano del servicio Spring Boot para operaciones CRUD vía JPA.
+                    \item[\faHdd\ Backup] Tareas automatizadas de respaldo con \texttt{pg\_dump}.
+                    \item[\faChartBar\ Solo Lectura] Herramientas de monitoreo y dashboards (Grafana, Metabase).
+                \end{description}
+            \end{block}
+            \vspace{0.2cm}
+            \begin{alertblock}{\faExclamationTriangle\ Total}
+                \centering \textbf{9 tipos de usuarios} identificados
+            \end{alertblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 4: ROLES
+% ==============================================================================
+\section{Definición de Roles}
+
+\begin{frame}{Modelo RBAC: Roles de Grupo y Usuarios de Login}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\faLayerGroup\ Roles de Grupo (\texttt{NOLOGIN})}
+                \scriptsize
+                Agrupaciones lógicas de permisos:
+                \begin{enumerate}
+                    \item \texttt{rol\_app\_backend}
+                    \item \texttt{rol\_administrador}
+                    \item \texttt{rol\_moderador}
+                    \item \texttt{rol\_soporte}
+                    \item \texttt{rol\_auditor\_fin}
+                    \item \texttt{rol\_backup}
+                    \item \texttt{rol\_solo\_lectura}
+                \end{enumerate}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\faSignInAlt\ Usuarios de Login}
+                \scriptsize
+                Cuentas con conexión a la BD:
+                \begin{enumerate}
+                    \item \texttt{artisync\_app} $\rightarrow$ \texttt{rol\_app\_backend}
+                    \item \texttt{artisync\_admin} $\rightarrow$ \texttt{rol\_administrador}
+                    \item \texttt{artisync\_moderador} $\rightarrow$ \texttt{rol\_moderador}
+                    \item \texttt{artisync\_soporte} $\rightarrow$ \texttt{rol\_soporte}
+                    \item \texttt{artisync\_auditor} $\rightarrow$ \texttt{rol\_auditor\_fin}
+                    \item \texttt{artisync\_backup} $\rightarrow$ \texttt{rol\_backup}
+                    \item \texttt{artisync\_readonly} $\rightarrow$ \texttt{rol\_solo\_lectura}
+                \end{enumerate}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Diagrama de Jerarquía de Roles}
+    \centering
+    \begin{tikzpicture}[
+        role/.style={rectangle, draw=uteqgreen!80, fill=uteqgreen!15, thick,
+            minimum width=2.6cm, minimum height=0.65cm,
+            font=\scriptsize\ttfamily, align=center, rounded corners=3pt},
+        user/.style={rectangle, draw=blue!60, fill=blue!10, thick,
+            minimum width=2.2cm, minimum height=0.55cm,
+            font=\scriptsize\ttfamily, align=center, rounded corners=3pt},
+        arrow/.style={-{Stealth[length=4pt]}, thick, draw=gray!60},
+        inherit/.style={-{Stealth[length=5pt]}, very thick, draw=uteqaccent, dashed},
+        node distance=0.5cm and 0.6cm
+    ]
+        % Roles de grupo - fila superior
+        \node[role] (admin) {rol\_administrador};
+        \node[role, below left=1.0cm and 0.6cm of admin] (app) {rol\_app\_backend};
+        \node[role, below=1.0cm of admin] (mod) {rol\_moderador};
+        \node[role, below right=1.0cm and 0.6cm of admin] (sop) {rol\_soporte};
+
+        % Roles de grupo - fila inferior
+        \node[role, below=1.0cm of app] (aud) {rol\_auditor\_fin};
+        \node[role, below=1.0cm of mod] (bkp) {rol\_backup};
+        \node[role, below=1.0cm of sop] (ro) {rol\_solo\_lectura};
+
+        % Usuarios de login
+        \node[user, below=0.6cm of admin] (ua) {\footnotesize artisync\_admin};
+        \node[user, below=1.5cm of app] (uapp) {\footnotesize artisync\_app};
+        \node[user, below=0.6cm of mod] (umod) {\footnotesize artisync\_moderador};
+        \node[user, below=0.6cm of sop] (usop) {\footnotesize artisync\_soporte};
+        \node[user, below=0.6cm of aud] (uaud) {\footnotesize artisync\_auditor};
+        \node[user, below=0.6cm of bkp] (ubkp) {\footnotesize artisync\_backup};
+        \node[user, below=0.6cm of ro] (uro) {\footnotesize artisync\_readonly};
+
+        % Herencia
+        \draw[inherit] (admin) -- node[left, font=\tiny\itshape, text=uteqaccent] {hereda} (app);
+
+        % Usuarios -> Roles
+        \draw[arrow] (ua) -- (admin);
+        \draw[arrow] (uapp) -- (app);
+        \draw[arrow] (umod) -- (mod);
+        \draw[arrow] (usop) -- (sop);
+        \draw[arrow] (uaud) -- (aud);
+        \draw[arrow] (ubkp) -- (bkp);
+        \draw[arrow] (uro) -- (ro);
+    \end{tikzpicture}
+
+    \vspace{0.2cm}
+    \scriptsize
+    \textcolor{uteqaccent}{\rule{1cm}{2pt}} Herencia de rol \quad
+    \textcolor{gray}{\rule{1cm}{1pt}} Membresía de usuario
+\end{frame}
+
+\begin{frame}{Código: Creación de Roles de Grupo}
+    \begin{lstlisting}[title={Roles de Grupo (NOLOGIN)}]
+-- Rol para la aplicacion backend (Spring Boot / JPA)
+CREATE ROLE rol_app_backend
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+
+-- Rol de administrador (hereda del backend + DDL)
+CREATE ROLE rol_administrador
+    NOLOGIN NOSUPERUSER CREATEDB CREATEROLE INHERIT;
+GRANT rol_app_backend TO rol_administrador;
+
+-- Rol de moderador
+CREATE ROLE rol_moderador
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+
+-- Rol de soporte tecnico
+CREATE ROLE rol_soporte
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+
+-- Rol de auditor financiero
+CREATE ROLE rol_auditor_fin
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+
+-- Rol de backup (lectura completa para pg_dump)
+CREATE ROLE rol_backup
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+GRANT pg_read_all_data TO rol_backup;
+
+-- Rol de solo lectura (monitoreo/BI)
+CREATE ROLE rol_solo_lectura
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}{Código: Creación de Usuarios de Login}
+    \begin{lstlisting}[title={Usuarios de Login con contraseña}]
+CREATE ROLE artisync_app LOGIN PASSWORD 'App$ecure2026!'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 20 VALID UNTIL '2027-12-31';
+GRANT rol_app_backend TO artisync_app;
+
+CREATE ROLE artisync_admin LOGIN PASSWORD 'Adm!nStr0ng2026'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 3;
+GRANT rol_administrador TO artisync_admin;
+
+CREATE ROLE artisync_moderador LOGIN PASSWORD 'M0d3r@t0r2026'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 5;
+GRANT rol_moderador TO artisync_moderador;
+
+CREATE ROLE artisync_soporte LOGIN PASSWORD 'S0p0rt3$2026'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 5;
+GRANT rol_soporte TO artisync_soporte;
+
+CREATE ROLE artisync_auditor LOGIN PASSWORD 'Aud!t0r2026$'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 2;
+GRANT rol_auditor_fin TO artisync_auditor;
+
+CREATE ROLE artisync_backup LOGIN PASSWORD 'B@ckup$2026Secure'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 2;
+GRANT rol_backup TO artisync_backup;
+
+CREATE ROLE artisync_readonly LOGIN PASSWORD 'R3@d0nly2026!'
+    NOSUPERUSER INHERIT CONNECTION LIMIT 10;
+GRANT rol_solo_lectura TO artisync_readonly;
+    \end{lstlisting}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 5: PRIVILEGIOS DEL SISTEMA
+% ==============================================================================
+\section{Privilegios del Sistema}
+
+\begin{frame}{Privilegios del Sistema por Rol}
+    \centering
+    \scriptsize
+    \begin{tabular}{>{\ttfamily\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{3.8cm} >{\raggedright\arraybackslash}p{5.5cm}}
+        \toprule
+        \textbf{Rol} & \textbf{Privilegios} & \textbf{Justificación} \\
+        \midrule
+        rol\_administrador & \texttt{CREATEROLE}, \texttt{CREATEDB} & Crear roles personalizados y bases de prueba. \\
+        \midrule
+        rol\_app\_backend & \texttt{LOGIN}, \texttt{CONNECT} & Conexión JDBC; sin capacidad administrativa. \\
+        \midrule
+        rol\_moderador & \texttt{LOGIN}, \texttt{CONNECT} & Solo conexión; DML parcial. \\
+        \midrule
+        rol\_soporte & \texttt{LOGIN}, \texttt{CONNECT} & Solo conexión y consultas de lectura. \\
+        \midrule
+        rol\_auditor\_fin & \texttt{LOGIN}, \texttt{CONNECT} & Solo lectura sobre finanzas. \\
+        \midrule
+        rol\_backup & \texttt{LOGIN}, \texttt{pg\_read\_all\_data} & Lectura total para \texttt{pg\_dump}. \\
+        \midrule
+        rol\_solo\_lectura & \texttt{LOGIN}, \texttt{CONNECT} & Conexión mínima para BI. \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{0.3cm}
+    \begin{alertblock}{\faInfoCircle\ Nota}
+        PostgreSQL no tiene \texttt{BACKUP DATABASE}. Se usa \texttt{pg\_read\_all\_data} como equivalente funcional.
+    \end{alertblock}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 6: PRIVILEGIOS SOBRE OBJETOS
+% ==============================================================================
+\section{Privilegios sobre Objetos}
+
+\begin{frame}{Privilegios: Backend y Administrador}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\texttt{rol\_app\_backend} --- DML Completo}
+                \scriptsize
+                \begin{tabular}{ll}
+                    \toprule
+                    \textbf{Privilegio} & \textbf{Objetos} \\
+                    \midrule
+                    \texttt{SELECT} & 37 tablas \\
+                    \texttt{INSERT} & 37 tablas \\
+                    \texttt{UPDATE} & 37 tablas \\
+                    \texttt{DELETE} & 37 tablas \\
+                    \texttt{USAGE} & Todas las secuencias \\
+                    \texttt{EXECUTE} & Funciones PL/pgSQL \\
+                    \texttt{USAGE} & \texttt{SCHEMA public} \\
+                    \bottomrule
+                \end{tabular}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\texttt{rol\_administrador} --- ALL + DDL}
+                \scriptsize
+                Hereda todo de \texttt{rol\_app\_backend} y añade:
+                \begin{tabular}{ll}
+                    \toprule
+                    \textbf{Privilegio} & \textbf{Objetos} \\
+                    \midrule
+                    \texttt{ALL} & Todas las tablas \\
+                    \texttt{CREATE} & \texttt{SCHEMA public} \\
+                    \texttt{EXECUTE} & Todas las funciones \\
+                    \texttt{TRIGGER} & Todas las tablas \\
+                    \bottomrule
+                \end{tabular}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Privilegios: Moderador y Soporte}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\texttt{rol\_moderador}}
+                \scriptsize
+                \begin{tabular}{lp{3.5cm}}
+                    \toprule
+                    \textbf{Priv.} & \textbf{Tablas} \\
+                    \midrule
+                    \texttt{S} & \texttt{usuarios}, \texttt{perfiles\_creadores}, \texttt{portafolio\_items}, \texttt{servicios}, \texttt{likes\_portafolio} \\
+                    \midrule
+                    \texttt{S,U} & \texttt{certificados\_ia} \\
+                    \midrule
+                    \texttt{S,U,D} & \texttt{comentarios\_portafolio}, \texttt{sorteos} \\
+                    \bottomrule
+                \end{tabular}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\texttt{rol\_soporte} --- Solo Lectura}
+                \scriptsize
+                \texttt{SELECT} únicamente sobre:
+                \begin{itemize}
+                    \item \texttt{usuarios}, \texttt{usuario\_roles}
+                    \item \texttt{sesiones\_usuario}
+                    \item \texttt{pedidos}, \texttt{historial\_estados\_pedido}
+                    \item \texttt{tickets\_revision}
+                    \item \texttt{salas\_chat}, \texttt{mensajes}
+                    \item \texttt{notificaciones\_sistema}
+                    \item \texttt{servicios}, \texttt{contratos}
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Privilegios: Auditor, Backup y Solo Lectura}
+    \begin{columns}[T]
+        \begin{column}{0.32\textwidth}
+            \begin{block}{\scriptsize \texttt{rol\_auditor\_fin}}
+                \scriptsize
+                \texttt{SELECT} sobre:
+                \begin{itemize}
+                    \item \texttt{contratos}
+                    \item \texttt{plantillas\_contrato}
+                    \item \texttt{pagos\_garantia}
+                    \item \texttt{transacciones\_pago}
+                    \item \texttt{pedidos}
+                    \item \texttt{entregables\_finales}
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.32\textwidth}
+            \begin{block}{\scriptsize \texttt{rol\_backup}}
+                \scriptsize
+                \begin{itemize}
+                    \item \texttt{pg\_read\_all\_data}
+                    \item Lectura completa de todo el esquema
+                    \item Para ejecutar \texttt{pg\_dump}
+                    \item Sin capacidad de modificación
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.32\textwidth}
+            \begin{block}{\scriptsize \texttt{rol\_solo\_lectura}}
+                \scriptsize
+                \begin{itemize}
+                    \item \texttt{SELECT} sobre todas las tablas
+                    \item \texttt{USAGE} en \texttt{SCHEMA public}
+                    \item Para Grafana, Metabase y dashboards
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.3cm}
+    \centering
+    \begin{exampleblock}{\faCheckCircle\ Principio Aplicado}
+        Cada rol accede \textbf{exclusivamente} a las tablas requeridas por su función con los permisos \textbf{estrictamente necesarios}.
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Matriz Resumen de Privilegios}
+    \centering
+    \scriptsize
+    \begin{tabular}{l c c c c c c c}
+        \toprule
+        \textbf{Rol / Módulo} & \textbf{Seguridad} & \textbf{Perfiles} & \textbf{Catálogo} & \textbf{Pedidos} & \textbf{Finanzas} & \textbf{Comunic.} & \textbf{Social} \\
+        \midrule
+        \texttt{rol\_app\_backend}   & SIUD & SIUD & SIUD & SIUD & SIUD & SIUD & SIUD \\
+        \texttt{rol\_administrador}  & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL \\
+        \texttt{rol\_moderador}      & S & S,U & S & --- & --- & --- & S,U,D \\
+        \texttt{rol\_soporte}        & S & S & --- & S & --- & S & --- \\
+        \texttt{rol\_auditor\_fin}   & --- & --- & --- & S & S & --- & --- \\
+        \texttt{rol\_backup}         & S* & S* & S* & S* & S* & S* & S* \\
+        \texttt{rol\_solo\_lectura}  & S & S & S & S & S & S & S \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{0.2cm}
+    \tiny S=SELECT, I=INSERT, U=UPDATE, D=DELETE, DDL=CREATE/ALTER/DROP, S*=pg\_read\_all\_data
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 7: CÓDIGO DE PRIVILEGIOS
+% ==============================================================================
+\section{Código de Privilegios}
+
+\begin{frame}{Código: Privilegios del Backend}
+    \begin{lstlisting}[title={DML completo para rol\_app\_backend}]
+-- Revocar privilegios por defecto
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
+
+-- USAGE del esquema
+GRANT USAGE ON SCHEMA public TO rol_app_backend;
+GRANT CREATE ON SCHEMA public TO rol_administrador;
+
+-- SELECT, INSERT, UPDATE, DELETE sobre TODAS las tablas
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON ALL TABLES IN SCHEMA public TO rol_app_backend;
+
+-- USAGE sobre todas las secuencias (SERIAL)
+GRANT USAGE, SELECT
+    ON ALL SEQUENCES IN SCHEMA public TO rol_app_backend;
+
+-- EXECUTE sobre funciones PL/pgSQL
+GRANT EXECUTE
+    ON ALL FUNCTIONS IN SCHEMA public TO rol_app_backend;
+
+-- Privilegios por defecto para tablas FUTURAS
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO rol_app_backend;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO rol_app_backend;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT EXECUTE ON FUNCTIONS TO rol_app_backend;
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}{Código: Privilegios Moderador, Soporte y Auditor}
+    \begin{lstlisting}[title={Privilegios granulares por rol}]
+-- === ROL MODERADOR ===
+GRANT SELECT ON usuarios, perfiles_creadores, portafolio_items,
+    portafolios, servicios, likes_portafolio,
+    estados_verificacion, habilidades TO rol_moderador;
+GRANT SELECT, UPDATE ON certificados_ia TO rol_moderador;
+GRANT SELECT, UPDATE, DELETE ON comentarios_portafolio TO rol_moderador;
+GRANT SELECT, UPDATE, DELETE ON sorteos TO rol_moderador;
+
+-- === ROL SOPORTE (solo lectura operativa) ===
+GRANT SELECT ON usuarios, usuario_roles, roles, perfiles_creadores,
+    sesiones_usuario, pedidos, historial_estados_pedido,
+    tickets_revision, salas_chat, mensajes, documentos_adjuntos,
+    notificaciones_sistema, servicios, contratos TO rol_soporte;
+
+-- === ROL AUDITOR FINANCIERO (solo lectura financiera) ===
+GRANT SELECT ON contratos, plantillas_contrato, pagos_garantia,
+    transacciones_pago, pedidos, entregables_finales,
+    servicios, usuarios TO rol_auditor_fin;
+
+-- === ROL SOLO LECTURA (SELECT global) ===
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO rol_solo_lectura;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT ON TABLES TO rol_solo_lectura;
+    \end{lstlisting}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 8: HARDENING
+% ==============================================================================
+\section{Hardening y Verificación}
+
+\begin{frame}{Hardening: Revocación de Privilegios Peligrosos}
+    \begin{lstlisting}[title={Revocación explícita y endurecimiento}]
+-- Revocar CONNECT a la BD para PUBLIC
+REVOKE CONNECT ON DATABASE artisyncbd FROM PUBLIC;
+
+-- Otorgar CONNECT solo a roles autorizados
+GRANT CONNECT ON DATABASE artisyncbd TO rol_app_backend;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_administrador;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_moderador;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_soporte;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_auditor_fin;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_backup;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_solo_lectura;
+
+-- Revocar CREATE sobre esquema para roles no admin
+REVOKE CREATE ON SCHEMA public FROM rol_app_backend;
+REVOKE CREATE ON SCHEMA public FROM rol_moderador;
+REVOKE CREATE ON SCHEMA public FROM rol_soporte;
+
+-- Revocar TRUNCATE para evitar eliminaciones masivas
+REVOKE TRUNCATE ON ALL TABLES IN SCHEMA public
+    FROM rol_app_backend;
+REVOKE TRUNCATE ON ALL TABLES IN SCHEMA public
+    FROM rol_moderador;
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}{Consultas de Verificación}
+    \begin{lstlisting}[title={Validar la configuracion de seguridad}]
+-- Listar todos los roles creados
+SELECT rolname, rolsuper, rolcreaterole, rolcreatedb,
+       rolcanlogin, rolconnlimit
+FROM pg_roles
+WHERE rolname LIKE 'artisync_%' OR rolname LIKE 'rol_%';
+
+-- Verificar membresias de roles
+SELECT r.rolname AS usuario, m.rolname AS miembro_de
+FROM pg_auth_members am
+JOIN pg_roles r ON am.member = r.oid
+JOIN pg_roles m ON am.roleid = m.oid
+WHERE r.rolname LIKE 'artisync_%';
+
+-- Verificar privilegios sobre tablas
+SELECT grantee, table_name, privilege_type
+FROM information_schema.table_privileges
+WHERE table_schema = 'public' AND grantee LIKE 'rol_%'
+ORDER BY grantee, table_name, privilege_type;
+
+-- Verificar que PUBLIC no tiene acceso
+SELECT grantee, table_name, privilege_type
+FROM information_schema.table_privileges
+WHERE table_schema = 'public' AND grantee = 'PUBLIC';
+    \end{lstlisting}
+\end{frame}
+
+% ==============================================================================
+% SECCIÓN 9: DOBLE CAPA
+% ==============================================================================
+\section{Seguridad en Doble Capa}
+
+\begin{frame}{Relación: Roles de BD vs Roles de Aplicación}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\faDatabase\ Capa de Base de Datos}
+                \scriptsize
+                \begin{itemize}
+                    \item Roles PostgreSQL (\texttt{rol\_*})
+                    \item Controlan acceso a nivel de \textbf{tablas y esquema}
+                    \item Privilegios: \texttt{SELECT}, \texttt{INSERT}, etc.
+                    \item Defensa perimetral de datos
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{\faCode\ Capa de Aplicación}
+                \scriptsize
+                \begin{itemize}
+                    \item Roles en tabla \texttt{roles} (ADMIN, CREADOR, CLIENTE, MODERADOR, SOPORTE, AUDITOR\_FINANCIERO)
+                    \item Spring Security + JWT
+                    \item Permisos granulares: \texttt{USUARIO\_VER}, \texttt{ROL\_GESTIONAR}, etc.
+                    \item Filtrado por lógica de negocio
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.3cm}
+    \centering
+    \scriptsize
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Rol Aplicación} & \textbf{Rol BD} & \textbf{Relación} \\
+        \midrule
+        ADMIN & \texttt{rol\_administrador} & Acceso directo + vía API \\
+        CREADOR & \texttt{rol\_app\_backend} & Solo vía API (mediado) \\
+        CLIENTE & \texttt{rol\_app\_backend} & Solo vía API (mediado) \\
+        MODERADOR & \texttt{rol\_moderador} & Panel directo + API \\
+        SOPORTE & \texttt{rol\_soporte} & Herramienta de soporte \\
+        AUDITOR\_FINANCIERO & \texttt{rol\_auditor\_fin} & Reportes directos \\
+        \bottomrule
+    \end{tabular}
+\end{frame}
+
+% ==============================================================================
+% CONCLUSIONES
+% ==============================================================================
+\section{Conclusiones}
+
+\begin{frame}{Conclusiones}
+    \begin{enumerate}
+        \item[\faUsers] Se identificaron \textbf{9 tipos de usuarios}: 6 de negocio y 3 técnicos.
+
+        \vspace{0.2cm}
+        \item[\faLayerGroup] Se definieron \textbf{7 roles de grupo} en PostgreSQL con jerarquía clara de herencia.
+
+        \vspace{0.2cm}
+        \item[\faCog] Los \textbf{privilegios de sistema} se asignaron restrictivamente: solo el administrador posee \texttt{CREATEROLE} y \texttt{CREATEDB}.
+
+        \vspace{0.2cm}
+        \item[\faLock] Los \textbf{privilegios sobre objetos} siguen el principio de mínimo privilegio: cada rol accede exclusivamente a sus tablas necesarias.
+
+        \vspace{0.2cm}
+        \item[\faShieldAlt] Se implementó \textbf{seguridad en doble capa}: base de datos (PostgreSQL) + aplicación (Spring Security con JWT).
+    \end{enumerate}
+
+    \vspace{0.3cm}
+    \begin{exampleblock}{\faCheckCircle\ Resultado}
+        \centering Script idempotente, documentado y verificable listo para despliegue en desarrollo, staging y producción.
+    \end{exampleblock}
+\end{frame}
+
+% --- CIERRE ---
+\begin{frame}
+    \centering
+    \vspace{1.5cm}
+    {\Huge\bfseries\textcolor{uteqgreen}{¡Gracias!}}
+
+    \vspace{0.8cm}
+    {\Large Preguntas y Respuestas}
+
+    \vspace{1cm}
+    \small
+    Bone Niurca $\cdot$ Carvajal Johan $\cdot$ Figueroa Bryan $\cdot$ Rios Jhon
+
+    \vspace{0.3cm}
+    \scriptsize
+    Universidad Técnica Estatal de Quevedo\\
+    Facultad de Ciencias de la Ingeniería
+
+    \vspace{0.5cm}
+    \faGithub\ ArtiSync --- \faDatabase\ PostgreSQL 16
+\end{frame}
+
+\end{document}

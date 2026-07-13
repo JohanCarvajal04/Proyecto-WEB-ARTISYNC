@@ -1,0 +1,1190 @@
+% ==============================================================================
+% DOCUMENTO LaTeX — Análisis de Seguridad de Base de Datos ArtiSync
+% Formato: IEEE Conference — Universidad Técnica Estatal de Quevedo
+% ==============================================================================
+\documentclass[conference, onecolumn]{IEEEtran}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+\urlstyle{same}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+
+% --- Configuración de colores para código SQL ---
+\definecolor{sqlkeyword}{RGB}{0,0,180}
+\definecolor{sqlcomment}{RGB}{0,128,0}
+\definecolor{sqlstring}{RGB}{163,21,21}
+\definecolor{sqlbackground}{RGB}{248,248,248}
+\definecolor{sqlframe}{RGB}{200,200,200}
+
+\lstdefinestyle{sqlstyle}{
+    language=SQL,
+    backgroundcolor=\color{sqlbackground},
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{sqlkeyword}\bfseries,
+    commentstyle=\color{sqlcomment}\itshape,
+    stringstyle=\color{sqlstring},
+    frame=single,
+    rulecolor=\color{sqlframe},
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    captionpos=b,
+    morekeywords={SERIAL,BIGSERIAL,BOOLEAN,TEXT,TIMESTAMP,DECIMAL,VARCHAR,
+                  REFERENCES,CASCADE,UNIQUE,CHECK,DEFAULT,IF,EXISTS,
+                  FUNCTION,RETURNS,TRIGGER,LANGUAGE,plpgsql,EXECUTE,
+                  PROCEDURE,RETURN,NEW,OLD,BEGIN,END,RAISE,NOTICE,
+                  REVOKE,GRANT,ROLE,LOGIN,PASSWORD,NOLOGIN,INHERIT,
+                  NOINHERIT,CREATEDB,NOCREATEDB,CREATEROLE,NOCREATEROLE,
+                  SUPERUSER,NOSUPERUSER,REPLICATION,NOREPLICATION,
+                  CONNECTION,LIMIT,VALID,UNTIL,OWNER,SECURITY,DEFINER,
+                  USAGE,SCHEMA,ALL,PRIVILEGES,ON,TO,WITH,OPTION,
+                  CONNECT,TEMPORARY,SET,IN,MEMBER,OF}
+}
+\lstset{style=sqlstyle}
+
+% --- Datos del documento ---
+\title{Análisis de Seguridad de Base de Datos:\\
+Identificación de Usuarios, Roles y Privilegios\\
+para el Sistema ArtiSync}
+
+\author{
+\IEEEauthorblockN{Bone Niurca\IEEEauthorrefmark{1},
+Carvajal Johan\IEEEauthorrefmark{1},
+Figueroa Bryan\IEEEauthorrefmark{1},
+Rios Jhon\IEEEauthorrefmark{1}}
+\IEEEauthorblockA{\IEEEauthorrefmark{1}Facultad de Ciencias de la Ingeniería\\
+Universidad Técnica Estatal de Quevedo\\
+Quevedo, Los Ríos, Ecuador}
+}
+
+\begin{document}
+
+\maketitle
+
+% ==============================================================================
+% RESUMEN
+% ==============================================================================
+\begin{abstract}
+El presente documento realiza un análisis exhaustivo de la seguridad a nivel de base de datos para el sistema \textbf{ArtiSync}, una plataforma web de marketplace creativo que conecta artistas digitales con clientes. Se identifican los tipos de usuarios del sistema, se definen los roles de base de datos en PostgreSQL 16, y se establecen tanto los privilegios de sistema (\texttt{CREATE ROLE}, \texttt{BACKUP DATABASE}, etc.) como los privilegios sobre objetos (\texttt{SELECT}, \texttt{INSERT}, \texttt{UPDATE}, \texttt{DELETE}, \texttt{EXECUTE}). La implementación sigue el principio de mínimo privilegio (\textit{Principle of Least Privilege}) y se complementa con el código SQL completo para la creación de roles, usuarios y asignación de permisos en PostgreSQL.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Seguridad de bases de datos, PostgreSQL, roles, privilegios, control de acceso, RBAC, ArtiSync.
+\end{IEEEkeywords}
+
+% ==============================================================================
+% I. INTRODUCCIÓN
+% ==============================================================================
+\section{Introducción}
+
+La seguridad de la información constituye uno de los pilares fundamentales en el desarrollo de sistemas de información modernos. En el contexto de bases de datos relacionales, la correcta identificación de usuarios, la definición precisa de roles y la asignación granular de privilegios representan la primera línea de defensa contra accesos no autorizados, modificaciones indebidas y fugas de información.
+
+\textbf{ArtiSync} es una plataforma web de marketplace creativo desarrollada con Spring Boot 3.2, Angular 17+ y PostgreSQL 16, cuyo propósito es conectar a creadores digitales (artistas, diseñadores, músicos, etc.) con clientes que buscan servicios creativos personalizados. El sistema abarca siete módulos funcionales: \textit{(1)} Seguridad y Control de Acceso, \textit{(2)} Perfiles, Verificación y Portafolio, \textit{(3)} Catálogo Dinámico de Servicios, \textit{(4)} Motor de Flujos de Trabajo y Pedidos, \textit{(5)} Legal, Entregables y Finanzas (Escrow), \textit{(6)} Comunicación y Notificaciones, y \textit{(7)} Social, Comunidad y Sorteos.
+
+El presente documento tiene como objetivos:
+\begin{enumerate}[label=\arabic*)]
+    \item Identificar los usuarios que interactúan con el sistema.
+    \item Definir los roles correspondientes para cada tipo de usuario.
+    \item Establecer los privilegios del sistema que tendrá cada rol.
+    \item Definir los privilegios sobre objetos de la base de datos.
+    \item Proveer el código SQL completo de implementación en PostgreSQL.
+\end{enumerate}
+
+% ==============================================================================
+% II. DESCRIPCIÓN DEL SISTEMA Y BASE DE DATOS
+% ==============================================================================
+\section{Descripción del Sistema y Base de Datos}
+
+\subsection{Propósito de ArtiSync}
+
+ArtiSync es una plataforma de economía creativa que permite a artistas y profesionales del diseño ofrecer sus servicios de manera estructurada, segura y verificable. Los principales flujos del sistema incluyen:
+
+\begin{itemize}
+    \item \textbf{Registro y autenticación}: Registro de usuarios con verificación por correo, autenticación JWT con refresh tokens, 2FA opcional con TOTP.
+    \item \textbf{Perfiles verificados}: Los creadores construyen un perfil con biografía, habilidades certificadas y verificación asistida por IA.
+    \item \textbf{Catálogo de servicios}: Los creadores publican servicios organizados por categorías/subcategorías con atributos dinámicos y etiquetas.
+    \item \textbf{Pedidos y flujos de trabajo}: Los clientes contratan servicios; cada pedido sigue un flujo configurable de etapas con historial.
+    \item \textbf{Contratos y pagos (Escrow)}: Se generan contratos digitales con firma hash; el pago se retiene en garantía hasta la entrega.
+    \item \textbf{Comunicación}: Chat por pedido con adjuntos y notificaciones push en tiempo real.
+    \item \textbf{Social}: Seguidores, likes, comentarios, reseñas y sorteos promocionales.
+\end{itemize}
+
+\subsection{Estructura de la Base de Datos}
+
+La base de datos \texttt{artisyncbd} está compuesta por \textbf{37 tablas} organizadas en 7 módulos, además de funciones PL/pgSQL y triggers de auditoría. La Tabla~\ref{tab:modulos_bd} resume los módulos y sus tablas principales.
+
+\begin{table}[H]
+\centering
+\caption{Módulos y tablas principales de ArtiSync}
+\label{tab:modulos_bd}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}p{0.62\linewidth}}
+\toprule
+\textbf{Módulo} & \textbf{Tablas} \\
+\midrule
+1. Seguridad y Control de Acceso & \texttt{roles}, \texttt{permisos}, \texttt{rol\_permisos}, \texttt{pais}, \texttt{usuarios}, \texttt{usuario\_roles}, \texttt{sesiones\_usuario}, \texttt{tokens\_recuperacion}, \texttt{autenticacion\_dos\_factores} \\
+\midrule
+2. Perfiles y Portafolio & \texttt{perfiles\_creadores}, \texttt{estados\_verificacion}, \texttt{certificados\_ia}, \texttt{habilidades}, \texttt{creador\_habilidades}, \texttt{portafolios}, \texttt{portafolio\_items} \\
+\midrule
+3. Catálogo de Servicios & \texttt{categorias}, \texttt{subcategorias}, \texttt{servicios}, \texttt{atributos\_dinamicos}, \texttt{servicio\_atributos}, \texttt{etiquetas}, \texttt{servicio\_etiquetas} \\
+\midrule
+4. Pedidos y Flujos & \texttt{flujos\_trabajo}, \texttt{etapas\_flujo}, \texttt{flujo\_etapas\_config}, \texttt{pedidos}, \texttt{historial\_estados\_pedido}, \texttt{motivos\_rechazo}, \texttt{tickets\_revision} \\
+\midrule
+5. Legal y Finanzas & \texttt{plantillas\_contrato}, \texttt{contratos}, \texttt{entregables\_finales}, \texttt{pagos\_garantia}, \texttt{transacciones\_pago} \\
+\midrule
+6. Comunicación & \texttt{salas\_chat}, \texttt{mensajes}, \texttt{documentos\_adjuntos}, \texttt{tipos\_notificacion}, \texttt{notificaciones\_sistema} \\
+\midrule
+7. Social y Comunidad & \texttt{seguidores}, \texttt{comentarios\_portafolio}, \texttt{likes\_portafolio}, \texttt{resenas\_servicios}, \texttt{sorteos}, \texttt{participantes\_sorteo} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==============================================================================
+% III. IDENTIFICACIÓN DE USUARIOS DEL SISTEMA
+% ==============================================================================
+\section{Identificación de Usuarios del Sistema}
+
+A partir del análisis de los módulos funcionales, los endpoints del backend y los permisos definidos en la tabla \texttt{permisos} de la base de datos, se identifican los siguientes tipos de usuarios que interactúan con ArtiSync:
+
+\begin{table}[H]
+\centering
+\caption{Usuarios identificados del sistema ArtiSync}
+\label{tab:usuarios}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.18\linewidth} >{\raggedright\arraybackslash}p{0.72\linewidth}}
+\toprule
+\textbf{Usuario} & \textbf{Descripción} \\
+\midrule
+Administrador & Superusuario del sistema con acceso total. Gestiona usuarios, roles, permisos, catálogos, y configura parámetros globales de la plataforma. \\
+\midrule
+Creador & Artista o profesional creativo que ofrece servicios. Gestiona su perfil, portafolio, servicios publicados, atiende pedidos y entrega trabajos. \\
+\midrule
+Cliente & Usuario consumidor que busca, contrata y evalúa servicios creativos. Realiza pedidos, firma contratos y gestiona pagos. \\
+\midrule
+Moderador & Personal de control de calidad que revisa certificados de IA, modera comentarios y gestiona reportes de contenido inapropiado. \\
+\midrule
+Soporte & Personal de atención al usuario que accede a la información de cuentas y pedidos para resolver incidencias y consultas. \\
+\midrule
+Auditor Financiero & Responsable de supervisar transacciones económicas, pagos en garantía y generar reportes financieros de la plataforma. \\
+\midrule
+Aplicación Backend & Usuario técnico (no humano) utilizado por el servicio Spring Boot para conectarse a la base de datos y ejecutar operaciones CRUD a través de JPA/Hibernate. \\
+\midrule
+Usuario de Backup & Usuario técnico para tareas automatizadas de respaldo y restauración de la base de datos. \\
+\midrule
+Usuario de Solo Lectura & Usuario técnico para herramientas de monitoreo, dashboards y generación de reportes analíticos sin modificar datos. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==============================================================================
+% IV. DEFINICIÓN DE ROLES
+% ==============================================================================
+\section{Definición de Roles de Base de Datos}
+
+Siguiendo el modelo RBAC (\textit{Role-Based Access Control}) y el principio de mínimo privilegio, se definen los siguientes roles a nivel de PostgreSQL. Es importante distinguir entre:
+
+\begin{itemize}
+    \item \textbf{Roles de grupo} (\texttt{NOLOGIN}): Agrupaciones lógicas de permisos que no pueden iniciar sesión directamente.
+    \item \textbf{Usuarios de login} (\texttt{LOGIN}): Cuentas con capacidad de conexión a la base de datos, que heredan permisos de los roles de grupo.
+\end{itemize}
+
+\subsection{Roles de Grupo (NOLOGIN)}
+
+\begin{table}[H]
+\centering
+\caption{Roles de grupo definidos para ArtiSync}
+\label{tab:roles_grupo}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.26\linewidth} >{\raggedright\arraybackslash}p{0.64\linewidth}}
+\toprule
+\textbf{Rol de Grupo} & \textbf{Descripción y Justificación} \\
+\midrule
+\texttt{rol\_app\_backend} & Rol principal del servicio backend. Requiere acceso DML completo (\texttt{SELECT}, \texttt{INSERT}, \texttt{UPDATE}, \texttt{DELETE}) sobre todas las tablas y ejecución de funciones PL/pgSQL. Justificación: Hibernate/JPA necesita operar sobre todo el esquema. \\
+\midrule
+\texttt{rol\_administrador} & Rol de administración de datos maestros. Hereda de \texttt{rol\_app\_backend} y añade privilegios DDL para gestión de catálogos y configuración del sistema. \\
+\midrule
+\texttt{rol\_moderador} & Acceso de lectura general y escritura limitada a tablas de moderación: \texttt{certificados\_ia}, \texttt{comentarios\_portafolio}, \texttt{estados\_verificacion}. \\
+\midrule
+\texttt{rol\_soporte} & Acceso de solo lectura a tablas de usuarios, pedidos, tickets y comunicación para resolver incidencias sin modificar datos transaccionales. \\
+\midrule
+\texttt{rol\_auditor\_fin} & Acceso de solo lectura a tablas financieras: \texttt{pagos\_garantia}, \texttt{transacciones\_pago}, \texttt{contratos}, \texttt{pedidos}. \\
+\midrule
+\texttt{rol\_backup} & Privilegio \texttt{pg\_read\_all\_data} para realizar volcados completos (\texttt{pg\_dump}) sin capacidad de modificación. \\
+\midrule
+\texttt{rol\_solo\_lectura} & Acceso \texttt{SELECT} a todas las tablas para monitoreo, dashboards y consultas analíticas. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Usuarios de Login}
+
+\begin{table}[H]
+\centering
+\caption{Usuarios de login y su rol asignado}
+\label{tab:usuarios_login}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.24\linewidth} >{\raggedright\arraybackslash}p{0.24\linewidth} >{\raggedright\arraybackslash}p{0.40\linewidth}}
+\toprule
+\textbf{Usuario Login} & \textbf{Rol Heredado} & \textbf{Contexto de Uso} \\
+\midrule
+\texttt{artisync\_app} & \texttt{rol\_app\_backend} & Conexión JDBC del servicio Spring Boot \\
+\texttt{artisync\_admin} & \texttt{rol\_administrador} & Consola administrativa directa \\
+\texttt{artisync\_moderador} & \texttt{rol\_moderador} & Panel de moderación \\
+\texttt{artisync\_soporte} & \texttt{rol\_soporte} & Herramienta de soporte técnico \\
+\texttt{artisync\_auditor} & \texttt{rol\_auditor\_fin} & Reportes financieros \\
+\texttt{artisync\_backup} & \texttt{rol\_backup} & Scripts automatizados de backup (cron) \\
+\texttt{artisync\_readonly} & \texttt{rol\_solo\_lectura} & Dashboards de Grafana/Metabase \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==============================================================================
+% V. PRIVILEGIOS DEL SISTEMA
+% ==============================================================================
+\section{Privilegios del Sistema}
+
+Los privilegios del sistema en PostgreSQL controlan las capacidades administrativas globales de cada rol. La Tabla~\ref{tab:priv_sistema} detalla la asignación con su justificación.
+
+\begin{table}[H]
+\centering
+\caption{Asignación de privilegios del sistema por rol}
+\label{tab:priv_sistema}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.22\linewidth} >{\raggedright\arraybackslash}p{0.24\linewidth} >{\raggedright\arraybackslash}p{0.42\linewidth}}
+\toprule
+\textbf{Rol} & \textbf{Privilegios de Sistema} & \textbf{Justificación} \\
+\midrule
+\texttt{rol\_administrador} & \texttt{CREATEROLE}, \texttt{CREATEDB} & Necesita crear roles personalizados (la app lo permite) y bases de datos de prueba. \\
+\midrule
+\texttt{rol\_app\_backend} & \texttt{LOGIN}, \texttt{CONNECT} & Conexión JDBC al servicio; sin capacidad administrativa. \\
+\midrule
+\texttt{rol\_moderador} & \texttt{LOGIN}, \texttt{CONNECT} & Solo conexión; operaciones limitadas a DML parcial. \\
+\midrule
+\texttt{rol\_soporte} & \texttt{LOGIN}, \texttt{CONNECT} & Solo conexión y consultas de solo lectura. \\
+\midrule
+\texttt{rol\_auditor\_fin} & \texttt{LOGIN}, \texttt{CONNECT} & Solo conexión y consultas de solo lectura sobre finanzas. \\
+\midrule
+\texttt{rol\_backup} & \texttt{LOGIN}, \texttt{pg\_read\_all\_data} & Lectura de todos los datos para \texttt{pg\_dump}. Equivalente funcional a \texttt{BACKUP DATABASE}. \\
+\midrule
+\texttt{rol\_solo\_lectura} & \texttt{LOGIN}, \texttt{CONNECT} & Conexión mínima para herramientas BI. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Nota importante}: PostgreSQL no tiene un privilegio explícito \texttt{BACKUP DATABASE} como SQL Server. En su lugar, se otorga la membresía al rol predefinido \texttt{pg\_read\_all\_data} que permite realizar \texttt{pg\_dump} completos.
+
+% ==============================================================================
+% VI. PRIVILEGIOS SOBRE OBJETOS
+% ==============================================================================
+\section{Privilegios sobre Objetos de la Base de Datos}
+
+Los privilegios sobre objetos determinan qué operaciones DML/DDL puede realizar cada rol sobre tablas, secuencias, funciones y esquemas específicos. Se aplica estrictamente el \textbf{principio de mínimo privilegio}: cada rol recibe únicamente los permisos necesarios para cumplir su función.
+
+\subsection{Rol: \texttt{rol\_app\_backend}}
+
+Este es el rol más amplio a nivel de objetos, ya que el ORM (Hibernate) necesita acceso DML completo.
+
+\begin{table}[H]
+\centering
+\caption{Privilegios sobre objetos — \texttt{rol\_app\_backend}}
+\label{tab:priv_app}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.16\linewidth} >{\raggedright\arraybackslash}p{0.26\linewidth} >{\raggedright\arraybackslash}p{0.46\linewidth}}
+\toprule
+\textbf{Privilegio} & \textbf{Objetos} & \textbf{Justificación} \\
+\midrule
+\texttt{SELECT} & Todas las tablas (37) & Consultas JPA: findAll, findById, queries personalizadas. \\
+\texttt{INSERT} & Todas las tablas (37) & Creación de registros: save(), persist(). \\
+\texttt{UPDATE} & Todas las tablas (37) & Actualización: merge(), saveAndFlush(). \\
+\texttt{DELETE} & Todas las tablas (37) & Eliminación: delete(), deleteById(). \\
+\texttt{USAGE} & Todas las secuencias & Generación de IDs auto-incrementales (SERIAL). \\
+\texttt{EXECUTE} & \texttt{set\_actualizado\_en()} & Ejecución de triggers de auditoría. \\
+\texttt{USAGE} & \texttt{SCHEMA public} & Acceso al esquema donde residen los objetos. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Rol: \texttt{rol\_administrador}}
+
+Hereda todos los privilegios de \texttt{rol\_app\_backend} y añade capacidades DDL.
+
+\begin{table}[H]
+\centering
+\caption{Privilegios adicionales — \texttt{rol\_administrador}}
+\label{tab:priv_admin}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.16\linewidth} >{\raggedright\arraybackslash}p{0.26\linewidth} >{\raggedright\arraybackslash}p{0.46\linewidth}}
+\toprule
+\textbf{Privilegio} & \textbf{Objetos} & \textbf{Justificación} \\
+\midrule
+\texttt{ALL} & Todas las tablas & Hereda de \texttt{rol\_app\_backend} + DDL. \\
+\texttt{CREATE} & \texttt{SCHEMA public} & Crear nuevos objetos (tablas auxiliares, vistas). \\
+\texttt{EXECUTE} & Todas las funciones & Gestión completa del esquema. \\
+\texttt{TRIGGER} & Todas las tablas & Crear/modificar triggers de auditoría. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Rol: \texttt{rol\_moderador}}
+
+\begin{table}[H]
+\centering
+\caption{Privilegios sobre objetos — \texttt{rol\_moderador}}
+\label{tab:priv_moderador}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.16\linewidth} >{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}p{0.42\linewidth}}
+\toprule
+\textbf{Privilegio} & \textbf{Objetos (tablas)} & \textbf{Justificación} \\
+\midrule
+\texttt{SELECT} & \texttt{usuarios}, \texttt{perfiles\_creadores}, \texttt{portafolio\_items}, \texttt{servicios}, \texttt{comentarios\_portafolio}, \texttt{likes\_portafolio} & Visualizar contenido para moderación. \\
+\midrule
+\texttt{SELECT}, \texttt{UPDATE} & \texttt{certificados\_ia} & Revisar y cambiar estado de verificación IA. \\
+\midrule
+\texttt{SELECT}, \texttt{UPDATE} & \texttt{comentarios\_portafolio} & Moderar comentarios (cambiar \texttt{estado\_moderacion}). \\
+\midrule
+\texttt{SELECT} & \texttt{estados\_verificacion} & Consultar catálogo de estados. \\
+\midrule
+\texttt{SELECT}, \texttt{UPDATE}, \texttt{DELETE} & \texttt{sorteos} & Supervisar y suspender sorteos irregulares. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Rol: \texttt{rol\_soporte}}
+
+\begin{table}[H]
+\centering
+\caption{Privilegios sobre objetos — \texttt{rol\_soporte}}
+\label{tab:priv_soporte}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.14\linewidth} >{\raggedright\arraybackslash}p{0.34\linewidth} >{\raggedright\arraybackslash}p{0.40\linewidth}}
+\toprule
+\textbf{Privilegio} & \textbf{Objetos (tablas)} & \textbf{Justificación} \\
+\midrule
+\texttt{SELECT} & \texttt{usuarios}, \texttt{perfiles\_creadores}, \texttt{sesiones\_usuario}, \texttt{pedidos}, \texttt{historial\_estados\_pedido}, \texttt{tickets\_revision}, \texttt{salas\_chat}, \texttt{mensajes}, \texttt{notificaciones\_sistema} & Consultar información de cuentas, pedidos y comunicaciones para resolver incidencias. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Rol: \texttt{rol\_auditor\_fin}}
+
+\begin{table}[H]
+\centering
+\caption{Privilegios sobre objetos — \texttt{rol\_auditor\_fin}}
+\label{tab:priv_auditor}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.14\linewidth} >{\raggedright\arraybackslash}p{0.34\linewidth} >{\raggedright\arraybackslash}p{0.40\linewidth}}
+\toprule
+\textbf{Privilegio} & \textbf{Objetos (tablas)} & \textbf{Justificación} \\
+\midrule
+\texttt{SELECT} & \texttt{contratos}, \texttt{pagos\_garantia}, \texttt{transacciones\_pago}, \texttt{pedidos}, \texttt{entregables\_finales}, \texttt{plantillas\_contrato} & Auditar flujos financieros, verificar pagos retenidos/liberados y generar reportes contables. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Rol: \texttt{rol\_solo\_lectura}}
+
+\begin{table}[H]
+\centering
+\caption{Privilegios sobre objetos — \texttt{rol\_solo\_lectura}}
+\label{tab:priv_readonly}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.14\linewidth} >{\raggedright\arraybackslash}p{0.34\linewidth} >{\raggedright\arraybackslash}p{0.40\linewidth}}
+\toprule
+\textbf{Privilegio} & \textbf{Objetos} & \textbf{Justificación} \\
+\midrule
+\texttt{SELECT} & Todas las tablas del esquema \texttt{public} & Herramientas de BI (Grafana, Metabase) requieren lectura completa para dashboards analíticos. \\
+\texttt{USAGE} & \texttt{SCHEMA public} & Acceso al esquema. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Resumen Matricial de Privilegios}
+
+La Tabla~\ref{tab:matriz_resumen} presenta una vista consolidada de los privilegios por rol y módulo.
+
+\begin{table*}[t]
+\centering
+\caption{Matriz de privilegios por rol y módulo}
+\label{tab:matriz_resumen}
+\scriptsize
+\begin{tabular}{l c c c c c c c}
+\toprule
+\textbf{Rol / Módulo} & \textbf{Seguridad} & \textbf{Perfiles} & \textbf{Catálogo} & \textbf{Pedidos} & \textbf{Finanzas} & \textbf{Comunicación} & \textbf{Social} \\
+\midrule
+\texttt{rol\_app\_backend}   & SIUD & SIUD & SIUD & SIUD & SIUD & SIUD & SIUD \\
+\texttt{rol\_administrador}  & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL & SIUD+DDL \\
+\texttt{rol\_moderador}      & S & S,U & S & --- & --- & --- & S,U,D \\
+\texttt{rol\_soporte}        & S & S & --- & S & --- & S & --- \\
+\texttt{rol\_auditor\_fin}   & --- & --- & --- & S & S & --- & --- \\
+\texttt{rol\_backup}         & S* & S* & S* & S* & S* & S* & S* \\
+\texttt{rol\_solo\_lectura}  & S & S & S & S & S & S & S \\
+\bottomrule
+\multicolumn{8}{l}{\scriptsize S=SELECT, I=INSERT, U=UPDATE, D=DELETE, DDL=CREATE/ALTER/DROP, S*=pg\_read\_all\_data} \\
+\end{tabular}
+\end{table*}
+
+% ==============================================================================
+% VII. DIAGRAMA DE JERARQUÍA DE ROLES
+% ==============================================================================
+\section{Diagrama de Jerarquía de Roles}
+
+La Fig.~\ref{fig:jerarquia_roles} ilustra la jerarquía de herencia de roles en PostgreSQL para ArtiSync. Las flechas indican la dirección de herencia (el rol hijo hereda del rol padre).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    role/.style={rectangle, draw=blue!60, fill=blue!10, thick, minimum width=2.8cm, minimum height=0.7cm, font=\scriptsize\ttfamily, align=center, rounded corners=2pt},
+    user/.style={rectangle, draw=green!60, fill=green!10, thick, minimum width=2.4cm, minimum height=0.6cm, font=\scriptsize\ttfamily, align=center, rounded corners=2pt},
+    arrow/.style={-{Stealth[length=5pt]}, thick, draw=gray!70},
+    node distance=0.6cm and 0.8cm
+]
+    % Roles de grupo
+    \node[role] (admin) {rol\_administrador};
+    \node[role, below left=1cm and 0.2cm of admin] (app) {rol\_app\_backend};
+    \node[role, below right=1cm and -0.8cm of admin] (mod) {rol\_moderador};
+    \node[role, right=0.5cm of mod] (soporte) {rol\_soporte};
+    \node[role, below=0.8cm of app] (auditor) {rol\_auditor\_fin};
+    \node[role, right=0.5cm of auditor] (backup) {rol\_backup};
+    \node[role, right=0.5cm of backup] (readonly) {rol\_solo\_lectura};
+
+    % Usuarios de login
+    \node[user, below=0.7cm of admin] (u_admin) {artisync\_admin};
+    \node[user, below=1.6cm of app] (u_app) {artisync\_app};
+    \node[user, below=0.7cm of mod] (u_mod) {artisync\_moderador};
+    \node[user, below=0.7cm of soporte] (u_sop) {artisync\_soporte};
+    \node[user, below=0.7cm of auditor] (u_aud) {artisync\_auditor};
+    \node[user, below=0.7cm of backup] (u_bkp) {artisync\_backup};
+    \node[user, below=0.7cm of readonly] (u_ro) {artisync\_readonly};
+
+    % Herencia rol_administrador -> rol_app_backend
+    \draw[arrow] (admin) -- (app) node[midway, left, font=\tiny] {hereda};
+
+    % Usuarios -> Roles
+    \draw[arrow] (u_admin) -- (admin);
+    \draw[arrow] (u_app) -- (app);
+    \draw[arrow] (u_mod) -- (mod);
+    \draw[arrow] (u_sop) -- (soporte);
+    \draw[arrow] (u_aud) -- (auditor);
+    \draw[arrow] (u_bkp) -- (backup);
+    \draw[arrow] (u_ro) -- (readonly);
+
+\end{tikzpicture}
+\caption{Jerarquía de roles y usuarios de login en ArtiSync}
+\label{fig:jerarquia_roles}
+\end{figure}
+
+% ==============================================================================
+% VIII. IMPLEMENTACIÓN EN POSTGRESQL
+% ==============================================================================
+\section{Implementación en PostgreSQL}
+
+A continuación se presenta el código SQL completo para la creación de roles, usuarios, asignación de privilegios y configuraciones de seguridad en PostgreSQL 16.
+
+\subsection{Paso 1: Creación de Roles de Grupo}
+
+\begin{lstlisting}[caption={Creación de roles de grupo (NOLOGIN)}, label={lst:roles_grupo}]
+-- ============================================================
+-- PASO 1: CREACION DE ROLES DE GRUPO (NOLOGIN)
+-- Ejecutar como superusuario (postgres)
+-- ============================================================
+
+-- 1.1 Rol para la aplicacion backend (Spring Boot / JPA)
+CREATE ROLE rol_app_backend
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT;
+
+COMMENT ON ROLE rol_app_backend IS
+    'Rol de grupo para el servicio backend ArtiSync. '
+    'Acceso DML completo (SELECT, INSERT, UPDATE, DELETE) '
+    'sobre todas las tablas del esquema public.';
+
+-- 1.2 Rol de administrador del sistema
+CREATE ROLE rol_administrador
+    NOLOGIN
+    NOSUPERUSER
+    CREATEDB
+    CREATEROLE
+    INHERIT;
+
+COMMENT ON ROLE rol_administrador IS
+    'Rol de administrador con acceso total al esquema '
+    'y capacidad de crear roles y bases de datos.';
+
+-- Herencia: el administrador hereda del rol backend
+GRANT rol_app_backend TO rol_administrador;
+
+-- 1.3 Rol de moderador
+CREATE ROLE rol_moderador
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT;
+
+COMMENT ON ROLE rol_moderador IS
+    'Rol de moderador. Lectura general y escritura '
+    'limitada a tablas de moderacion y verificacion.';
+
+-- 1.4 Rol de soporte tecnico
+CREATE ROLE rol_soporte
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT;
+
+COMMENT ON ROLE rol_soporte IS
+    'Rol de soporte tecnico. Solo lectura sobre '
+    'usuarios, pedidos, tickets y comunicaciones.';
+
+-- 1.5 Rol de auditor financiero
+CREATE ROLE rol_auditor_fin
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT;
+
+COMMENT ON ROLE rol_auditor_fin IS
+    'Rol de auditoria financiera. Solo lectura '
+    'sobre tablas de pagos, contratos y transacciones.';
+
+-- 1.6 Rol de backup
+CREATE ROLE rol_backup
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT;
+
+COMMENT ON ROLE rol_backup IS
+    'Rol para respaldos automatizados. Lectura '
+    'completa via pg_read_all_data para pg_dump.';
+
+-- Otorgar pg_read_all_data al rol de backup
+GRANT pg_read_all_data TO rol_backup;
+
+-- 1.7 Rol de solo lectura (monitoreo/BI)
+CREATE ROLE rol_solo_lectura
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT;
+
+COMMENT ON ROLE rol_solo_lectura IS
+    'Rol de solo lectura para dashboards, '
+    'Grafana, Metabase y herramientas de BI.';
+\end{lstlisting}
+
+\subsection{Paso 2: Creación de Usuarios de Login}
+
+\begin{lstlisting}[caption={Creación de usuarios de login}, label={lst:usuarios_login}]
+-- ============================================================
+-- PASO 2: CREACION DE USUARIOS DE LOGIN
+-- Cambiar las contrasenas antes de usar en produccion
+-- ============================================================
+
+-- 2.1 Usuario de la aplicacion backend
+CREATE ROLE artisync_app
+    LOGIN
+    PASSWORD 'App$ecure2026!'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 20
+    VALID UNTIL '2027-12-31';
+
+GRANT rol_app_backend TO artisync_app;
+
+COMMENT ON ROLE artisync_app IS
+    'Usuario de conexion JDBC para el servicio '
+    'Spring Boot de ArtiSync.';
+
+-- 2.2 Usuario administrador
+CREATE ROLE artisync_admin
+    LOGIN
+    PASSWORD 'Adm!nStr0ng2026'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 3;
+
+GRANT rol_administrador TO artisync_admin;
+
+COMMENT ON ROLE artisync_admin IS
+    'Usuario administrador para gestion directa '
+    'de la base de datos ArtiSync.';
+
+-- 2.3 Usuario moderador
+CREATE ROLE artisync_moderador
+    LOGIN
+    PASSWORD 'M0d3r@t0r2026'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 5;
+
+GRANT rol_moderador TO artisync_moderador;
+
+COMMENT ON ROLE artisync_moderador IS
+    'Usuario del panel de moderacion de contenido.';
+
+-- 2.4 Usuario soporte
+CREATE ROLE artisync_soporte
+    LOGIN
+    PASSWORD 'S0p0rt3$2026'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 5;
+
+GRANT rol_soporte TO artisync_soporte;
+
+COMMENT ON ROLE artisync_soporte IS
+    'Usuario del equipo de soporte tecnico.';
+
+-- 2.5 Usuario auditor financiero
+CREATE ROLE artisync_auditor
+    LOGIN
+    PASSWORD 'Aud!t0r2026$'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 2;
+
+GRANT rol_auditor_fin TO artisync_auditor;
+
+COMMENT ON ROLE artisync_auditor IS
+    'Usuario para auditoria y reportes financieros.';
+
+-- 2.6 Usuario de backup
+CREATE ROLE artisync_backup
+    LOGIN
+    PASSWORD 'B@ckup$2026Secure'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 2;
+
+GRANT rol_backup TO artisync_backup;
+
+COMMENT ON ROLE artisync_backup IS
+    'Usuario para tareas automatizadas de pg_dump.';
+
+-- 2.7 Usuario de solo lectura
+CREATE ROLE artisync_readonly
+    LOGIN
+    PASSWORD 'R3@d0nly2026!'
+    NOSUPERUSER
+    INHERIT
+    CONNECTION LIMIT 10;
+
+GRANT rol_solo_lectura TO artisync_readonly;
+
+COMMENT ON ROLE artisync_readonly IS
+    'Usuario para herramientas de BI y monitoreo.';
+\end{lstlisting}
+
+\subsection{Paso 3: Privilegios sobre el Esquema}
+
+\begin{lstlisting}[caption={Privilegios sobre el esquema public}, label={lst:priv_schema}]
+-- ============================================================
+-- PASO 3: PRIVILEGIOS SOBRE EL ESQUEMA
+-- ============================================================
+
+-- 3.1 Revocar privilegios por defecto del esquema public
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC;
+
+-- 3.2 Otorgar USAGE del esquema a todos los roles
+GRANT USAGE ON SCHEMA public TO rol_app_backend;
+GRANT USAGE ON SCHEMA public TO rol_moderador;
+GRANT USAGE ON SCHEMA public TO rol_soporte;
+GRANT USAGE ON SCHEMA public TO rol_auditor_fin;
+GRANT USAGE ON SCHEMA public TO rol_solo_lectura;
+
+-- 3.3 Privilegio CREATE en esquema solo para admin
+GRANT CREATE ON SCHEMA public TO rol_administrador;
+\end{lstlisting}
+
+\subsection{Paso 4: Privilegios del rol\_app\_backend}
+
+\begin{lstlisting}[caption={Privilegios DML para el backend}, label={lst:priv_backend}]
+-- ============================================================
+-- PASO 4: PRIVILEGIOS DE rol_app_backend
+-- DML completo sobre todas las tablas
+-- ============================================================
+
+-- 4.1 SELECT, INSERT, UPDATE, DELETE sobre TODAS las tablas
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON ALL TABLES IN SCHEMA public
+    TO rol_app_backend;
+
+-- 4.2 USAGE sobre todas las secuencias (SERIAL/BIGSERIAL)
+GRANT USAGE, SELECT
+    ON ALL SEQUENCES IN SCHEMA public
+    TO rol_app_backend;
+
+-- 4.3 EXECUTE sobre funciones PL/pgSQL
+GRANT EXECUTE
+    ON ALL FUNCTIONS IN SCHEMA public
+    TO rol_app_backend;
+
+-- 4.4 Privilegios por defecto para tablas futuras
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE
+    ON TABLES TO rol_app_backend;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT
+    ON SEQUENCES TO rol_app_backend;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT EXECUTE
+    ON FUNCTIONS TO rol_app_backend;
+\end{lstlisting}
+
+\subsection{Paso 5: Privilegios del rol\_administrador}
+
+\begin{lstlisting}[caption={Privilegios adicionales del administrador}, label={lst:priv_admin}]
+-- ============================================================
+-- PASO 5: PRIVILEGIOS DE rol_administrador
+-- Hereda de rol_app_backend + DDL + TRIGGER
+-- ============================================================
+
+-- Ya hereda DML de rol_app_backend via GRANT anterior
+
+-- 5.1 ALL PRIVILEGES sobre todas las tablas
+GRANT ALL PRIVILEGES
+    ON ALL TABLES IN SCHEMA public
+    TO rol_administrador;
+
+-- 5.2 ALL sobre secuencias
+GRANT ALL PRIVILEGES
+    ON ALL SEQUENCES IN SCHEMA public
+    TO rol_administrador;
+
+-- 5.3 ALL sobre funciones
+GRANT ALL PRIVILEGES
+    ON ALL FUNCTIONS IN SCHEMA public
+    TO rol_administrador;
+
+-- 5.4 Privilegios por defecto para objetos futuros
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL PRIVILEGES
+    ON TABLES TO rol_administrador;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL PRIVILEGES
+    ON SEQUENCES TO rol_administrador;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL PRIVILEGES
+    ON FUNCTIONS TO rol_administrador;
+\end{lstlisting}
+
+\subsection{Paso 6: Privilegios del rol\_moderador}
+
+\begin{lstlisting}[caption={Privilegios granulares del moderador}, label={lst:priv_moderador}]
+-- ============================================================
+-- PASO 6: PRIVILEGIOS DE rol_moderador
+-- Lectura general + escritura limitada
+-- ============================================================
+
+-- 6.1 Tablas de solo lectura
+GRANT SELECT ON
+    usuarios,
+    perfiles_creadores,
+    portafolio_items,
+    portafolios,
+    servicios,
+    likes_portafolio,
+    estados_verificacion,
+    habilidades,
+    creador_habilidades
+TO rol_moderador;
+
+-- 6.2 Tablas con permisos de modificacion
+-- Certificados IA: revisar y actualizar estado
+GRANT SELECT, UPDATE ON certificados_ia
+    TO rol_moderador;
+
+-- Comentarios: moderar (actualizar estado, eliminar)
+GRANT SELECT, UPDATE, DELETE ON comentarios_portafolio
+    TO rol_moderador;
+
+-- Sorteos: supervisar y suspender
+GRANT SELECT, UPDATE, DELETE ON sorteos
+    TO rol_moderador;
+
+GRANT SELECT ON participantes_sorteo
+    TO rol_moderador;
+
+-- 6.3 Secuencias necesarias (si inserta algo)
+GRANT USAGE ON SEQUENCE certificados_ia_id_certificado_seq
+    TO rol_moderador;
+\end{lstlisting}
+
+\subsection{Paso 7: Privilegios del rol\_soporte}
+
+\begin{lstlisting}[caption={Privilegios de solo lectura del soporte}, label={lst:priv_soporte}]
+-- ============================================================
+-- PASO 7: PRIVILEGIOS DE rol_soporte
+-- Solo lectura sobre datos operativos
+-- ============================================================
+
+GRANT SELECT ON
+    usuarios,
+    usuario_roles,
+    roles,
+    perfiles_creadores,
+    sesiones_usuario,
+    tokens_recuperacion,
+    pedidos,
+    historial_estados_pedido,
+    tickets_revision,
+    motivos_rechazo,
+    salas_chat,
+    mensajes,
+    documentos_adjuntos,
+    notificaciones_sistema,
+    tipos_notificacion,
+    servicios,
+    categorias,
+    subcategorias,
+    contratos
+TO rol_soporte;
+\end{lstlisting}
+
+\subsection{Paso 8: Privilegios del rol\_auditor\_fin}
+
+\begin{lstlisting}[caption={Privilegios del auditor financiero}, label={lst:priv_auditor}]
+-- ============================================================
+-- PASO 8: PRIVILEGIOS DE rol_auditor_fin
+-- Solo lectura sobre datos financieros
+-- ============================================================
+
+GRANT SELECT ON
+    contratos,
+    plantillas_contrato,
+    pagos_garantia,
+    transacciones_pago,
+    pedidos,
+    entregables_finales,
+    servicios,
+    usuarios
+TO rol_auditor_fin;
+\end{lstlisting}
+
+\subsection{Paso 9: Privilegios del rol\_solo\_lectura}
+
+\begin{lstlisting}[caption={Privilegios del rol de solo lectura}, label={lst:priv_readonly}]
+-- ============================================================
+-- PASO 9: PRIVILEGIOS DE rol_solo_lectura
+-- SELECT sobre todo el esquema
+-- ============================================================
+
+GRANT SELECT
+    ON ALL TABLES IN SCHEMA public
+    TO rol_solo_lectura;
+
+-- Privilegios por defecto para tablas futuras
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT
+    ON TABLES TO rol_solo_lectura;
+\end{lstlisting}
+
+\subsection{Paso 10: Revocación de Privilegios Peligrosos}
+
+\begin{lstlisting}[caption={Revocación de privilegios y hardening}, label={lst:revocacion}]
+-- ============================================================
+-- PASO 10: REVOCACION EXPLICITA Y HARDENING
+-- ============================================================
+
+-- 10.1 Revocar CONNECT a la base de datos para PUBLIC
+REVOKE CONNECT ON DATABASE artisyncbd FROM PUBLIC;
+
+-- 10.2 Otorgar CONNECT solo a roles autorizados
+GRANT CONNECT ON DATABASE artisyncbd TO rol_app_backend;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_administrador;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_moderador;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_soporte;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_auditor_fin;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_backup;
+GRANT CONNECT ON DATABASE artisyncbd TO rol_solo_lectura;
+
+-- 10.3 Revocar CREATE sobre el esquema para roles no admin
+REVOKE CREATE ON SCHEMA public FROM rol_app_backend;
+REVOKE CREATE ON SCHEMA public FROM rol_moderador;
+REVOKE CREATE ON SCHEMA public FROM rol_soporte;
+REVOKE CREATE ON SCHEMA public FROM rol_auditor_fin;
+REVOKE CREATE ON SCHEMA public FROM rol_solo_lectura;
+
+-- 10.4 Revocar TRUNCATE para evitar eliminaciones masivas
+REVOKE TRUNCATE ON ALL TABLES IN SCHEMA public
+    FROM rol_app_backend;
+REVOKE TRUNCATE ON ALL TABLES IN SCHEMA public
+    FROM rol_moderador;
+\end{lstlisting}
+
+\subsection{Paso 11: Verificación de Privilegios}
+
+\begin{lstlisting}[caption={Consultas de verificación de privilegios}, label={lst:verificacion}]
+-- ============================================================
+-- PASO 11: CONSULTAS DE VERIFICACION
+-- ============================================================
+
+-- 11.1 Listar todos los roles creados
+SELECT rolname, rolsuper, rolcreaterole, rolcreatedb,
+       rolcanlogin, rolconnlimit
+FROM pg_roles
+WHERE rolname LIKE 'artisync_%'
+   OR rolname LIKE 'rol_%';
+
+-- 11.2 Verificar membresias de roles
+SELECT r.rolname AS usuario,
+       m.rolname AS miembro_de
+FROM pg_auth_members am
+JOIN pg_roles r ON am.member = r.oid
+JOIN pg_roles m ON am.roleid = m.oid
+WHERE r.rolname LIKE 'artisync_%';
+
+-- 11.3 Verificar privilegios sobre tablas
+SELECT grantee, table_name, privilege_type
+FROM information_schema.table_privileges
+WHERE table_schema = 'public'
+  AND grantee LIKE 'rol_%'
+ORDER BY grantee, table_name, privilege_type;
+
+-- 11.4 Verificar privilegios sobre secuencias
+SELECT grantee, object_name, privilege_type
+FROM information_schema.usage_privileges
+WHERE object_schema = 'public'
+  AND grantee LIKE 'rol_%'
+ORDER BY grantee, object_name;
+
+-- 11.5 Verificar que PUBLIC no tiene acceso
+SELECT grantee, table_name, privilege_type
+FROM information_schema.table_privileges
+WHERE table_schema = 'public'
+  AND grantee = 'PUBLIC';
+\end{lstlisting}
+
+% ==============================================================================
+% IX. RELACIÓN CON LOS ROLES DE LA APLICACIÓN
+% ==============================================================================
+\section{Relación entre Roles de BD y Roles de Aplicación}
+
+Es importante distinguir entre los \textbf{roles de base de datos} (definidos en las secciones anteriores) y los \textbf{roles de aplicación} almacenados en la tabla \texttt{roles} y gestionados por Spring Security a nivel de la lógica de negocio.
+
+\begin{table}[H]
+\centering
+\caption{Mapeo entre roles de aplicación y roles de BD}
+\label{tab:mapeo_roles}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.20\linewidth} >{\raggedright\arraybackslash}p{0.22\linewidth} >{\raggedright\arraybackslash}p{0.46\linewidth}}
+\toprule
+\textbf{Rol de Aplicación} & \textbf{Rol de BD} & \textbf{Relación} \\
+\midrule
+\texttt{ADMIN} & \texttt{rol\_administrador} & El usuario ADMIN accede vía la app (que usa \texttt{artisync\_app}). El \texttt{rol\_administrador} de BD es para acceso directo. \\
+\midrule
+\texttt{CREADOR} & \texttt{rol\_app\_backend} & Los creadores operan exclusivamente a través de la API; sus acciones se ejecutan con el usuario \texttt{artisync\_app}. \\
+\midrule
+\texttt{CLIENTE} & \texttt{rol\_app\_backend} & Igual que el creador: acceso mediado por el backend. \\
+\midrule
+\texttt{MODERADOR} & \texttt{rol\_moderador} & Doble capa: la app filtra por permisos de aplicación; el panel directo usa \texttt{artisync\_moderador}. \\
+\midrule
+\texttt{SOPORTE} & \texttt{rol\_soporte} & Acceso directo a herramientas de soporte con consultas limitadas. \\
+\midrule
+\texttt{AUDITOR\_FINANCIERO} & \texttt{rol\_auditor\_fin} & Acceso de solo lectura a datos financieros. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Los roles de aplicación (\texttt{ADMIN}, \texttt{CREADOR}, \texttt{CLIENTE}, \texttt{MODERADOR}, \texttt{SOPORTE}, \texttt{AUDITOR\_FINANCIERO}) se almacenan en la tabla \texttt{roles} y se asignan a usuarios a través de la tabla intermedia \texttt{usuario\_roles}. Spring Security los carga como \texttt{GrantedAuthority} con el prefijo \texttt{ROLE\_} junto con los permisos granulares definidos en la tabla \texttt{permisos} (por ejemplo: \texttt{USUARIO\_VER}, \texttt{USUARIO\_CREAR}, \texttt{ROL\_GESTIONAR}, etc.).
+
+% ==============================================================================
+% X. PERMISOS GRANULARES DE APLICACIÓN
+% ==============================================================================
+\section{Permisos Granulares de la Aplicación}
+
+La tabla \texttt{permisos} almacena los permisos finos que se asignan a los roles de aplicación a través de la tabla \texttt{rol\_permisos}. Estos permisos complementan el control a nivel de base de datos con un control a nivel de lógica de negocio.
+
+\begin{table}[H]
+\centering
+\caption{Permisos granulares del sistema ArtiSync}
+\label{tab:permisos_app}
+\scriptsize
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\linewidth} >{\raggedright\arraybackslash}p{0.18\linewidth} >{\raggedright\arraybackslash}p{0.42\linewidth}}
+\toprule
+\textbf{Permiso} & \textbf{Módulo} & \textbf{Descripción} \\
+\midrule
+\texttt{USUARIO\_VER} & Seguridad & Listar y consultar usuarios. \\
+\texttt{USUARIO\_CREAR} & Seguridad & Crear nuevas cuentas de usuario. \\
+\texttt{USUARIO\_EDITAR} & Seguridad & Modificar datos de usuarios. \\
+\texttt{USUARIO\_SUSPENDER} & Seguridad & Desactivar cuentas de usuario. \\
+\texttt{USUARIO\_ELIMINAR} & Seguridad & Eliminar cuentas permanentemente. \\
+\texttt{ROL\_VER} & Seguridad & Consultar roles existentes. \\
+\texttt{ROL\_GESTIONAR} & Seguridad & Crear, editar y eliminar roles. \\
+\texttt{ROL\_ASIGNAR\_PERMISO} & Seguridad & Sincronizar permisos de un rol. \\
+\texttt{SESION\_REVOCAR} & Seguridad & Revocar sesiones activas de usuarios. \\
+\texttt{PERMISO\_VER} & Seguridad & Listar permisos disponibles. \\
+\texttt{PAIS\_CREAR} & Seguridad & Crear registros de países. \\
+\texttt{PAIS\_EDITAR} & Seguridad & Editar registros de países. \\
+\texttt{PAIS\_ELIMINAR} & Seguridad & Eliminar registros de países. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==============================================================================
+% XI. PROCEDIMIENTO ALMACENADO DE AUDITORÍA
+% ==============================================================================
+\section{Función de Auditoría Existente}
+
+El sistema ya implementa una función PL/pgSQL y triggers de auditoría que actualizan automáticamente la columna \texttt{actualizado\_en} en cada operación \texttt{UPDATE}.
+
+\begin{lstlisting}[caption={Función PL/pgSQL de auditoría existente}, label={lst:funcion_auditoria}]
+-- Funcion existente en la migracion V2
+CREATE OR REPLACE FUNCTION set_actualizado_en()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.actualizado_en = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Ejemplo de trigger aplicado a la tabla usuarios
+CREATE TRIGGER trg_usuarios_actualizado_en
+    BEFORE UPDATE ON usuarios
+    FOR EACH ROW
+    EXECUTE FUNCTION set_actualizado_en();
+
+-- Tablas con trigger de auditoria activo:
+-- usuarios, portafolios, servicios, categorias,
+-- subcategorias, atributos_dinamicos,
+-- servicio_atributos, etiquetas, servicio_etiquetas
+\end{lstlisting}
+
+% ==============================================================================
+% XII. SCRIPT COMPLETO CONSOLIDADO
+% ==============================================================================
+\section{Script Consolidado de Seguridad}
+
+Para facilitar la implementación, el Listing~\ref{lst:script_completo} presenta el script consolidado que debe ejecutarse como superusuario (\texttt{postgres}) después de la creación del esquema de datos.
+
+\begin{lstlisting}[caption={Script consolidado de seguridad (resumen)}, label={lst:script_completo}]
+-- ============================================================
+-- SCRIPT CONSOLIDADO DE SEGURIDAD - ArtiSync
+-- Ejecutar como superusuario (postgres)
+-- Base de datos: artisyncbd
+-- ============================================================
+\connect artisyncbd;
+
+-- === FASE 1: Limpieza previa (idempotente) ===
+DO $$
+BEGIN
+    -- Eliminar usuarios de login si existen
+    IF EXISTS (SELECT 1 FROM pg_roles
+               WHERE rolname = 'artisync_app') THEN
+        REASSIGN OWNED BY artisync_app TO postgres;
+        DROP OWNED BY artisync_app;
+        DROP ROLE artisync_app;
+    END IF;
+    -- Repetir para cada usuario...
+
+    -- Eliminar roles de grupo si existen
+    IF EXISTS (SELECT 1 FROM pg_roles
+               WHERE rolname = 'rol_app_backend') THEN
+        REVOKE ALL PRIVILEGES ON ALL TABLES
+            IN SCHEMA public FROM rol_app_backend;
+        DROP ROLE rol_app_backend;
+    END IF;
+    -- Repetir para cada rol...
+END $$;
+
+-- === FASE 2: Crear roles (ver Listings 1-2) ===
+-- [Insertar codigo de Listings 1 y 2 aqui]
+
+-- === FASE 3: Privilegios de esquema (Listing 3) ===
+-- [Insertar codigo de Listing 3]
+
+-- === FASE 4: Privilegios por rol (Listings 4-9) ===
+-- [Insertar codigo de Listings 4 a 9]
+
+-- === FASE 5: Hardening (Listing 10) ===
+-- [Insertar codigo de Listing 10]
+
+-- === FASE 6: Verificacion (Listing 11) ===
+-- [Insertar codigo de Listing 11]
+
+-- FIN DEL SCRIPT DE SEGURIDAD
+\end{lstlisting}
+
+% ==============================================================================
+% XIII. CONCLUSIONES
+% ==============================================================================
+\section{Conclusiones}
+
+El análisis de seguridad realizado sobre la base de datos de ArtiSync ha permitido:
+
+\begin{enumerate}[label=\arabic*)]
+    \item \textbf{Identificar 9 tipos de usuarios} del sistema, incluyendo 6 usuarios de negocio (Administrador, Creador, Cliente, Moderador, Soporte, Auditor Financiero) y 3 usuarios técnicos (Aplicación Backend, Backup, Solo Lectura).
+
+    \item \textbf{Definir 7 roles de grupo} en PostgreSQL con una jerarquía clara de herencia, donde \texttt{rol\_administrador} hereda de \texttt{rol\_app\_backend} y cada rol técnico mantiene independencia funcional.
+
+    \item \textbf{Asignar privilegios de sistema} de forma restrictiva: solo el administrador posee \texttt{CREATEROLE} y \texttt{CREATEDB}; el rol de backup utiliza \texttt{pg\_read\_all\_data}; y los demás roles se limitan a \texttt{LOGIN} y \texttt{CONNECT}.
+
+    \item \textbf{Definir privilegios sobre objetos} siguiendo el principio de mínimo privilegio, donde cada rol accede exclusivamente a las tablas requeridas por su función, con los privilegios DML estrictamente necesarios.
+
+    \item \textbf{Implementar el modelo de seguridad en dos capas}: la capa de base de datos (roles y privilegios PostgreSQL) y la capa de aplicación (roles y permisos gestionados por Spring Security con JWT), proporcionando defensa en profundidad.
+\end{enumerate}
+
+La implementación propuesta es idempotente, documentada y verificable mediante las consultas de validación provistas, lo que facilita su aplicación en entornos de desarrollo, staging y producción.
+
+% ==============================================================================
+% REFERENCIAS
+% ==============================================================================
+\begin{thebibliography}{9}
+
+\bibitem{postgresql16}
+The PostgreSQL Global Development Group, ``PostgreSQL 16 Documentation: Database Roles,'' 2024. [En línea]. Disponible en: https://www.postgresql.org/docs/16/user-manag.html
+
+\bibitem{postgresql_grant}
+The PostgreSQL Global Development Group, ``PostgreSQL 16 Documentation: GRANT,'' 2024. [En línea]. Disponible en: https://www.postgresql.org/docs/16/sql-grant.html
+
+\bibitem{postgresql_security}
+The PostgreSQL Global Development Group, ``PostgreSQL 16 Documentation: Client Authentication,'' 2024. [En línea]. Disponible en: https://www.postgresql.org/docs/16/client-authentication.html
+
+\bibitem{spring_security}
+VMware, ``Spring Security Reference: Authorization Architecture,'' 2024. [En línea]. Disponible en: https://docs.spring.io/spring-security/reference/servlet/authorization/architecture.html
+
+\bibitem{owasp_access}
+OWASP Foundation, ``Access Control Cheat Sheet,'' 2024. [En línea]. Disponible en: https://cheatsheetseries.owasp.org/cheatsheets/Access\_Control\_Cheat\_Sheet.html
+
+\bibitem{rbac_nist}
+D. Ferraiolo, R. Sandhu, S. Gavrila, D.R. Kuhn, and R. Chandramouli, ``Proposed NIST Standard for Role-Based Access Control,'' \textit{ACM Transactions on Information and System Security}, vol. 4, no. 3, pp. 224--274, 2001.
+
+\bibitem{least_privilege}
+J. Saltzer and M. Schroeder, ``The Protection of Information in Computer Systems,'' \textit{Proceedings of the IEEE}, vol. 63, no. 9, pp. 1278--1308, 1975.
+
+\end{thebibliography}
+
+\end{document}
