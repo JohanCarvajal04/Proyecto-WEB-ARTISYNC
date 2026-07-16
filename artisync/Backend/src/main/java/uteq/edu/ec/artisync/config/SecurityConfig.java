@@ -62,6 +62,8 @@ public class SecurityConfig {
                                  "/api/v1/creadores/**", "/api/v1/portafolios/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
                 .requestMatchers("/ws/**", "/actuator/**").permitAll()
+                .requestMatchers("/api/webhooks/paypal").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/flujos/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )
