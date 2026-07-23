@@ -4,6 +4,7 @@ import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -32,6 +33,13 @@ public class InfraccionMensaje {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_pedido", nullable = false)
     private Pedido pedido;
+
+    @Column(name = "mensaje_original", columnDefinition = "TEXT")
+    private String mensajeOriginal;
+
+    @Size(max = 50, message = "El patrón detectado no puede superar los 50 caracteres")
+    @Column(name = "patron_detectado", length = 50)
+    private String patronDetectado;
 
     @CreationTimestamp
     @Column(name = "fecha_infraccion", updatable = false)
