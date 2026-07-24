@@ -10,5 +10,16 @@ import java.util.List;
 @Repository
 public interface SorteoRepository extends JpaRepository<Sorteo, Long> {
 
+    /** Ya existía — usado internamente. Mantenido por compatibilidad. */
     List<Sorteo> findByFechaCierreLessThanEqualAndEstadoSorteo(LocalDateTime fecha, String estadoSorteo);
+
+    /** Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasó. */
+    List<Sorteo> findByEstadoSorteoAndFechaCierreBefore(String estadoSorteo, LocalDateTime ahora);
+
+    /** Sorteos públicos de un creador específico. */
+    List<Sorteo> findByPerfilCreadorIdPerfil(Long idPerfil);
+
+    /** Todos los sorteos con estado "Activo" (listado público). */
+    List<Sorteo> findByEstadoSorteo(String estadoSorteo);
 }
+

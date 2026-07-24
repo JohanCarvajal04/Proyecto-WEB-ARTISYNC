@@ -55,4 +55,8 @@ public class Sorteo {
     @Size(max = 50, message = "El estado del sorteo no puede superar los 50 caracteres")
     @Column(name = "estado_sorteo", length = 50)
     private String estadoSorteo = "Activo";
+
+    @Builder.Default
+    @Column(name = "requiere_seguidor", nullable = false)
+    private Boolean requiereSeguidor = false;
 }
