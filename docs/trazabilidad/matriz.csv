@@ -1,0 +1,38 @@
+id_requisito,tipo,prioridad_moscow,historia_usuario,caso_de_uso,modulo_codigo,endpoint_api,prueba_automatizada,tipo_acceso,evidencia_empirica,estado
+REQ-F-001,funcional,Must,HU-01,CU-01,AuthController;UserController,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,,implementado
+REQ-F-002,funcional,Must,HU-02,CU-02,RolePermissionController,GET /api/roles/{id}/permisos,RolePermissionControllerTest,CRUD-ORM,,implementado
+REQ-F-003,funcional,Must,HU-03,CU-03,security.JwtAuthenticationFilter;AuthController,POST /api/auth/login,JwtAuthenticationFilterTest,CRUD-ORM,,implementado
+REQ-F-004,funcional,Must,HU-04,CU-04,AuthController,POST /api/auth/recuperar,,CRUD-ORM,,implementado
+REQ-F-005,funcional,Should,HU-05,CU-05,TwoFactorController,POST /api/auth/2fa/activar,TwoFactorServiceImplTest,CRUD-ORM,,implementado
+REQ-F-006,funcional,Must,HU-06,CU-06,CertificadoIaControlador,POST /api/perfil/verificacion-identidad,,SP,docs/mediciones/,pendiente
+REQ-F-007,funcional,Should,HU-07,CU-07,CertificadoIaControlador,POST /api/perfil/certificados,,SP,docs/mediciones/,pendiente
+REQ-F-008,funcional,Must,HU-08,CU-08,PerfilCreadorControlador,PUT /api/perfil,,CRUD-ORM,,implementado
+REQ-F-009,funcional,Must,HU-09,CU-09,(pendiente modulo social),POST /api/social/seguir,,SP,,pendiente
+REQ-F-010,funcional,Should,HU-10,CU-10,(pendiente modulo social),POST /api/social/comentarios,,CRUD-ORM,,pendiente
+REQ-F-011,funcional,Must,HU-11,CU-11,ServicioControlador,POST /api/catalogo/servicios,,CRUD-ORM,,implementado
+REQ-F-012,funcional,Must,HU-12,CU-12,ServicioControlador,POST /api/catalogo/servicios/{id}/atributos,,CRUD-ORM,,implementado
+REQ-F-013,funcional,Must,HU-13,CU-13,ServicioControlador;specification.catalogo,GET /api/catalogo/servicios,,SP,,implementado
+REQ-F-014,funcional,Must,HU-14,CU-14,(pendiente modulo comunicacion),WS /ws/chat,,CRUD-ORM,,pendiente
+REQ-F-015,funcional,Must,HU-15,CU-15,(pendiente modulo comunicacion),WS /ws/chat,,CRUD-ORM,,pendiente
+REQ-F-016,funcional,Must,HU-16,CU-16,(pendiente modulo comunicacion),POST /api/pedidos/{id}/briefing,,CRUD-ORM,,pendiente
+REQ-F-017,funcional,Must,HU-17,CU-17,ContratoControlador,POST /api/legal/contratos,,CRUD-ORM,,implementado
+REQ-F-018,funcional,Must,HU-18,CU-18,ContratoControlador,POST /api/legal/contratos/{id}/firmar,,CRUD-ORM,,implementado
+REQ-F-019,funcional,Must,HU-19,CU-19,FlujoTrabajoControlador;PedidoControlador,PATCH /api/pedidos/{id}/etapa,,CRUD-ORM,,implementado
+REQ-F-020,funcional,Must,HU-20,CU-20,PayPalWebhookControlador,POST /api/legal/paypal/webhook,,CRUD-ORM,,implementado
+REQ-F-021,funcional,Must,HU-21,CU-21,EntregableControlador;PagoControlador,POST /api/legal/entregables/{id}/aprobar,,SP,,implementado
+REQ-F-022,funcional,Should,HU-22,CU-22,TicketRevisionControlador,POST /api/pedidos/{id}/tickets-revision,,CRUD-ORM,,implementado
+REQ-F-023,funcional,Could,HU-23,CU-23,(pendiente modulo social),POST /api/social/sorteos,,SP,,pendiente
+REQ-NF-001,no funcional,Must,,,infraestructura,,,,docs/mediciones/sec/,pendiente
+REQ-NF-002,no funcional,Must,,,security.PasswordEncoderConfig,,,,,implementado
+REQ-NF-003,no funcional,Must,,,security.JwtService,,JwtAuthenticationFilterTest,,,implementado
+REQ-NF-004,no funcional,Should,,,frontend,,,,docs/mediciones/lighthouse/,pendiente
+REQ-NF-005,no funcional,Should,,,(pendiente modulo comunicacion),,,,docs/mediciones/perf/,pendiente
+REQ-NF-006,no funcional,Should,,,legal,POST /api/legal/contratos,,,docs/mediciones/perf/,pendiente
+REQ-NF-007,no funcional,Should,,,frontend,,,,docs/mediciones/lighthouse/,pendiente
+REQ-NF-008,no funcional,Should,,,frontend,,,,,pendiente
+REQ-NF-009,no funcional,Must,,,docker-compose.yml,,,,,parcial
+REQ-NF-010,no funcional,Should,,,arquitectura,,,,,implementado
+REQ-NF-011,no funcional,Must,,,almacenamiento,,,,,pendiente
+REQ-NF-012,no funcional,Must,,,AuthController,POST /api/auth/registro,,,,pendiente
+REQ-NF-013,no funcional,Must,,,pedido,GET /api/admin/transacciones/export,,,,parcial
+REQ-NF-014,no funcional,Must,,,legal.PayPalWebhookControlador,POST /api/legal/paypal/webhook,,,,implementado
