@@ -1,0 +1,189 @@
+<div class="flex flex-col gap-6 max-w-7xl mx-auto">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="font-headline text-3xl font-bold text-primary">Team Members</h1>
+      <p class="text-sm text-on-surface-variant mt-1">Manage your organization's users, roles, and access.</p>
+    </div>
+    @if (authService.hasPermission('USUARIO_CREAR') || authService.primaryRole() === 'ADMINISTRADOR') {
+      <button (click)="openCreateModal()" 
+        class="bg-primary hover:bg-primary/90 text-on-primary font-medium px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm flex items-center gap-2 self-start sm:self-auto">
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        <span>Add User</span>
+      </button>
+    }
+  </div>
+
+  <!-- Filter Card -->
+  <div class="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/80 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+    <!-- Search Input -->
+    <div class="relative w-full md:w-80">
+      <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+      <input 
+        [(ngModel)]="searchTerm" 
+        (ngModelChange)="onSearchChange()"
+        type="text" 
+        placeholder="Search by name or email..." 
+        class="w-full bg-surface-container-low text-on-surface pl-10 pr-4 py-2 rounded-xl text-sm border border-outline-variant/60 focus:outline-none focus:border-primary focus:bg-surface-container-lowest transition-all">
+    </div>
+
+    <!-- Dropdown Filters -->
+    <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+      <select 
+        [(ngModel)]="selectedRoleFilter"
+        class="bg-surface-container-low text-on-surface border border-outline-variant/60 rounded-xl px-3.5 py-2 text-sm font-medium focus:outline-none focus:border-primary cursor-pointer">
+        <option value="ALL">All Roles</option>
+        <option value="ADMINISTRADOR">Administrador</option>
+        <option value="MODERADOR">Moderador</option>
+        <option value="SOPORTE">Soporte Técnico</option>
+        <option value="AUDITOR_FINANCIERO">Auditor Financiero</option>
+        <option value="CREADOR">Creador</option>
+        <option value="CLIENTE">Cliente</option>
+      </select>
+
+      <select 
+        [(ngModel)]="selectedStatusFilter"
+        class="bg-surface-container-low text-on-surface border border-outline-variant/60 rounded-xl px-3.5 py-2 text-sm font-medium focus:outline-none focus:border-primary cursor-pointer">
+        <option value="ALL">All Statuses</option>
+        <option value="ACTIVO">Activo</option>
+        <option value="SUSPENDIDO">Suspendido</option>
+      </select>
+
+      <button class="p-2 bg-surface-container-low border border-outline-variant/60 rounded-xl text-on-surface-variant hover:text-primary transition-colors shrink-0">
+        <span class="material-symbols-outlined text-[20px]">tune</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/80 shadow-xs overflow-hidden flex flex-col">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center p-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+      </div>
+    } @else if (filteredUsers().length === 0) {
+      <div class="flex flex-col items-center justify-center p-12 text-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+          <span class="material-symbols-outlined text-[24px]">group_off</span>
+        </div>
+        <p class="font-headline font-semibold text-primary">No se encontraron usuarios</p>
+        <p class="text-xs text-on-surface-variant">Prueba ajustando los filtros o la búsqueda.</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider bg-surface-container-low/50">
+              <th class="py-3.5 px-6">User</th>
+              <th class="py-3.5 px-6">Role</th>
+              <th class="py-3.5 px-6">Status</th>
+              <th class="py-3.5 px-6">Last Login</th>
+              <th class="py-3.5 px-6 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant/40 text-sm">
+            @for (user of filteredUsers(); track user.idUsuario) {
+              <tr class="hover:bg-surface-container-low/60 transition-colors group">
+                <!-- User Col -->
+                <td class="py-4 px-6">
+                  <div class="flex items-center gap-3">
+                    <app-avatar [name]="user.nombres + ' ' + user.apellidos" size="md"></app-avatar>
+                    <div>
+                      <p class="font-semibold text-on-surface">{{ user.nombres }} {{ user.apellidos }}</p>
+                      <p class="text-xs text-on-surface-variant">{{ user.correo }}</p>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Role Col -->
+                <td class="py-4 px-6">
+                  @let badge = formatRoleBadge(user.roles[0] || 'CLIENTE');
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium" [class]="badge.classes">
+                    {{ badge.label }}
+                  </span>
+                </td>
+
+                <!-- Status Col -->
+                <td class="py-4 px-6">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full" 
+                      [class.bg-primary]="user.estadoCuenta" 
+                      [class.bg-error]="!user.estadoCuenta"></span>
+                    <span class="text-xs font-medium" [class.text-error]="!user.estadoCuenta">
+                      {{ user.estadoCuenta ? 'Activo' : 'Suspendido' }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Last Login Col -->
+                <td class="py-4 px-6 text-xs text-on-surface-variant italic">
+                  {{ formatLastLogin() }}
+                </td>
+
+                <!-- Actions Col -->
+                <td class="py-4 px-6 text-right">
+                  <div class="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                    @if (authService.hasPermission('USUARIO_EDITAR') || authService.primaryRole() === 'ADMINISTRADOR') {
+                      <button (click)="openEditModal(user)" title="Editar" class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                      </button>
+                    }
+                    @if (authService.hasPermission('USUARIO_SUSPENDER') || authService.hasPermission('USUARIO_ELIMINAR') || authService.hasPermission('USUARIO_EDITAR') || authService.primaryRole() === 'ADMINISTRADOR') {
+                      <button (click)="confirmToggleStatus(user)" [title]="user.estadoCuenta ? 'Suspender' : 'Activar'" class="p-1.5 text-on-surface-variant hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">{{ user.estadoCuenta ? 'block' : 'check_circle' }}</span>
+                      </button>
+                    }
+                    @if (authService.hasPermission('USUARIO_ELIMINAR') || authService.primaryRole() === 'ADMINISTRADOR') {
+                      <button (click)="confirmDelete(user)" title="Eliminar" class="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container/40 rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="px-6 py-4 border-t border-outline-variant/60 bg-surface-container-low/30 flex items-center justify-between text-xs text-on-surface-variant">
+        <span>Mostrando 1 - {{ filteredUsers().length }} de {{ totalElements() }} usuarios</span>
+        <div class="flex items-center gap-2">
+          <button 
+            (click)="changePage(currentPage() - 1)" 
+            [disabled]="currentPage() === 0"
+            class="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container disabled:opacity-40 disabled:pointer-events-none transition-colors">
+            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+          <button 
+            (click)="changePage(currentPage() + 1)" 
+            [disabled]="currentPage() >= totalPages() - 1"
+            class="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center hover:bg-surface-container disabled:opacity-40 disabled:pointer-events-none transition-colors">
+            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modales -->
+<app-user-form-modal 
+  [isOpen]="isFormModalOpen()"
+  [mode]="formModalMode()"
+  [userToEdit]="selectedUser()"
+  [isLoading]="isActionLoading()"
+  (onSubmitCreate)="handleCreate($event)"
+  (onSubmitEdit)="handleEdit($event)"
+  (onCancel)="isFormModalOpen.set(false)"
+/>
+
+<app-confirm-dialog
+  [isOpen]="isConfirmOpen()"
+  [title]="confirmActionType() === 'status' ? (selectedUser()?.estadoCuenta ? 'Suspender cuenta' : 'Activar cuenta') : 'Eliminar usuario'"
+  [message]="confirmActionType() === 'status' ? '¿Estás seguro de cambiar el estado de acceso de este usuario?' : '¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esta acción no se puede deshacer.'"
+  [confirmText]="confirmActionType() === 'status' ? 'Confirmar' : 'Eliminar'"
+  (onConfirm)="executeConfirmAction()"
+  (onCancel)="isConfirmOpen.set(false)"
+/>

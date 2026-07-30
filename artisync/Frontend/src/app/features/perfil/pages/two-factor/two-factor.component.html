@@ -1,0 +1,124 @@
+<div class="max-w-xl mx-auto py-8 px-4">
+  <div class="flex items-center gap-4 mb-6">
+    <button (click)="goBack()" class="p-2 rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <div>
+      <h1 class="font-headline text-2xl font-bold text-primary">Autenticación (2FA)</h1>
+      <p class="text-sm text-on-surface-variant mt-1">Añade una capa adicional de seguridad a tu cuenta.</p>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center p-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+    </div>
+  } @else {
+    <div class="bg-surface-container-lowest rounded-2xl p-6 md:p-8 border border-outline-variant/80 shadow-xs flex flex-col gap-6">
+      
+      <!-- Estado actual de 2FA -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-surface-container-low rounded-xl border border-outline-variant/40 gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0" 
+               [class.bg-primary-container]="is2faEnabled()" [class.text-on-primary-container]="is2faEnabled()"
+               [class.bg-surface-container-highest]="!is2faEnabled()" [class.text-on-surface-variant]="!is2faEnabled()">
+            <span class="material-symbols-outlined text-[24px]">{{ is2faEnabled() ? 'verified_user' : 'gpp_bad' }}</span>
+          </div>
+          <div>
+            <p class="font-semibold text-on-surface">Estado 2FA</p>
+            <p class="text-sm font-medium" [class.text-primary]="is2faEnabled()" [class.text-on-surface-variant]="!is2faEnabled()">
+              {{ is2faEnabled() ? 'Activado' : 'Desactivado' }}
+            </p>
+          </div>
+        </div>
+
+        @if (!is2faEnabled() && !isSettingUp2fa()) {
+          <button (click)="start2faSetup()" class="bg-primary text-on-primary px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
+            Activar 2FA
+          </button>
+        }
+      </div>
+
+      <!-- Flujo para Activar 2FA -->
+      @if (isSettingUp2fa() && setupData()) {
+        <div class="flex flex-col gap-5 border-t border-outline-variant/40 pt-6">
+          <div>
+            <h3 class="font-semibold text-base text-on-surface">Configurar Aplicación Autenticadora</h3>
+            <p class="text-sm text-on-surface-variant mt-1">1. Escanea el código QR con una app como Google Authenticator o Authy.</p>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-6 items-center sm:items-start bg-surface-container-lowest border border-outline-variant/40 p-4 rounded-xl">
+            <div class="bg-white p-2 rounded-xl shrink-0 border border-outline-variant/30">
+              @if (qrCodeImage()) {
+                <img [src]="qrCodeImage()" alt="Código QR para 2FA" class="w-40 h-40">
+              } @else {
+                <div class="w-40 h-40 flex items-center justify-center bg-surface-container-low text-on-surface-variant text-xs text-center">
+                  Generando QR...
+                </div>
+              }
+            </div>
+            <div class="flex flex-col gap-2 w-full">
+              <p class="text-sm text-on-surface-variant">Si no puedes escanear el código, usa esta clave manual:</p>
+              <div class="bg-surface-container-low px-4 py-3 rounded-xl border border-outline-variant/40">
+                <p class="text-sm font-mono tracking-wider text-on-surface break-all">{{ setupData()?.secreto }}</p>
+              </div>
+            </div>
+          </div>
+
+          <form [formGroup]="twoFactorForm" (ngSubmit)="confirm2fa()" class="flex flex-col gap-3">
+            <p class="text-sm text-on-surface-variant">2. Ingresa el código de 6 dígitos generado por tu app:</p>
+            <input type="text" formControlName="codigo" placeholder="000000" maxlength="6"
+              class="w-full bg-surface-container-low text-on-surface px-4 py-3 rounded-xl text-center font-mono text-lg tracking-[0.5em] border border-outline-variant/60 focus:outline-none focus:border-primary transition-colors">
+            
+            <div class="flex gap-3 w-full mt-2">
+              <button type="button" (click)="cancel2faSetup()" class="flex-1 py-2.5 rounded-xl text-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors">Cancelar</button>
+              <button type="submit" [disabled]="twoFactorForm.invalid" class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-primary text-on-primary hover:bg-primary/90 disabled:opacity-50 transition-colors">Verificar y Activar</button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- Mostrar códigos de respaldo si acaba de configurar o si ya está activo -->
+      @if (is2faEnabled()) {
+        <div class="flex flex-col gap-6 border-t border-outline-variant/40 pt-6">
+          
+          <!-- Si acaba de activarlo y están los códigos en memoria -->
+          @if (setupData()?.codigosRespaldo) {
+            <div class="bg-error-container/20 p-5 rounded-xl border border-error-container/30">
+              <h3 class="font-semibold text-error flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">warning</span> ¡Guarda tus códigos de respaldo!
+              </h3>
+              <p class="text-sm text-on-surface-variant mt-2 mb-4">
+                Si pierdes tu teléfono o el acceso a tu aplicación autenticadora, estos códigos son la única forma de entrar a tu cuenta. Guárdalos en un lugar seguro (ej. un administrador de contraseñas).
+              </p>
+              
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                @for (codigo of setupData()?.codigosRespaldo; track codigo) {
+                  <div class="bg-surface-container text-on-surface text-center font-mono text-sm py-2 rounded-lg border border-outline-variant/50 select-all">
+                    {{ codigo }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <div>
+            <h3 class="font-semibold text-base text-on-surface mb-2">Desactivar 2FA</h3>
+            <form [formGroup]="disableTwoFactorForm" (ngSubmit)="disable2fa()" class="flex flex-col gap-3">
+              <p class="text-sm text-on-surface-variant">Ingresa un código actual de tu app o un código de respaldo:</p>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" formControlName="codigo" placeholder="Código de 6 dígitos"
+                  class="flex-1 bg-surface-container-low text-on-surface px-4 py-2.5 rounded-xl text-center font-mono tracking-widest border border-outline-variant/60 focus:outline-none focus:border-error transition-colors">
+                <button type="submit" [disabled]="disableTwoFactorForm.invalid || isLoading()" 
+                  class="bg-error hover:bg-error/90 text-on-error font-medium px-5 py-2.5 rounded-xl text-sm transition-all disabled:opacity-50 shrink-0">
+                  Desactivar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

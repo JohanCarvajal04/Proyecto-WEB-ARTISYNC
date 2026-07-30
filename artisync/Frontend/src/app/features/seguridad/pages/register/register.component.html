@@ -1,0 +1,112 @@
+<div class="min-h-screen bg-surface-container-low flex items-center justify-center p-4 relative py-12">
+  <!-- Botón retroceso -->
+  <a routerLink="/auth/login" class="absolute top-6 left-6 w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors">
+    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+  </a>
+
+  <!-- Card Registro -->
+  <div class="bg-surface-container-lowest rounded-2xl p-8 sm:p-10 max-w-[520px] w-full shadow-sm border border-outline-variant flex flex-col items-center">
+    <div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-4 shadow-md">
+      <span class="material-symbols-outlined text-[26px]">person_add</span>
+    </div>
+
+    <h1 class="font-headline text-2xl font-bold text-primary text-center">Crear Cuenta</h1>
+    <p class="text-sm text-on-surface-variant text-center mt-1 mb-6">Únete a la economía creativa de Artisync</p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-on-surface">Nombres *</label>
+          <input formControlName="nombres" type="text" placeholder="Elena" 
+            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+          @if (form.get('nombres')?.touched && form.get('nombres')?.invalid) {
+            <span class="text-xs text-error">Requerido</span>
+          }
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-on-surface">Apellidos *</label>
+          <input formControlName="apellidos" type="text" placeholder="Rodriguez" 
+            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+          @if (form.get('apellidos')?.touched && form.get('apellidos')?.invalid) {
+            <span class="text-xs text-error">Requerido</span>
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface">Correo electrónico *</label>
+        <input formControlName="correo" type="email" placeholder="ejemplo@correo.com" 
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+        @if (form.get('correo')?.touched && form.get('correo')?.invalid) {
+          <span class="text-xs text-error">Correo inválido</span>
+        }
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-on-surface">Contraseña *</label>
+          <input formControlName="contrasena" type="password" placeholder="••••••••" 
+            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+          @if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['minLength']) {
+            <span class="text-xs text-error">Mínimo 8 caracteres</span>
+          } @else if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['weakPassword']) {
+            <span class="text-xs text-error">Incluye mayúscula, minúscula y número</span>
+          }
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-on-surface">Confirmar Contraseña *</label>
+          <input formControlName="confirmarContrasena" type="password" placeholder="••••••••" 
+            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+          @if (form.touched && form.errors?.['passwordMismatch']) {
+            <span class="text-xs text-error">No coinciden</span>
+          }
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-on-surface">Fecha de nacimiento *</label>
+          <input formControlName="fechaNacimiento" type="date" 
+            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+          @if (form.get('fechaNacimiento')?.touched && form.get('fechaNacimiento')?.errors?.['underage']) {
+            <span class="text-xs text-error">Debes tener al menos 18 años</span>
+          }
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-on-surface">Tipo de cuenta *</label>
+          <select formControlName="rol" 
+            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+            <option value="CLIENTE">Cliente registrado</option>
+            <option value="CREADOR">Creador de contenido</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5 mt-2">
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" formControlName="terminosYCondiciones"
+            class="mt-0.5 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary transition-colors cursor-pointer">
+          <span class="text-xs text-on-surface-variant group-hover:text-on-surface transition-colors">
+            Acepto los <a href="#" class="text-primary hover:underline">Términos y Condiciones</a> y la <a href="#" class="text-primary hover:underline">Política de Privacidad</a> de Artisync. *
+          </span>
+        </label>
+        @if (form.get('terminosYCondiciones')?.touched && form.get('terminosYCondiciones')?.invalid) {
+          <span class="text-xs text-error">Debes aceptar los términos y condiciones</span>
+        }
+      </div>
+
+      <button type="submit" [disabled]="isLoading()"
+        class="mt-4 w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60">
+        @if (isLoading()) {
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+        }
+        <span>Crear cuenta</span>
+      </button>
+    </form>
+
+    <p class="text-xs text-on-surface-variant text-center mt-6">
+      ¿Ya tienes una cuenta? 
+      <a routerLink="/auth/login" class="text-primary font-semibold hover:underline ml-1">Iniciar sesión</a>
+    </p>
+  </div>
+</div>

@@ -1,0 +1,70 @@
+<div class="min-h-screen bg-surface-container-low flex items-center justify-center p-4 relative">
+
+  <!-- Card Login -->
+  <div class="bg-surface-container-lowest rounded-2xl p-8 sm:p-10 max-w-[420px] w-full shadow-sm border border-outline-variant flex flex-col items-center">
+    <!-- Logo -->
+    <div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-4 shadow-md">
+      <span class="material-symbols-outlined text-[26px]">sync</span>
+    </div>
+
+    <!-- Título y Subtítulo -->
+    <h1 class="font-headline text-2xl font-bold text-primary text-center">Artisync</h1>
+    <p class="text-sm text-on-surface-variant text-center mt-1 mb-8">Bienvenido de nuevo</p>
+
+    <!-- Formulario -->
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
+      <!-- Correo electrónico -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface">Correo electrónico</label>
+        <input 
+          formControlName="correo" 
+          type="email" 
+          placeholder="ejemplo@correo.com" 
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+        @if (form.get('correo')?.touched && form.get('correo')?.invalid) {
+          <span class="text-xs text-error">Ingresa un correo electrónico válido</span>
+        }
+      </div>
+
+      <!-- Contraseña -->
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-medium text-on-surface">Contraseña</label>
+          <a routerLink="/auth/forgot-password" class="text-xs text-on-surface-variant hover:text-primary transition-colors">¿Olvidé mi contraseña?</a>
+        </div>
+        <input 
+          formControlName="contrasena" 
+          type="password" 
+          placeholder="••••••••" 
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+        @if (form.get('contrasena')?.touched && form.get('contrasena')?.invalid) {
+          <span class="text-xs text-error">La contraseña es obligatoria</span>
+        }
+      </div>
+
+      <!-- Botón Iniciar Sesión -->
+      <button 
+        type="submit" 
+        [disabled]="isLoading()"
+        class="mt-2 w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60">
+        @if (isLoading()) {
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+        }
+        <span>Iniciar sesión</span>
+      </button>
+    </form>
+
+    <!-- Separador -->
+    <div class="w-full flex items-center gap-4 my-6">
+      <div class="h-px bg-outline-variant flex-1"></div>
+      <span class="text-xs text-on-surface-variant">o</span>
+      <div class="h-px bg-outline-variant flex-1"></div>
+    </div>
+
+    <!-- Link Registro -->
+    <p class="text-xs text-on-surface-variant text-center">
+      ¿No tienes una cuenta? 
+      <a routerLink="/auth/register" class="text-primary font-semibold hover:underline ml-1">Crear cuenta</a>
+    </p>
+  </div>
+</div>

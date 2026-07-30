@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #000000;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1b1b1b;
+  --color-on-primary-container: #848484;
+  
+  --color-surface: #fbf9f9;
+  --color-surface-bright: #fbf9f9;
+  --color-surface-dim: #dbdad9;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f3f3;
+  --color-surface-container: #efeded;
+  --color-surface-container-high: #e9e8e7;
+  --color-surface-container-highest: #e3e2e2;
+  --color-surface-variant: #e3e2e2;
+  
+  --color-on-surface: #1b1c1c;
+  --color-on-surface-variant: #4c4546;
+  --color-background: #fbf9f9;
+  --color-on-background: #1b1c1c;
+  
+  --color-outline: #7e7576;
+  --color-outline-variant: #cfc4c5;
+  
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  
+  --color-secondary: #625e54;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #e9e2d4;
+  --color-on-secondary-container: #696459;
+  --color-secondary-fixed: #e9e2d4;
+
+  --font-headline: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--color-on-background);
+  background-color: var(--color-background);
+}
+
+h1, h2, h3, h4, h5, h6, .font-headline {
+  font-family: 'Manrope', sans-serif;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}

@@ -1,0 +1,201 @@
+<div class="flex flex-col gap-6 max-w-7xl mx-auto animate-fadeIn">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/60 pb-5">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-[28px]">verified_user</span>
+        <h1 class="font-headline text-3xl font-bold text-primary">Matriz de Roles y Permisos</h1>
+      </div>
+      <p class="text-sm text-on-surface-variant mt-1">
+        Administra de forma granular las capacidades y niveles de acceso (RBAC) asociados a cada rol en el sistema.
+      </p>
+    </div>
+
+    @if (canEdit()) {
+      <button 
+        (click)="savePermissions()" 
+        [disabled]="isSaving() || !selectedRole()"
+        class="bg-primary hover:bg-primary/90 text-on-primary font-medium px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 self-start sm:self-auto cursor-pointer">
+        @if (isSaving()) {
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+        } @else {
+          <span class="material-symbols-outlined text-[20px]">save</span>
+        }
+        <span>Guardar Cambios del Rol</span>
+      </button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center p-20">
+      <div class="animate-spin rounded-full h-10 w-10 border-3 border-primary border-t-transparent"></div>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      
+      <!-- Panel lateral de Selección de Rol -->
+      <div class="lg:col-span-1 flex flex-col gap-3">
+        <div class="flex items-center justify-between px-1">
+          <h2 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Seleccionar Rol</h2>
+          @if (canEdit()) {
+            <button 
+              (click)="openCreateModal()"
+              class="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer bg-primary/10 px-2.5 py-1 rounded-lg transition-colors">
+              <span class="material-symbols-outlined text-[16px]">add_circle</span>
+              <span>Crear Rol</span>
+            </button>
+          }
+        </div>
+        
+        <div class="flex flex-col gap-2">
+          @for (rol of roles(); track rol.idRol) {
+            <button 
+              (click)="selectRole(rol)"
+              [class.border-primary]="selectedRole()?.idRol === rol.idRol"
+              [class.bg-primary-container/20]="selectedRole()?.idRol === rol.idRol"
+              [class.shadow-sm]="selectedRole()?.idRol === rol.idRol"
+              class="w-full text-left p-3.5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest hover:border-primary/50 transition-all flex flex-col gap-1 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-sm text-primary">{{ rol.nombreRol }}</span>
+                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
+                  {{ selectedRole()?.idRol === rol.idRol ? assignedPermissions().size : (rol.permisos ? rol.permisos.length : 0) }} permisos
+                </span>
+              </div>
+              @if (rol.descripcionRol) {
+                <p class="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{{ rol.descripcionRol }}</p>
+              }
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Matriz de Permisos por Módulo -->
+      <div class="lg:col-span-3 flex flex-col gap-5">
+        @if (selectedRole(); as rol) {
+          <div class="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/80 shadow-xs flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-lg text-on-surface">Configurando permisos para: <span class="text-primary">{{ rol.nombreRol }}</span></h3>
+                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  {{ assignedPermissions().size }} de {{ permisos().length }} activos
+                </span>
+              </div>
+              <p class="text-xs text-on-surface-variant mt-0.5">Selecciona o deselecciona casillas para habilitar funciones específicas en toda la aplicación.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              @if (!canEdit()) {
+                <span class="text-xs font-semibold px-3 py-1 bg-amber-100 text-amber-800 rounded-lg flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[16px]">lock</span> Solo lectura
+                </span>
+              } @else if (!isSystemRole(rol)) {
+                <button 
+                  (click)="deleteSelectedRole()"
+                  class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium px-3.5 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer border border-rose-200">
+                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                  <span>Eliminar Rol</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            @for (grupo of permisosPorModulo(); track grupo.modulo) {
+              <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/80 shadow-xs p-5 flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[20px]">folder_special</span>
+                    <h4 class="font-bold text-sm text-on-surface tracking-wide">{{ grupo.modulo }}</h4>
+                  </div>
+                  @if (canEdit()) {
+                    <button 
+                      type="button"
+                      (click)="toggleModule(grupo.lista)" 
+                      class="text-[11px] font-semibold text-primary hover:underline">
+                      {{ isModuleAllSelected(grupo.lista) ? 'Deseleccionar todo' : 'Seleccionar todo' }}
+                    </button>
+                  }
+                </div>
+
+                <div class="flex flex-col gap-2.5">
+                  @for (permiso of grupo.lista; track permiso.idPermiso) {
+                    <label 
+                      (click)="togglePermission(permiso.nombrePermiso)"
+                      [class.cursor-pointer]="canEdit()"
+                      [class.opacity-60]="!canEdit()"
+                      class="flex items-start gap-3 p-2 rounded-xl hover:bg-surface-container-low transition-colors select-none">
+                      <input 
+                        type="checkbox" 
+                        [checked]="hasPermissionAssigned(permiso.nombrePermiso)"
+                        [disabled]="!canEdit()"
+                        class="mt-0.5 h-4 w-4 rounded border-outline text-primary focus:ring-primary">
+                      <div class="flex flex-col">
+                        <span class="text-xs font-bold text-on-surface">{{ permiso.nombrePermiso }}</span>
+                      </div>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Modal Crear Rol -->
+  @if (showCreateModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-5">
+        <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">shield_person</span>
+            <h3 class="font-headline font-bold text-xl text-on-surface">Nuevo Rol Personalizado</h3>
+          </div>
+          <button (click)="closeCreateModal()" class="text-on-surface-variant hover:text-on-surface cursor-pointer">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div>
+            <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nombre del Rol (Código en Mayúsculas)</label>
+            <input 
+              type="text" 
+              [(ngModel)]="newRoleName" 
+              placeholder="Ej: SUPERVISOR_VENTAS" 
+              class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-sm font-bold text-primary placeholder:font-normal uppercase focus:outline-none focus:border-primary">
+            <span class="text-[11px] text-on-surface-variant mt-1 block">Solo letras mayúsculas, números y guiones bajos (_).</span>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-on-surface-variant uppercase mb-1">Descripción del Rol</label>
+            <textarea 
+              [(ngModel)]="newRoleDesc" 
+              rows="3"
+              placeholder="Ej: Encargado de supervisar operaciones y reportes comerciales..." 
+              class="w-full px-3.5 py-2.5 rounded-xl border border-outline-variant bg-surface text-sm focus:outline-none focus:border-primary"></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-variant/60">
+          <button 
+            type="button" 
+            (click)="closeCreateModal()" 
+            class="px-4 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container cursor-pointer transition-colors">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            (click)="createRole()" 
+            [disabled]="isCreating() || !newRoleName()"
+            class="px-5 py-2 rounded-xl text-sm font-bold bg-primary hover:bg-primary/90 text-on-primary shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer transition-all">
+            @if (isCreating()) {
+              <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            }
+            <span>Crear Rol</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

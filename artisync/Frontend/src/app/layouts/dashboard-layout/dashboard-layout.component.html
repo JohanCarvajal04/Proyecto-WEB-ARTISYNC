@@ -1,0 +1,110 @@
+<div class="min-h-screen bg-surface flex flex-col md:flex-row">
+  <!-- Mobile Header -->
+  <header class="md:hidden bg-surface-container-lowest border-b border-outline-variant px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center">
+        <span class="material-symbols-outlined text-[18px]">sync</span>
+      </div>
+      <span class="font-headline font-bold text-lg text-primary">Artisync Admin</span>
+    </div>
+    <button (click)="toggleMobileMenu()" class="p-2 text-on-surface hover:bg-surface-container rounded-lg">
+      <span class="material-symbols-outlined">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
+    </button>
+  </header>
+
+  <!-- Sidebar -->
+  <aside 
+    [class.translate-x-0]="isMobileMenuOpen()"
+    [class.-translate-x-full]="!isMobileMenuOpen()"
+    class="fixed md:static inset-y-0 left-0 z-40 w-64 bg-surface-container-lowest border-r border-outline-variant flex flex-col justify-between transition-transform duration-300 md:translate-x-0 shrink-0">
+    
+    <div>
+      <!-- Logo desktop -->
+      <div class="hidden md:flex items-center gap-3 px-6 py-6 border-b border-outline-variant/60">
+        <div class="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-md">
+          <span class="material-symbols-outlined text-[22px]">sync</span>
+        </div>
+        <div>
+          <h2 class="font-headline font-bold text-base text-primary leading-tight">Artisync Admin</h2>
+          <p class="text-[11px] text-on-surface-variant font-medium">Creative Management</p>
+        </div>
+      </div>
+
+
+      <!-- Navigation -->
+      <nav class="px-3 py-2 flex flex-col gap-1">
+        @for (item of navItems(); track item.label) {
+          <a 
+            [routerLink]="['/admin', item.route]"
+            routerLinkActive="bg-secondary-container text-on-secondary-container font-semibold"
+            (click)="isMobileMenuOpen.set(false)"
+            class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-on-surface-variant hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-[20px]">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+    </div>
+
+    <!-- User Profile Footer -->
+    <div class="p-4 border-t border-outline-variant/60 flex items-center justify-between">
+      <div class="flex items-center gap-3 overflow-hidden">
+        <app-avatar [name]="userName()" size="md"></app-avatar>
+        <div class="overflow-hidden">
+          <p class="text-sm font-semibold text-on-surface truncate">{{ userName() }}</p>
+          <p class="text-[11px] text-on-surface-variant truncate capitalize">{{ userRole() }}</p>
+        </div>
+      </div>
+      <button (click)="logout()" title="Cerrar sesión" class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/40 rounded-lg transition-colors">
+        <span class="material-symbols-outlined text-[20px]">logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Overlay -->
+  @if (isMobileMenuOpen()) {
+    <div (click)="isMobileMenuOpen.set(false)" class="fixed inset-0 bg-black/30 z-30 md:hidden backdrop-blur-xs"></div>
+  }
+
+  <!-- Main Area -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- TopBar Desktop -->
+    <header class="hidden md:flex items-center justify-between px-8 py-4 bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-20">
+      <div class="flex items-center gap-8">
+        <nav class="flex items-center gap-6 text-sm font-medium">
+          <a routerLink="/admin/users" class="text-on-surface-variant hover:text-primary transition-colors">Dashboard</a>
+          <a routerLink="/admin/users" class="text-primary font-bold border-b-2 border-primary pb-1">Team</a>
+          <a routerLink="/admin/users" class="text-on-surface-variant hover:text-primary transition-colors">Services</a>
+          <a routerLink="/admin/users" class="text-on-surface-variant hover:text-primary transition-colors">Analytics</a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Search -->
+        <div class="relative w-64">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+          <input type="text" placeholder="Search..." 
+            class="w-full bg-surface-container-low text-on-surface pl-9 pr-4 py-1.5 rounded-lg text-sm border border-outline-variant/60 focus:outline-none focus:border-primary focus:bg-surface-container-lowest transition-all">
+        </div>
+
+        <button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors relative">
+          <span class="material-symbols-outlined text-[20px]">notifications</span>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error"></span>
+        </button>
+
+        <button routerLink="/admin/settings" class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-[20px]">settings</span>
+        </button>
+
+        <div class="h-6 w-px bg-outline-variant mx-1"></div>
+
+        <app-avatar [name]="userName()" size="sm"></app-avatar>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+      <router-outlet />
+    </main>
+  </div>
+</div>

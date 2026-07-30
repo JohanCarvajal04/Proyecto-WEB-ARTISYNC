@@ -1,0 +1,36 @@
+<div class="min-h-screen bg-surface-container-low flex items-center justify-center p-4 relative">
+  <a routerLink="/auth/login" class="absolute top-6 left-6 w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors">
+    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+  </a>
+
+  <div class="bg-surface-container-lowest rounded-2xl p-8 sm:p-10 max-w-[420px] w-full shadow-sm border border-outline-variant flex flex-col items-center">
+    <div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-4 shadow-md">
+      <span class="material-symbols-outlined text-[26px]">phonelink_lock</span>
+    </div>
+
+    <h1 class="font-headline text-2xl font-bold text-primary text-center">Verificación 2FA</h1>
+    <p class="text-sm text-on-surface-variant text-center mt-1 mb-2">
+      Hemos enviado un código o requiere tu app de autenticación para
+    </p>
+    <p class="text-sm font-semibold text-primary mb-8">{{ correo }}</p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface text-center">Código de 6 dígitos</label>
+        <input formControlName="codigo" type="text" maxlength="6" placeholder="123456" 
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-3 text-center tracking-widest text-lg font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+        @if (form.get('codigo')?.touched && form.get('codigo')?.invalid) {
+          <span class="text-xs text-error text-center">Ingresa los 6 dígitos numéricos</span>
+        }
+      </div>
+
+      <button type="submit" [disabled]="isLoading()"
+        class="mt-2 w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60">
+        @if (isLoading()) {
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+        }
+        <span>Verificar código</span>
+      </button>
+    </form>
+  </div>
+</div>
