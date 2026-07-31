@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.service.catalogo.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "catalogo", allEntries = true)
     public RespuestaServicio crearServicio(Long idPerfilCreador, PeticionCrearServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -75,6 +78,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "catalogo", allEntries = true)
     public RespuestaServicio actualizarServicio(Long idServicio, PeticionActualizarServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -132,6 +136,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "catalogo", allEntries = true)
     public void eliminarServicio(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
@@ -161,6 +166,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "catalogo")
     public Page<RespuestaServicioResumido> buscarCatalogoServicios(
             Long categoriaId,
             Long subcategoriaId,

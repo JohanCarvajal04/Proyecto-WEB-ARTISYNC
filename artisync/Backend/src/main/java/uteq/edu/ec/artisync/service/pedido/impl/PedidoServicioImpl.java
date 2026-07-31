@@ -2,6 +2,9 @@ package uteq.edu.ec.artisync.service.pedido.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
@@ -91,10 +94,32 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaPedido obtenerPedidoPorId(Long idPedido) {
+    public RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
+        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);
         return mapToRespuesta(pedido);
+    }
+
+    /**
+     * OBS-08: evita el acceso indebido (IDOR) a pedidos ajenos — solo el cliente dueño,
+     * el creador del servicio pedido o un ADMIN pueden consultarlo.
+     */
+    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
+        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
+        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
+
+        if (esCliente || esCreador) {
+            return;
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean esAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!esAdmin) {
+            throw new AccessDeniedException("No tienes permisos para consultar este pedido");
+        }
     }
 
     @Override

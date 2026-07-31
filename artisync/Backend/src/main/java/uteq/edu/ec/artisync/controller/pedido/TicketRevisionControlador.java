@@ -33,8 +33,10 @@ public class TicketRevisionControlador {
 
     @GetMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<RespuestaTicketRevision>> listarTickets(@PathVariable Long idPedido) {
-        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido));
+    public ResponseEntity<List<RespuestaTicketRevision>> listarTickets(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));
     }
 
     @PutMapping("/tickets-revision/{idTicket}/estado")

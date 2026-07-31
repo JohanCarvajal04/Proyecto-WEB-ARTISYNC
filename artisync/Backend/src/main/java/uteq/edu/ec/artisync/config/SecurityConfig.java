@@ -18,6 +18,7 @@ import uteq.edu.ec.artisync.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import uteq.edu.ec.artisync.security.CustomAuthenticationEntryPoint;
+import uteq.edu.ec.artisync.security.LoginRateLimitFilter;
 
 import java.time.Duration;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final LoginRateLimitFilter loginRateLimitFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
@@ -42,6 +44,10 @@ public class SecurityConfig {
             .headers(headers -> headers
                 .contentTypeOptions(Customizer.withDefaults())
                 .frameOptions(frame -> frame.deny())
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                )
                 .contentSecurityPolicy(csp -> csp
                     .policyDirectives("default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;")
                 )
@@ -67,7 +73,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

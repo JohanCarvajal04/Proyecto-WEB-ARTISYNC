@@ -9,7 +9,7 @@ public interface ITicketRevisionServicio {
 
     RespuestaTicketRevision crearTicketRevision(Long idPedido, Long idCliente, PeticionCrearTicketRevision peticion);
 
-    List<RespuestaTicketRevision> listarTicketsPorPedido(Long idPedido);
+    List<RespuestaTicketRevision> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante);
 
     RespuestaTicketRevision cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado);
 }

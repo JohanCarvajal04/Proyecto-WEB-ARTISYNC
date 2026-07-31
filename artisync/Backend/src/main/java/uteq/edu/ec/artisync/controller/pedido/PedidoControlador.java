@@ -37,8 +37,10 @@ public class PedidoControlador {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaPedido> obtenerPedido(@PathVariable Long id) {
-        return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id));
+    public ResponseEntity<RespuestaPedido> obtenerPedido(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id, userDetails.getIdUsuario()));
     }
 
     @GetMapping("/mis-pedidos")
