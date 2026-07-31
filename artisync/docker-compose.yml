@@ -1,6 +1,10 @@
 services:
   postgres:
-    image: postgres:16
+    # Pinado por digest (no solo tag) para evitar derivas silenciosas entre
+    # reconstrucciones — Bloque B.1 de la guia de la Tercera Entrega.
+    # Tag de referencia: postgres:16. Renovar con:
+    #   docker pull postgres:16 && docker inspect --format='{{index .RepoDigests 0}}' postgres:16
+    image: postgres:16@sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20
     container_name: pfc_postgres
     restart: unless-stopped
     environment:
@@ -18,7 +22,10 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    # Pinado por digest — ver nota en el servicio postgres. Tag de referencia:
+    # redis:7-alpine. Renovar con:
+    #   docker pull redis:7-alpine && docker inspect --format='{{index .RepoDigests 0}}' redis:7-alpine
+    image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
     container_name: pfc_redis
     restart: unless-stopped
     ports:

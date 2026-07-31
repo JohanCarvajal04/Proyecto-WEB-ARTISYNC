@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [develop, "entrega-*"]
+    branches: [main, develop, "entrega-*"]
   pull_request:
-    branches: [develop]
+    branches: [main, develop]
 
 jobs:
   backend:
@@ -20,13 +20,21 @@ jobs:
           cache: maven
 
       - name: Compilar
-        working-directory: Backend
+        working-directory: artisync/Backend
         run: ./mvnw -B clean compile
 
       - name: Ejecutar pruebas
-        working-directory: Backend
+        working-directory: artisync/Backend
         run: ./mvnw -B test
 
       - name: Construir imagen Docker
-        working-directory: Backend
+        working-directory: artisync/Backend
         run: docker build -t pfc-backend:ci .
+
+  trazabilidad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar matriz de trazabilidad (A.3.3)
+        run: bash scripts/validate-traceability.sh
