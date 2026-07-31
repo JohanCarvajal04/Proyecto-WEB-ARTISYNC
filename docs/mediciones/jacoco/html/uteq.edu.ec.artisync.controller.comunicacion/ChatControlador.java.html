@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChatControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.comunicacion</a> &gt; <span class="el_source">ChatControlador.java</span></div><h1>ChatControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.comunicacion;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+
+/**
+ * Controlador de chat — REST + WebSocket STOMP.
+ * RF-14: Mensajería en tiempo real. RF-15: Filtrado de datos de contacto.
+ */
+@Tag(name = &quot;Chat&quot;, description = &quot;Mensajería interna en tiempo real vinculada a pedidos&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/pedidos/{idPedido}/chat&quot;)
+@RequiredArgsConstructor
+public class ChatControlador {
+
+    private final ChatService chatService;
+
+    @Operation(summary = &quot;Historial de mensajes de un pedido (paginado)&quot;)
+    @GetMapping(&quot;/mensajes&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;Page&lt;RespuestaMensaje&gt;&gt; obtenerMensajes(
+            @PathVariable Long idPedido,
+            Pageable pageable) {
+<span class="nc" id="L39">        return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Enviar mensaje por REST (fallback sin WebSocket)&quot;)
+    @PostMapping(&quot;/mensajes&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; enviarMensaje(
+            @PathVariable Long idPedido,
+            @Valid @RequestBody PeticionEnviarMensaje peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L49">        RespuestaMensaje respuesta = chatService.enviarMensaje(</span>
+<span class="nc" id="L50">                idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
+<span class="nc" id="L51">        return ResponseEntity.ok(respuesta);</span>
+    }
+
+    @Operation(summary = &quot;Estado actual de la sala de chat de un pedido&quot;)
+    @GetMapping(&quot;/estado&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaSalaChat&gt; obtenerEstado(@PathVariable Long idPedido) {
+<span class="nc" id="L58">        return ResponseEntity.ok(chatService.obtenerEstadoSala(idPedido));</span>
+    }
+
+    // -------------------------------------------------------------------------
+    // WebSocket STOMP — manejo de mensajes entrantes
+    // -------------------------------------------------------------------------
+
+    /**
+     * Endpoint STOMP: el cliente envía a /app/chat.enviar con el idPedido y cuerpo del mensaje.
+     * La respuesta se publica automáticamente en /topic/sala.{idSala} desde ChatServiceImpl.
+     */
+    @MessageMapping(&quot;/chat.enviar&quot;)
+    public void enviarMensajeWs(
+            @Payload PeticionEnviarMensaje peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        // El idPedido debe incluirse en el payload al llamar desde STOMP
+        // Nota: en WebSocket el path variable no está disponible; se pasa en el body
+<span class="nc" id="L75">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

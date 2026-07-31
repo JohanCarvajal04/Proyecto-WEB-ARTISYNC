@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwoFactorServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">TwoFactorServiceImpl.java</span></div><h1>TwoFactorServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
+import uteq.edu.ec.artisync.service.seguridad.*;
+
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
+import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
+import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
+import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
+
+<span class="fc" id="L33">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class TwoFactorServiceImpl implements TwoFactorService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+    private final CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
+    private final UsuarioRolRepository usuarioRolRepository;
+    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final CertificadoIaRepository certificadoIaRepository;
+
+    private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+
+    @Override
+    @Transactional
+    public TwoFactorSetupResponse setup2Fa(String correo) {
+<span class="fc" id="L50">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L51">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="fc" id="L53">        boolean esCreador = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L54">                .anyMatch(ur -&gt; &quot;CREADOR&quot;.equalsIgnoreCase(ur.getRol().getNombreRol()));</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (esCreador) {</span>
+<span class="fc" id="L56">            PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L57">                    .orElse(null);</span>
+<span class="pc bpc" id="L58" title="2 of 4 branches missed.">            if (perfil == null || !certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(perfil.getIdPerfil(), &quot;APROBADO&quot;)) {</span>
+<span class="fc" id="L59">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Debes verificar tu identidad antes de activar la autenticación de dos factores&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L63">        GoogleAuthenticatorKey key = gAuth.createCredentials();</span>
+<span class="fc" id="L64">        String secreto = key.getKey();</span>
+
+<span class="fc" id="L66">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L67">                .orElseGet(() -&gt; AutenticacionDosFactores.builder().usuario(usuario).build());</span>
+
+<span class="fc" id="L69">        dosFactores.setLlaveSecreta(secreto);</span>
+<span class="fc" id="L70">        dosFactores.setEstaHabilitado(false);</span>
+<span class="fc" id="L71">        autenticacionDosFactoresRepository.save(dosFactores);</span>
+
+        // Limpiar códigos anteriores si hubiera
+<span class="fc" id="L74">        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+
+        // Generar 8 nuevos códigos de respaldo
+<span class="fc" id="L77">        List&lt;String&gt; codigosPlano = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (int i = 0; i &lt; 8; i++) {</span>
+<span class="fc" id="L79">            String codigo = UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;).substring(0, 8).toUpperCase();</span>
+<span class="fc" id="L80">            codigosPlano.add(codigo);</span>
+
+<span class="fc" id="L82">            CodigoRespaldo2Fa respaldo = CodigoRespaldo2Fa.builder()</span>
+<span class="fc" id="L83">                    .usuario(usuario)</span>
+<span class="fc" id="L84">                    .codigoHash(hashSha256(codigo))</span>
+<span class="fc" id="L85">                    .usado(false)</span>
+<span class="fc" id="L86">                    .build();</span>
+<span class="fc" id="L87">            codigoRespaldo2FaRepository.save(respaldo);</span>
+        }
+
+<span class="fc" id="L90">        String otpauthUri = String.format(&quot;otpauth://totp/Artisync:%s?secret=%s&amp;issuer=Artisync&quot;, correo, secreto);</span>
+
+<span class="fc" id="L92">        return TwoFactorSetupResponse.builder()</span>
+<span class="fc" id="L93">                .secreto(secreto)</span>
+<span class="fc" id="L94">                .otpauthUri(otpauthUri)</span>
+<span class="fc" id="L95">                .codigosRespaldo(codigosPlano)</span>
+<span class="fc" id="L96">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje confirm2Fa(String correo, String codigo) {
+<span class="nc" id="L102">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L103">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="nc" id="L105">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L106">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se ha iniciado la configuración de 2FA&quot;));</span>
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {</span>
+<span class="nc" id="L109">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Código inválido o expirado&quot;);</span>
+        }
+
+<span class="nc" id="L112">        dosFactores.setEstaHabilitado(true);</span>
+<span class="nc" id="L113">        autenticacionDosFactoresRepository.save(dosFactores);</span>
+
+<span class="nc" id="L115">        return new RespuestaMensaje(&quot;Autenticación de dos factores activada exitosamente&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje disable2Fa(String correo, String codigo) {
+<span class="nc" id="L121">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L122">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="nc" id="L124">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L125">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no está configurado&quot;));</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="nc" id="L128">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra activo&quot;);</span>
+        }
+
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (!validarCodigoOBackup(correo, codigo)) {</span>
+<span class="nc" id="L132">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
+        }
+
+<span class="nc" id="L135">        dosFactores.setEstaHabilitado(false);</span>
+<span class="nc" id="L136">        autenticacionDosFactoresRepository.save(dosFactores);</span>
+<span class="nc" id="L137">        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+
+<span class="nc" id="L139">        return new RespuestaMensaje(&quot;Autenticación de dos factores desactivada exitosamente&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    public boolean validarCodigoOBackup(String correo, String codigoIngresado) {
+<span class="nc bnc" id="L145" title="All 4 branches missed.">        if (codigoIngresado == null || codigoIngresado.isBlank()) {</span>
+<span class="nc" id="L146">            return false;</span>
+        }
+
+<span class="nc" id="L149">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L150">                .orElse(null);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (usuario == null) return false;</span>
+
+<span class="nc" id="L153">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L154">                .orElse(null);</span>
+
+<span class="nc bnc" id="L156" title="All 4 branches missed.">        if (dosFactores == null || !Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="nc" id="L157">            return false;</span>
+        }
+
+        // Probar si es código TOTP de 6 dígitos
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (codigoIngresado.matches(&quot;^[0-9]{6}$&quot;)) {</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            if (validarTotp(dosFactores.getLlaveSecreta(), codigoIngresado)) {</span>
+<span class="nc" id="L163">                return true;</span>
+            }
+        }
+
+        // Probar si es un código de respaldo
+<span class="nc" id="L168">        String hashIngresado = hashSha256(codigoIngresado.trim().toUpperCase());</span>
+<span class="nc" id="L169">        List&lt;CodigoRespaldo2Fa&gt; codigos = codigoRespaldo2FaRepository.findByUsuarioIdUsuarioAndUsadoFalse(usuario.getIdUsuario());</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">        for (CodigoRespaldo2Fa respaldo : codigos) {</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">            if (respaldo.getCodigoHash().equals(hashIngresado)) {</span>
+<span class="nc" id="L172">                respaldo.setUsado(true);</span>
+<span class="nc" id="L173">                codigoRespaldo2FaRepository.save(respaldo);</span>
+<span class="nc" id="L174">                log.info(&quot;Código de respaldo 2FA utilizado para el usuario: {}&quot;, correo);</span>
+<span class="nc" id="L175">                return true;</span>
+            }
+<span class="nc" id="L177">        }</span>
+
+<span class="nc" id="L179">        return false;</span>
+    }
+
+    private boolean validarTotp(String secreto, String codigo) {
+        try {
+<span class="nc" id="L184">            int codigoInt = Integer.parseInt(codigo);</span>
+<span class="nc" id="L185">            return gAuth.authorize(secreto, codigoInt);</span>
+<span class="nc" id="L186">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L187">            return false;</span>
+        }
+    }
+
+    private String hashSha256(String input) {
+        try {
+<span class="fc" id="L193">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L194">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L195">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="nc" id="L196">        } catch (Exception e) {</span>
+<span class="nc" id="L197">            throw new RuntimeException(&quot;Error al calcular hash SHA-256&quot;, e);</span>
+        }
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

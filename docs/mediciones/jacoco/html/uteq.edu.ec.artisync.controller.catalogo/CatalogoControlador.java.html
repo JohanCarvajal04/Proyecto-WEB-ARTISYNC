@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CatalogoControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.catalogo</a> &gt; <span class="el_source">CatalogoControlador.java</span></div><h1>CatalogoControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.catalogo;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicioResumido;
+import uteq.edu.ec.artisync.service.catalogo.IServicioCatalogoServicio;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/catalogo&quot;)
+@RequiredArgsConstructor
+public class CatalogoControlador {
+
+    private final IServicioCatalogoServicio servicioCatalogoServicio;
+
+    @GetMapping
+    public ResponseEntity&lt;Page&lt;RespuestaServicioResumido&gt;&gt; buscarCatalogo(
+            @RequestParam(required = false) Long categoria,
+            @RequestParam(required = false) Long subcategoria,
+            @RequestParam(required = false) BigDecimal precioMin,
+            @RequestParam(required = false) BigDecimal precioMax,
+            @RequestParam(required = false) List&lt;Long&gt; etiquetas,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false, defaultValue = &quot;idServicio,desc&quot;) String sort,
+            @RequestParam(required = false, defaultValue = &quot;0&quot;) int page,
+            @RequestParam(required = false, defaultValue = &quot;10&quot;) int size) {
+
+<span class="nc" id="L32">        return ResponseEntity.ok(servicioCatalogoServicio.buscarCatalogoServicios(</span>
+                categoria, subcategoria, precioMin, precioMax, etiquetas, q, sort, page, size));
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

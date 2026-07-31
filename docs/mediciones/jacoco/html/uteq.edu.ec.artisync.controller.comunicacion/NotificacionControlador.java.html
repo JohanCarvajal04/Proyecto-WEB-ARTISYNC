@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacionControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.comunicacion</a> &gt; <span class="el_source">NotificacionControlador.java</span></div><h1>NotificacionControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.comunicacion;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaNotificacion;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+
+import java.util.Map;
+
+/**
+ * Centro de notificaciones del sistema.
+ * Transversal: recibe notificaciones de todos los módulos.
+ */
+@Tag(name = &quot;Notificaciones&quot;, description = &quot;Centro de notificaciones del sistema&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/notificaciones&quot;)
+@RequiredArgsConstructor
+public class NotificacionControlador {
+
+    private final NotificacionService notificacionService;
+
+    @Operation(summary = &quot;Listar mis notificaciones (paginado)&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;Page&lt;RespuestaNotificacion&gt;&gt; listarMisNotificaciones(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            Pageable pageable) {
+<span class="nc" id="L37">        return ResponseEntity.ok(</span>
+<span class="nc" id="L38">                notificacionService.listarMisNotificaciones(userDetails.getIdUsuario(), pageable));</span>
+    }
+
+    @Operation(summary = &quot;Marcar una notificación como leída&quot;)
+    @PutMapping(&quot;/{id}/leer&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaNotificacion&gt; marcarComoLeida(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L47">        return ResponseEntity.ok(</span>
+<span class="nc" id="L48">                notificacionService.marcarComoLeida(id, userDetails.getIdUsuario()));</span>
+    }
+
+    @Operation(summary = &quot;Marcar todas las notificaciones como leídas&quot;)
+    @PutMapping(&quot;/leer-todas&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; marcarTodasLeidas(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L56">        int count = notificacionService.marcarTodasLeidas(userDetails.getIdUsuario());</span>
+<span class="nc" id="L57">        return ResponseEntity.ok(new RespuestaMensaje(count + &quot; notificaciones marcadas como leídas&quot;));</span>
+    }
+
+    @Operation(summary = &quot;Contador de notificaciones no leídas&quot;)
+    @GetMapping(&quot;/no-leidas/count&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;Map&lt;String, Long&gt;&gt; contarNoLeidas(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L65">        long count = notificacionService.contarNoLeidas(userDetails.getIdUsuario());</span>
+<span class="nc" id="L66">        return ResponseEntity.ok(Map.of(&quot;noLeidas&quot;, count));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

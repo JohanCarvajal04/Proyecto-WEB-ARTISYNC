@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EtiquetaControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.catalogo</a> &gt; <span class="el_source">EtiquetaControlador.java</span></div><h1>EtiquetaControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.catalogo;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearEtiqueta;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaEtiqueta;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.service.catalogo.IEtiquetaServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/etiquetas&quot;)
+@RequiredArgsConstructor
+public class EtiquetaControlador {
+
+    private final IEtiquetaServicio etiquetaServicio;
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;RespuestaEtiqueta&gt;&gt; listarEtiquetas() {
+<span class="nc" id="L25">        return ResponseEntity.ok(etiquetaServicio.listarEtiquetas());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaEtiqueta&gt; obtenerPorId(@PathVariable Long id) {
+<span class="nc" id="L30">        return ResponseEntity.ok(etiquetaServicio.obtenerPorId(id));</span>
+    }
+
+    @PostMapping
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaEtiqueta&gt; crearEtiqueta(@Valid @RequestBody PeticionCrearEtiqueta peticion) {
+<span class="nc" id="L36">        return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarEtiqueta(@PathVariable Long id) {
+<span class="nc" id="L42">        etiquetaServicio.eliminarEtiqueta(id);</span>
+<span class="nc" id="L43">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etiqueta eliminada exitosamente&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

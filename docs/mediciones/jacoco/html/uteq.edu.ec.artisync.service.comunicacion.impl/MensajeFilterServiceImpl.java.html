@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MensajeFilterServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.comunicacion.impl</a> &gt; <span class="el_source">MensajeFilterServiceImpl.java</span></div><h1>MensajeFilterServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.comunicacion.impl;
+
+import org.springframework.stereotype.Service;
+import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
+
+import java.util.regex.Pattern;
+
+/**
+ * Implementación del filtro de datos de contacto.
+ * RF-15: Detecta teléfonos (formatos internacionales y locales) y correos electrónicos.
+ */
+@Service
+<span class="fc" id="L13">public class MensajeFilterServiceImpl implements MensajeFilterService {</span>
+
+    /**
+     * Patrones de detección de números telefónicos:
+     * - +593 99 123 4567 (formato internacional con prefijo +)
+     * - (02) 123456       (código de área entre paréntesis)
+     * - 123-456-7890      (formato norteamericano con guiones)
+     * - 10+ dígitos consecutivos
+     */
+<span class="fc" id="L22">    private static final Pattern PATRON_TELEFONO = Pattern.compile(</span>
+            &quot;(\\+?\\d[\\d\\-\\s]{7,})&quot;          // +dígitos con separadores (≥8 caracteres)
+            + &quot;|&quot;
+            + &quot;(\\(\\d{2,4}\\)\\s?\\d{3,})&quot;     // (02) 123456
+            + &quot;|&quot;
+            + &quot;(\\d{3}[\\-.]\\d{3}[\\-.]\\d{4})&quot; // 123-456-7890
+    );
+
+    /**
+     * Patrón de detección de correos electrónicos.
+     */
+<span class="fc" id="L33">    private static final Pattern PATRON_EMAIL = Pattern.compile(</span>
+            &quot;[\\w.+-]+@[\\w-]+\\.[\\w.]+&quot;
+    );
+
+    @Override
+    public boolean contieneContacto(String texto) {
+<span class="fc bfc" id="L39" title="All 4 branches covered.">        if (texto == null || texto.isBlank()) {</span>
+<span class="fc" id="L40">            return false;</span>
+        }
+<span class="fc bfc" id="L42" title="All 2 branches covered.">        return PATRON_TELEFONO.matcher(texto).find()</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">                || PATRON_EMAIL.matcher(texto).find();</span>
+    }
+
+    @Override
+    public String detectarPatron(String texto) {
+<span class="pc bpc" id="L48" title="2 of 4 branches missed.">        if (texto == null || texto.isBlank()) {</span>
+<span class="nc" id="L49">            return &quot;DESCONOCIDO&quot;;</span>
+        }
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (PATRON_EMAIL.matcher(texto).find()) {</span>
+<span class="fc" id="L52">            return &quot;EMAIL&quot;;</span>
+        }
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (PATRON_TELEFONO.matcher(texto).find()) {</span>
+<span class="fc" id="L55">            return &quot;TELEFONO&quot;;</span>
+        }
+<span class="fc" id="L57">        return &quot;DESCONOCIDO&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.seguridad</a> &gt; <span class="el_source">UserController.java</span></div><h1>UserController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.seguridad;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.service.seguridad.UserService;
+
+import java.security.Principal;
+
+@RestController
+@RequestMapping({&quot;/api/usuarios&quot;, &quot;/api/users&quot;})
+@RequiredArgsConstructor
+@Tag(name = &quot;Gestión de Usuarios&quot;, description = &quot;Endpoints protegidos para administración del perfil del usuario actual&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class UserController {
+
+    private final UserService userService;
+
+    @Operation(summary = &quot;Obtener el perfil completo del usuario autenticado actual&quot;)
+    @GetMapping(&quot;/me&quot;)
+    public ResponseEntity&lt;UserResponse&gt; getCurrentUser(Principal principal) {
+<span class="fc" id="L30">        return ResponseEntity.ok(userService.getCurrentUser(principal.getName()));</span>
+    }
+
+    @Operation(summary = &quot;Actualizar información personal del usuario autenticado actual&quot;)
+    @PutMapping(&quot;/me&quot;)
+    public ResponseEntity&lt;UserResponse&gt; updateCurrentUser(Principal principal, @Valid @RequestBody UpdateUserRequest request) {
+<span class="fc" id="L36">        return ResponseEntity.ok(userService.updateCurrentUser(principal.getName(), request));</span>
+    }
+
+    @Operation(summary = &quot;Cambiar la contraseña del usuario autenticado actual&quot;)
+    @PutMapping(&quot;/me/password&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; changePassword(Principal principal, @Valid @RequestBody ChangePasswordRequest request) {
+<span class="nc" id="L42">        return ResponseEntity.ok(userService.changePassword(principal.getName(), request));</span>
+    }
+
+    @Operation(summary = &quot;Desactivar la cuenta del usuario autenticado actual&quot;)
+    @DeleteMapping(&quot;/me&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; deleteOwnAccount(Principal principal) {
+<span class="fc" id="L48">        return ResponseEntity.ok(userService.deleteOwnAccount(principal.getName()));</span>
+    }
+
+    @Operation(summary = &quot;Cerrar todas las sesiones activas del usuario actual&quot;)
+    @DeleteMapping(&quot;/me/sesiones&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; revokeAllMySessions(Principal principal) {
+<span class="nc" id="L54">        return ResponseEntity.ok(userService.revokeAllMySessions(principal.getName()));</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

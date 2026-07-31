@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResenaControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.social</a> &gt; <span class="el_source">ResenaControlador.java</span></div><h1>ResenaControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.social;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
+import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.social.ResenaService;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Controlador de reseñas y calificaciones de servicios.
+ * RF-09: Calificaciones 1-5 estrellas, solo el cliente post-entrega del entregable.
+ */
+@Tag(name = &quot;Reseñas&quot;, description = &quot;Reseñas y calificaciones de servicios 1-5 estrellas&quot;)
+@RestController
+@RequiredArgsConstructor
+public class ResenaControlador {
+
+    private final ResenaService resenaService;
+
+    @Operation(summary = &quot;Crear reseña de un pedido entregado (CLIENTE)&quot;)
+    @PostMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity&lt;RespuestaResena&gt; crearResena(
+            @PathVariable Long idPedido,
+            @Valid @RequestBody PeticionCrearResena peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L39">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L40">                .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
+    }
+
+    @Operation(summary = &quot;Listar reseñas de un creador (público)&quot;)
+    @GetMapping(&quot;/api/v1/creadores/{idPerfil}/resenas&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaResena&gt;&gt; listarResenas(@PathVariable Long idPerfil) {
+<span class="nc" id="L46">        return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));</span>
+    }
+
+    @Operation(summary = &quot;Promedio de calificaciones de un creador (público)&quot;)
+    @GetMapping(&quot;/api/v1/creadores/{idPerfil}/resenas/promedio&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; obtenerPromedio(@PathVariable Long idPerfil) {
+<span class="nc" id="L52">        Double promedio = resenaService.calcularPromedioPorCreador(idPerfil);</span>
+<span class="nc" id="L53">        return ResponseEntity.ok(Map.of(</span>
+                &quot;idPerfil&quot;, idPerfil,
+                &quot;promedio&quot;, promedio
+        ));
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

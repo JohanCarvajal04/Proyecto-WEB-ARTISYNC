@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">AuthServiceImpl.java</span></div><h1>AuthServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
+import uteq.edu.ec.artisync.service.seguridad.*;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.seguridad.request.*;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.seguridad.*;
+import uteq.edu.ec.artisync.repository.seguridad.*;
+import uteq.edu.ec.artisync.repository.perfil.*;
+import uteq.edu.ec.artisync.repository.catalogo.*;
+import uteq.edu.ec.artisync.repository.pedido.*;
+import uteq.edu.ec.artisync.repository.legal.*;
+import uteq.edu.ec.artisync.repository.comunicacion.*;
+import uteq.edu.ec.artisync.repository.social.*;
+import uteq.edu.ec.artisync.security.CustomUserDetailsService;
+import uteq.edu.ec.artisync.security.JwtService;
+import uteq.edu.ec.artisync.service.seguridad.AuthService;
+import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
+import uteq.edu.ec.artisync.service.shared.EmailService;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
+
+<span class="fc" id="L47">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final RolRepository rolRepository;
+    private final UsuarioRolRepository usuarioRolRepository;
+    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+    private final TokenRecuperacionRepository tokenRecuperacionRepository;
+    private final SesionUsuarioRepository sesionUsuarioRepository;
+
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
+    private final CustomUserDetailsService userDetailsService;
+    private final SessionRevocationService sessionRevocationService;
+    private final EmailService emailService;
+    private final TwoFactorService twoFactorService;
+
+    @Override
+    @Transactional
+    public UserResponse register(RegisterRequest request) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (usuarioRepository.existsByCorreo(request.getCorreo())) {</span>
+<span class="fc" id="L72">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;El correo ya está registrado en la plataforma&quot;);</span>
+        }
+
+        // Validación RNF-12: Mayoría de edad (&gt;= 18 años)
+<span class="pc bpc" id="L76" title="1 of 4 branches missed.">        if (request.getFechaNacimiento() == null || LocalDate.now().minusYears(18).isBefore(request.getFechaNacimiento())) {</span>
+<span class="fc" id="L77">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Debes tener al menos 18 años para registrarte en ARTISYNC (RNF-12)&quot;);</span>
+        }
+
+<span class="fc" id="L80">        Usuario usuario = Usuario.builder()</span>
+<span class="fc" id="L81">                .nombres(request.getNombres())</span>
+<span class="fc" id="L82">                .apellidos(request.getApellidos())</span>
+<span class="fc" id="L83">                .correo(request.getCorreo())</span>
+<span class="fc" id="L84">                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))</span>
+<span class="fc" id="L85">                .fechaNacimiento(request.getFechaNacimiento())</span>
+<span class="fc" id="L86">                .estadoCuenta(true)</span>
+<span class="fc" id="L87">                .build();</span>
+<span class="fc" id="L88">        usuario = usuarioRepository.save(usuario);</span>
+
+<span class="pc bpc" id="L90" title="2 of 4 branches missed.">        String rolNombre = request.getRol() != null &amp;&amp; !request.getRol().isBlank() ? request.getRol().toUpperCase() : &quot;CLIENTE&quot;;</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">        if (!List.of(&quot;CLIENTE&quot;, &quot;CREADOR&quot;).contains(rolNombre)) {</span>
+<span class="nc" id="L92">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Rol no permitido en registro. Solo se permiten CLIENTE o CREADOR&quot;);</span>
+        }
+<span class="fc" id="L94">        Rol rol = rolRepository.findByNombreRol(rolNombre)</span>
+<span class="pc" id="L95">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El rol especificado no existe en el sistema: &quot; + rolNombre));</span>
+
+<span class="fc" id="L97">        UsuarioRol usuarioRol = UsuarioRol.builder()</span>
+<span class="fc" id="L98">                .usuario(usuario)</span>
+<span class="fc" id="L99">                .rol(rol)</span>
+<span class="fc" id="L100">                .build();</span>
+<span class="fc" id="L101">        usuarioRolRepository.save(usuarioRol);</span>
+
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (&quot;CREADOR&quot;.equals(rolNombre)) {</span>
+<span class="nc" id="L104">            PerfilCreador perfil = PerfilCreador.builder()</span>
+<span class="nc" id="L105">                    .usuario(usuario)</span>
+<span class="nc" id="L106">                    .biografia(&quot;¡Hola! Soy un creador en ARTISYNC.&quot;)</span>
+<span class="nc" id="L107">                    .build();</span>
+<span class="nc" id="L108">            perfilCreadorRepository.save(perfil);</span>
+        }
+
+<span class="fc" id="L111">        return UserResponse.builder()</span>
+<span class="fc" id="L112">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L113">                .nombres(usuario.getNombres())</span>
+<span class="fc" id="L114">                .apellidos(usuario.getApellidos())</span>
+<span class="fc" id="L115">                .correo(usuario.getCorreo())</span>
+<span class="fc" id="L116">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
+<span class="fc" id="L117">                .fechaRegistro(usuario.getFechaRegistro())</span>
+<span class="fc" id="L118">                .estadoCuenta(usuario.getEstadoCuenta())</span>
+<span class="fc" id="L119">                .roles(List.of(rolNombre))</span>
+<span class="fc" id="L120">                .dosFactoresHabilitado(false)</span>
+<span class="fc" id="L121">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse login(LoginRequest request) {
+<span class="fc" id="L127">        String ip = obtenerIpActual();</span>
+
+        try {
+<span class="fc" id="L130">            authenticationManager.authenticate(</span>
+<span class="fc" id="L131">                    new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())</span>
+            );
+<span class="nc" id="L133">        } catch (AuthenticationException e) {</span>
+<span class="nc" id="L134">            log.warn(&quot;evento=LOGIN resultado=FALLIDO correo={} ip={}&quot;, request.getCorreo(), ip);</span>
+<span class="nc" id="L135">            throw e;</span>
+<span class="fc" id="L136">        }</span>
+
+<span class="fc" id="L138">        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())</span>
+<span class="pc" id="L139">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="fc" id="L141">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L142">                .orElse(null);</span>
+
+<span class="pc bpc" id="L144" title="3 of 4 branches missed.">        if (dosFactores != null &amp;&amp; Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="nc" id="L145">            return TokenResponse.builder()</span>
+<span class="nc" id="L146">                    .correo(usuario.getCorreo())</span>
+<span class="nc" id="L147">                    .idUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L148">                    .requiere2fa(true)</span>
+<span class="nc" id="L149">                    .build();</span>
+        }
+
+<span class="fc" id="L152">        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());</span>
+<span class="fc" id="L153">        String accessToken = jwtService.generarToken(userDetails);</span>
+<span class="fc" id="L154">        String refreshToken = jwtService.generarRefreshToken(userDetails);</span>
+
+<span class="fc" id="L156">        List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L157">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L158">                .toList();</span>
+
+<span class="fc" id="L160">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L161">                .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L163">                .toList();</span>
+
+<span class="fc" id="L165">        registrarSesion(usuario, accessToken, jwtService.getExpirationMs());</span>
+<span class="fc" id="L166">        registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());</span>
+
+<span class="fc" id="L168">        log.info(&quot;evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}&quot;, usuario.getCorreo(), ip, usuario.getIdUsuario());</span>
+
+<span class="fc" id="L170">        return TokenResponse.builder()</span>
+<span class="fc" id="L171">                .accessToken(accessToken)</span>
+<span class="fc" id="L172">                .refreshToken(refreshToken)</span>
+<span class="fc" id="L173">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L174">                .correo(usuario.getCorreo())</span>
+<span class="fc" id="L175">                .roles(roles)</span>
+<span class="fc" id="L176">                .permisos(permisos)</span>
+<span class="fc" id="L177">                .requiere2fa(false)</span>
+<span class="fc" id="L178">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse verify2Fa(TwoFactorRequest request) {
+<span class="nc" id="L184">        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())</span>
+<span class="nc" id="L185">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="nc" id="L187">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L188">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;2FA no configurado para este usuario&quot;));</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="nc" id="L191">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra habilitado&quot;);</span>
+        }
+
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        if (!twoFactorService.validarCodigoOBackup(request.getCorreo(), request.getCodigo())) {</span>
+<span class="nc" id="L195">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
+        }
+
+<span class="nc" id="L198">        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());</span>
+<span class="nc" id="L199">        String accessToken = jwtService.generarToken(userDetails);</span>
+<span class="nc" id="L200">        String refreshToken = jwtService.generarRefreshToken(userDetails);</span>
+
+<span class="nc" id="L202">        List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="nc" id="L203">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="nc" id="L204">                .toList();</span>
+
+<span class="nc" id="L206">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="nc" id="L207">                .map(GrantedAuthority::getAuthority)</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="nc" id="L209">                .toList();</span>
+
+<span class="nc" id="L211">        registrarSesion(usuario, accessToken, jwtService.getExpirationMs());</span>
+<span class="nc" id="L212">        registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());</span>
+
+<span class="nc" id="L214">        return TokenResponse.builder()</span>
+<span class="nc" id="L215">                .accessToken(accessToken)</span>
+<span class="nc" id="L216">                .refreshToken(refreshToken)</span>
+<span class="nc" id="L217">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L218">                .correo(usuario.getCorreo())</span>
+<span class="nc" id="L219">                .roles(roles)</span>
+<span class="nc" id="L220">                .permisos(permisos)</span>
+<span class="nc" id="L221">                .requiere2fa(false)</span>
+<span class="nc" id="L222">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse refreshToken(String refreshToken) {
+<span class="nc bnc" id="L228" title="All 4 branches missed.">        if (refreshToken == null || refreshToken.isBlank()) {</span>
+<span class="nc" id="L229">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token no proporcionado&quot;);</span>
+        }
+
+        try {
+<span class="nc" id="L233">            String jti = jwtService.extraerJti(refreshToken);</span>
+<span class="nc bnc" id="L234" title="All 4 branches missed.">            if (jti != null &amp;&amp; sesionUsuarioRepository.findByTokenJwt(refreshToken).isEmpty()) {</span>
+<span class="nc" id="L235">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token revocado o expirado&quot;);</span>
+            }
+
+<span class="nc" id="L238">            String username = jwtService.extraerUsername(refreshToken);</span>
+<span class="nc" id="L239">            UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
+
+<span class="nc bnc" id="L241" title="All 2 branches missed.">            if (!jwtService.esRefreshTokenValido(refreshToken, userDetails)) {</span>
+<span class="nc" id="L242">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido&quot;);</span>
+            }
+
+<span class="nc" id="L245">            Usuario usuario = usuarioRepository.findByCorreo(username)</span>
+<span class="nc" id="L246">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="nc bnc" id="L248" title="All 2 branches missed.">            if (!Boolean.TRUE.equals(usuario.getEstadoCuenta())) {</span>
+<span class="nc" id="L249">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;La cuenta del usuario está inactiva&quot;);</span>
+            }
+
+<span class="nc" id="L252">            sessionRevocationService.revocarToken(refreshToken);</span>
+<span class="nc" id="L253">            sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);</span>
+
+<span class="nc" id="L255">            String nuevoAccessToken = jwtService.generarToken(userDetails);</span>
+<span class="nc" id="L256">            String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);</span>
+
+<span class="nc" id="L258">            registrarSesion(usuario, nuevoAccessToken, jwtService.getExpirationMs());</span>
+<span class="nc" id="L259">            registrarSesion(usuario, nuevoRefreshToken, jwtService.getRefreshExpirationMs());</span>
+
+<span class="nc" id="L261">            List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="nc" id="L262">                    .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="nc" id="L263">                    .toList();</span>
+
+<span class="nc" id="L265">            List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="nc" id="L266">                    .map(GrantedAuthority::getAuthority)</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">                    .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="nc" id="L268">                    .toList();</span>
+
+<span class="nc" id="L270">            return TokenResponse.builder()</span>
+<span class="nc" id="L271">                    .accessToken(nuevoAccessToken)</span>
+<span class="nc" id="L272">                    .refreshToken(nuevoRefreshToken)</span>
+<span class="nc" id="L273">                    .idUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L274">                    .correo(usuario.getCorreo())</span>
+<span class="nc" id="L275">                    .roles(roles)</span>
+<span class="nc" id="L276">                    .permisos(permisos)</span>
+<span class="nc" id="L277">                    .requiere2fa(false)</span>
+<span class="nc" id="L278">                    .build();</span>
+
+<span class="nc" id="L280">        } catch (ResponseStatusException e) {</span>
+<span class="nc" id="L281">            throw e;</span>
+<span class="nc" id="L282">        } catch (Exception e) {</span>
+<span class="nc" id="L283">            log.warn(&quot;Error al procesar refresh token: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L284">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido o malformado&quot;);</span>
+        }
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
+<span class="nc" id="L291">        sessionRevocationService.revocarTokenPorCabecera(tokenHeader);</span>
+<span class="nc bnc" id="L292" title="All 4 branches missed.">        if (refreshToken != null &amp;&amp; !refreshToken.isBlank()) {</span>
+<span class="nc" id="L293">            sessionRevocationService.revocarToken(refreshToken);</span>
+<span class="nc" id="L294">            sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);</span>
+        }
+<span class="nc" id="L296">        return new RespuestaMensaje(&quot;Sesión cerrada exitosamente&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
+<span class="nc" id="L302">        usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -&gt; {</span>
+<span class="nc" id="L303">            String tokenPlain = UUID.randomUUID().toString();</span>
+<span class="nc" id="L304">            String tokenHash = hashSha256(tokenPlain);</span>
+<span class="nc" id="L305">            TokenRecuperacion tokenRec = TokenRecuperacion.builder()</span>
+<span class="nc" id="L306">                    .usuario(usuario)</span>
+<span class="nc" id="L307">                    .hashToken(tokenHash)</span>
+<span class="nc" id="L308">                    .usado(false)</span>
+<span class="nc" id="L309">                    .build();</span>
+<span class="nc" id="L310">            tokenRecuperacionRepository.save(tokenRec);</span>
+<span class="nc" id="L311">            log.debug(&quot;Generado token de recuperación para usuario ID: {}&quot;, usuario.getIdUsuario());</span>
+<span class="nc" id="L312">            emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), tokenPlain);</span>
+<span class="nc" id="L313">        });</span>
+<span class="nc" id="L314">        return new RespuestaMensaje(&quot;Si el correo se encuentra registrado, recibirás un enlace de recuperación&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
+<span class="nc" id="L320">        String tokenHash = hashSha256(request.getToken());</span>
+<span class="nc" id="L321">        TokenRecuperacion tokenRec = tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(tokenHash)</span>
+<span class="nc" id="L322">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Este enlace ya ha sido utilizado o ha expirado&quot;));</span>
+
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        if (tokenRec.getFechaGeneracion().plusMinutes(60).isBefore(LocalDateTime.now())) {</span>
+<span class="nc" id="L325">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Este enlace ya ha sido utilizado o ha expirado&quot;);</span>
+        }
+
+<span class="nc" id="L328">        Usuario usuario = tokenRec.getUsuario();</span>
+<span class="nc" id="L329">        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));</span>
+<span class="nc" id="L330">        usuarioRepository.save(usuario);</span>
+
+<span class="nc" id="L332">        tokenRec.setUsado(true);</span>
+<span class="nc" id="L333">        tokenRecuperacionRepository.save(tokenRec);</span>
+
+<span class="nc" id="L335">        return new RespuestaMensaje(&quot;Contraseña reestablecida exitosamente&quot;);</span>
+    }
+
+    /** OBS-08 (A09 OWASP): IP del solicitante actual, usada tanto en el registro de sesión como en el log de auditoría de login. */
+    private String obtenerIpActual() {
+<span class="fc" id="L340">        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span>
+<span class="pc bpc" id="L341" title="3 of 4 branches missed.">        if (attributes != null &amp;&amp; attributes.getRequest() != null) {</span>
+<span class="nc" id="L342">            return attributes.getRequest().getRemoteAddr();</span>
+        }
+<span class="fc" id="L344">        return null;</span>
+    }
+
+    private void registrarSesion(Usuario usuario, String token, long expirationMs) {
+        try {
+<span class="fc" id="L349">            String ip = obtenerIpActual();</span>
+<span class="fc" id="L350">            SesionUsuario sesion = SesionUsuario.builder()</span>
+<span class="fc" id="L351">                    .usuario(usuario)</span>
+<span class="fc" id="L352">                    .tokenJwt(token)</span>
+<span class="fc" id="L353">                    .direccionIp(ip)</span>
+<span class="fc" id="L354">                    .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))</span>
+<span class="fc" id="L355">                    .build();</span>
+<span class="fc" id="L356">            sesionUsuarioRepository.save(sesion);</span>
+<span class="nc" id="L357">        } catch (Exception e) {</span>
+<span class="nc" id="L358">            log.error(&quot;Error registrando sesión de usuario: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L359">        }</span>
+<span class="fc" id="L360">    }</span>
+
+    private String hashSha256(String input) {
+        try {
+<span class="nc" id="L364">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="nc" id="L365">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L366">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="nc" id="L367">        } catch (Exception e) {</span>
+<span class="nc" id="L368">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
+        }
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

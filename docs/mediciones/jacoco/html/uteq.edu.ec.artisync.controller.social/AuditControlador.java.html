@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.social</a> &gt; <span class="el_source">AuditControlador.java</span></div><h1>AuditControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.social;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.service.social.AuditService;
+
+/**
+ * Controlador de auditoría y exportación de datos.
+ * RNF-13: El historial es inmutable; solo lectura. Solo accesible para ADMIN.
+ * El endpoint de exportación CSV permite auditoría externa de transacciones.
+ */
+@Tag(name = &quot;Auditoría&quot;, description = &quot;Exportación de historial de transacciones para ADMIN (RNF-13)&quot;)
+@RestController
+@RequiredArgsConstructor
+public class AuditControlador {
+
+    private final AuditService auditService;
+
+    @Operation(summary = &quot;Exportar transacciones de un creador en CSV (solo ADMIN)&quot;)
+    @GetMapping(&quot;/api/v1/admin/transacciones/{idPerfil}/csv&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportarCsv(@PathVariable Long idPerfil) {
+<span class="nc" id="L28">        byte[] csv = auditService.exportarTransaccionesCreadorCsv(idPerfil);</span>
+
+<span class="nc" id="L30">        return ResponseEntity.ok()</span>
+<span class="nc" id="L31">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+                        &quot;attachment; filename=\&quot;transacciones_creador_&quot; + idPerfil + &quot;.csv\&quot;&quot;)
+<span class="nc" id="L33">                .header(HttpHeaders.CONTENT_TYPE, &quot;text/csv; charset=UTF-8&quot;)</span>
+<span class="nc" id="L34">                .body(csv);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

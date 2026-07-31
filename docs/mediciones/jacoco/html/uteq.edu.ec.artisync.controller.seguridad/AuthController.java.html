@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.seguridad</a> &gt; <span class="el_source">AuthController.java</span></div><h1>AuthController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.seguridad;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.seguridad.request.*;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.service.seguridad.AuthService;
+import org.springframework.beans.factory.annotation.Value;
+
+@RestController
+@RequestMapping(&quot;/api/auth&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Autenticación&quot;, description = &quot;Endpoints públicos para registro (RNF-12), login, 2FA, refresh token y recuperación de contraseña&quot;)
+public class AuthController {
+
+    @Value(&quot;${app.security.cookie-secure:false}&quot;)
+    private boolean cookieSecure;
+
+    private final AuthService authService;
+
+    @Operation(summary = &quot;Registrar nuevo usuario con validación de mayoría de edad (RNF-12)&quot;)
+    @PostMapping(&quot;/registro&quot;)
+    public ResponseEntity&lt;UserResponse&gt; register(@Valid @RequestBody RegisterRequest request) {
+<span class="nc" id="L36">        UserResponse userResponse = authService.register(request);</span>
+<span class="nc" id="L37">        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);</span>
+    }
+
+    @Operation(summary = &quot;Iniciar sesión y obtener token JWT o requerimiento 2FA&quot;)
+    @PostMapping(&quot;/login&quot;)
+    public ResponseEntity&lt;TokenResponse&gt; login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+<span class="fc" id="L43">        TokenResponse tokenResponse = authService.login(request);</span>
+<span class="fc" id="L44">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
+<span class="fc" id="L45">        return ResponseEntity.ok(tokenResponse);</span>
+    }
+
+    @Operation(summary = &quot;Verificar código de autenticación de doble factor (2FA)&quot;)
+    @PostMapping(&quot;/2fa/verify&quot;)
+    public ResponseEntity&lt;TokenResponse&gt; verify2Fa(@Valid @RequestBody TwoFactorRequest request, HttpServletResponse response) {
+<span class="nc" id="L51">        TokenResponse tokenResponse = authService.verify2Fa(request);</span>
+<span class="nc" id="L52">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
+<span class="nc" id="L53">        return ResponseEntity.ok(tokenResponse);</span>
+    }
+
+    @Operation(summary = &quot;Refrescar token de acceso utilizando Refresh Token en cookie HttpOnly o cuerpo JSON&quot;)
+    @PostMapping(&quot;/refresh&quot;)
+    public ResponseEntity&lt;TokenResponse&gt; refresh(
+            @CookieValue(name = &quot;refreshToken&quot;, required = false) String refreshTokenCookie,
+            @RequestBody(required = false) RefreshTokenRequest requestBody,
+            HttpServletResponse response) {
+<span class="fc" id="L62">        String tokenToRefresh = refreshTokenCookie;</span>
+<span class="fc bfc" id="L63" title="All 4 branches covered.">        if (tokenToRefresh == null &amp;&amp; requestBody != null) {</span>
+<span class="fc" id="L64">            tokenToRefresh = requestBody.getRefreshToken();</span>
+        }
+<span class="pc bpc" id="L66" title="1 of 4 branches missed.">        if (tokenToRefresh == null || tokenToRefresh.isBlank()) {</span>
+<span class="fc" id="L67">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
+        }
+<span class="fc" id="L69">        TokenResponse tokenResponse = authService.refreshToken(tokenToRefresh);</span>
+<span class="fc" id="L70">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
+<span class="fc" id="L71">        return ResponseEntity.ok(tokenResponse);</span>
+    }
+
+    @Operation(summary = &quot;Cerrar sesión e invalidar token JWT y Refresh Token en Redis Blacklist y BD&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PostMapping(&quot;/logout&quot;)
+    public ResponseEntity&lt;Void&gt; logout(HttpServletRequest request, @CookieValue(name = &quot;refreshToken&quot;, required = false) String refreshTokenCookie, HttpServletResponse response) {
+<span class="fc" id="L77">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="fc" id="L78">        authService.logout(authHeader, refreshTokenCookie);</span>
+<span class="fc" id="L79">        clearRefreshTokenCookie(response);</span>
+<span class="fc" id="L80">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @Operation(summary = &quot;Solicitar enlace/token de recuperación de contraseña&quot;)
+    @PostMapping(&quot;/forgot-password&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+<span class="nc" id="L86">        return ResponseEntity.ok(authService.forgotPassword(request));</span>
+    }
+
+    @Operation(summary = &quot;Reestablecer contraseña utilizando token válido&quot;)
+    @PostMapping(&quot;/reset-password&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+<span class="nc" id="L92">        return ResponseEntity.ok(authService.resetPassword(request));</span>
+    }
+
+    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (refreshToken != null) {</span>
+<span class="fc" id="L97">            ResponseCookie cookie = ResponseCookie.from(&quot;refreshToken&quot;, refreshToken)</span>
+<span class="fc" id="L98">                    .httpOnly(true)</span>
+<span class="fc" id="L99">                    .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)</span>
+<span class="fc" id="L100">                    .path(&quot;/api/auth&quot;)</span>
+<span class="fc" id="L101">                    .maxAge(604800) // 7 días en segundos</span>
+<span class="fc" id="L102">                    .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L103">                    .build();</span>
+<span class="fc" id="L104">            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());</span>
+        }
+<span class="fc" id="L106">    }</span>
+
+    private void clearRefreshTokenCookie(HttpServletResponse response) {
+<span class="fc" id="L109">        ResponseCookie cookie = ResponseCookie.from(&quot;refreshToken&quot;, &quot;&quot;)</span>
+<span class="fc" id="L110">                .httpOnly(true)</span>
+<span class="fc" id="L111">                .secure(cookieSecure)</span>
+<span class="fc" id="L112">                .path(&quot;/api/auth&quot;)</span>
+<span class="fc" id="L113">                .maxAge(0)</span>
+<span class="fc" id="L114">                .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L115">                .build();</span>
+<span class="fc" id="L116">        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());</span>
+<span class="fc" id="L117">    }</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

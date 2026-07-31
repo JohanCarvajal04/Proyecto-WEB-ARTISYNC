@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomUserDetailsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.security</a> &gt; <span class="el_source">CustomUserDetailsService.java</span></div><h1>CustomUserDetailsService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.entity.seguridad.Permiso;
+import uteq.edu.ec.artisync.entity.seguridad.Rol;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioRolRepository usuarioRolRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
+<span class="nc" id="L33">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L34">                .orElseThrow(() -&gt; new UsernameNotFoundException(&quot;Usuario no encontrado con correo: &quot; + correo));</span>
+
+<span class="nc" id="L36">        List&lt;UsuarioRol&gt; rolesUsuario = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+
+<span class="nc" id="L38">        Set&lt;String&gt; authoritiesSet = new HashSet&lt;&gt;();</span>
+
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        for (UsuarioRol ur : rolesUsuario) {</span>
+<span class="nc" id="L41">            Rol rol = ur.getRol();</span>
+<span class="nc" id="L42">            String roleName = rol.getNombreRol().toUpperCase();</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">            if (!roleName.startsWith(&quot;ROLE_&quot;)) {</span>
+<span class="nc" id="L44">                authoritiesSet.add(&quot;ROLE_&quot; + roleName);</span>
+            } else {
+<span class="nc" id="L46">                authoritiesSet.add(roleName);</span>
+            }
+
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (rol.getPermisos() != null) {</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">                for (Permiso p : rol.getPermisos()) {</span>
+<span class="nc" id="L51">                    authoritiesSet.add(p.getNombrePermiso().toUpperCase());</span>
+<span class="nc" id="L52">                }</span>
+            }
+<span class="nc" id="L54">        }</span>
+
+<span class="nc" id="L56">        List&lt;GrantedAuthority&gt; authorities = authoritiesSet.stream()</span>
+<span class="nc" id="L57">                .map(SimpleGrantedAuthority::new)</span>
+<span class="nc" id="L58">                .map(ga -&gt; (GrantedAuthority) ga)</span>
+<span class="nc" id="L59">                .toList();</span>
+
+<span class="nc" id="L61">        boolean enabled = Boolean.TRUE.equals(usuario.getEstadoCuenta());</span>
+
+<span class="nc" id="L63">        return new CustomUserDetails(</span>
+<span class="nc" id="L64">                usuario.getIdUsuario(),</span>
+<span class="nc" id="L65">                usuario.getCorreo(),</span>
+<span class="nc" id="L66">                usuario.getContrasenaHash(),</span>
+                enabled,
+                true,
+                true,
+                true,
+                authorities
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

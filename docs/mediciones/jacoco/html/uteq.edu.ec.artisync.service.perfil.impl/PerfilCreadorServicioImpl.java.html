@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilCreadorServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.perfil.impl</a> &gt; <span class="el_source">PerfilCreadorServicioImpl.java</span></div><h1>PerfilCreadorServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.perfil.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPerfil;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPerfil;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPerfil;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.service.perfil.IPerfilCreadorServicio;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
+
+    private final PerfilCreadorRepository perfilRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    @Override
+    @Transactional
+    public RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion) {
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (perfilRepository.findByUsuarioIdUsuario(peticion.idUsuario()).isPresent()) {</span>
+<span class="nc" id="L31">            throw new ExcepcionRecursoDuplicado(&quot;El usuario ya tiene un perfil de creador asignado.&quot;);</span>
+        }
+
+<span class="nc" id="L34">        Usuario usuario = usuarioRepository.findById(peticion.idUsuario())</span>
+<span class="nc" id="L35">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado con ID: &quot; + peticion.idUsuario()));</span>
+
+<span class="nc" id="L37">        PerfilCreador perfil = PerfilCreador.builder()</span>
+<span class="nc" id="L38">                .usuario(usuario)</span>
+<span class="nc" id="L39">                .biografia(peticion.biografia())</span>
+<span class="nc" id="L40">                .urlRedSocial(peticion.urlRedSocial())</span>
+<span class="nc" id="L41">                .build();</span>
+
+<span class="nc" id="L43">        PerfilCreador guardado = perfilRepository.save(perfil);</span>
+<span class="nc" id="L44">        return mapearARespuesta(guardado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaPerfil obtenerPerfilPorId(Long idPerfil) {
+<span class="nc" id="L50">        PerfilCreador perfil = perfilRepository.findById(idPerfil)</span>
+<span class="nc" id="L51">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil));</span>
+<span class="nc" id="L52">        return mapearARespuesta(perfil);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario) {
+<span class="nc" id="L58">        PerfilCreador perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="nc" id="L59">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No se encontró perfil para el usuario con ID: &quot; + idUsuario));</span>
+<span class="nc" id="L60">        return mapearARespuesta(perfil);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPerfil&gt; listarPerfiles() {
+<span class="nc" id="L66">        return perfilRepository.findAll().stream()</span>
+<span class="nc" id="L67">                .map(this::mapearARespuesta)</span>
+<span class="nc" id="L68">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion) {
+<span class="nc" id="L74">        PerfilCreador perfil = perfilRepository.findById(idPerfil)</span>
+<span class="nc" id="L75">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil));</span>
+
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (peticion.biografia() != null) {</span>
+<span class="nc" id="L78">            perfil.setBiografia(peticion.biografia());</span>
+        }
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (peticion.urlRedSocial() != null) {</span>
+<span class="nc" id="L81">            perfil.setUrlRedSocial(peticion.urlRedSocial());</span>
+        }
+
+<span class="nc" id="L84">        PerfilCreador actualizado = perfilRepository.save(perfil);</span>
+<span class="nc" id="L85">        return mapearARespuesta(actualizado);</span>
+    }
+
+    @Override
+    @Transactional
+    public void eliminarPerfil(Long idPerfil) {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        if (!perfilRepository.existsById(idPerfil)) {</span>
+<span class="nc" id="L92">            throw new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil);</span>
+        }
+<span class="nc" id="L94">        perfilRepository.deleteById(idPerfil);</span>
+<span class="nc" id="L95">    }</span>
+
+    private RespuestaPerfil mapearARespuesta(PerfilCreador perfil) {
+<span class="nc" id="L98">        return RespuestaPerfil.builder()</span>
+<span class="nc" id="L99">                .idPerfil(perfil.getIdPerfil())</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                .idUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null)</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                .nombresUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getNombres() : null)</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                .apellidosUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getApellidos() : null)</span>
+<span class="nc" id="L103">                .biografia(perfil.getBiografia())</span>
+<span class="nc" id="L104">                .urlRedSocial(perfil.getUrlRedSocial())</span>
+<span class="nc" id="L105">                .build();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

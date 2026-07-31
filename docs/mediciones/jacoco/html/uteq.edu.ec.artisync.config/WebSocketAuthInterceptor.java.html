@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebSocketAuthInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.config</a> &gt; <span class="el_source">WebSocketAuthInterceptor.java</span></div><h1>WebSocketAuthInterceptor.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.config;
+
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.security.CustomUserDetailsService;
+import uteq.edu.ec.artisync.security.JwtService;
+
+import java.util.Date;
+
+/**
+ * Interceptor de canal STOMP que valida el JWT en el evento CONNECT.
+ * Extrae el token del header &quot;Authorization&quot; y establece el Principal
+ * autenticado en el StompHeaderAccessor para que Spring Security
+ * pueda identificar al usuario en toda la sesión WebSocket.
+ */
+<span class="fc" id="L26">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class WebSocketAuthInterceptor implements ChannelInterceptor {
+
+    private final JwtService jwtService;
+    private final CustomUserDetailsService userDetailsService;
+
+    @Override
+    public Message&lt;?&gt; preSend(Message&lt;?&gt; message, MessageChannel channel) {
+<span class="nc" id="L36">        StompHeaderAccessor accessor =</span>
+<span class="nc" id="L37">                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);</span>
+
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        if (accessor == null) {</span>
+<span class="nc" id="L40">            return message;</span>
+        }
+
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (StompCommand.CONNECT.equals(accessor.getCommand())) {</span>
+<span class="nc" id="L44">            String authHeader = accessor.getFirstNativeHeader(&quot;Authorization&quot;);</span>
+
+<span class="nc bnc" id="L46" title="All 4 branches missed.">            if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L47">                String token = authHeader.substring(7);</span>
+                try {
+<span class="nc" id="L49">                    Claims claims = jwtService.extraerTodosLosClaims(token);</span>
+<span class="nc" id="L50">                    String username = jwtService.extraerUsername(token);</span>
+<span class="nc" id="L51">                    Date expiration = claims.getExpiration();</span>
+
+<span class="nc bnc" id="L53" title="All 4 branches missed.">                    if (username != null &amp;&amp; expiration.after(new Date())) {</span>
+<span class="nc" id="L54">                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
+<span class="nc" id="L55">                        UsernamePasswordAuthenticationToken authToken =</span>
+                                new UsernamePasswordAuthenticationToken(
+<span class="nc" id="L57">                                        userDetails, null, userDetails.getAuthorities());</span>
+                        // Establece el principal para toda la sesión WebSocket
+<span class="nc" id="L59">                        accessor.setUser(authToken);</span>
+<span class="nc" id="L60">                        log.debug(&quot;WebSocket autenticado para usuario: {}&quot;, username);</span>
+<span class="nc" id="L61">                    } else {</span>
+<span class="nc" id="L62">                        log.warn(&quot;WebSocket CONNECT rechazado: token expirado o usuario nulo&quot;);</span>
+                    }
+<span class="nc" id="L64">                } catch (Exception e) {</span>
+<span class="nc" id="L65">                    log.warn(&quot;WebSocket CONNECT rechazado: token inválido — {}&quot;, e.getMessage());</span>
+<span class="nc" id="L66">                }</span>
+<span class="nc" id="L67">            } else {</span>
+<span class="nc" id="L68">                log.warn(&quot;WebSocket CONNECT sin header Authorization&quot;);</span>
+            }
+        }
+
+<span class="nc" id="L72">        return message;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

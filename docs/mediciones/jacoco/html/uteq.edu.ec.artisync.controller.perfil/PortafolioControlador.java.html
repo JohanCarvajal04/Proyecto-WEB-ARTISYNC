@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PortafolioControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.perfil</a> &gt; <span class="el_source">PortafolioControlador.java</span></div><h1>PortafolioControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.perfil;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
+import uteq.edu.ec.artisync.service.perfil.IPortafolioServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/portafolios&quot;)
+@RequiredArgsConstructor
+public class PortafolioControlador {
+
+    private final IPortafolioServicio portafolioServicio;
+
+    @PostMapping
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPortafolio&gt; crearPortafolio(@Valid @RequestBody PeticionCrearPortafolio peticion) {
+<span class="nc" id="L27">        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion);</span>
+<span class="nc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorId(@PathVariable Long id) {
+<span class="nc" id="L33">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
+    }
+
+    @GetMapping(&quot;/perfil/{idPerfil}&quot;)
+    public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
+<span class="nc" id="L38">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));</span>
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;RespuestaPortafolio&gt; &gt; listarPortafolios() {
+<span class="nc" id="L43">        return ResponseEntity.ok(portafolioServicio.listarPortafolios());</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPortafolio&gt; actualizarPortafolio(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionActualizarPortafolio peticion) {
+<span class="nc" id="L51">        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion));</span>
+    }
+
+    @PostMapping(&quot;/{id}/visita&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; registrarVisita(@PathVariable Long id) {
+<span class="nc" id="L56">        portafolioServicio.incrementarVisitas(id);</span>
+<span class="nc" id="L57">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Visita al portafolio incrementada&quot;));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPortafolio(@PathVariable Long id) {
+<span class="nc" id="L63">        portafolioServicio.eliminarPortafolio(id);</span>
+<span class="nc" id="L64">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portafolio eliminado exitosamente&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

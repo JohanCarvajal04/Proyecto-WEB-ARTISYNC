@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServicioControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.catalogo</a> &gt; <span class="el_source">ServicioControlador.java</span></div><h1>ServicioControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.catalogo;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarAtributo;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarServicio;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearAtributo;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearServicio;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaAtributo;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicio;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicioResumido;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.service.catalogo.IServicioCatalogoServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/servicios&quot;)
+@RequiredArgsConstructor
+public class ServicioControlador {
+
+    private final IServicioCatalogoServicio servicioCatalogoServicio;
+
+    @PostMapping(&quot;/creador/{idPerfilCreador}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaServicio&gt; crearServicio(
+            @PathVariable Long idPerfilCreador,
+            @Valid @RequestBody PeticionCrearServicio peticion) {
+<span class="nc" id="L33">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L34">                .body(servicioCatalogoServicio.crearServicio(idPerfilCreador, peticion));</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaServicio&gt; actualizarServicio(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionActualizarServicio peticion) {
+<span class="nc" id="L42">        return ResponseEntity.ok(servicioCatalogoServicio.actualizarServicio(id, peticion));</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaServicio&gt; obtenerServicioPorId(@PathVariable Long id) {
+<span class="nc" id="L47">        return ResponseEntity.ok(servicioCatalogoServicio.obtenerServicioPorId(id));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarServicio(@PathVariable Long id) {
+<span class="nc" id="L53">        servicioCatalogoServicio.eliminarServicio(id);</span>
+<span class="nc" id="L54">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Servicio eliminado exitosamente&quot;));</span>
+    }
+
+    @GetMapping(&quot;/creador/{idPerfilCreador}&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaServicioResumido&gt;&gt; listarServiciosPorCreador(
+            @PathVariable Long idPerfilCreador,
+            @RequestParam(required = false) String estadoPublicacion) {
+<span class="nc" id="L61">        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));</span>
+    }
+
+    @GetMapping(&quot;/{id}/atributos&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaAtributo&gt;&gt; listarAtributosPorServicio(@PathVariable Long id) {
+<span class="nc" id="L66">        return ResponseEntity.ok(servicioCatalogoServicio.listarAtributosPorServicio(id));</span>
+    }
+
+    @PostMapping(&quot;/{id}/atributos&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaAtributo&gt; agregarAtributo(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionCrearAtributo peticion) {
+<span class="nc" id="L74">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L75">                .body(servicioCatalogoServicio.agregarAtributo(id, peticion));</span>
+    }
+
+    @PutMapping(&quot;/{id}/atributos/{idAtributo}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaAtributo&gt; actualizarAtributo(
+            @PathVariable Long id,
+            @PathVariable Long idAtributo,
+            @Valid @RequestBody PeticionActualizarAtributo peticion) {
+<span class="nc" id="L84">        return ResponseEntity.ok(servicioCatalogoServicio.actualizarAtributo(id, idAtributo, peticion));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}/atributos/{idAtributo}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarAtributo(
+            @PathVariable Long id,
+            @PathVariable Long idAtributo) {
+<span class="nc" id="L92">        servicioCatalogoServicio.eliminarAtributo(id, idAtributo);</span>
+<span class="nc" id="L93">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Atributo eliminado exitosamente del servicio&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

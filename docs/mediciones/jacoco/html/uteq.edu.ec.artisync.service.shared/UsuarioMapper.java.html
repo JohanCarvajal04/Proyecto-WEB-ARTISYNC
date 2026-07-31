@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared</a> &gt; <span class="el_source">UsuarioMapper.java</span></div><h1>UsuarioMapper.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
+import uteq.edu.ec.artisync.entity.seguridad.Permiso;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
+import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class UsuarioMapper {
+
+    private final UsuarioRolRepository usuarioRolRepository;
+    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+
+    public UserResponse toUserResponse(Usuario usuario) {
+<span class="nc" id="L23">        List&lt;UsuarioRol&gt; usuarioRoles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+
+<span class="nc" id="L25">        List&lt;String&gt; roles = usuarioRoles.stream()</span>
+<span class="nc" id="L26">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="nc" id="L27">                .toList();</span>
+
+<span class="nc" id="L29">        List&lt;String&gt; permisos = usuarioRoles.stream()</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">                .filter(ur -&gt; ur.getRol().getPermisos() != null)</span>
+<span class="nc" id="L31">                .flatMap(ur -&gt; ur.getRol().getPermisos().stream())</span>
+<span class="nc" id="L32">                .map(Permiso::getNombrePermiso)</span>
+<span class="nc" id="L33">                .distinct()</span>
+<span class="nc" id="L34">                .toList();</span>
+
+<span class="nc" id="L36">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L37">                .orElse(null);</span>
+
+<span class="nc" id="L39">        return UserResponse.builder()</span>
+<span class="nc" id="L40">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L41">                .nombres(usuario.getNombres())</span>
+<span class="nc" id="L42">                .apellidos(usuario.getApellidos())</span>
+<span class="nc" id="L43">                .correo(usuario.getCorreo())</span>
+<span class="nc" id="L44">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">                .idPais(usuario.getPais() != null ? usuario.getPais().getIdPais() : null)</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">                .nombrePais(usuario.getPais() != null ? usuario.getPais().getNombrePais() : null)</span>
+<span class="nc" id="L47">                .fechaRegistro(usuario.getFechaRegistro())</span>
+<span class="nc" id="L48">                .estadoCuenta(usuario.getEstadoCuenta())</span>
+<span class="nc" id="L49">                .roles(roles)</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">                .permisos(permisos)</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">                .dosFactoresHabilitado(dosFactores != null &amp;&amp; Boolean.TRUE.equals(dosFactores.getEstaHabilitado()))</span>
+<span class="nc" id="L52">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
