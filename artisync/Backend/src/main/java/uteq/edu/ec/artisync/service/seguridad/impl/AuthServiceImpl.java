@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -123,9 +124,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())
-        );
+        String ip = obtenerIpActual();
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())
+            );
+        } catch (AuthenticationException e) {
+            log.warn("evento=LOGIN resultado=FALLIDO correo={} ip={}", request.getCorreo(), ip);
+            throw e;
+        }
 
         Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -156,6 +164,8 @@ public class AuthServiceImpl implements AuthService {
 
         registrarSesion(usuario, accessToken, jwtService.getExpirationMs());
         registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());
+
+        log.info("evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}", usuario.getCorreo(), ip, usuario.getIdUsuario());
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
@@ -325,13 +335,18 @@ public class AuthServiceImpl implements AuthService {
         return new RespuestaMensaje("Contraseña reestablecida exitosamente");
     }
 
+    /** OBS-08 (A09 OWASP): IP del solicitante actual, usada tanto en el registro de sesión como en el log de auditoría de login. */
+    private String obtenerIpActual() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null && attributes.getRequest() != null) {
+            return attributes.getRequest().getRemoteAddr();
+        }
+        return null;
+    }
+
     private void registrarSesion(Usuario usuario, String token, long expirationMs) {
         try {
-            String ip = null;
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null && attributes.getRequest() != null) {
-                ip = attributes.getRequest().getRemoteAddr();
-            }
+            String ip = obtenerIpActual();
             SesionUsuario sesion = SesionUsuario.builder()
                     .usuario(usuario)
                     .tokenJwt(token)

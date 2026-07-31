@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>ARTISYNC</title>
+  <meta name="description" content="ARTISYNC — plataforma que conecta clientes con creadores digitales para gestionar pedidos, contratos y entregas de trabajo creativo.">
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <!-- Google Fonts & Material Symbols -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <!-- Fuentes auto-hospedadas en public/fonts/ (ver src/styles.css) — ya no se piden
+       a fonts.googleapis.com/fonts.gstatic.com, lo que eliminaba 2 orígenes externos
+       del camino crítico de render. -->
+  <link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
   <app-root></app-root>

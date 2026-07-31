@@ -1,0 +1,22 @@
+# Override para la ventana de auditoría A02 (Bloque C.2 — mediciones Tercera Entrega).
+# Suma el perfil "medicion" (conector HTTPS en 8443, ver TlsMedicionConfig) sin
+# tocar el docker-compose.yml base. Uso:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.medicion.yml up -d --build backend
+#
+# Para volver al estado normal (sin 8443):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.medicion.yml down backend
+#   docker compose up -d backend
+#
+# El .p12 se genera localmente con keytool y nunca se commitea (Backend/.gitignore: *.p12).
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: medicion
+      TLS_KEYSTORE: /app/artisync-medicion.p12
+      TLS_KEYSTORE_PASSWORD: changeit
+    volumes:
+      - ./Backend/artisync-medicion.p12:/app/artisync-medicion.p12:ro
+    ports:
+      - "8443:8443"

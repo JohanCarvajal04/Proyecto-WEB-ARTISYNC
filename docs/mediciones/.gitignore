@@ -1,0 +1,15 @@
+# Dumps NDJSON crudos de k6 (~34 MB en total) — una línea por métrica por
+# iteración (1500 iteraciones x 3 corridas x 2 escenarios). Sin valor de
+# revisión adicional: todo lo que importa ya está resumido en
+# k6-console-run*.txt (consola real de k6) y salida-analisis.txt (agregado
+# con p50/p90/p95/p99/IC95%). Se regeneran corriendo los comandos de
+# perf/REPORTE-PERF.md contra un entorno de medición limpio.
+perf/k6-run*.json
+perf/k6-cold-run*.json
+
+# Árbol HTML navegable de JaCoCo (~300 archivos, 3.8 MB) — una página por
+# clase Java que repite los mismos números que ya están en report.xml (sí
+# versionado) y en REPORTE-JACOCO.md. Se regenera con:
+#   cd artisync/Backend && ./mvnw.cmd clean test
+#   (el HTML queda en target/site/jacoco/)
+jacoco/html/

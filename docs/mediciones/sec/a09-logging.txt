@@ -1,0 +1,17 @@
+pfc_backend  | 2026-07-31T01:12:21.749Z  INFO 1 --- [artisync] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+pfc_backend  | 2026-07-31T01:13:17.017Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
+pfc_backend  | 2026-07-31T01:13:17.024Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
+pfc_backend  | 2026-07-31T01:13:17.500Z  WARN 1 --- [artisync] [nio-8080-exec-2] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
+pfc_backend  | 2026-07-31T01:13:17.502Z  WARN 1 --- [artisync] [nio-8080-exec-2] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
+pfc_backend  | 2026-07-31T01:13:17.897Z  WARN 1 --- [artisync] [nio-8080-exec-4] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
+pfc_backend  | 2026-07-31T01:13:17.898Z  WARN 1 --- [artisync] [nio-8080-exec-4] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
+pfc_backend  | 2026-07-31T01:13:18.300Z  WARN 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
+pfc_backend  | 2026-07-31T01:13:18.301Z  WARN 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
+pfc_backend  | 2026-07-31T01:13:18.726Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
+pfc_backend  | 2026-07-31T01:13:18.731Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
+pfc_backend  | 2026-07-31T01:13:18.799Z  WARN 1 --- [artisync] [nio-8080-exec-2] u.e.e.a.security.LoginRateLimitFilter    : Rate limit de login excedido para IP 172.18.0.1
+pfc_backend  | 2026-07-31T01:13:30.060Z  WARN 1 --- [artisync] [nio-8080-exec-7] u.e.e.a.security.LoginRateLimitFilter    : Rate limit de login excedido para IP 172.18.0.1
+pfc_backend  | 2026-07-31T01:13:30.128Z  WARN 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.security.LoginRateLimitFilter    : Rate limit de login excedido para IP 172.18.0.1
+pfc_backend  | 2026-07-31T01:14:10.322Z  INFO 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=EXITOSO correo=userB@test.com ip=172.18.0.1 sub=6
+pfc_backend  | 2026-07-31T01:14:10.763Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=userB@test.com ip=172.18.0.1
+pfc_backend  | 2026-07-31T01:14:10.765Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
