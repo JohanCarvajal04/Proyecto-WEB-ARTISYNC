@@ -32,7 +32,7 @@ REQ-NF-007,no funcional,Should,,,frontend,,,,docs/mediciones/lighthouse/,pendien
 REQ-NF-008,no funcional,Should,,,frontend,,,,,pendiente
 REQ-NF-009,no funcional,Must,,,docker-compose.yml,,,,,parcial
 REQ-NF-010,no funcional,Should,,,arquitectura,,,,,implementado
-REQ-NF-011,no funcional,Must,,,almacenamiento,,,,,pendiente
-REQ-NF-012,no funcional,Must,,,AuthController,POST /api/auth/registro,,,,pendiente
-REQ-NF-013,no funcional,Must,,,pedido,GET /api/admin/transacciones/export,,,,parcial
+REQ-NF-011,no funcional,Must,,,almacenamiento,,,,docs/mediciones/sec/,pendiente
+REQ-NF-012,no funcional,Must,HU-01,CU-01,AuthController,POST /api/auth/registro,AuthServiceImplTest,,,pendiente
+REQ-NF-013,no funcional,Must,,,pedido,GET /api/admin/transacciones/export,PedidoExportTest,,,parcial
 REQ-NF-014,no funcional,Must,,,legal.PayPalWebhookControlador,POST /api/legal/paypal/webhook,,,,implementado
