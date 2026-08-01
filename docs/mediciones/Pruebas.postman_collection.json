@@ -1,0 +1,333 @@
+{
+  "info": {
+    "_postman_id": "ea49a3bd-9e0f-4812-8a5c-a5982b030a5a",
+    "name": "Pruebas",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51964457",
+    "_collection_link": "https://go.postman.co/collection/51964457-ea49a3bd-9e0f-4812-8a5c-a5982b030a5a?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Prueba Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"correo\": \"admin@artisync.com\",\r\n  \"contrasena\": \"Admin123!\"\r\n\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Registro",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"nombres\": \"prueba2\",\r\n  \"apellidos\": \"test2\",\r\n  \"correo\": \"prueva2@artisync.com\",\r\n  \"contrasena\": \"Artisync123\",\r\n  \"fechaNacimiento\": \"2005-07-30\",\r\n  \"rol\": \"CREADOR\",\r\n  \"aceptaTerminos\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/auth/registro",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "registro"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{supabase_service_role_api_key_009o}}eyJyb2xlcyI6WyJST0xFX0FETUlOIl0sInBlcm1pc29zIjpbIkNBVEVHT1JJQV9HRVNUSU9OQVIiLCJDRVJUSUZJQ0FET19SRVZJU0FSIiwiQ09NRU5UQVJJT19NT0RFUkFSIiwiQ09OVFJBVE9fRklSTUFSIiwiQ09OVFJBVE9fVkVSIiwiRk9ORE9TX0xJQkVSQVIiLCJNRU5TQUpFX0VOVklBUiIsIk1FTlNBSkVfTU9ERVJBUiIsIk5PVElGSUNBQ0lPTl9FTlZJQVIiLCJQQUdPX0FVRElUQVIiLCJQQUlTX0NSRUFSIiwiUEFJU19FRElUQVIiLCJQQUlTX0VMSU1JTkFSIiwiUEFJU19WRVIiLCJQRURJRE9fQ1JFQVIiLCJQRURJRE9fR0VTVElPTkFSIiwiUEVSTUlTT19WRVIiLCJQT1JUQUZPTElPX0NSRUFSIiwiUE9SVEFGT0xJT19NT0RFUkFSIiwiUk9MX0FTSUdOQVJfUEVSTUlTTyIsIlJPTF9HRVNUSU9OQVIiLCJST0xfVkVSIiwiU0FMQV9WRVIiLCJTRVJWSUNJT19DUkVBUiIsIlNFUlZJQ0lPX01PREVSQVIiLCJTRVNJT05fUkVWT0NBUiIsIlNPUlRFT19DUkVBUiIsIlRJQ0tFVF9SRVNPTFZFUiIsIlRJQ0tFVF9SRVZJU0FSIiwiVFJBTlNBQ0NJT05fVkVSIiwiVVNVQVJJT19DUkVBUiIsIlVTVUFSSU9fRURJVEFSIiwiVVNVQVJJT19FTElNSU5BUiIsIlVTVUFSSU9fU1VTUEVOREVSIiwiVVNVQVJJT19WRVIiXSwicm9sIjoiUk9MRV9BRE1JTiIsImVtYWlsIjoiYWRtaW5AYXJ0aXN5bmMuY29tIiwianRpIjoiN2I4MTQ3NDMtNTFhNS00YjdlLTgwNTktN2ExNDdiYmI1MmI2Iiwic3ViIjoiMSIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCIsIm5iZiI6MTc4NTQyNzkzMywiaWF0IjoxNzg1NDI3OTMzLCJleHAiOjE3ODU1MTQzMzN9.qcxsNb1uZCrV-K8AcSY9T3aStu_9nI0spBSrrsA7mGJsaj-SfLhbA12lJ_NIvuCY7cJo8_CpsR9UvtUXVLKcyQ",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/auth/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Informacion",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX0NSRUFET1IiXSwicGVybWlzb3MiOlsiQ09OVFJBVE9fRklSTUFSIiwiQ09OVFJBVE9fVkVSIiwiTUVOU0FKRV9FTlZJQVIiLCJQRURJRE9fR0VTVElPTkFSIiwiUE9SVEFGT0xJT19DUkVBUiIsIlNBTEFfVkVSIiwiU0VSVklDSU9fQ1JFQVIiLCJTT1JURU9fQ1JFQVIiLCJUSUNLRVRfUkVWSVNBUiJdLCJyb2wiOiJST0xFX0NSRUFET1IiLCJlbWFpbCI6InBydWV2YTJAYXJ0aXN5bmMuY29tIiwianRpIjoiMWMwNzhkN2UtMDA3NC00YWFlLTlmMjEtZmYyOWFlZjQxMjA0Iiwic3ViIjoiMyIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCIsIm5iZiI6MTc4NTQzMzQ3NCwiaWF0IjoxNzg1NDMzNDc0LCJleHAiOjE3ODU1MTk4NzR9.GoXFqtvilxUenmITjFN4f8Ei5t-ZUXlEbBwt6wBEhm48YebLuXMWGfGX7KY5LQsJnYCYJZnRMoJvGIrfRdL-Ig",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/usuarios/me",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Servicio No Encontrado",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorization_secret}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/servicios/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Creacion de servicio",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}eyJyb2xlcyI6WyJST0xFX0FETUlOIl0sInBlcm1pc29zIjpbIkNBVEVHT1JJQV9HRVNUSU9OQVIiLCJDRVJUSUZJQ0FET19SRVZJU0FSIiwiQ09NRU5UQVJJT19NT0RFUkFSIiwiQ09OVFJBVE9fRklSTUFSIiwiQ09OVFJBVE9fVkVSIiwiRk9ORE9TX0xJQkVSQVIiLCJNRU5TQUpFX0VOVklBUiIsIk1FTlNBSkVfTU9ERVJBUiIsIk5PVElGSUNBQ0lPTl9FTlZJQVIiLCJQQUdPX0FVRElUQVIiLCJQQUlTX0NSRUFSIiwiUEFJU19FRElUQVIiLCJQQUlTX0VMSU1JTkFSIiwiUEFJU19WRVIiLCJQRURJRE9fQ1JFQVIiLCJQRURJRE9fR0VTVElPTkFSIiwiUEVSTUlTT19WRVIiLCJQT1JUQUZPTElPX0NSRUFSIiwiUE9SVEFGT0xJT19NT0RFUkFSIiwiUk9MX0FTSUdOQVJfUEVSTUlTTyIsIlJPTF9HRVNUSU9OQVIiLCJST0xfVkVSIiwiU0FMQV9WRVIiLCJTRVJWSUNJT19DUkVBUiIsIlNFUlZJQ0lPX01PREVSQVIiLCJTRVNJT05fUkVWT0NBUiIsIlNPUlRFT19DUkVBUiIsIlRJQ0tFVF9SRVNPTFZFUiIsIlRJQ0tFVF9SRVZJU0FSIiwiVFJBTlNBQ0NJT05fVkVSIiwiVVNVQVJJT19DUkVBUiIsIlVTVUFSSU9fRURJVEFSIiwiVVNVQVJJT19FTElNSU5BUiIsIlVTVUFSSU9fU1VTUEVOREVSIiwiVVNVQVJJT19WRVIiXSwicm9sIjoiUk9MRV9BRE1JTiIsImVtYWlsIjoiYWRtaW5AYXJ0aXN5bmMuY29tIiwianRpIjoiOWI0NTE5N2UtYzllNi00ZjM0LTkxZDQtYjViMTJiYzRiYWU3Iiwic3ViIjoiMSIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCIsIm5iZiI6MTc4NTQzODc0OSwiaWF0IjoxNzg1NDM4NzQ5LCJleHAiOjE3ODU1MjUxNDl9.P1gzBc9L24mCzPVTUfeDK8JRnwfIvkvfeTQDdSuQOf7knteICZq6Nb3eDi3eLgGOl6w2FXK8mm0IWssv9xU2Ug",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"tituloServicio\": \"Segundo Proyecto\",\r\n  \"descripcionDetallada\": \"imagen relaccionada perfectamente con el tema segundario de el software\",\r\n  \"precioBase\": 25.75,\r\n  \"idSubcategoria\": 1,\r\n  \"tipoItem\": \"SERVICIO\",\r\n  \"urlMiniatura\": \"string\",\r\n  \"cargoRevisionAdicional\": 5,\r\n  \"limiteRevisionesBase\": 4,\r\n  \"etiquetaIds\": [\r\n    0\r\n  ]\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/servicios/creador/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "creador",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Servicio / ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/servicios/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Servicios / Creador",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/servicios/creador/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "creador",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Actualizacion de servicio",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}eyJyb2xlcyI6WyJST0xFX0FETUlOIl0sInBlcm1pc29zIjpbIkNBVEVHT1JJQV9HRVNUSU9OQVIiLCJDRVJUSUZJQ0FET19SRVZJU0FSIiwiQ09NRU5UQVJJT19NT0RFUkFSIiwiQ09OVFJBVE9fRklSTUFSIiwiQ09OVFJBVE9fVkVSIiwiRk9ORE9TX0xJQkVSQVIiLCJNRU5TQUpFX0VOVklBUiIsIk1FTlNBSkVfTU9ERVJBUiIsIk5PVElGSUNBQ0lPTl9FTlZJQVIiLCJQQUdPX0FVRElUQVIiLCJQQUlTX0NSRUFSIiwiUEFJU19FRElUQVIiLCJQQUlTX0VMSU1JTkFSIiwiUEFJU19WRVIiLCJQRURJRE9fQ1JFQVIiLCJQRURJRE9fR0VTVElPTkFSIiwiUEVSTUlTT19WRVIiLCJQT1JUQUZPTElPX0NSRUFSIiwiUE9SVEFGT0xJT19NT0RFUkFSIiwiUk9MX0FTSUdOQVJfUEVSTUlTTyIsIlJPTF9HRVNUSU9OQVIiLCJST0xfVkVSIiwiU0FMQV9WRVIiLCJTRVJWSUNJT19DUkVBUiIsIlNFUlZJQ0lPX01PREVSQVIiLCJTRVNJT05fUkVWT0NBUiIsIlNPUlRFT19DUkVBUiIsIlRJQ0tFVF9SRVNPTFZFUiIsIlRJQ0tFVF9SRVZJU0FSIiwiVFJBTlNBQ0NJT05fVkVSIiwiVVNVQVJJT19DUkVBUiIsIlVTVUFSSU9fRURJVEFSIiwiVVNVQVJJT19FTElNSU5BUiIsIlVTVUFSSU9fU1VTUEVOREVSIiwiVVNVQVJJT19WRVIiXSwicm9sIjoiUk9MRV9BRE1JTiIsImVtYWlsIjoiYWRtaW5AYXJ0aXN5bmMuY29tIiwianRpIjoiOWI0NTE5N2UtYzllNi00ZjM0LTkxZDQtYjViMTJiYzRiYWU3Iiwic3ViIjoiMSIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCIsIm5iZiI6MTc4NTQzODc0OSwiaWF0IjoxNzg1NDM4NzQ5LCJleHAiOjE3ODU1MjUxNDl9.P1gzBc9L24mCzPVTUfeDK8JRnwfIvkvfeTQDdSuQOf7knteICZq6Nb3eDi3eLgGOl6w2FXK8mm0IWssv9xU2Ug",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"tituloServicio\": \"Diseño de Logo Profesional Actualizado\",\r\n  \"descripcionDetallada\": \"Esta es la nueva descripción detallada para el servicio que estoy actualizando, superando los 20 caracteres.\",\r\n  \"precioBase\": 45.50,\r\n  \"idSubcategoria\": 1,\r\n  \"tipoItem\": \"SERVICIO\",\r\n  \"estadoPublicacion\": \"ACTIVO\",\r\n  \"urlMiniatura\": \"https://midominio.com/nueva-miniatura.jpg\",\r\n  \"cargoRevisionAdicional\": 5.00,\r\n  \"limiteRevisionesBase\": 3,\r\n  \"etiquetaIds\": []\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/servicios/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Eliminacion de servicio",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX0FETUlOIl0sInBlcm1pc29zIjpbIkNBVEVHT1JJQV9HRVNUSU9OQVIiLCJDRVJUSUZJQ0FET19SRVZJU0FSIiwiQ09NRU5UQVJJT19NT0RFUkFSIiwiQ09OVFJBVE9fRklSTUFSIiwiQ09OVFJBVE9fVkVSIiwiRk9ORE9TX0xJQkVSQVIiLCJNRU5TQUpFX0VOVklBUiIsIk1FTlNBSkVfTU9ERVJBUiIsIk5PVElGSUNBQ0lPTl9FTlZJQVIiLCJQQUdPX0FVRElUQVIiLCJQQUlTX0NSRUFSIiwiUEFJU19FRElUQVIiLCJQQUlTX0VMSU1JTkFSIiwiUEFJU19WRVIiLCJQRURJRE9fQ1JFQVIiLCJQRURJRE9fR0VTVElPTkFSIiwiUEVSTUlTT19WRVIiLCJQT1JUQUZPTElPX0NSRUFSIiwiUE9SVEFGT0xJT19NT0RFUkFSIiwiUk9MX0FTSUdOQVJfUEVSTUlTTyIsIlJPTF9HRVNUSU9OQVIiLCJST0xfVkVSIiwiU0FMQV9WRVIiLCJTRVJWSUNJT19DUkVBUiIsIlNFUlZJQ0lPX01PREVSQVIiLCJTRVNJT05fUkVWT0NBUiIsIlNPUlRFT19DUkVBUiIsIlRJQ0tFVF9SRVNPTFZFUiIsIlRJQ0tFVF9SRVZJU0FSIiwiVFJBTlNBQ0NJT05fVkVSIiwiVVNVQVJJT19DUkVBUiIsIlVTVUFSSU9fRURJVEFSIiwiVVNVQVJJT19FTElNSU5BUiIsIlVTVUFSSU9fU1VTUEVOREVSIiwiVVNVQVJJT19WRVIiXSwicm9sIjoiUk9MRV9BRE1JTiIsImVtYWlsIjoiYWRtaW5AYXJ0aXN5bmMuY29tIiwianRpIjoiOWI0NTE5N2UtYzllNi00ZjM0LTkxZDQtYjViMTJiYzRiYWU3Iiwic3ViIjoiMSIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCIsIm5iZiI6MTc4NTQzODc0OSwiaWF0IjoxNzg1NDM4NzQ5LCJleHAiOjE3ODU1MjUxNDl9.P1gzBc9L24mCzPVTUfeDK8JRnwfIvkvfeTQDdSuQOf7knteICZq6Nb3eDi3eLgGOl6w2FXK8mm0IWssv9xU2Ug",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/servicios/2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "supabase_service_role_api_key_009o"
+    },
+    {
+      "key": "token"
+    }
+  ]
+}

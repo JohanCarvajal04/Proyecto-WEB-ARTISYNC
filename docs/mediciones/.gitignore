@@ -1,15 +1,18 @@
-# Dumps NDJSON crudos de k6 (~34 MB en total) — una línea por métrica por
-# iteración (1500 iteraciones x 3 corridas x 2 escenarios). Sin valor de
-# revisión adicional: todo lo que importa ya está resumido en
-# k6-console-run*.txt (consola real de k6) y salida-analisis.txt (agregado
-# con p50/p90/p95/p99/IC95%). Se regeneran corriendo los comandos de
-# perf/REPORTE-PERF.md contra un entorno de medición limpio.
-perf/k6-run*.json
-perf/k6-cold-run*.json
-
-# Árbol HTML navegable de JaCoCo (~300 archivos, 3.8 MB) — una página por
-# clase Java que repite los mismos números que ya están en report.xml (sí
-# versionado) y en REPORTE-JACOCO.md. Se regenera con:
-#   cd artisync/Backend && ./mvnw.cmd clean test
-#   (el HTML queda en target/site/jacoco/)
-jacoco/html/
+# Este directorio NO ignora nada.
+#
+# El Bloque C de la guia de la Tercera Entrega exige que cada afirmacion no
+# trivial este respaldada por el archivo crudo de mediciones tal cual lo
+# produjo la herramienta (regla transversal 8: su edicion manual invalida la
+# evidencia). En consecuencia se versionan a proposito:
+#
+#   perf/k6-run{1,2,3}.json      y  perf/k6-cold-run{1,2,3}.json   (~34 MB)
+#   jacoco/report.xml            y  jacoco/html/                   (~3.8 MB)
+#   lighthouse/lhci-*.json       y  lighthouse/lhci-*.html
+#   sec/a0*.txt
+#   sus/sus-raw.csv
+#
+# La version anterior de este archivo excluia perf/k6-*run*.json y
+# jacoco/html/ mientras esos mismos archivos ya estaban rastreados (se
+# forzaron con `git add -f`), dejando una contradiccion visible para quien
+# revise el repositorio. Se elimino la exclusion en lugar de dejar de
+# versionar la evidencia.

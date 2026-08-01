@@ -41,7 +41,7 @@ bench:
 	fi
 	k6 run k6/catalogo-load.js
 
-## Auditoria estatica minima de SQL dinamico (regla transversal 7 de la guia):
+## Auditoria estatica minima de SQL dinamico (regla transversal):
 ## falla si aparece EXECUTE IMMEDIATE/sp_executesql, o una @Query nativeQuery=true
 ## que concatene con el operador `+` (indicio de entrada de usuario sin parametrizar).
 ## No sustituye la auditoria OWASP completa de docs/mediciones/sec/.

@@ -175,7 +175,7 @@ export class RolesPermissionsComponent implements OnInit {
       },
       error: (err) => {
         this.isCreating.set(false);
-        const msg = err.error?.mensaje || err.error?.message || 'Error al crear el rol';
+        const msg = err.error?.detail || 'Error al crear el rol';
         this.toastService.error(msg);
       }
     });
@@ -204,7 +204,7 @@ export class RolesPermissionsComponent implements OnInit {
         }
       },
       error: (err) => {
-        const msg = err.error?.mensaje || err.error?.message || 'No se puede eliminar el rol';
+        const msg = err.error?.detail || 'No se puede eliminar el rol';
         this.toastService.error(msg);
       }
     });

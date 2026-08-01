@@ -46,7 +46,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             const messages = Object.values(fieldErrors).join(', ');
             toast.error(`Error de validación: ${messages}`);
           } else {
-            toast.error(error.error?.message ?? 'Datos de entrada inválidos.');
+            toast.error(error.error?.detail ?? 'Datos de entrada inválidos.');
           }
           break;
 
@@ -55,8 +55,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           break;
 
         default:
-          if (error.error?.message) {
-            toast.error(error.error.message);
+          if (error.error?.detail) {
+            toast.error(error.error.detail);
           } else if (error.status !== 0) {
             toast.error(`Ocurrió un error inesperado (Código: ${error.status})`);
           }

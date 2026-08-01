@@ -10,40 +10,50 @@ Hibernate · PostgreSQL 16 · Flyway · Redis 7 · Angular 17+ · Docker Compose
 ## Instrucciones de ejecución
 
 ```bash
-# 1. Clonar el repositorio y cambiar a la rama de entrega
-git clone https://github.com/[equipo]/[repo].git
-cd [repo]
-git checkout entrega-1b
+# 1. Clonar el repositorio
+git clone https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC.git
+cd Proyecto-WEB-ARTISYNC
 
 # 2. Copiar variables de entorno
-cp .env.example .env
-# Editar .env con las credenciales del entorno local (generar JWT_SECRET con: openssl rand -hex 32)
+cp artisync/.env.example artisync/.env
+# Editar artisync/.env con las credenciales del entorno local
+# (generar JWT_SECRET con: openssl rand -hex 32)
 
-# 3. Levantar todos los servicios
-docker compose up --build -d
+# 3. Levantar todos los servicios (desde la raiz del repositorio)
+make up
 
 # 4. Verificar que todos los servicios estan en estado healthy
-docker compose ps
+docker compose -f artisync/docker-compose.yml ps
 
 # 5. Acceder a la aplicacion
-# Frontend:        http://localhost
+# Frontend:        http://localhost:4200
 # Swagger UI:       http://localhost:8080/api/swagger-ui.html
 # Actuator health:  http://localhost:8080/actuator/health
 
 # 6. Ejecutar pruebas (sin Docker)
-cd backend && ./mvnw test
+make test
 ```
+
+### Usuario administrador de arranque
+
+El esquema y la semilla (`artisync/db/schema.sql` + `artisync/db/seed.sql`, montados en
+`/docker-entrypoint-initdb.d/`) crean automaticamente una cuenta ADMIN en el primer arranque:
+
+| Correo | Contraseña |
+| --- | --- |
+| `admin@artisync.com` | `ArtisyncAdmin2026!` |
 
 ## Estructura del repositorio
 
 | Ruta                          | Contenido                                                                                               |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `backend/src/main/java/`      | Código fuente Java organizado por capa (entity, dto, service, repository, controller, security, config) |
-| `backend/src/main/resources/` | `application.yml`, migraciones Flyway (`db/migration/`)                                                 |
-| `backend/src/test/`           | Pruebas unitarias JUnit 5 + integración MockMvc                                                         |
-| `frontend/src/app/`           | Módulos Angular: `auth/`, `core/`, `shared/`, `features/`                                               |
-| `frontend/src/environments/`  | `environment.ts` (dev) y `environment.prod.ts`                                                          |
-| `database/migrations/`        | Copia de referencia de los scripts Flyway                                                               |
+| `Backend/src/main/java/`      | Código fuente Java organizado por capa (entity, dto, service, repository, controller, security, config) |
+| `Backend/src/main/resources/db/migration/` | Migraciones Flyway `V1__..V5__` — unica fuente de verdad del esquema (`spring.flyway.locations`) |
+| `Backend/src/test/`           | Pruebas unitarias JUnit 5 + integración MockMvc                                                         |
+| `Frontend/src/app/`           | Módulos Angular: `core/`, `shared/`, `features/`                                                        |
+| `Frontend/src/environments/`  | `environment.ts` (dev) y `environment.prod.ts`                                                          |
+| `db/schema.sql`, `db/seed.sql` | Esquema y semilla consolidados para bootstrap de Postgres (`/docker-entrypoint-initdb.d/`), generados a partir de las migraciones reales |
+| `db/seed_privilegios.sh`      | Crea la cuenta `artisync_app` con privilegios mínimos (A.2.3)                                           |
 | `docker-compose.yml`          | Servicios: backend, postgres, redis, frontend (Nginx)                                                   |
 | `.env.example`                | Variables de entorno necesarias                                                                         |
 | `docs/adr/`                   | Decisiones de arquitectura (ADRs)                                                                       |

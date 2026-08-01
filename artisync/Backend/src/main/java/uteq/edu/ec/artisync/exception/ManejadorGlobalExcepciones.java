@@ -4,6 +4,7 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -13,18 +14,22 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaError;
 
-import java.time.LocalDateTime;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Errores en formato ProblemDetails (RFC 7807), Bloque A.1 de la guia de la Tercera Entrega.
+ */
 @Slf4j
 @RestControllerAdvice
 public class ManejadorGlobalExcepciones {
 
+    private static final String BASE_TIPO = "https://artisync.dev/errors/";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<RespuestaError> manejarExcepcionesValidacion(
+    public ResponseEntity<ProblemDetail> manejarExcepcionesValidacion(
             MethodArgumentNotValidException ex, HttpServletRequest peticion) {
 
         Map<String, String> erroresCampos = new HashMap<>();
@@ -32,142 +37,109 @@ public class ManejadorGlobalExcepciones {
             erroresCampos.put(error.getField(), error.getDefaultMessage());
         }
 
-        RespuestaError respuesta = construirRespuestaError(
+        ProblemDetail pd = construirProblemDetail(
                 HttpStatus.BAD_REQUEST,
+                "validacion",
                 "Error de validación en los datos de entrada",
-                peticion.getRequestURI(),
-                erroresCampos
+                peticion.getRequestURI()
         );
+        pd.setProperty("fieldErrors", erroresCampos);
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
 
     @ExceptionHandler(ExcepcionRecursoNoEncontrado.class)
-    public ResponseEntity<RespuestaError> manejarExcepcionRecursoNoEncontrado(
+    public ResponseEntity<ProblemDetail> manejarExcepcionRecursoNoEncontrado(
             ExcepcionRecursoNoEncontrado ex, HttpServletRequest peticion) {
 
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.NOT_FOUND,
-                ex.getMessage(),
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.NOT_FOUND, "recurso-no-encontrado", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<RespuestaError> manejarNoResourceFoundException(
+    public ResponseEntity<ProblemDetail> manejarNoResourceFoundException(
             NoResourceFoundException ex, HttpServletRequest peticion) {
 
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.NOT_FOUND,
-                "Recurso no encontrado o ruta inexistente",
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.NOT_FOUND, "ruta-no-encontrada", "Recurso no encontrado o ruta inexistente", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
 
     @ExceptionHandler(ExcepcionRecursoDuplicado.class)
-    public ResponseEntity<RespuestaError> manejarExcepcionRecursoDuplicado(
+    public ResponseEntity<ProblemDetail> manejarExcepcionRecursoDuplicado(
             ExcepcionRecursoDuplicado ex, HttpServletRequest peticion) {
 
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.CONFLICT,
-                ex.getMessage(),
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.CONFLICT, "recurso-duplicado", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
 
     @ExceptionHandler(ExcepcionReglaNegocio.class)
-    public ResponseEntity<RespuestaError> manejarExcepcionReglaNegocio(
+    public ResponseEntity<ProblemDetail> manejarExcepcionReglaNegocio(
             ExcepcionReglaNegocio ex, HttpServletRequest peticion) {
 
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                ex.getMessage(),
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.UNPROCESSABLE_ENTITY, "regla-de-negocio", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<RespuestaError> manejarResponseStatusException(
+    public ResponseEntity<ProblemDetail> manejarResponseStatusException(
             ResponseStatusException ex, HttpServletRequest peticion) {
 
         HttpStatus estado = HttpStatus.valueOf(ex.getStatusCode().value());
-        RespuestaError respuesta = construirRespuestaError(
-                estado,
+        ProblemDetail pd = construirProblemDetail(
+                estado, "peticion-rechazada",
                 ex.getReason() != null ? ex.getReason() : ex.getMessage(),
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(estado).body(respuesta);
+                peticion.getRequestURI());
+        return ResponseEntity.status(estado).body(pd);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<RespuestaError> manejarAccessDeniedException(
+    public ResponseEntity<ProblemDetail> manejarAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest peticion) {
 
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.FORBIDDEN,
-                "No tienes permisos suficientes para realizar esta acción",
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.FORBIDDEN, "acceso-denegado",
+                "No tienes permisos suficientes para realizar esta acción", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
     }
 
     @ExceptionHandler({AuthenticationException.class, JwtException.class})
-    public ResponseEntity<RespuestaError> manejarExcepcionAutenticacion(
+    public ResponseEntity<ProblemDetail> manejarExcepcionAutenticacion(
             Exception ex, HttpServletRequest peticion) {
         log.warn("Error de autenticación/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.UNAUTHORIZED,
-                "Credenciales inválidas o token expirado/malformado",
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.UNAUTHORIZED, "autenticacion",
+                "Credenciales inválidas o token expirado/malformado", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
-    public ResponseEntity<RespuestaError> manejarExcepcionesPeticionIncorrecta(
+    public ResponseEntity<ProblemDetail> manejarExcepcionesPeticionIncorrecta(
             RuntimeException ex, HttpServletRequest peticion) {
 
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.BAD_REQUEST,
-                ex.getMessage(),
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.BAD_REQUEST, "peticion-invalida", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<RespuestaError> manejarExcepcionGeneral(
+    public ResponseEntity<ProblemDetail> manejarExcepcionGeneral(
             Exception ex, HttpServletRequest peticion) {
         log.error("Error interno no controlado en {}: ", peticion.getRequestURI(), ex);
-        RespuestaError respuesta = construirRespuestaError(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Ha ocurrido un error interno en el servidor",
-                peticion.getRequestURI(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(respuesta);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR, "error-interno",
+                "Ha ocurrido un error interno en el servidor", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(pd);
     }
 
-    private RespuestaError construirRespuestaError(HttpStatus estado, String mensaje, String ruta, Map<String, String> erroresCampos) {
-        return RespuestaError.builder()
-                .timestamp(LocalDateTime.now())
-                .status(estado.value())
-                .error(estado.getReasonPhrase())
-                .message(mensaje)
-                .path(ruta)
-                .fieldErrors(erroresCampos)
-                .build();
+    private ProblemDetail construirProblemDetail(HttpStatus estado, String tipoSlug, String detalle, String instancia) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(estado, detalle);
+        pd.setType(URI.create(BASE_TIPO + tipoSlug));
+        pd.setTitle(estado.getReasonPhrase());
+        pd.setInstance(URI.create(instancia));
+        return pd;
     }
 }

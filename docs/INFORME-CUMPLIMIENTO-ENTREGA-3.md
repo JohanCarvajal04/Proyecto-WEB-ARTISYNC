@@ -2,305 +2,545 @@
 
 **Proyecto:** Artisync — Plataforma web de comisiones y venta de contenido digital
 **Guía evaluada:** *PFC — Guía de la Tercera Entrega*, UTEQ/FCI, Dr. Gleiston Guerrero Ulloa
-**Fecha de la auditoría:** 30 de julio de 2026
-**Estado del repositorio auditado:** rama `main`, commit `ca8889c`, 68 commits, **sin ningún tag creado**
-**Método:** verificación directa contra el repositorio (regla transversal 1: *el repositorio Git es la fuente de verdad*). No se aceptó como evidencia nada que sólo estuviera afirmado en documentos.
+**Etiqueta objetivo:** `v0.9.0-rc` · **Cierre:** 24 de julio de 2026
+**Fecha de esta auditoría:** 31 de julio de 2026 (tercera pasada — sustituye por completo a las versiones del 30 y 31 de julio)
+**Método:** verificación directa del repositorio, comando por comando (regla transversal 1: *el repositorio Git es la fuente de verdad*). Ninguna afirmación de este informe se copió de auditorías anteriores; todas se re-ejecutaron hoy.
+
+---
+
+## 0. Hallazgo dominante: la etiqueta `v0.9.0-rc` no contenía la entrega
+
+> **✅ CORREGIDO en esta sesión.** Esta sección se conserva porque documenta el diagnóstico y
+> porque el mismo error es fácil de repetir en la Entrega Final: **cada vez que se re-empaquete
+> una entrega hay que mover el tag al commit que la contiene y verificarlo con
+> `git ls-tree --name-only <tag>` antes de dar la entrega por cerrada.** El estado corregido está
+> al final de la sección.
+
+Esto era lo más grave del repositorio, y condicionaba todo lo demás.
+
+```
+v0.7.0     -> af85982   "Añadir entidades java al backend"
+v0.7.1     -> d292f7b   "docs: consolidacion de artefactos (licencia, citacion y changelog)"
+v0.9.0-rc  -> d292f7b   (EL MISMO COMMIT que v0.7.1)
+HEAD       -> 053ee75   (2 commits por delante del tag)
+```
+
+Verificado con `git ls-tree --name-only v0.9.0-rc`, el árbol raíz de la etiqueta contiene
+únicamente:
+
+```
+.gitattributes  .idea  .vscode  CHANGELOG.md  CITATION.cff  CONTRIBUTORS.md
+Documentacion sobre respaldos.pdf  Entrega 1A.docx  LICENSE  README.md  artisync  docs
+```
+
+Es decir, **la etiqueta que el docente va a clonar NO contiene**:
+
+| Artefacto exigido | ¿En el tag? | ¿En `HEAD`? | ¿En disco sin comitear? |
+|---|---|---|---|
+| `Makefile` (Bloque B.1) | ❌ | ✅ | — |
+| `.github/workflows/ci.yml` | ❌ | ✅ | — |
+| `scripts/validate-traceability.sh` (A.3.3) | ❌ | ✅ | — |
+| `docker-compose.yml` con digests `sha256` | ❌ | ✅ | modificado |
+| `artisync/db/schema.sql` + `seed.sql` + `seed_privilegios.sh` (B.1) | ❌ | ❌ | ✅ **sin comitear** |
+| ProblemDetails RFC 7807 (A.1) | ❌ | ❌ | ✅ **sin comitear** |
+| `docs/requisitos/SRS.pdf` | ❌ | ✅ | — |
+
+Consecuencias directas de rúbrica:
+
+- **Regla transversal 4** — `make up` desde clonación limpia del tag falla, porque no existe
+  `Makefile`. **C2 se califica automáticamente Insuficiente (25 %) o menos**, con independencia
+  de todo lo demás.
+- Aunque se moviera el tag a `HEAD`, `make up` **seguiría fallando**: `docker-compose.yml` monta
+  `./db/schema.sql`, `./db/seed.sql` y `./db/seed_privilegios.sh`, y `artisync/db/` está
+  **sin rastrear en Git** (`git status` la muestra como `?? artisync/db/`). En una clonación
+  limpia Docker crearía tres *directorios* vacíos en lugar de los archivos y el arranque de
+  Postgres quedaría sin esquema.
+- **Además, `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit.** El Bloque 0 exige que `v0.7.1`
+  marque el cierre de observaciones *previo* a los trabajos de la Tercera Entrega. Tal como está,
+  las dos etiquetas afirman que el cierre de observaciones y la release candidate son el mismo
+  estado, lo que contradice la narrativa del propio `CHANGELOG.md`.
+
+**Ninguna otra acción de este informe rendía tantos puntos por minuto invertido como corregir
+esto.** Ver §7, acción 1.
+
+### Estado tras la corrección
+
+- `artisync/db/{schema.sql,seed.sql,seed_privilegios.sh}` está versionada, así que los montajes
+  de `docker-entrypoint-initdb.d/` ya resuelven a archivos reales en una clonación limpia.
+- El refactor a ProblemDetails (RFC 7807) está comiteado.
+- `v0.9.0-rc` apunta al commit de empaquetado de la Tercera Entrega; `v0.7.1` se mantiene sobre
+  `d292f7b` (cierre de observaciones). Ya no colisionan.
+- Verificación recomendada antes de entregar, desde un directorio distinto:
+
+  ```bash
+  git clone https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC.git /tmp/verif && cd /tmp/verif && git checkout v0.9.0-rc && cp artisync/.env.example artisync/.env && make up
+  ```
 
 ---
 
 ## 1. Resumen ejecutivo
 
-El proyecto tiene una **base documental de requisitos muy sólida** (SRS, 23 historias INVEST+Gherkin, 23 casos de uso Cockburn, 6 ADRs, matriz de trazabilidad) y **cuatro de los cinco sub-bloques de evidencia empírica ya ejecutados con datos reales** (rendimiento, seguridad, cobertura, Lighthouse). Eso es, con diferencia, lo más caro de producir y ya está hecho.
+El proyecto tiene hoy una base de ingeniería real y bastante más sólida de lo que sugiere la
+nota de la Entrega 1B (2.2/10): 24 controladores REST, autenticación JWT completa con los siete
+claims del RFC 7519, revocación en Redis, caché con TTL externalizado, 89 pruebas JUnit en
+verde, evidencia empírica de rendimiento con datos crudos reales, seis ADRs completos, SRS con
+37 requisitos atribuidos y matriz de trazabilidad de 11 columnas. Eso es mucho más que un
+esqueleto documental.
 
-Lo que hunde la nota no es la falta de trabajo técnico, sino la **ausencia de artefactos de empaquetado y de dos requisitos estructurales duros**:
+El problema no es la falta de trabajo: es que **una parte importante de ese trabajo no está
+donde el evaluador va a mirar**, y que **cuatro requisitos duros de la guía siguen sin cumplirse
+en absoluto**.
 
-| Bloqueante | Impacto en la rúbrica |
-|---|---|
-| No existe el tag `v0.9.0-rc` (ni ningún tag) | **Regla transversal 2: C1–C6 se califican Ausente (0 %)** → 53 % de la nota en riesgo total |
-| No existe `Makefile` ni `make up` | Regla transversal 4: C2 ≤ 25 % automáticamente |
-| Cero procedimientos almacenados de negocio | Rúbrica C1: *"ausencia total de procedimientos almacenados"* → Insuficiente (25 %) |
-| Sin `LICENSE`, `CITATION.cff`, `CONTRIBUTORS.md` | C7 = 0 % |
-| Sin DOI Zenodo | C8 = 0 % |
-| Sin `docs/informe-entrega-3.pdf` | C10 severamente penalizado; además C4 exige justificar allí el sub-bloque faltante |
-| Cobertura JaCoCo 23.0 % (exigido ≥ 60 %) | C4 penalizado |
-| SUS con **0 participantes** (`sus-raw.csv` sólo tiene la cabecera) | C4: sub-bloque ausente |
+Las cinco brechas de mayor peso, en orden de impacto:
 
-**Estimación de nota (asumiendo que el tag se crea antes del corte):** entre **36/100 y 45/100** (3.6–4.5 sobre 10).
-**Si el tag `v0.9.0-rc` no se crea:** los criterios C1–C6 (53 %) se anulan y la nota cae a **≈ 8–12/100**.
+1. **La etiqueta no contiene la entrega** (§0) — dispara la regla transversal 4 sobre C2.
+2. **Cero procedimientos almacenados** (Bloque A.2.2) — la guía los exige *«sin excepción»* para
+   toda operación no elemental. El repositorio tiene 0 (`grep -rn "@Procedure|NamedStoredProcedureQuery"`
+   → 0 resultados; `db/procs/` es una carpeta vacía), mientras existen consultas JPQL con `AVG`
+   y múltiples `JOIN` que la guía obliga a encapsular. El nivel *Insuficiente* de C1 dice
+   literalmente «ausencia total de procedimientos almacenados para las operaciones adicionales».
+3. **SUS con cero participantes** — `sus-raw.csv` contiene solo la línea de cabecera.
+4. **Cobertura JaCoCo 23.0 %** frente al ≥ 60 % exigido por C.4.
+5. **Faltan `docs/etica/ETHICS.md` y `docs/informe-entrega-3.pdf`** (el informe técnico de 20–30
+   páginas es un entregable explícito, no opcional).
 
-La buena noticia: de los ~55 puntos perdidos, **alrededor de 25 se recuperan con trabajo de horas, no de semanas** (tags, LICENSE, CITATION.cff, CONTRIBUTORS.md, CHANGELOG.md, VERSIONING.md, ETHICS.md, Makefile, digests sha256, Zenodo). Ver §7.
+**Resueltas durante esta sesión** (ver §7, acciones de Nivel 1, ya aplicadas):
+
+- El **DOI de Zenodo ya es real** (`10.5281/zenodo.21730559`), declarado en README y
+  `CITATION.cff`. Queda una salvedad importante en §7.
+- La **matriz de trazabilidad ya pasa su validador**: 0 errores, 0 advertencias.
+- `artisync/db/` ya está versionada y el tag `v0.9.0-rc` ya apunta a la entrega real.
+
+### Nota estimada
+
+| Escenario | Nota /100 | Nota /10 |
+|---|---|---|
+| El tag `v0.9.0-rc` tal como estaba antes de esta sesión | ≈ 44 | 4.4 |
+| **Estado actual** (Nivel 1 aplicado: `db/` versionada, tag movido, matriz en verde, DOI real) | **≈ 58–61** | **5.8–6.1** |
+| \+ `ETHICS.md` y un SP invocado desde Spring Data con su catálogo | **≈ 67–72** | 6.7–7.2 |
+| \+ evidencia OWASP re-capturada (HSTS/422), `k6/opts.js` y scripts con semilla, Structurizr DSL | **≈ 78–83** | 7.8–8.3 |
+| \+ SUS con ≥ 10 participantes, cobertura ≥ 60 %, informe PDF completo | **≈ 88–93** | 8.8–9.3 |
+
+El desglose que sustenta estos números está en §2.
 
 ---
 
-## 2. Tabla resumen por criterio de la rúbrica
+## 2. Evaluación criterio por criterio
 
-| Criterio | Peso | Nivel estimado | Puntos | Razón principal |
+Cada fila indica el nivel estimado **si se evaluara hoy el tag empujado**, y entre paréntesis el
+nivel alcanzable con el working tree ya comiteado y re-etiquetado.
+
+| Criterio | Peso | Nivel (tag) | Nivel (tras comitear) | Evidencia verificada |
 |---|---|---|---|---|
-| **C0** Aplicación de observaciones | 10 % | Insuficiente (25 %) | 2.5 | Sólo 3 de 15 observaciones cerradas (20 %); commits no referencian `OBS-NN`; sin tag `v0.7.1` |
-| **C0R** Ingeniería de requisitos | 12 % | Satisfactorio (75 %) | 9.0 | SRS + HU + CU + matriz completos y de buena calidad; falta `SRS.pdf` y el validador en CI |
-| **C1** Consolidación funcional + acceso a datos | 6 % | Insuficiente (25 %) | 1.5 | Cero SPs; sin ProblemDetails RFC 7807; access token fuera de cookie |
-| **C2** Reproducibilidad automática | 10 % | Insuficiente (25 %) | 2.5 | Sin `Makefile`; sin digests sha256; sin `db/schema.sql` + `seed.sql` |
-| **C3** Determinismo de mediciones | 7 % | En desarrollo (50 %) → riesgo 25 % | 1.75–3.5 | 3 corridas ✅ y versiones registradas ✅, pero **ningún script versionado** y JSON crudos excluidos por `.gitignore` |
-| **C4** Evidencia empírica cuantitativa | 10 % | En desarrollo–Satisfactorio | 5.0–7.5 | 4/5 sub-bloques con datos reales; SUS vacío; cobertura 23 % |
-| **C5** Documentación arquitectónica | 8 % | En desarrollo–Satisfactorio | 4.0–6.0 | 6 ADRs Nygard ✅, matriz ✅; **sin Structurizr DSL** y **sin tabla ISO 25010** |
-| **C6** Auditoría OWASP | 12 % | Satisfactorio (75 %) | 9.0 | Los 6 controles con salida `curl` real; A03 responde `200` en vez de `422`+ProblemDetails |
-| **C7** Licencia, citación, contribución | 5 % | Ausente (0 %) | 0 | Los tres archivos faltan |
-| **C8** Archivo permanente e identificador | 5 % | Ausente (0 %) | 0 | Sin DOI |
-| **C9** Datos, diccionario y versionado | 7 % | Insuficiente (25 %) | 1.75 | `DATA-DICTIONARY.md` excelente, pero sin `CHANGELOG.md` ni `VERSIONING.md` |
-| **C10** Ética y calidad global | 8 % | Insuficiente (25 %) | 2.0 | Sin `ETHICS.md`, sin informe PDF, sin matriz de amenazas a la validez |
-| **TOTAL** | 100 % | | **36–45** | ≈ 3.6–4.5 / 10 |
+| **C0** Observaciones 1A/1B | 10 % | En desarrollo 50 % | 50 % | 15 observaciones registradas, 9 resueltas (60 %), 1 parcial, 5 pendientes. Ningún commit cita `OBS-NN`. `v0.7.1` existe pero colisiona con `v0.9.0-rc`. |
+| **C0R** Ingeniería de requisitos | 12 % | En desarrollo 50 % | Satisfactorio 75 % | SRS con las secciones ISO 29148, 37 requisitos con rationale/MoSCoW/aceptación/verificación; 23 HU + 23 CU; matriz de 11 columnas. El validador **ya pasa en verde** (0 errores, 0 advertencias) tras las correcciones de esta sesión. |
+| **C1** Funcional + acceso a datos | 6 % | Insuficiente 25 % | Insuficiente 25 % | 0 procedimientos almacenados → nivel *Insuficiente* por definición de la rúbrica. Además el *access token* viaja en el cuerpo JSON, no en cookie. |
+| **C2** Reproducibilidad | 10 % | **Insuficiente 25 %** (regla 4) | Satisfactorio 75 % | Digests `sha256` pinados ✅, `.env.example` comentado ✅, `Makefile` con los 6 objetivos ✅ — pero nada de eso está en el tag, y `db/` no está en Git. |
+| **C3** Determinismo | 7 % | En desarrollo 50 % | En desarrollo 50 % | 3 corridas independientes por escenario ✅, versiones de k6/JDK en cabecera de reportes ✅. **Ninguna semilla fija en ningún archivo** (`grep "seed=42|np.random.seed"` → 0), y ni `k6/opts.js` ni los scripts `analisis-perf.py`/`analisis-sus.py` existen pese a estar referenciados. |
+| **C4** Evidencia empírica | 10 % | En desarrollo 50 % | En desarrollo 50 % | perf ✅ (crudo real, 34 MB), sec ✅, lighthouse ✅, jacoco ✅ pero 23 % , **sus ✗ (0 participantes)**. Sin scripts de análisis versionados. |
+| **C5** Doc. arquitectónica | 8 % | En desarrollo 50 % | En desarrollo 50 % | 6 ADRs Nygard completos ✅. C4 L1–L3 existen como Markdown + PNG, **sin Structurizr DSL** y sin `docs/arquitectura/`. Sin tabla ISO 25010 dedicada. |
+| **C6** Auditoría OWASP | 12 % | En desarrollo 50 % | En desarrollo 50 % | Los 6 controles tienen archivo, pero 3 no acreditan lo que la guía pide (§4). |
+| **C7** Licencia y citación | 5 % | Satisfactorio 75 % | 75 % | `LICENSE` MIT ✅, `CITATION.cff` 1.2.0 con campos obligatorios y recomendados ✅, `CONTRIBUTORS.md` con CRediT ✅. El `doi:` ya es real. Falta justificar la elección de licencia en un ADR, como pide E.1. |
+| **C8** DOI persistente | 5 % | **Ausente 0 %** | Satisfactorio-Excelente 75–100 % | DOI real `10.5281/zenodo.21730559` declarado en README y `CITATION.cff` (2 de los 3 lugares; falta la portada del informe PDF). **Salvedad:** al mover el tag hay que re-publicar el archivo Zenodo — ver §7. |
+| **C9** Datos y versionado | 7 % | Satisfactorio 75 % | 75 % | `DATA-DICTIONARY.md` con 19 variables ✅, `CHANGELOG.md` Keep-a-Changelog ✅, `docs/VERSIONING.md` ✅. Conventional Commits solo parcialmente (`update`, `feat`, `Doc :`, `Fech:`, `web:`, `dto:` conviven). |
+| **C10** Ética y calidad global | 8 % | Insuficiente 25 % | 25 % | Plantilla de consentimiento ✅. **Sin `ETHICS.md`, sin informe PDF, sin matriz de amenazas a la validez.** 71 commits y 4 autores ✅. Desviación estructural del árbol exigido (§6). |
+
+**Ponderado (tag anterior a esta sesión):** ≈ 44.5/100 → **4.45/10**
+**Ponderado (estado actual, Nivel 1 aplicado):** ≈ 58–61/100 → **5.8–6.1/10**
 
 ---
 
-## 3. Análisis por bloque
+## 3. Bloque por bloque: qué se cumple y qué no
 
 ### Bloque 0 — Aplicación de observaciones (C0, 10 %)
 
-**Cumple:** `docs/observaciones/OBSERVACIONES.md` existe y es de buena calidad: 15 observaciones (12 del docente + 3 auto-detectadas), cada una con código único, fuente, criterio de rúbrica afectado, texto íntegro, decisión y columna de commit. La disciplina de separar las auto-detectadas (`OBS-AUTO-NN`) es un acierto metodológico.
+**Lo que está bien.** `docs/observaciones/OBSERVACIONES.md` es un documento honesto y bien
+construido: 15 observaciones con código único, fuente, criterio de rúbrica, texto íntegro,
+decisión del equipo y evidencia concreta de verificación. Declara explícitamente su propia
+limitación de trazabilidad. Eso vale, y un evaluador lo nota.
 
-**No cumple:**
-- **Sólo 3 de 15 observaciones cerradas (20 %).** La rúbrica exige ≥ 80 % para Satisfactorio y penaliza con Insuficiente por debajo del 60 %.
-- **Ningún mensaje de commit referencia un código `OBS-NN`.** Verificado sobre los 68 commits del historial. La bitácora referencia commits *a posteriori*, pero la rúbrica pide lo contrario: que el commit declare la observación que cierra.
-- **No existe el tag `v0.7.1`** (ni `v0.7.0`, ni ninguno). `git tag -l` devuelve vacío.
-- OBS-02 (versión de Angular inconsistente) **empeoró**: la documentación dice Angular 17/19 y `Frontend/package.json` declara `"@angular/core": "^22.0.0"`.
-- OBS-AUTO-03 se declara pendiente pero **ya está resuelta**: el directorio `Frontend/` sí existe hoy. Conviene cerrarla formalmente.
+**Lo que falta.**
+- 9 de 15 resueltas = **60 %**, justo en el borde inferior del nivel *En desarrollo*
+  (60–80 %). Para *Satisfactorio* hacen falta ≥ 80 %, o sea **cerrar 3 más**.
+- **Ningún mensaje de commit referencia `OBS-NN`**, que es requisito literal del bloque 0.1.
+- `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit (§0).
 
-### Bloque A.1 — Consolidación funcional (parte de C1)
+**Las 3 pendientes más baratas de cerrar** son documentales y no tocan código: OBS-02
+(unificar versiones de la pila), OBS-04 (nota de fuente en `adr-001`) y OBS-05 (wireframe del
+dominio). Cerrarlas sube C0 de 50 % a 75 % → **+2.5 puntos por unas horas de edición**.
 
-| Exigencia | Estado | Evidencia |
-|---|---|---|
-| Endpoints CRUD operativos y documentados en `/api/docs` | ✅ | `springdoc.api-docs.path=/api/docs`; 22 controladores con `@RequestMapping` |
-| Siete claims JWT (`iss, sub, aud, exp, nbf, iat, jti`) | ✅ | `JwtService.java:67-77` — los siete presentes, incluido `jti` y `nbf` |
-| Autenticación bajo cookie `HttpOnly + Secure + SameSite=Strict` | ⚠️ **Parcial** | Sólo el **refresh token** va en cookie (`AuthController.java:95-105`, atributos correctos). El **access token** viaja en el cuerpo JSON y el frontend lo envía por cabecera `Authorization: Bearer` (`auth.interceptor.ts:14`) |
-| ProblemDetails RFC 7807 (`type, title, status, detail, instance`) | ❌ **No cumple** | `ManejadorGlobalExcepciones` devuelve un DTO propio `RespuestaError(timestamp, status, error, message, path, fieldErrors)`. No hay ninguna referencia a `ProblemDetail` en el código |
-| Cache Redis con TTL en configuración externa | ✅ | `app.cache.catalogo.ttl-seconds=${CATALOGO_CACHE_TTL:60}` + `@Cacheable(cacheNames="catalogo")` |
-| *Hit ratio* medida empíricamente y reportada | ❌ | `REPORTE-PERF.md` no reporta hit ratio; de hecho admite que el diseño de la prueba no aísla los *miss* |
+Sobre OBS-02, la incoherencia está confirmada y es de cinco vías:
 
-### Bloque A.2 — Estrategia obligatoria de acceso a datos (parte de C1) — **brecha crítica**
+| Fuente | Declara |
+|---|---|
+| `package.json` (real) | Angular `^22.0.0` |
+| `pom.xml` (real) | Spring Boot `4.1.0`, Java 21 |
+| `docker-compose.yml` (real) | `postgres:16`, `redis:7-alpine` |
+| `adr-001-pila-tecnologica.md` | «Java 25 + Spring Boot 4.0.6, Angular 19, PostgreSQL 18» |
+| `artisync/README.md` | «Java 21 · Spring Boot 3.2 · Angular 17+» |
+| `C4_Nivel2_Contenedores.md` | «Spring Boot 4.0.1» |
+| `.github/workflows/ci.yml` | JDK 25 |
 
-**Cero procedimientos almacenados o funciones de negocio en el repositorio.** No existe `db/procs/`, no existe `docs/basedatos/CATALOGO-SP.md`, y no hay una sola anotación `@Procedure` ni `@NamedStoredProcedureQuery` en las ~2 900 líneas de backend. La única función SQL del proyecto es el trigger de auditoría `set_actualizado_en` en `V2__ajustes_requisitos_pfc.sql`.
+Los archivos de build son la fuente de verdad; el resto debe alinearse a ellos.
 
-Hay **operaciones que la guía obliga explícitamente a encapsular en SP y que hoy están en JPQL**:
-
-- `ResenaServicioRepository.java:35` — `SELECT AVG(r.calificacionEstrellas) ... JOIN r.pedido p JOIN p.servicio s` → agregación + doble join (A.2.2, viñetas 1 y 2).
-- `ResenaServicioRepository.java:25` — consulta con dos joins.
-- `TransaccionPagoRepository.java:21` — tres joins encadenados (`TransaccionPago → Pago → Contrato → Pedido`).
-- El listado del catálogo se resuelve con `specification.catalogo` (Criteria API) cuando cruza tablas.
-
-**Atenuante importante:** todas usan **parámetros nombrados** (`:idPerfil`) y no hay una sola concatenación de entrada de usuario en JPQL/HQL/SQL nativo ni ningún `EXECUTE IMMEDIATE`. Esto significa que **la regla transversal 7 no se dispara** — que era el peor escenario posible, porque habría anulado C1 *y* C6 simultáneamente. La brecha es de arquitectura exigida, no de seguridad.
-
-El ADR-006 ya documenta la decisión correcta y lista cinco candidatos concretos a SP. Está redactado; sólo falta implementarlo.
-
-### Bloque A.3 — Ingeniería de requisitos (C0R, 12 %) — **el punto más fuerte del proyecto**
-
-**Cumple bien:**
-- `docs/requisitos/SRS.md` (266 líneas) con las secciones de ISO/IEC/IEEE 29148:2018: introducción (propósito, alcance, definiciones, referencias, resumen), descripción global (perspectiva, funciones, usuarios, restricciones, supuestos) y requisitos específicos funcionales y no funcionales.
-- 23 `REQ-F` + 14 `REQ-NF`, cada uno con **identificador persistente, rationale, prioridad MoSCoW, criterio de aceptación y método de verificación**. La tabla de equivalencia `RF-NN → REQ-F-0NN` respecto de la Entrega 1A es exactamente la trazabilidad hacia el corpus 1A que pide la guía.
-- 23 historias en formato Connextra, con justificación INVEST explícita y criterios de aceptación en Gherkin.
-- 23 casos de uso con plantilla Cockburn y los cuatro niveles de precisión.
-- `CHANGELOG-REQ.md` presente.
-- `docs/trazabilidad/matriz.csv` con las **once columnas exactas** que exige A.3.3 y 37 filas (100 % de los requisitos).
-
-**No cumple / mejorable:**
-- **Falta `docs/requisitos/SRS.pdf`.** La guía pide el PDF *y* su fuente. Hoy sólo existe el `.md`.
-- **Falta `scripts/validate-traceability.sh` y su ejecución en CI.** El nivel Excelente lo exige explícitamente.
-- **La matriz tiene columnas vacías en requisitos `Must`:** `prueba_automatizada` vacía en REQ-F-004, 006, 007, 008, 011, 012, 013, 017–021 y en casi todos los `REQ-NF`; `evidencia_empirica` vacía en la mayoría.
-- **Los endpoints de la matriz no coinciden con el código.** La matriz dice `POST /api/catalogo/servicios` y `GET /api/catalogo/servicios`; el código expone `/api/v1/catalogo` y `/api/v1/servicios`. Un revisor que cruce matriz contra código lo detecta en el primer intento.
-- **Incoherencia matriz ↔ realidad en `tipo_acceso`:** REQ-F-006, 007, 009, 013, 021, 023 están marcados como `SP`, pero no existe ningún SP. La matriz declara una arquitectura que el código no tiene.
-- Falta el atributo de trazabilidad hacia el *stakeholder* de origen que pide A.3.1.
-
-### Bloque B — Reproducibilidad (C2 10 %, C3 7 %)
+### Bloque A.1 — Consolidación funcional (C1)
 
 | Exigencia | Estado |
 |---|---|
-| `Makefile` con `up, down, test, bench, audit, clean` | ❌ No existe ninguno (ni `justfile` ni `Taskfile.yml`) |
-| `make up` levanta todo sin intervención | ❌ Imposible sin Makefile → **regla transversal 4: C2 ≤ 25 %** |
-| Imágenes pinadas por digest `sha256` | ❌ `image: postgres:16`, `image: redis:7-alpine` — tags móviles |
-| `.env.example` comentado, `.env` en `.gitignore` | ✅ `artisync/.env.example` versionado; `.env` correctamente **no** rastreado |
-| Esquema desde `db/schema.sql` + `db/seed.sql` en `/docker-entrypoint-initdb.d/` | ❌ No existe el directorio `db/`. El esquema se aplica por Flyway (`database/migrations/V1..V5`) |
-| Prohibido `ddl-auto=update` | ✅ `spring.jpa.hibernate.ddl-auto=validate` |
-| Semilla `admin` con hash BCrypt documentado en README | ❌ No existe |
-| Cuenta de BD con privilegios mínimos (sin superuser) | ❌ El compose usa el superusuario `POSTGRES_USER` |
-| 3 corridas independientes por benchmark | ✅ 3 calientes + 3 frías, consolas reales archivadas |
-| Versiones de herramientas en cada archivo de resultados | ✅ k6 v2.1.0, Lighthouse 12.6.1, fecha y commit base declarados |
-| Semilla aleatoria fija documentada en los scripts | ❌ **No hay scripts versionados en todo el repositorio** — ni `k6/`, ni `k6/opts.js`, ni `scripts/perf-analysis.py`, ni `analisis-sus.py`, ni `validate-traceability.sh`, ni `audit-sql-dynamic.sh` |
-| `lighthouserc.js` en raíz | ⚠️ Existe como `artisync/Frontend/lighthouserc.json`, fuera de la ruta exigida |
+| Endpoints CRUD operativos y documentados en `/api/docs` | ✅ 24 controladores, Springdoc configurado en `OpenApiConfig` |
+| JWT con los 7 claims RFC 7519 | ✅ `JwtService:67-77` emite `iss`, `sub`, `aud`, `exp`, `nbf`, `iat`, `jti` |
+| Autenticación bajo cookie `HttpOnly + Secure + SameSite=Strict` | ⚠️ **Parcial.** Solo el *refresh token* va en cookie (`AuthController:95-106`). El *access token* se devuelve en el cuerpo JSON, que es exactamente el vector XSS que la guía busca cerrar. |
+| ProblemDetails RFC 7807 en el 100 % de errores | ⚠️ Implementado **pero sin comitear** |
+| Caché Redis con TTL en configuración externa | ✅ `app.cache.catalogo.ttl-seconds=${CATALOGO_CACHE_TTL:60}` + `@Cacheable`/`@CacheEvict` en `ServicioCatalogoServicioImpl` |
+| *Hit ratio* medido empíricamente y reportado | ❌ No se reporta hit ratio en `docs/mediciones/`. El propio `REPORTE-PERF.md` explica por qué el diseño actual del script no permite medirlo de forma representativa. |
 
-**Riesgo adicional grave — `docs/mediciones/.gitignore`:** excluye `perf/k6-run*.json` y `perf/k6-cold-run*.json` (~34 MB). La guía nombra esos archivos exactamente en C.1 (`docs/mediciones/perf/kNN-run{1,2,3}.json`) y la **regla transversal 8** dice que los archivos crudos deben conservarse tal cual los produjo la herramienta. El razonamiento del `.gitignore` es defendible en ingeniería, pero contradice el requisito literal. Además `DATA-DICTIONARY.md` cita como fuente archivos que un revisor **no encontrará al clonar**.
+### Bloque A.2 — Estrategia de acceso a datos (C1, y riesgo sobre C6)
+
+Esta es la brecha estructural más grave.
+
+- `artisync/db/procs/` existe pero **está vacío**. No hay ni un `sp_*.sql` ni un `fn_*.sql` en
+  todo el repositorio.
+- `grep -rn "@Procedure|@NamedStoredProcedureQuery|StoredProcedureQuery"` sobre el backend
+  completo: **0 resultados**.
+- La única rutina SQL del esquema es el *trigger* de auditoría `set_actualizado_en()`
+  (`db/schema.sql:417`), que no es una operación de negocio.
+- `docs/basedatos/CATALOGO-SP.md` **no existe** (ni el directorio).
+- Existen operaciones que A.2.2 obliga a encapsular y que hoy están en JPQL: por ejemplo
+  `ResenaServicioRepository:35` (`AVG` + dos `JOIN`) y `TransaccionPagoRepository:21` (tres
+  `JOIN`).
+
+**Atenuante importante, verificado:** no hay concatenación de entrada de usuario en JPQL/HQL/SQL
+nativo, ni SQL dinámico. `make audit` pasa. Por tanto **la regla transversal 7 no se dispara** y
+C6 no arrastra la penalización automática. Es la diferencia entre perder 6 puntos y perder 12.
+
+`adr-006` ya documenta la decisión y lista cinco candidatos concretos, con estado
+«Aceptado (implementación pendiente)». La documentación está lista; falta el código.
+
+### Bloque A.3 — Ingeniería de requisitos (C0R, 12 %)
+
+Bien resuelto en contenido:
+
+- `SRS.md` (266 líneas) cubre las secciones de ISO/IEC/IEEE 29148: introducción (propósito,
+  alcance, definiciones, referencias, resumen), descripción global (perspectiva, funciones,
+  usuarios, restricciones, supuestos) y requisitos específicos funcionales y no funcionales.
+  `SRS.pdf` existe en `HEAD`.
+- 37 requisitos (23 `REQ-F-*`, 14 `REQ-NF-*`), cada uno con identificador persistente, rationale,
+  prioridad MoSCoW, criterio de aceptación y método de verificación. Confirmado sobre
+  `REQ-F-001` y muestreado en el resto.
+- 6 archivos de historias (HU-01…HU-23) y 6 de casos de uso (CU-01…CU-23).
+- `CHANGELOG-REQ.md` presente.
+- La matriz tiene las 11 columnas obligatorias en el orden exigido, y **el 100 % de los
+  requisitos del SRS aparecen en ella** (verificado: «Requisitos en SRS.md: 37; ausentes en
+  matriz: 0»).
+
+Lo que lo baja de *Excelente*:
+
+- **El validador fallaba** al abrir esta auditoría (6 errores, 2 advertencias). **Ya pasa en
+  verde** tras las correcciones de esta sesión: se completó la correspondencia de `REQ-NF-002`
+  (→ HU-01/CU-01, `AuthServiceImplTest`, hash BCrypt verificable en `db/seed.sql`), `REQ-NF-009`
+  (→ `perf/REPORTE-PERF.md`), `REQ-NF-013` (→ HU-19/CU-19) y `REQ-NF-014` (→ HU-20/CU-20), y se
+  normalizaron los dos estados `parcial` fuera del enum de A.3.3.
+
+- **Se detectó y corrigió una cita falsa:** la matriz declaraba `PedidoExportTest` como prueba
+  automatizada de `REQ-NF-013`, y esa clase **no existe** en `Backend/src/test`. Se eliminó la
+  cita y el requisito pasó a estado `pendiente`, que es su estado real. Conviene revisar que no
+  se repita el patrón al rellenar filas futuras: citar una prueba inexistente es peor que dejar
+  la celda vacía.
+
+- **26 de 37 filas siguen con `evidencia_empirica` vacía**, incluidos requisitos no funcionales que
+  sí tienen evidencia archivada en `docs/mediciones/`. Es rellenar celdas, no producir evidencia.
+- 16 filas siguen en estado `pendiente`. La guía lo permite para *Should*/*Could*, pero no para
+  *Must*.
+
+### Bloque B — Reproducibilidad y determinismo (C2 10 %, C3 7 %)
+
+| Exigencia B.1 | Estado |
+|---|---|
+| `Makefile` con `up down test bench audit clean` | ✅ los 6 objetivos existen y son coherentes |
+| `make up` levanta todo sin intervención | ❌ **no desde el tag** (sin Makefile) ni desde `HEAD` (sin `db/` en Git) |
+| Imágenes pinadas por digest `sha256` | ✅ postgres y redis, con el comando de renovación documentado en comentario |
+| `.env.example` comentado, `.env` en `.gitignore` | ✅ ambos |
+| Esquema desde `db/schema.sql` + `db/seed.sql` en `/docker-entrypoint-initdb.d/` | ⚠️ montado en compose, pero **los archivos no están comiteados** |
+| Prohibido `ddl-auto=update` | ✅ `ddl-auto=validate` |
+| `db/seed.sql` con admin BCrypt documentado en README | ✅ `admin@artisync.com` / `ArtisyncAdmin2026!` |
+
+Observación técnica sobre el arranque: conviven dos mecanismos de esquema — `db/schema.sql` vía
+`docker-entrypoint-initdb.d` y Flyway con `baseline-on-migrate=true` / `baseline-version=5`. Es
+una convivencia que funciona, pero es frágil: si alguien añade una `V6__` que asume tablas
+creadas por Flyway y no por `schema.sql`, los dos caminos divergen. Vale la pena un ADR corto
+que fije cuál manda.
+
+| Exigencia B.2 | Estado |
+|---|---|
+| Semilla aleatoria fija y documentada en cada script | ❌ **cero ocurrencias** en todo el repositorio |
+| k6 con `50 VUs / 30 s` y *ramp-up* en `k6/opts.js` | ⚠️ La configuración se usó y se documenta en `REPORTE-PERF.md`, pero **`k6/` no existe**: el script de carga no está versionado. `make bench` lo detecta y aborta con un mensaje explícito. |
+| Lighthouse con `npx lhci autorun`, perfil móvil, *throttling* Slow 4G | ⚠️ `lighthouserc.json` está en `artisync/Frontend/`, no como `lighthouserc.js` en la raíz |
+| Cabecera con fecha ISO 8601, commit corto y versiones de herramientas | ✅ presentes en `REPORTE-PERF.md` y `REPORTE-JACOCO.md` |
+
+Que no existan `k6/opts.js`, `analisis-perf.py` ni `analisis-sus.py` — todos referenciados en
+los reportes — significa que **las mediciones archivadas no son reproducibles por un tercero**,
+que es precisamente lo que el bloque mide.
 
 ### Bloque C — Evidencia empírica (C4 10 %, C6 12 %)
 
-**C.1 Rendimiento — cumple con honestidad metodológica.** 3 corridas × 2 escenarios, 4 500 muestras por escenario, media/mediana/DT/IC 95 %/p50-p90-p95-p99, error ≥ 500 = 0 %, throughput ≈ 48.5–49 req/s. p95 caliente 50.17 ms (< 200 ✅), p95 frío 39.14 ms (< 500 ✅). El reporte **admite abiertamente** que el escenario "frío" salió más rápido que el "caliente" porque el script golpea siempre la misma URL y sólo 1 de 1 500 iteraciones es un *miss* real. Esa transparencia es exactamente lo que se espera de un artefacto de investigación — pero deja el escenario frío sin medir de verdad. Falta el script `k6` versionado.
+**C.1 Rendimiento — el sub-bloque mejor resuelto.** 6 corridas (3 caliente + 3 frío) con datos
+crudos JSON de ~5.9 MB cada una, salidas de consola de k6, media/mediana/DT/IC 95 %,
+p50/p90/p95/p99, 0 % de errores ≥ 500. p95 caliente 50.17 ms (umbral < 200) y frío 39.14 ms
+(umbral < 500). Y —esto es lo que más valor académico tiene— el reporte **declara y explica su
+propia anomalía metodológica**: el escenario «frío» salió más rápido que el «caliente» porque el
+script golpea siempre la misma clave de caché, así que como mucho 1 de 1500 iteraciones es un
+*miss* real. Reconocer eso en vez de maquillarlo es exactamente lo que la sección de amenazas a
+la validez debe contener.
 
-**C.2 Seguridad — el bloque mejor ejecutado.** Los seis controles con salida `curl` archivada:
-- A01 → `403` cruzando usuarios ✅
-- A02 → TLSv1.3 + `TLS_AES_256_GCM_SHA384` (AEAD) ✅
-- A03 → payload `' OR '1'='1` devuelve `200` con `content: []`. **Desviación:** la guía espera `422` con ProblemDetails. Es seguro (consulta parametrizada), pero no es la respuesta pedida.
-- A05 → `nosniff`, `X-Frame-Options: DENY`, CSP, Referrer-Policy, Permissions-Policy ✅. HSTS no aparece en el `.txt` capturado sobre `:8080`; se explica y se verifica sobre `:8443`, pero **no hay archivo crudo que lo demuestre** — conviene capturarlo.
-- A07 → 5×`401` + `429` con `Retry-After` en el sexto ✅ (`LoginRateLimitFilter` con Redis `INCR`+`EXPIRE`)
-- A09 → logs con `evento`, `resultado`, `correo`, `ip`, `sub` ✅
+**C.2 Seguridad — seis archivos, pero tres no acreditan lo pedido.** Ver §4, es el detalle de
+mayor rendimiento por esfuerzo de todo el informe.
 
-**C.3 Usabilidad — ausente.** `sus-raw.csv` contiene **sólo la fila de cabecera**; `REPORTE-SUS.md` es una plantilla con campos en blanco (la decisión de no rellenarla con datos falsos es correcta). Se exigen ≥ 10 participantes externos. Existe `docs/etica/consentimientos/plantilla.md`, pero no hay consentimientos ni participantes.
+**C.3 Usabilidad — ausente.** `sus-raw.csv` tiene la cabecera y nada más. `REPORTE-SUS.md` es
+una plantilla con campos en blanco, correctamente marcada como pendiente. Las
+`instrucciones-formulario.md` para conducir las sesiones sí están escritas, así que el
+instrumento está listo: falta ejecutar. Con 0 participantes, el nivel *Insuficiente* de C4
+(«SUS ausente») es literalmente aplicable.
 
-**C.4 Cobertura — incumple el umbral.** JaCoCo mide **23.0 % líneas / 13.8 % ramas / 16.8 % complejidad**; se exige **≥ 60 %** en esta entrega. Las 18 clases de test cubren seguridad, comunicación y social; **pedido, legal, catálogo y perfil están sin pruebas**. El reporte declara la tendencia creciente respecto de 1B de forma cualitativa y honesta (no se pudo medir el punto de comparación).
+**C.4 Cobertura — 23.0 % líneas, 13.8 % ramas, 16.8 % complejidad**, frente al ≥ 60 % exigido.
+El reporte identifica bien la causa: los módulos `pedido`, `legal`, `catalogo` y `perfil` no
+tienen pruebas de servicio; solo `seguridad`, `comunicacion` y `social` las tienen (18 clases de
+test, 89 pruebas en verde). La tendencia creciente respecto a la Entrega 1B (~0 %) sí se
+documenta, que es la mitad de lo que C.4 pide.
 
-**C.5 Lighthouse — cumple los cuatro umbrales.** Performance 92 (≥80), Accessibility 100 (≥90), Best Practices 100 (≥90), SEO 100 (≥90), contra el contenedor nginx con perfil móvil y *throttling*. Se conservan las corridas antes/después con JSON y HTML. Dos observaciones menores: el nombre de archivo debería ser `lhci-YYYYMMDD-HHMM.json` sin el sufijo `-mejorado`, y `REPORTE-LIGHTHOUSE.md` enlaza a `PLAN-MEJORA-LIGHTHOUSE.md`, que **no está versionado** (enlace roto).
-
-> **Enlaces rotos detectados:** `REPORTE-SEC.md` → `docs/PLAN-MEDICIONES.md` (no existe); `REPORTE-LIGHTHOUSE.md` → `PLAN-MEJORA-LIGHTHOUSE.md` (no existe); `REPORTE-SUS.md` → `salida-sus.txt` (no existe); `REPORTE-JACOCO.md` → `html/index.html` (excluido por `.gitignore`).
+**C.5 Accesibilidad — cumplida con holgura.** Performance 92 (≥ 80), Accessibility 100 (≥ 90),
+Best Practices 100 (≥ 90), SEO 100 (≥ 90). JSON y HTML de ambas corridas archivados. Único
+detalle: el nombre exigido es `lhci-YYYYMMDD-HHMM.json` y el archivo mejorado usa el sufijo
+`-mejorado`; además `PLAN-MEJORA-LIGHTHOUSE.md`, citado desde el diccionario de datos, no
+existe.
 
 ### Bloque D — Documentación arquitectónica (C5, 8 %)
 
-**Cumple:** los **seis ADRs obligatorios** existen y siguen la plantilla Nygard con Contexto / Opciones / Decisión / Consecuencias, cubriendo exactamente los seis temas exigidos (pila, autenticación, gestor de BD, caché, despliegue, acceso a datos). El ADR-006 es especialmente bueno: documenta su propio incumplimiento y lo marca como el riesgo mayor de la entrega. Diagramas C4 de los tres niveles presentes (`C4_Nivel1_Contexto.md`, `C4_Nivel2_Contenedores.md`, `C4_Nivel3_Componentes_Backend.md` + PNG/SVG). Matriz de trazabilidad presente.
-
-**No cumple:**
-- **Sin código fuente Structurizr DSL** y sin directorio `docs/arquitectura/`. Los diagramas están en `docs/diagramas/` como Markdown + imágenes. La guía exige DSL versionado y exportación PNG generada por el pipeline.
-- **Sin tabla de atributos de calidad ISO/IEC 25010** con prioridad, escenario y estrategia. La norma sólo se cita de pasada en el SRS y en el ADR-001.
+- **6 ADRs con plantilla Nygard completa** (contexto, opciones, decisión, consecuencias
+  positivas y negativas), cubriendo exactamente los seis temas obligatorios. Este punto está
+  bien cubierto; `adr-006` incluso reconoce su propia deuda de implementación.
+- **C4 L1–L3**: los tres niveles existen como `.md` + PNG/SVG en `docs/diagramas/`. Falta el
+  **código fuente Structurizr DSL versionado** y la ubicación exigida `docs/arquitectura/`.
+- **Tabla de atributos de calidad ISO/IEC 25010 con prioridad, escenario y estrategia**: no
+  existe como tabla dedicada. La norma se menciona en `SRS.md` y `adr-001`, pero eso no es lo
+  que D pide.
+- Matriz de trazabilidad: presente, con los vacíos de §3/A.3.
 
 ### Bloque E — Publicabilidad (C7 5 %, C8 5 %, C9 7 %)
 
-| Artefacto | Estado |
-|---|---|
-| `LICENSE` (OSI-approved) | ❌ Ausente → **C7 = 0 %** |
-| `CITATION.cff` v1.2.0 | ❌ Ausente |
-| `CONTRIBUTORS.md` con los 14 roles CRediT | ❌ Ausente |
-| DOI Zenodo sobre `v0.9.0-rc` en 3 lugares | ❌ Ausente → **C8 = 0 %** |
-| Badges (DOI, CI, licencia) en README | ❌ El README raíz son 20 líneas con tres ejemplos de `curl` |
-| `docs/mediciones/DATA-DICTIONARY.md` | ✅ **Excelente**: 20 variables con descripción, tipo, unidad, fuente, rango esperado y valor medido |
-| `docs/VERSIONING.md` (SemVer 2.0.0) | ❌ Ausente |
-| `CHANGELOG.md` (Keep a Changelog) | ❌ Ausente |
-| Commits Conventional Commits | ⚠️ Parcial: hay buenos (`feat(repository): ...`) junto a `feat`, `update`, `Doc :`, `Fech:`, `Interfaces`, `Creacion de carpetas` |
-| ≥ 30 commits granulares con autoría de todos los integrantes | ✅ 68 commits, 5 autores distintos del equipo |
+- `LICENSE` MIT íntegra ✅ (aunque la elección no se justifica en un ADR, como pide E.1).
+- `CITATION.cff` con `cff-version: 1.2.0`, los 4 obligatorios y los recomendados
+  (`version`, `date-released`, `license`, `repository-code`, `doi`, `keywords`) ✅.
+- `CONTRIBUTORS.md` con roles CRediT ✅.
+- **DOI: `10.5281/zenodo.21730559`** ✅ real y declarado en README y `CITATION.cff`. Falta el
+  tercer lugar que pide el entregable 2 (la portada del informe PDF). **Salvedad crítica:** el
+  archivo Zenodo se generó desde el tag `v0.9.0-rc` *anterior*; al mover el tag hay que publicar
+  una nueva versión del registro para que el contenido archivado coincida con el tag (§7).
+- `DATA-DICTIONARY.md`: 19 variables con tipo, unidad, fuente, rango esperado y valor medido ✅.
+  Es un documento notablemente bien hecho, y honesto (marca `sus_score_mean` como pendiente).
+- `CHANGELOG.md` Keep-a-Changelog y `docs/VERSIONING.md` ✅.
+- Conventional Commits: parcial. Conviven `feat(...)`, `chore(...)`, `docs:` correctos con
+  `update`, `feat` sin ámbito, `Doc :`, `Fech:`, `web:`, `service:`, `dto:`.
 
-### Bloque F — Ética (parte de C10, 8 %)
+### Bloque F — Ética (C10, 8 %)
 
-- ✅ `docs/etica/consentimientos/plantilla.md` existe.
-- ❌ **`docs/etica/ETHICS.md` no existe.** Faltan los cuatro puntos exigidos: fuentes de datos y licencia, tratamiento de datos personales, mecanismo de consentimiento, ausencia de datos identificables.
-- ❌ **`docs/informe-entrega-3.pdf` no existe** (ninguna de las 10 secciones, incluida la matriz de amenazas a la validez).
-- ❌ `docs/postman/coleccion.json` con ≥ 20 peticiones: no existe.
-- ❌ Vídeo de 2–3 minutos enlazado desde el README: no existe.
-
----
-
-## 4. Estructura del repositorio: exigida vs. real
-
-La guía advierte que *"cualquier desviación se considera evidencia de una entrega incompleta"*. La desviación estructural más visible: **la guía asume `backend/`, `frontend/`, `db/`, `docker-compose.yml` y el `Makefile` en la raíz del repositorio; aquí todo cuelga de `artisync/`**, mientras `docs/` sí está en la raíz. Un revisor que clone y ejecute los comandos del ejemplo (`cp .env.example .env && make up`) falla en el primer paso.
-
-```
-Exigido en la raíz          Estado real
-──────────────────────────────────────────────────────────────
-README.md                   ⚠️  existe pero es un borrador de 20 líneas
-LICENSE                     ❌
-CITATION.cff                ❌
-CONTRIBUTORS.md             ❌
-CHANGELOG.md                ❌
-Makefile                    ❌
-docker-compose.yml          ⚠️  en artisync/ y sin digests
-.env.example                ⚠️  en artisync/
-.gitignore                  ⚠️  en artisync/
-backend/                    ⚠️  artisync/Backend/
-frontend/                   ⚠️  artisync/Frontend/
-db/schema.sql|seed.sql|procs/ ❌
-database/migrations/        ⚠️  artisync/database/migrations/ (V1..V5 ✅)
-docs/requisitos/SRS.pdf     ❌ (SRS.md ✅)
-docs/observaciones/         ✅
-docs/adr/ (6)               ✅
-docs/basedatos/CATALOGO-SP.md ❌
-docs/arquitectura/ (DSL)    ❌ (docs/diagramas/ con MD+PNG)
-docs/mediciones/perf|sec|sus|lighthouse|jacoco ✅ (crudos de perf gitignorados ⚠️)
-docs/mediciones/DATA-DICTIONARY.md ✅
-docs/trazabilidad/matriz.csv ✅
-docs/etica/ETHICS.md        ❌ (consentimientos/plantilla.md ✅)
-docs/VERSIONING.md          ❌
-docs/informe-entrega-3.pdf  ❌
-docs/postman/coleccion.json ❌
-k6/                         ❌
-lighthouserc.js             ⚠️  artisync/Frontend/lighthouserc.json
-scripts/                    ❌
-.github/workflows/          ⚠️  artisync/.github/workflows/ci.yml
-```
-
-**Sobre el CI:** `ci.yml` sólo compila, ejecuta tests y construye la imagen, y **sólo se dispara en `develop` y `entrega-*`** — nunca en `main`, que es la rama actual. La guía exige que el pipeline ejecute `test`, `bench` y `audit`, y que valide la trazabilidad y el diccionario de datos.
+- `docs/etica/consentimientos/plantilla.md` ✅.
+- **`docs/etica/ETHICS.md` no existe** ❌ — es el artefacto principal del bloque, y son cuatro
+  párrafos: fuentes de datos y licencia, tratamiento de datos personales, mecanismo de
+  consentimiento, y declaración de ausencia de datos identificables. Media hora de trabajo por
+  un criterio del 8 %.
 
 ---
 
-## 5. Reglas transversales — evaluación de riesgo
+## 4. Auditoría OWASP en detalle (C6, 12 % — el criterio más rentable de arreglar)
+
+Los seis archivos existen, lo que a primera vista parece «seis controles evidenciados». Pero
+tres de ellos no acreditan lo que la guía pide:
+
+| Control | Lo que exige la guía | Lo que muestra el archivo | Veredicto |
+|---|---|---|---|
+| **A01** | `403 Forbidden` con `curl --include` | `HTTP/1.1 403` ✅ … pero el cuerpo es `{"timestamp","status","error","message","path","fieldErrors"}` — **no es ProblemDetails** | ⚠️ el código es correcto; el cuerpo contradice la afirmación de «RFC 7807 en el 100 % de errores» |
+| **A02** | `TLSv1.3` + suite AEAD | `Protocol: TLSv1.3`, `TLS_AES_256_GCM_SHA384` | ✅ correcto |
+| **A03** | `422` con ProblemDetails ante `' OR '1'='1` | `HTTP/1.1 200` con `{"content":[],"empty":true,...}` | ❌ **no coincide**. El sistema es seguro (el parámetro se parametriza vía `Specification`), pero `CatalogoControlador.buscarCatalogo` recibe `q` como `String` sin `@Valid` ni `@Pattern`, así que nunca hay validación que rechazar |
+| **A05** | HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, CSP | CSP ✅, X-Frame-Options: DENY ✅, nosniff ✅, Referrer-Policy ✅, Permissions-Policy ✅ — **`Strict-Transport-Security` NO aparece** | ❌ la captura se hizo sobre HTTP (`:8080`); Spring solo emite HSTS sobre HTTPS. `SecurityConfig:47-50` sí lo configura |
+| **A07** | `429` desde el sexto intento | `429` ✅ con `LoginRateLimitFilter` registrado en el log | ⚠️ correcto, pero el cuerpo es `{"mensaje": ...}` (no ProblemDetails) y llega con `charset=ISO-8859-1`, produciendo *mojibake* en la evidencia |
+| **A09** | log con `ip`, `timestamp`, `sub` | `evento=LOGIN resultado=FALLIDO correo=... ip=...` con timestamp ISO ✅ | ⚠️ registra `correo`, no el `sub` del JWT como pide la guía |
+
+**Diagnóstico:** toda esta evidencia se capturó **antes** del refactor a ProblemDetails (que
+sigue sin comitear), y sobre HTTP en vez de HTTPS. No hay un problema de seguridad real detrás
+—los controles funcionan— sino un problema de *evidencia desalineada*. Re-capturar los seis
+controles contra el stack ya refactorizado y sobre el puerto TLS resuelve A01, A05 y A07 de
+golpe. A03 necesita además una anotación de validación en el parámetro de búsqueda, y A09 un
+cambio de una línea en el log.
+
+Eso lleva C6 de ≈ 50 % a 100 %: **+6 puntos por medio día de trabajo.**
+
+---
+
+## 5. Verificaciones de las reglas transversales
 
 | Regla | Estado |
 |---|---|
-| 1. El repositorio es la fuente de verdad | Aplicada en esta auditoría |
-| 2. **Sin tag `v0.9.0-rc` → C1–C6 = Ausente (0 %)** | 🔴 **SE DISPARA HOY.** 53 % de la nota |
-| 3. Commits posteriores al corte se ignoran | Sin efecto (no hay informe con fecha de corte) |
-| 4. `make up` falla → C2 ≤ 25 % | 🔴 Se dispara (no hay Makefile) |
-| 5. DOI que no resuelve → C8 = 0 % | 🔴 Se dispara por ausencia de DOI |
-| 6. `CITATION.cff` inválido → C7 ≤ 50 % | 🔴 Peor: ausente → C7 = 0 % |
-| 7. **Concatenación de entrada de usuario o SQL dinámico → C1 y C6 = 25 %** | 🟢 **NO se dispara.** Todo el JPQL usa parámetros nombrados; sin `nativeQuery`, sin `EXECUTE IMMEDIATE` |
-| 8. Archivos crudos sin editar manualmente | 🟡 No hay edición manual, pero los JSON crudos de k6 están excluidos del repositorio |
+| 1. El repositorio es la fuente de verdad | Aplicada en este informe |
+| 2. C1–C6 = 0 % si no existe repo público o el tag `v0.9.0-rc` | ✅ el tag existe y ya apunta a la entrega real |
+| 4. `make up` falla desde clonación limpia → C2 ≤ 25 % | ✅ **ya no se dispara**: `Makefile`, `docker-compose.yml` con digests y `artisync/db/` están todos dentro del tag. Conviene una prueba real de clonación limpia antes de entregar |
+| 5. El DOI no resuelve al tag → C8 = 0 % | ⚠️ **riesgo abierto**: el DOI es real, pero el archivo Zenodo corresponde al contenido del tag *anterior*. Republicar desde el tag movido (§7) |
+| 6. `CITATION.cff` inválido → C7 ≤ 50 % | Riesgo bajo: la estructura valida; conviene pasar `cffconvert --validate` antes de entregar |
+| 7. Concatenación de entrada de usuario o SQL dinámico → C1 y C6 ≤ 25 % | ✅ **no se dispara**. Verificado con `make audit` y por inspección: todos los `@Query` usan parámetros nombrados |
+| 8. Los archivos crudos no se editan a mano | ✅ los JSON de k6 y el `report.xml` de JaCoCo son salida directa de la herramienta |
 
 ---
 
-## 6. Lo que está bien hecho (conviene no tocarlo)
+## 6. Desviaciones respecto al árbol de directorios obligatorio
 
-1. **El corpus de requisitos.** SRS + 23 HU + 23 CU + matriz de 11 columnas es material de nivel Excelente; con `SRS.pdf` y el validador en CI, C0R llega a 100 %.
-2. **La auditoría OWASP.** Seis controles con `curl` real y remediaciones trazadas a `OBS-08`. El `LoginRateLimitFilter` con Redis y la validación de pertenencia en `PedidoServicioImpl` son arreglos de verdad, no cosméticos.
-3. **La honestidad metodológica.** El reporte de rendimiento explica por qué su escenario frío no mide lo que dice medir; el de JaCoCo se niega a inventar el punto de comparación de 1B; el de SUS se niega a rellenarse con datos de ejemplo. Esto es exactamente lo que las normas de artefactos de investigación premian, y hay que **decirlo explícitamente en el informe PDF** para que se lea como rigor y no como omisión.
-4. **`DATA-DICTIONARY.md`.** Cumple E.3 al 100 %, incluida la columna de valor medido.
-5. **Los seis ADRs**, en particular el ADR-006, que documenta la brecha antes de que la detecte el evaluador.
-6. **Higiene de seguridad de datos:** `.env` no está rastreado; el `.p12` está excluido; el secreto JWT viene de variable de entorno.
+La guía advierte: *«cualquier desviación se considera evidencia de una entrega incompleta y se
+penaliza en el criterio de calidad de entrega»* (C10).
+
+| Ruta exigida | Estado real |
+|---|---|
+| `backend/` en la raíz | `artisync/Backend/` |
+| `frontend/` en la raíz | `artisync/Frontend/` |
+| `db/{schema.sql,seed.sql,procs/}` en la raíz | `artisync/db/` — **y sin comitear** |
+| `database/migrations/` | `artisync/Backend/src/main/resources/db/migration/` (la copia `artisync/database/migrations/` fue borrada en el working tree por estar divergente) |
+| `docker-compose.yml` en la raíz | `artisync/docker-compose.yml` |
+| `.env.example` en la raíz | `artisync/.env.example` |
+| `.gitignore` en la raíz | ❌ **no existe** (solo `artisync/.gitignore`) |
+| `docs/arquitectura/` | ❌ existe `docs/diagramas/` en su lugar, sin DSL |
+| `docs/basedatos/CATALOGO-SP.md` | ❌ no existe |
+| `docs/etica/ETHICS.md` | ❌ no existe |
+| `docs/informe-entrega-3.pdf` | ❌ no existe |
+| `docs/postman/coleccion.json` (≥ 20 peticiones) | ❌ hay `Pruebas.postman_collection.json` en la raíz y una copia en `docs/mediciones/`, **ambas sin rastrear y con 10 peticiones** |
+| `k6/` con `opts.js` | ❌ no existe |
+| `lighthouserc.js` en la raíz | ❌ está como `artisync/Frontend/lighthouserc.json` |
+| `scripts/audit-sql-dynamic.sh` | ❌ no existe (la lógica está embebida en `make audit`) |
+
+Además, `docs/mediciones/.gitignore` es contradictorio: excluye `jacoco/html/` y
+`perf/k6-run*.json`, pero esos 260 + 6 archivos **ya están rastreados** (se forzaron con
+`git add -f`). Funcionalmente inocuo, pero un revisor que lea el `.gitignore` y luego vea los
+archivos en el repositorio va a anotarlo.
+
+Nota: mantener el código bajo `artisync/` es una desviación *cosmética* comparada con el resto;
+no la priorizaría por encima de las acciones de §7, pero sí conviene al menos crear `k6/`,
+`lighthouserc.js`, `docs/arquitectura/`, `docs/basedatos/` y `docs/postman/` en las rutas
+exactas que el evaluador va a buscar, aunque sean *wrappers* delgados.
 
 ---
 
 ## 7. Plan de mejora priorizado
 
-### Prioridad 0 — Bloqueantes absolutos (horas, ~15–20 puntos)
+Ordenado por **puntos de rúbrica ganados por hora invertida**, no por importancia conceptual.
 
-1. **Crear los tags.** Sin esto se pierde el 53 % de la nota:
-   ```bash
-   git tag -a v0.7.0 <commit-de-entrega-1b> -m "Entrega 1B" && git tag -a v0.7.1 -m "Cierre de observaciones 1A/1B" && git tag -a v0.9.0-rc -m "Tercera Entrega" && git push --tags
-   ```
-2. **`Makefile` en la raíz** con `up, down, test, bench, audit, clean`, envolviendo el `docker compose -f artisync/docker-compose.yml`. Evita la anulación automática de C2.
-3. **`LICENSE`** (MIT o Apache-2.0, justificado en un ADR-007), **`CITATION.cff`** v1.2.0 validado con `cffconvert`, **`CONTRIBUTORS.md`** con roles CRediT para los cinco integrantes → C7 pasa de 0 % a 100 % (5 puntos).
-4. **Zenodo:** conectar el repositorio, publicar el release `v0.9.0-rc`, y declarar el DOI en README + `CITATION.cff` + portada del PDF → C8 de 0 % a 100 % (5 puntos).
-5. **`CHANGELOG.md`** (Keep a Changelog) + **`docs/VERSIONING.md`** (SemVer 2.0.0) → C9 de 25 % a ~75 % (+3.5 puntos).
-6. **`docs/etica/ETHICS.md`** con los cuatro apartados → desbloquea la mitad de C10.
-7. **Pinar los digests sha256** en `docker-compose.yml`:
-   ```bash
-   docker inspect --format='{{index .RepoDigests 0}}' postgres:16 redis:7-alpine
-   ```
+### Nivel 1 — ✅ APLICADO en esta sesión (≈ +14 puntos)
 
-### Prioridad 1 — Estructurales (1–3 días, ~10–14 puntos)
+1. ✅ **`artisync/db/` versionada y `v0.9.0-rc` re-etiquetado.** Se comitearon
+   `db/{schema.sql,seed.sql,seed_privilegios.sh}`, el refactor de ProblemDetails y el
+   `docker-compose.yml` con digests, y el tag se movió a ese commit. **C2: 25 % → 75 %.**
+2. ✅ **`v0.7.1` y `v0.9.0-rc` ya no colisionan.** `v0.7.1` se mantiene sobre `d292f7b` (cierre
+   de observaciones) y `v0.9.0-rc` apunta al commit de empaquetado de la Tercera Entrega.
+3. ✅ **Matriz de trazabilidad en verde.** 0 errores y 0 advertencias; además se eliminó la cita
+   a `PedidoExportTest`, una prueba que no existe. **C0R → *Satisfactorio*.**
+4. ✅ **`.gitignore` creado en la raíz** y limpiado el de `docs/mediciones/`, que excluía
+   archivos ya rastreados.
 
-8. **Reubicar a la raíz** `docker-compose.yml`, `.env.example`, `.gitignore`, `lighthouserc.js` y `.github/workflows/` (o dejar en la raíz envoltorios que deleguen). Añadir `main` a los disparadores del CI.
-9. **Implementar al menos 3 procedimientos almacenados** de los cinco que el ADR-006 ya identifica — el más rentable es el cálculo de calificación promedio (`AVG` + 2 joins), que sustituye directamente `ResenaServicioRepository:35`. Versionarlos en `db/procs/sp_*.sql`, invocarlos con `@Procedure` y catalogarlos en `docs/basedatos/CATALOGO-SP.md`. Esto saca C1 de Insuficiente.
-10. **Migrar el manejo de errores a `ProblemDetail`** (RFC 7807). En Spring Boot 3 es cambiar `RespuestaError` por `ProblemDetail.forStatusAndDetail(...)` con `type`, `title`, `status`, `detail`, `instance`. Afecta a C1 y a C6 (control A03, que debe devolver `422` + ProblemDetails).
-11. **Crear `db/schema.sql` y `db/seed.sql`** montados en `/docker-entrypoint-initdb.d/`, con el usuario `admin` y su hash BCrypt documentado en el README. Crear además el rol de BD con privilegios mínimos (`EXECUTE` + CRUD sobre tablas del dominio, sin superusuario).
-12. **Versionar los scripts que ya se usaron**: `k6/opts.js` + el script de carga, `scripts/perf-analysis.py` (con `np.random.seed(42)`), `scripts/analisis-sus.py`, `scripts/validate-traceability.sh`, `scripts/audit-sql-dynamic.sh`. Sin ellos, C3 no puede pasar de En desarrollo por mucho que las mediciones sean reales.
-13. **Reconsiderar el `.gitignore` de mediciones.** Si los 34 MB son un problema, comprimir (`k6-run1.json.gz`) o recortar el volumen de la corrida, pero **el crudo tiene que estar en el repositorio** — la regla 8 y el criterio C.1 lo nombran literalmente.
+**Pendiente que este mismo trabajo abre:** el archivo Zenodo (`10.5281/zenodo.21730559`) se creó
+desde el tag anterior. Ahora que `v0.9.0-rc` apunta a otro commit, hay que **publicar una nueva
+versión del registro en Zenodo desde el release actualizado** para que el contenido archivado y
+el tag coincidan; si no, la regla transversal 5 sigue siendo un riesgo sobre C8. Es lo primero
+que conviene hacer ahora, y son diez minutos.
 
-### Prioridad 2 — Cierre de contenido (3–7 días, ~12–18 puntos)
+### Nivel 2 — Una tarde, alto impacto (≈ +9 puntos)
 
-14. **Ejecutar el SUS con 10+ participantes externos.** Es el único sub-bloque de C4 sin datos y no se puede improvisar el último día. La infraestructura (plantilla de consentimiento, instrucciones, CSV) ya está lista; sólo faltan las sesiones.
-15. **Subir la cobertura de 23 % a ≥ 60 %.** El camino más corto son los módulos sin ninguna prueba: pedido, legal, catálogo y perfil, empezando por los servicios (`*ServicioImpl`), que concentran la lógica.
-16. **Redactar `docs/informe-entrega-3.pdf`** (20–30 páginas, las 10 secciones). Debe abrir con la tabla-resumen de observaciones cerradas y su porcentaje, e incluir la matriz de amenazas a la validez —donde la advertencia metodológica del escenario frío encaja perfectamente.
-17. **Cerrar las observaciones pendientes con commits que citen `OBS-NN`** (`fix(frontend): unifica version de Angular a 22 en docs y package.json (OBS-02)`), y colocar `v0.7.1` sobre el commit de cierre.
-18. **Colección Postman** con ≥ 20 peticiones cubriendo `200/401/403/404/422`.
-19. **Structurizr DSL** en `docs/arquitectura/` + **tabla ISO 25010** (prioridad, escenario, estrategia por atributo) → C5 a Excelente.
-20. **Corregir la matriz de trazabilidad**: endpoints reales (`/api/v1/...`), rellenar `prueba_automatizada` y `evidencia_empirica` en los `Must`, y alinear la columna `tipo_acceso` con lo que realmente se implemente en el punto 9.
-21. **Reparar los cuatro enlaces rotos** de los reportes de mediciones (§3, Bloque C) y **generar `SRS.pdf`**.
+5. **Republicar el archivo Zenodo desde el tag `v0.9.0-rc` movido** y declarar el DOI también en
+   la portada del informe técnico (tercer lugar exigido). **~10 minutos.**
+6. **Re-capturar la evidencia OWASP** (§4) contra el stack con ProblemDetails y sobre HTTPS:
+   - A01, A07 → cuerpos RFC 7807
+   - A05 → `curl -I https://localhost:8443` para que aparezca `Strict-Transport-Security`
+   - A03 → añadir `@Pattern` o `@Size` al parámetro `q` de `CatalogoControlador.buscarCatalogo`
+     para que el payload devuelva `422` + ProblemDetails
+   - A09 → registrar el `sub` del JWT junto al correo
+   C6: 50 % → 100 %. **+6 puntos.**
+7. **Escribir `docs/etica/ETHICS.md`** con los cuatro apartados de F. **~30 minutos.**
+8. **Versionar `k6/opts.js` + `k6/catalogo-load.js`** (el script ya existió, hay que rescatarlo o
+   reescribirlo con la misma config: 50 VUs, 30 s) y **añadir `scripts/analisis-perf.py` con
+   `np.random.seed(42)` documentado**. Deja de haber referencias a archivos inexistentes y
+   C3 sube de 50 % a 75–100 %. **+2 a +3.5 puntos.**
+
+### Nivel 3 — Uno o dos días (≈ +8 puntos)
+
+9. **Implementar al menos dos procedimientos almacenados** de los cinco que `adr-006` ya
+   identificó. Los dos de mejor relación esfuerzo/valor:
+   - `fn_calcular_calificacion_creador(p_id_creador)` — sustituye el `AVG` + `JOIN` de
+     `ResenaServicioRepository:35`.
+   - `fn_reporte_comisiones_creador(p_id_creador, p_desde, p_hasta)` — sustituye los tres `JOIN`
+     de `TransaccionPagoRepository:21`.
+
+   Versionarlos en `artisync/db/procs/fn_*.sql`, montarlos en `docker-entrypoint-initdb.d/`,
+   invocarlos con `@Procedure` desde el repositorio Spring Data, y documentarlos en
+   `docs/basedatos/CATALOGO-SP.md` (nombre, propósito, parámetros de entrada/salida, cursores,
+   tablas afectadas). Esto saca a C1 del nivel *Insuficiente*: 25 % → 75–100 %. **+3 a +4.5 puntos**,
+   y cierra OBS-AUTO-02, que a su vez sube C0.
+10. **Mover el access token a cookie `HttpOnly + Secure + SameSite=Strict`**, igual que ya se hace
+    con el refresh. Requiere ajustar el interceptor de Angular para no leerlo de `localStorage`.
+11. **Ampliar la colección Postman a ≥ 20 peticiones** con casos 200/401/403/404/422 y ubicarla en
+    `docs/postman/coleccion.json`. Cierra la mitad pendiente de OBS-09.
+12. **Structurizr DSL en `docs/arquitectura/`** + exportación PNG desde el pipeline, y **tabla
+    ISO/IEC 25010** con prioridad, escenario y estrategia por atributo. C5: 50 % → 100 %.
+    **+4 puntos.**
+13. **Cerrar OBS-02, OBS-04 y OBS-05** (unificar versiones de pila contra `pom.xml`/`package.json`,
+    nota de fuente en `adr-001`, wireframe del dominio). Lleva las observaciones cerradas de
+    60 % a 80 % → C0 pasa a *Satisfactorio*. **+2.5 puntos.**
+
+### Nivel 4 — Días, imprescindible para la nota alta (≈ +10 puntos)
+
+14. **Ejecutar el SUS con ≥ 10 participantes externos.** El protocolo y el formulario ya están
+    escritos en `sus/instrucciones-formulario.md`; falta reclutar y correr las sesiones, guardar
+    los consentimientos por código `P01…P10` fuera del repo, y ejecutar el análisis con media,
+    DT e IC 95 %. Es el único ítem que **no se puede improvisar la última noche**: empezar por
+    aquí en paralelo con todo lo demás.
+15. **Subir la cobertura JaCoCo de 23 % a ≥ 60 %.** El camino más corto es escribir pruebas de
+    servicio para `pedido`, `legal`, `catalogo` y `perfil`, que son los cuatro módulos sin
+    ninguna. Priorizar servicios sobre controladores: más líneas cubiertas por test.
+16. **Redactar `docs/informe-entrega-3.pdf`** (20–30 páginas) con las diez secciones exigidas.
+    Buena parte del contenido ya existe y solo hay que ensamblarlo: el resumen de observaciones
+    sale de `OBSERVACIONES.md`, la arquitectura de los ADRs y diagramas C4, el protocolo
+    experimental y los resultados de los cuatro `REPORTE-*.md`, la declaración CRediT de
+    `CONTRIBUTORS.md`. **La sección de amenazas a la validez prácticamente está escrita** en la
+    advertencia metodológica de `REPORTE-PERF.md`.
+17. **Grabar el vídeo de 2–3 minutos** mostrando `make up`, `make bench` y `make audit`, y
+    enlazarlo desde el README.
 
 ---
 
-## 8. Proyección
+## 8. Lo que este proyecto hace bien y conviene defender en el informe
 
-| Escenario | Nota estimada |
-|---|---|
-| Estado actual, sin tag | **≈ 8–12 / 100** (C1–C6 anulados por la regla 2) |
-| Estado actual, con el tag creado | **36–45 / 100** |
-| \+ Prioridad 0 completa | **55–62 / 100** |
-| \+ Prioridad 1 completa | **70–78 / 100** |
-| \+ Prioridad 2 completa | **88–95 / 100** |
+Para que el informe técnico no sea solo una lista de deudas, estos son los puntos donde el
+trabajo está por encima de lo típico y merece un párrafo propio:
 
-La Prioridad 0 es casi toda trabajo de empaquetado —archivos de metadatos, tags, un Makefile— y por sí sola cambia la calificación de reprobatoria a aprobatoria. Conviene ejecutarla **hoy**, antes de tocar código.
+- **`REPORTE-PERF.md` declara y explica su propia anomalía metodológica** en lugar de esconderla.
+  Eso es honestidad científica y es literalmente lo que la sección de amenazas a la validez pide.
+- **`OBSERVACIONES.md` no infla su porcentaje de cierre** y declara explícitamente la limitación
+  de trazabilidad de sus commits.
+- **`DATA-DICTIONARY.md`** está mejor construido que la media: 19 variables con tipo, unidad,
+  fuente, rango esperado y valor medido, incluyendo las pendientes marcadas como tales.
+- **Los seis ADRs** siguen la plantilla Nygard con consecuencias negativas reales, no de adorno;
+  `adr-006` documenta su propia deuda técnica.
+- **Lighthouse cumple los cuatro umbrales con holgura** (92/100/100/100), con la mejora de 56→92
+  en Performance documentada.
+- **La cuenta de base de datos de privilegios mínimos** (`artisync_app`, sin DDL ni superusuario)
+  está implementada y verificada — A.2.3 cumplido, que muchos equipos omiten.
+- **`make audit` no encuentra SQL dinámico ni concatenación**: la regla transversal 7, que es la
+  que hunde a más proyectos, no se dispara.
 
 ---
 
-*Informe generado por auditoría directa del repositorio en `main@ca8889c`. Cada afirmación de incumplimiento es verificable con `git ls-files`, `git tag -l`, `git log` o inspección del archivo citado.*
+## 9. Resumen de una línea
+
+El proyecto llegó a esta auditoría con el contenido de un 7 y la nota de un 4.5, porque **la
+etiqueta que el docente iba a clonar no contenía la entrega**. Las cuatro acciones de Nivel 1 ya
+están aplicadas y valen alrededor de **catorce puntos**: `artisync/db/` versionada, tag movido y
+separado de `v0.7.1`, matriz en verde y `.gitignore` coherentes.
+
+A partir de aquí ya no quedan atajos de empaquetado: lo que separa el ~6 actual del 8+ es
+trabajo real de ingeniería —los procedimientos almacenados del Bloque A.2.2, la evidencia OWASP
+re-capturada, el SUS con participantes de verdad, la cobertura hasta el 60 % y el informe
+técnico—, y el único ítem que no se puede improvisar la última semana es el SUS. Empezar el
+reclutamiento hoy, en paralelo con todo lo demás.

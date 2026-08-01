@@ -305,7 +305,7 @@ El diagrama de clases debe mostrar obligatoriamente:
 | `backend/src/test/` | Pruebas JUnit 5 + MockMvc |
 | `frontend/src/app/` | Módulos Angular: `auth/`, `core/`, `shared/`, `features/` |
 | `frontend/src/environments/` | `environment.ts` y `environment.prod.ts` |
-| `database/migrations/` | Scripts Flyway `V1__`, `V2__`, etc. |
+| `Backend/src/main/resources/db/migration/` | Scripts Flyway `V1__`, `V2__`, etc. |
 | `docker-compose.yml` | 4 servicios: backend, postgres, redis, frontend |
 | `.env.example` | Variables: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRATION`, `REDIS_URL` |
 | `docs/adr/ADR-003-jwt-redis.md` | Justificación Redis para blacklist JWT |
@@ -834,7 +834,7 @@ docker compose ps
 | Headers HTTP | 2.8 | `SecurityConfig.java` | SEC-07 | [ ] Pendiente | |
 | Roles `@PreAuthorize` | 2.8 | `[Entidad]Controller.java` | SEC-12 | [ ] Pendiente | |
 | Bean Validation | 2.6.4 | DTOs | T-07 | [ ] Pendiente | |
-| Flyway `V1__schema_inicial.sql` | 2.5.4 | `database/migrations/V1__schema_inicial.sql` | Docker compose up | [ ] Pendiente | |
+| Flyway `V1__schema_inicial.sql` | 2.5.4 | `Backend/src/main/resources/db/migration/V1__schema_inicial.sql` | Docker compose up | [ ] Pendiente | |
 | Trigger `actualizado_en` | 2.5.4 | `V1__schema_inicial.sql` | UPDATE en BD | [ ] Pendiente | |
 | Soft delete | 2.6.4 | `[Entidad]Service.java` | T-10 | [ ] Pendiente | |
 | JwtInterceptor Angular | 2.6.6 | `jwt.interceptor.ts` | P-03 | [ ] Pendiente | |
