@@ -23,7 +23,11 @@ services:
       - ./db/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
       - ./db/seed_privilegios.sh:/docker-entrypoint-initdb.d/seed_privilegios.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db}"]
+      # pg_isready no autentica: reporta "accepting connections" aunque el rol
+      # o la base indicados no existan (crashloop del backend sin que compose
+      # lo detecte). Se usa psql con las credenciales reales para que el
+      # healthcheck falle si la autenticacion falla.
+      test: ["CMD-SHELL", "PGPASSWORD=${DB_PASSWORD:-changeme} psql -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db} -c 'SELECT 1' -tAq"]
       interval: 5s
       timeout: 5s
       retries: 10
