@@ -37,7 +37,13 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
         Portafolio portafolio = Portafolio.builder()
                 .perfil(perfil)
                 .esPublico(peticion.esPublico() != null ? peticion.esPublico() : true)
-                .colorPlantilla(peticion.colorPlantilla() != null ? peticion.colorPlantilla() : "#FFFFFF")
+                .opcionesPersonalizacion(peticion.opcionesPersonalizacion() != null ? peticion.opcionesPersonalizacion() : java.util.Map.of(
+                        "primary", "#0d6efd",
+                        "secondary", "#6c757d",
+                        "bg", "#f8f9fa",
+                        "text", "#212529",
+                        "surface", "#ffffff"
+                ))
                 .totalVisitasAcumuladas(0)
                 .build();
 
@@ -78,8 +84,8 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
         if (peticion.esPublico() != null) {
             portafolio.setEsPublico(peticion.esPublico());
         }
-        if (peticion.colorPlantilla() != null) {
-            portafolio.setColorPlantilla(peticion.colorPlantilla());
+        if (peticion.opcionesPersonalizacion() != null) {
+            portafolio.setOpcionesPersonalizacion(peticion.opcionesPersonalizacion());
         }
 
         Portafolio actualizado = portafolioRepository.save(portafolio);
@@ -111,7 +117,7 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
                 .fechaCreacion(portafolio.getFechaCreacion())
                 .totalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas())
                 .esPublico(portafolio.getEsPublico())
-                .colorPlantilla(portafolio.getColorPlantilla())
+                .opcionesPersonalizacion(portafolio.getOpcionesPersonalizacion())
                 .build();
     }
 }

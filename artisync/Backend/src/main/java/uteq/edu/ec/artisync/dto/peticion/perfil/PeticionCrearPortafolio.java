@@ -9,7 +9,6 @@ public record PeticionCrearPortafolio(
 
         Boolean esPublico,
 
-        @Size(max = 20, message = "El color de plantilla no puede superar los 20 caracteres")
-        String colorPlantilla
+        java.util.Map<String, String> opcionesPersonalizacion
 ) {
 }
