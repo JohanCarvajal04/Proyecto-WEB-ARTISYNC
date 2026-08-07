@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
@@ -102,6 +103,21 @@ class VerificacionServicioImplTest {
     }
 
     @Test
+    void subir_yaExisteVerificacionPendienteParaElPerfil_lanzaExcepcionReglaNegocio_yNoTocaArchivosNiGuarda() {
+        MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
+        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfil));
+        when(certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(5L, "PENDIENTE"))
+                .thenReturn(true);
+
+        assertThrows(ExcepcionReglaNegocio.class,
+                () -> servicio.subir(1L, TipoDocumentoVerificacion.IDENTIDAD, documento));
+
+        verifyNoInteractions(almacenamiento, preprocesador, iaService);
+        verify(certificadoIaRepository, never()).save(any());
+        verify(estadoVerificacionRepository, never()).findByNombreEstado(any());
+    }
+
+    @Test
     void analizarConIa_dictamenAprobado_persisteVeredictoPeroNoElEstado() {
         CertificadoIa certificado = CertificadoIa.builder()
                 .idCertificado(10L).perfil(perfil).estadoVerificacion(pendiente)
@@ -190,6 +206,30 @@ class VerificacionServicioImplTest {
     }
 
     @Test
+    void registrarDecision_requiereAclaracion_noBorraElDocumento() {
+        EstadoVerificacion requiereAclaracion = EstadoVerificacion.builder()
+                .idEstadoVerificacion(4L).nombreEstado("REQUIERE_ACLARACION").build();
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(22L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(22L)).thenReturn(Optional.of(certificado));
+        when(estadoVerificacionRepository.findById(4L)).thenReturn(Optional.of(requiereAclaracion));
+        doAnswer(inv -> {
+            certificado.setEstadoVerificacion(requiereAclaracion);
+            certificado.setModerador(Usuario.builder().idUsuario(99L).build());
+            certificado.setDocumentoEliminado(false); // el SP no marca documento_eliminado para este estado
+            return null;
+        }).when(entityManager).refresh(certificado);
+
+        RespuestaVerificacion respuesta = servicio.registrarDecision(22L, 99L, 4L, "Falta el reverso del documento");
+
+        verify(certificadoIaRepository).registrarDecision(22L, 4L, 99L, "Falta el reverso del documento");
+        verify(entityManager).refresh(certificado);
+        verify(almacenamiento, never()).eliminar(any());
+        assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("REQUIERE_ACLARACION");
+    }
+
+    @Test
     void registrarDecision_certificadoInexistente_lanza404_yNoLlamaAlProcedimiento() {
         when(certificadoIaRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -257,7 +297,7 @@ class VerificacionServicioImplTest {
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(33L)).thenReturn(Optional.of(certificado));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.obtenerPorId(33L, 777L, false));
+        assertThrows(AccessDeniedException.class, () -> servicio.obtenerPorId(33L, 777L, false));
     }
 
     @Test

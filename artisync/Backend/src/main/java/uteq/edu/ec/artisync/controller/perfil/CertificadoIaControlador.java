@@ -21,6 +21,14 @@ import java.util.List;
  * {@code VerificacionControlador}). Este {@code POST} se conserva restringido
  * a {@code ADMIN} solo para no romper clientes existentes del CRUD original
  * de {@code CertificadoIa}.</p>
+ *
+ * <p>Este controlador ya NO expone un endpoint para cambiar
+ * {@code id_estado_verificacion}: el único camino auditado para registrar la
+ * decisión de un moderador es {@code PATCH /api/v1/verificaciones/{id}/decision}
+ * (ver {@code VerificacionControlador}), que pasa por
+ * {@code sp_registrar_decision_verificacion} y deja rastro de moderador, fecha
+ * y nota. El antiguo {@code PATCH /{id}/estado/{idNuevoEstado}} escribía el
+ * estado directamente sin ninguna de esas garantías y fue eliminado.</p>
  */
 @RestController
 @RequestMapping("/api/v1/certificados")
@@ -52,14 +60,6 @@ public class CertificadoIaControlador {
     @PreAuthorize("hasAnyRole('MODERADOR', 'ADMIN')")
     public ResponseEntity<List<RespuestaCertificadoIa> > listarTodosLosCertificados() {
         return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());
-    }
-
-    @PatchMapping("/{id}/estado/{idNuevoEstado}")
-    @PreAuthorize("hasAnyRole('MODERADOR', 'ADMIN')")
-    public ResponseEntity<RespuestaCertificadoIa> actualizarEstadoVerificacion(
-            @PathVariable Long id,
-            @PathVariable Long idNuevoEstado) {
-        return ResponseEntity.ok(certificadoServicio.actualizarEstadoVerificacion(id, idNuevoEstado));
     }
 
     @DeleteMapping("/{id}")

@@ -79,13 +79,15 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION fn_listar_cola_verificacion(VARCHAR, INT, INT) TO artisync_app;
-
 -- -----------------------------------------------------------------------------
 -- Procedimiento: registrar la decisión del moderador. Único punto de
 -- escritura de id_estado_verificacion; valida existencia de certificado,
 -- estado y moderador antes de escribir (validación cruzada, ADR-006).
--- El archivo físico lo borra la capa Java tras invocar este procedimiento.
+-- Exige que el certificado esté en PENDIENTE (no se puede sobrescribir una
+-- decisión ya tomada) y solo marca el documento como eliminado cuando el
+-- nuevo estado es terminal (APROBADO/RECHAZADO); REQUIERE_ACLARACION deja el
+-- documento intacto porque el flujo vuelve a la cola. El archivo físico lo
+-- borra la capa Java tras invocar este procedimiento, cuando corresponda.
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE PROCEDURE sp_registrar_decision_verificacion(
     p_id_certificado  BIGINT,
@@ -95,12 +97,29 @@ CREATE OR REPLACE PROCEDURE sp_registrar_decision_verificacion(
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_nombre_estado_actual VARCHAR;
+    v_nombre_estado_nuevo  VARCHAR;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM certificados_ia WHERE id_certificado = p_id_certificado) THEN
+    SELECT ev.nombre_estado INTO v_nombre_estado_actual
+    FROM certificados_ia c
+    JOIN estados_verificacion ev ON ev.id_estado_verificacion = c.id_estado_verificacion
+    WHERE c.id_certificado = p_id_certificado;
+
+    IF NOT FOUND THEN
         RAISE EXCEPTION 'Certificado de verificación % no existe', p_id_certificado;
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM estados_verificacion WHERE id_estado_verificacion = p_id_estado) THEN
+    IF v_nombre_estado_actual <> 'PENDIENTE' THEN
+        RAISE EXCEPTION 'El certificado % no está en estado PENDIENTE (estado actual: %); no se puede registrar una decisión sobre él nuevamente.',
+            p_id_certificado, v_nombre_estado_actual;
+    END IF;
+
+    SELECT nombre_estado INTO v_nombre_estado_nuevo
+    FROM estados_verificacion
+    WHERE id_estado_verificacion = p_id_estado;
+
+    IF NOT FOUND THEN
         RAISE EXCEPTION 'Estado de verificación % no existe', p_id_estado;
     END IF;
 
@@ -113,9 +132,23 @@ BEGIN
         id_moderador           = p_id_moderador,
         fecha_decision          = CURRENT_TIMESTAMP,
         nota_moderador           = p_nota,
-        documento_eliminado      = TRUE
+        documento_eliminado      = (v_nombre_estado_nuevo IN ('APROBADO', 'RECHAZADO'))
     WHERE id_certificado = p_id_certificado;
 END;
 $$;
 
-GRANT EXECUTE ON PROCEDURE sp_registrar_decision_verificacion(BIGINT, BIGINT, BIGINT, TEXT) TO artisync_app;
+-- -----------------------------------------------------------------------------
+-- Privilegios: artisync_app solo lo crea artisync/db/seed_privilegios.sh en el
+-- primer arranque de un volumen de datos vacío. En una BD restaurada de un
+-- dump, en CI o en una instancia gestionada ese rol no existe todavía; sin
+-- esta guarda, el GRANT abortaría TODA la migración V6 (seed de estados y
+-- columnas de certificados_ia incluidos).
+-- -----------------------------------------------------------------------------
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'artisync_app') THEN
+        GRANT EXECUTE ON FUNCTION fn_listar_cola_verificacion(VARCHAR, INT, INT) TO artisync_app;
+        GRANT EXECUTE ON PROCEDURE sp_registrar_decision_verificacion(BIGINT, BIGINT, BIGINT, TEXT) TO artisync_app;
+    END IF;
+END
+$$;

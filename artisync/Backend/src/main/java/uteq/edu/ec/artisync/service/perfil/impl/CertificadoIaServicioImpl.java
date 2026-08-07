@@ -71,20 +71,6 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
 
     @Override
     @Transactional
-    public RespuestaCertificadoIa actualizarEstadoVerificacion(Long idCertificado, Long idNuevoEstado) {
-        CertificadoIa certificado = certificadoRepository.findById(idCertificado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Certificado IA no encontrado con ID: " + idCertificado));
-
-        EstadoVerificacion nuevoEstado = estadoRepository.findById(idNuevoEstado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Estado de verificación no encontrado con ID: " + idNuevoEstado));
-
-        certificado.setEstadoVerificacion(nuevoEstado);
-        CertificadoIa actualizado = certificadoRepository.save(certificado);
-        return mapearARespuesta(actualizado);
-    }
-
-    @Override
-    @Transactional
     public void eliminarCertificado(Long idCertificado) {
         if (!certificadoRepository.existsById(idCertificado)) {
             throw new ExcepcionRecursoNoEncontrado("Certificado IA no encontrado con ID: " + idCertificado);

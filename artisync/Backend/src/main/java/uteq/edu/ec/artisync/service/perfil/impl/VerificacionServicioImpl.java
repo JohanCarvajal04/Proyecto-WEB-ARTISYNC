@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.service.perfil.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,6 +54,12 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "Debes tener un perfil de creador para solicitar una verificación."));
 
+        if (certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(
+                perfil.getIdPerfil(), "PENDIENTE")) {
+            throw new ExcepcionReglaNegocio(
+                    "Ya existe una verificación pendiente para este perfil. Espera a que sea revisada antes de subir otra.");
+        }
+
         preprocesador.validarFormato(documento);
 
         EstadoVerificacion pendiente = estadoVerificacionRepository.findByNombreEstado("PENDIENTE")
@@ -77,6 +84,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RespuestaColaVerificacion> listarCola(String nombreEstado, int limite, int offset) {
         return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
                 .map(fila -> RespuestaColaVerificacion.builder()
@@ -93,16 +101,18 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
         CertificadoIa certificado = buscarPorId(idCertificado);
         boolean esDueno = certificado.getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
         if (!esRevisor && !esDueno) {
-            throw new ExcepcionReglaNegocio("No tienes acceso a esta verificación.");
+            throw new AccessDeniedException("No tienes acceso a esta verificación.");
         }
         return mapearARespuesta(certificado);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public byte[] obtenerDocumento(Long idCertificado) {
         CertificadoIa certificado = buscarPorId(idCertificado);
         return almacenamiento.leer(certificado.getUrlDocumentoS3());
@@ -149,7 +159,13 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         // sin este refresh, `certificado` (ya gestionado) devolvería datos obsoletos.
         entityManager.refresh(certificado);
 
-        almacenamiento.eliminar(certificado.getUrlDocumentoS3());
+        // El procedimiento es la única fuente de verdad sobre si el documento
+        // debe borrarse: solo lo hace para estados terminales (APROBADO,
+        // RECHAZADO), no para REQUIERE_ACLARACION. Actuamos sobre el flag ya
+        // refrescado en vez de borrar incondicionalmente.
+        if (certificado.isDocumentoEliminado()) {
+            almacenamiento.eliminar(certificado.getUrlDocumentoS3());
+        }
 
         log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
                 idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);

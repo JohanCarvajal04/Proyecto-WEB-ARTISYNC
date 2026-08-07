@@ -70,6 +70,46 @@ class CertificadoIaRepositoryIT {
         assertThat(actualizado.getNotaModerador()).isEqualTo("Documento verificado a simple vista.");
     }
 
+    @Test
+    @Sql(statements = {
+            "INSERT INTO usuarios (id_usuario, nombres, apellidos, correo, contrasena_hash, estado_cuenta) " +
+                    "VALUES (9004, 'Beto', 'Moderador', 'beto.mod2@test.dev', 'x', true), " +
+                    "(9005, 'Dani', 'Creadora', 'dani.creadora@test.dev', 'x', true)",
+            "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9005, 9005)",
+            "INSERT INTO certificados_ia (id_certificado, id_perfil, id_estado_verificacion, url_documento_s3, tipo_documento) " +
+                    "SELECT 9004, 9005, id_estado_verificacion, 'ref.jpg', 'IDENTIDAD' " +
+                    "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
+    })
+    void registrarDecision_requiereAclaracion_noMarcaDocumentoEliminado() {
+        Long idEstadoRequiereAclaracion = obtenerIdEstado("REQUIERE_ACLARACION");
+
+        certificadoIaRepository.registrarDecision(9004L, idEstadoRequiereAclaracion, 9004L, "Falta el reverso del documento.");
+
+        CertificadoIa actualizado = certificadoIaRepository.findById(9004L).orElseThrow();
+        assertThat(actualizado.getEstadoVerificacion().getIdEstadoVerificacion()).isEqualTo(idEstadoRequiereAclaracion);
+        assertThat(actualizado.isDocumentoEliminado()).isFalse();
+    }
+
+    @Test
+    @Sql(statements = {
+            "INSERT INTO usuarios (id_usuario, nombres, apellidos, correo, contrasena_hash, estado_cuenta) " +
+                    "VALUES (9006, 'Beto', 'Moderador', 'beto.mod3@test.dev', 'x', true), " +
+                    "(9007, 'Eva', 'Creadora', 'eva.creadora@test.dev', 'x', true)",
+            "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9007, 9007)",
+            "INSERT INTO certificados_ia (id_certificado, id_perfil, id_estado_verificacion, url_documento_s3, tipo_documento) " +
+                    "SELECT 9006, 9007, id_estado_verificacion, 'ref.jpg', 'IDENTIDAD' " +
+                    "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
+    })
+    void registrarDecision_certificadoYaNoPendiente_lanzaExcepcion() {
+        Long idEstadoAprobado = obtenerIdEstado("APROBADO");
+        Long idEstadoRechazado = obtenerIdEstado("RECHAZADO");
+        certificadoIaRepository.registrarDecision(9006L, idEstadoAprobado, 9006L, "Primera decisión.");
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.dao.DataAccessException.class,
+                () -> certificadoIaRepository.registrarDecision(9006L, idEstadoRechazado, 9006L, "Segunda decisión, no debería aplicarse."));
+    }
+
     private Long obtenerIdEstado(String nombre) {
         return jdbcTemplate.queryForObject(
                 "SELECT id_estado_verificacion FROM estados_verificacion WHERE nombre_estado = ?",
