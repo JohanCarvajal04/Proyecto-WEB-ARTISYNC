@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
@@ -25,6 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -89,8 +91,31 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     }
 
     @Override
+    @Transactional
     public RespuestaVerificacion analizarConIa(Long idCertificado) {
-        throw new UnsupportedOperationException("Se implementa en la Tarea 16");
+        CertificadoIa certificado = certificadoIaRepository.findById(idCertificado)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Verificación " + idCertificado + " no encontrada."));
+
+        if (certificado.isDocumentoEliminado()) {
+            throw new ExcepcionReglaNegocio("El documento ya fue eliminado; no se puede reanalizar.");
+        }
+
+        byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());
+        byte[] comprimido = preprocesador.comprimirParaIa(original);
+
+        IaVerificacionResponse dictamen = "CERTIFICADO".equals(certificado.getTipoDocumento())
+                ? iaService.analizarCertificado(comprimido, "image/jpeg")
+                : iaService.verificarIdentidad(comprimido, "image/jpeg");
+
+        certificado.setVeredictoIa(dictamen.isAprobado() ? "SUGIERE_APROBAR" : "SUGIERE_RECHAZAR");
+        certificado.setPuntajeConfianzaIa(dictamen.getConfianza());
+        certificado.setRazonIa(dictamen.getRazonRechazo());
+        certificado.setDatosExtraidosIa(serializarDatosExtraidos(dictamen));
+        certificado.setFechaDictamenIa(LocalDateTime.now());
+
+        CertificadoIa guardado = certificadoIaRepository.save(certificado);
+        log.info("Dictamen de IA registrado para verificación {}: {}", idCertificado, certificado.getVeredictoIa());
+        return mapearARespuesta(guardado);
     }
 
     @Override
@@ -107,6 +132,23 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
             throw new ExcepcionReglaNegocio("No se pudo leer el documento para calcular su huella.");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 no disponible en esta JVM.", e);
+        }
+    }
+
+    private String serializarDatosExtraidos(IaVerificacionResponse dictamen) {
+        java.util.Map<String, String> datos = new java.util.LinkedHashMap<>();
+        if (dictamen.getNombreDetectado() != null) datos.put("nombreDetectado", dictamen.getNombreDetectado());
+        if (dictamen.getTipoDocumento() != null) datos.put("tipoDocumentoDetectado", dictamen.getTipoDocumento());
+        if (dictamen.getFechaNacimiento() != null) datos.put("fechaNacimiento", dictamen.getFechaNacimiento());
+        if (dictamen.getPaisEmision() != null) datos.put("paisEmision", dictamen.getPaisEmision());
+        if (dictamen.getInstitucionEmisora() != null) datos.put("institucionEmisora", dictamen.getInstitucionEmisora());
+        if (dictamen.getCampoEstudio() != null) datos.put("campoEstudio", dictamen.getCampoEstudio());
+        if (dictamen.getFechaEmision() != null) datos.put("fechaEmision", dictamen.getFechaEmision());
+        try {
+            return objectMapper.writeValueAsString(datos);
+        } catch (Exception e) {
+            log.warn("No se pudieron serializar los datos extraídos por la IA: {}", e.getMessage());
+            return null;
         }
     }
 

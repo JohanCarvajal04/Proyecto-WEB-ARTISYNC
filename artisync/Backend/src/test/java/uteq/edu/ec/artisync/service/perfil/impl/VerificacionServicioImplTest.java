@@ -7,13 +7,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
+import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
@@ -21,11 +24,13 @@ import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocument
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
 import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -90,5 +95,69 @@ class VerificacionServicioImplTest {
         assertThrows(ExcepcionReglaNegocio.class,
                 () -> servicio.subir(1L, TipoDocumentoVerificacion.IDENTIDAD, documento));
         verify(estadoVerificacionRepository, never()).save(any());
+    }
+
+    @Test
+    void analizarConIa_dictamenAprobado_persisteVeredictoPeroNoElEstado() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(10L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(10L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes-originales".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes-comprimidos".getBytes());
+        when(iaService.verificarIdentidad(any(), eq("image/jpeg"))).thenReturn(
+                IaVerificacionResponse.builder().aprobado(true).confianza(new BigDecimal("0.9"))
+                        .nombreDetectado("Ana Pérez").build());
+        when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RespuestaVerificacion respuesta = servicio.analizarConIa(10L);
+
+        assertThat(respuesta.veredictoIa()).isEqualTo("SUGIERE_APROBAR");
+        assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("PENDIENTE"); // candado del diseño
+        assertThat(respuesta.datosExtraidosIa()).contains("Ana Pérez");
+    }
+
+    @Test
+    void analizarConIa_documentoYaEliminado_lanzaExcepcionReglaNegocio() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(11L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(true).build();
+        when(certificadoIaRepository.findById(11L)).thenReturn(Optional.of(certificado));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.analizarConIa(11L));
+        verifyNoInteractions(iaService);
+    }
+
+    @Test
+    void analizarConIa_iaFalla_noPersisteNada() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(12L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(12L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
+        when(iaService.verificarIdentidad(any(), any()))
+                .thenThrow(new ExcepcionServicioIaNoDisponible("timeout", null));
+
+        assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(12L));
+        verify(certificadoIaRepository, never()).save(any());
+    }
+
+    @Test
+    void analizarConIa_tipoCertificado_llamaAlMetodoDeCertificadoNoDeIdentidad() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(13L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("CERTIFICADO").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(13L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
+        when(iaService.analizarCertificado(any(), any())).thenReturn(
+                IaVerificacionResponse.builder().aprobado(true).confianza(new BigDecimal("0.8")).build());
+        when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        servicio.analizarConIa(13L);
+
+        verify(iaService).analizarCertificado(any(), eq("image/jpeg"));
+        verify(iaService, never()).verificarIdentidad(any(), any());
     }
 }
