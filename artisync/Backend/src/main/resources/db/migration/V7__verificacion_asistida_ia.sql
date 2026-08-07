@@ -1,5 +1,5 @@
 -- =============================================================================
--- V6: Verificación asistida por IA (REQ-F-006, REQ-F-007)
+-- V7: Verificación asistida por IA (REQ-F-006, REQ-F-007)
 -- La IA asiste al moderador; nunca decide. El estado final lo escribe siempre
 -- una persona con permiso CERTIFICADO_REVISAR — ver
 -- docs/superpowers/specs/2026-08-06-ia-verificacion-asistida-design.md
