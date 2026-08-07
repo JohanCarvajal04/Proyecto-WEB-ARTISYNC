@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -8,7 +8,9 @@ import { ToastService } from '../../../../core/services/toast.service';
   selector: 'app-forgot-password',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './forgot-password.component.html'
+  templateUrl: './forgot-password.component.html',
+  styleUrl: './forgot-password.component.css',
+  encapsulation: ViewEncapsulation.None
 })
 export class ForgotPasswordComponent {
   private fb = inject(FormBuilder);

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -8,7 +8,9 @@ import { ToastService } from '../../../../core/services/toast.service';
   selector: 'app-register',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './register.component.html'
+  templateUrl: './register.component.html',
+  styleUrl: './register.component.css',
+  encapsulation: ViewEncapsulation.None
 })
 export class RegisterComponent {
   private fb = inject(FormBuilder);
@@ -19,13 +21,10 @@ export class RegisterComponent {
   readonly isLoading = signal<boolean>(false);
 
   form: FormGroup = this.fb.group({
-    nombres: ['', [Validators.required, Validators.maxLength(100)]],
-    apellidos: ['', [Validators.required, Validators.maxLength(100)]],
+    nombreCompleto: ['', [Validators.required, Validators.maxLength(200)]],
     correo: ['', [Validators.required, Validators.email]],
     contrasena: ['', [Validators.required, Validators.minLength(8), this.passwordStrengthValidator]],
     confirmarContrasena: ['', [Validators.required]],
-    fechaNacimiento: ['', [Validators.required, this.ageValidator]],
-    rol: ['CLIENTE', [Validators.required]],
     terminosYCondiciones: [false, Validators.requiredTrue]
   }, { validators: this.passwordMatchValidator });
 
@@ -46,18 +45,6 @@ export class RegisterComponent {
     return pass === confirm ? null : { passwordMismatch: true };
   }
 
-  ageValidator(control: AbstractControl): ValidationErrors | null {
-    if (!control.value) return null;
-    const birthDate = new Date(control.value);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age >= 18 ? null : { underage: true };
-  }
-
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -67,13 +54,17 @@ export class RegisterComponent {
     this.isLoading.set(true);
     const val = this.form.getRawValue();
 
+    const nameParts = (val.nombreCompleto || '').trim().split(' ');
+    const nombres = nameParts[0] || '';
+    const apellidos = nameParts.slice(1).join(' ') || nameParts[0] || '';
+
     this.authService.register({
-      nombres: val.nombres,
-      apellidos: val.apellidos,
+      nombres,
+      apellidos,
       correo: val.correo,
       contrasena: val.contrasena,
-      fechaNacimiento: val.fechaNacimiento,
-      rol: val.rol,
+      fechaNacimiento: '2000-01-01',
+      rol: 'CLIENTE',
       aceptaTerminos: val.terminosYCondiciones
     }).subscribe({
       next: () => {
