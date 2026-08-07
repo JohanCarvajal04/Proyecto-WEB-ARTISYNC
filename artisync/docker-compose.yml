@@ -72,6 +72,8 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
     ports:
       - "8080:8080"
+    volumes:
+      - pfc_documentos_verificacion:/var/artisync/documentos
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,3 +100,4 @@ services:
 
 volumes:
   pfc_postgres_data:
+  pfc_documentos_verificacion:
