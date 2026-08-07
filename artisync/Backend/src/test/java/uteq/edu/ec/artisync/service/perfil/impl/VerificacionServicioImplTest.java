@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
@@ -20,11 +21,13 @@ import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.VerificacionColaProyeccion;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
 import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -206,5 +209,67 @@ class VerificacionServicioImplTest {
         assertThrows(ExcepcionRecursoNoEncontrado.class,
                 () -> servicio.registrarDecision(21L, 99L, 777L, "nota"));
         verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
+    }
+
+    @Test
+    void listarCola_delegaEnElRepositorioYMapeaLaProyeccion() {
+        VerificacionColaProyeccion fila = mock(VerificacionColaProyeccion.class);
+        when(fila.getIdCertificado()).thenReturn(30L);
+        when(fila.getNombreEstado()).thenReturn("PENDIENTE");
+        when(fila.getNombreCreador()).thenReturn("Ana Creadora");
+        when(certificadoIaRepository.listarCola("PENDIENTE", 20, 0)).thenReturn(List.of(fila));
+
+        List<RespuestaColaVerificacion> resultado = servicio.listarCola("PENDIENTE", 20, 0);
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).idCertificado()).isEqualTo(30L);
+        assertThat(resultado.get(0).nombreCreador()).isEqualTo("Ana Creadora");
+    }
+
+    @Test
+    void obtenerPorId_revisor_puedeVerCualquierVerificacion() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(31L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
+        when(certificadoIaRepository.findById(31L)).thenReturn(Optional.of(certificado));
+
+        RespuestaVerificacion respuesta = servicio.obtenerPorId(31L, 999L, true);
+
+        assertThat(respuesta.idCertificado()).isEqualTo(31L);
+    }
+
+    @Test
+    void obtenerPorId_dueno_puedeVerLaSuya() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(32L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
+        when(certificadoIaRepository.findById(32L)).thenReturn(Optional.of(certificado));
+
+        RespuestaVerificacion respuesta = servicio.obtenerPorId(32L, 1L, false); // perfil.usuario.idUsuario == 1L
+
+        assertThat(respuesta.idCertificado()).isEqualTo(32L);
+    }
+
+    @Test
+    void obtenerPorId_usuarioAjenoSinPermisoDeRevisor_esRechazado() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(33L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
+        when(certificadoIaRepository.findById(33L)).thenReturn(Optional.of(certificado));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.obtenerPorId(33L, 777L, false));
+    }
+
+    @Test
+    void obtenerDocumento_delegaEnElAlmacenamiento() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(34L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref-34.jpg").tipoDocumento("IDENTIDAD").build();
+        when(certificadoIaRepository.findById(34L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref-34.jpg")).thenReturn("contenido".getBytes());
+
+        byte[] resultado = servicio.obtenerDocumento(34L);
+
+        assertThat(new String(resultado)).isEqualTo("contenido");
     }
 }

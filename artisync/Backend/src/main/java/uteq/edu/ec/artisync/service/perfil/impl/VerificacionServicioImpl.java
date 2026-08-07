@@ -78,24 +78,40 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     public List<RespuestaColaVerificacion> listarCola(String nombreEstado, int limite, int offset) {
-        throw new UnsupportedOperationException("Se implementa en la Tarea 18");
+        return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
+                .map(fila -> RespuestaColaVerificacion.builder()
+                        .idCertificado(fila.getIdCertificado())
+                        .idPerfil(fila.getIdPerfil())
+                        .nombreCreador(fila.getNombreCreador())
+                        .tipoDocumento(fila.getTipoDocumento())
+                        .nombreEstado(fila.getNombreEstado())
+                        .veredictoIa(fila.getVeredictoIa())
+                        .puntajeConfianzaIa(fila.getPuntajeConfianzaIa())
+                        .fechaAnalisis(fila.getFechaAnalisis())
+                        .build())
+                .toList();
     }
 
     @Override
     public RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
-        throw new UnsupportedOperationException("Se implementa en la Tarea 18");
+        CertificadoIa certificado = buscarPorId(idCertificado);
+        boolean esDueno = certificado.getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
+        if (!esRevisor && !esDueno) {
+            throw new ExcepcionReglaNegocio("No tienes acceso a esta verificación.");
+        }
+        return mapearARespuesta(certificado);
     }
 
     @Override
     public byte[] obtenerDocumento(Long idCertificado) {
-        throw new UnsupportedOperationException("Se implementa en la Tarea 18");
+        CertificadoIa certificado = buscarPorId(idCertificado);
+        return almacenamiento.leer(certificado.getUrlDocumentoS3());
     }
 
     @Override
     @Transactional
     public RespuestaVerificacion analizarConIa(Long idCertificado) {
-        CertificadoIa certificado = certificadoIaRepository.findById(idCertificado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Verificación " + idCertificado + " no encontrada."));
+        CertificadoIa certificado = buscarPorId(idCertificado);
 
         if (certificado.isDocumentoEliminado()) {
             throw new ExcepcionReglaNegocio("El documento ya fue eliminado; no se puede reanalizar.");
@@ -122,8 +138,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     @Override
     @Transactional
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
-        CertificadoIa certificado = certificadoIaRepository.findById(idCertificado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Verificación " + idCertificado + " no encontrada."));
+        CertificadoIa certificado = buscarPorId(idCertificado);
 
         estadoVerificacionRepository.findById(idNuevoEstado)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Estado de verificación " + idNuevoEstado + " no existe."));
@@ -139,6 +154,11 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
                 idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);
         return mapearARespuesta(certificado);
+    }
+
+    private CertificadoIa buscarPorId(Long idCertificado) {
+        return certificadoIaRepository.findById(idCertificado)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Verificación " + idCertificado + " no encontrada."));
     }
 
     private String calcularHash(MultipartFile documento) {
