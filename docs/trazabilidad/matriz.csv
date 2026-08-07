@@ -4,8 +4,8 @@ REQ-F-002,funcional,Must,HU-02,CU-02,RolePermissionController,GET /api/roles/{id
 REQ-F-003,funcional,Must,HU-03,CU-03,security.JwtAuthenticationFilter;AuthController,POST /api/auth/login,JwtAuthenticationFilterTest,CRUD-ORM,,implementado
 REQ-F-004,funcional,Must,HU-04,CU-04,AuthController,POST /api/auth/recuperar,,CRUD-ORM,,implementado
 REQ-F-005,funcional,Should,HU-05,CU-05,TwoFactorController,POST /api/auth/2fa/activar,TwoFactorServiceImplTest,CRUD-ORM,,implementado
-REQ-F-006,funcional,Must,HU-06,CU-06,CertificadoIaControlador,POST /api/perfil/verificacion-identidad,,SP,docs/mediciones/,pendiente
-REQ-F-007,funcional,Should,HU-07,CU-07,CertificadoIaControlador,POST /api/perfil/certificados,,SP,docs/mediciones/,pendiente
+REQ-F-006,funcional,Must,HU-06,CU-06,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/,implementado
+REQ-F-007,funcional,Should,HU-07,CU-07,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/,implementado
 REQ-F-008,funcional,Must,HU-08,CU-08,PerfilCreadorControlador,PUT /api/perfil,,CRUD-ORM,,implementado
 REQ-F-009,funcional,Must,HU-09,CU-09,(pendiente modulo social),POST /api/social/seguir,,SP,,pendiente
 REQ-F-010,funcional,Should,HU-10,CU-10,(pendiente modulo social),POST /api/social/comentarios,,CRUD-ORM,,pendiente
