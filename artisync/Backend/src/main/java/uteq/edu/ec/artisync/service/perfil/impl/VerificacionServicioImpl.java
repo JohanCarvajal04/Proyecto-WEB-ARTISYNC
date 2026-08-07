@@ -44,6 +44,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     // Jackson 3, no com.fasterxml — usado desde la Tarea 16 para serializar
     // los datos que la IA extrae del documento (datos_extraidos_ia).
     private final ObjectMapper objectMapper;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Override
     @Transactional
@@ -119,8 +120,25 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     }
 
     @Override
+    @Transactional
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
-        throw new UnsupportedOperationException("Se implementa en la Tarea 17");
+        CertificadoIa certificado = certificadoIaRepository.findById(idCertificado)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Verificación " + idCertificado + " no encontrada."));
+
+        estadoVerificacionRepository.findById(idNuevoEstado)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Estado de verificación " + idNuevoEstado + " no existe."));
+
+        certificadoIaRepository.registrarDecision(idCertificado, idNuevoEstado, idModerador, notaModerador);
+
+        // El procedimiento escribió por fuera del ciclo de vida de Hibernate:
+        // sin este refresh, `certificado` (ya gestionado) devolvería datos obsoletos.
+        entityManager.refresh(certificado);
+
+        almacenamiento.eliminar(certificado.getUrlDocumentoS3());
+
+        log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
+                idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);
+        return mapearARespuesta(certificado);
     }
 
     private String calcularHash(MultipartFile documento) {

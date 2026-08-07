@@ -42,6 +42,7 @@ class VerificacionServicioImplTest {
     @Mock private AlmacenamientoDocumentos almacenamiento;
     @Mock private PreprocesadorImagenIa preprocesador;
     @Mock private IaService iaService;
+    @Mock private jakarta.persistence.EntityManager entityManager;
 
     // Construcción manual, no @InjectMocks: VerificacionServicioImpl toma un
     // ObjectMapper real de Jackson 3 (Tarea 16) que no tiene sentido mockear.
@@ -57,7 +58,7 @@ class VerificacionServicioImplTest {
         pendiente = EstadoVerificacion.builder().idEstadoVerificacion(1L).nombreEstado("PENDIENTE").build();
         servicio = new VerificacionServicioImpl(perfilCreadorRepository, estadoVerificacionRepository,
                 certificadoIaRepository, almacenamiento, preprocesador, iaService,
-                new tools.jackson.databind.ObjectMapper());
+                new tools.jackson.databind.ObjectMapper(), entityManager);
     }
 
     @Test
@@ -159,5 +160,51 @@ class VerificacionServicioImplTest {
 
         verify(iaService).analizarCertificado(any(), eq("image/jpeg"));
         verify(iaService, never()).verificarIdentidad(any(), any());
+    }
+
+    @Test
+    void registrarDecision_escribeEstadoModeradorYBorraElDocumento() {
+        EstadoVerificacion aprobado = EstadoVerificacion.builder().idEstadoVerificacion(2L).nombreEstado("APROBADO").build();
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(20L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(20L)).thenReturn(Optional.of(certificado));
+        when(estadoVerificacionRepository.findById(2L)).thenReturn(Optional.of(aprobado));
+        doAnswer(inv -> {
+            certificado.setEstadoVerificacion(aprobado);
+            certificado.setModerador(Usuario.builder().idUsuario(99L).build());
+            certificado.setDocumentoEliminado(true);
+            return null;
+        }).when(entityManager).refresh(certificado);
+
+        RespuestaVerificacion respuesta = servicio.registrarDecision(20L, 99L, 2L, "Documento verificado");
+
+        verify(certificadoIaRepository).registrarDecision(20L, 2L, 99L, "Documento verificado");
+        verify(entityManager).refresh(certificado);
+        verify(almacenamiento).eliminar("ref.jpg");
+        assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("APROBADO");
+        assertThat(respuesta.idModerador()).isEqualTo(99L);
+    }
+
+    @Test
+    void registrarDecision_certificadoInexistente_lanza404_yNoLlamaAlProcedimiento() {
+        when(certificadoIaRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ExcepcionRecursoNoEncontrado.class,
+                () -> servicio.registrarDecision(999L, 99L, 2L, "nota"));
+        verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
+    }
+
+    @Test
+    void registrarDecision_estadoInexistente_lanza404_yNoLlamaAlProcedimiento() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(21L).perfil(perfil).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
+        when(certificadoIaRepository.findById(21L)).thenReturn(Optional.of(certificado));
+        when(estadoVerificacionRepository.findById(777L)).thenReturn(Optional.empty());
+
+        assertThrows(ExcepcionRecursoNoEncontrado.class,
+                () -> servicio.registrarDecision(21L, 99L, 777L, "nota"));
+        verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
     }
 }
