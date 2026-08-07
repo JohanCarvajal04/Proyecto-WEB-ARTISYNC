@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -26,4 +27,7 @@ public interface CertificadoIaRepository extends JpaRepository<CertificadoIa, Lo
             @Param("p_id_estado") Long idEstado,
             @Param("p_id_moderador") Long idModerador,
             @Param("p_nota") String nota);
+
+    List<CertificadoIa> findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(
+            String nombreEstado, LocalDateTime limite);
 }
