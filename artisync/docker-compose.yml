@@ -55,13 +55,13 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-pfc_db}
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/${DB_NAME:-pfc_db}}
       # DB_USER/DB_PASSWORD: solo para Flyway (crea/gestiona flyway_schema_history).
       DB_USER: ${DB_USER:-pfc_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
       # DB_APP_USER/DB_APP_PASSWORD: datasource real de la app en tiempo de
       # ejecucion (A.2.3, privilegios minimos — ver db/seed_privilegios.sh).
-      DB_APP_USER: artisync_app
+      DB_APP_USER: ${DB_APP_USER:-artisync_app}
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
       REDIS_HOST: redis
       REDIS_PORT: 6379

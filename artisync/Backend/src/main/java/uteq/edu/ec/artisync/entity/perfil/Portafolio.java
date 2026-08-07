@@ -39,8 +39,7 @@ public class Portafolio {
     @Column(name = "es_publico", nullable = false)
     private Boolean esPublico = true;
 
-    @Builder.Default
-    @Size(max = 20, message = "El color de plantilla no puede superar los 20 caracteres")
-    @Column(name = "color_plantilla", length = 20)
-    private String colorPlantilla = "#FFFFFF";
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "opciones_personalizacion", columnDefinition = "jsonb")
+    private java.util.Map<String, String> opcionesPersonalizacion;
 }

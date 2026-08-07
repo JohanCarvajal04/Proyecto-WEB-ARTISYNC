@@ -10,6 +10,6 @@ public record RespuestaPortafolio(
         LocalDateTime fechaCreacion,
         Integer totalVisitasAcumuladas,
         Boolean esPublico,
-        String colorPlantilla
+        java.util.Map<String, String> opcionesPersonalizacion
 ) {
 }
