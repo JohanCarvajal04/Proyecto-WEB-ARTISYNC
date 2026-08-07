@@ -13,6 +13,15 @@ import uteq.edu.ec.artisync.service.perfil.ICertificadoIaServicio;
 
 import java.util.List;
 
+/**
+ * CRUD administrativo de certificados de IA.
+ *
+ * <p>El alta de verificaciones ya no pasa por {@link #emitirCertificado}: el
+ * camino vigente es {@code POST /api/v1/verificaciones} (ver
+ * {@code VerificacionControlador}). Este {@code POST} se conserva restringido
+ * a {@code ADMIN} solo para no romper clientes existentes del CRUD original
+ * de {@code CertificadoIa}.</p>
+ */
 @RestController
 @RequestMapping("/api/v1/certificados")
 @RequiredArgsConstructor
@@ -21,18 +30,20 @@ public class CertificadoIaControlador {
     private final ICertificadoIaServicio certificadoServicio;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RespuestaCertificadoIa> emitirCertificado(@Valid @RequestBody PeticionCrearCertificadoIa peticion) {
         RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaCertificadoIa> obtenerCertificadoPorId(@PathVariable Long id) {
         return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));
     }
 
     @GetMapping("/perfil/{idPerfil}")
+    @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaCertificadoIa> > listarCertificadosPorPerfil(@PathVariable Long idPerfil) {
         return ResponseEntity.ok(certificadoServicio.listarCertificadosPorPerfil(idPerfil));
     }
