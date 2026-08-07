@@ -37,6 +37,12 @@ class PreprocesadorImagenIaTest {
     }
 
     @Test
+    void validarFormato_contentTypeNulo_esRechazado() {
+        MockMultipartFile archivo = new MockMultipartFile("documento", "doc", null, "contenido".getBytes());
+        assertThrows(ExcepcionReglaNegocio.class, () -> preprocesador.validarFormato(archivo));
+    }
+
+    @Test
     void comprimirParaIa_imagenPequenaSigueSiendoValida() throws Exception {
         byte[] original = imagenSolidaComoPng(200, 200);
 

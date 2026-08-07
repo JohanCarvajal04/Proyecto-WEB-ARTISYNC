@@ -40,9 +40,10 @@ public class PreprocesadorImagenIa {
         if (archivo == null || archivo.isEmpty()) {
             throw new ExcepcionReglaNegocio("El documento está vacío.");
         }
-        if (!TIPOS_ACEPTADOS.contains(archivo.getContentType())) {
+        String tipo = archivo.getContentType();
+        if (tipo == null || !TIPOS_ACEPTADOS.contains(tipo)) {
             throw new ExcepcionReglaNegocio(
-                    "Formato de documento no soportado: " + archivo.getContentType()
+                    "Formato de documento no soportado: " + tipo
                             + ". Se aceptan image/jpeg o image/png.");
         }
     }
