@@ -22,7 +22,7 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
 
   form: FormGroup = this.fb.group({
-    correo: ['', [Validators.required, Validators.email]],
+    correo: ['', [Validators.required]],
     contrasena: ['', [Validators.required]]
   });
 
@@ -60,9 +60,14 @@ export class LoginComponent {
           }
         }
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
-        this.toastService.error('Usuario o contraseña incorrectos');
+        if (err?.status === 429) {
+          const msg = err.error?.mensaje || 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta nuevamente.';
+          this.toastService.warning(msg);
+        } else {
+          this.toastService.error('Usuario o contraseña incorrectos');
+        }
       }
     });
   }

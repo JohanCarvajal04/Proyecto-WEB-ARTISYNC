@@ -1,54 +1,60 @@
-<div class="max-w-4xl mx-auto py-4">
+<div class="max-w-4xl mx-auto py-2">
   @if (isLoading()) {
     <div class="flex flex-col items-center justify-center py-24 gap-3">
-      <div class="animate-spin rounded-full h-8 w-8 border-3 border-primary border-t-transparent"></div>
-      <p class="text-sm text-on-surface-variant font-medium">Cargando configuración de seguridad...</p>
+      <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent"></div>
+      <p class="text-sm text-slate-500 font-medium">Cargando configuración de seguridad...</p>
     </div>
   } @else {
     <section class="space-y-8">
       <!-- Section Title & Intro -->
       <div>
-        <h3 class="font-headline text-2xl font-bold text-primary mb-2">Seguridad y Acceso</h3>
-        <p class="text-sm text-on-surface-variant max-w-2xl">
+        <h1 class="font-headline text-3xl font-bold text-[#1E0F38] mb-1">Seguridad y Acceso</h1>
+        <p class="text-sm text-slate-500 max-w-2xl">
           Gestiona cómo accedes a tu cuenta y mantén tus datos protegidos mediante protocolos de seguridad avanzados.
         </p>
       </div>
 
-      <!-- Security Actions Bento Layout -->
+      <!-- Security Actions Layout -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Reset Password Card -->
-        <div class="bg-surface-container-low hover:bg-surface-container/80 transition-all p-6 rounded-xl border border-outline-variant/60 hover:shadow-md flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
           <div>
-            <div class="w-12 h-12 bg-surface-container-high rounded-lg flex items-center justify-center mb-4 text-primary">
-              <span class="material-symbols-outlined text-[28px]">lock_reset</span>
+            <div class="w-12 h-12 bg-[#F3E8FF] rounded-2xl flex items-center justify-center mb-4 text-[#8B5CF6]">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
             </div>
-            <h4 class="font-headline text-lg font-bold text-primary mb-2">Restablecer contraseña</h4>
-            <p class="text-sm text-on-surface-variant mb-6">
+            <h4 class="font-headline text-lg font-bold text-[#1E0F38] mb-2">Restablecer contraseña</h4>
+            <p class="text-sm text-slate-500 mb-6">
               Actualiza tu contraseña regularmente para mantener la integridad de tu cuenta. Requeriremos tu contraseña actual para confirmar el cambio.
             </p>
           </div>
           <button (click)="openPasswordModal()" type="button"
-            class="w-fit px-5 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center gap-2 shadow-sm">
+            class="w-fit px-5 py-2.5 bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white rounded-full text-sm font-semibold hover:opacity-95 transition-all flex items-center gap-2 shadow-sm">
             <span>Cambiar contraseña</span>
-            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </button>
         </div>
 
         <!-- 2FA Card -->
-        <div class="bg-surface-container-low hover:bg-surface-container/80 transition-all p-6 rounded-xl border border-outline-variant/60 hover:shadow-md flex flex-col justify-between">
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
           <div>
-            <div class="w-12 h-12 bg-secondary-container rounded-lg flex items-center justify-center mb-4 text-on-secondary-container">
-              <span class="material-symbols-outlined text-[28px]">verified_user</span>
+            <div class="w-12 h-12 bg-[#F0F4FC] rounded-2xl flex items-center justify-center mb-4 text-purple-700">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
             </div>
-            <h4 class="font-headline text-lg font-bold text-primary mb-2">Autenticación (2FA)</h4>
-            <p class="text-sm text-on-surface-variant mb-6">
+            <h4 class="font-headline text-lg font-bold text-[#1E0F38] mb-2">Autenticación (2FA)</h4>
+            <p class="text-sm text-slate-500 mb-6">
               Añade una capa extra de protección. Solicita un código único desde tu aplicación de autenticación móvil cada vez que inicies sesión.
             </p>
           </div>
           <div class="flex items-center gap-3">
             <button (click)="toggle2FA()" type="button"
-              [class.bg-primary]="userProfile()?.dosFactoresHabilitado"
-              [class.bg-surface-container-highest]="!userProfile()?.dosFactoresHabilitado"
+              [class.bg-purple-600]="userProfile()?.dosFactoresHabilitado"
+              [class.bg-slate-300]="!userProfile()?.dosFactoresHabilitado"
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer">
               <span class="sr-only">Habilitar 2FA</span>
               <span 
@@ -58,40 +64,44 @@
               </span>
             </button>
             <span class="text-sm font-semibold" 
-              [class.text-primary]="userProfile()?.dosFactoresHabilitado"
-              [class.text-on-surface-variant]="!userProfile()?.dosFactoresHabilitado">
+              [class.text-purple-700]="userProfile()?.dosFactoresHabilitado"
+              [class.text-slate-500]="!userProfile()?.dosFactoresHabilitado">
               {{ userProfile()?.dosFactoresHabilitado ? 'Habilitado' : 'Desactivado' }}
             </span>
           </div>
         </div>
 
         <!-- Device Management Full Width Card -->
-        <div class="md:col-span-2 bg-surface-container-low p-6 rounded-xl border border-outline-variant/60">
+        <div class="md:col-span-2 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
           <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
             <div>
-              <h4 class="font-headline text-lg font-bold text-primary mb-1">Sesiones Activas</h4>
-              <p class="text-sm text-on-surface-variant">Dispositivos y navegadores con acceso actual a tu cuenta de Artisync.</p>
+              <h4 class="font-headline text-lg font-bold text-[#1E0F38] mb-1">Sesiones Activas</h4>
+              <p class="text-sm text-slate-500">Dispositivos y navegadores con acceso actual a tu cuenta de Artisync.</p>
             </div>
             <button (click)="revokeAllSessions()" [disabled]="isSubmitting()" type="button"
-              class="text-sm font-semibold text-error hover:underline transition-opacity flex items-center gap-1.5 disabled:opacity-50 self-start md:self-auto">
-              <span class="material-symbols-outlined text-[18px]">logout</span>
+              class="text-sm font-semibold text-rose-600 hover:underline transition-opacity flex items-center gap-1.5 disabled:opacity-50 self-start md:self-auto">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
               <span>Cerrar todas las sesiones</span>
             </button>
           </div>
 
           <div class="space-y-4">
             <!-- Current Session -->
-            <div class="flex items-center justify-between py-3 border-b border-outline-variant/60">
+            <div class="flex items-center justify-between py-3 border-b border-slate-100">
               <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-lg bg-surface flex items-center justify-center text-primary border border-outline-variant/40">
-                  <span class="material-symbols-outlined">laptop_mac</span>
+                <div class="w-10 h-10 rounded-2xl bg-[#F0F4FC] flex items-center justify-center text-purple-700">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
                 </div>
                 <div>
-                  <p class="text-sm font-bold text-primary">Sesión Actual</p>
-                  <p class="text-xs text-on-surface-variant">{{ userProfile()?.correo }} • Conectado ahora</p>
+                  <p class="text-sm font-bold text-slate-800">Sesión Actual</p>
+                  <p class="text-xs text-slate-400">{{ userProfile()?.correo }} • Conectado ahora</p>
                 </div>
               </div>
-              <span class="px-2.5 py-1 bg-secondary-container text-on-secondary-container rounded-md text-[10px] uppercase font-bold tracking-wider">Este dispositivo</span>
+              <span class="px-3 py-1 bg-[#F3E8FF] text-[#8B5CF6] rounded-full text-[10px] uppercase font-bold tracking-wider">Este dispositivo</span>
             </div>
           </div>
         </div>
@@ -99,32 +109,31 @@
 
       <!-- Security Preferences -->
       <div class="space-y-4 pt-4">
-        <h4 class="font-headline text-lg font-bold text-primary">Preferencias de Notificación de Seguridad</h4>
+        <h4 class="font-headline text-lg font-bold text-[#1E0F38]">Preferencias de Notificación de Seguridad</h4>
         <div class="space-y-3">
-          <label class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/40 hover:bg-surface-container-low transition-colors cursor-pointer group">
-            <input checked type="checkbox" class="mt-1 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"/>
+          <label class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-purple-200 transition-colors cursor-pointer group">
+            <input checked type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-400 accent-purple-600"/>
             <div>
-              <p class="text-sm font-semibold text-primary group-hover:text-primary transition-colors">Alertas de inicio de sesión inusuales</p>
-              <p class="text-xs text-on-surface-variant mt-0.5">Te avisaremos si detectamos un acceso desde una ubicación o dispositivo no reconocido.</p>
+              <p class="text-sm font-semibold text-slate-800 transition-colors">Alertas de inicio de sesión inusuales</p>
+              <p class="text-xs text-slate-500 mt-0.5">Te avisaremos si detectamos un acceso desde una ubicación o dispositivo no reconocido.</p>
             </div>
           </label>
-          <label class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/40 hover:bg-surface-container-low transition-colors cursor-pointer group">
-            <input type="checkbox" class="mt-1 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"/>
+          <label class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-xs hover:border-purple-200 transition-colors cursor-pointer group">
+            <input type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-400 accent-purple-600"/>
             <div>
-              <p class="text-sm font-semibold text-primary group-hover:text-primary transition-colors">Reportes mensuales de seguridad</p>
-              <p class="text-xs text-on-surface-variant mt-0.5">Un resumen detallado de la actividad de tu cuenta y recomendaciones de protección.</p>
+              <p class="text-sm font-semibold text-slate-800 transition-colors">Reportes mensuales de seguridad</p>
+              <p class="text-xs text-slate-500 mt-0.5">Un resumen detallado de la actividad de tu cuenta y recomendaciones de protección.</p>
             </div>
           </label>
         </div>
       </div>
 
-      <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant/60">
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
         <button (click)="savePreferences()" type="button" 
-          class="px-6 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:opacity-90 transition-opacity shadow-sm">
+          class="px-6 py-2.5 bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white rounded-full text-sm font-semibold hover:opacity-95 transition-opacity shadow-sm">
           Guardar preferencias
         </button>
       </div>
     </section>
   }
 </div>
-

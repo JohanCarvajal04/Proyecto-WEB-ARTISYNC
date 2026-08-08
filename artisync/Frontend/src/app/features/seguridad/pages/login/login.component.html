@@ -58,12 +58,12 @@
           <input
             id="login-email"
             formControlName="correo"
-            type="email"
+            type="text"
             placeholder="tu@correo.com"
             class="form-input"
-            autocomplete="email">
+            autocomplete="username">
           @if (form.get('correo')?.touched && form.get('correo')?.invalid) {
-            <span class="form-error">Ingresa un correo electrónico válido</span>
+            <span class="form-error">Ingresa tu correo o usuario</span>
           }
         </div>
 
