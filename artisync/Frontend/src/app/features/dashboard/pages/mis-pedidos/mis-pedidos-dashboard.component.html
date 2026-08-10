@@ -1,0 +1,168 @@
+<div class="flex flex-col gap-6 max-w-7xl mx-auto animate-[fadeIn_0.4s_ease-out]">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div>
+      <h1 class="font-headline text-3xl font-bold text-[#0F2027]">Mis Pedidos</h1>
+      <p class="text-sm text-slate-400 mt-1">Gestiona y da seguimiento a todas tus comisiones.</p>
+    </div>
+    <a routerLink="/pedido/crear"
+      class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 self-start sm:self-auto">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      Nuevo Pedido
+    </a>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-100 px-5 py-4 flex flex-col lg:flex-row lg:items-center gap-4">
+    <!-- Segmented estado -->
+    <div class="flex items-center gap-1 bg-slate-50 rounded-full p-1 self-start">
+      @for (opt of [{ id: 'todos', label: 'Todos' }, { id: 'activos', label: 'En progreso' }, { id: 'completados', label: 'Finalizados' }]; track opt.id) {
+        <button
+          (click)="setFiltroEstado($any(opt.id))"
+          class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+          [class.bg-white]="filtroEstado() === opt.id"
+          [class.text-teal-700]="filtroEstado() === opt.id"
+          [class.shadow-sm]="filtroEstado() === opt.id"
+          [class.text-slate-500]="filtroEstado() !== opt.id">
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="relative flex-1 min-w-0">
+      <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 flex items-center">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </span>
+      <input
+        type="text"
+        [value]="busqueda()"
+        (input)="onBusquedaChange($event)"
+        placeholder="Buscar por servicio o creador..."
+        class="w-full bg-slate-50 text-slate-800 placeholder-slate-400 text-sm rounded-full pl-10 pr-4 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition-all">
+    </div>
+
+    <!-- Etapa -->
+    <select
+      [value]="filtroEtapa()"
+      (change)="onEtapaChange($event)"
+      class="bg-slate-50 text-slate-700 text-sm rounded-full px-4 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition-all">
+      <option value="">Todas las etapas</option>
+      @for (etapa of etapasDisponibles(); track etapa) {
+        <option [value]="etapa">{{ etapa }}</option>
+      }
+    </select>
+
+    @if (hayFiltrosActivos()) {
+      <button (click)="limpiarFiltros()" class="text-xs font-semibold text-slate-400 hover:text-teal-600 transition-colors whitespace-nowrap">
+        Limpiar filtros
+      </button>
+    }
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center p-16">
+        <div class="animate-spin rounded-full h-8 w-8 border-2 border-teal-600 border-t-transparent"></div>
+      </div>
+    } @else if (error()) {
+      <div class="flex flex-col items-center justify-center p-12 text-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <p class="text-sm text-slate-500">{{ error() }}</p>
+        <button (click)="loadPedidos()" class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-4 py-2 rounded-full border border-teal-200 hover:bg-teal-50 transition-all">
+          Reintentar
+        </button>
+      </div>
+    } @else if (pedidosFiltrados().length === 0) {
+      <div class="flex flex-col items-center justify-center p-16 text-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+          <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-headline font-semibold text-slate-700">
+            {{ hayFiltrosActivos() ? 'Sin resultados' : 'Aún no tienes pedidos' }}
+          </p>
+          <p class="text-xs text-slate-400 mt-1">
+            {{ hayFiltrosActivos() ? 'Prueba ajustando los filtros de búsqueda' : 'Explora nuestros creadores y solicita tu primera comisión' }}
+          </p>
+        </div>
+        @if (hayFiltrosActivos()) {
+          <button (click)="limpiarFiltros()" class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-4 py-2 rounded-full border border-teal-200 hover:bg-teal-50 transition-all">
+            Limpiar filtros
+          </button>
+        } @else {
+          <a routerLink="/pedido/crear" class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] text-white font-semibold px-5 py-2 rounded-full text-sm shadow-sm hover:shadow-md transition-all">
+            Crear Pedido
+          </a>
+        }
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[720px]">
+          <thead>
+            <tr class="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <th class="py-4 px-6">Servicio</th>
+              <th class="py-4 px-6">Creador</th>
+              <th class="py-4 px-6">Precio</th>
+              <th class="py-4 px-6">Etapa</th>
+              <th class="py-4 px-6">Inicio</th>
+              <th class="py-4 px-6">Entrega est.</th>
+              <th class="py-4 px-6 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-sm">
+            @for (pedido of pedidosFiltrados(); track pedido.idPedido; let i = $index) {
+              <tr class="hover:bg-slate-50/70 transition-colors" [style.animation]="'fadeIn 0.3s ease-out ' + (i * 40) + 'ms both'">
+                <td class="py-4 px-6">
+                  <p class="font-semibold text-slate-800 leading-tight">{{ pedido.tituloServicio }}</p>
+                  <p class="text-[11px] text-slate-400 mt-0.5">#{{ pedido.idPedido }}</p>
+                </td>
+                <td class="py-4 px-6 text-slate-500">{{ pedido.nombreCreador }}</td>
+                <td class="py-4 px-6 font-mono font-semibold text-slate-700">{{ formatPrice(pedido.precioPactado) }}</td>
+                <td class="py-4 px-6">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" [class]="getBadgeClasses(pedido.etapaActual)">
+                    {{ pedido.etapaActual || 'Sin estado' }}
+                  </span>
+                </td>
+                <td class="py-4 px-6 text-xs text-slate-400">{{ formatDate(pedido.fechaInicio) }}</td>
+                <td class="py-4 px-6 text-xs text-slate-400">{{ formatDate(pedido.fechaEntregaEstimada) }}</td>
+                <td class="py-4 px-6">
+                  <div class="flex items-center justify-end gap-1">
+                    <a [routerLink]="['/dashboard/seguimiento', pedido.idPedido]"
+                      title="Ver seguimiento"
+                      class="text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors px-3 py-1.5 rounded-full hover:bg-teal-50">
+                      Seguimiento
+                    </a>
+                    <a [routerLink]="['/pedido', pedido.idPedido]"
+                      title="Ver detalle completo"
+                      class="text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 rounded-full hover:bg-slate-100">
+                      Detalle
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/50">
+        <p class="text-xs text-slate-400">
+          Mostrando {{ pedidosFiltrados().length }} de {{ pedidos().length }} pedidos
+        </p>
+      </div>
+    }
+  </div>
+</div>
