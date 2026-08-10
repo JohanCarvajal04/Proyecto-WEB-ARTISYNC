@@ -12,7 +12,7 @@ COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.en
 
 .PHONY: up down test bench audit clean
 
-## Levanta postgres, redis, backend y frontend (con build) en segundo plano.
+## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
 up:
 	$(COMPOSE) up -d --build
 
