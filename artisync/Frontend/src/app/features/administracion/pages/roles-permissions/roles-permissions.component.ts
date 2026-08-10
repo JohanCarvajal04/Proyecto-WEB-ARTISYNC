@@ -6,6 +6,13 @@ import { RolMatrixResponse, PermisoCatalogResponse } from '../../models/admin.mo
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
+export interface PastelStyle {
+  bg: string;
+  text: string;
+  border: string;
+  dot: string;
+}
+
 @Component({
   selector: 'app-roles-permissions',
   standalone: true,
@@ -24,16 +31,66 @@ export class RolesPermissionsComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
 
-  readonly permisosPorModulo = computed(() => {
-    const map = new Map<string, PermisoCatalogResponse[]>();
+  // Módulo seleccionado para filtrado por fichas (Chips)
+  readonly selectedModule = signal<string>('TODOS');
+
+  // Paginación
+  readonly itemsPerPage = 6;
+  readonly availablePage = signal<number>(1);
+  readonly assignedPage = signal<number>(1);
+
+  // Elemento siendo arrastrado (Drag & Drop)
+  readonly draggedCode = signal<string | null>(null);
+
+  // Lista de módulos únicos para las fichas (chips) superiores
+  readonly modulos = computed(() => {
+    const set = new Set<string>();
     for (const p of this.permisos()) {
-      const mod = p.moduloAplicacion || 'GENERAL';
-      if (!map.has(mod)) {
-        map.set(mod, []);
-      }
-      map.get(mod)!.push(p);
+      set.add(p.moduloAplicacion || 'GENERAL');
     }
-    return Array.from(map.entries()).map(([modulo, lista]) => ({ modulo, lista }));
+    return ['TODOS', ...Array.from(set)];
+  });
+
+  // Permisos disponibles (no asignados) según el módulo seleccionado
+  readonly availablePermissions = computed(() => {
+    const mod = this.selectedModule();
+    const assigned = this.assignedPermissions();
+    return this.permisos().filter(p => {
+      const matchModule = mod === 'TODOS' || (p.moduloAplicacion || 'GENERAL') === mod;
+      return matchModule && !assigned.has(p.nombrePermiso);
+    });
+  });
+
+  // Permisos asignados según el módulo seleccionado
+  readonly assignedPermissionsList = computed(() => {
+    const mod = this.selectedModule();
+    const assigned = this.assignedPermissions();
+    return this.permisos().filter(p => {
+      const matchModule = mod === 'TODOS' || (p.moduloAplicacion || 'GENERAL') === mod;
+      return matchModule && assigned.has(p.nombrePermiso);
+    });
+  });
+
+  // Paginación de Disponibles
+  readonly availableTotalPages = computed(() => 
+    Math.ceil(this.availablePermissions().length / this.itemsPerPage) || 1
+  );
+
+  readonly paginatedAvailable = computed(() => {
+    const page = Math.min(this.availablePage(), this.availableTotalPages());
+    const start = (page - 1) * this.itemsPerPage;
+    return this.availablePermissions().slice(start, start + this.itemsPerPage);
+  });
+
+  // Paginación de Asignados
+  readonly assignedTotalPages = computed(() => 
+    Math.ceil(this.assignedPermissionsList().length / this.itemsPerPage) || 1
+  );
+
+  readonly paginatedAssigned = computed(() => {
+    const page = Math.min(this.assignedPage(), this.assignedTotalPages());
+    const start = (page - 1) * this.itemsPerPage;
+    return this.assignedPermissionsList().slice(start, start + this.itemsPerPage);
   });
 
   readonly canEdit = computed(() => 
@@ -74,46 +131,119 @@ export class RolesPermissionsComponent implements OnInit {
   selectRole(rol: RolMatrixResponse): void {
     this.selectedRole.set(rol);
     this.assignedPermissions.set(new Set(rol.permisos || []));
+    this.availablePage.set(1);
+    this.assignedPage.set(1);
   }
 
-  togglePermission(code: string): void {
+  selectModule(mod: string): void {
+    this.selectedModule.set(mod);
+    this.availablePage.set(1);
+    this.assignedPage.set(1);
+  }
+
+  // --- LÓGICA DE ASIGNACIÓN / DESASIGNACIÓN DE PERMISOS ---
+  assignPermission(code: string): void {
     if (!this.canEdit()) return;
     this.assignedPermissions.update(current => {
       const next = new Set(current);
-      if (next.has(code)) {
-        next.delete(code);
-      } else {
-        next.add(code);
-      }
+      next.add(code);
       return next;
     });
   }
 
-  hasPermissionAssigned(code: string): boolean {
-    return this.assignedPermissions().has(code);
-  }
-
-  isModuleAllSelected(lista: PermisoCatalogResponse[]): boolean {
-    if (lista.length === 0) return false;
-    return lista.every(p => this.assignedPermissions().has(p.nombrePermiso));
-  }
-
-  toggleModule(lista: PermisoCatalogResponse[]): void {
+  unassignPermission(code: string): void {
     if (!this.canEdit()) return;
-    const allSelected = this.isModuleAllSelected(lista);
     this.assignedPermissions.update(current => {
       const next = new Set(current);
-      lista.forEach(p => {
-        if (allSelected) {
-          next.delete(p.nombrePermiso);
-        } else {
-          next.add(p.nombrePermiso);
-        }
-      });
+      next.delete(code);
       return next;
     });
   }
 
+  assignAllFiltered(): void {
+    if (!this.canEdit()) return;
+    const toAdd = this.availablePermissions().map(p => p.nombrePermiso);
+    this.assignedPermissions.update(current => {
+      const next = new Set(current);
+      toAdd.forEach(code => next.add(code));
+      return next;
+    });
+  }
+
+  unassignAllFiltered(): void {
+    if (!this.canEdit()) return;
+    const toRemove = new Set(this.assignedPermissionsList().map(p => p.nombrePermiso));
+    this.assignedPermissions.update(current => {
+      const next = new Set(current);
+      toRemove.forEach(code => next.delete(code));
+      return next;
+    });
+  }
+
+  // --- HTML5 DRAG AND DROP ---
+  onDragStart(event: DragEvent, code: string): void {
+    if (!this.canEdit()) return;
+    this.draggedCode.set(code);
+    event.dataTransfer?.setData('text/plain', code);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    if (!this.canEdit()) return;
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
+  onDropToAssigned(event: DragEvent): void {
+    if (!this.canEdit()) return;
+    event.preventDefault();
+    const code = this.draggedCode() || event.dataTransfer?.getData('text/plain');
+    if (code) {
+      this.assignPermission(code);
+    }
+    this.draggedCode.set(null);
+  }
+
+  onDropToAvailable(event: DragEvent): void {
+    if (!this.canEdit()) return;
+    event.preventDefault();
+    const code = this.draggedCode() || event.dataTransfer?.getData('text/plain');
+    if (code) {
+      this.unassignPermission(code);
+    }
+    this.draggedCode.set(null);
+  }
+
+  // --- CONTROLES DE PAGINACIÓN ---
+  prevAvailablePage(): void {
+    if (this.availablePage() > 1) {
+      this.availablePage.update(p => p - 1);
+    }
+  }
+
+  nextAvailablePage(): void {
+    if (this.availablePage() < this.availableTotalPages()) {
+      this.availablePage.update(p => p + 1);
+    }
+  }
+
+  prevAssignedPage(): void {
+    if (this.assignedPage() > 1) {
+      this.assignedPage.update(p => p - 1);
+    }
+  }
+
+  nextAssignedPage(): void {
+    if (this.assignedPage() < this.assignedTotalPages()) {
+      this.assignedPage.update(p => p + 1);
+    }
+  }
+
+  // --- PERSISTENCIA Y CREACIÓN DE ROLES ---
   savePermissions(): void {
     const rol = this.selectedRole();
     if (!rol || !this.canEdit()) return;
@@ -128,7 +258,6 @@ export class RolesPermissionsComponent implements OnInit {
       next: (res) => {
         this.isSaving.set(false);
         this.toastService.success(res.mensaje || res.message || 'Matriz de permisos actualizada exitosamente');
-        // Actualizar el rol seleccionado localmente
         this.roles.update(list => list.map(r => r.idRol === rol.idRol ? { ...r, permisos: codes } : r));
         this.selectedRole.update(r => r ? { ...r, permisos: codes } : r);
       },
@@ -208,5 +337,38 @@ export class RolesPermissionsComponent implements OnInit {
         this.toastService.error(msg);
       }
     });
+  }
+
+  // --- MAPEO DE COLORES PASTEL ARMONIOSOS PARA ROLES Y MÓDULOS ---
+  getRoleStyle(roleName: string): PastelStyle {
+    switch (roleName.toUpperCase()) {
+      case 'ADMIN':
+      case 'ADMINISTRADOR':
+        return { bg: 'bg-[#E2F0CB]', text: 'text-[#2D5A1E]', border: 'border-emerald-300', dot: 'bg-emerald-600' };
+      case 'MODERADOR':
+        return { bg: 'bg-[#FFD8B1]', text: 'text-[#7A3E00]', border: 'border-amber-300', dot: 'bg-amber-600' };
+      case 'SOPORTE':
+        return { bg: 'bg-[#E0F2FE]', text: 'text-[#0369A1]', border: 'border-sky-300', dot: 'bg-sky-600' };
+      case 'AUDITOR_FINANCIERO':
+        return { bg: 'bg-[#F3E8FF]', text: 'text-[#7E22CE]', border: 'border-purple-300', dot: 'bg-purple-600' };
+      case 'CREADOR':
+        return { bg: 'bg-[#FDE2E4]', text: 'text-[#7A1C28]', border: 'border-pink-300', dot: 'bg-pink-600' };
+      case 'CLIENTE':
+        return { bg: 'bg-[#CCFBF1]', text: 'text-[#0F766E]', border: 'border-teal-300', dot: 'bg-teal-600' };
+      default:
+        return { bg: 'bg-[#EAEFF9]', text: 'text-[#2D1B4E]', border: 'border-purple-200', dot: 'bg-purple-500' };
+    }
+  }
+
+  getModuleStyle(moduleName: string): string {
+    switch (moduleName.toUpperCase()) {
+      case 'SEGURIDAD': return 'bg-[#E2F0CB] text-[#2D5A1E]';
+      case 'SISTEMA': return 'bg-[#E0F2FE] text-[#0369A1]';
+      case 'PORTAFOLIO': return 'bg-[#FFD8B1] text-[#7A3E00]';
+      case 'CATALOGO': return 'bg-[#FDE2E4] text-[#7A1C28]';
+      case 'PEDIDO': return 'bg-[#F3E8FF] text-[#7E22CE]';
+      case 'COMUNICACION': return 'bg-[#CCFBF1] text-[#0F766E]';
+      default: return 'bg-[#EAEFF9] text-[#2D1B4E]';
+    }
   }
 }

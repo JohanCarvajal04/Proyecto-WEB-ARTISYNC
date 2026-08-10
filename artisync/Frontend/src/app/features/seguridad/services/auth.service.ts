@@ -11,6 +11,7 @@ import {
 } from '../models/auth.model';
 import { MessageResponse } from '../../../shared/models/common.model';
 import { UserResponse } from '../../../shared/models/user.model';
+import { NAV_CONFIG } from '../../../core/config/nav.config';
 
 @Injectable({
   providedIn: 'root'
@@ -44,6 +45,13 @@ export class AuthService {
     return roles[0] ? roles[0].replace('ROLE_', '') : null;
   });
 
+  /** Ruta de aterrizaje tras autenticarse, según el rol principal del usuario. */
+  readonly homeRoute = computed(() => {
+    const role = this.primaryRole();
+    const basePath = role ? NAV_CONFIG[role]?.basePath : null;
+    return basePath === '/admin' ? '/admin/users' : '/dashboard/overview';
+  });
+
   constructor() {
     this.tryRestoreSession();
   }
@@ -54,6 +62,25 @@ export class AuthService {
 
   hasAnyPermission(...codes: string[]): boolean {
     return codes.some(c => this._userPermissions().includes(c));
+  }
+
+  hasRole(role: string): boolean {
+    const roles = this.userRoles();
+    return roles.some(r => r === role || r === `ROLE_${role}`);
+  }
+
+  hasAnyRole(...roles: string[]): boolean {
+    return roles.some(role => this.hasRole(role));
+  }
+
+  isAuthenticated(): boolean {
+    return this.isLoggedIn();
+  }
+
+  getCurrentUserId(): number | null {
+    const user = this._currentUser();
+    if (!user) return null;
+    return (user as any).idUsuario ?? (user as any).sub_id ?? null;
   }
 
   fetchUserPermissions(): Observable<string[]> {

@@ -27,7 +27,7 @@ services:
       # o la base indicados no existan (crashloop del backend sin que compose
       # lo detecte). Se usa psql con las credenciales reales para que el
       # healthcheck falle si la autenticacion falla.
-      test: ["CMD-SHELL", "PGPASSWORD=${DB_PASSWORD:-changeme} psql -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db} -c 'SELECT 1' -tAq"]
+      test: [ "CMD-SHELL", "PGPASSWORD=${DB_PASSWORD:-changeme} psql -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db} -c 'SELECT 1' -tAq" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -42,7 +42,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -55,13 +55,13 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/${DB_NAME:-pfc_db}}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-pfc_db}
       # DB_USER/DB_PASSWORD: solo para Flyway (crea/gestiona flyway_schema_history).
       DB_USER: ${DB_USER:-pfc_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
       # DB_APP_USER/DB_APP_PASSWORD: datasource real de la app en tiempo de
       # ejecucion (A.2.3, privilegios minimos — ver db/seed_privilegios.sh).
-      DB_APP_USER: ${DB_APP_USER:-artisync_app}
+      DB_APP_USER: artisync_app
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -80,7 +80,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -94,6 +94,12 @@ services:
     restart: unless-stopped
     ports:
       - "4200:4200"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+      - /app/.angular
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     depends_on:
       backend:
         condition: service_healthy

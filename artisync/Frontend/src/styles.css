@@ -90,6 +90,18 @@ h1, h2, h3, h4, h5, h6, .font-headline {
   font-family: 'Manrope', sans-serif;
 }
 
+/* Entrada suave usada por las vistas de dashboard, pedido y legal
+   (`animate-[fadeIn_0.4s_ease-out]` y animaciones escalonadas por fila). */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* Subset local de Material Symbols Outlined — solo los iconos que usa la app (44),
    en vez de la fuente variable completa de Google (~1.1 MB, ver
    docs/mediciones/lighthouse/PLAN-MEJORA-LIGHTHOUSE.md). Ejes fijos (FILL 0, wght 400,

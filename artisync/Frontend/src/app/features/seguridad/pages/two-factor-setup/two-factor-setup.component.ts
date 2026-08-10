@@ -77,6 +77,6 @@ export class TwoFactorSetupComponent implements OnInit {
   }
 
   finalizar(): void {
-    this.router.navigate(['/admin/users']);
+    this.router.navigateByUrl(this.authService.homeRoute());
   }
 }

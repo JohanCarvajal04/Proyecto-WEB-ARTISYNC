@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -8,7 +8,9 @@ import { ToastService } from '../../../../core/services/toast.service';
   selector: 'app-login',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './login.component.html'
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css',
+  encapsulation: ViewEncapsulation.None
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
@@ -20,7 +22,7 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
 
   form: FormGroup = this.fb.group({
-    correo: ['', [Validators.required, Validators.email]],
+    correo: ['', [Validators.required]],
     contrasena: ['', [Validators.required]]
   });
 
@@ -49,18 +51,18 @@ export class LoginComponent {
           if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else {
-            const role = this.authService.primaryRole();
-            if (role === 'ADMINISTRADOR') {
-              this.router.navigate(['/admin/users']);
-            } else {
-              this.router.navigate(['/admin/users']); // Por defecto en esta fase
-            }
+            this.router.navigateByUrl(this.authService.homeRoute());
           }
         }
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
-        this.toastService.error('Usuario o contraseña incorrectos');
+        if (err?.status === 429) {
+          const msg = err.error?.mensaje || 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta nuevamente.';
+          this.toastService.warning(msg);
+        } else {
+          this.toastService.error('Usuario o contraseña incorrectos');
+        }
       }
     });
   }

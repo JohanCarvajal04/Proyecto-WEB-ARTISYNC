@@ -49,5 +49,21 @@ export const NAV_CONFIG: Record<string, RoleNavConfig> = {
       { label: 'Auditoría de Pagos', icon: 'account_balance', route: 'users', permission: 'PAGO_AUDITAR' },
       { label: 'Historial Transacciones', icon: 'receipt_long', route: 'users', permission: 'TRANSACCION_VER' }
     ]
+  },
+  CLIENTE: {
+    basePath: '/dashboard',
+    items: [
+      { label: 'Overview', icon: 'dashboard', route: 'overview' },
+      { label: 'Mis Pedidos', icon: 'shopping_bag', route: 'mis-pedidos' },
+      { label: 'Mi Perfil', icon: 'person', route: 'perfil' }
+    ]
+  },
+  CREADOR: {
+    basePath: '/dashboard',
+    items: [
+      { label: 'Overview', icon: 'dashboard', route: 'overview' },
+      { label: 'Mis Pedidos', icon: 'shopping_bag', route: 'mis-pedidos' },
+      { label: 'Mi Perfil', icon: 'person', route: 'perfil' }
+    ]
   }
 };

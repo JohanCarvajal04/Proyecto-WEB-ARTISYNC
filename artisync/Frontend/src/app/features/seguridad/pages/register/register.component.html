@@ -1,112 +1,163 @@
-<div class="min-h-screen bg-surface-container-low flex items-center justify-center p-4 relative py-12">
-  <!-- Botón retroceso -->
-  <a routerLink="/auth/login" class="absolute top-6 left-6 w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors">
-    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-  </a>
+<div class="login-wrapper">
 
-  <!-- Card Registro -->
-  <div class="bg-surface-container-lowest rounded-2xl p-8 sm:p-10 max-w-[520px] w-full shadow-sm border border-outline-variant flex flex-col items-center">
-    <div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-4 shadow-md">
-      <span class="material-symbols-outlined text-[26px]">person_add</span>
-    </div>
-
-    <h1 class="font-headline text-2xl font-bold text-primary text-center">Crear Cuenta</h1>
-    <p class="text-sm text-on-surface-variant text-center mt-1 mb-6">Únete a la economía creativa de Artisync</p>
-
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-on-surface">Nombres *</label>
-          <input formControlName="nombres" type="text" placeholder="Elena" 
-            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-          @if (form.get('nombres')?.touched && form.get('nombres')?.invalid) {
-            <span class="text-xs text-error">Requerido</span>
-          }
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-on-surface">Apellidos *</label>
-          <input formControlName="apellidos" type="text" placeholder="Rodriguez" 
-            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-          @if (form.get('apellidos')?.touched && form.get('apellidos')?.invalid) {
-            <span class="text-xs text-error">Requerido</span>
-          }
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-medium text-on-surface">Correo electrónico *</label>
-        <input formControlName="correo" type="email" placeholder="ejemplo@correo.com" 
-          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-        @if (form.get('correo')?.touched && form.get('correo')?.invalid) {
-          <span class="text-xs text-error">Correo inválido</span>
-        }
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-on-surface">Contraseña *</label>
-          <input formControlName="contrasena" type="password" placeholder="••••••••" 
-            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-          @if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['minLength']) {
-            <span class="text-xs text-error">Mínimo 8 caracteres</span>
-          } @else if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['weakPassword']) {
-            <span class="text-xs text-error">Incluye mayúscula, minúscula y número</span>
-          }
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-on-surface">Confirmar Contraseña *</label>
-          <input formControlName="confirmarContrasena" type="password" placeholder="••••••••" 
-            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-          @if (form.touched && form.errors?.['passwordMismatch']) {
-            <span class="text-xs text-error">No coinciden</span>
-          }
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-on-surface">Fecha de nacimiento *</label>
-          <input formControlName="fechaNacimiento" type="date" 
-            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-          @if (form.get('fechaNacimiento')?.touched && form.get('fechaNacimiento')?.errors?.['underage']) {
-            <span class="text-xs text-error">Debes tener al menos 18 años</span>
-          }
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-on-surface">Tipo de cuenta *</label>
-          <select formControlName="rol" 
-            class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
-            <option value="CLIENTE">Cliente registrado</option>
-            <option value="CREADOR">Creador de contenido</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-1.5 mt-2">
-        <label class="flex items-start gap-3 cursor-pointer group">
-          <input type="checkbox" formControlName="terminosYCondiciones"
-            class="mt-0.5 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary transition-colors cursor-pointer">
-          <span class="text-xs text-on-surface-variant group-hover:text-on-surface transition-colors">
-            Acepto los <a href="#" class="text-primary hover:underline">Términos y Condiciones</a> y la <a href="#" class="text-primary hover:underline">Política de Privacidad</a> de Artisync. *
-          </span>
-        </label>
-        @if (form.get('terminosYCondiciones')?.touched && form.get('terminosYCondiciones')?.invalid) {
-          <span class="text-xs text-error">Debes aceptar los términos y condiciones</span>
-        }
-      </div>
-
-      <button type="submit" [disabled]="isLoading()"
-        class="mt-4 w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60">
-        @if (isLoading()) {
-          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-        }
-        <span>Crear cuenta</span>
-      </button>
-    </form>
-
-    <p class="text-xs text-on-surface-variant text-center mt-6">
-      ¿Ya tienes una cuenta? 
-      <a routerLink="/auth/login" class="text-primary font-semibold hover:underline ml-1">Iniciar sesión</a>
-    </p>
+  <!-- Estrellas -->
+  <div class="stars">
+    <span class="star star--small" style="top:8%;left:5%;animation-delay:0s"></span>
+    <span class="star star--medium" style="top:12%;left:15%;animation-delay:0.8s"></span>
+    <span class="star star--small" style="top:5%;left:28%;animation-delay:1.6s"></span>
+    <span class="star star--large" style="top:18%;left:35%;animation-delay:0.3s"></span>
+    <span class="star star--small" style="top:7%;left:45%;animation-delay:2.1s"></span>
+    <span class="star star--medium" style="top:22%;left:55%;animation-delay:1.2s"></span>
+    <span class="star star--small" style="top:3%;left:65%;animation-delay:0.5s"></span>
+    <span class="star star--medium" style="top:15%;left:72%;animation-delay:1.9s"></span>
+    <span class="star star--small" style="top:10%;left:85%;animation-delay:0.7s"></span>
+    <span class="star star--large" style="top:25%;left:90%;animation-delay:2.5s"></span>
+    <span class="star star--cross" style="top:6%;left:22%;animation-delay:1.0s"></span>
+    <span class="star star--cross" style="top:14%;left:42%;animation-delay:2.2s"></span>
+    <span class="star star--small" style="top:30%;left:8%;animation-delay:1.4s"></span>
+    <span class="star star--medium" style="top:35%;left:20%;animation-delay:0.6s"></span>
+    <span class="star star--small" style="top:40%;left:50%;animation-delay:1.8s"></span>
+    <span class="star star--small" style="top:28%;left:60%;animation-delay:2.8s"></span>
+    <span class="star star--large" style="top:33%;left:75%;animation-delay:0.2s"></span>
+    <span class="star star--small" style="top:45%;left:12%;animation-delay:1.1s"></span>
+    <span class="star star--medium" style="top:50%;left:30%;animation-delay:2.4s"></span>
+    <span class="star star--small" style="top:55%;left:80%;animation-delay:0.9s"></span>
+    <span class="star star--cross" style="top:42%;left:68%;animation-delay:1.6s"></span>
   </div>
+
+  <!-- Luna -->
+  <div class="moon">
+    <div class="moon__body">
+      <div class="moon__shadow"></div>
+    </div>
+  </div>
+
+  <!-- Panel izquierdo: Branding -->
+  <div class="login-branding">
+    <img
+      src="/images/artisync-logo-white.png"
+      alt="Artisync Logo"
+      class="login-branding__logo"
+      loading="eager">
+    <h1 class="login-branding__title">Bienvenido de nuevo</h1>
+    <p class="login-branding__subtitle">Tu jornada creativa comienza bajo las estrellas.</p>
+  </div>
+
+  <!-- Panel derecho: Formulario -->
+  <div class="login-form-panel">
+    <div class="login-card">
+
+      <!-- Encabezado del card -->
+      <h2 class="login-card__title">Crear cuenta</h2>
+      <p class="login-card__subtitle">Únete y comienza tu jornada creativa.</p>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!-- Nombre completo -->
+        <div class="form-group">
+          <label class="form-label" for="register-name">Nombre completo</label>
+          <input
+            id="register-name"
+            formControlName="nombreCompleto"
+            type="text"
+            placeholder="Ada Lovelace"
+            class="form-input"
+            autocomplete="name">
+          @if (form.get('nombreCompleto')?.touched && form.get('nombreCompleto')?.invalid) {
+            <span class="form-error">Ingresa tu nombre completo</span>
+          }
+        </div>
+
+        <!-- Correo electrónico -->
+        <div class="form-group">
+          <label class="form-label" for="register-email">Correo electrónico</label>
+          <input
+            id="register-email"
+            formControlName="correo"
+            type="email"
+            placeholder="tu@correo.com"
+            class="form-input"
+            autocomplete="email">
+          @if (form.get('correo')?.touched && form.get('correo')?.invalid) {
+            <span class="form-error">Ingresa un correo electrónico válido</span>
+          }
+        </div>
+
+        <!-- Contraseña -->
+        <div class="form-group">
+          <label class="form-label" for="register-password">Contraseña</label>
+          <input
+            id="register-password"
+            formControlName="contrasena"
+            type="password"
+            placeholder="Mínimo 8 caracteres"
+            class="form-input"
+            autocomplete="new-password">
+          @if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['required']) {
+            <span class="form-error">La contraseña es obligatoria</span>
+          } @else if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['minLength']) {
+            <span class="form-error">Mínimo 8 caracteres</span>
+          } @else if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['weakPassword']) {
+            <span class="form-error">Incluye mayúscula, minúscula y número</span>
+          }
+        </div>
+
+        <!-- Confirmar contraseña -->
+        <div class="form-group">
+          <label class="form-label" for="register-confirm-password">Confirmar contraseña</label>
+          <input
+            id="register-confirm-password"
+            formControlName="confirmarContrasena"
+            type="password"
+            placeholder="Repite tu contraseña"
+            class="form-input"
+            autocomplete="new-password">
+          @if (form.get('confirmarContrasena')?.touched && form.errors?.['passwordMismatch']) {
+            <span class="form-error">Las contraseñas no coinciden</span>
+          }
+        </div>
+
+        <!-- Checkbox Términos -->
+        <div class="form-checkbox-row">
+          <input type="checkbox" id="accept-terms" formControlName="terminosYCondiciones" class="form-checkbox">
+          <label for="accept-terms" class="form-checkbox-label">Acepto los términos y la política de privacidad</label>
+        </div>
+        @if (form.get('terminosYCondiciones')?.touched && form.get('terminosYCondiciones')?.invalid) {
+          <span class="form-error" style="margin-top: -0.75rem; margin-bottom: 0.75rem;">Debes aceptar los términos y la política de privacidad</span>
+        }
+
+        <!-- Botón Crear Cuenta -->
+        <button
+          type="submit"
+          [disabled]="isLoading()"
+          class="btn-login">
+          @if (isLoading()) {
+            <div class="btn-login__spinner"></div>
+          }
+          <span>Crear cuenta</span>
+        </button>
+      </form>
+
+      <!-- Links -->
+      <div class="login-links">
+        <p class="login-links__text">
+          ¿Ya tienes una cuenta?
+          <a routerLink="/auth/login" class="login-links__anchor">Iniciar sesión</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Olas decorativas -->
+  <div class="waves">
+    <svg class="wave wave--back" viewBox="0 0 1440 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,80 C240,140 480,20 720,80 C960,140 1200,40 1440,100 L1440,180 L0,180 Z" fill="#3a1f5e"/>
+    </svg>
+    <svg class="wave wave--mid" viewBox="0 0 1440 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,60 C320,120 640,20 960,80 C1140,110 1300,50 1440,90 L1440,150 L0,150 Z" fill="#4a2670"/>
+    </svg>
+    <svg class="wave wave--front" viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,50 C200,90 400,20 600,60 C800,100 1000,30 1200,70 C1320,90 1400,50 1440,60 L1440,120 L0,120 Z" fill="#5b2f82"/>
+    </svg>
+  </div>
+
 </div>
