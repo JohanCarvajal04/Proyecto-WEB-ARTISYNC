@@ -45,12 +45,7 @@ export class TwoFactorComponent implements OnInit {
       next: () => {
         this.isLoading.set(false);
         this.toastService.success('¡Verificación de dos factores completada!');
-        const role = this.authService.primaryRole();
-        if (role === 'ADMINISTRADOR') {
-          this.router.navigate(['/admin/users']);
-        } else {
-          this.router.navigate(['/admin/users']);
-        }
+        this.router.navigateByUrl(this.authService.homeRoute());
       },
       error: () => {
         this.isLoading.set(false);

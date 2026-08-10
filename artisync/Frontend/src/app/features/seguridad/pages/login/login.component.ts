@@ -51,12 +51,7 @@ export class LoginComponent {
           if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else {
-            const role = this.authService.primaryRole();
-            if (role === 'ADMINISTRADOR') {
-              this.router.navigate(['/admin/users']);
-            } else {
-              this.router.navigate(['/admin/users']); // Por defecto en esta fase
-            }
+            this.router.navigateByUrl(this.authService.homeRoute());
           }
         }
       },
