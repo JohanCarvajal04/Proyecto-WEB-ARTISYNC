@@ -27,7 +27,7 @@ services:
       # o la base indicados no existan (crashloop del backend sin que compose
       # lo detecte). Se usa psql con las credenciales reales para que el
       # healthcheck falle si la autenticacion falla.
-      test: ["CMD-SHELL", "PGPASSWORD=${DB_PASSWORD:-changeme} psql -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db} -c 'SELECT 1' -tAq"]
+      test: [ "CMD-SHELL", "PGPASSWORD=${DB_PASSWORD:-changeme} psql -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db} -c 'SELECT 1' -tAq" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -42,7 +42,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -78,7 +78,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
