@@ -48,6 +48,7 @@ export class AuthService {
   /** Ruta de aterrizaje tras autenticarse, según el rol principal del usuario. */
   readonly homeRoute = computed(() => {
     const role = this.primaryRole();
+    if (role === 'MODERADOR') return '/admin/mod-overview';
     const basePath = role ? NAV_CONFIG[role]?.basePath : null;
     return basePath === '/admin' ? '/admin/users' : '/dashboard/overview';
   });

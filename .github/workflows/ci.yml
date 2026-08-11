@@ -23,6 +23,10 @@ jobs:
         working-directory: artisync/Backend
         run: ./mvnw -B clean compile
 
+      - name: Iniciar base de datos para pruebas de integración
+        working-directory: artisync
+        run: docker compose up -d --wait postgres
+
       - name: Ejecutar pruebas
         working-directory: artisync/Backend
         run: ./mvnw -B test
