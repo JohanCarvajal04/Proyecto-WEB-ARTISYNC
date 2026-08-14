@@ -1,0 +1,62 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+  <div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 max-w-lg w-full shadow-xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b border-outline-variant pb-4">
+      <h3 class="font-headline text-xl font-bold text-primary">
+        {{ mode === 'create' ? 'Nuevo País' : 'Editar País' }}
+      </h3>
+      <button 
+        type="button"
+        class="text-on-surface-variant hover:text-primary p-1"
+        (click)="closeModal.emit()"
+        [disabled]="isLoading">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <form [formGroup]="paisForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+      
+      <!-- Nombre del País -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface" for="nombrePais">
+          Nombre del País *
+        </label>
+        <input 
+          type="text" 
+          id="nombrePais"
+          formControlName="nombrePais"
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+          [ngClass]="{'border-error focus:border-error focus:ring-error/20': isFieldInvalid('nombrePais')}"
+          placeholder="Ej. Ecuador">
+        <div *ngIf="isFieldInvalid('nombrePais')" class="mt-1 text-xs text-error">
+          <span *ngIf="paisForm.get('nombrePais')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="paisForm.get('nombrePais')?.errors?.['maxlength']">Máximo 100 caracteres</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex justify-end gap-3 border-t border-outline-variant pt-4 mt-2">
+        <button 
+          type="button"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-sm font-medium hover:bg-surface-container transition-colors"
+          (click)="closeModal.emit()"
+          [disabled]="isLoading">
+          Cancelar
+        </button>
+        <button 
+          type="button"
+          class="px-5 py-2 rounded-lg bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+          (click)="onSubmit()"
+          [disabled]="isLoading">
+          <div *ngIf="isLoading" class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          <span>{{ isLoading ? 'Guardando...' : (mode === 'create' ? 'Crear País' : 'Guardar Cambios') }}</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

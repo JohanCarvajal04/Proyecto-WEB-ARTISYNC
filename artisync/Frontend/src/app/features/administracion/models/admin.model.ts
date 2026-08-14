@@ -54,3 +54,7 @@ export interface CreateRoleRequest {
 export interface UpdateRoleRequest {
   descripcionRol?: string;
 }
+
+export interface PaisRequest {
+  nombrePais: string;
+}

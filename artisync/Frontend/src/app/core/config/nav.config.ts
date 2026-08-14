@@ -16,6 +16,7 @@ export const NAV_CONFIG: Record<string, RoleNavConfig> = {
     items: [
       { label: 'Overview', icon: 'dashboard', route: 'users' },
       { label: 'Gestión de Usuarios', icon: 'group', route: 'users', permission: 'USUARIO_VER' },
+      { label: 'Gestión de Países', icon: 'public', route: 'paises', permission: 'PAIS_VER' },
       { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', permission: 'ROL_GESTIONAR' },
       { label: 'Configuración', icon: 'settings', route: 'settings' }
     ]
@@ -25,6 +26,7 @@ export const NAV_CONFIG: Record<string, RoleNavConfig> = {
     items: [
       { label: 'Overview', icon: 'dashboard', route: 'users' },
       { label: 'Gestión de Usuarios', icon: 'group', route: 'users', permission: 'USUARIO_VER' },
+      { label: 'Gestión de Países', icon: 'public', route: 'paises', permission: 'PAIS_VER' },
       { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', permission: 'ROL_GESTIONAR' },
       { label: 'Configuración', icon: 'settings', route: 'settings' }
     ]

@@ -35,5 +35,10 @@ export const ADMINISTRACION_ROUTES: Routes = [
     path: 'mod-categorias',
     canActivate: [hasPermissionGuard('CATEGORIA_GESTIONAR')],
     loadComponent: () => import('./pages/mod-categorias/mod-categorias.component').then(m => m.ModCategoriasComponent)
+  },
+  { 
+    path: 'paises', 
+    canActivate: [hasPermissionGuard('PAIS_VER')],
+    loadComponent: () => import('./pages/paises/paises.component').then(m => m.PaisesComponent) 
   }
 ];
