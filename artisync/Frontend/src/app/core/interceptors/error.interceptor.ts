@@ -12,8 +12,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Evitar interceptar el endpoint de login o refresh para no crear bucles
-      if (req.url.includes('/auth/login') || req.url.includes('/auth/refresh')) {
+      // Evitar interceptar login/refresh (para no crear bucles) ni 2fa/verify:
+      // un 401 aquí es "código inválido o ticket expirado" (§2.1/OBS-AUTO-05),
+      // no una sesión caída — el propio componente ya lo maneja y muestra el
+      // mensaje correcto. Sin esta excepción, el interceptor confundía este
+      // 401 con una expiración de sesión y forzaba un refresh + el toast
+      // genérico "Tu sesión ha expirado", ocultando el motivo real.
+      if (req.url.includes('/auth/login') || req.url.includes('/auth/refresh') || req.url.includes('/auth/2fa/verify')) {
         return throwError(() => error);
       }
 

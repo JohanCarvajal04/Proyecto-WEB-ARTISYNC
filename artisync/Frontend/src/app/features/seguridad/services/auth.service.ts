@@ -106,7 +106,10 @@ export class AuthService {
 
   login(credentials: LoginRequest): Observable<TokenResponse> {
     this._isLoading.set(true);
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/login`, credentials).pipe(
+    // withCredentials: obligatorio para que el navegador acepte el Set-Cookie
+    // del ticket pre-auth de 2FA (preAuth2fa) y el de refreshToken cuando el
+    // login es exitoso — §2.1 (OBS-AUTO-05).
+    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/login`, credentials, { withCredentials: true }).pipe(
       tap(response => this.handleAuthentication(response)),
       finalize(() => this._isLoading.set(false))
     );
@@ -121,7 +124,9 @@ export class AuthService {
 
   verify2fa(data: TwoFactorRequest): Observable<TokenResponse> {
     this._isLoading.set(true);
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/2fa/verify`, data).pipe(
+    // withCredentials: envía la cookie preAuth2fa (que prueba que la contraseña
+    // ya se validó en /auth/login) y recibe el Set-Cookie de refreshToken.
+    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/2fa/verify`, data, { withCredentials: true }).pipe(
       tap(response => this.handleAuthentication(response)),
       finalize(() => this._isLoading.set(false))
     );

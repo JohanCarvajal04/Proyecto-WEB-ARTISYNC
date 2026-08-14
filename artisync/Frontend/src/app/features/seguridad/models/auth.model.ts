@@ -14,7 +14,9 @@ export interface RegisterRequest {
 }
 
 export interface TwoFactorRequest {
-  correo: string;
+  // §2.1 (OBS-AUTO-05): el correo ya no viaja aquí — el backend resuelve el
+  // usuario desde el ticket pre-auth (cookie HttpOnly "preAuth2fa") emitido
+  // por /auth/login tras validar la contraseña.
   codigo: string;
 }
 
@@ -28,11 +30,14 @@ export interface ResetPasswordRequest {
 }
 
 export interface TokenResponse {
-  accessToken: string;
-  tokenType: string;
-  idUsuario: number;
-  correo: string;
-  roles: string[];
+  // Cuando requiere2fa=true, el backend solo envía correo/idUsuario/requiere2fa
+  // (el ticket pre-auth va en cookie HttpOnly, no en este body) — de ahí que
+  // el resto de campos sean opcionales.
+  accessToken?: string;
+  tokenType?: string;
+  idUsuario?: number;
+  correo?: string;
+  roles?: string[];
   permisos?: string[];
   requiere2fa: boolean;
 }
