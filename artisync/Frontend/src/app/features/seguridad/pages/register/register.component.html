@@ -34,11 +34,7 @@
 
   <!-- Panel izquierdo: Branding -->
   <div class="login-branding">
-    <img
-      src="/images/artisync-logo-white.png"
-      alt="Artisync Logo"
-      class="login-branding__logo"
-      loading="eager">
+    <img src="/images/artisync-logo-white.png" alt="Artisync Logo" class="login-branding__logo" loading="eager">
     <h1 class="login-branding__title">Bienvenido de nuevo</h1>
     <p class="login-branding__subtitle">Tu jornada creativa comienza bajo las estrellas.</p>
   </div>
@@ -55,64 +51,55 @@
         <!-- Nombre completo -->
         <div class="form-group">
           <label class="form-label" for="register-name">Nombre completo</label>
-          <input
-            id="register-name"
-            formControlName="nombreCompleto"
-            type="text"
-            placeholder="Ada Lovelace"
-            class="form-input"
-            autocomplete="name">
+          <input id="register-name" formControlName="nombreCompleto" type="text" placeholder="Ada Lovelace"
+            class="form-input" autocomplete="name">
           @if (form.get('nombreCompleto')?.touched && form.get('nombreCompleto')?.invalid) {
-            <span class="form-error">Ingresa tu nombre completo</span>
+          <span class="form-error">Ingresa tu nombre completo</span>
           }
         </div>
 
         <!-- Correo electrónico -->
         <div class="form-group">
           <label class="form-label" for="register-email">Correo electrónico</label>
-          <input
-            id="register-email"
-            formControlName="correo"
-            type="email"
-            placeholder="tu@correo.com"
-            class="form-input"
-            autocomplete="email">
+          <input id="register-email" formControlName="correo" type="email" placeholder="tu@correo.com"
+            class="form-input" autocomplete="email">
           @if (form.get('correo')?.touched && form.get('correo')?.invalid) {
-            <span class="form-error">Ingresa un correo electrónico válido</span>
+          <span class="form-error">Ingresa un correo electrónico válido</span>
+          }
+        </div>
+
+        <!-- Fecha de nacimiento -->
+        <div class="form-group">
+          <label class="form-label" for="register-birthdate">Fecha de nacimiento</label>
+          <input id="register-birthdate" formControlName="fechaNacimiento" type="date" class="form-input" [max]="maxDate">
+          @if ((form.get('fechaNacimiento')?.touched || form.get('fechaNacimiento')?.dirty) && form.get('fechaNacimiento')?.errors?.['required']) {
+          <span class="form-error">La fecha de nacimiento es obligatoria</span>
+          } @else if ((form.get('fechaNacimiento')?.touched || form.get('fechaNacimiento')?.dirty) && form.get('fechaNacimiento')?.errors?.['underage']) {
+          <span class="form-error">Debes tener al menos 18 años</span>
           }
         </div>
 
         <!-- Contraseña -->
         <div class="form-group">
           <label class="form-label" for="register-password">Contraseña</label>
-          <input
-            id="register-password"
-            formControlName="contrasena"
-            type="password"
-            placeholder="Mínimo 8 caracteres"
-            class="form-input"
-            autocomplete="new-password">
+          <input id="register-password" formControlName="contrasena" type="password" placeholder="Mínimo 8 caracteres"
+            class="form-input" autocomplete="new-password">
           @if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['required']) {
-            <span class="form-error">La contraseña es obligatoria</span>
+          <span class="form-error">La contraseña es obligatoria</span>
           } @else if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['minLength']) {
-            <span class="form-error">Mínimo 8 caracteres</span>
+          <span class="form-error">Mínimo 8 caracteres</span>
           } @else if (form.get('contrasena')?.touched && form.get('contrasena')?.errors?.['weakPassword']) {
-            <span class="form-error">Incluye mayúscula, minúscula y número</span>
+          <span class="form-error">Incluye mayúscula, minúscula y número</span>
           }
         </div>
 
         <!-- Confirmar contraseña -->
         <div class="form-group">
           <label class="form-label" for="register-confirm-password">Confirmar contraseña</label>
-          <input
-            id="register-confirm-password"
-            formControlName="confirmarContrasena"
-            type="password"
-            placeholder="Repite tu contraseña"
-            class="form-input"
-            autocomplete="new-password">
+          <input id="register-confirm-password" formControlName="confirmarContrasena" type="password"
+            placeholder="Repite tu contraseña" class="form-input" autocomplete="new-password">
           @if (form.get('confirmarContrasena')?.touched && form.errors?.['passwordMismatch']) {
-            <span class="form-error">Las contraseñas no coinciden</span>
+          <span class="form-error">Las contraseñas no coinciden</span>
           }
         </div>
 
@@ -122,16 +109,14 @@
           <label for="accept-terms" class="form-checkbox-label">Acepto los términos y la política de privacidad</label>
         </div>
         @if (form.get('terminosYCondiciones')?.touched && form.get('terminosYCondiciones')?.invalid) {
-          <span class="form-error" style="margin-top: -0.75rem; margin-bottom: 0.75rem;">Debes aceptar los términos y la política de privacidad</span>
+        <span class="form-error" style="margin-top: -0.75rem; margin-bottom: 0.75rem;">Debes aceptar los términos y la
+          política de privacidad</span>
         }
 
         <!-- Botón Crear Cuenta -->
-        <button
-          type="submit"
-          [disabled]="isLoading()"
-          class="btn-login">
+        <button type="submit" [disabled]="isLoading()" class="btn-login">
           @if (isLoading()) {
-            <div class="btn-login__spinner"></div>
+          <div class="btn-login__spinner"></div>
           }
           <span>Crear cuenta</span>
         </button>
@@ -150,13 +135,14 @@
   <!-- Olas decorativas -->
   <div class="waves">
     <svg class="wave wave--back" viewBox="0 0 1440 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,80 C240,140 480,20 720,80 C960,140 1200,40 1440,100 L1440,180 L0,180 Z" fill="#3a1f5e"/>
+      <path d="M0,80 C240,140 480,20 720,80 C960,140 1200,40 1440,100 L1440,180 L0,180 Z" fill="#3a1f5e" />
     </svg>
     <svg class="wave wave--mid" viewBox="0 0 1440 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,60 C320,120 640,20 960,80 C1140,110 1300,50 1440,90 L1440,150 L0,150 Z" fill="#4a2670"/>
+      <path d="M0,60 C320,120 640,20 960,80 C1140,110 1300,50 1440,90 L1440,150 L0,150 Z" fill="#4a2670" />
     </svg>
     <svg class="wave wave--front" viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,50 C200,90 400,20 600,60 C800,100 1000,30 1200,70 C1320,90 1400,50 1440,60 L1440,120 L0,120 Z" fill="#5b2f82"/>
+      <path d="M0,50 C200,90 400,20 600,60 C800,100 1000,30 1200,70 C1320,90 1400,50 1440,60 L1440,120 L0,120 Z"
+        fill="#5b2f82" />
     </svg>
   </div>
 

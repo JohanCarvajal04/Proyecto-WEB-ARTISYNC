@@ -1,5 +1,5 @@
 import { Component, input, output, effect, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { UserResponse, PaisResponse } from '../../models/user.model';
 import { CreateUserRequest, AdminUpdateUserRequest } from '../../../features/administracion/models/admin.model';
 import { AdminUserService } from '../../../features/administracion/services/admin-user.service';
@@ -53,8 +53,11 @@ import { AdminUserService } from '../../../features/administracion/services/admi
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-medium text-on-surface">Fecha de nacimiento</label>
-                <input formControlName="fechaNacimiento" type="date" 
+                <input formControlName="fechaNacimiento" type="date" [max]="maxDate"
                   class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                @if ((form.get('fechaNacimiento')?.touched || form.get('fechaNacimiento')?.dirty) && form.get('fechaNacimiento')?.errors?.['underage']) {
+                  <span class="text-xs text-error mt-1">Debe tener al menos 18 años</span>
+                }
               </div>
               <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-medium text-on-surface">País</label>
@@ -143,19 +146,36 @@ export class UserFormModalComponent {
 
   readonly paises = signal<PaisResponse[]>([]);
   readonly deshabilitar2Fa = signal<boolean>(false);
+  maxDate: string;
 
   form: FormGroup = this.fb.group({
     nombres: ['', [Validators.required, Validators.maxLength(100)]],
     apellidos: ['', [Validators.required, Validators.maxLength(100)]],
     correo: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
     contrasena: ['', [Validators.minLength(8)]],
-    fechaNacimiento: [''],
+    fechaNacimiento: ['', [this.ageValidator]],
     idPais: [null as number | null],
     rol: ['CLIENTE', Validators.required],
     estadoCuenta: [true]
   });
 
+  ageValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) return null;
+    const birthDate = new Date(control.value);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 18 ? null : { underage: true };
+  }
+
   constructor() {
+    const today = new Date();
+    today.setFullYear(today.getFullYear() - 18);
+    this.maxDate = today.toISOString().split('T')[0];
+
     effect(() => {
       if (this.isOpen()) {
         this.adminUserService.getPaises().subscribe({
