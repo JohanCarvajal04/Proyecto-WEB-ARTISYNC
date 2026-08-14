@@ -106,6 +106,18 @@ public class ManejadorGlobalExcepciones {
         return ResponseEntity.status(estado).body(pd);
     }
 
+    @ExceptionHandler(ExcepcionCuotaExcedida.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionCuotaExcedida(
+            ExcepcionCuotaExcedida ex, HttpServletRequest peticion) {
+
+        log.warn("Cuota de intentos por cuenta excedida en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.TOO_MANY_REQUESTS, "cuota-excedida", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSegundos()))
+                .body(pd);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> manejarAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest peticion) {

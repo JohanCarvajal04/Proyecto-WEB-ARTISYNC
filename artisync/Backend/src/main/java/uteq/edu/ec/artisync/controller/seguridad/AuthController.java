@@ -25,6 +25,18 @@ import org.springframework.beans.factory.annotation.Value;
 @Tag(name = "Autenticación", description = "Endpoints públicos para registro (RNF-12), login, 2FA, refresh token y recuperación de contraseña")
 public class AuthController {
 
+    private static final String COOKIE_REFRESH = "refreshToken";
+    private static final int MAX_AGE_REFRESH_SEGUNDOS = 604800; // 7 días
+
+    // §2.1 (OBS-AUTO-05): cookie del ticket pre-auth de 2FA — ver
+    // PreAuth2faTicketService. El path debe ser "/api/auth" (no el más
+    // estrecho "/api/auth/2fa/verify") porque el navegador solo envía una
+    // cookie cuyo path es prefijo de la ruta solicitada, y esta cookie
+    // también debe poder LIMPIARSE desde /api/auth/login (login sin 2FA) y
+    // /api/auth/logout.
+    private static final String COOKIE_PRE_AUTH_2FA = "preAuth2fa";
+    private static final int MAX_AGE_PRE_AUTH_2FA_SEGUNDOS = 300; // 5 min — igual TTL que en Redis
+
     @Value("${app.security.cookie-secure:false}")
     private boolean cookieSecure;
 
@@ -42,21 +54,29 @@ public class AuthController {
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         TokenResponse tokenResponse = authService.login(request);
         setRefreshTokenCookie(response, tokenResponse.getRefreshToken());
+        setPreAuth2faCookie(response, tokenResponse.getPreAuthTicket());
         return ResponseEntity.ok(tokenResponse);
     }
 
-    @Operation(summary = "Verificar código de autenticación de doble factor (2FA)")
+    @Operation(summary = "Verificar código de autenticación de doble factor (2FA) usando el ticket pre-auth emitido por /login")
     @PostMapping("/2fa/verify")
-    public ResponseEntity<TokenResponse> verify2Fa(@Valid @RequestBody TwoFactorRequest request, HttpServletResponse response) {
-        TokenResponse tokenResponse = authService.verify2Fa(request);
+    public ResponseEntity<TokenResponse> verify2Fa(
+            @CookieValue(name = COOKIE_PRE_AUTH_2FA, required = false) String preAuthTicket,
+            @Valid @RequestBody TwoFactorRequest request,
+            HttpServletResponse response) {
+        if (preAuthTicket == null || preAuthTicket.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        TokenResponse tokenResponse = authService.verify2Fa(preAuthTicket, request);
         setRefreshTokenCookie(response, tokenResponse.getRefreshToken());
+        clearPreAuth2faCookie(response);
         return ResponseEntity.ok(tokenResponse);
     }
 
     @Operation(summary = "Refrescar token de acceso utilizando Refresh Token en cookie HttpOnly o cuerpo JSON")
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(
-            @CookieValue(name = "refreshToken", required = false) String refreshTokenCookie,
+            @CookieValue(name = COOKIE_REFRESH, required = false) String refreshTokenCookie,
             @RequestBody(required = false) RefreshTokenRequest requestBody,
             HttpServletResponse response) {
         String tokenToRefresh = refreshTokenCookie;
@@ -73,10 +93,11 @@ public class AuthController {
 
     @Operation(summary = "Cerrar sesión e invalidar token JWT y Refresh Token en Redis Blacklist y BD", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request, @CookieValue(name = "refreshToken", required = false) String refreshTokenCookie, HttpServletResponse response) {
+    public ResponseEntity<Void> logout(HttpServletRequest request, @CookieValue(name = COOKIE_REFRESH, required = false) String refreshTokenCookie, HttpServletResponse response) {
         String authHeader = request.getHeader("Authorization");
         authService.logout(authHeader, refreshTokenCookie);
         clearRefreshTokenCookie(response);
+        clearPreAuth2faCookie(response); // limpieza defensiva por si quedó un ticket sin consumir
         return ResponseEntity.noContent().build();
     }
 
@@ -94,26 +115,32 @@ public class AuthController {
 
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         if (refreshToken != null) {
-            ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                    .httpOnly(true)
-                    .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)
-                    .path("/api/auth")
-                    .maxAge(604800) // 7 días en segundos
-                    .sameSite("Strict")
-                    .build();
-            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+            escribirCookie(response, COOKIE_REFRESH, refreshToken, MAX_AGE_REFRESH_SEGUNDOS);
         }
     }
 
     private void clearRefreshTokenCookie(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+        escribirCookie(response, COOKIE_REFRESH, "", 0);
+    }
+
+    private void setPreAuth2faCookie(HttpServletResponse response, String ticket) {
+        if (ticket != null) {
+            escribirCookie(response, COOKIE_PRE_AUTH_2FA, ticket, MAX_AGE_PRE_AUTH_2FA_SEGUNDOS);
+        }
+    }
+
+    private void clearPreAuth2faCookie(HttpServletResponse response) {
+        escribirCookie(response, COOKIE_PRE_AUTH_2FA, "", 0);
+    }
+
+    private void escribirCookie(HttpServletResponse response, String nombre, String valor, int maxAgeSegundos) {
+        ResponseCookie cookie = ResponseCookie.from(nombre, valor)
                 .httpOnly(true)
-                .secure(cookieSecure)
+                .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)
                 .path("/api/auth")
-                .maxAge(0)
+                .maxAge(maxAgeSegundos)
                 .sameSite("Strict")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
-

@@ -28,11 +28,14 @@ import uteq.edu.ec.artisync.repository.pedido.*;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
+import uteq.edu.ec.artisync.security.ClientIpResolver;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
 import uteq.edu.ec.artisync.service.seguridad.AuthService;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 import uteq.edu.ec.artisync.service.shared.EmailService;
+import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.PreAuth2faTicketService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 
 import java.nio.charset.StandardCharsets;
@@ -49,6 +52,19 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    // §2.2 (OBS-AUTO-06): cuota por CUENTA, complementaria a la cuota por IP de
+    // AuthRateLimitFilter. Ventana acotada a 15 min a propósito: un contador por
+    // cuenta es, en sí mismo, un vector de bloqueo dirigido contra una cuenta
+    // conocida (p. ej. un admin); una ventana corta limita ese daño. No existe
+    // endpoint de desbloqueo — ver runbook: `redis-cli DEL rl:login-cuenta:<hash>`.
+    private static final String AMBITO_LOGIN = "login-cuenta";
+    private static final int LIMITE_INTENTOS_LOGIN = 5;
+    private static final Duration VENTANA_INTENTOS_LOGIN = Duration.ofMinutes(15);
+
+    private static final String AMBITO_RECUPERACION = "recuperacion-cuenta";
+    private static final int LIMITE_INTENTOS_RECUPERACION = 3;
+    private static final Duration VENTANA_INTENTOS_RECUPERACION = Duration.ofHours(1);
+
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final UsuarioRolRepository usuarioRolRepository;
@@ -64,6 +80,8 @@ public class AuthServiceImpl implements AuthService {
     private final SessionRevocationService sessionRevocationService;
     private final EmailService emailService;
     private final TwoFactorService twoFactorService;
+    private final IntentosAutenticacionService intentosAutenticacionService;
+    private final PreAuth2faTicketService preAuth2faTicketService;
 
     @Override
     @Transactional
@@ -132,8 +150,16 @@ public class AuthServiceImpl implements AuthService {
             );
         } catch (AuthenticationException e) {
             log.warn("evento=LOGIN resultado=FALLIDO correo={} ip={}", request.getCorreo(), ip);
+            // Cuota por CUENTA: se incrementa únicamente cuando la autenticación
+            // ACABA de fallar (no antes de intentarla), para que un usuario que
+            // conoce su contraseña nunca se vea afectado — solo los fallos cuentan.
+            intentosAutenticacionService.verificarCuota(
+                    AMBITO_LOGIN, request.getCorreo(), LIMITE_INTENTOS_LOGIN, VENTANA_INTENTOS_LOGIN);
             throw e;
         }
+
+        // Autenticación correcta: limpiar cualquier cuota acumulada por fallos previos.
+        intentosAutenticacionService.limpiar(AMBITO_LOGIN, request.getCorreo());
 
         Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -142,10 +168,17 @@ public class AuthServiceImpl implements AuthService {
                 .orElse(null);
 
         if (dosFactores != null && Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {
+            log.info("evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}", usuario.getCorreo(), ip, usuario.getIdUsuario());
+            // §2.1 (OBS-AUTO-05): ticket de un solo uso que prueba que la
+            // contraseña ya se validó — AuthController lo mueve a una cookie
+            // HttpOnly. Sin esto, verify2Fa() no tenía forma de saber si el
+            // llamante había pasado por aquí.
+            String ticket = preAuth2faTicketService.emitir(usuario.getIdUsuario(), usuario.getCorreo());
             return TokenResponse.builder()
                     .correo(usuario.getCorreo())
                     .idUsuario(usuario.getIdUsuario())
                     .requiere2fa(true)
+                    .preAuthTicket(ticket)
                     .build();
         }
 
@@ -162,8 +195,8 @@ public class AuthServiceImpl implements AuthService {
                 .filter(a -> !a.startsWith("ROLE_"))
                 .toList();
 
-        registrarSesion(usuario, accessToken, jwtService.getExpirationMs());
-        registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());
+        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
+        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
 
         log.info("evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}", usuario.getCorreo(), ip, usuario.getIdUsuario());
 
@@ -180,8 +213,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public TokenResponse verify2Fa(TwoFactorRequest request) {
-        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
+    public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
+        // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
+        // ticket emitido por login() tras validar la contraseña — ya no desde
+        // un correo en el body, que no probaba nada.
+        PreAuth2faTicketService.DatosTicket datos = preAuth2faTicketService.resolver(preAuthTicket)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Sesión de verificación inválida o expirada. Vuelve a iniciar sesión."));
+
+        Usuario usuario = usuarioRepository.findByCorreo(datos.correo())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
@@ -191,8 +231,15 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no se encuentra habilitado");
         }
 
-        if (!twoFactorService.validarCodigoOBackup(request.getCorreo(), request.getCodigo())) {
+        if (!twoFactorService.validarCodigoOBackup(datos.correo(), request.getCodigo())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
+        }
+
+        // Uso único: si otra petición concurrente ya consumió este ticket, no se
+        // emiten tokens dos veces para el mismo ticket.
+        if (!preAuth2faTicketService.consumir(preAuthTicket)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.");
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
@@ -208,8 +255,8 @@ public class AuthServiceImpl implements AuthService {
                 .filter(a -> !a.startsWith("ROLE_"))
                 .toList();
 
-        registrarSesion(usuario, accessToken, jwtService.getExpirationMs());
-        registrarSesion(usuario, refreshToken, jwtService.getRefreshExpirationMs());
+        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
+        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
@@ -231,7 +278,10 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             String jti = jwtService.extraerJti(refreshToken);
-            if (jti != null && sesionUsuarioRepository.findByTokenJwt(refreshToken).isEmpty()) {
+            // §2.5 (OBS-AUTO-06): un jti nulo cortocircuitaba el && anterior y SALTABA
+            // por completo la comprobación de revocación (bug F3). Ahora un jti
+            // ausente se trata igual que "no encontrado": rechazado.
+            if (jti == null || sesionUsuarioRepository.findByJti(jti).isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revocado o expirado");
             }
 
@@ -250,13 +300,13 @@ public class AuthServiceImpl implements AuthService {
             }
 
             sessionRevocationService.revocarToken(refreshToken);
-            sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);
+            sesionUsuarioRepository.deleteByJti(jti);
 
             String nuevoAccessToken = jwtService.generarToken(userDetails);
             String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);
 
-            registrarSesion(usuario, nuevoAccessToken, jwtService.getExpirationMs());
-            registrarSesion(usuario, nuevoRefreshToken, jwtService.getRefreshExpirationMs());
+            registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());
+            registrarSesionObligatoria(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());
 
             List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
                     .map(ur -> ur.getRol().getNombreRol())
@@ -291,7 +341,16 @@ public class AuthServiceImpl implements AuthService {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
             sessionRevocationService.revocarToken(refreshToken);
-            sesionUsuarioRepository.findByTokenJwt(refreshToken).ifPresent(sesionUsuarioRepository::delete);
+            // Best-effort: un refresh token ya expirado o malformado en el momento del
+            // logout no debe impedir cerrar sesión (no hay fila que borrar de todas formas).
+            try {
+                String jti = jwtService.extraerJti(refreshToken);
+                if (jti != null) {
+                    sesionUsuarioRepository.deleteByJti(jti);
+                }
+            } catch (Exception e) {
+                log.debug("No se pudo extraer el jti del refresh token en logout (probablemente expirado o inválido): {}", e.getMessage());
+            }
         }
         return new RespuestaMensaje("Sesión cerrada exitosamente");
     }
@@ -299,6 +358,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
+        // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
+        // llamada implica el mismo costo de abuso (correo potencialmente enviado)
+        // exista o no la cuenta — mail-bombing a una víctima, cuota SMTP agotada.
+        intentosAutenticacionService.verificarCuota(
+                AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);
+
         usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -> {
             String tokenPlain = UUID.randomUUID().toString();
             String tokenHash = hashSha256(tokenPlain);
@@ -339,24 +404,45 @@ public class AuthServiceImpl implements AuthService {
     private String obtenerIpActual() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes != null && attributes.getRequest() != null) {
-            return attributes.getRequest().getRemoteAddr();
+            return ClientIpResolver.resolver(attributes.getRequest());
         }
         return null;
     }
 
-    private void registrarSesion(Usuario usuario, String token, long expirationMs) {
+    /**
+     * Registro del access token: best-effort. Es telemetría (auditoría/listado de
+     * sesiones); si falla, el usuario ya tiene su access token en la respuesta y
+     * puede seguir operando con él con normalidad.
+     */
+    private void registrarSesionMejorEsfuerzo(Usuario usuario, String jti, long expirationMs) {
         try {
-            String ip = obtenerIpActual();
-            SesionUsuario sesion = SesionUsuario.builder()
-                    .usuario(usuario)
-                    .tokenJwt(token)
-                    .direccionIp(ip)
-                    .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))
-                    .build();
-            sesionUsuarioRepository.save(sesion);
+            registrarSesion(usuario, jti, expirationMs);
         } catch (Exception e) {
-            log.error("Error registrando sesión de usuario: {}", e.getMessage());
+            log.error("Error registrando sesión de acceso para usuario {}", usuario.getIdUsuario(), e);
         }
+    }
+
+    /**
+     * Registro del refresh token: obligatorio (propaga la excepción). A diferencia
+     * del access token, la corrección del siguiente /api/auth/refresh DEPENDE de que
+     * esta fila exista (ver refreshToken(): busca por jti). Antes ambos registros
+     * fallaban en silencio (catch genérico que solo logueaba), lo que dejaba al
+     * usuario con un refresh token que el sistema rechazaría como "revocado o
+     * expirado" en el siguiente intento, sin ninguna pista del motivo real.
+     */
+    private void registrarSesionObligatoria(Usuario usuario, String jti, long expirationMs) {
+        registrarSesion(usuario, jti, expirationMs);
+    }
+
+    private void registrarSesion(Usuario usuario, String jti, long expirationMs) {
+        String ip = obtenerIpActual();
+        SesionUsuario sesion = SesionUsuario.builder()
+                .usuario(usuario)
+                .jti(jti)
+                .direccionIp(ip)
+                .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))
+                .build();
+        sesionUsuarioRepository.save(sesion);
     }
 
     private String hashSha256(String input) {

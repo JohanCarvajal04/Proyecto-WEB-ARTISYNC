@@ -20,8 +20,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.LoginRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.RegisterRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
@@ -42,6 +44,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -72,6 +75,12 @@ class AuthServiceImplTest {
     private CustomUserDetailsService userDetailsService;
     @Mock
     private SessionRevocationService sessionRevocationService;
+    @Mock
+    private IntentosAutenticacionService intentosAutenticacionService;
+    @Mock
+    private PreAuth2faTicketService preAuth2faTicketService;
+    @Mock
+    private TwoFactorService twoFactorService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -159,5 +168,100 @@ class AuthServiceImplTest {
         assertNotNull(response);
         assertEquals("access-token", response.getAccessToken());
         assertFalse(response.isRequiere2fa());
+        verify(intentosAutenticacionService).limpiar("login-cuenta", "juan@example.com");
+        verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
+    }
+
+    @Test
+    void login_ShouldRegisterFailedAttempt_WhenCredentialsInvalid() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setCorreo("juan@example.com");
+        loginRequest.setContrasena("password-incorrecto");
+
+        when(authenticationManager.authenticate(any()))
+                .thenThrow(new org.springframework.security.authentication.BadCredentialsException("Credenciales inválidas"));
+
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class,
+                () -> authService.login(loginRequest));
+
+        verify(intentosAutenticacionService).verificarCuota("login-cuenta", "juan@example.com", 5, java.time.Duration.ofMinutes(15));
+        verify(intentosAutenticacionService, never()).limpiar(anyString(), anyString());
+    }
+
+    // ── verify2Fa (§2.1 / OBS-AUTO-05) ──────────────────────────────────────
+
+    @Test
+    void verify2Fa_ShouldThrowUnauthorized_WhenTicketInvalid() {
+        when(preAuth2faTicketService.resolver("ticket-invalido")).thenReturn(Optional.empty());
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.verify2Fa("ticket-invalido", request));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+
+        // Ni siquiera debe consultar el correo del body: no existe (bypass cerrado).
+        verifyNoInteractions(usuarioRepository);
+    }
+
+    @Test
+    void verify2Fa_ShouldThrowUnauthorized_WhenCodeInvalid() {
+        when(preAuth2faTicketService.resolver("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L))
+                .thenReturn(Optional.of(AutenticacionDosFactores.builder().estaHabilitado(true).build()));
+        when(twoFactorService.validarCodigoOBackup("juan@example.com", "000000")).thenReturn(false);
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("000000").build();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.verify2Fa("ticket-valido", request));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+
+        // El ticket NO se consume en un intento fallido (sigue disponible para reintentar).
+        verify(preAuth2faTicketService, never()).consumir(anyString());
+    }
+
+    @Test
+    void verify2Fa_ShouldSucceed_WhenTicketAndCodeValid() {
+        when(preAuth2faTicketService.resolver("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L))
+                .thenReturn(Optional.of(AutenticacionDosFactores.builder().estaHabilitado(true).build()));
+        when(twoFactorService.validarCodigoOBackup("juan@example.com", "123456")).thenReturn(true);
+        when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(true);
+
+        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
+        when(jwtService.generarToken(userDetails)).thenReturn("access-token");
+        when(jwtService.generarRefreshToken(userDetails)).thenReturn("refresh-token");
+        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(UsuarioRol.builder().rol(rolCliente).build()));
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
+        TokenResponse response = authService.verify2Fa("ticket-valido", request);
+
+        assertNotNull(response);
+        assertEquals("access-token", response.getAccessToken());
+        assertFalse(response.isRequiere2fa());
+    }
+
+    @Test
+    void verify2Fa_ShouldThrowUnauthorized_WhenTicketAlreadyConsumedConcurrently() {
+        when(preAuth2faTicketService.resolver("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L))
+                .thenReturn(Optional.of(AutenticacionDosFactores.builder().estaHabilitado(true).build()));
+        when(twoFactorService.validarCodigoOBackup("juan@example.com", "123456")).thenReturn(true);
+        when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(false); // otra petición lo consumió antes
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.verify2Fa("ticket-valido", request));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        verifyNoInteractions(jwtService);
     }
 }

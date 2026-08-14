@@ -30,4 +30,10 @@ public class TokenResponse {
 
     @JsonIgnore
     private String refreshToken;
+
+    // §2.1 (OBS-AUTO-05): igual que refreshToken, nunca se serializa al body —
+    // AuthController lo mueve a una cookie HttpOnly (preAuth2fa), así queda
+    // fuera del alcance de JavaScript en el cliente.
+    @JsonIgnore
+    private String preAuthTicket;
 }

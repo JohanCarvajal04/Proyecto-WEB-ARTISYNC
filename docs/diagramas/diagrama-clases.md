@@ -59,7 +59,7 @@ classDiagram
     }
     class SesionUsuario {
       - idSesion : Long
-      - tokenJwt : String
+      - jti : String
       - direccionIp : String
       - fechaCreacion : LocalDateTime
       - fechaExpiracion : LocalDateTime
@@ -427,7 +427,7 @@ package "seguridad" {
   }
   class SesionUsuario {
     - idSesion : Long
-    - tokenJwt : String
+    - jti : String
     - direccionIp : String
     - fechaCreacion : LocalDateTime
     - fechaExpiracion : LocalDateTime
