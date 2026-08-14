@@ -139,7 +139,7 @@ public class AuthController {
                 .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)
                 .path("/api/auth")
                 .maxAge(maxAgeSegundos)
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }

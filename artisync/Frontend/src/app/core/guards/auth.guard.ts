@@ -2,10 +2,15 @@ import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../../features/seguridad/services/auth.service';
 
-export const authGuard: CanActivateFn = (route, state) => {
+export const authGuard: CanActivateFn = async (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const requiredRoles: string[] = route.data['roles'] ?? [];
+
+  // Espera a que termine el intento de restaurar sesión (vía cookie de refresh) antes
+  // de leer isLoggedIn(): si no se espera, un F5 en una ruta protegida rebota siempre
+  // a /auth/login porque el guard es síncrono y evalúa antes de que responda /auth/refresh.
+  await auth.waitForSessionRestore();
 
   if (!auth.isLoggedIn()) {
     router.navigate(['/auth/login'], {

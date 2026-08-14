@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, finalize, catchError, throwError } from 'rxjs';
+import { Observable, tap, finalize, catchError, throwError, firstValueFrom, map, of } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { environment } from '../../../../environments/environment';
 import {
@@ -53,8 +53,38 @@ export class AuthService {
     return basePath === '/admin' ? '/admin/users' : '/dashboard/overview';
   });
 
+  /**
+   * Promesa compartida y cacheada del intento de restauración de sesión al arrancar
+   * la app (vía cookie HttpOnly de refreshToken). Nunca rechaza — si el refresh falla,
+   * refreshToken() ya limpia la sesión en su propio catchError. Los guards la esperan
+   * antes de leer isLoggedIn()/userRoles(), evitando la carrera en la que el guard
+   * síncrono se evaluaba antes de que esta petición asíncrona hubiera vuelto.
+   */
+  private readonly sessionRestored: Promise<void>;
+
   constructor() {
-    this.tryRestoreSession();
+    // El intento de restauración NO puede lanzarse de forma síncrona aquí. Al
+    // suscribirse, HttpClient ejecuta la cadena de interceptores en el acto, y
+    // tanto authInterceptor como errorInterceptor hacen inject(AuthService).
+    // Como este servicio todavía está a medio construir, Angular aborta con
+    // NG0200 (dependencia circular): la petición a /auth/refresh nunca llega a
+    // salir, el catchError se traga el error y la sesión queda vacía — de ahí
+    // que un F5 en cualquier ruta protegida rebotara siempre a /auth/login.
+    // Aplazarlo un microtask es suficiente: para entonces la instancia ya está
+    // registrada en el inyector y los interceptores pueden resolverla.
+    this.sessionRestored = Promise.resolve().then(() =>
+      firstValueFrom(
+        this.refreshToken().pipe(
+          map(() => void 0),
+          catchError(() => of(void 0))
+        )
+      )
+    );
+  }
+
+  /** Resuelve en cuanto termina el intento de restauración de sesión (de inmediato si ya terminó). */
+  waitForSessionRestore(): Promise<void> {
+    return this.sessionRestored;
   }
 
   hasPermission(permissionCode: string): boolean {
@@ -95,13 +125,6 @@ export class AuthService {
         return throwError(() => err);
       })
     );
-  }
-
-  tryRestoreSession(): void {
-    // Restaurar sesión silenciosamente mediante cookie HttpOnly de refreshToken
-    this.refreshToken().subscribe({
-      error: () => this.clearSession()
-    });
   }
 
   login(credentials: LoginRequest): Observable<TokenResponse> {
