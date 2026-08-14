@@ -1,5 +1,23 @@
+### EVIDENCIA OBSOLETA (OBS-AUTO-05, agosto 2026) — pendiente de recaptura ###
+# Esta captura corresponde al LoginRateLimitFilter anterior (limite=5,
+# body JSON ad-hoc {"mensaje": ...} con bug de encoding ISO-8859-1) y a
+# request.getRemoteAddr() SIN resolver via proxy de confianza.
+#
+# El reemplazo (AuthRateLimitFilter) tiene: limite=10 en /login (el intento
+# que dispara el 429 pasa del 6 al 11), respuesta ProblemDetail (RFC 7807,
+# UTF-8, application/json), y cubre ademas /2fa/verify, /forgot-password,
+# /reset-password y /registro. Tambien existe ahora una cuota POR CUENTA
+# (IntentosAutenticacionService) que esta captura no ejercita.
+#
+# Recapturar con el stack levantado via `docker compose up` (SIN el
+# override docker-compose.dev.yml) y peticiones dirigidas a
+# http://localhost:4200/api/... — no a :8080 directo, que ya no esta
+# publicado y es la unica via en la que "limite por IP" significa algo real
+# (ver docker-compose.yml y ADR-002).
+### FIN DE NOTA — evidencia original a continuacion ###
+
 Intento 1:
-HTTP/1.1 401 
+HTTP/1.1 401
 Vary: Origin
 Vary: Access-Control-Request-Method
 Vary: Access-Control-Request-Headers
@@ -122,6 +140,6 @@ Content-Type: application/json;charset=ISO-8859-1
 Content-Length: 90
 Date: Fri, 31 Jul 2026 01:13:18 GMT
 
-{"mensaje":"Demasiados intentos de inicio de sesi�n. Intenta nuevamente en unos minutos."}
+{"mensaje":"Demasiados intentos de inicio de sesi�n. Intenta nuevamente en unos minutos."}
 ---
 

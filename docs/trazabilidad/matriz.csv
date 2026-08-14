@@ -1,9 +1,9 @@
 id_requisito,tipo,prioridad_moscow,historia_usuario,caso_de_uso,modulo_codigo,endpoint_api,prueba_automatizada,tipo_acceso,evidencia_empirica,estado
 REQ-F-001,funcional,Must,HU-01,CU-01,AuthController;UserController,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,,implementado
 REQ-F-002,funcional,Must,HU-02,CU-02,RolePermissionController,GET /api/roles/{id}/permisos,RolePermissionControllerTest,CRUD-ORM,,implementado
-REQ-F-003,funcional,Must,HU-03,CU-03,security.JwtAuthenticationFilter;AuthController,POST /api/auth/login,JwtAuthenticationFilterTest,CRUD-ORM,,implementado
+REQ-F-003,funcional,Must,HU-03,CU-03,security.JwtAuthenticationFilter;AuthController,POST /api/auth/login,JwtAuthenticationFilterTest;JwtServiceTest;AuthRateLimitFilterTest,CRUD-ORM,,implementado
 REQ-F-004,funcional,Must,HU-04,CU-04,AuthController,POST /api/auth/recuperar,,CRUD-ORM,,implementado
-REQ-F-005,funcional,Should,HU-05,CU-05,TwoFactorController,POST /api/auth/2fa/activar,TwoFactorServiceImplTest,CRUD-ORM,,implementado
+REQ-F-005,funcional,Should,HU-05,CU-05,TwoFactorController;service.shared.PreAuth2faTicketService,POST /api/auth/2fa/verify,TwoFactorServiceImplTest;PreAuth2faTicketServiceTest,CRUD-ORM,,implementado
 REQ-F-006,funcional,Must,HU-06,CU-06,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/,implementado
 REQ-F-007,funcional,Should,HU-07,CU-07,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/,implementado
 REQ-F-008,funcional,Must,HU-08,CU-08,PerfilCreadorControlador,PUT /api/perfil,,CRUD-ORM,,implementado
@@ -24,7 +24,7 @@ REQ-F-022,funcional,Should,HU-22,CU-22,TicketRevisionControlador,POST /api/pedid
 REQ-F-023,funcional,Could,HU-23,CU-23,(pendiente modulo social),POST /api/social/sorteos,,SP,,pendiente
 REQ-NF-001,no funcional,Must,,,infraestructura,,,,docs/mediciones/sec/,pendiente
 REQ-NF-002,no funcional,Must,HU-01,CU-01,security.AuthConfig,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,artisync/db/seed.sql,implementado
-REQ-NF-003,no funcional,Must,,,security.JwtService,,JwtAuthenticationFilterTest,,,implementado
+REQ-NF-003,no funcional,Must,,,security.JwtService,,JwtAuthenticationFilterTest;JwtServiceTest,,,implementado
 REQ-NF-004,no funcional,Should,,,frontend,,,,docs/mediciones/lighthouse/,pendiente
 REQ-NF-005,no funcional,Should,,,(pendiente modulo comunicacion),,,,docs/mediciones/perf/,pendiente
 REQ-NF-006,no funcional,Should,,,legal,POST /api/legal/contratos,,,docs/mediciones/perf/,pendiente
