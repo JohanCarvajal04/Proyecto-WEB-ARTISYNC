@@ -23,16 +23,20 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
 
     public AlmacenamientoLocal(AlmacenamientoProperties propiedades) {
         this.rutaBase = Paths.get(propiedades.getRutaBase()).toAbsolutePath().normalize();
+        log.info("Almacenamiento local de documentos configurado en {}", rutaBase);
+    }
+
+    private void asegurarDirectorio() {
         try {
             Files.createDirectories(rutaBase);
         } catch (IOException e) {
             throw new IllegalStateException("No se pudo crear el directorio de documentos: " + rutaBase, e);
         }
-        log.info("Almacenamiento local de documentos inicializado en {}", rutaBase);
     }
 
     @Override
     public String guardar(MultipartFile archivo) {
+        asegurarDirectorio();
         String nombre = UUID.randomUUID() + extensionDesde(archivo.getContentType());
         Path destino = rutaBase.resolve(nombre).normalize();
         try (InputStream in = archivo.getInputStream()) {
