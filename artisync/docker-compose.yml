@@ -70,8 +70,16 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USER: ${MAIL_USER}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
-    ports:
-      - "8080:8080"
+    # NO se publica el 8080 al host (OBS-AUTO-06 / A07 OWASP): es el limite de
+    # confianza que hace fiable X-Forwarded-For para AuthRateLimitFilter y para
+    # el log de auditoria de login (ver server.forward-headers-strategy en
+    # application.properties). Solo el frontend (proxy /api) y el resto de
+    # servicios de esta red interna pueden alcanzar el backend.
+    # Para acceder directo en desarrollo (Swagger, make bench, captura de
+    # evidencias OWASP), usar el override explicito:
+    #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+    expose:
+      - "8080"
     volumes:
       - pfc_documentos_verificacion:/var/artisync/documentos
     depends_on:
