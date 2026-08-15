@@ -9,18 +9,17 @@
     </div>
 
     <h1 class="font-headline text-2xl font-bold text-primary text-center">Verificación 2FA</h1>
-    <p class="text-sm text-on-surface-variant text-center mt-1 mb-2">
-      Hemos enviado un código o requiere tu app de autenticación para
+    <p class="text-sm text-on-surface-variant text-center mt-1 mb-8">
+      Ingresa el código de tu app de autenticación o un código de respaldo
     </p>
-    <p class="text-sm font-semibold text-primary mb-8">{{ correo }}</p>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-medium text-on-surface text-center">Código de 6 dígitos</label>
-        <input formControlName="codigo" type="text" maxlength="6" placeholder="123456" 
+        <label class="text-xs font-medium text-on-surface text-center">Código de 6 dígitos o código de respaldo</label>
+        <input formControlName="codigo" type="text" maxlength="8" placeholder="123456"
           class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3.5 py-3 text-center tracking-widest text-lg font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
         @if (form.get('codigo')?.touched && form.get('codigo')?.invalid) {
-          <span class="text-xs text-error text-center">Ingresa los 6 dígitos numéricos</span>
+          <span class="text-xs text-error text-center">Ingresa un código de 6 dígitos o un código de respaldo de 8 caracteres</span>
         }
       </div>
 

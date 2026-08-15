@@ -17,12 +17,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Date;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String TIPO_ACCESO = "access";
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
@@ -45,11 +46,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             Claims claims = jwtService.extraerTodosLosClaims(token);
-            if ("refresh".equals(claims.get("type"))) {
-                log.debug("Intentando autenticar con refresh token en header Authorization. Rechazado.");
+
+            // Lista blanca (OBS-AUTO-05): solo un token con type=access autentica
+            // peticiones HTTP. Antes era lista negra (rechazaba solo type=refresh),
+            // lo que aceptaba en silencio cualquier token futuro sin "type" o con un
+            // tipo desconocido (p. ej. el ticket pre-auth de 2FA, que es opaco y nunca
+            // llega aqui, pero un JWT mal formado con otro "type" sí colaría).
+            if (!TIPO_ACCESO.equals(claims.get("type"))) {
+                log.debug("Token sin claim type=access rechazado en el filtro.");
                 filterChain.doFilter(request, response);
                 return;
             }
+
             try {
                 String jti = claims.getId();
                 if (jti != null && Boolean.TRUE.equals(redisTemplate.hasKey("jti:" + jti))) {
@@ -64,13 +72,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String username = jwtService.extraerUsername(token);
-            Date expiration = claims.getExpiration();
+            String email = claims.get("email", String.class);
+            String username = email != null ? email : claims.getSubject();
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (username.equals(userDetails.getUsername()) && expiration.after(new Date())) {
+                // §2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
+                // y el titular, que la cuenta siga habilitada y no bloqueada. Antes el
+                // filtro ignoraba por completo userDetails.isEnabled(), asi que una
+                // cuenta suspendida seguia autenticando hasta que expirara el token
+                // (hasta 24h) si la revocacion en Redis fallaba o no llegaba a tiempo.
+                if (jwtService.esAccessTokenValido(token, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
@@ -79,6 +92,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    log.debug("Token rechazado por esAccessTokenValido (cuenta deshabilitada o titular no coincide): {}", username);
+                    request.setAttribute("JWT_ERROR", "Credenciales inválidas o cuenta deshabilitada");
                 }
             }
         } catch (ExpiredJwtException e) {

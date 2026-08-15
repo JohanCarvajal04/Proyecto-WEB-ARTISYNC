@@ -153,9 +153,14 @@ Cualquier ítem marcado como **CRÍTICO** que no sea cumplido puede resultar en 
 - Cada endpoint debe mostrar método HTTP, path, parámetros y respuestas esperadas.
 - Generado automáticamente por **Springdoc OpenAPI 2.x**.
 
+> **Base URL desde el host:** `http://localhost:4200` — el backend no publica el 8080
+> (OBS-AUTO-05 / A07 OWASP) y todo el tráfico entra por el proxy del frontend. Es decir,
+> Swagger UI en `http://localhost:4200/api/swagger-ui.html` y el spec en
+> `http://localhost:4200/api/docs`. Ambos caen bajo `/api`, que es lo único que el proxy reenvía.
+
 | Criterio de aceptación | Prueba requerida | Resultado esperado |
 |---|---|---|
-| Swagger UI accesible | `GET /api/swagger-ui.html` sin token | 200 OK + interfaz Swagger |
+| Swagger UI accesible | `GET /api/swagger-ui.html` sin token | 302 → `/api/swagger-ui/index.html`, que sirve la interfaz Swagger |
 | Endpoints documentados | Revisar Swagger UI | Mínimo 10 endpoints visibles |
 
 ---
@@ -386,7 +391,7 @@ CREATE TRIGGER trg_usuarios_actualizado_en
 | S-04 | JTI único por token | Cada token tiene `jti` UUID v4 | Verificar claim `jti` en payload | Obligatorio |
 | S-05 | Blacklist Redis | JTI revocado en Redis con TTL al hacer logout | `redis-cli GET jti:[uuid]` después del logout | Obligatorio |
 | S-06 | CORS configurado | Orígenes permitidos explícitamente en `SecurityConfig` | Solicitud desde dominio no permitido → 403 | Obligatorio |
-| S-07 | Headers HTTP | `X-Content-Type-Options`, `X-Frame-Options`, `CSP` activos | `curl -I http://localhost:8080` | Obligatorio |
+| S-07 | Headers HTTP | `X-Content-Type-Options`, `X-Frame-Options`, `CSP` activos | `curl -s -D - -X GET http://localhost:4200/api/v1/catalogo -o /dev/null` | Obligatorio |
 | S-08 | Roles con `@PreAuthorize` | `ROLE_USER` y `ROLE_ADMIN` con control en endpoints | Prueba de acceso con rol incorrecto → 403 | Obligatorio |
 | S-09 | Sin SQL concatenado | Cero uso de `String sql = "..." + variable` | Revisión de código; solo Spring Data JPA | Obligatorio |
 | S-10 | Token NO en localStorage | accessToken en memoria (variable `AuthService`); refreshToken en cookie HttpOnly | DevTools → Application → Storage: vacío | Obligatorio |
@@ -518,7 +523,7 @@ CREATE TRIGGER trg_usuarios_actualizado_en
 - [ ] `.env` está en `.gitignore`.
 - [ ] `docker compose ps` muestra todos los servicios en estado `healthy`.
 - [ ] `GET /actuator/health` retorna `{"status":"UP"}`.
-- [ ] `GET /api/swagger-ui.html` accesible en `http://localhost:8080`.
+- [ ] `GET /api/swagger-ui.html` accesible en `http://localhost:4200`.
 - [ ] Frontend accesible en `http://localhost:4200`.
 - [ ] **README.md** con instrucciones de ejecución en exactamente 5 pasos ejecutables.
 
@@ -541,9 +546,13 @@ docker compose up --build -d
 docker compose ps
 
 # 5. Acceder a la aplicación
+# El backend no publica el 8080 al host (OBS-AUTO-05 / A07 OWASP): todo entra
+# por el proxy del frontend, en el 4200 (reglas /api y /actuator).
 # Frontend:        http://localhost:4200
-# Swagger UI:      http://localhost:8080/api/swagger-ui.html
-# Actuator health: http://localhost:8080/actuator/health
+# API REST:        http://localhost:4200/api
+# OpenAPI (JSON):  http://localhost:4200/api/docs
+# Swagger UI:      http://localhost:4200/api/swagger-ui.html
+# Actuator health: http://localhost:4200/actuator/health
 ```
 
 ---
@@ -639,7 +648,7 @@ docker compose ps
 | SEC-04 | JWT de otro usuario | Usar token válido de usuario A para acceder a datos de B | 403 Forbidden |
 | SEC-05 | Endpoint sin token | GET endpoint protegido sin `Authorization` header | 401 Unauthorized |
 | SEC-06 | Contraseña en texto plano | SELECT `password_hash` FROM usuarios | Valor inicia con `$2a$12$` |
-| SEC-07 | Headers HTTP de seguridad | `curl -I http://localhost:8080/api/auth/login` | Presencia de `X-Content-Type-Options`, `X-Frame-Options` |
+| SEC-07 | Headers HTTP de seguridad | `curl -s -D - -X GET http://localhost:4200/api/v1/catalogo -o /dev/null` — usar `GET`, no `curl -I`: un `HEAD` cae en `anyRequest().authenticated()` y devuelve `401` (detalle del método HTTP, no una brecha; ver `docs/mediciones/sec/REPORTE-SEC.md`) | Presencia de `X-Content-Type-Options`, `X-Frame-Options` |
 | SEC-08 | CORS desde dominio no permitido | Solicitud con `Origin: http://evil.com` | 403 o sin header `Access-Control-Allow-Origin` |
 | SEC-09 | Refresh Token tras logout | Usar refreshToken de sesión cerrada | 401 Unauthorized |
 | SEC-10 | Token en localStorage | Abrir DevTools → Application → Local Storage | Campo `token` o `accessToken`: vacío |
@@ -749,7 +758,7 @@ docker compose ps
 - [ ] `.env` está en `.gitignore`.
 - [ ] `GET /actuator/health` retorna `{"status":"UP"}`.
 - [ ] Frontend accesible en `http://localhost:4200`.
-- [ ] Swagger UI accesible en `http://localhost:8080/api/swagger-ui.html`.
+- [ ] Swagger UI accesible en `http://localhost:4200/api/swagger-ui.html`.
 
 ### 🧪 Pruebas
 
@@ -807,7 +816,7 @@ docker compose ps
 | **Flyway incorrectamente configurado** | El esquema no se aplica al iniciar; la app falla al arrancar | Revisar logs al iniciar el backend; verificar `spring.flyway.enabled: true` | Ejecutar `docker compose up` en entorno limpio y verificar que las tablas se crean |
 | **Sin pruebas JUnit** | 0 en criterio de pruebas (15%) | `./mvnw test` no produce output de pruebas | Escribir mínimo 5 pruebas que cubran los casos de la tabla de pruebas obligatorias |
 | **Sin Redis en Docker Compose** | Logout no funciona; blacklist JWT inoperativa | `docker compose ps` no muestra servicio `redis` | Incluir el servicio `redis:7` en `docker-compose.yml` con healthcheck |
-| **Swagger UI inaccesible** | Penalización en documentación y criterio de informe | `GET http://localhost:8080/api/swagger-ui.html` retorna 404 | Verificar dependencia `springdoc-openapi-starter-webmvc-ui` en `pom.xml` y configuración en `application.yml` |
+| **Swagger UI inaccesible** | Penalización en documentación y criterio de informe | `GET http://localhost:4200/api/swagger-ui.html` retorna 404, o devuelve el `index.html` de Angular en vez de Swagger | Verificar dependencia `springdoc-openapi-starter-webmvc-ui` en `pom.xml`, que `springdoc.swagger-ui.path` siga bajo `/api` (si no, sus recursos estáticos quedan fuera del proxy) y la regla `/api` en `Frontend/proxy.docker.conf.json` |
 | **CRUD incompleto** | Penalización proporcional en el 20% del CRUD | Probar los 5 métodos: POST, GET lista, GET ID, PUT, DELETE | Implementar todos los métodos en el controlador y servicio antes de entregar |
 | **Sin paginación en GET lista** | Penalización en CRUD | `GET /api/[entidad]?page=0&size=10` retorna lista sin estructura Page | Usar `Pageable` en el repositorio y `Page<T>` como tipo de retorno |
 | **Informe sin resumen ejecutivo** | Penalización en criterio de informe | Revisar si la sección 2.2 existe y tiene 200-250 palabras con métricas | Escribir el resumen al final, cuando ya se tienen las métricas reales del sistema |

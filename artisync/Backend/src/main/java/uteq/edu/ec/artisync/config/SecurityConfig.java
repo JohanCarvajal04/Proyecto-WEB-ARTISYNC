@@ -18,7 +18,7 @@ import uteq.edu.ec.artisync.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import uteq.edu.ec.artisync.security.CustomAuthenticationEntryPoint;
-import uteq.edu.ec.artisync.security.LoginRateLimitFilter;
+import uteq.edu.ec.artisync.security.AuthRateLimitFilter;
 
 import java.time.Duration;
 import java.util.List;
@@ -30,7 +30,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final LoginRateLimitFilter loginRateLimitFilter;
+    private final AuthRateLimitFilter authRateLimitFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
@@ -74,7 +74,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class);
+            .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

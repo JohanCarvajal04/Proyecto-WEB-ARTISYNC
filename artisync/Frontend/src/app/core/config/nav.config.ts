@@ -16,6 +16,7 @@ export const NAV_CONFIG: Record<string, RoleNavConfig> = {
     items: [
       { label: 'Overview', icon: 'dashboard', route: 'users' },
       { label: 'Gestión de Usuarios', icon: 'group', route: 'users', permission: 'USUARIO_VER' },
+      { label: 'Gestión de Países', icon: 'public', route: 'paises', permission: 'PAIS_VER' },
       { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', permission: 'ROL_GESTIONAR' },
       { label: 'Configuración', icon: 'settings', route: 'settings' }
     ]
@@ -25,6 +26,7 @@ export const NAV_CONFIG: Record<string, RoleNavConfig> = {
     items: [
       { label: 'Overview', icon: 'dashboard', route: 'users' },
       { label: 'Gestión de Usuarios', icon: 'group', route: 'users', permission: 'USUARIO_VER' },
+      { label: 'Gestión de Países', icon: 'public', route: 'paises', permission: 'PAIS_VER' },
       { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', permission: 'ROL_GESTIONAR' },
       { label: 'Configuración', icon: 'settings', route: 'settings' }
     ]
@@ -32,8 +34,11 @@ export const NAV_CONFIG: Record<string, RoleNavConfig> = {
   MODERADOR: {
     basePath: '/admin',
     items: [
-      { label: 'Moderación Portafolios', icon: 'rate_review', route: 'users', permission: 'PORTAFOLIO_MODERAR' },
-      { label: 'Revisión Certificados IA', icon: 'verified', route: 'users', permission: 'CERTIFICADO_REVISAR' }
+      { label: 'Overview', icon: 'dashboard', route: 'mod-overview' },
+      { label: 'Verificaciones', icon: 'verified', route: 'verificaciones', permission: 'CERTIFICADO_REVISAR' },
+      { label: 'Portafolios', icon: 'palette', route: 'mod-portafolios', permission: 'PORTAFOLIO_MODERAR' },
+      { label: 'Comentarios', icon: 'chat', route: 'mod-comentarios', permission: 'COMENTARIO_MODERAR' },
+      { label: 'Categorías', icon: 'category', route: 'mod-categorias', permission: 'CATEGORIA_GESTIONAR' }
     ]
   },
   SOPORTE: {

@@ -28,9 +28,12 @@ public class SesionUsuario {
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;
 
-    @NotBlank(message = "El token JWT es obligatorio")
-    @Column(name = "token_jwt", nullable = false, columnDefinition = "TEXT")
-    private String tokenJwt;
+    // §2.5 / OBS-AUTO-06: se guarda unicamente el jti (identificador del token),
+    // nunca el JWT completo — una lectura de esta tabla ya no entrega tokens
+    // utilizables. Ver V8__sesiones_usuario_jti.sql.
+    @NotBlank(message = "El jti de la sesion es obligatorio")
+    @Column(name = "jti", nullable = false, unique = true, length = 36)
+    private String jti;
 
     @Size(max = 45, message = "La direccion IP no puede superar los 45 caracteres")
     @Column(name = "direccion_ip", length = 45)

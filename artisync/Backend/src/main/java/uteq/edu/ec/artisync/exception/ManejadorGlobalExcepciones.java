@@ -84,6 +84,16 @@ public class ManejadorGlobalExcepciones {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
     }
 
+    @ExceptionHandler(ExcepcionServicioIaNoDisponible.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionServicioIaNoDisponible(
+            ExcepcionServicioIaNoDisponible ex, HttpServletRequest peticion) {
+
+        log.warn("Servicio de IA no disponible en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "ia-no-disponible", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ProblemDetail> manejarResponseStatusException(
             ResponseStatusException ex, HttpServletRequest peticion) {
@@ -94,6 +104,18 @@ public class ManejadorGlobalExcepciones {
                 ex.getReason() != null ? ex.getReason() : ex.getMessage(),
                 peticion.getRequestURI());
         return ResponseEntity.status(estado).body(pd);
+    }
+
+    @ExceptionHandler(ExcepcionCuotaExcedida.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionCuotaExcedida(
+            ExcepcionCuotaExcedida ex, HttpServletRequest peticion) {
+
+        log.warn("Cuota de intentos por cuenta excedida en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.TOO_MANY_REQUESTS, "cuota-excedida", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSegundos()))
+                .body(pd);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

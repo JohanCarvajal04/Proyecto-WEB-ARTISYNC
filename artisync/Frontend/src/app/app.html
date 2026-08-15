@@ -1,2 +1,8 @@
 <router-outlet />
 <app-toast />
+
+<app-complete-profile-modal 
+  *ngIf="showProfileCompletion()" 
+  [user]="userProfile()!"
+  (completed)="showProfileCompletion.set(false)">
+</app-complete-profile-modal>

@@ -22,6 +22,9 @@
 -- SEED DE DATOS INICIALES CONSOLIDADO (ROLES, PERMISOS RBAC Y USUARIO ADMIN)
 -- ==============================================================================
 
+-- 0. Insertar País Inicial
+INSERT INTO pais (nombre_pais) VALUES ('Ecuador') ON CONFLICT (nombre_pais) DO NOTHING;
+
 -- 1. Insertar los 6 Roles Operativos y Administrativos
 INSERT INTO roles (nombre_rol, descripcion_rol)
 VALUES 

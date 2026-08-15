@@ -68,14 +68,18 @@ CREATE TABLE usuario_roles (
     id_rol BIGINT NOT NULL REFERENCES roles(id_rol) ON DELETE CASCADE
 );
 
+-- §2.5 / OBS-AUTO-06: se guarda unicamente el jti (identificador del token),
+-- nunca el JWT completo — ver V8__sesiones_usuario_jti.sql para el historial.
 CREATE TABLE sesiones_usuario (
     id_sesion BIGSERIAL PRIMARY KEY,
     id_usuario BIGINT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    token_jwt TEXT NOT NULL,
+    jti VARCHAR(36) NOT NULL UNIQUE,
     direccion_ip VARCHAR(45),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_expiracion TIMESTAMP NOT NULL
 );
+CREATE INDEX idx_sesiones_usuario_id_usuario ON sesiones_usuario(id_usuario);
+CREATE INDEX idx_sesiones_usuario_fecha_expiracion ON sesiones_usuario(fecha_expiracion);
 
 CREATE TABLE tokens_recuperacion (
     id_token BIGSERIAL PRIMARY KEY,

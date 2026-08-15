@@ -19,14 +19,34 @@ export class RegisterComponent {
   private toastService = inject(ToastService);
 
   readonly isLoading = signal<boolean>(false);
+  maxDate: string;
+
+  constructor() {
+    const today = new Date();
+    today.setFullYear(today.getFullYear() - 18);
+    this.maxDate = today.toISOString().split('T')[0];
+  }
 
   form: FormGroup = this.fb.group({
     nombreCompleto: ['', [Validators.required, Validators.maxLength(200)]],
     correo: ['', [Validators.required, Validators.email]],
+    fechaNacimiento: ['', [Validators.required, this.ageValidator]],
     contrasena: ['', [Validators.required, Validators.minLength(8), this.passwordStrengthValidator]],
     confirmarContrasena: ['', [Validators.required]],
     terminosYCondiciones: [false, Validators.requiredTrue]
   }, { validators: this.passwordMatchValidator });
+
+  ageValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) return null;
+    const birthDate = new Date(control.value);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 18 ? null : { underage: true };
+  }
 
   passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
     const val = control.value || '';
@@ -63,7 +83,7 @@ export class RegisterComponent {
       apellidos,
       correo: val.correo,
       contrasena: val.contrasena,
-      fechaNacimiento: '2000-01-01',
+      fechaNacimiento: val.fechaNacimiento,
       rol: 'CLIENTE',
       aceptaTerminos: val.terminosYCondiciones
     }).subscribe({

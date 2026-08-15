@@ -15,8 +15,8 @@ import { AuthService } from '../../../features/seguridad/services/auth.service';
         <p class="text-sm text-on-surface-variant">
           No tienes los permisos de rol necesarios para acceder a esta sección de Artisync.
         </p>
-        <button (click)="goBack()" class="mt-2 w-full bg-primary text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow-sm">
-          Volver al Inicio
+        <button (click)="goToLogin()" class="mt-2 w-full bg-primary text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow-sm">
+          Ir al Login
         </button>
       </div>
     </div>
@@ -26,16 +26,7 @@ export class UnauthorizedComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  goBack(): void {
-    if (this.authService.isLoggedIn()) {
-      const role = this.authService.primaryRole();
-      if (role === 'ADMINISTRADOR') {
-        this.router.navigate(['/admin/users']);
-      } else {
-        this.router.navigate(['/admin/users']);
-      }
-    } else {
-      this.router.navigate(['/auth/login']);
-    }
+  goToLogin(): void {
+    this.authService.logout();
   }
 }

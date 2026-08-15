@@ -43,6 +43,13 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# ---------------------------------------------------------------------------
+# Claude Code (config/estado local del asistente, no se versiona)
+# ---------------------------------------------------------------------------
+.claude/
+graphify-out/
+
+.gitignore
 
 # ---------------------------------------------------------------------------
 # Stitch Screens
@@ -55,3 +62,7 @@ artisync/Frontend/stitch_screens/
 docs/observaciones/DESIGN-IS-2026-08-07/
 docs/Guia_implementacion/frontend/
 docs/superpowers/
+db/procs
+scripts/audit-sql-dynamic.sh
+scripts/sync-procs.sh
+

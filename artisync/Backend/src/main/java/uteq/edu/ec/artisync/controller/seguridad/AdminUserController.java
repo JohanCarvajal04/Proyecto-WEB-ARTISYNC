@@ -19,7 +19,7 @@ import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 @RestController
-@RequestMapping({"/api/admin/usuarios", "/api/admin/users"})
+@RequestMapping("/api/admin/usuarios")
 @RequiredArgsConstructor
 @Tag(name = "Administración de Usuarios", description = "Endpoints protegidos para administración completa de usuarios (CRUD con seguridad granular)")
 @SecurityRequirement(name = "bearerAuth")

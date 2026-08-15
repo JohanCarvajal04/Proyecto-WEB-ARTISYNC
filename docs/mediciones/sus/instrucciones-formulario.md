@@ -42,9 +42,16 @@ firmado (fuera del repo) es lo único que vincula el código con la identidad re
 docker compose up -d --build
 ```
 
-Verificar que el frontend (`http://localhost:4200`) y el backend estén sanos
-(`docker compose ps`), y que exista al menos un servicio publicado en el catálogo para que la
-tarea sea completable (ya sembrado — ver `artisync/database/seed-medicion-servicios.sql`).
+Verificar que el frontend responda en `http://localhost:4200` y que el backend esté sano. El
+backend no publica el 8080 al host (OBS-AUTO-05 / A07 OWASP), así que su estado se consulta a
+través del proxy del frontend:
+
+```bash
+curl -s http://localhost:4200/actuator/health
+```
+
+Comprobar además que exista al menos un servicio publicado en el catálogo para que la tarea sea
+completable (ya sembrado — ver `artisync/database/seed-medicion-servicios.sql`).
 
 ## 4. Tarea estándar (idéntica para todos los participantes)
 

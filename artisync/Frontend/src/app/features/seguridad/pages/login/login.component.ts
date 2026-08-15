@@ -40,7 +40,10 @@ export class LoginComponent {
         this.isLoading.set(false);
         if (response.requiere2fa) {
           this.toastService.info('Se requiere verificación de dos factores');
-          this.router.navigate(['/auth/two-factor'], { state: { correo: credentials.correo } });
+          // §2.1 (OBS-AUTO-05): ya no se pasa el correo por history.state — el
+          // backend identifica al usuario mediante el ticket pre-auth en la
+          // cookie HttpOnly "preAuth2fa" que /auth/login acaba de fijar.
+          this.router.navigate(['/auth/two-factor']);
         } else {
           this.toastService.success('¡Bienvenido de nuevo a Artisync!');
           let returnUrl = this.route.snapshot.queryParams['returnUrl'];
@@ -58,7 +61,10 @@ export class LoginComponent {
       error: (err) => {
         this.isLoading.set(false);
         if (err?.status === 429) {
-          const msg = err.error?.mensaje || 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta nuevamente.';
+          // El backend responde con ProblemDetail (RFC 7807): el mensaje va en
+          // "detail", no en "mensaje" (§2.2 / OBS-AUTO-06 — antes el filtro de
+          // rate limit escribía un JSON ad-hoc {"mensaje": ...}).
+          const msg = err.error?.detail || 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta nuevamente.';
           this.toastService.warning(msg);
         } else {
           this.toastService.error('Usuario o contraseña incorrectos');

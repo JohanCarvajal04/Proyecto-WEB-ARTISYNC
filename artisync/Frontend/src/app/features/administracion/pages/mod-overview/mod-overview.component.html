@@ -1,0 +1,141 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Panel de Moderación</h1>
+      <p class="text-sm text-slate-500 mt-1">Hola, {{ userName() }}. Aquí tienes el resumen de la actividad reciente.</p>
+    </div>
+    
+    <div class="flex gap-3">
+      <a routerLink="/admin/verificaciones" class="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        Revisar Verificaciones
+      </a>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex justify-center items-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    </div>
+  } @else {
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <!-- Card: Pendientes -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 flex items-start gap-4">
+        <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-500">Verificaciones Pendientes</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">{{ pendientes() }}</p>
+        </div>
+      </div>
+
+      <!-- Card: Aprobadas -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 flex items-start gap-4">
+        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-500">Certificados Aprobados</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">{{ aprobadas() }}</p>
+        </div>
+      </div>
+
+      <!-- Card: Portafolios -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 flex items-start gap-4">
+        <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-500">Portafolios Publicados</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">{{ totalPortafolios() }}</p>
+        </div>
+      </div>
+
+      <!-- Card: Categorías -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 flex items-start gap-4">
+        <div class="w-12 h-12 rounded-full bg-sky-50 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m-6 3.75l3 3m0 0l3-3m-3 3V1.5m6 9h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5A2.25 2.25 0 019 21v-.75" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-500">Categorías Activas</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">{{ totalCategorias() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Verifications Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+        <h2 class="text-lg font-bold text-slate-800">Verificaciones Recientes</h2>
+        <a routerLink="/admin/verificaciones" class="text-sm font-medium text-purple-600 hover:text-purple-700">Ver todas</a>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 font-medium">
+            <tr>
+              <th class="px-6 py-3">Creador</th>
+              <th class="px-6 py-3">Tipo Documento</th>
+              <th class="px-6 py-3">Veredicto IA</th>
+              <th class="px-6 py-3">Confianza</th>
+              <th class="px-6 py-3">Estado</th>
+              <th class="px-6 py-3 text-right">Fecha</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (item of verificacionesRecientes(); track item.idCertificado) {
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="px-6 py-4 font-medium text-slate-800">{{ item.nombreCreador }}</td>
+                <td class="px-6 py-4">{{ item.tipoDocumento }}</td>
+                <td class="px-6 py-4">
+                  @if (item.veredictoIa) {
+                    <span class="font-medium" [class.text-emerald-600]="item.veredictoIa === 'AUTENTICO'" [class.text-rose-600]="item.veredictoIa !== 'AUTENTICO'">
+                      {{ item.veredictoIa }}
+                    </span>
+                  } @else {
+                    <span class="text-slate-400">—</span>
+                  }
+                </td>
+                <td class="px-6 py-4">
+                  @if (item.puntajeConfianzaIa !== null) {
+                    <span class="font-medium" [class]="getConfianzaColor(item.puntajeConfianzaIa)">
+                      {{ (item.puntajeConfianzaIa * 100).toFixed(0) }}%
+                    </span>
+                  } @else {
+                    <span class="text-slate-400">—</span>
+                  }
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="getEstadoBadge(item.nombreEstado)">
+                    {{ item.nombreEstado }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-right text-slate-500">{{ formatDate(item.fechaAnalisis) }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-slate-500">
+                  No hay verificaciones recientes para mostrar.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

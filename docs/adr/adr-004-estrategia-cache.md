@@ -11,7 +11,16 @@ El catálogo de servicios es el endpoint de mayor frecuencia de lectura (REQ-NF-
 - **B — Redis:** almacén clave-valor externo, compartido entre instancias, con soporte nativo de TTL, adecuado tanto para caché de catálogo como para blacklist de tokens.
 
 ## Decisión
-Se adopta **Redis 7** para dos usos concretos: (1) caché del endpoint de listado de servicios del catálogo, con TTL declarado en configuración externa (no en código), y (2) blacklist de JTI de tokens JWT revocados por logout.
+Se adopta **Redis 7** para varios usos concretos: (1) caché del endpoint de listado de servicios del catálogo, con TTL declarado en configuración externa (no en código); (2) blacklist de JTI de tokens JWT revocados por logout; (3) cuotas de intentos para el rate limiting de las rutas de autenticación (OBS-AUTO-05); y (4) tickets pre-auth de 2FA de un solo uso (OBS-AUTO-04, ver ADR-002).
+
+Cada familia de claves tiene una postura distinta ante una caída de Redis, documentada en el javadoc de la clase que la escribe:
+
+| Prefijo de clave | Escrita/leída por | Postura ante fallo de Redis | Motivo |
+|---|---|---|---|
+| `catalogo::*` | `ServicioCatalogoServicioImpl` (`@Cacheable`) | *(gestionado por Spring Cache; sin fail-open/closed explícito — un caché vacío solo implica más carga en BD)* | Rendimiento, no seguridad |
+| `jti:*` | `JwtAuthenticationFilter`, `SessionRevocationService` | **Fail-closed** (503) | La revocación es una garantía de seguridad: sin poder consultarla, no se puede confiar en ningún access token |
+| `rl:*` | `AuthRateLimitFilter`, `IntentosAutenticacionService` | **Fail-open** | Una mitigación de abuso no debe bloquear el login completo del sistema |
+| `2fa:ticket:*` | `PreAuth2faTicketService` | **Fail-closed** (503) | Sin ticket no hay prueba de que la contraseña se validó |
 
 ## Consecuencias positivas
 - TTL externo permite ajustar la política de expiración sin recompilar el backend.

@@ -1,0 +1,107 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Categorías del Catálogo</h1>
+      <p class="text-sm text-slate-500 mt-1">Gestiona las categorías de servicios disponibles para los creadores.</p>
+    </div>
+    
+    <button (click)="openNewForm()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      Nueva Categoría
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
+    
+    @if (isLoading()) {
+      <div class="flex justify-center p-10">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-6">
+        @for (cat of categorias(); track cat.idCategoria) {
+          <div class="border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-md transition-shadow" [class.opacity-60]="!cat.estadoActiva" [class.bg-slate-50]="!cat.estadoActiva">
+            
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="font-bold text-slate-800">{{ cat.nombreCategoria }}</h3>
+              <span class="w-2 h-2 rounded-full mt-1.5" [class.bg-emerald-500]="cat.estadoActiva" [class.bg-slate-400]="!cat.estadoActiva"></span>
+            </div>
+            
+            <div class="flex justify-between items-center border-t border-slate-100 pt-3 mt-auto">
+              <button (click)="toggleEstado(cat)" class="text-xs font-medium" [class.text-rose-600]="cat.estadoActiva" [class.text-emerald-600]="!cat.estadoActiva">
+                {{ cat.estadoActiva ? 'Desactivar' : 'Activar' }}
+              </button>
+              
+              <button (click)="openEditForm(cat)" class="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="col-span-full py-12 text-center text-slate-500">
+            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
+            </svg>
+            <p>No se encontraron categorías.</p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Modal Form (Overlay) -->
+    @if (isFormOpen()) {
+      <div class="absolute inset-0 z-20 flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="closeForm()"></div>
+        
+        <!-- Modal -->
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md relative z-30 p-6">
+          <div class="flex justify-between items-center mb-5">
+            <h3 class="font-bold text-lg text-slate-800">{{ editingId() ? 'Editar Categoría' : 'Nueva Categoría' }}</h3>
+            <button (click)="closeForm()" class="text-slate-400 hover:text-slate-600">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de Categoría <span class="text-rose-500">*</span></label>
+              <input type="text" [(ngModel)]="formData.nombreCategoria" class="w-full text-sm border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" placeholder="Ej. Arte Digital">
+            </div>
+
+            @if (editingId()) {
+              <div class="flex items-center gap-2 pt-2">
+                <input type="checkbox" id="estado" [(ngModel)]="formData.estadoActiva" class="rounded border-slate-300 text-purple-600 focus:ring-purple-500">
+                <label for="estado" class="text-sm font-medium text-slate-700">Categoría Activa</label>
+              </div>
+            }
+          </div>
+
+          <div class="flex justify-end gap-3 mt-8">
+            <button (click)="closeForm()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors">
+              Cancelar
+            </button>
+            <button 
+              (click)="submitForm()" 
+              [disabled]="isSubmitting() || !formData.nombreCategoria.trim()"
+              class="px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
+              @if (isSubmitting()) {
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              }
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
