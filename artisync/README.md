@@ -26,9 +26,13 @@ make up
 docker compose -f artisync/docker-compose.yml ps
 
 # 5. Acceder a la aplicacion
+# El backend no publica el 8080 al host (OBS-AUTO-05 / A07 OWASP): todo pasa
+# por el proxy del frontend, en el 4200 (reglas /api y /actuator).
 # Frontend:        http://localhost:4200
-# Swagger UI:       http://localhost:8080/api/swagger-ui.html
-# Actuator health:  http://localhost:8080/actuator/health
+# API REST:        http://localhost:4200/api
+# OpenAPI (JSON):  http://localhost:4200/api/docs
+# Swagger UI:      http://localhost:4200/api/swagger-ui.html
+# Actuator health: http://localhost:4200/actuator/health
 
 # 6. Ejecutar pruebas (sin Docker)
 make test

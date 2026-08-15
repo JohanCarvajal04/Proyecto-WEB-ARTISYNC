@@ -31,13 +31,15 @@ Para un entorno reproducible basta con el `.env.example` tal cual; para un despl
 
 ### Servicios expuestos
 
+El backend **no publica el puerto 8080 al host** (OBS-AUTO-05 / A07 OWASP): ese es el límite de confianza que hace fiable `X-Forwarded-For` para el rate limiting y el log de auditoría de login. Todo el acceso desde el host pasa por el proxy del frontend, en el 4200 (reglas `/api` y `/actuator` en `Frontend/proxy.docker.conf.json`).
+
 | Servicio | URL |
 | --- | --- |
 | Frontend (Angular) | http://localhost:4200 |
-| API REST (Spring Boot) | http://localhost:8080 |
-| Especificación OpenAPI | http://localhost:8080/api/docs |
-| Swagger UI | http://localhost:8080/api/swagger-ui.html |
-| Estado del sistema (Actuator) | http://localhost:8080/actuator/health |
+| API REST (Spring Boot) | http://localhost:4200/api |
+| Especificación OpenAPI | http://localhost:4200/api/docs |
+| Swagger UI | http://localhost:4200/api/swagger-ui.html |
+| Estado del sistema (Actuator) | http://localhost:4200/actuator/health |
 
 ### Credenciales de arranque
 

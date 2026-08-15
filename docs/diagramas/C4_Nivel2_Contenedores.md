@@ -213,5 +213,5 @@ El diseño de contenedores se refleja 1:1 con la orquestación implementada en e
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Base de Datos** | `postgres` | `postgres:16` | `5432:5432` | N/A | `pg_isready -U pfc_user -d pfc_db` |
 | **Caché en Memoria** | `redis` | `redis:7-alpine` | `6379:6379` | N/A | `redis-cli ping` |
-| **Backend API REST** | `backend` | `./Backend (Dockerfile)` | `8080:8080` | `postgres` (service_healthy), <br> `redis` (service_healthy) | `wget -qO- http://localhost:8080/actuator/health` |
+| **Backend API REST** | `backend` | `./Backend (Dockerfile)` | `expose: 8080` — **no publicado al host** (OBS-AUTO-05 / A07 OWASP): solo alcanzable desde la red interna, es decir a través de las reglas de proxy `/api` y `/actuator` del frontend | `postgres` (service_healthy), <br> `redis` (service_healthy) | `wget -qO- http://localhost:8080/actuator/health` |
 | **Frontend Web SPA** | `frontend` | `./Frontend (Dockerfile)` | `4200:4200` | `backend` (service_healthy) | Servidor web Nginx |

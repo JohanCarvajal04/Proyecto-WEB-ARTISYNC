@@ -16,6 +16,11 @@
 
 ## Nota sobre A05 / HSTS
 
+> **Las URLs de este reporte son las de la sesión de captura y se conservan tal cual.** En ese
+> momento el backend aún publicaba el 8080 al host, y el 8443 provenía del override
+> `docker-compose.medicion.yml`. Tras OBS-AUTO-05 el 8080 ya no se publica: para reproducir estas
+> capturas hoy hay que ir por el proxy del frontend (`http://localhost:4200/api/...`).
+
 `a05-cabeceras.txt` se generó con `curl -s -D - -X GET http://localhost:8080/api/v1/catalogo`
 (el endpoint es `permitAll` solo para `GET`; un `HEAD` con `curl -I` cae en `anyRequest().authenticated()`
 y devuelve `401` — no confundir con una brecha real, es un detalle del método HTTP usado en la prueba).
