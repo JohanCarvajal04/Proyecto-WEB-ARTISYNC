@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { RespuestaContrato, RespuestaEstadoFirma } from '../models/legal.model';
+import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
 
 @Injectable({ providedIn: 'root' })
 export class ContratoService {
@@ -19,8 +20,9 @@ export class ContratoService {
     return this.http.get<RespuestaContrato>(`${this.API}/${id}`);
   }
 
+  /** 404 mientras no se haya generado el contrato del pedido: estado normal. */
   obtenerContratoPorPedido(idPedido: number): Observable<RespuestaContrato> {
-    return this.http.get<RespuestaContrato>(`${this.API}/pedido/${idPedido}`);
+    return this.http.get<RespuestaContrato>(`${this.API}/pedido/${idPedido}`, sinErrorGlobal());
   }
 
   firmarContrato(id: number): Observable<RespuestaContrato> {
