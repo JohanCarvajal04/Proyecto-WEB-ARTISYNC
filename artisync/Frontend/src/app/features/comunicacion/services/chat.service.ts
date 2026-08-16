@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { Mensaje, PeticionEnviarMensaje, SalaChat } from '../models/comunicacion.model';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { RespuestaMensajeChat, PeticionEnviarMensaje, RespuestaSalaChat } from '../models/comunicacion.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +13,7 @@ export class ChatService {
   private stompClient: Client;
   private currentSubscription?: StompSubscription;
   
-  private mensajesSubject = new BehaviorSubject<Mensaje[]>([]);
+  private mensajesSubject = new BehaviorSubject<RespuestaMensajeChat[]>([]);
   public mensajes$ = this.mensajesSubject.asObservable();
   
   private connectionStateSubject = new BehaviorSubject<boolean>(false);
@@ -92,7 +92,7 @@ export class ChatService {
             console.log('La sala fue cerrada');
           } else {
             // Es un Mensaje nuevo
-            const nuevoMensaje = body as Mensaje;
+            const nuevoMensaje = body as RespuestaMensajeChat;
             const actuales = this.mensajesSubject.value;
             // Evitar duplicados por si acaso el REST y el WS traen el mismo
             if (!actuales.find(m => m.idMensaje === nuevoMensaje.idMensaje)) {
@@ -106,9 +106,9 @@ export class ChatService {
     });
   }
 
-  public enviarMensaje(idPedido: number, cuerpo: string): Observable<Mensaje> {
+  public enviarMensaje(idPedido: number, cuerpo: string): Observable<RespuestaMensajeChat> {
     const peticion: PeticionEnviarMensaje = { cuerpoMensaje: cuerpo };
-    return this.http.post<Mensaje>(`${this.apiUrl}/${idPedido}/chat/mensajes`, peticion);
+    return this.http.post<RespuestaMensajeChat>(`${this.apiUrl}/${idPedido}/chat/mensajes`, peticion);
   }
 
   public enviarMensajeWs(idPedido: number, cuerpo: string): void {
@@ -134,7 +134,7 @@ export class ChatService {
     });
   }
 
-  public obtenerEstadoSala(idPedido: number): Observable<SalaChat> {
-    return this.http.get<SalaChat>(`${this.apiUrl}/${idPedido}/chat/estado`);
+  public obtenerEstadoSala(idPedido: number): Observable<RespuestaSalaChat> {
+    return this.http.get<RespuestaSalaChat>(`${this.apiUrl}/${idPedido}/chat/estado`);
   }
 }
