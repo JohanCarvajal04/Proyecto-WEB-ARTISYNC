@@ -154,6 +154,13 @@
                         </svg>
                       </button>
                     }
+                    @if (authService.hasPermission('SESION_REVOCAR') || authService.primaryRole() === 'ADMINISTRADOR') {
+                      <button (click)="confirmRevokeSessions(user)" title="Revocar sesiones" class="p-1 hover:text-sky-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                      </button>
+                    }
                     @if (authService.hasPermission('USUARIO_ELIMINAR') || authService.primaryRole() === 'ADMINISTRADOR') {
                       <button (click)="confirmDelete(user)" title="Eliminar" class="p-1 hover:text-rose-600 transition-colors">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -208,9 +215,9 @@
 
 <app-confirm-dialog
   [isOpen]="isConfirmOpen()"
-  [title]="confirmActionType() === 'status' ? (selectedUser()?.estadoCuenta ? 'Suspender cuenta' : 'Activar cuenta') : 'Eliminar usuario'"
-  [message]="confirmActionType() === 'status' ? '¿Estás seguro de cambiar el estado de acceso de este usuario?' : '¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esta acción no se puede deshacer.'"
-  [confirmText]="confirmActionType() === 'status' ? 'Confirmar' : 'Eliminar'"
+  [title]="confirmActionType() === 'sessions' ? 'Revocar sesiones' : (confirmActionType() === 'status' ? (selectedUser()?.estadoCuenta ? 'Suspender cuenta' : 'Activar cuenta') : 'Eliminar usuario')"
+  [message]="confirmActionType() === 'sessions' ? 'Se cerrarán todas las sesiones activas de este usuario y tendrá que volver a iniciar sesión. Su cuenta no se modifica.' : (confirmActionType() === 'status' ? '¿Estás seguro de cambiar el estado de acceso de este usuario?' : '¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esta acción no se puede deshacer.')"
+  [confirmText]="confirmActionType() === 'sessions' ? 'Revocar' : (confirmActionType() === 'status' ? 'Confirmar' : 'Eliminar')"
   (onConfirm)="executeConfirmAction()"
   (onCancel)="isConfirmOpen.set(false)"
 />
