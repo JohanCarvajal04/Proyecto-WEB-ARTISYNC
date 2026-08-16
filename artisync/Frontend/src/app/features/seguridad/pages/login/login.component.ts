@@ -4,12 +4,10 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
-import { CommonModule } from '@angular/common';
-
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
   encapsulation: ViewEncapsulation.None
@@ -22,7 +20,6 @@ export class LoginComponent {
   private toastService = inject(ToastService);
 
   readonly isLoading = signal<boolean>(false);
-  readonly showPassword = signal<boolean>(false);
 
   form: FormGroup = this.fb.group({
     correo: ['', [Validators.required]],

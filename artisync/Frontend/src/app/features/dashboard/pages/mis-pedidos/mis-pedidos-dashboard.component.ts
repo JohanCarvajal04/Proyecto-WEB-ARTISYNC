@@ -3,8 +3,6 @@ import { RouterLink } from '@angular/router';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 
-import { AuthService } from '../../../seguridad/services/auth.service';
-
 type FiltroEstado = 'todos' | 'activos' | 'completados';
 
 @Component({
@@ -15,7 +13,6 @@ type FiltroEstado = 'todos' | 'activos' | 'completados';
 })
 export class MisPedidosDashboardComponent implements OnInit {
   private pedidoService = inject(PedidoService);
-  private authService = inject(AuthService);
 
   readonly pedidos = signal<RespuestaPedidoResumido[]>([]);
   readonly isLoading = signal<boolean>(true);
@@ -60,14 +57,9 @@ export class MisPedidosDashboardComponent implements OnInit {
   loadPedidos(): void {
     this.isLoading.set(true);
     this.error.set('');
-    const role = this.authService.primaryRole();
-    const req$ = role === 'CREADOR'
-      ? this.pedidoService.listarMisComisiones()
-      : this.pedidoService.listarMisPedidos();
-
-    req$.subscribe({
+    this.pedidoService.listarMisPedidos().subscribe({
       next: (data) => {
-        this.pedidos.set(data || []);
+        this.pedidos.set(data);
         this.isLoading.set(false);
       },
       error: (err) => {

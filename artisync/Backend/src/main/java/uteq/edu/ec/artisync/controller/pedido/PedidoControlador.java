@@ -27,7 +27,7 @@ public class PedidoControlador {
     private final IPedidoServicio pedidoServicio;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
     public ResponseEntity<RespuestaPedido> crearPedido(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PeticionCrearPedido peticion) {
@@ -44,7 +44,7 @@ public class PedidoControlador {
     }
 
     @GetMapping("/mis-pedidos")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
     public ResponseEntity<List<RespuestaPedidoResumido>> listarMisPedidos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));
