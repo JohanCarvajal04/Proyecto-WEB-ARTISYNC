@@ -1,0 +1,106 @@
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+
+  <div class="px-6 py-5 border-b border-slate-100">
+    <h2 class="font-headline text-lg font-bold text-[#0F2027]">Verificación de identidad</h2>
+    <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
+      Sube tu documento para obtener el distintivo de cuenta verificada.
+    </p>
+  </div>
+
+  @if (resultado(); as r) {
+    <div class="p-6 md:p-8 flex flex-col gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-headline font-semibold text-slate-700">Solicitud enviada</p>
+          <p class="text-xs text-slate-400">Un moderador revisará tu documento.</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 rounded-xl p-4 flex flex-col gap-2 text-sm">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-slate-400">Nº de solicitud</span>
+          <span class="font-mono font-semibold text-slate-700">#{{ r.idCertificado }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-slate-400">Tipo</span>
+          <span class="font-semibold text-slate-700">{{ r.tipoDocumento }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-slate-400">Estado</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+            {{ r.nombreEstadoVerificacion }}
+          </span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 leading-relaxed">
+        Guarda el número de solicitud: el sistema todavía no ofrece un listado de
+        verificaciones propias, así que es la única forma de consultarla después.
+      </p>
+
+      <button type="button" (click)="nuevaSolicitud()"
+        class="self-start text-xs font-semibold text-slate-500 hover:text-teal-600 transition-colors">
+        Enviar otro documento
+      </button>
+    </div>
+  } @else {
+    <div class="p-6 md:p-8 flex flex-col gap-5">
+
+      <div class="flex flex-col gap-2">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo de documento</span>
+        <div class="flex gap-2">
+          <button type="button" (click)="seleccionarTipo('IDENTIDAD')"
+            [class]="tipo() === 'IDENTIDAD'
+              ? 'px-4 py-2 rounded-full text-sm font-semibold bg-[#0F2027] text-white transition-all'
+              : 'px-4 py-2 rounded-full text-sm font-semibold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all'">
+            Identidad
+          </button>
+          <button type="button" (click)="seleccionarTipo('CERTIFICADO')"
+            [class]="tipo() === 'CERTIFICADO'
+              ? 'px-4 py-2 rounded-full text-sm font-semibold bg-[#0F2027] text-white transition-all'
+              : 'px-4 py-2 rounded-full text-sm font-semibold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all'">
+            Certificado
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="documentoVerificacion" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Documento *</label>
+        <input id="documentoVerificacion" type="file" [accept]="tiposAceptados" (change)="onDocumento($event)"
+          class="w-full bg-slate-50 text-slate-600 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 file:cursor-pointer" />
+        @if (documento(); as d) {
+          <span class="text-xs text-slate-400 font-mono truncate">{{ d.name }} · {{ formatSize(d.size) }}</span>
+        } @else {
+          <span class="text-[11px] text-slate-400">Foto legible del documento. JPG o PNG, máximo 5 MB.</span>
+        }
+      </div>
+
+      @if (error()) {
+        <div class="flex items-start gap-2.5 bg-rose-50 text-rose-700 text-sm rounded-xl px-4 py-3">
+          <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <button type="button" (click)="enviar()" [disabled]="!puedeEnviar()"
+        class="self-start bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+        @if (enviando()) {
+          <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+          Enviando...
+        } @else {
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          </svg>
+          Enviar para revisión
+        }
+      </button>
+    </div>
+  }
+</div>
