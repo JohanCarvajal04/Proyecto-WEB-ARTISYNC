@@ -50,6 +50,14 @@ export class AdminUserService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
+  /**
+   * Cierra todas las sesiones activas de otro usuario (SESION_REVOCAR). No
+   * confundir con `/usuarios/me/sesiones`, que solo afecta a la propia cuenta.
+   */
+  revokeSessions(id: number): Observable<MessageResponse> {
+    return this.http.delete<MessageResponse>(`${this.apiUrl}/${id}/sesiones`);
+  }
+
   getPaises(): Observable<PaisResponse[]> {
     return this.http.get<PaisResponse[]>(`${environment.apiUrl}/paises`);
   }

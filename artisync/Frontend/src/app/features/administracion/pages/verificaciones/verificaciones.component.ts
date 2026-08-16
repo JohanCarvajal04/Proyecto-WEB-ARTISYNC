@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ModeracionService } from '../../services/moderacion.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { VerificacionCola, VerificacionDetalle, DecisionVerificacion } from '../../models/moderacion.model';
+import { VerificacionCola, VerificacionDetalle, DecisionVerificacion, CertificadoIa } from '../../models/moderacion.model';
 
 @Component({
   selector: 'app-verificaciones',
@@ -21,7 +21,9 @@ export class VerificacionesComponent implements OnInit {
   readonly selectedItem = signal<VerificacionDetalle | null>(null);
   readonly isDetailLoading = signal<boolean>(false);
   readonly documentUrl = signal<string | null>(null);
-  
+  /** Certificados previos del mismo perfil, como contexto para la decisión. */
+  readonly historialPerfil = signal<CertificadoIa[]>([]);
+
   // Filtro
   selectedEstado = 'PENDIENTE';
 
@@ -56,10 +58,13 @@ export class VerificacionesComponent implements OnInit {
     this.documentUrl.set(null);
     this.notaModerador = '';
 
+    this.historialPerfil.set([]);
+
     this.modService.obtenerVerificacion(id).subscribe({
       next: (detail) => {
         this.selectedItem.set(detail);
         this.loadDocument(id);
+        this.loadHistorial(detail.idPerfil);
         this.isDetailLoading.set(false);
       },
       error: () => {
@@ -75,6 +80,18 @@ export class VerificacionesComponent implements OnInit {
       URL.revokeObjectURL(this.documentUrl()!);
       this.documentUrl.set(null);
     }
+  }
+
+  /**
+   * Certificados previos del mismo perfil. Es contexto, no bloquea la revisión:
+   * un perfil sin historial responde vacío y no debe ensuciar la vista.
+   */
+  loadHistorial(idPerfil: number | null): void {
+    if (idPerfil === null) return;
+    this.modService.listarCertificadosDePerfil(idPerfil).subscribe({
+      next: (certificados) => this.historialPerfil.set(certificados),
+      error: () => this.historialPerfil.set([])
+    });
   }
 
   loadDocument(id: number): void {

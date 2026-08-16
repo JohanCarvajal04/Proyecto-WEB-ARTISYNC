@@ -42,6 +42,29 @@ class PreprocesadorImagenIaTest {
         assertThrows(ExcepcionReglaNegocio.class, () -> preprocesador.validarFormato(archivo));
     }
 
+    /**
+     * El techo global de multipart subió a 100MB para admitir video de portafolio,
+     * así que el límite de verificación vive aquí y debe seguir vigente.
+     */
+    @Test
+    void validarFormato_imagenQueSuperaLos5MB_esRechazada() {
+        MockMultipartFile archivo = new MockMultipartFile(
+                "documento", "cedula.jpg", "image/jpeg", new byte[6 * 1024 * 1024]);
+
+        ExcepcionReglaNegocio error = assertThrows(ExcepcionReglaNegocio.class,
+                () -> preprocesador.validarFormato(archivo));
+
+        assertThat(error).hasMessageContaining("5 MB");
+    }
+
+    @Test
+    void validarFormato_imagenJustoBajoElLimite_esAceptada() {
+        MockMultipartFile archivo = new MockMultipartFile(
+                "documento", "cedula.jpg", "image/jpeg", new byte[5 * 1024 * 1024]);
+
+        preprocesador.validarFormato(archivo); // no debe lanzar
+    }
+
     @Test
     void comprimirParaIa_imagenPequenaSigueSiendoValida() throws Exception {
         byte[] original = imagenSolidaComoPng(200, 200);

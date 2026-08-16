@@ -2,11 +2,12 @@ import { Component, inject, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
+import { SolicitudVerificacionComponent } from '../../../perfil/components/solicitud-verificacion/solicitud-verificacion.component';
 
 @Component({
   selector: 'app-perfil-cliente',
   standalone: true,
-  imports: [RouterLink, AvatarComponent],
+  imports: [RouterLink, AvatarComponent, SolicitudVerificacionComponent],
   templateUrl: './perfil-cliente.component.html'
 })
 export class PerfilClienteComponent {

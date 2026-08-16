@@ -1,0 +1,91 @@
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+
+  <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+    <div>
+      <h2 class="font-headline text-lg font-bold text-[#0F2027]">Mensajes</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Conversación vinculada a este pedido</p>
+    </div>
+    @if (sala(); as s) {
+      <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0"
+        [class]="s.salaActiva ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+        {{ s.salaActiva ? 'Abierta' : 'Cerrada' }}
+      </span>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center p-16">
+      <div class="animate-spin rounded-full h-7 w-7 border-2 border-teal-600 border-t-transparent"></div>
+    </div>
+  } @else if (!sala()) {
+    <div class="p-12 text-center flex flex-col items-center gap-3">
+      <svg class="w-9 h-9 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+      <p class="text-xs text-slate-400 max-w-xs leading-relaxed">
+        La sala de chat se abre cuando ambas partes firman el contrato.
+      </p>
+    </div>
+  } @else {
+
+    <!-- Historial -->
+    <div class="p-6 flex flex-col gap-3 max-h-[26rem] overflow-y-auto">
+      @if (mensajes().length === 0) {
+        <p class="text-xs text-slate-400 text-center py-8">Todavía no hay mensajes. Escribe el primero.</p>
+      }
+
+      @for (m of mensajes(); track m.idMensaje) {
+        <div class="flex flex-col gap-1 max-w-[80%]" [class]="esMio(m) ? 'self-end items-end' : 'self-start items-start'">
+          <div class="flex items-center gap-2 px-1">
+            <span class="text-[11px] font-semibold text-slate-500">{{ esMio(m) ? 'Tú' : m.nombreRemitente }}</span>
+            <span class="text-[10px] text-slate-300 font-mono">{{ formatHora(m.fechaHoraEnvio) }}</span>
+          </div>
+          <div class="rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line break-words"
+            [class]="esMio(m)
+              ? 'bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] text-white rounded-br-sm'
+              : 'bg-slate-50 text-slate-700 rounded-bl-sm'">
+            {{ m.cuerpoMensaje }}
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Redacción -->
+    <div class="border-t border-slate-100 p-4 flex flex-col gap-3">
+      @if (error()) {
+        <div class="flex items-start gap-2.5 bg-rose-50 text-rose-700 text-xs rounded-xl px-3 py-2.5">
+          <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      @if (salaDisponible()) {
+        <textarea rows="2" [value]="borrador()" (input)="onBorrador($event)" [attr.maxlength]="maxCaracteres"
+          placeholder="Escribe un mensaje..."
+          class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all resize-none"></textarea>
+
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[10px] text-slate-300 font-mono">{{ borrador().length }} / {{ maxCaracteres }}</span>
+          <button type="button" (click)="enviar()" [disabled]="!puedeEnviar()"
+            class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-5 py-2 rounded-full text-xs transition-all shadow-sm hover:shadow-md flex items-center gap-2">
+            @if (enviando()) {
+              <span class="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></span>
+              Enviando...
+            } @else {
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              Enviar
+            }
+          </button>
+        </div>
+      } @else {
+        <p class="text-xs text-slate-400 text-center py-2">
+          Esta conversación está cerrada. Ya no se pueden enviar mensajes.
+        </p>
+      }
+    </div>
+  }
+</div>

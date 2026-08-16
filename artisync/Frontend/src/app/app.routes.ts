@@ -29,6 +29,13 @@ export const routes: Routes = [
     loadChildren: () => import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES)
   },
   {
+    path: 'creador',
+    canActivate: [authGuard],
+    data: { roles: ['CREADOR'] },
+    loadComponent: () => import('./layouts/client-dashboard-layout/client-dashboard-layout.component').then(m => m.ClientDashboardLayoutComponent),
+    loadChildren: () => import('./features/creador/creador.routes').then(m => m.CREADOR_ROUTES)
+  },
+  {
     path: 'pedido',
     canActivate: [authGuard],
     loadChildren: () => import('./features/pedido/pedido.routes').then(m => m.PEDIDO_ROUTES)

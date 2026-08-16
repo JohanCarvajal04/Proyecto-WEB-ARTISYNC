@@ -28,8 +28,11 @@ public class CategoriaControlador {
         return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());
     }
 
+    // La gestión del catálogo se autoriza por permiso, no por rol: MODERADOR
+    // recibe CATEGORIA_GESTIONAR en la semilla y es quien administra categorías
+    // desde su panel. Exigir hasRole('ADMIN') lo dejaba fuera con un 403.
     @GetMapping("/todas")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaCategoria>> listarTodasLasCategorias() {
         return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());
     }
@@ -40,13 +43,13 @@ public class CategoriaControlador {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaCategoria> crearCategoria(@Valid @RequestBody PeticionCrearCategoria peticion) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(peticion));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaCategoria> actualizarCategoria(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarCategoria peticion) {
@@ -54,7 +57,7 @@ public class CategoriaControlador {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarCategoria(@PathVariable Long id) {
         categoriaServicio.eliminarCategoria(id);
         return ResponseEntity.ok(new RespuestaMensaje("Categoria eliminada exitosamente"));

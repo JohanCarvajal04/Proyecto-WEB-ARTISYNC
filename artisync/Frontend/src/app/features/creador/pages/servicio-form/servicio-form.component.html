@@ -1,0 +1,273 @@
+<div class="cr-page">
+
+  <div class="cr-head">
+    <div>
+      <p class="cr-eyebrow">
+        <a routerLink="/creador/servicios" class="cr-link">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Mis servicios
+        </a>
+      </p>
+      <h1 class="cr-title">{{ esEdicion() ? 'Editar servicio' : 'Nuevo servicio' }}</h1>
+      <p class="cr-subtitle">
+        {{ esEdicion()
+          ? 'Actualiza precio, alcance y estado de publicación.'
+          : 'Define qué ofreces; podrás añadir atributos una vez creado.' }}
+      </p>
+    </div>
+  </div>
+
+  @if (perfilFaltante()) {
+    <app-perfil-requerido />
+  } @else if (isLoading()) {
+    <div class="cr-card"><div class="cr-loader"><div class="cr-spinner"></div></div></div>
+  } @else {
+
+    @if (error()) {
+      <div class="cr-alert cr-alert--error">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-2.5L13.73 4c-.77-.83-1.96-.83-2.73 0L3.2 16.5c-.77.83.19 2.5 1.73 2.5z" />
+        </svg>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <!-- Datos del servicio -->
+    <form class="cr-card" [formGroup]="form" (ngSubmit)="guardar()">
+      <div class="cr-card__head">
+        <div>
+          <h2 class="cr-card__title">Información del servicio</h2>
+          <p class="cr-card__hint">Lo que verá el cliente en el catálogo</p>
+        </div>
+      </div>
+
+      <div class="cr-card__body cr-form">
+
+        <div class="cr-field">
+          <label class="cr-label" for="tituloServicio">Título <span>*</span></label>
+          <input id="tituloServicio" type="text" class="cr-input" formControlName="tituloServicio"
+            [class.is-invalid]="invalido('tituloServicio')"
+            placeholder="Ej. Ilustración digital de personaje, cuerpo completo" maxlength="150" />
+          @if (invalido('tituloServicio')) {
+            <span class="cr-error">El título es obligatorio (máx. 150 caracteres).</span>
+          }
+        </div>
+
+        <div class="cr-field">
+          <label class="cr-label" for="descripcionDetallada">Descripción detallada <span>*</span></label>
+          <textarea id="descripcionDetallada" class="cr-textarea" formControlName="descripcionDetallada"
+            [class.is-invalid]="invalido('descripcionDetallada')"
+            placeholder="Explica el alcance, el estilo, qué incluye la entrega y qué necesitas del cliente."
+            maxlength="2000"></textarea>
+          <div class="sf-counter">
+            @if (invalido('descripcionDetallada')) {
+              <span class="cr-error">Debe tener entre 20 y 2000 caracteres.</span>
+            } @else {
+              <span class="cr-hint">Mínimo 20 caracteres.</span>
+            }
+            <span class="cr-hint">{{ descripcionLength() }} / 2000</span>
+          </div>
+        </div>
+
+        <div class="cr-form__row cr-form__row--3">
+          <div class="cr-field">
+            <label class="cr-label" for="precioBase">Precio base (USD) <span>*</span></label>
+            <input id="precioBase" type="number" min="0.01" step="0.01" class="cr-input" formControlName="precioBase"
+              [class.is-invalid]="invalido('precioBase')" placeholder="0.00" />
+            @if (invalido('precioBase')) {
+              <span class="cr-error">Indica un precio de al menos 0.01 USD.</span>
+            }
+          </div>
+
+          <div class="cr-field">
+            <label class="cr-label" for="tipoItem">Tipo <span>*</span></label>
+            <select id="tipoItem" class="cr-select" formControlName="tipoItem">
+              @for (tipo of tiposItem; track tipo) {
+                <option [value]="tipo">{{ tipo === 'SERVICIO' ? 'Servicio (por encargo)' : 'Producto (entrega directa)' }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="cr-field">
+            <label class="cr-label" for="idSubcategoria">Subcategoría <span>*</span></label>
+            <select id="idSubcategoria" class="cr-select" formControlName="idSubcategoria"
+              [class.is-invalid]="invalido('idSubcategoria')">
+              <option [ngValue]="null">Selecciona una subcategoría</option>
+              @for (grupo of subcategoriasAgrupadas(); track grupo.categoria) {
+                <optgroup [label]="grupo.categoria">
+                  @for (sub of grupo.items; track sub.idSubcategoria) {
+                    <option [ngValue]="sub.idSubcategoria">{{ sub.nombreSubcategoria }}</option>
+                  }
+                </optgroup>
+              }
+            </select>
+            @if (invalido('idSubcategoria')) {
+              <span class="cr-error">Elige la subcategoría donde se listará el servicio.</span>
+            }
+          </div>
+        </div>
+
+        <div class="cr-form__row cr-form__row--3">
+          <div class="cr-field">
+            <label class="cr-label" for="limiteRevisionesBase">Revisiones incluidas</label>
+            <input id="limiteRevisionesBase" type="number" min="0" step="1" class="cr-input" formControlName="limiteRevisionesBase" placeholder="Ej. 2" />
+            <span class="cr-hint">Cuántas correcciones entran en el precio.</span>
+          </div>
+
+          <div class="cr-field">
+            <label class="cr-label" for="cargoRevisionAdicional">Cargo por revisión extra (USD)</label>
+            <input id="cargoRevisionAdicional" type="number" min="0" step="0.01" class="cr-input" formControlName="cargoRevisionAdicional" placeholder="0.00" />
+            <span class="cr-hint">Se cobra al superar el límite incluido.</span>
+          </div>
+
+          @if (esEdicion()) {
+            <div class="cr-field">
+              <label class="cr-label" for="estadoPublicacion">Estado de publicación</label>
+              <select id="estadoPublicacion" class="cr-select" formControlName="estadoPublicacion">
+                @for (estado of estados; track estado) {
+                  <option [value]="estado">{{ estado }}</option>
+                }
+              </select>
+              <span class="cr-hint">Solo ACTIVO aparece en el catálogo público.</span>
+            </div>
+          }
+        </div>
+
+        <div class="cr-field">
+          <label class="cr-label" for="urlMiniatura">URL de la miniatura</label>
+          <input id="urlMiniatura" type="url" class="cr-input" formControlName="urlMiniatura"
+            placeholder="https://..." maxlength="255" />
+          <span class="cr-hint">Imagen de portada que se muestra en el catálogo.</span>
+        </div>
+
+        <!-- Etiquetas -->
+        <div class="cr-field">
+          <span class="cr-label">Etiquetas</span>
+          @if (etiquetas().length === 0) {
+            <span class="cr-hint">No hay etiquetas disponibles en el catálogo.</span>
+          } @else {
+            <div class="sf-tags">
+              @for (etiqueta of etiquetas(); track etiqueta.idEtiqueta) {
+                <button type="button" class="cr-chip" [class.is-active]="etiquetaActiva(etiqueta.idEtiqueta)"
+                  (click)="alternarEtiqueta(etiqueta.idEtiqueta)">
+                  {{ etiqueta.nombreEtiqueta }}
+                </button>
+              }
+            </div>
+            <span class="cr-hint">{{ etiquetasElegidas().length }} etiqueta(s) seleccionada(s).</span>
+          }
+
+          <div class="cr-form__row">
+            <input type="text" class="cr-input" maxlength="50" [value]="nuevaEtiqueta()"
+              (input)="onNuevaEtiqueta($event)" placeholder="¿Falta una etiqueta? Créala aquí" />
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm"
+              [disabled]="nuevaEtiqueta().trim().length === 0 || creandoEtiqueta()" (click)="crearEtiqueta()">
+              @if (creandoEtiqueta()) { <span class="cr-spinner cr-spinner--sm"></span> }
+              Crear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cr-card__foot">
+        <a routerLink="/creador/servicios" class="cr-btn cr-btn--ghost">Cancelar</a>
+        <button type="submit" class="cr-btn cr-btn--primary" [disabled]="isSaving()">
+          @if (isSaving()) { <span class="cr-spinner cr-spinner--sm"></span> }
+          {{ esEdicion() ? 'Guardar cambios' : 'Crear servicio' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Atributos -->
+    @if (esEdicion()) {
+      <div class="cr-card">
+        <div class="cr-card__head">
+          <div>
+            <h2 class="cr-card__title">Atributos</h2>
+            <p class="cr-card__hint">Detalles estructurados: resolución, formato de archivo, plazo…</p>
+          </div>
+        </div>
+
+        <div class="cr-card__body">
+          <form class="sf-attr-form" [formGroup]="formAtributo" (ngSubmit)="guardarAtributo()">
+            <div class="cr-field">
+              <label class="cr-label" for="nombreAtributo">Nombre</label>
+              <input id="nombreAtributo" type="text" class="cr-input" formControlName="nombreAtributo" placeholder="Ej. Resolución" maxlength="100" />
+            </div>
+            <div class="cr-field">
+              <label class="cr-label" for="valorAsignado">Valor</label>
+              <input id="valorAsignado" type="text" class="cr-input" formControlName="valorAsignado" placeholder="Ej. 4000x4000 px" maxlength="255" />
+            </div>
+            <div class="cr-field">
+              <label class="cr-label" for="tipoDato">Tipo de dato</label>
+              <select id="tipoDato" class="cr-select" formControlName="tipoDato">
+                @for (tipo of tiposDato; track tipo) {
+                  <option [value]="tipo">{{ tipo }}</option>
+                }
+              </select>
+            </div>
+            <div class="sf-attr-form__actions">
+              @if (atributoEnEdicion() !== null) {
+                <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="cancelarAtributo()">Cancelar</button>
+              }
+              <button type="submit" class="cr-btn cr-btn--outline cr-btn--sm" [disabled]="guardandoAtributo()">
+                {{ atributoEnEdicion() !== null ? 'Actualizar' : 'Añadir' }}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        @if (atributos().length === 0) {
+          <div class="cr-empty">
+            <div class="cr-empty__icon">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+              </svg>
+            </div>
+            <div>
+              <p class="cr-empty__title">Sin atributos todavía</p>
+              <p class="cr-empty__text">Los atributos ayudan al cliente a comparar tu servicio con otros.</p>
+            </div>
+          </div>
+        } @else {
+          <div class="cr-table-wrap">
+            <table class="cr-table">
+              <thead>
+                <tr>
+                  <th>Atributo</th>
+                  <th>Valor</th>
+                  <th>Tipo</th>
+                  <th class="cr-td-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of atributos(); track a.idAtributo) {
+                  <tr>
+                    <td class="cr-td-strong">{{ a.nombreAtributo }}</td>
+                    <td class="cr-td-muted">{{ a.valorAsignado }}</td>
+                    <td><span class="cr-tag">{{ a.tipoDato }}</span></td>
+                    <td>
+                      <div class="cr-td-actions">
+                        <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="editarAtributo(a)">Editar</button>
+                        <button type="button" class="cr-btn cr-btn--danger cr-btn--sm" (click)="eliminarAtributo(a)">Eliminar</button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="cr-alert cr-alert--info">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Guarda el servicio para poder añadirle atributos y publicarlo en el catálogo.</span>
+      </div>
+    }
+  }
+</div>

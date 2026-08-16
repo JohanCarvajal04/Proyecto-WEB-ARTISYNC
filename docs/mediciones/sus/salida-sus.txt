@@ -1,0 +1,43 @@
+=== Reporte de Usabilidad SUS (System Usability Scale) ===
+Archivo de entrada: sus-raw.csv
+SHA-256: 34279f73420364025a61ef9e96c1741199b6563501ac91627f7991bd0c20d040
+
+n participantes: 10
+
+=== Puntajes SUS individuales ===
+P01: 82.50
+P02: 92.50
+P03: 92.50
+P04: 65.00
+P05: 67.50
+P06: 67.50
+P07: 70.00
+P08: 50.00
+P09: 80.00
+P10: 50.00
+
+=== Agregados ===
+Media: 71.75
+Mediana: 68.75
+Desviacion tipica (muestral, n-1): 15.19
+Minimo: 50.00
+Maximo: 92.50
+Grados de libertad: 9
+Valor critico t(0.975, df=9): 2.262
+IC 95%: [60.89, 82.61]
+
+Interpretacion (escala de Bangor): C+
+Umbral del proyecto (>68.0): SUPERA (71.75)
+
+=== Media normalizada por item (contribucion 0-4, tras invertir pares) ===
+Q1: 3.00
+Q2: 2.80
+Q3: 3.10
+Q4: 3.10
+Q5: 3.00
+Q6: 2.80
+Q7: 3.00
+Q8: 2.70
+Q9: 2.50
+Q10: 2.70
+Item con peor puntaje promedio: Q9 (2.50/4)

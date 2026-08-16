@@ -1,0 +1,291 @@
+<div class="cr-page">
+
+  <div class="cr-head">
+    <div>
+      <p class="cr-eyebrow">Comunidad</p>
+      <h1 class="cr-title">Sorteos</h1>
+      <p class="cr-subtitle">Campañas para atraer seguidores y premiar a tu audiencia.</p>
+    </div>
+    <div class="cr-head__actions">
+      <button type="button" class="cr-btn cr-btn--primary" (click)="abrirNuevo()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Nuevo sorteo
+      </button>
+    </div>
+  </div>
+
+  @if (perfilFaltante()) {
+    <app-perfil-requerido />
+  } @else {
+
+    @if (error()) {
+      <div class="cr-alert cr-alert--error">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-2.5L13.73 4c-.77-.83-1.96-.83-2.73 0L3.2 16.5c-.77.83.19 2.5 1.73 2.5z" />
+        </svg>
+        <span>{{ error() }}</span>
+        <button type="button" class="cr-link" (click)="cargar()">Reintentar</button>
+      </div>
+    }
+
+    <div class="cr-grid cr-grid--3">
+      <div class="cr-stat">
+        <div class="cr-stat__top">
+          <p class="cr-stat__label">Sorteos activos</p>
+          <span class="cr-stat__icon cr-stat__icon--ok">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+        </div>
+        <p class="cr-stat__value">{{ activos() }}</p>
+        <p class="cr-stat__meta">abiertos a inscripción</p>
+      </div>
+      <div class="cr-stat">
+        <div class="cr-stat__top">
+          <p class="cr-stat__label">Participantes</p>
+          <span class="cr-stat__icon cr-stat__icon--violet">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.4-1.8M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.8M7 20H2v-2a3 3 0 015.4-1.8M7 20v-2c0-.7.1-1.3.4-1.8m0 0a5 5 0 019.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </span>
+        </div>
+        <p class="cr-stat__value">{{ totalParticipantes() }}</p>
+        <p class="cr-stat__meta">inscripciones acumuladas</p>
+      </div>
+      <div class="cr-stat">
+        <div class="cr-stat__top">
+          <p class="cr-stat__label">Finalizados</p>
+          <span class="cr-stat__icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.3 6.3L22 12l-6.7 2.7L13 21l-2.3-6.3L4 12l6.7-2.7L13 3z" />
+            </svg>
+          </span>
+        </div>
+        <p class="cr-stat__value">{{ finalizados() }}</p>
+        <p class="cr-stat__meta">con ganadores elegidos</p>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="cr-card"><div class="cr-loader"><div class="cr-spinner"></div></div></div>
+    } @else if (sorteos().length === 0) {
+      <div class="cr-card">
+        <div class="cr-empty">
+          <div class="cr-empty__icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8V4H8m0 0L4 8m4-4h8l4 4v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8" />
+            </svg>
+          </div>
+          <div>
+            <p class="cr-empty__title">Todavía no has creado sorteos</p>
+            <p class="cr-empty__text">Un sorteo te permite regalar trabajo o piezas y hacer crecer tu comunidad.</p>
+          </div>
+          <button type="button" class="cr-btn cr-btn--primary cr-btn--sm" (click)="abrirNuevo()">Crear el primero</button>
+        </div>
+      </div>
+    } @else {
+      <div class="so-lista">
+        @for (s of sorteos(); track s.idSorteo) {
+          <article class="cr-card so-card">
+            <div class="cr-card__head">
+              <div>
+                <h2 class="cr-card__title">{{ s.tituloSorteo }}</h2>
+                <p class="cr-card__hint">
+                  {{ formatDateTime(s.fechaInicio) }} → {{ formatDateTime(s.fechaCierre) }}
+                </p>
+              </div>
+              <span [class]="badgeSorteo(s.estadoSorteo)">{{ s.estadoSorteo }}</span>
+            </div>
+
+            <div class="cr-card__body">
+              <p class="so-premios">{{ s.descripcionPremios }}</p>
+              <div class="so-meta">
+                <span class="cr-tag">{{ s.cantidadGanadores }} ganador(es)</span>
+                <span class="cr-tag">{{ s.totalParticipantes }} participante(s)</span>
+                @if (s.requiereSeguidor) { <span class="cr-tag">Solo seguidores</span> }
+              </div>
+
+              @if (s.ganadores?.length) {
+                <div class="so-ganadores">
+                  <p class="cr-label">Ganadores</p>
+                  <ul>
+                    @for (g of s.ganadores; track g.idParticipacion) {
+                      <li>
+                        <span>🏆 {{ g.nombreUsuario }}</span>
+                        <small>{{ formatDateTime(g.fechaNotificacionPremio) }}</small>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (detalleAbierto() === s.idSorteo) {
+                <div class="so-participantes">
+                  @if (cargandoParticipantes()) {
+                    <div class="cr-loader"><div class="cr-spinner"></div></div>
+                  } @else if (participantes().length === 0) {
+                    <p class="cr-hint">Nadie se ha inscrito todavía.</p>
+                  } @else {
+                    <div class="cr-table-wrap">
+                      <table class="cr-table so-table">
+                        <thead>
+                          <tr>
+                            <th>Participante</th>
+                            <th>Inscripción</th>
+                            <th>Resultado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (p of participantes(); track p.idParticipacion) {
+                            <tr>
+                              <td class="cr-td-strong">{{ p.nombreUsuario }}</td>
+                              <td class="cr-td-faint">{{ formatDateTime(p.fechaInscripcion) }}</td>
+                              <td>
+                                <span [class]="p.esGanador ? 'cr-badge cr-badge--ok' : 'cr-badge'">
+                                  {{ p.esGanador ? 'Ganador' : 'Participando' }}
+                                </span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+
+                  @if (ganadores().length > 0) {
+                    <div class="cr-divider"></div>
+                    <p class="cr-label">Ganadores</p>
+                    <div class="cr-table-wrap">
+                      <table class="cr-table so-table">
+                        <thead>
+                          <tr>
+                            <th>Ganador</th>
+                            <th>Premio notificado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (g of ganadores(); track g.idParticipacion) {
+                            <tr>
+                              <td class="cr-td-strong">{{ g.nombreUsuario }}</td>
+                              <td class="cr-td-faint">
+                                {{ g.fechaNotificacionPremio ? formatDateTime(g.fechaNotificacionPremio) : 'Pendiente' }}
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="cr-card__foot">
+              <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="alternarDetalle(s)">
+                {{ detalleAbierto() === s.idSorteo ? 'Ocultar participantes' : 'Ver participantes' }}
+              </button>
+              <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="abrirEdicion(s)">Editar</button>
+              <button type="button" class="cr-btn cr-btn--danger cr-btn--sm" (click)="pedirConfirmacion(s)">Eliminar</button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  }
+
+  <!-- Alta / edición -->
+  @if (modalAbierto()) {
+    <div class="cr-modal" role="dialog" aria-modal="true">
+      <button type="button" class="cr-modal__backdrop" aria-label="Cerrar" (click)="cerrarModal()"></button>
+      <form class="cr-modal__panel" [formGroup]="form" (ngSubmit)="guardar()">
+        <div class="cr-card__head">
+          <div>
+            <h2 class="cr-card__title">{{ sorteoEnEdicion() ? 'Editar sorteo' : 'Nuevo sorteo' }}</h2>
+            <p class="cr-card__hint">
+              {{ sorteoEnEdicion()
+                ? 'Con participantes inscritos, algunos campos quedan bloqueados por el backend.'
+                : 'Las fechas deben ser futuras.' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="cr-card__body cr-form">
+          <div class="cr-field">
+            <label class="cr-label" for="tituloSorteo">Título <span>*</span></label>
+            <input id="tituloSorteo" type="text" class="cr-input" formControlName="tituloSorteo"
+              [class.is-invalid]="invalido('tituloSorteo')" maxlength="150" placeholder="Ej. Sorteo de retrato digital" />
+            @if (invalido('tituloSorteo')) { <span class="cr-error">El título es obligatorio.</span> }
+          </div>
+
+          <div class="cr-field">
+            <label class="cr-label" for="descripcionPremios">Premios <span>*</span></label>
+            <textarea id="descripcionPremios" class="cr-textarea" formControlName="descripcionPremios"
+              [class.is-invalid]="invalido('descripcionPremios')"
+              placeholder="Describe qué se llevan los ganadores y cómo se entrega."></textarea>
+            @if (invalido('descripcionPremios')) { <span class="cr-error">Describe los premios.</span> }
+          </div>
+
+          <div class="cr-form__row cr-form__row--3">
+            <div class="cr-field">
+              <label class="cr-label" for="cantidadGanadores">Ganadores <span>*</span></label>
+              <input id="cantidadGanadores" type="number" min="1" step="1" class="cr-input" formControlName="cantidadGanadores"
+                [class.is-invalid]="invalido('cantidadGanadores')" />
+              @if (invalido('cantidadGanadores')) { <span class="cr-error">Al menos 1.</span> }
+            </div>
+            <div class="cr-field">
+              <label class="cr-label" for="fechaInicio">Inicio <span>*</span></label>
+              <input id="fechaInicio" type="datetime-local" class="cr-input" formControlName="fechaInicio"
+                [class.is-invalid]="invalido('fechaInicio')" />
+              @if (sorteoEnEdicion()) { <span class="cr-hint">No se puede modificar.</span> }
+            </div>
+            <div class="cr-field">
+              <label class="cr-label" for="fechaCierre">Cierre <span>*</span></label>
+              <input id="fechaCierre" type="datetime-local" class="cr-input" formControlName="fechaCierre"
+                [class.is-invalid]="invalido('fechaCierre')" />
+            </div>
+          </div>
+
+          @if (!sorteoEnEdicion()) {
+            <label class="cr-check">
+              <input type="checkbox" formControlName="requiereSeguidor" />
+              <span>Solo pueden participar quienes te siguen</span>
+            </label>
+          }
+        </div>
+
+        <div class="cr-card__foot">
+          <button type="button" class="cr-btn cr-btn--ghost" (click)="cerrarModal()">Cancelar</button>
+          <button type="submit" class="cr-btn cr-btn--primary" [disabled]="guardando()">
+            @if (guardando()) { <span class="cr-spinner cr-spinner--sm"></span> }
+            {{ sorteoEnEdicion() ? 'Guardar cambios' : 'Crear sorteo' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- Confirmación de borrado -->
+  @if (aEliminar(); as sorteo) {
+    <div class="cr-modal" role="dialog" aria-modal="true">
+      <button type="button" class="cr-modal__backdrop" aria-label="Cerrar" (click)="cancelarEliminacion()"></button>
+      <div class="cr-modal__panel">
+        <div class="cr-card__head">
+          <div>
+            <h2 class="cr-card__title">Eliminar sorteo</h2>
+            <p class="cr-card__hint">Solo es posible si nadie se ha inscrito</p>
+          </div>
+        </div>
+        <div class="cr-card__body">
+          <p>Se eliminará <strong>{{ sorteo.tituloSorteo }}</strong>.</p>
+        </div>
+        <div class="cr-card__foot">
+          <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarEliminacion()">Cancelar</button>
+          <button type="button" class="cr-btn cr-btn--danger" [disabled]="guardando()" (click)="confirmarEliminacion()">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

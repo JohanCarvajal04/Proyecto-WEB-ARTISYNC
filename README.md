@@ -113,7 +113,7 @@ Todas las mediciones, con sus datos crudos, están versionadas bajo [`docs/medic
 | Lighthouse — SEO | 100 / 100 | ≥ 90 |
 | Controles OWASP evidenciados | 6 / 6 | 6 |
 | Cobertura JaCoCo (líneas) | 23.0 % | ≥ 60 % *(no alcanzado)* |
-| Usabilidad SUS | sin participantes *(pendiente)* | ≥ 10 participantes |
+| Usabilidad SUS | 71.75 / 100 (n=10, Bangor C+) | > 68 puntos, ≥ 10 participantes |
 
 El diccionario de variables está en [`docs/mediciones/DATA-DICTIONARY.md`](docs/mediciones/DATA-DICTIONARY.md). El estado de cumplimiento frente a la guía de la entrega, incluidas las brechas abiertas, se detalla en [`docs/INFORME-CUMPLIMIENTO-ENTREGA-3.md`](docs/INFORME-CUMPLIMIENTO-ENTREGA-3.md).
 

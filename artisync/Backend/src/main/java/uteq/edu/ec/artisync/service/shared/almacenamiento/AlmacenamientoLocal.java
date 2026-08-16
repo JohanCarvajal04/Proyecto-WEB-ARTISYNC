@@ -1,6 +1,7 @@
 package uteq.edu.ec.artisync.service.shared.almacenamiento;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
@@ -13,10 +14,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "documentos.proveedor", havingValue = "local", matchIfMissing = true)
 public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
 
     private final Path rutaBase;
@@ -36,15 +39,29 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
 
     @Override
     public String guardar(MultipartFile archivo) {
+        return guardar(archivo, "");
+    }
+
+    @Override
+    public String guardar(MultipartFile archivo, String prefijo) {
         asegurarDirectorio();
-        String nombre = UUID.randomUUID() + extensionDesde(archivo.getContentType());
-        Path destino = rutaBase.resolve(nombre).normalize();
+        String nombre = PrefijoAlmacenamiento.componer(
+                prefijo, UUID.randomUUID() + ExtensionesArchivo.desde(archivo.getContentType()));
+        Path destino = resolverDentroDeBase(nombre);
         try (InputStream in = archivo.getInputStream()) {
+            // El prefijo se traduce a subdirectorio; sin esto Files.copy falla.
+            Files.createDirectories(destino.getParent());
             Files.copy(in, destino, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new ExcepcionReglaNegocio("No se pudo guardar el documento: " + e.getMessage());
         }
         return nombre;
+    }
+
+    /** El almacenamiento local no sabe firmar URLs: el consumidor sirve los bytes. */
+    @Override
+    public Optional<String> urlTemporal(String referencia) {
+        return Optional.empty();
     }
 
     @Override
@@ -73,9 +90,5 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
             throw new ExcepcionReglaNegocio("Referencia de documento inválida.");
         }
         return ruta;
-    }
-
-    private String extensionDesde(String contentType) {
-        return "image/png".equals(contentType) ? ".png" : ".jpg";
     }
 }

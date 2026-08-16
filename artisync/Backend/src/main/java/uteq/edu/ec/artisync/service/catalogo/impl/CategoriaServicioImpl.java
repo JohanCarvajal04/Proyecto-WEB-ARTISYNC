@@ -9,10 +9,12 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.entity.catalogo.Categoria;
+import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
+import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
@@ -25,6 +27,7 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
+    private final FlujoTrabajoRepository flujoTrabajoRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -61,6 +64,7 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
         Categoria cat = Categoria.builder()
                 .nombreCategoria(peticion.getNombreCategoria().trim())
                 .estadoActiva(peticion.getEstadoActiva() != null ? peticion.getEstadoActiva() : true)
+                .flujo(resolverFlujo(peticion.getIdFlujo()))
                 .build();
         cat = categoriaRepository.save(cat);
         return mapearACategoriaRespuesta(cat);
@@ -81,6 +85,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
         }
         if (peticion.getEstadoActiva() != null) {
             cat.setEstadoActiva(peticion.getEstadoActiva());
+        }
+        if (peticion.getIdFlujo() != null) {
+            cat.setFlujo(resolverFlujo(peticion.getIdFlujo()));
         }
         cat = categoriaRepository.save(cat);
         return mapearACategoriaRespuesta(cat);
@@ -149,8 +156,24 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
                 .idCategoria(cat.getIdCategoria())
                 .nombreCategoria(cat.getNombreCategoria())
                 .estadoActiva(cat.getEstadoActiva())
+                .idFlujo(cat.getFlujo() != null ? cat.getFlujo().getIdFlujo() : null)
+                .nombreFlujo(cat.getFlujo() != null ? cat.getFlujo().getNombreFlujo() : null)
                 .actualizadoEn(cat.getActualizadoEn())
                 .build();
+    }
+
+    /**
+     * `null` es una respuesta válida: significa "sin flujo asignado", y el
+     * servicio de pedidos ya cae a un flujo por defecto en ese caso. Un id que
+     * no existe sí es un error del cliente y se rechaza.
+     */
+    private FlujoTrabajo resolverFlujo(Long idFlujo) {
+        if (idFlujo == null) {
+            return null;
+        }
+        return flujoTrabajoRepository.findById(idFlujo)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                        "Flujo de trabajo no encontrado con ID: " + idFlujo));
     }
 
     private RespuestaSubcategoria mapearASubcategoriaRespuesta(Subcategoria sub) {

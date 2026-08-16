@@ -1,0 +1,159 @@
+<div class="cr-page">
+
+  <div class="cr-head">
+    <div>
+      <h1 class="cr-title">Plantillas de briefing</h1>
+      <p class="cr-subtitle">
+        Define las preguntas que le harás al cliente al arrancar un encargo. Máximo {{ maxPreguntas }} por plantilla.
+      </p>
+    </div>
+    @if (!perfilFaltante()) {
+      <div class="cr-head__actions">
+        <button type="button" class="cr-btn cr-btn--primary" (click)="abrirModal()">Nueva plantilla</button>
+      </div>
+    }
+  </div>
+
+  @if (perfilFaltante()) {
+    <app-perfil-requerido />
+  } @else {
+
+    @if (error()) {
+      <div class="cr-alert cr-alert--error">{{ error() }}</div>
+    }
+
+    @if (isLoading()) {
+      <div class="cr-card">
+        <div class="cr-loader"><span class="cr-spinner"></span></div>
+      </div>
+    } @else if (plantillas().length === 0) {
+      <div class="cr-card">
+        <div class="cr-empty">
+          <div class="cr-empty__icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <p class="cr-empty__title">Todavía no tienes plantillas</p>
+            <p class="cr-empty__text">
+              Una plantilla te ahorra escribir las mismas preguntas en cada encargo:
+              la envías al pedido y el cliente responde desde su panel.
+            </p>
+          </div>
+          <button type="button" class="cr-btn cr-btn--primary" (click)="abrirModal()">Crear la primera</button>
+        </div>
+      </div>
+    } @else {
+      <div class="cr-grid">
+        @for (p of plantillas(); track p.idPlantilla) {
+          <div class="cr-card">
+            <div class="cr-card__head">
+              <div>
+                <h2 class="cr-card__title">{{ p.nombrePlantilla }}</h2>
+                <p class="cr-card__hint">{{ p.preguntas?.length || 0 }} pregunta(s)</p>
+              </div>
+              <span class="cr-badge cr-badge--teal">#{{ p.idPlantilla }}</span>
+            </div>
+
+            <div class="cr-card__body">
+              <ol class="cr-kv">
+                @for (pregunta of preguntasOrdenadas(p); track pregunta.idPregunta) {
+                  <li class="cr-kv__v">
+                    <span class="cr-faint">{{ pregunta.numeroOrden }}.</span> {{ pregunta.textoPregunta }}
+                  </li>
+                }
+              </ol>
+            </div>
+
+            <div class="cr-card__foot">
+              <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="abrirModal(p)">Editar</button>
+              <button type="button" class="cr-btn cr-btn--danger cr-btn--sm" (click)="confirmarEliminar(p)">Eliminar</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- Modal crear/editar -->
+  @if (modalAbierto()) {
+    <div class="cr-modal">
+      <div class="cr-modal__backdrop" (click)="cerrarModal()"></div>
+      <div class="cr-modal__panel cr-modal__panel--wide">
+        <div class="cr-card__head">
+          <h2 class="cr-card__title">{{ enEdicion() ? 'Editar plantilla' : 'Nueva plantilla' }}</h2>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="guardar()" class="cr-form">
+          <div class="cr-field">
+            <label class="cr-label" for="nombrePlantilla">Nombre de la plantilla <span>*</span></label>
+            <input id="nombrePlantilla" type="text" class="cr-input" formControlName="nombrePlantilla"
+              placeholder="Ej: Briefing de ilustración de personaje" />
+            @if (invalido('nombrePlantilla')) {
+              <span class="cr-error">Indica un nombre (máx. 150 caracteres).</span>
+            }
+          </div>
+
+          <div class="cr-divider"></div>
+
+          <div formArrayName="preguntas" class="cr-form">
+            @for (control of preguntas.controls; track $index; let i = $index) {
+              <div [formGroupName]="i" class="cr-field">
+                <label class="cr-label" [for]="'pregunta-' + i">Pregunta {{ i + 1 }} <span>*</span></label>
+                <div class="cr-form__row">
+                  <input [id]="'pregunta-' + i" type="text" class="cr-input" formControlName="textoPregunta"
+                    placeholder="Ej: ¿Qué estilo visual buscas?" />
+                  <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarPregunta(i)">Quitar</button>
+                </div>
+                @if (preguntaInvalida(i)) {
+                  <span class="cr-error">La pregunta no puede estar vacía.</span>
+                }
+              </div>
+            }
+
+            @if (preguntas.length < maxPreguntas) {
+              <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarPregunta()">
+                Añadir pregunta
+              </button>
+            } @else {
+              <p class="cr-hint">Has alcanzado el máximo de {{ maxPreguntas }} preguntas.</p>
+            }
+          </div>
+
+          <div class="cr-form__actions">
+            <button type="button" class="cr-btn cr-btn--ghost" (click)="cerrarModal()">Cancelar</button>
+            <button type="submit" class="cr-btn cr-btn--primary" [disabled]="guardando()">
+              @if (guardando()) { <span class="cr-spinner cr-spinner--sm"></span> }
+              {{ enEdicion() ? 'Guardar cambios' : 'Crear plantilla' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Confirmación de borrado -->
+  @if (aEliminar(); as p) {
+    <div class="cr-modal">
+      <div class="cr-modal__backdrop" (click)="cancelarEliminar()"></div>
+      <div class="cr-modal__panel">
+        <div class="cr-card__head">
+          <h2 class="cr-card__title">Eliminar plantilla</h2>
+        </div>
+        <div class="cr-card__body">
+          <p class="cr-muted">
+            ¿Seguro que quieres eliminar «{{ p.nombrePlantilla }}»? Los briefings ya enviados a un pedido no se ven afectados.
+          </p>
+        </div>
+        <div class="cr-form__actions">
+          <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarEliminar()">Cancelar</button>
+          <button type="button" class="cr-btn cr-btn--danger" (click)="eliminar()" [disabled]="eliminando()">
+            @if (eliminando()) { <span class="cr-spinner cr-spinner--sm"></span> }
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

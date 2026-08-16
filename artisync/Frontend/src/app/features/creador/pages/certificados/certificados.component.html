@@ -1,0 +1,98 @@
+<div class="cr-page">
+
+  <div class="cr-head">
+    <div>
+      <h1 class="cr-title">Certificados profesionales</h1>
+      <p class="cr-subtitle">
+        Sube un certificado para que la IA lo analice y un moderador lo valide.
+        Si supera el umbral de confianza, tu perfil recibe el sello de verificación.
+      </p>
+    </div>
+  </div>
+
+  @if (perfilFaltante()) {
+    <app-perfil-requerido />
+  } @else {
+
+    @if (error()) {
+      <div class="cr-alert cr-alert--error">{{ error() }}</div>
+    }
+
+    @if (isLoading()) {
+      <div class="cr-card">
+        <div class="cr-loader"><span class="cr-spinner"></span></div>
+      </div>
+    } @else {
+
+      <!-- Subida -->
+      <div class="cr-card">
+        <div class="cr-card__head">
+          <div>
+            <h2 class="cr-card__title">Enviar certificado</h2>
+            <p class="cr-card__hint">Imagen legible del documento. JPG o PNG, máximo 5 MB.</p>
+          </div>
+        </div>
+
+        <div class="cr-card__body cr-form">
+          <div class="cr-field">
+            <label class="cr-label" for="documentoCertificado">Documento <span>*</span></label>
+            <input id="documentoCertificado" type="file" class="cr-input"
+              [accept]="tiposAceptados" (change)="onDocumento($event)" />
+            @if (documento(); as d) {
+              <span class="cr-hint">{{ d.name }} · {{ formatSize(d.size) }}</span>
+            }
+          </div>
+
+          <div class="cr-form__actions">
+            <button type="button" class="cr-btn cr-btn--primary"
+              [disabled]="documento() === null || enviando()" (click)="enviar()">
+              @if (enviando()) { <span class="cr-spinner cr-spinner--sm"></span> }
+              Enviar a revisión
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Solicitudes de esta sesión -->
+      @if (solicitudes().length > 0) {
+        <div class="cr-card">
+          <div class="cr-card__head">
+            <div>
+              <h2 class="cr-card__title">Enviados en esta sesión</h2>
+              <p class="cr-card__hint">Guarda el número de solicitud para poder consultarla después</p>
+            </div>
+          </div>
+
+          <div class="cr-table-wrap">
+            <table class="cr-table">
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Enviado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of solicitudes(); track s.idCertificado) {
+                  <tr>
+                    <td class="cr-td-strong">#{{ s.idCertificado }}</td>
+                    <td class="cr-td-muted">{{ s.tipoDocumento }}</td>
+                    <td><span [class]="badgeEstado(s.nombreEstadoVerificacion)">{{ s.nombreEstadoVerificacion }}</span></td>
+                    <td class="cr-td-faint">{{ formatDateTime(s.fechaAnalisis) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <div class="cr-alert cr-alert--info">
+        El sistema todavía no expone un listado de certificados propios, así que
+        aquí solo aparecen los que envíes durante esta sesión. Apunta el número
+        de solicitud si necesitas hacer seguimiento.
+      </div>
+    }
+  }
+</div>

@@ -31,6 +31,13 @@ public class PreprocesadorImagenIa {
 
     private static final Set<String> TIPOS_ACEPTADOS = Set.of("image/jpeg", "image/png");
     private static final int LIMITE_BYTES = 180_000;
+
+    /**
+     * Tope por documento de verificación. Antes lo imponía el límite global de
+     * multipart, pero ese subió para admitir el video del portafolio: una cédula
+     * sigue siendo una foto de pocos MB y el límite le corresponde a este caso de uso.
+     */
+    private static final long LIMITE_SUBIDA_BYTES = 5L * 1024 * 1024;
     private static final float CALIDAD_INICIAL = 0.85f;
     private static final float CALIDAD_MINIMA = 0.25f;
     private static final int MAX_INTENTOS = 6;
@@ -45,6 +52,10 @@ public class PreprocesadorImagenIa {
             throw new ExcepcionReglaNegocio(
                     "Formato de documento no soportado: " + tipo
                             + ". Se aceptan image/jpeg o image/png.");
+        }
+        if (archivo.getSize() > LIMITE_SUBIDA_BYTES) {
+            throw new ExcepcionReglaNegocio(
+                    "El documento supera el máximo de 5 MB permitido para verificación.");
         }
     }
 

@@ -19,4 +19,7 @@ public class PeticionCrearCategoria {
 
     @Builder.Default
     private Boolean estadoActiva = true;
+
+    /** Opcional: si no se indica, los pedidos caen al flujo por defecto. */
+    private Long idFlujo;
 }

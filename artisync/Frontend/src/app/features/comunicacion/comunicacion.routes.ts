@@ -1,16 +1,12 @@
 import { Routes } from '@angular/router';
-import { BriefingFormComponent } from './pages/briefing-form/briefing-form.component';
-import { SalaChatComponent } from './pages/sala-chat/sala-chat.component';
 
+/**
+ * Comunicación (M6). El chat y el briefing no tienen ruta propia: se embeben
+ * como componentes dentro del detalle del pedido, que es su contexto.
+ */
 export const COMUNICACION_ROUTES: Routes = [
   {
-    path: 'briefing/:idPedido',
-    component: BriefingFormComponent,
-    title: 'Completar Briefing'
-  },
-  {
-    path: 'chat/:idPedido',
-    component: SalaChatComponent,
-    title: 'Sala de Chat'
+    path: '',
+    loadComponent: () => import('./pages/notificaciones/notificaciones.component').then(m => m.NotificacionesComponent)
   }
 ];

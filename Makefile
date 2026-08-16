@@ -10,7 +10,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: up down test bench audit clean
+.PHONY: up down test bench audit clean sus
 
 ## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
 up:
@@ -64,3 +64,16 @@ audit:
 clean:
 	$(COMPOSE) down -v
 	cd artisync/Backend && ./mvnw -B clean
+
+## Calcula el puntaje SUS (Bloque C.3) a partir de docs/mediciones/sus/sus-raw.csv
+## y escribe docs/mediciones/sus/salida-sus.txt. Falla si el CSV solo tiene
+## encabezado (sin sesiones de usabilidad corridas todavia).
+sus:
+	@datos=$$(tail -n +2 docs/mediciones/sus/sus-raw.csv | grep -c . || true); \
+	if [ "$$datos" -eq 0 ]; then \
+		echo "ERROR: docs/mediciones/sus/sus-raw.csv solo tiene encabezado."; \
+		echo "       Ver docs/mediciones/sus/instrucciones-formulario.md para correr las sesiones."; \
+		exit 1; \
+	fi
+	python docs/mediciones/sus/analisis-sus.py > docs/mediciones/sus/salida-sus.txt
+	@echo "OK: ver docs/mediciones/sus/salida-sus.txt"

@@ -1,0 +1,65 @@
+services:
+  redis:
+    image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    container_name: pfc_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: pfc_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # No sobreescribimos la URL, Usuario y Contraseña para que tome
+      # directamente los de Azure que están definidos en el archivo .env
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Pasamos las demás variables que estaban explícitas, aunque env_file ya las carga
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    expose:
+      - "8080"
+    volumes:
+      - pfc_documentos_verificacion:/var/artisync/documentos
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: pfc_frontend
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+      - /app/.angular
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pfc_documentos_verificacion:
