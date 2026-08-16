@@ -1,0 +1,13 @@
+/* Certificados de uso de IA. */
+
+.ct-confianza {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 8rem;
+}
+
+.ct-confianza .cr-progress {
+  flex: 1;
+  min-width: 4rem;
+}
