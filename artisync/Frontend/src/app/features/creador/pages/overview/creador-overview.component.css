@@ -1,0 +1,76 @@
+/* Overview del creador — piezas exclusivas de esta vista.
+   Las tarjetas, tablas, badges y botones vienen de styles/creador-dashboard.css */
+
+.ov-skeleton-label {
+  height: 0.875rem;
+  width: 7rem;
+  margin-bottom: 1rem;
+}
+
+.ov-skeleton-value {
+  height: 2rem;
+  width: 4.5rem;
+}
+
+.ov-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Bloque de reputación ── */
+
+.ov-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.ov-rating__value {
+  font-family: 'Manrope', sans-serif;
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f2027;
+  margin: 0;
+}
+
+.ov-rating .cr-btn { margin-top: 0.5rem; }
+
+/* ── Accesos rápidos ── */
+
+.ov-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.ov-quick__item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem;
+  border-radius: 0.875rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.2s ease;
+}
+
+.ov-quick__item:hover { background: #f8fafc; }
+
+.ov-quick__item strong {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ov-quick__item small {
+  display: block;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+}
