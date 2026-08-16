@@ -1,0 +1,6 @@
+# Los consentimientos firmados (nombre, firma, datos identificables) NUNCA se suben al
+# repositorio — ver plantilla.md. Esta regla es la salvaguarda tecnica detras de esa promesa:
+# un `git add .` accidental en esta carpeta no debe poder publicar un PDF/imagen firmado.
+*
+!.gitignore
+!plantilla.md

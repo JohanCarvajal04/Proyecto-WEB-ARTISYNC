@@ -29,6 +29,12 @@ Configurar el formulario para pedir también:
 No pedir nombre, correo ni ningún dato identificable en el formulario — el consentimiento
 firmado (fuera del repo) es lo único que vincula el código con la identidad real.
 
+**Desactivar la recolección automática de correo de Google Forms**: en Google Forms, ir a
+Configuración → Respuestas y confirmar que "Recopilar direcciones de correo electrónico" esté
+**desactivado**. Por defecto, si el formulario se comparte con cuentas autenticadas, Google puede
+adjuntar el correo del usuario que responde a cada fila del export — eso rompería la promesa de
+anonimato de `docs/etica/consentimientos/plantilla.md:25-28`.
+
 ## 2. Reclutar participantes
 
 - Mínimo 10, externos al equipo de desarrollo (amigos, familiares, compañeros de otra materia).
@@ -53,6 +59,15 @@ curl -s http://localhost:4200/actuator/health
 Comprobar además que exista al menos un servicio publicado en el catálogo para que la tarea sea
 completable (ya sembrado — ver `artisync/database/seed-medicion-servicios.sql`).
 
+**Pre-vuelo obligatorio antes de reclutar**: un integrante del equipo recorre la tarea completa
+del §4 de principio a fin, con una cuenta nueva, sobre el entorno recién levantado. Con 10
+participantes no hay segunda oportunidad — si un paso está roto (por ejemplo, un endpoint mal
+apuntado en el frontend), el SUS termina midiendo ese defecto y no la usabilidad real del sistema.
+Revisar también la consola del navegador durante el recorrido: no deben aparecer errores 4xx/5xx
+en la ruta de la tarea. Registrar el commit evaluado (`git rev-parse --short HEAD`) — se necesita
+en la ficha metodológica del reporte, y el resultado del SUS es específico a esa versión del
+frontend (ver `docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md:85-86`).
+
 ## 4. Tarea estándar (idéntica para todos los participantes)
 
 1. Registrarse o iniciar sesión.
@@ -71,13 +86,38 @@ equipo. Anotar la hora de inicio/fin de la tarea (opcional, útil para la ficha 
 
 ## 6. Exportar y analizar
 
-Exportar las respuestas del formulario a CSV con las columnas exactas
-`participante,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10` (una fila por participante) y sobrescribir
-[`sus-raw.csv`](sus-raw.csv) (hoy solo tiene el encabezado). **No editar el CSV exportado a
-mano** — si un valor está mal, se corrige en el formulario/fuente y se re-exporta.
+Google Forms exporta un CSV con una columna "Marca temporal" y el **texto completo de cada
+pregunta** como encabezado — no coincide con el formato que espera el script. Conversión
+determinista (esto es renombrar encabezados y asignar códigos, no "editar el CSV a mano" — la
+prohibición de más abajo se refiere a las respuestas, que nunca se tocan):
+
+1. En Google Forms: Respuestas → ⋮ → "Descargar respuestas (.csv)".
+2. Conservar el CSV descargado tal cual, sin modificar, como evidencia cruda auditable (mismo
+   criterio que el proyecto ya aplica a los JSON crudos de k6 junto a sus reportes calculados).
+3. Generar `sus-raw.csv` a partir de ese export:
+   - Descartar la columna "Marca temporal" de las columnas de análisis (se conserva aparte, ver
+     el paso siguiente).
+   - Asignar el código de participante (`P01`, `P02`, ...) por orden cronológico de llegada — el
+     export ya viene ordenado por marca temporal.
+   - Sustituir la fila de encabezado por las columnas exactas
+     `participante,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10` (una fila por participante), respetando el
+     orden de las 10 preguntas tal como se definieron en el paso 1.
+4. Sobrescribir [`sus-raw.csv`](sus-raw.csv) (hoy solo tiene el encabezado) con el resultado.
+   **No editar a mano los valores de las respuestas** — si un valor está mal, se corrige en el
+   formulario/fuente y se re-exporta desde el paso 1.
+5. Completar [`registro-sesiones.csv`](registro-sesiones.csv) con la marca temporal de cada
+   participante (columna `fecha`) y, esta vez sí, **durante la sesión**: duración, si completó la
+   tarea, en qué paso quedó bloqueado si aplica, y observaciones cualitativas del facilitador. Esa
+   información no se puede reconstruir después.
 
 ```bash
 python docs/mediciones/sus/analisis-sus.py > docs/mediciones/sus/salida-sus.txt
+```
+
+O, equivalente, desde la raíz del repositorio:
+
+```bash
+make sus
 ```
 
 ## 7. Redactar el reporte

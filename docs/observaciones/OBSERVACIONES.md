@@ -12,8 +12,9 @@ Fuente: informes de retroalimentación del docente (Entrega 1A, revisión 09-06-
 |---|---|---|---|---|---|
 | 1A (09-06-2026) | 95.00/100 (9.5/10) | 5 | 2 | 0 | 3 |
 | 1B (29-06-2026) | 21.5/100 (2.2/10) | 7 | 5 | 1 | 1 |
+| Tercera Entrega | — | 4 | 2 | 0 | 2 |
 | Auto-detectadas (revisión técnica) | — | 9 | 8 | 0 | 1 |
-| **Total** | | **21** | **15 (71 %)** | **1 (5 %)** | **5 (24 %)** |
+| **Total** | | **25** | **17 (68 %)** | **1 (4 %)** | **7 (28 %)** |
 
 ---
 
@@ -43,6 +44,17 @@ Fuente: informes de retroalimentación del docente (Entrega 1A, revisión 09-06-
 
 ---
 
+## Observaciones — Tercera Entrega
+
+| Código | Fuente | Criterio | Observación | Estado y evidencia | Commit |
+|---|---|---|---|---|---|
+| OBS-13 | Tercera Entrega | Características y métricas | "ProblemDetails RFC 7807 y caché Redis con TTL externo y blacklist están bien implementados. Cobertura del 23 % y SUS pendiente se reportaron con honestidad." | **Resuelta.** Verificado en la tercera entrega. | _(N/A)_ |
+| OBS-14 | Tercera Entrega | Arquitectura (Debilidad) | "El access-token viaja en el cuerpo y la cookie no es Secure por defecto; refuércenlo llevando el access-token también a cookie HttpOnly y activando Secure." | **Pendiente.** | _(pendiente)_ |
+| OBS-15 | Tercera Entrega | Entregables (Limitante) | "La nota se ve limitada por la falta del informe técnico en PDF y de ETHICS.md, que son entregables centrales." | **Pendiente.** | _(pendiente)_ |
+| OBS-16 | Tercera Entrega | Reproducibilidad | "Verifica que la versión de Spring Boot 4.1.0 que declararon exista y sea reproducible." | **Resuelta.** Verificado localmente mediante compilación con Maven (`mvnw dependency:resolve`); la resolución de dependencias de Spring Boot 4.1.0 es exitosa. | _(N/A)_ |
+
+---
+
 ## Observaciones detectadas en la revisión técnica previa a esta Tercera Entrega (no provienen del docente)
 
 Se numeran aparte porque no tienen origen en un informe de retroalimentación formal, pero se tratan con la misma disciplina de trazabilidad.
@@ -63,10 +75,10 @@ Se numeran aparte porque no tienen origen en un informe de retroalimentación fo
 
 ## Resumen para el informe técnico (`docs/informe-entrega-3.pdf`)
 
-- Observaciones registradas (docente + auto-detectadas): **21**
-- **Resueltas por completo: 15 (71 %)** — OBS-01, 03, 06, 07, 08, 10, 12, AUTO-01, AUTO-03, AUTO-04, AUTO-05, AUTO-06, AUTO-07, AUTO-08, AUTO-09
-- **Parcialmente resueltas: 1 (5 %)** — OBS-09 (89 pruebas en verde; faltan Postman y cobertura ≥ 60 %)
-- **Pendientes: 5 (24 %)** — OBS-02, 04, 05 (coherencia documental, bajo esfuerzo), OBS-11 (informe PDF), OBS-AUTO-02 (procedimientos almacenados)
+- Observaciones registradas (docente + auto-detectadas): **25**
+- **Resueltas por completo: 17 (68 %)** — OBS-01, 03, 06, 07, 08, 10, 12, OBS-13, OBS-16, AUTO-01, AUTO-03, AUTO-04, AUTO-05, AUTO-06, AUTO-07, AUTO-08, AUTO-09
+- **Parcialmente resueltas: 1 (4 %)** — OBS-09 (89 pruebas en verde; faltan Postman y cobertura ≥ 60 %)
+- **Pendientes: 7 (28 %)** — OBS-02, 04, 05 (coherencia documental, bajo esfuerzo), OBS-11, OBS-15 (entregables PDF y ETHICS), OBS-14 (cookie Secure/HttpOnly), OBS-AUTO-02 (procedimientos almacenados)
 
 **Razón de las no resueltas.** Las tres observaciones documentales de la Entrega 1A (OBS-02, 04, 05) no bloquean código y se cierran editando `adr-001` y la documentación de pila; OBS-02 se agravó porque la pila real evolucionó (Angular 22, Spring Boot 4.1.0) sin que la documentación lo siguiera. OBS-11 depende de redactar el informe final, que consume las métricas ya generadas en OBS-10. OBS-AUTO-02 es la única brecha pendiente de arquitectura: exige implementar procedimientos almacenados para las operaciones no elementales, decisión ya documentada en `adr-006` pero no implementada.
 

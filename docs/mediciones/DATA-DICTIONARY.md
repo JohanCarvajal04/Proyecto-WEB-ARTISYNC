@@ -6,7 +6,7 @@
 | p95_latency_cold | Percentil 95 de latencia, cache recién vaciado | float | ms | `perf/k6-cold-run{1,2,3}.json` | < 500 | 39.14 (ver advertencia metodológica en `perf/REPORTE-PERF.md`: el script actual no aísla un miss real por iteración) |
 | error_rate_5xx | Tasa de respuestas ≥500 | float | % | `perf/k6-run{1,2,3}.json` + `perf/k6-cold-run{1,2,3}.json` | = 0 | 0.00% |
 | throughput_rps | Throughput agregado | float | req/s | `perf/k6-console-run*.txt` | — | ≈48.5–49.0 |
-| sus_score_mean | Puntaje SUS promedio | float | puntos (0-100) | `sus/sus-raw.csv` | > 68 | _(pendiente — depende de participantes reales, ver `sus/instrucciones-formulario.md`)_ |
+| sus_score_mean | Puntaje SUS promedio | float | puntos (0-100) | `sus/sus-raw.csv` | > 68 | **71.75** (n=10, DT 15.19, IC 95% [60.89, 82.61], Bangor C+, ver `sus/REPORTE-SUS.md`) |
 | lh_performance | Score Lighthouse Performance | int | puntos (0-100) | `lighthouse/lhci-20260730-2103-mejorado.json` | ≥ 80 | **92** (antes 56, ver `lighthouse/PLAN-MEJORA-LIGHTHOUSE.md`) |
 | lh_accessibility | Score Lighthouse Accessibility | int | puntos (0-100) | `lighthouse/lhci-20260730-2103-mejorado.json` | ≥ 90 | 100 |
 | lh_best_practices | Score Lighthouse Best Practices | int | puntos (0-100) | `lighthouse/lhci-20260730-2103-mejorado.json` | ≥ 90 | 100 |
@@ -26,9 +26,11 @@
 - Todas las variables con valor medido provienen de los archivos crudos referenciados en la
   columna "Fuente", generados el 2026-07-30 contra el commit `f05feeb`
   (rama `entrega-3/mediciones-bloque-c`). Ninguno fue editado a mano después de generarse.
-- `sus_score_mean` es la única variable sin valor: el Bloque C.3 depende de reclutar ≥10
-  participantes externos al equipo (ver `sus/instrucciones-formulario.md`) y no se puede producir
-  sin esa actividad humana.
+- `sus_score_mean` se midió el 2026-08-16 con 10 participantes externos al equipo (commit
+  `1b34b8d`), a partir del export crudo de Google Forms conservado junto a `sus/sus-raw.csv`. El
+  cuestionario aplicado usa una traducción española estándar del SUS de Brooke, textualmente
+  distinta (aunque semánticamente equivalente, mismo orden y polaridad) de la especificada en
+  `sus/instrucciones-formulario.md` — ver la nota de limitaciones en `sus/REPORTE-SUS.md`.
 - `jacoco_*_pct` no tiene comparación numérica contra la Entrega 1B — ver la nota de alcance en
   `jacoco/REPORTE-JACOCO.md`.
 - `p95_latency_cold` tiene un valor medido pero con una limitación metodológica documentada
