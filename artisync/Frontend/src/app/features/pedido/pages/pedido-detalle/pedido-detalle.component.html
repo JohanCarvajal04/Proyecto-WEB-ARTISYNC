@@ -177,8 +177,9 @@
         </section>
       }
 
-      <!-- Acciones -->
-      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <!-- Acciones. El pago solo lo ve el cliente: POST /pedidos/{id}/pago es
+           hasAnyRole('CLIENTE','ADMIN'), así que al creador el botón le daba 403. -->
+      <section [class]="esCliente ? 'grid grid-cols-1 sm:grid-cols-3 gap-4' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'">
         <a [routerLink]="['/legal/contrato/pedido', pedido.idPedido]"
           class="group bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4 hover:shadow-md hover:border-teal-100 transition-all">
           <div class="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 shrink-0 group-hover:scale-105 transition-transform">
@@ -189,15 +190,17 @@
           <span class="text-sm font-semibold text-slate-800">Ver Contrato</span>
         </a>
 
-        <a [routerLink]="['/legal/pago', pedido.idPedido]"
-          class="group bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4 hover:shadow-md hover:border-teal-100 transition-all">
-          <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 group-hover:scale-105 transition-transform">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-          </div>
-          <span class="text-sm font-semibold text-slate-800">Pagos</span>
-        </a>
+        @if (esCliente) {
+          <a [routerLink]="['/legal/pago', pedido.idPedido]"
+            class="group bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4 hover:shadow-md hover:border-teal-100 transition-all">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 group-hover:scale-105 transition-transform">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <span class="text-sm font-semibold text-slate-800">Pagos</span>
+          </a>
+        }
 
         <a [routerLink]="['/legal/entregable', pedido.idPedido]"
           class="group bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4 hover:shadow-md hover:border-teal-100 transition-all">
@@ -341,6 +344,17 @@
           </div>
         }
       </section>
+
+      <!-- Briefing (M6): el cliente responde, el creador lo lee -->
+      <app-briefing-pedido [idPedido]="pedidoId" [puedeResponder]="esCliente" />
+
+      <!-- Chat del pedido (M6) -->
+      <app-chat-pedido [idPedido]="pedidoId" />
+
+      <!-- Reseña (M7): solo el cliente y solo tras aprobar la entrega -->
+      @if (esCliente && entregaAprobada) {
+        <app-resena-form [idPedido]="pedidoId" />
+      }
     </div>
   }
 </div>
