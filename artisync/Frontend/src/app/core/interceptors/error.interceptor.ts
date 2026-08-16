@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError, switchMap } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 import { AuthService } from '../../features/seguridad/services/auth.service';
+import { OMITIR_ERROR_GLOBAL } from './http-contexto';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
@@ -12,6 +13,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      // Peticiones que declaran manejar su propio error: para ellas un 404 es
+      // un estado normal (todavía no hay chat, briefing o entregable), no algo
+      // que deba avisarse ni, mucho menos, provocar una navegación.
+      //
+      // El 401 se deja fuera de esta excepción a propósito: renovar la sesión
+      // es responsabilidad del interceptor pase lo que pase, y saltárselo aquí
+      // dejaría la sesión sin refrescar según qué petición fallara primero.
+      const propioError = req.context.get(OMITIR_ERROR_GLOBAL);
+      if (propioError && error.status !== 401) {
+        return throwError(() => error);
+      }
+
       // Evitar interceptar login/refresh (para no crear bucles) ni 2fa/verify:
       // un 401 aquí es "código inválido o ticket expirado" (§2.1/OBS-AUTO-05),
       // no una sesión caída — el propio componente ya lo maneja y muestra el
