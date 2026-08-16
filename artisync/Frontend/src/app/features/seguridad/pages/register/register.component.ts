@@ -4,10 +4,12 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
+import { CommonModule } from '@angular/common';
+
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
   encapsulation: ViewEncapsulation.None
@@ -19,6 +21,8 @@ export class RegisterComponent {
   private toastService = inject(ToastService);
 
   readonly isLoading = signal<boolean>(false);
+  readonly showPassword = signal<boolean>(false);
+  readonly showConfirmPassword = signal<boolean>(false);
   maxDate: string;
 
   constructor() {

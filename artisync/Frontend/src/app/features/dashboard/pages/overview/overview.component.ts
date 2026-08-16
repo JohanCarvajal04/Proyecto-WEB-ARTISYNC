@@ -57,9 +57,14 @@ export class OverviewComponent implements OnInit {
   loadPedidos(): void {
     this.isLoading.set(true);
     this.error.set('');
-    this.pedidoService.listarMisPedidos().subscribe({
+    const role = this.authService.primaryRole();
+    const req$ = role === 'CREADOR' 
+      ? this.pedidoService.listarMisComisiones() 
+      : this.pedidoService.listarMisPedidos();
+
+    req$.subscribe({
       next: (data) => {
-        this.pedidos.set(data);
+        this.pedidos.set(data || []);
         this.isLoading.set(false);
       },
       error: (err) => {
