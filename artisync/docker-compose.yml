@@ -47,22 +47,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # Emulador de Azure Blob Storage para desarrollo y pruebas de integracion.
-  # No arranca con "up" normal: pertenece al perfil "azure".
-  #   docker compose --profile azure up -d azurite
-  # --skipApiVersionCheck: el SDK de Azure envia una version de API mas nueva
-  # que la que reconoce el emulador; Azure real si la acepta.
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:latest
-    container_name: pfc_azurite
-    restart: unless-stopped
-    profiles: [ "azure" ]
-    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
-    ports:
-      - "10000:10000"
-    volumes:
-      - pfc_azurite_data:/data
-
   backend:
     build:
       context: ./Backend
@@ -86,11 +70,6 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USER: ${MAIL_USER}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
-      # Almacenamiento: "local" usa el volumen de abajo, "azure" Blob Storage.
-      DOCUMENTOS_PROVEEDOR: ${DOCUMENTOS_PROVEEDOR:-local}
-      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-}
-      AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-artisync-documentos}
-      AZURE_STORAGE_SAS_MINUTOS: ${AZURE_STORAGE_SAS_MINUTOS:-15}
     # NO se publica el 8080 al host (OBS-AUTO-06 / A07 OWASP): es el limite de
     # confianza que hace fiable X-Forwarded-For para AuthRateLimitFilter y para
     # el log de auditoria de login (ver server.forward-headers-strategy en
@@ -136,4 +115,3 @@ services:
 volumes:
   pfc_postgres_data:
   pfc_documentos_verificacion:
-  pfc_azurite_data:
