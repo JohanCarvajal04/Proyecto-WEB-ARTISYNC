@@ -1,16 +1,20 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { interval, Subscription, switchMap } from 'rxjs';
+import { interval, Subscription, switchMap, of, catchError } from 'rxjs';
 import { PedidoService } from '../../services/pedido.service';
 import { TicketRevisionService } from '../../services/ticket-revision.service';
 import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision } from '../../models/pedido.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { EntregableService } from '../../../legal/services/entregable.service';
+import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedido/chat-pedido.component';
+import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
+import { ResenaFormComponent } from '../../../social/components/resena-form/resena-form.component';
 
 @Component({
   selector: 'app-pedido-detalle',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ChatPedidoComponent, BriefingPedidoComponent, ResenaFormComponent],
   templateUrl: './pedido-detalle.component.html'
 })
 export class PedidoDetalleComponent implements OnInit, OnDestroy {
@@ -19,6 +23,12 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
   tickets: RespuestaTicketRevision[] = [];
   loading = true;
   error = '';
+
+  /**
+   * La reseña solo se habilita tras la aprobación del entregable, que es la
+   * misma condición que impone el backend (RF-09).
+   */
+  entregaAprobada = false;
 
   // Avanzar etapa
   observacion = '';
@@ -30,11 +40,13 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
   creandoTicket = false;
 
   private pollingSubscription?: Subscription;
-  private pedidoId = 0;
+  /** Público: los componentes embebidos (chat, briefing, reseña) lo reciben como @Input. */
+  pedidoId = 0;
 
   constructor(
     private pedidoService: PedidoService,
     private ticketService: TicketRevisionService,
+    private entregableService: EntregableService,
     public authService: AuthService,
     private route: ActivatedRoute
   ) {}
@@ -43,12 +55,13 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     this.pedidoId = Number(this.route.snapshot.paramMap.get('id'));
     this.cargarDatos();
 
-    // Polling cada 5 segundos para actualización en tiempo real (RF-19)
+    // Polling cada 5 segundos para actualización en tiempo real (RF-19).
+    // El catchError va dentro del switchMap: fuera, un error puntual completaba
+    // el stream y el seguimiento dejaba de refrescarse el resto de la sesión.
     this.pollingSubscription = interval(5000).pipe(
-      switchMap(() => this.pedidoService.obtenerSeguimiento(this.pedidoId))
-    ).subscribe({
-      next: (seg) => this.seguimiento = seg,
-      error: () => {} // Silenciar errores de polling
+      switchMap(() => this.pedidoService.obtenerSeguimiento(this.pedidoId).pipe(catchError(() => of(null))))
+    ).subscribe(seg => {
+      if (seg) this.seguimiento = seg;
     });
   }
 
@@ -76,6 +89,11 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     this.ticketService.listarTickets(this.pedidoId).subscribe({
       next: (tickets) => this.tickets = tickets
     });
+
+    // Un 404 aquí solo significa que aún no hay entregable para este pedido.
+    this.entregableService.obtenerEntregable(this.pedidoId)
+      .pipe(catchError(() => of(null)))
+      .subscribe(entregable => this.entregaAprobada = entregable?.estaLiberado === true);
   }
 
   avanzarEtapa(): void {

@@ -18,4 +18,7 @@ public class PeticionActualizarCategoria {
     private String nombreCategoria;
 
     private Boolean estadoActiva;
+
+    /** Opcional: si no se indica, los pedidos caen al flujo por defecto. */
+    private Long idFlujo;
 }

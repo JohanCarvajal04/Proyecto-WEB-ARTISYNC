@@ -1,0 +1,184 @@
+<div class="flex flex-col gap-6 animate-[fadeIn_0.4s_ease-out]">
+
+  <a routerLink="/dashboard/explorar" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-teal-600 transition-colors self-start">
+    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+    Volver a explorar
+  </a>
+
+  @if (error()) {
+    <div class="flex items-start gap-2.5 bg-rose-50 text-rose-700 text-sm rounded-2xl px-4 py-3">
+      <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center p-20">
+      <div class="animate-spin rounded-full h-9 w-9 border-2 border-teal-600 border-t-transparent"></div>
+    </div>
+  } @else if (servicio(); as s) {
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+      <!-- Columna principal -->
+      <div class="lg:col-span-2 flex flex-col gap-6">
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="aspect-[16/9] bg-slate-50 flex items-center justify-center overflow-hidden">
+            @if (s.urlMiniatura) {
+              <img [src]="s.urlMiniatura" [alt]="s.tituloServicio" class="w-full h-full object-cover"
+                (error)="$any($event.target).style.display='none'" />
+            } @else {
+              <svg class="w-12 h-12 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            }
+          </div>
+
+          <div class="p-6 md:p-8 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-bold text-teal-600 uppercase tracking-wider">{{ s.nombreCategoria }}</span>
+              <span class="text-slate-200">·</span>
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{{ s.nombreSubcategoria }}</span>
+            </div>
+
+            <h1 class="font-headline text-2xl md:text-3xl font-bold text-[#0F2027] leading-tight">{{ s.tituloServicio }}</h1>
+
+            <a [routerLink]="['/dashboard/explorar/creador', s.idPerfilCreador]"
+              class="text-sm text-slate-500 hover:text-teal-600 transition-colors self-start">
+              por <span class="font-semibold">{{ s.nombreCreador }}</span>
+            </a>
+
+            @if (s.descripcionDetallada) {
+              <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line mt-2">{{ s.descripcionDetallada }}</p>
+            }
+
+            @if (s.etiquetas && s.etiquetas.length > 0) {
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                @for (etq of s.etiquetas; track etq.idEtiqueta) {
+                  <span class="text-xs bg-slate-50 text-slate-500 px-2.5 py-1 rounded-full">{{ etq.nombreEtiqueta }}</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Atributos -->
+        @if (s.atributos && s.atributos.length > 0) {
+          <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100">
+              <h2 class="font-headline text-lg font-bold text-[#0F2027]">Detalles del servicio</h2>
+            </div>
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              @for (attr of s.atributos; track attr.idServicioAtributo) {
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ attr.nombreAtributo }}</span>
+                  <span class="text-sm text-slate-700">{{ attr.valorAsignado }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Reseñas del creador -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+            <h2 class="font-headline text-lg font-bold text-[#0F2027]">Reseñas del creador</h2>
+            @if (promedio() !== null) {
+              <div class="flex items-center gap-1.5">
+                <div class="flex gap-0.5">
+                  @for (llena of estrellas(promedio() || 0); track $index) {
+                    <svg class="w-4 h-4" [class]="llena ? 'text-amber-400' : 'text-slate-200'" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.539 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.367 2.445c-.783.57-1.838-.196-1.538-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.161a1 1 0 00.951-.69l1.286-3.958z" />
+                    </svg>
+                  }
+                </div>
+                <span class="text-sm font-bold text-slate-600">{{ (promedio() || 0).toFixed(1) }}</span>
+              </div>
+            }
+          </div>
+
+          @if (resenas().length === 0) {
+            <div class="p-10 text-center">
+              <p class="text-xs text-slate-400">Este creador todavía no tiene reseñas.</p>
+            </div>
+          } @else {
+            <div class="divide-y divide-slate-100">
+              @for (r of resenas().slice(0, 5); track r.idResena) {
+                <div class="p-6 flex flex-col gap-2">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm font-semibold text-slate-700">{{ r.nombreCliente }}</span>
+                    <span class="text-xs text-slate-300 font-mono">{{ formatDate(r.fechaResena) }}</span>
+                  </div>
+                  <div class="flex gap-0.5">
+                    @for (llena of estrellas(r.calificacionEstrellas); track $index) {
+                      <svg class="w-3.5 h-3.5" [class]="llena ? 'text-amber-400' : 'text-slate-200'" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.539 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.367 2.445c-.783.57-1.838-.196-1.538-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.063 9.385c-.783-.57-.38-1.81.588-1.81h4.161a1 1 0 00.951-.69l1.286-3.958z" />
+                      </svg>
+                    }
+                  </div>
+                  @if (r.textoResena) {
+                    <p class="text-sm text-slate-600 leading-relaxed">{{ r.textoResena }}</p>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Panel de contratación -->
+      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex flex-col gap-5 lg:sticky lg:top-6">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Precio base</span>
+          <span class="font-mono font-bold text-3xl text-[#0F2027]">{{ formatPrice(s.precioBase) }}</span>
+        </div>
+
+        <div class="flex flex-col gap-3 text-sm">
+          @if (s.limiteRevisionesBase !== null) {
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-slate-400">Revisiones incluidas</span>
+              <span class="font-semibold text-slate-700">{{ s.limiteRevisionesBase }}</span>
+            </div>
+          }
+          @if (s.cargoRevisionAdicional !== null) {
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-slate-400">Revisión adicional</span>
+              <span class="font-semibold text-slate-700 font-mono">{{ formatPrice(s.cargoRevisionAdicional) }}</span>
+            </div>
+          }
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-slate-400">Tipo</span>
+            <span class="font-semibold text-slate-700">{{ s.tipoItem }}</span>
+          </div>
+        </div>
+
+        @if (s.estadoPublicacion === 'ACTIVO') {
+          <button type="button" (click)="solicitarServicio()"
+            class="w-full bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] text-white font-semibold px-6 py-3 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Solicitar este servicio
+          </button>
+        } @else {
+          <div class="flex items-start gap-2.5 bg-amber-50 text-amber-800 text-xs rounded-xl px-4 py-3">
+            <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Este servicio no está disponible para contratación en este momento.</span>
+          </div>
+        }
+
+        <a [routerLink]="['/dashboard/explorar/creador', s.idPerfilCreador]"
+          class="w-full text-center text-sm font-semibold text-slate-600 hover:text-slate-800 px-6 py-2.5 rounded-full border border-slate-200 hover:bg-slate-50 transition-all">
+          Ver perfil del creador
+        </a>
+      </div>
+    </div>
+  }
+</div>

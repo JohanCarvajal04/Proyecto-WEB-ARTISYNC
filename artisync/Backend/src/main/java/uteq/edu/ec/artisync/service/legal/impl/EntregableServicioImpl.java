@@ -4,6 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEntregable;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
@@ -27,11 +32,15 @@ public class EntregableServicioImpl implements IEntregableServicio {
     private final PagoGarantiaRepository pagoGarantiaRepository;
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
+    private final AlmacenamientoDocumentos almacenamiento;
 
     @Override
     @Transactional
     public RespuestaEntregable subirEntregable(Long idPedido, Long idCreador,
-                                                String urlMarcaAgua, String urlLimpia) {
+                                                MultipartFile versionMarcaAgua, MultipartFile versionLimpia) {
+        PoliticaArchivo.ENTREGABLE.validar(versionMarcaAgua);
+        PoliticaArchivo.ENTREGABLE.validar(versionLimpia);
+
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
 
@@ -41,20 +50,44 @@ public class EntregableServicioImpl implements IEntregableServicio {
             throw new ExcepcionReglaNegocio("Solo el creador del servicio puede subir entregables");
         }
 
-        // Crear o actualizar entregable
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElse(EntregableFinal.builder()
                         .pedido(pedido)
                         .estaLiberado(false)
                         .build());
 
-        entregable.setUrlVersionMarcaAgua(urlMarcaAgua);
-        entregable.setUrlVersionLimpia(urlLimpia);
+        // Resubir reemplaza: las referencias anteriores quedarían sin nadie que
+        // las apunte, y en Azure se seguirían facturando.
+        String anteriorMarcaAgua = entregable.getUrlVersionMarcaAgua();
+        String anteriorLimpia = entregable.getUrlVersionLimpia();
+
+        entregable.setUrlVersionMarcaAgua(
+                almacenamiento.guardar(versionMarcaAgua, PrefijoAlmacenamiento.ENTREGABLES));
+        entregable.setUrlVersionLimpia(
+                almacenamiento.guardar(versionLimpia, PrefijoAlmacenamiento.ENTREGABLES));
 
         entregable = entregableRepository.save(entregable);
+        eliminarSiExiste(anteriorMarcaAgua);
+        eliminarSiExiste(anteriorLimpia);
+
         log.info("Entregable subido para pedido {} por creador {}", idPedido, idCreador);
 
         return mapToRespuesta(entregable, false);
+    }
+
+    /**
+     * El archivo viejo ya no se referencia; que no se pueda borrar no debe
+     * tumbar una subida que por lo demás salió bien.
+     */
+    private void eliminarSiExiste(String referencia) {
+        if (referencia == null || referencia.isBlank()) {
+            return;
+        }
+        try {
+            almacenamiento.eliminar(referencia);
+        } catch (RuntimeException e) {
+            log.warn("No se pudo eliminar el entregable reemplazado {}: {}", referencia, e.getMessage());
+        }
     }
 
     @Override
@@ -125,7 +158,7 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] descargarVersionLimpia(Long idPedido, Long idCliente) {
+    public ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
 
@@ -140,23 +173,75 @@ public class EntregableServicioImpl implements IEntregableServicio {
             throw new ExcepcionReglaNegocio("El entregable no esta disponible hasta que el pago sea liberado");
         }
 
-        // En producción, aquí se descargaría el archivo del servicio de almacenamiento (S3/R2)
-        // Por ahora retornamos la URL como bytes
+        String referencia = entregable.getUrlVersionLimpia();
+        if (referencia == null || referencia.isBlank()) {
+            throw new ExcepcionRecursoNoEncontrado("El entregable no tiene un archivo asociado");
+        }
+
         log.info("Descarga de version limpia para pedido {}", idPedido);
-        return entregable.getUrlVersionLimpia() != null
-                ? entregable.getUrlVersionLimpia().getBytes()
-                : new byte[0];
+        return new ArchivoDescargado(
+                almacenamiento.leer(referencia),
+                "entregable-pedido-" + idPedido + extensionDe(referencia),
+                ExtensionesArchivo.contentTypeDe(referencia));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario) {
+        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
+
+        // La ve el cliente que la debe revisar y el creador que la subió; nadie más.
+        Pedido pedido = entregable.getPedido();
+        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
+        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
+        if (!esCliente && !esCreador) {
+            throw new ExcepcionReglaNegocio("No tiene acceso a este entregable");
+        }
+
+        String referencia = entregable.getUrlVersionMarcaAgua();
+        if (referencia == null || referencia.isBlank()) {
+            throw new ExcepcionRecursoNoEncontrado("El entregable no tiene version con marca de agua");
+        }
+
+        return new ArchivoDescargado(
+                almacenamiento.leer(referencia),
+                "vista-previa-pedido-" + idPedido + extensionDe(referencia),
+                ExtensionesArchivo.contentTypeDe(referencia));
+    }
+
+    private String extensionDe(String referencia) {
+        int punto = referencia.lastIndexOf('.');
+        return punto < 0 ? "" : referencia.substring(punto);
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     private RespuestaEntregable mapToRespuesta(EntregableFinal entregable, boolean mostrarVersionLimpia) {
+        Long idPedido = entregable.getPedido().getIdPedido();
         return RespuestaEntregable.builder()
                 .idEntregable(entregable.getIdEntregable())
-                .idPedido(entregable.getPedido().getIdPedido())
-                .urlVersionMarcaAgua(entregable.getUrlVersionMarcaAgua())
-                .urlVersionLimpia(mostrarVersionLimpia ? entregable.getUrlVersionLimpia() : null)
+                .idPedido(idPedido)
+                .urlVersionMarcaAgua(urlDescarga(
+                        entregable.getUrlVersionMarcaAgua(),
+                        "/api/v1/pedidos/" + idPedido + "/entregable/descargar/marca-agua"))
+                .urlVersionLimpia(mostrarVersionLimpia
+                        ? urlDescarga(entregable.getUrlVersionLimpia(),
+                                "/api/v1/pedidos/" + idPedido + "/entregable/descargar")
+                        : null)
                 .estaLiberado(entregable.getEstaLiberado())
                 .build();
+    }
+
+    /**
+     * Lo que se persiste es una referencia interna, no algo que el navegador
+     * pueda pedir. Con Azure se entrega un SAS firmado y el archivo viaja
+     * directo desde el blob; sin él, la ruta del endpoint que sirve los bytes.
+     */
+    private String urlDescarga(String referencia, String rutaProxy) {
+        if (referencia == null || referencia.isBlank()) {
+            return null;
+        }
+        return almacenamiento.urlTemporal(referencia).orElse(rutaProxy);
     }
 }

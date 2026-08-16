@@ -1,7 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription, interval, of, switchMap, take, catchError } from 'rxjs';
 import { PagoService } from '../../services/pago.service';
 import { RespuestaPago } from '../../models/legal.model';
+
+/**
+ * El pago se aprueba en PayPal, en otra pestaña, y quien actualiza el estado de
+ * los fondos es el webhook. Esta pantalla no se entera de nada salvo que
+ * pregunte, así que tras abrir PayPal sondea hasta que el webhook haya
+ * aterrizado (RNF: fondos actualizados en ≤ 10 s post-pago).
+ */
+const INTERVALO_SONDEO_MS = 5_000;
+
+/** ~5 minutos. Pasado ese punto lo normal es que el pago no se completara. */
+const MAX_INTENTOS_SONDEO = 60;
+
+/** Estados en los que ya no hay nada que esperar. */
+const ESTADOS_TERMINALES = ['retenido', 'liberado', 'reembolsado'];
 
 /** Trazos SVG (heroicons outline) usados por el badge de estado de fondos. */
 const ICONO_CANDADO_CERRADO = 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z';
@@ -15,12 +30,27 @@ const ICONO_RELOJ = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
   imports: [RouterLink],
   templateUrl: './pago-checkout.component.html'
 })
-export class PagoCheckoutComponent implements OnInit {
+export class PagoCheckoutComponent implements OnInit, OnDestroy {
   pago: RespuestaPago | null = null;
   loading = true;
   creandoPago = false;
   error = '';
   idPedido = 0;
+
+  /** `true` mientras se espera la confirmación del webhook tras abrir PayPal. */
+  esperandoConfirmacion = false;
+
+  private sondeoSub?: Subscription;
+
+  /**
+   * Al volver a la pestaña se comprueba de inmediato en vez de aguardar al
+   * siguiente tick: es justo cuando el usuario acaba de pagar y vuelve.
+   */
+  private readonly alRecuperarFoco = () => {
+    if (this.esperandoConfirmacion) {
+      this.refrescarEstado();
+    }
+  };
 
   constructor(
     private pagoService: PagoService,
@@ -30,6 +60,12 @@ export class PagoCheckoutComponent implements OnInit {
   ngOnInit(): void {
     this.idPedido = Number(this.route.snapshot.paramMap.get('idPedido'));
     this.cargarEstado();
+    window.addEventListener('focus', this.alRecuperarFoco);
+  }
+
+  ngOnDestroy(): void {
+    this.detenerSondeo();
+    window.removeEventListener('focus', this.alRecuperarFoco);
   }
 
   cargarEstado(): void {
@@ -55,7 +91,8 @@ export class PagoCheckoutComponent implements OnInit {
         this.pago = pago;
         this.creandoPago = false;
         if (pago.approvalUrl) {
-          window.open(pago.approvalUrl, '_blank');
+          window.open(pago.approvalUrl, '_blank', 'noopener');
+          this.iniciarSondeo();
         }
       },
       error: (err) => {
@@ -63,6 +100,60 @@ export class PagoCheckoutComponent implements OnInit {
         this.creandoPago = false;
       }
     });
+  }
+
+  /**
+   * El enlace "Pagar con PayPal" reabre una orden ya creada, así que también
+   * debe dejar la pantalla a la espera de la confirmación.
+   */
+  onAbrirPayPal(): void {
+    this.iniciarSondeo();
+  }
+
+  /** Consulta puntual, sin tocar el spinner de carga inicial. */
+  private refrescarEstado(): void {
+    this.pagoService.obtenerEstadoPago(this.idPedido).subscribe({
+      next: (pago) => this.aplicarEstado(pago),
+      error: () => {}
+    });
+  }
+
+  private iniciarSondeo(): void {
+    this.detenerSondeo();
+    this.esperandoConfirmacion = true;
+
+    this.sondeoSub = interval(INTERVALO_SONDEO_MS).pipe(
+      take(MAX_INTENTOS_SONDEO),
+      // catchError dentro del switchMap: fuera, un fallo puntual de red
+      // completaría el stream y el sondeo moriría antes de tiempo.
+      switchMap(() => this.pagoService.obtenerEstadoPago(this.idPedido).pipe(catchError(() => of(null))))
+    ).subscribe({
+      next: (pago) => {
+        if (pago) {
+          this.aplicarEstado(pago);
+        }
+      },
+      // Se agotaron los intentos sin confirmación: se deja de esperar, pero el
+      // estado que muestre el backend sigue siendo el bueno.
+      complete: () => this.esperandoConfirmacion = false
+    });
+  }
+
+  private aplicarEstado(pago: RespuestaPago): void {
+    this.pago = pago;
+    if (this.esEstadoTerminal(pago)) {
+      this.detenerSondeo();
+    }
+  }
+
+  private esEstadoTerminal(pago: RespuestaPago): boolean {
+    return ESTADOS_TERMINALES.includes((pago.estadoFondos || '').toLowerCase());
+  }
+
+  private detenerSondeo(): void {
+    this.sondeoSub?.unsubscribe();
+    this.sondeoSub = undefined;
+    this.esperandoConfirmacion = false;
   }
 
   readonly pasosEscrow = [

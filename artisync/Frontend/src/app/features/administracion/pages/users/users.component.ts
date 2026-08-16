@@ -39,7 +39,7 @@ export class UsersComponent implements OnInit {
   readonly selectedUser = signal<UserResponse | null>(null);
 
   readonly isConfirmOpen = signal<boolean>(false);
-  readonly confirmActionType = signal<'delete' | 'status'>('delete');
+  readonly confirmActionType = signal<'delete' | 'status' | 'sessions'>('delete');
 
   ngOnInit(): void {
     this.loadUsers();
@@ -148,13 +148,32 @@ export class UsersComponent implements OnInit {
     this.isConfirmOpen.set(true);
   }
 
+  /** Cierra las sesiones activas del usuario sin tocar su cuenta. */
+  confirmRevokeSessions(user: UserResponse): void {
+    this.selectedUser.set(user);
+    this.confirmActionType.set('sessions');
+    this.isConfirmOpen.set(true);
+  }
+
   executeConfirmAction(): void {
     const user = this.selectedUser();
     if (!user) return;
 
     this.isActionLoading.set(true);
 
-    if (this.confirmActionType() === 'status') {
+    if (this.confirmActionType() === 'sessions') {
+      this.adminUserService.revokeSessions(user.idUsuario).subscribe({
+        next: (res) => {
+          this.isActionLoading.set(false);
+          this.isConfirmOpen.set(false);
+          this.toastService.success(res.message || res.mensaje || 'Sesiones revocadas');
+        },
+        error: (err) => {
+          this.isActionLoading.set(false);
+          this.toastService.error(err.error?.message || 'No se pudieron revocar las sesiones');
+        }
+      });
+    } else if (this.confirmActionType() === 'status') {
       const nuevoEstado = !user.estadoCuenta;
       this.adminUserService.changeEstado(user.idUsuario, { estadoCuenta: nuevoEstado }).subscribe({
         next: () => {

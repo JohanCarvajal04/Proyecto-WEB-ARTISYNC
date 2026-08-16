@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, finalize, catchError, throwError, firstValueFrom, map, of } from 'rxjs';
+import { Observable, tap, finalize, catchError, throwError, firstValueFrom, map, of, shareReplay } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { environment } from '../../../../environments/environment';
 import {
@@ -27,6 +27,9 @@ export class AuthService {
     JSON.parse(localStorage.getItem('userPermissions') || '[]')
   );
 
+  /** Renovación de sesión en curso, compartida entre todos los 401 simultáneos. */
+  private refreshEnVuelo: Observable<TokenResponse> | null = null;
+
   readonly currentUser = this._currentUser.asReadonly();
   readonly accessToken = this._accessToken.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
@@ -45,12 +48,17 @@ export class AuthService {
     return roles[0] ? roles[0].replace('ROLE_', '') : null;
   });
 
-  /** Ruta de aterrizaje tras autenticarse, según el rol principal del usuario. */
+  /**
+   * Ruta de aterrizaje tras autenticarse: la primera entrada del menú del rol.
+   * Se deriva de NAV_CONFIG para que añadir un panel nuevo (p. ej. el de creador)
+   * no obligue a tocar también el redirect de login.
+   */
   readonly homeRoute = computed(() => {
     const role = this.primaryRole();
-    if (role === 'MODERADOR') return '/admin/mod-overview';
-    const basePath = role ? NAV_CONFIG[role]?.basePath : null;
-    return basePath === '/admin' ? '/admin/users' : '/dashboard/overview';
+    const config = role ? NAV_CONFIG[role] : null;
+    if (!config) return '/dashboard/overview';
+    const primeraRuta = config.items[0]?.route;
+    return primeraRuta ? `${config.basePath}/${primeraRuta}` : config.basePath;
   });
 
   /**
@@ -108,10 +116,19 @@ export class AuthService {
     return this.isLoggedIn();
   }
 
+  /**
+   * El id del usuario viaja en `sub`: JwtService lo fija al idUsuario cuando el
+   * principal es un CustomUserDetails. Los claims `idUsuario`/`sub_id` que se
+   * leían antes no los emite el backend, así que esto siempre devolvía null.
+   *
+   * Si el token es antiguo o el principal no tenía id, `sub` cae al email y el
+   * parseo da NaN; en ese caso se devuelve null en vez de un id inventado.
+   */
   getCurrentUserId(): number | null {
-    const user = this._currentUser();
-    if (!user) return null;
-    return (user as any).idUsuario ?? (user as any).sub_id ?? null;
+    const sub = this._currentUser()?.sub;
+    if (!sub) return null;
+    const id = Number(sub);
+    return Number.isFinite(id) ? id : null;
   }
 
   fetchUserPermissions(): Observable<string[]> {
@@ -190,14 +207,42 @@ export class AuthService {
     );
   }
 
+  /**
+   * Renovación de sesión con single-flight: todas las peticiones que fallen con
+   * 401 a la vez comparten una única llamada a /auth/refresh.
+   *
+   * Es imprescindible porque el backend ROTA el refresh token: al renovar
+   * revoca el jti anterior y emite uno nuevo (AuthServiceImpl §refrescar). Sin
+   * esta guarda, dos 401 simultáneos lanzaban dos refresh; el primero rotaba el
+   * token y el segundo llegaba con el jti ya borrado, respondía 401 y su
+   * catchError ejecutaba clearSession(), tirando abajo una sesión que acababa
+   * de renovarse correctamente.
+   *
+   * Se notaba sobre todo en pantallas con varios sondeos a la vez (el detalle
+   * de pedido tiene el del seguimiento y el del chat), donde la coincidencia de
+   * 401 es casi segura en cuanto caduca el access token.
+   */
   refreshToken(): Observable<TokenResponse> {
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true }).pipe(
-      tap(response => this.handleAuthentication(response)),
-      catchError(err => {
-        this.clearSession();
-        return throwError(() => err);
-      })
-    );
+    if (this.refreshEnVuelo) {
+      return this.refreshEnVuelo;
+    }
+
+    this.refreshEnVuelo = this.http
+      .post<TokenResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true })
+      .pipe(
+        tap(response => this.handleAuthentication(response)),
+        catchError(err => {
+          this.clearSession();
+          return throwError(() => err);
+        }),
+        // La renovación deja de estar "en vuelo" al terminar, con éxito o no.
+        finalize(() => this.refreshEnVuelo = null),
+        // Sin esto, cada suscriptor dispararía su propio POST: shareReplay
+        // multiplexa el mismo resultado a todos los que estén esperando.
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+
+    return this.refreshEnVuelo;
   }
 
   logout(): void {

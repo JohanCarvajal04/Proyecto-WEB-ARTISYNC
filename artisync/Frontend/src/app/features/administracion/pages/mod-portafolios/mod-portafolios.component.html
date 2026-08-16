@@ -23,6 +23,7 @@
               <th class="px-6 py-4 text-center">Estado</th>
               <th class="px-6 py-4 text-center">Visitas</th>
               <th class="px-6 py-4 text-right">Fecha Creación</th>
+              <th class="px-6 py-4 text-right">Contenido</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -39,10 +40,16 @@
                 </td>
                 <td class="px-6 py-4 text-center font-medium">{{ portafolio.totalVisitasAcumuladas }}</td>
                 <td class="px-6 py-4 text-right text-slate-500">{{ formatDate(portafolio.fechaCreacion) }}</td>
+                <td class="px-6 py-4 text-right">
+                  <button type="button" (click)="verObras(portafolio)"
+                    class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
+                    Ver obras
+                  </button>
+                </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                <td colspan="6" class="px-6 py-12 text-center text-slate-500">
                   <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                   </svg>
@@ -55,4 +62,73 @@
       </div>
     }
   </div>
+
+  <!-- Contenido del portafolio -->
+  @if (seleccionado(); as p) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="cerrarDetalle()"></div>
+
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Portafolio #{{ p.idPortafolio }}</h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Perfil {{ p.idPerfil }} · {{ p.esPublico ? 'Público' : 'Privado' }} · {{ obras().length }} obra(s)
+            </p>
+          </div>
+          <button type="button" (click)="cerrarDetalle()"
+            class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto">
+          @if (cargandoObras()) {
+            <div class="flex items-center justify-center py-16">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
+          } @else if (obras().length === 0) {
+            <p class="text-sm text-slate-400 text-center py-12">Este portafolio no tiene obras publicadas.</p>
+          } @else {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              @for (obra of obras(); track obra.idItemPortafolio) {
+                <div class="rounded-xl border border-slate-100 overflow-hidden flex flex-col">
+                  <div class="aspect-[4/3] bg-slate-50 flex items-center justify-center overflow-hidden">
+                    <img [src]="obra.urlArchivo" [alt]="obra.tituloObra" class="w-full h-full object-cover"
+                      (error)="$any($event.target).style.display='none'" />
+                  </div>
+                  <div class="p-3 flex flex-col gap-1">
+                    <p class="text-sm font-semibold text-slate-800">{{ obra.tituloObra }}</p>
+                    @if (obra.descripcionObra) {
+                      <p class="text-xs text-slate-400 leading-relaxed line-clamp-3">{{ obra.descripcionObra }}</p>
+                    }
+                    <span class="text-[10px] text-slate-300 font-mono mt-1">{{ formatDate(obra.fechaSubida) }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-4">
+          <p class="text-xs text-slate-400 leading-relaxed">
+            El permiso <span class="font-mono">PORTAFOLIO_MODERAR</span> no tiene
+            ninguna acción en el backend; la única disponible es el borrado, que
+            es exclusivo de ADMIN.
+          </p>
+          @if (esAdmin) {
+            <button type="button" (click)="eliminarPortafolio()" [disabled]="eliminando()"
+              class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2">
+              @if (eliminando()) {
+                <span class="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></span>
+              }
+              Eliminar portafolio
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
 </div>

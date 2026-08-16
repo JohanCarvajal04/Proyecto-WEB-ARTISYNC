@@ -173,6 +173,34 @@
             }
           </div>
 
+          <!-- Historial de certificados del mismo perfil -->
+          @if (historialPerfil().length > 0) {
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-2">
+                <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Historial del perfil
+              </h4>
+              <p class="text-xs text-slate-400 mb-4">
+                {{ historialPerfil().length }} documento(s) previo(s) de este mismo perfil.
+              </p>
+
+              <div class="flex flex-col divide-y divide-slate-100">
+                @for (c of historialPerfil(); track c.idCertificado) {
+                  <div class="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <span class="font-mono text-xs text-slate-400">#{{ c.idCertificado }}</span>
+                    <span class="flex-1 text-slate-600 truncate">{{ c.nombreEstadoVerificacion }}</span>
+                    @if (c.puntajeConfianzaIa !== null) {
+                      <span class="text-xs font-mono text-slate-500">IA {{ c.puntajeConfianzaIa }}</span>
+                    }
+                    <span class="text-xs text-slate-300 font-mono">{{ formatDate(c.fechaAnalisis) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Moderation Decision Form (Only if Pending) -->
           @if (detail.nombreEstadoVerificacion === 'PENDIENTE') {
             <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">

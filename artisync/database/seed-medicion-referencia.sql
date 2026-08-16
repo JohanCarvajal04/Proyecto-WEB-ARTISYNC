@@ -66,3 +66,13 @@ WHERE f.nombre_flujo = 'Flujo Estándar de Medición'
     SELECT 1 FROM flujo_etapas_config fec
     WHERE fec.id_flujo = f.id_flujo AND fec.id_etapa = e.id_etapa
   );
+
+-- Asignación del flujo a cada categoría (RF-19). La columna categorias.id_flujo
+-- la crea la migración V9; aquí solo se rellena con el flujo de medición, que es
+-- dato de fixture. Sin esta línea el sistema sigue funcionando: PedidoServicioImpl
+-- cae al flujo de respaldo, pero entonces la elección no depende de la categoría.
+UPDATE categorias c
+SET id_flujo = f.id_flujo
+FROM flujos_trabajo f
+WHERE f.nombre_flujo = 'Flujo Estándar de Medición'
+  AND c.id_flujo IS NULL;

@@ -59,4 +59,45 @@ class AlmacenamientoLocalTest {
 
         assertThrows(ExcepcionRecursoNoEncontrado.class, () -> almacenamiento.leer(referencia));
     }
+
+    @Test
+    void guardar_conPrefijo_creaElSubdirectorioYConservaElContenido() {
+        MockMultipartFile archivo = new MockMultipartFile(
+                "archivo", "obra.mp4", "video/mp4", "video-de-prueba".getBytes());
+
+        String referencia = almacenamiento.guardar(archivo, PrefijoAlmacenamiento.PORTAFOLIO);
+
+        assertThat(referencia).startsWith("portafolio/").endsWith(".mp4");
+        assertThat(new String(almacenamiento.leer(referencia))).isEqualTo("video-de-prueba");
+    }
+
+    @Test
+    void guardar_prefijosDistintos_noSePisanEntreCasosDeUso() {
+        MockMultipartFile archivo = new MockMultipartFile(
+                "archivo", "doc.pdf", "application/pdf", "contenido".getBytes());
+
+        String enPortafolio = almacenamiento.guardar(archivo, PrefijoAlmacenamiento.PORTAFOLIO);
+        String enEntregables = almacenamiento.guardar(archivo, PrefijoAlmacenamiento.ENTREGABLES);
+
+        assertThat(enPortafolio).isNotEqualTo(enEntregables);
+        assertThat(almacenamiento.leer(enPortafolio)).isNotEmpty();
+        assertThat(almacenamiento.leer(enEntregables)).isNotEmpty();
+    }
+
+    @Test
+    void guardar_prefijoConCaracteresNoPermitidos_esRechazado() {
+        MockMultipartFile archivo = new MockMultipartFile(
+                "archivo", "doc.pdf", "application/pdf", "contenido".getBytes());
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.guardar(archivo, "../escape"));
+    }
+
+    /** El almacenamiento local no firma URLs; el consumidor debe servir los bytes. */
+    @Test
+    void urlTemporal_noEstaDisponibleEnLocal() {
+        String referencia = almacenamiento.guardar(new MockMultipartFile(
+                "documento", "cedula.jpg", "image/jpeg", "contenido".getBytes()));
+
+        assertThat(almacenamiento.urlTemporal(referencia)).isEmpty();
+    }
 }
