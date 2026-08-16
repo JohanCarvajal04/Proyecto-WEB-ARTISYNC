@@ -11,12 +11,11 @@ export const guestGuard: CanActivateFn = async () => {
   await auth.waitForSessionRestore();
 
   if (auth.isLoggedIn()) {
-    // Usa homeRoute() en lugar de un mapa propio: el mapa anterior apuntaba a
-    // '/creator/dashboard' y '/client/explore', rutas que no existen en
-    // app.routes.ts. Al no existir caían en el comodín '**' -> '/auth/login',
-    // que vuelve a entrar en este mismo guard: bucle de redirección infinito
-    // para CREADOR y CLIENTE. Estaba latente sólo porque isLoggedIn() siempre
-    // era falso aquí antes de arreglar la restauración de sesión.
+    // Mismo destino que usa el login: homeRoute() lo deriva de NAV_CONFIG por rol.
+    // No sustituir por un mapa propio aquí. El que hubo antes apuntaba a
+    // '/creator/dashboard' y '/client/explore', rutas inexistentes en
+    // app.routes.ts: caían en el comodín '**' -> '/auth/login', que vuelve a
+    // entrar en este guard y produce un bucle infinito para CREADOR y CLIENTE.
     router.navigateByUrl(auth.homeRoute());
     return false;
   }
