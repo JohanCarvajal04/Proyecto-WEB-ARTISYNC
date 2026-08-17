@@ -17,4 +17,11 @@ public class PeticionEnviarMensaje {
     @NotBlank(message = "El cuerpo del mensaje no puede estar vacío")
     @Size(max = 5000, message = "El mensaje no puede superar los 5000 caracteres")
     private String cuerpoMensaje;
+
+    /**
+     * Solo lo usa el envío por STOMP: en WebSocket no hay path variable de
+     * donde sacar el pedido, así que viaja en el cuerpo. Por REST se ignora,
+     * porque el id llega en la URL.
+     */
+    private Long idPedido;
 }
