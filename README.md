@@ -3,14 +3,14 @@
 [![CI](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml/badge.svg)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21730559.svg)](https://doi.org/10.5281/zenodo.21730559)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-v0.9.0--rc-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v0.9.0-rc)
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.0.0)
 
 Proyecto Fin de Curso (PFC) — Aplicaciones Web, Quinto nivel.
 Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computación y Diseño Digital · Carrera de Ingeniería de Software.
 
 Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta **Creadores** con **Clientes** y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón *escrow* vía PayPal, y funciones sociales.
 
-> **DOI persistente.** El archivo Zenodo del tag `v0.9.0-rc` está publicado con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559), declarado también en `CITATION.cff`. Falta declararlo en la portada del informe técnico (`docs/informe-entrega-3.pdf`) cuando este se redacte.
+> **DOI persistente.** El archivo Zenodo del tag `v0.9.0-rc` está publicado con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559), declarado también en `CITATION.cff`. Pendiente: generar el registro de Zenodo correspondiente al tag `v1.0.0` (requiere crear el Release de GitHub sobre el tag para que Zenodo lo detecte) y declararlo en la portada del documento académico final.
 
 ---
 
@@ -132,6 +132,7 @@ El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/) y [Keep a Cha
 | `v0.7.0` | Entrega 1B — módulo de autenticación y acceso a datos |
 | `v0.7.1` | Cierre de la aplicación de observaciones de las Entregas 1A y 1B |
 | `v0.9.0-rc` | Tercera Entrega — *release candidate* |
+| `v1.0.0` | Entrega Final — primera versión estable de producción |
 
 ## Equipo y contribuciones
 

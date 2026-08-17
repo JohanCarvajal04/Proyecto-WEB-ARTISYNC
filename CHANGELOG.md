@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.0.0] - 2026-08-17
+### Added
+- Análisis estático SpotBugs + find-sec-bugs sobre concatenación SQL, y escaneo OWASP ZAP baseline
+  archivado (`docs/mediciones/sec/`).
+- 7 procedimientos almacenados nuevos conectados al código real (ADR-006): `fn_registrar_usuario`,
+  `fn_resolver_estado_login`, `fn_sincronizar_permisos_rol`, `fn_eliminar_rol`,
+  `fn_registrar_infraccion`, `fn_restablecer_contrasena`, `fn_seleccionar_ganadores_sorteo`.
+- Perfil Lighthouse desktop, con 3 corridas por perfil (mobile y desktop).
+- `docs/despliegue/` (`DEPLOYMENT.md`, `RUNBOOK.md`, `BACKUP.md`).
+- Checklists FAIR, INCOSE, PRISMA 2020 y Ralph 2021.
+- Servicio `azurite` (perfil `azure`) en `docker-compose.yml` para emular Azure Blob Storage.
+
+### Changed
+- Cobertura (JaCoCo) y mediciones SUS actualizadas.
+- Evidencia OWASP reorganizada en `docs/mediciones/sec/owasp/` + `DATA-PROVENANCE.md`.
+- Checklists y matriz de trazabilidad sincronizados con el estado real del código.
+- Colección Postman ampliada de 10 a 26 peticiones (casos 400/401/403/404).
+
+### Fixed
+- Marcadores de merge sin resolver en `artisync/.env.example`.
+
 ## [v0.9.0-rc] - 2026-07-30
 ### Added
 - Evidencias de mediciones empíricas cuantitativas (rendimiento, seguridad, cobertura).
