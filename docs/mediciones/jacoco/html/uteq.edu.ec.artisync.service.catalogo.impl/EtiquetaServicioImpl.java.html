@@ -23,48 +23,48 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaEtiqueta&gt; listarEtiquetas() {
-<span class="nc" id="L26">        return etiquetaRepository.findAll()</span>
-<span class="nc" id="L27">                .stream()</span>
-<span class="nc" id="L28">                .map(this::mapearAEtiquetaRespuesta)</span>
-<span class="nc" id="L29">                .collect(Collectors.toList());</span>
+<span class="fc" id="L26">        return etiquetaRepository.findAll()</span>
+<span class="fc" id="L27">                .stream()</span>
+<span class="fc" id="L28">                .map(this::mapearAEtiquetaRespuesta)</span>
+<span class="fc" id="L29">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaEtiqueta obtenerPorId(Long idEtiqueta) {
-<span class="nc" id="L35">        Etiqueta et = etiquetaRepository.findById(idEtiqueta)</span>
-<span class="nc" id="L36">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta));</span>
-<span class="nc" id="L37">        return mapearAEtiquetaRespuesta(et);</span>
+<span class="fc" id="L35">        Etiqueta et = etiquetaRepository.findById(idEtiqueta)</span>
+<span class="fc" id="L36">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta));</span>
+<span class="fc" id="L37">        return mapearAEtiquetaRespuesta(et);</span>
     }
 
     @Override
     @Transactional
     public RespuestaEtiqueta crearEtiqueta(PeticionCrearEtiqueta peticion) {
-<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {</span>
-<span class="nc" id="L44">            throw new ExcepcionReglaNegocio(&quot;Ya existe la etiqueta: &quot; + peticion.getNombreEtiqueta());</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {</span>
+<span class="fc" id="L44">            throw new ExcepcionReglaNegocio(&quot;Ya existe la etiqueta: &quot; + peticion.getNombreEtiqueta());</span>
         }
-<span class="nc" id="L46">        Etiqueta et = Etiqueta.builder()</span>
-<span class="nc" id="L47">                .nombreEtiqueta(peticion.getNombreEtiqueta().trim())</span>
-<span class="nc" id="L48">                .build();</span>
-<span class="nc" id="L49">        et = etiquetaRepository.save(et);</span>
-<span class="nc" id="L50">        return mapearAEtiquetaRespuesta(et);</span>
+<span class="fc" id="L46">        Etiqueta et = Etiqueta.builder()</span>
+<span class="fc" id="L47">                .nombreEtiqueta(peticion.getNombreEtiqueta().trim())</span>
+<span class="fc" id="L48">                .build();</span>
+<span class="fc" id="L49">        et = etiquetaRepository.save(et);</span>
+<span class="fc" id="L50">        return mapearAEtiquetaRespuesta(et);</span>
     }
 
     @Override
     @Transactional
     public void eliminarEtiqueta(Long idEtiqueta) {
-<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (!etiquetaRepository.existsById(idEtiqueta)) {</span>
-<span class="nc" id="L57">            throw new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (!etiquetaRepository.existsById(idEtiqueta)) {</span>
+<span class="fc" id="L57">            throw new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta);</span>
         }
-<span class="nc" id="L59">        etiquetaRepository.deleteById(idEtiqueta);</span>
-<span class="nc" id="L60">    }</span>
+<span class="fc" id="L59">        etiquetaRepository.deleteById(idEtiqueta);</span>
+<span class="fc" id="L60">    }</span>
 
     private RespuestaEtiqueta mapearAEtiquetaRespuesta(Etiqueta et) {
-<span class="nc" id="L63">        return RespuestaEtiqueta.builder()</span>
-<span class="nc" id="L64">                .idEtiqueta(et.getIdEtiqueta())</span>
-<span class="nc" id="L65">                .nombreEtiqueta(et.getNombreEtiqueta())</span>
-<span class="nc" id="L66">                .actualizadoEn(et.getActualizadoEn())</span>
-<span class="nc" id="L67">                .build();</span>
+<span class="fc" id="L63">        return RespuestaEtiqueta.builder()</span>
+<span class="fc" id="L64">                .idEtiqueta(et.getIdEtiqueta())</span>
+<span class="fc" id="L65">                .nombreEtiqueta(et.getNombreEtiqueta())</span>
+<span class="fc" id="L66">                .actualizadoEn(et.getActualizadoEn())</span>
+<span class="fc" id="L67">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

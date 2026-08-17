@@ -18,7 +18,7 @@ import uteq.edu.ec.artisync.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import uteq.edu.ec.artisync.security.CustomAuthenticationEntryPoint;
-import uteq.edu.ec.artisync.security.LoginRateLimitFilter;
+import uteq.edu.ec.artisync.security.AuthRateLimitFilter;
 
 import java.time.Duration;
 import java.util.List;
@@ -30,7 +30,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final LoginRateLimitFilter loginRateLimitFilter;
+    private final AuthRateLimitFilter authRateLimitFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Value(&quot;${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}&quot;)
@@ -65,7 +65,7 @@ public class SecurityConfig {
 <span class="fc" id="L65">                                 &quot;/api/auth/refresh&quot;, &quot;/api/auth/forgot-password&quot;, &quot;/api/auth/reset-password&quot;).permitAll()</span>
 <span class="fc" id="L66">                .requestMatchers(HttpMethod.GET, &quot;/api/catalog/**&quot;, &quot;/api/v1/catalogo/**&quot;, &quot;/api/v1/categorias/**&quot;, </span>
                                  &quot;/api/v1/subcategorias/**&quot;, &quot;/api/v1/etiquetas/**&quot;, &quot;/api/v1/servicios/**&quot;, 
-<span class="fc" id="L68">                                 &quot;/api/v1/creadores/**&quot;, &quot;/api/v1/portafolios/**&quot;).permitAll()</span>
+<span class="fc" id="L68">                                 &quot;/api/v1/creadores/**&quot;, &quot;/api/v1/portafolios/**&quot;, &quot;/api/paises&quot;, &quot;/api/paises/**&quot;).permitAll()</span>
 <span class="fc" id="L69">                .requestMatchers(&quot;/swagger-ui/**&quot;, &quot;/v3/api-docs/**&quot;, &quot;/swagger-resources/**&quot;, &quot;/webjars/**&quot;, &quot;/api/docs/**&quot;, &quot;/api/swagger-ui/**&quot;, &quot;/api/swagger-ui.html&quot;).permitAll()</span>
 <span class="fc" id="L70">                .requestMatchers(&quot;/ws/**&quot;, &quot;/actuator/**&quot;).permitAll()</span>
 <span class="fc" id="L71">                .requestMatchers(&quot;/api/webhooks/paypal&quot;).permitAll()</span>
@@ -74,7 +74,7 @@ public class SecurityConfig {
 <span class="fc" id="L74">                .anyRequest().authenticated()</span>
             )
 <span class="fc" id="L76">            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)</span>
-<span class="fc" id="L77">            .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class);</span>
+<span class="fc" id="L77">            .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);</span>
 
 <span class="fc" id="L79">        return http.build();</span>
     }

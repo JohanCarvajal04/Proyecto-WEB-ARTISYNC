@@ -9,10 +9,12 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.entity.catalogo.Categoria;
+import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
+import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
@@ -25,142 +27,163 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
+    private final FlujoTrabajoRepository flujoTrabajoRepository;
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaCategoria&gt; listarCategoriasActivas() {
-<span class="nc" id="L32">        return categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()</span>
-<span class="nc" id="L33">                .stream()</span>
-<span class="nc" id="L34">                .map(this::mapearACategoriaRespuesta)</span>
-<span class="nc" id="L35">                .collect(Collectors.toList());</span>
+<span class="fc" id="L35">        return categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()</span>
+<span class="fc" id="L36">                .stream()</span>
+<span class="fc" id="L37">                .map(this::mapearACategoriaRespuesta)</span>
+<span class="fc" id="L38">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaCategoria&gt; listarTodasLasCategorias() {
-<span class="nc" id="L41">        return categoriaRepository.findAllByOrderByNombreCategoriaAsc()</span>
-<span class="nc" id="L42">                .stream()</span>
-<span class="nc" id="L43">                .map(this::mapearACategoriaRespuesta)</span>
-<span class="nc" id="L44">                .collect(Collectors.toList());</span>
+<span class="fc" id="L44">        return categoriaRepository.findAllByOrderByNombreCategoriaAsc()</span>
+<span class="fc" id="L45">                .stream()</span>
+<span class="fc" id="L46">                .map(this::mapearACategoriaRespuesta)</span>
+<span class="fc" id="L47">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaCategoria obtenerCategoriaPorId(Long idCategoria) {
-<span class="nc" id="L50">        Categoria cat = categoriaRepository.findById(idCategoria)</span>
-<span class="nc" id="L51">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria));</span>
-<span class="nc" id="L52">        return mapearACategoriaRespuesta(cat);</span>
+<span class="fc" id="L53">        Categoria cat = categoriaRepository.findById(idCategoria)</span>
+<span class="pc" id="L54">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria));</span>
+<span class="nc" id="L55">        return mapearACategoriaRespuesta(cat);</span>
     }
 
     @Override
     @Transactional
     public RespuestaCategoria crearCategoria(PeticionCrearCategoria peticion) {
-<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {</span>
-<span class="nc" id="L59">            throw new ExcepcionReglaNegocio(&quot;Ya existe una categoria con el nombre: &quot; + peticion.getNombreCategoria());</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {</span>
+<span class="fc" id="L62">            throw new ExcepcionReglaNegocio(&quot;Ya existe una categoria con el nombre: &quot; + peticion.getNombreCategoria());</span>
         }
-<span class="nc" id="L61">        Categoria cat = Categoria.builder()</span>
-<span class="nc" id="L62">                .nombreCategoria(peticion.getNombreCategoria().trim())</span>
-<span class="nc bnc" id="L63" title="All 2 branches missed.">                .estadoActiva(peticion.getEstadoActiva() != null ? peticion.getEstadoActiva() : true)</span>
-<span class="nc" id="L64">                .build();</span>
-<span class="nc" id="L65">        cat = categoriaRepository.save(cat);</span>
-<span class="nc" id="L66">        return mapearACategoriaRespuesta(cat);</span>
+<span class="fc" id="L64">        Categoria cat = Categoria.builder()</span>
+<span class="fc" id="L65">                .nombreCategoria(peticion.getNombreCategoria().trim())</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">                .estadoActiva(peticion.getEstadoActiva() != null ? peticion.getEstadoActiva() : true)</span>
+<span class="fc" id="L67">                .flujo(resolverFlujo(peticion.getIdFlujo()))</span>
+<span class="fc" id="L68">                .build();</span>
+<span class="fc" id="L69">        cat = categoriaRepository.save(cat);</span>
+<span class="fc" id="L70">        return mapearACategoriaRespuesta(cat);</span>
     }
 
     @Override
     @Transactional
     public RespuestaCategoria actualizarCategoria(Long idCategoria, PeticionActualizarCategoria peticion) {
-<span class="nc" id="L72">        Categoria cat = categoriaRepository.findById(idCategoria)</span>
-<span class="nc" id="L73">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria));</span>
+<span class="fc" id="L76">        Categoria cat = categoriaRepository.findById(idCategoria)</span>
+<span class="fc" id="L77">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria));</span>
 
-<span class="nc bnc" id="L75" title="All 4 branches missed.">        if (peticion.getNombreCategoria() != null &amp;&amp; !peticion.getNombreCategoria().isBlank()) {</span>
-<span class="nc bnc" id="L76" title="All 2 branches missed.">            if (!cat.getNombreCategoria().equalsIgnoreCase(peticion.getNombreCategoria()) &amp;&amp;</span>
-<span class="nc bnc" id="L77" title="All 2 branches missed.">                    categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {</span>
-<span class="nc" id="L78">                throw new ExcepcionReglaNegocio(&quot;Ya existe una categoria con el nombre: &quot; + peticion.getNombreCategoria());</span>
+<span class="pc bpc" id="L79" title="2 of 4 branches missed.">        if (peticion.getNombreCategoria() != null &amp;&amp; !peticion.getNombreCategoria().isBlank()) {</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">            if (!cat.getNombreCategoria().equalsIgnoreCase(peticion.getNombreCategoria()) &amp;&amp;</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">                    categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {</span>
+<span class="fc" id="L82">                throw new ExcepcionReglaNegocio(&quot;Ya existe una categoria con el nombre: &quot; + peticion.getNombreCategoria());</span>
             }
-<span class="nc" id="L80">            cat.setNombreCategoria(peticion.getNombreCategoria().trim());</span>
+<span class="fc" id="L84">            cat.setNombreCategoria(peticion.getNombreCategoria().trim());</span>
         }
-<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (peticion.getEstadoActiva() != null) {</span>
-<span class="nc" id="L83">            cat.setEstadoActiva(peticion.getEstadoActiva());</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (peticion.getEstadoActiva() != null) {</span>
+<span class="nc" id="L87">            cat.setEstadoActiva(peticion.getEstadoActiva());</span>
         }
-<span class="nc" id="L85">        cat = categoriaRepository.save(cat);</span>
-<span class="nc" id="L86">        return mapearACategoriaRespuesta(cat);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (peticion.getIdFlujo() != null) {</span>
+<span class="nc" id="L90">            cat.setFlujo(resolverFlujo(peticion.getIdFlujo()));</span>
+        }
+<span class="fc" id="L92">        cat = categoriaRepository.save(cat);</span>
+<span class="fc" id="L93">        return mapearACategoriaRespuesta(cat);</span>
     }
 
     @Override
     @Transactional
     public void eliminarCategoria(Long idCategoria) {
-<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (!categoriaRepository.existsById(idCategoria)) {</span>
-<span class="nc" id="L93">            throw new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria);</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (!categoriaRepository.existsById(idCategoria)) {</span>
+<span class="fc" id="L100">            throw new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria);</span>
         }
-<span class="nc" id="L95">        categoriaRepository.deleteById(idCategoria);</span>
-<span class="nc" id="L96">    }</span>
+<span class="fc" id="L102">        categoriaRepository.deleteById(idCategoria);</span>
+<span class="fc" id="L103">    }</span>
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaSubcategoria&gt; listarSubcategoriasPorCategoria(Long idCategoria) {
-<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (!categoriaRepository.existsById(idCategoria)) {</span>
-<span class="nc" id="L102">            throw new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (!categoriaRepository.existsById(idCategoria)) {</span>
+<span class="fc" id="L109">            throw new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + idCategoria);</span>
         }
-<span class="nc" id="L104">        return subcategoriaRepository.findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(idCategoria)</span>
-<span class="nc" id="L105">                .stream()</span>
-<span class="nc" id="L106">                .map(this::mapearASubcategoriaRespuesta)</span>
-<span class="nc" id="L107">                .collect(Collectors.toList());</span>
+<span class="fc" id="L111">        return subcategoriaRepository.findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(idCategoria)</span>
+<span class="fc" id="L112">                .stream()</span>
+<span class="fc" id="L113">                .map(this::mapearASubcategoriaRespuesta)</span>
+<span class="fc" id="L114">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaSubcategoria&gt; listarTodasLasSubcategorias() {
-<span class="nc" id="L113">        return subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()</span>
-<span class="nc" id="L114">                .stream()</span>
-<span class="nc" id="L115">                .map(this::mapearASubcategoriaRespuesta)</span>
-<span class="nc" id="L116">                .collect(Collectors.toList());</span>
+<span class="fc" id="L120">        return subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()</span>
+<span class="fc" id="L121">                .stream()</span>
+<span class="fc" id="L122">                .map(this::mapearASubcategoriaRespuesta)</span>
+<span class="fc" id="L123">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional
     public RespuestaSubcategoria crearSubcategoria(PeticionCrearSubcategoria peticion) {
-<span class="nc" id="L122">        Categoria cat = categoriaRepository.findById(peticion.getIdCategoria())</span>
-<span class="nc" id="L123">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + peticion.getIdCategoria()));</span>
+<span class="fc" id="L129">        Categoria cat = categoriaRepository.findById(peticion.getIdCategoria())</span>
+<span class="fc" id="L130">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Categoria no encontrada con ID: &quot; + peticion.getIdCategoria()));</span>
 
-<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (subcategoriaRepository.existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(</span>
-<span class="nc" id="L126">                cat.getIdCategoria(), peticion.getNombreSubcategoria())) {</span>
-<span class="nc" id="L127">            throw new ExcepcionReglaNegocio(&quot;Ya existe la subcategoria &quot; + peticion.getNombreSubcategoria() + &quot; en esta categoria&quot;);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (subcategoriaRepository.existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(</span>
+<span class="fc" id="L133">                cat.getIdCategoria(), peticion.getNombreSubcategoria())) {</span>
+<span class="fc" id="L134">            throw new ExcepcionReglaNegocio(&quot;Ya existe la subcategoria &quot; + peticion.getNombreSubcategoria() + &quot; en esta categoria&quot;);</span>
         }
 
-<span class="nc" id="L130">        Subcategoria sub = Subcategoria.builder()</span>
-<span class="nc" id="L131">                .categoria(cat)</span>
-<span class="nc" id="L132">                .nombreSubcategoria(peticion.getNombreSubcategoria().trim())</span>
-<span class="nc" id="L133">                .build();</span>
-<span class="nc" id="L134">        sub = subcategoriaRepository.save(sub);</span>
-<span class="nc" id="L135">        return mapearASubcategoriaRespuesta(sub);</span>
+<span class="fc" id="L137">        Subcategoria sub = Subcategoria.builder()</span>
+<span class="fc" id="L138">                .categoria(cat)</span>
+<span class="fc" id="L139">                .nombreSubcategoria(peticion.getNombreSubcategoria().trim())</span>
+<span class="fc" id="L140">                .build();</span>
+<span class="fc" id="L141">        sub = subcategoriaRepository.save(sub);</span>
+<span class="fc" id="L142">        return mapearASubcategoriaRespuesta(sub);</span>
     }
 
     @Override
     @Transactional
     public void eliminarSubcategoria(Long idSubcategoria) {
-<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (!subcategoriaRepository.existsById(idSubcategoria)) {</span>
-<span class="nc" id="L142">            throw new ExcepcionRecursoNoEncontrado(&quot;Subcategoria no encontrada con ID: &quot; + idSubcategoria);</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (!subcategoriaRepository.existsById(idSubcategoria)) {</span>
+<span class="fc" id="L149">            throw new ExcepcionRecursoNoEncontrado(&quot;Subcategoria no encontrada con ID: &quot; + idSubcategoria);</span>
         }
-<span class="nc" id="L144">        subcategoriaRepository.deleteById(idSubcategoria);</span>
-<span class="nc" id="L145">    }</span>
+<span class="fc" id="L151">        subcategoriaRepository.deleteById(idSubcategoria);</span>
+<span class="fc" id="L152">    }</span>
 
     private RespuestaCategoria mapearACategoriaRespuesta(Categoria cat) {
-<span class="nc" id="L148">        return RespuestaCategoria.builder()</span>
-<span class="nc" id="L149">                .idCategoria(cat.getIdCategoria())</span>
-<span class="nc" id="L150">                .nombreCategoria(cat.getNombreCategoria())</span>
-<span class="nc" id="L151">                .estadoActiva(cat.getEstadoActiva())</span>
-<span class="nc" id="L152">                .actualizadoEn(cat.getActualizadoEn())</span>
-<span class="nc" id="L153">                .build();</span>
+<span class="fc" id="L155">        return RespuestaCategoria.builder()</span>
+<span class="fc" id="L156">                .idCategoria(cat.getIdCategoria())</span>
+<span class="fc" id="L157">                .nombreCategoria(cat.getNombreCategoria())</span>
+<span class="fc" id="L158">                .estadoActiva(cat.getEstadoActiva())</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">                .idFlujo(cat.getFlujo() != null ? cat.getFlujo().getIdFlujo() : null)</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">                .nombreFlujo(cat.getFlujo() != null ? cat.getFlujo().getNombreFlujo() : null)</span>
+<span class="fc" id="L161">                .actualizadoEn(cat.getActualizadoEn())</span>
+<span class="fc" id="L162">                .build();</span>
+    }
+
+    /**
+     * `null` es una respuesta válida: significa &quot;sin flujo asignado&quot;, y el
+     * servicio de pedidos ya cae a un flujo por defecto en ese caso. Un id que
+     * no existe sí es un error del cliente y se rechaza.
+     */
+    private FlujoTrabajo resolverFlujo(Long idFlujo) {
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (idFlujo == null) {</span>
+<span class="fc" id="L172">            return null;</span>
+        }
+<span class="fc" id="L174">        return flujoTrabajoRepository.findById(idFlujo)</span>
+<span class="fc" id="L175">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));
     }
 
     private RespuestaSubcategoria mapearASubcategoriaRespuesta(Subcategoria sub) {
-<span class="nc" id="L157">        return RespuestaSubcategoria.builder()</span>
-<span class="nc" id="L158">                .idSubcategoria(sub.getIdSubcategoria())</span>
-<span class="nc" id="L159">                .idCategoria(sub.getCategoria().getIdCategoria())</span>
-<span class="nc" id="L160">                .nombreCategoria(sub.getCategoria().getNombreCategoria())</span>
-<span class="nc" id="L161">                .nombreSubcategoria(sub.getNombreSubcategoria())</span>
-<span class="nc" id="L162">                .actualizadoEn(sub.getActualizadoEn())</span>
-<span class="nc" id="L163">                .build();</span>
+<span class="fc" id="L180">        return RespuestaSubcategoria.builder()</span>
+<span class="fc" id="L181">                .idSubcategoria(sub.getIdSubcategoria())</span>
+<span class="fc" id="L182">                .idCategoria(sub.getCategoria().getIdCategoria())</span>
+<span class="fc" id="L183">                .nombreCategoria(sub.getCategoria().getNombreCategoria())</span>
+<span class="fc" id="L184">                .nombreSubcategoria(sub.getNombreSubcategoria())</span>
+<span class="fc" id="L185">                .actualizadoEn(sub.getActualizadoEn())</span>
+<span class="fc" id="L186">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

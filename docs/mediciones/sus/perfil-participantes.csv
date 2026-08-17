@@ -1,0 +1,17 @@
+participante,edad,sexo,experiencia_web,dispositivo
+P01,24,Femenino,Alta,Móvil
+P02,29,Masculino,Alta,Desktop
+P03,21,Femenino,Alta,Laptop
+P04,47,Masculino,Baja,Móvil
+P05,39,Femenino,Media,Desktop
+P06,51,Masculino,Media,Tablet
+P07,34,Femenino,Media,Laptop
+P08,62,Masculino,Baja,Tablet
+P09,26,Femenino,Alta,Móvil
+P10,55,Femenino,Baja,Móvil
+P11,30,Masculino,Media,Laptop
+P12,28,Masculino,Media,Desktop
+P13,23,Femenino,Alta,Móvil
+P14,32,Masculino,Alta,Laptop
+P15,27,Femenino,Alta,Desktop
+P16,25,Masculino,Alta,Móvil

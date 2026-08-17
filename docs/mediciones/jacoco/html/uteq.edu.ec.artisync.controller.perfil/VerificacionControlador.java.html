@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificacionControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.perfil</a> &gt; <span class="el_source">VerificacionControlador.java</span></div><h1>VerificacionControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.perfil;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionDecisionVerificacion;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
+import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+
+import java.util.List;
+
+/**
+ * REQ-F-006/007. La IA solo asiste (ver /analisis-ia); únicamente /decision
+ * escribe el estado final, y exige CERTIFICADO_REVISAR.
+ */
+@Tag(name = &quot;Verificación&quot;, description = &quot;Verificación de identidad y certificados, asistida por IA&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/verificaciones&quot;)
+@RequiredArgsConstructor
+public class VerificacionControlador {
+
+    private final IVerificacionServicio verificacionServicio;
+
+    @Operation(summary = &quot;Solicitar una verificación de identidad o certificado&quot;)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaVerificacion&gt; subir(
+            @RequestParam(&quot;tipo&quot;) TipoDocumentoVerificacion tipo,
+            @RequestParam(&quot;documento&quot;) MultipartFile documento,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L42">        RespuestaVerificacion respuesta = verificacionServicio.subir(userDetails.getIdUsuario(), tipo, documento);</span>
+<span class="fc" id="L43">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    @Operation(summary = &quot;Cola de verificaciones pendientes de revisión&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaColaVerificacion&gt;&gt; listarCola(
+            @RequestParam(required = false) String estado,
+            @RequestParam(defaultValue = &quot;20&quot;) int limite,
+            @RequestParam(defaultValue = &quot;0&quot;) int offset) {
+<span class="fc" id="L53">        return ResponseEntity.ok(verificacionServicio.listarCola(estado, limite, offset));</span>
+    }
+
+    @Operation(summary = &quot;Detalle de una verificación&quot;)
+    @GetMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaVerificacion&gt; obtenerPorId(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L62">        boolean esRevisor = userDetails.getAuthorities().stream()</span>
+<span class="nc bnc" id="L63" title="All 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;CERTIFICADO_REVISAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+<span class="nc" id="L64">        return ResponseEntity.ok(verificacionServicio.obtenerPorId(id, userDetails.getIdUsuario(), esRevisor));</span>
+    }
+
+    @Operation(summary = &quot;Descargar el documento original para revisión&quot;)
+    @GetMapping(&quot;/{id}/documento&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; obtenerDocumento(@PathVariable Long id) {
+<span class="nc" id="L71">        byte[] documento = verificacionServicio.obtenerDocumento(id);</span>
+<span class="nc" id="L72">        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(documento);</span>
+    }
+
+    @Operation(summary = &quot;Pedir a la IA un dictamen orientativo (no decide)&quot;)
+    @PostMapping(&quot;/{id}/analisis-ia&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaVerificacion&gt; analizarConIa(@PathVariable Long id) {
+<span class="fc" id="L79">        return ResponseEntity.ok(verificacionServicio.analizarConIa(id));</span>
+    }
+
+    @Operation(summary = &quot;Registrar la decisión del moderador (único punto que cambia el estado)&quot;)
+    @PatchMapping(&quot;/{id}/decision&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaVerificacion&gt; registrarDecision(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionDecisionVerificacion peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L89">        RespuestaVerificacion respuesta = verificacionServicio.registrarDecision(</span>
+<span class="fc" id="L90">                id, userDetails.getIdUsuario(), peticion.idEstadoVerificacion(), peticion.notaModerador());</span>
+<span class="fc" id="L91">        return ResponseEntity.ok(respuesta);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

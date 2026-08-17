@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Filtro de inclusión para spotbugs-maven-plugin + find-sec-bugs (Bloque A.2.3).
+  Acota el reporte a las reglas de inyección SQL exigidas por la guía de la
+  Entrega Final (SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE y variantes), en
+  vez de reportar las ~500 reglas por defecto de find-sec-bugs fuera de
+  alcance de esta auditoría.
+-->
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" />
+    </Match>
+    <Match>
+        <Bug pattern="SQL_INJECTION_JDBC" />
+    </Match>
+    <Match>
+        <Bug pattern="SQL_INJECTION_JPA" />
+    </Match>
+    <Match>
+        <Bug pattern="SQL_INJECTION_HIBERNATE" />
+    </Match>
+    <Match>
+        <Bug pattern="SQL_INJECTION_SPRING_JDBC" />
+    </Match>
+</FindBugsFilter>

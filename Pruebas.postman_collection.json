@@ -300,6 +300,451 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Login - Fallo Validacion (400)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login - Credenciales Invalidas (401)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@artisync.com\",\n  \"contrasena\": \"BadPassword123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Listar Paises - Exito (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/paises",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "paises"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Pais - No Encontrado (404)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/paises/9999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "paises",
+            "9999"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Pais - No Autorizado (403)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX0NSRUFET1IiXSwicGVybWlzb3MiOltdLCJyb2wiOiJST0xFX0NSRUFET1IiLCJlbWFpbCI6InVzdWFyaW9AYXJ0aXN5bmMuY29tIiwic3ViIjoiMyIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCJ9.fake",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Pais Falso\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/paises",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "paises"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Listar Roles - Exito (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/seguridad/roles",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "seguridad",
+            "roles"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sorteos Activos - Exito (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sorteos/activos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "sorteos",
+            "activos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sorteo - No Encontrado (404)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sorteos/9999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "sorteos",
+            "9999"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Sorteo - Fallo Validacion (400)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sorteos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "sorteos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Resena - Fallo Validacion (400)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"calificacion\": 10,\n  \"comentario\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/pedidos/1/resena",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "pedidos",
+            "1",
+            "resena"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resenas Creador - Exito (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/creadores/2/resenas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "creadores",
+            "2",
+            "resenas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Promedio Resenas Creador - Exito (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/creadores/2/resenas/promedio",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "creadores",
+            "2",
+            "resenas",
+            "promedio"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Exportar CSV Transacciones - No Autorizado (403)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlcyI6WyJST0xFX0NSRUFET1IiXSwicGVybWlzb3MiOltdLCJyb2wiOiJST0xFX0NSRUFET1IiLCJlbWFpbCI6InVzdWFyaW9AYXJ0aXN5bmMuY29tIiwic3ViIjoiMyIsImlzcyI6ImFydGlzeW5jLWJhY2tlbmQiLCJhdWQiOiJhcnRpc3luYy1mcm9udGVuZCJ9.fake",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/transacciones/2/csv",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "transacciones",
+            "2",
+            "csv"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Listar Verificaciones - Exito (200)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/verificacion",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "verificacion"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion - No Encontrada (404)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/verificacion/9999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "verificacion",
+            "9999"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crear Servicio - Fallo Validacion (400)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tituloServicio\": \"Corto\",\n  \"precioBase\": -10\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/servicios/creador/2",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "servicios",
+            "creador",
+            "2"
+          ]
+        }
+      },
+      "response": []
     }
   ],
   "variable": [

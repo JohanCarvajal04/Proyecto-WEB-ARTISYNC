@@ -1,8 +1,8 @@
-=== Reporte de Usabilidad SUS (System Usability Scale) ===
+﻿=== Reporte de Usabilidad SUS (System Usability Scale) ===
 Archivo de entrada: sus-raw.csv
-SHA-256: 34279f73420364025a61ef9e96c1741199b6563501ac91627f7991bd0c20d040
+SHA-256: d421ea6e5bdb2d70a0589f34ff4317248a621e424c34cc2614367086a0bc7258
 
-n participantes: 10
+n participantes: 16
 
 === Puntajes SUS individuales ===
 P01: 82.50
@@ -15,29 +15,35 @@ P07: 70.00
 P08: 50.00
 P09: 80.00
 P10: 50.00
+P11: 75.00
+P12: 75.00
+P13: 92.50
+P14: 85.00
+P15: 92.50
+P16: 92.50
 
 === Agregados ===
-Media: 71.75
-Mediana: 68.75
-Desviacion tipica (muestral, n-1): 15.19
+Media: 76.88
+Mediana: 77.50
+Desviacion tipica (muestral, n-1): 14.48
 Minimo: 50.00
 Maximo: 92.50
-Grados de libertad: 9
-Valor critico t(0.975, df=9): 2.262
-IC 95%: [60.89, 82.61]
+Grados de libertad: 15
+Valor critico t(0.975, df=15): 2.131
+IC 95%: [69.16, 84.59]
 
-Interpretacion (escala de Bangor): C+
-Umbral del proyecto (>68.0): SUPERA (71.75)
+Interpretacion (escala de Bangor): B
+Umbral del proyecto (>68.0): SUPERA (76.88)
 
 === Media normalizada por item (contribucion 0-4, tras invertir pares) ===
-Q1: 3.00
-Q2: 2.80
-Q3: 3.10
-Q4: 3.10
-Q5: 3.00
-Q6: 2.80
-Q7: 3.00
-Q8: 2.70
-Q9: 2.50
-Q10: 2.70
-Item con peor puntaje promedio: Q9 (2.50/4)
+Q1: 3.12
+Q2: 3.00
+Q3: 3.25
+Q4: 3.25
+Q5: 3.12
+Q6: 3.06
+Q7: 3.19
+Q8: 2.94
+Q9: 2.81
+Q10: 3.00
+Item con peor puntaje promedio: Q9 (2.81/4)

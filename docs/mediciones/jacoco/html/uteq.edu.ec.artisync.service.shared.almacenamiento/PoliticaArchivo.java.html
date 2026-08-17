@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PoliticaArchivo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.almacenamiento</a> &gt; <span class="el_source">PoliticaArchivo.java</span></div><h1>PoliticaArchivo.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.almacenamiento;
+
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+
+import java.util.Set;
+
+/**
+ * Qué puede subirse en cada caso de uso. El techo de multipart es global y está
+ * dimensionado para el archivo más grande que admite la plataforma (video de
+ * portafolio); estos límites son los que de verdad aplican, porque un entregable
+ * de 100MB es legítimo y una foto de perfil del mismo tamaño no.
+ *
+ * &lt;p&gt;La validación es sobre el content-type declarado por el cliente, así que no
+ * es una garantía sobre el contenido real: sirve para rechazar lo evidente antes
+ * de gastar ancho de banda, no como control de seguridad.
+ */
+<span class="fc" id="L18">public record PoliticaArchivo(Set&lt;String&gt; tiposPermitidos, long maxBytes, String descripcion) {</span>
+
+    private static final long MB = 1024L * 1024L;
+
+<span class="fc" id="L22">    private static final Set&lt;String&gt; IMAGENES = Set.of(</span>
+            &quot;image/jpeg&quot;, &quot;image/jpg&quot;, &quot;image/png&quot;, &quot;image/webp&quot;, &quot;image/gif&quot;);
+
+<span class="fc" id="L25">    private static final Set&lt;String&gt; VIDEOS = Set.of(</span>
+            &quot;video/mp4&quot;, &quot;video/webm&quot;, &quot;video/quicktime&quot;);
+
+<span class="fc" id="L28">    private static final Set&lt;String&gt; DOCUMENTOS = Set.of(</span>
+            &quot;application/pdf&quot;,
+            &quot;application/msword&quot;,
+            &quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;);
+
+    /** Obras de portafolio: imagen o video, que es lo que se exhibe. */
+<span class="fc" id="L34">    public static final PoliticaArchivo PORTAFOLIO = new PoliticaArchivo(</span>
+<span class="fc" id="L35">            union(IMAGENES, VIDEOS), 100 * MB, &quot;imagen o video&quot;);</span>
+
+    /** Entregables: el trabajo final, que puede ser cualquiera de los tres. */
+<span class="fc" id="L38">    public static final PoliticaArchivo ENTREGABLE = new PoliticaArchivo(</span>
+<span class="fc" id="L39">            union(union(IMAGENES, VIDEOS), DOCUMENTOS), 100 * MB, &quot;imagen, video o documento&quot;);</span>
+
+    private static Set&lt;String&gt; union(Set&lt;String&gt; a, Set&lt;String&gt; b) {
+<span class="fc" id="L42">        return java.util.stream.Stream.concat(a.stream(), b.stream())</span>
+<span class="fc" id="L43">                .collect(java.util.stream.Collectors.toUnmodifiableSet());</span>
+    }
+
+    public void validar(MultipartFile archivo) {
+<span class="pc bpc" id="L47" title="2 of 4 branches missed.">        if (archivo == null || archivo.isEmpty()) {</span>
+<span class="nc" id="L48">            throw new ExcepcionReglaNegocio(&quot;El archivo está vacío.&quot;);</span>
+        }
+<span class="fc" id="L50">        String tipo = archivo.getContentType();</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        String normalizado = tipo == null ? &quot;&quot; : tipo.split(&quot;;&quot;)[0].trim().toLowerCase();</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (!tiposPermitidos.contains(normalizado)) {</span>
+<span class="fc" id="L53">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Formato no soportado: &quot; + tipo + &quot;. Se acepta &quot; + descripcion + &quot;.&quot;);
+        }
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (archivo.getSize() &gt; maxBytes) {</span>
+<span class="nc" id="L57">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;El archivo supera el máximo de &quot; + (maxBytes / MB) + &quot; MB.&quot;);
+        }
+<span class="fc" id="L60">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

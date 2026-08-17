@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PagoServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">PagoServicioImpl.java</span></div><h1>PagoServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
@@ -20,17 +24,39 @@ import uteq.edu.ec.artisync.service.legal.IPagoServicio;
 
 import java.math.BigDecimal;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-<span class="fc" id="L26">@Slf4j</span>
+<span class="fc" id="L30">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class PagoServicioImpl implements IPagoServicio {
 
+    /** Estados de `pagos_garantia.estado_fondos`. */
+    private static final String FONDOS_PENDIENTE = &quot;Pendiente&quot;;
+    private static final String FONDOS_RETENIDO = &quot;Retenido&quot;;
+
+    private static final String EVENTO_ORDEN_APROBADA = &quot;CHECKOUT.ORDER.APPROVED&quot;;
+    private static final String EVENTO_CAPTURA_COMPLETADA = &quot;PAYMENT.CAPTURE.COMPLETED&quot;;
+
     private final PagoGarantiaRepository pagoGarantiaRepository;
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
+
+    /**
+     * Mapper propio, no el del contexto: la app no expone un bean ObjectMapper
+     * (otros componentes ya lo inyectan con required=false), y además el
+     * contrato con PayPal no debe verse afectado por personalizaciones de
+     * serialización de la aplicación.
+     */
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * No es `final` para que las pruebas puedan sustituirlo: el camino de
+     * verificación y captura es el que mueve dinero y conviene poder ejercitarlo
+     * sin salir a la red.
+     */
+    private RestTemplate restTemplate = new RestTemplate();
 
     @Value(&quot;${paypal.client-id:sandbox_client_id}&quot;)
     private String paypalClientId;
@@ -41,181 +67,310 @@ public class PagoServicioImpl implements IPagoServicio {
     @Value(&quot;${paypal.mode:sandbox}&quot;)
     private String paypalMode;
 
-    @Value(&quot;${paypal.webhook-id:webhook_id}&quot;)
+    @Value(&quot;${paypal.webhook-id:}&quot;)
     private String paypalWebhookId;
 
+    @Value(&quot;${app.frontend.url:http://localhost:4200}&quot;)
+    private String frontendUrl;
+
     private String getPayPalBaseUrl() {
-<span class="nc bnc" id="L48" title="All 2 branches missed.">        return &quot;sandbox&quot;.equalsIgnoreCase(paypalMode)</span>
-<span class="nc" id="L49">                ? &quot;https://api-m.sandbox.paypal.com&quot;</span>
-<span class="nc" id="L50">                : &quot;https://api-m.paypal.com&quot;;</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        return &quot;sandbox&quot;.equalsIgnoreCase(paypalMode)</span>
+<span class="nc" id="L78">                ? &quot;https://api-m.sandbox.paypal.com&quot;</span>
+<span class="fc" id="L79">                : &quot;https://api-m.paypal.com&quot;;</span>
     }
+
+    // ── Creación de la orden ─────────────────────────────────────────────────
 
     @Override
     @Transactional
     public RespuestaPago crearOrdenPayPal(Long idPedido, BigDecimal monto) {
-<span class="nc" id="L56">        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L57">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
+<span class="fc" id="L87">        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L88">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
 
-        // Verificar que ambas firmas estén completas
-<span class="nc bnc" id="L60" title="All 4 branches missed.">        if (contrato.getHashFirmaCreador() == null || contrato.getHashFirmaCliente() == null) {</span>
-<span class="nc" id="L61">            throw new ExcepcionReglaNegocio(&quot;El contrato debe estar firmado por ambas partes antes de realizar el pago&quot;);</span>
+<span class="pc bpc" id="L90" title="1 of 4 branches missed.">        if (contrato.getHashFirmaCreador() == null || contrato.getHashFirmaCliente() == null) {</span>
+<span class="fc" id="L91">            throw new ExcepcionReglaNegocio(&quot;El contrato debe estar firmado por ambas partes antes de realizar el pago&quot;);</span>
         }
 
-<span class="nc bnc" id="L64" title="All 2 branches missed.">        BigDecimal montoFinal = monto != null ? monto : contrato.getPedido().getPrecioPactado();</span>
+<span class="fc" id="L94">        Optional&lt;PagoGarantia&gt; existente = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());</span>
+
+        // Un pago ya confirmado no se vuelve a cobrar.
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">        if (existente.isPresent() &amp;&amp; !FONDOS_PENDIENTE.equalsIgnoreCase(existente.get().getEstadoFondos())) {</span>
+<span class="fc" id="L98">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L99">                    &quot;Este pedido ya tiene un pago en estado &quot; + existente.get().getEstadoFondos());</span>
+        }
+
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        BigDecimal montoFinal = monto != null ? monto : contrato.getPedido().getPrecioPactado();</span>
 
         try {
-            // Obtener access token de PayPal
-<span class="nc" id="L68">            String accessToken = obtenerAccessToken();</span>
+            // La respuesta de creación ya trae el id y los links: no hace falta
+            // un GET posterior para leer el approvalUrl.
+<span class="fc" id="L107">            JsonNode orden = crearOrdenEnPayPal(idPedido, montoFinal);</span>
+<span class="fc" id="L108">            String orderId = orden.path(&quot;id&quot;).asText();</span>
+<span class="fc" id="L109">            String approvalUrl = extraerApprovalUrl(orden);</span>
 
-            // Crear orden PayPal
-<span class="nc" id="L71">            RestTemplate restTemplate = new RestTemplate();</span>
+            // Reutiliza la fila pendiente en lugar de acumular una por clic.
+<span class="fc" id="L112">            PagoGarantia pago = existente.orElseGet(() -&gt; PagoGarantia.builder().contrato(contrato).build());</span>
+<span class="fc" id="L113">            pago.setIdOrdenPaypal(orderId);</span>
+<span class="fc" id="L114">            pago.setMontoRetenido(montoFinal);</span>
+<span class="fc" id="L115">            pago.setEstadoFondos(FONDOS_PENDIENTE);</span>
+<span class="fc" id="L116">            pago = pagoGarantiaRepository.save(pago);</span>
 
-<span class="nc" id="L73">            HttpHeaders headers = new HttpHeaders();</span>
-<span class="nc" id="L74">            headers.setBearerAuth(accessToken);</span>
-<span class="nc" id="L75">            headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="fc" id="L118">            log.info(&quot;Orden PayPal {} creada para pedido {} por ${}&quot;, orderId, idPedido, montoFinal);</span>
 
-<span class="nc" id="L77">            String body = &quot;&quot;&quot;</span>
-                {
-                    &quot;intent&quot;: &quot;CAPTURE&quot;,
-                    &quot;purchase_units&quot;: [{
-                        &quot;amount&quot;: {
-                            &quot;currency_code&quot;: &quot;USD&quot;,
-                            &quot;value&quot;: &quot;%s&quot;
-                        },
-                        &quot;description&quot;: &quot;ARTISYNC - Pedido #%d&quot;
-                    }],
-                    &quot;application_context&quot;: {
-                        &quot;return_url&quot;: &quot;https://artisync.com/pago/exito&quot;,
-                        &quot;cancel_url&quot;: &quot;https://artisync.com/pago/cancelado&quot;
-                    }
-                }
-<span class="nc" id="L92">                &quot;&quot;&quot;.formatted(montoFinal.toString(), idPedido);</span>
+<span class="fc" id="L120">            return RespuestaPago.builder()</span>
+<span class="fc" id="L121">                    .idPago(pago.getIdPago())</span>
+<span class="fc" id="L122">                    .idContrato(contrato.getIdContrato())</span>
+<span class="fc" id="L123">                    .idOrdenPaypal(orderId)</span>
+<span class="fc" id="L124">                    .montoRetenido(montoFinal)</span>
+<span class="fc" id="L125">                    .estadoFondos(FONDOS_PENDIENTE)</span>
+<span class="fc" id="L126">                    .approvalUrl(approvalUrl)</span>
+<span class="fc" id="L127">                    .build();</span>
 
-<span class="nc" id="L94">            HttpEntity&lt;String&gt; request = new HttpEntity&lt;&gt;(body, headers);</span>
-<span class="nc" id="L95">            ResponseEntity&lt;Map&gt; response = restTemplate.exchange(</span>
-<span class="nc" id="L96">                    getPayPalBaseUrl() + &quot;/v2/checkout/orders&quot;,</span>
-                    HttpMethod.POST, request, Map.class);
-
-<span class="nc" id="L99">            Map responseBody = response.getBody();</span>
-<span class="nc" id="L100">            String orderId = (String) responseBody.get(&quot;id&quot;);</span>
-
-            // Extraer approval URL
-<span class="nc" id="L103">            String approvalUrl = &quot;&quot;;</span>
-<span class="nc" id="L104">            List&lt;Map&lt;String, String&gt;&gt; links = (List&lt;Map&lt;String, String&gt;&gt;) responseBody.get(&quot;links&quot;);</span>
-<span class="nc bnc" id="L105" title="All 2 branches missed.">            for (Map&lt;String, String&gt; link : links) {</span>
-<span class="nc bnc" id="L106" title="All 2 branches missed.">                if (&quot;approve&quot;.equals(link.get(&quot;rel&quot;))) {</span>
-<span class="nc" id="L107">                    approvalUrl = link.get(&quot;href&quot;);</span>
-<span class="nc" id="L108">                    break;</span>
-                }
-<span class="nc" id="L110">            }</span>
-
-            // Guardar pago en garantía
-<span class="nc" id="L113">            PagoGarantia pago = PagoGarantia.builder()</span>
-<span class="nc" id="L114">                    .contrato(contrato)</span>
-<span class="nc" id="L115">                    .idOrdenPaypal(orderId)</span>
-<span class="nc" id="L116">                    .montoRetenido(montoFinal)</span>
-<span class="nc" id="L117">                    .estadoFondos(&quot;Pendiente&quot;)</span>
-<span class="nc" id="L118">                    .build();</span>
-<span class="nc" id="L119">            pago = pagoGarantiaRepository.save(pago);</span>
-
-<span class="nc" id="L121">            log.info(&quot;Orden PayPal {} creada para pedido {} por ${}&quot;, orderId, idPedido, montoFinal);</span>
-
-<span class="nc" id="L123">            return RespuestaPago.builder()</span>
-<span class="nc" id="L124">                    .idPago(pago.getIdPago())</span>
-<span class="nc" id="L125">                    .idContrato(contrato.getIdContrato())</span>
-<span class="nc" id="L126">                    .idOrdenPaypal(orderId)</span>
-<span class="nc" id="L127">                    .montoRetenido(montoFinal)</span>
-<span class="nc" id="L128">                    .estadoFondos(&quot;Pendiente&quot;)</span>
-<span class="nc" id="L129">                    .approvalUrl(approvalUrl)</span>
-<span class="nc" id="L130">                    .build();</span>
-
-<span class="nc" id="L132">        } catch (ExcepcionReglaNegocio | ExcepcionRecursoNoEncontrado e) {</span>
-<span class="nc" id="L133">            throw e;</span>
-<span class="nc" id="L134">        } catch (Exception e) {</span>
-<span class="nc" id="L135">            log.error(&quot;Error al crear orden PayPal para pedido {}&quot;, idPedido, e);</span>
-<span class="nc" id="L136">            throw new ExcepcionReglaNegocio(&quot;Error al comunicarse con PayPal: &quot; + e.getMessage());</span>
+<span class="nc" id="L129">        } catch (ExcepcionReglaNegocio | ExcepcionRecursoNoEncontrado e) {</span>
+<span class="nc" id="L130">            throw e;</span>
+<span class="fc" id="L131">        } catch (Exception e) {</span>
+<span class="fc" id="L132">            log.error(&quot;Error al crear orden PayPal para pedido {}&quot;, idPedido, e);</span>
+<span class="fc" id="L133">            throw new ExcepcionReglaNegocio(&quot;Error al comunicarse con PayPal: &quot; + e.getMessage());</span>
         }
     }
 
+    private JsonNode crearOrdenEnPayPal(Long idPedido, BigDecimal montoFinal) {
+        // El retorno apunta a la propia pantalla de pago del pedido: allí se
+        // consulta el estado real contra el backend, que es más fiable que
+        // confiar en el parámetro con el que PayPal redirige.
+<span class="fc" id="L141">        String retorno = frontendUrl + &quot;/legal/pago/&quot; + idPedido;</span>
+
+<span class="fc" id="L143">        ObjectNode raiz = objectMapper.createObjectNode();</span>
+<span class="fc" id="L144">        raiz.put(&quot;intent&quot;, &quot;CAPTURE&quot;);</span>
+
+<span class="fc" id="L146">        ObjectNode unidad = raiz.putArray(&quot;purchase_units&quot;).addObject();</span>
+<span class="fc" id="L147">        unidad.put(&quot;description&quot;, &quot;ARTISYNC - Pedido #&quot; + idPedido);</span>
+<span class="fc" id="L148">        unidad.putObject(&quot;amount&quot;)</span>
+<span class="fc" id="L149">                .put(&quot;currency_code&quot;, &quot;USD&quot;)</span>
+<span class="fc" id="L150">                .put(&quot;value&quot;, montoFinal.toPlainString());</span>
+
+<span class="fc" id="L152">        raiz.putObject(&quot;application_context&quot;)</span>
+<span class="fc" id="L153">                .put(&quot;return_url&quot;, retorno)</span>
+<span class="fc" id="L154">                .put(&quot;cancel_url&quot;, retorno);</span>
+
+<span class="fc" id="L156">        return llamarPayPal(&quot;/v2/checkout/orders&quot;, HttpMethod.POST, raiz);</span>
+    }
+
+    private String extraerApprovalUrl(JsonNode orden) {
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        for (JsonNode enlace : orden.path(&quot;links&quot;)) {</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">            if (&quot;approve&quot;.equals(enlace.path(&quot;rel&quot;).asText())) {</span>
+<span class="fc" id="L162">                return enlace.path(&quot;href&quot;).asText();</span>
+            }
+<span class="nc" id="L164">        }</span>
+<span class="fc" id="L165">        return &quot;&quot;;</span>
+    }
+
+    // ── Webhook ──────────────────────────────────────────────────────────────
+
+    /**
+     * Procesa una notificación de PayPal.
+     *
+     * &lt;p&gt;Antes esto marcaba los fondos como retenidos sin verificar la firma y
+     * extrayendo el id con {@code indexOf(&quot;\&quot;id\&quot;:\&quot;&quot;)}, que en un webhook real
+     * devuelve el id del &lt;em&gt;evento&lt;/em&gt;, no el de la orden. El resultado era el
+     * peor posible: fallaba con las notificaciones legítimas y funcionaba con
+     * cualquier POST falsificado, porque el atacante sí ponía el id donde el
+     * parser lo buscaba.
+     *
+     * &lt;p&gt;Ahora se verifica la firma contra PayPal (RNF-14, fail-closed) y se
+     * captura la orden de verdad: con {@code intent=CAPTURE}, la aprobación solo
+     * autoriza — sin la llamada a /capture el dinero nunca sale de la cuenta del
+     * cliente y el escrow era ficticio.
+     */
     @Override
     @Transactional
     public void procesarWebhookPayPal(String payload, String transmissionId, String transmissionTime,
-                                       String transmissionSig, String certUrl, String authAlgo, String webhookId) {
-        // TODO: Implementar verificación de firma del webhook PayPal (RNF-14)
-<span class="nc" id="L145">        log.info(&quot;Webhook PayPal recibido - transmissionId: {}&quot;, transmissionId);</span>
+                                      String transmissionSig, String certUrl, String authAlgo, String authVersion) {
+        JsonNode evento;
+        try {
+<span class="fc" id="L191">            evento = objectMapper.readTree(payload);</span>
+<span class="fc" id="L192">        } catch (Exception e) {</span>
+<span class="fc" id="L193">            log.warn(&quot;Webhook PayPal con payload ilegible; se descarta&quot;);</span>
+<span class="fc" id="L194">            return;</span>
+<span class="fc" id="L195">        }</span>
+
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (!firmaVerificada(evento, transmissionId, transmissionTime, transmissionSig, certUrl, authAlgo)) {</span>
+<span class="fc" id="L198">            log.warn(&quot;Webhook PayPal rechazado: firma no verificada (transmissionId={})&quot;, transmissionId);</span>
+<span class="fc" id="L199">            return;</span>
+        }
+
+<span class="fc" id="L202">        String tipoEvento = evento.path(&quot;event_type&quot;).asText();</span>
+<span class="fc" id="L203">        JsonNode recurso = evento.path(&quot;resource&quot;);</span>
+
+<span class="pc bpc" id="L205" title="2 of 3 branches missed.">        String orderId = switch (tipoEvento) {</span>
+<span class="fc" id="L206">            case EVENTO_ORDEN_APROBADA -&gt; recurso.path(&quot;id&quot;).asText(null);</span>
+            // En una captura, `resource.id` es el id de la captura; el de la
+            // orden viaja en supplementary_data.
+<span class="nc" id="L209">            case EVENTO_CAPTURA_COMPLETADA -&gt; recurso</span>
+<span class="nc" id="L210">                    .path(&quot;supplementary_data&quot;).path(&quot;related_ids&quot;).path(&quot;order_id&quot;).asText(null);</span>
+<span class="nc" id="L211">            default -&gt; null;</span>
+        };
+
+<span class="pc bpc" id="L214" title="2 of 4 branches missed.">        if (orderId == null || orderId.isBlank()) {</span>
+<span class="nc" id="L215">            log.debug(&quot;Webhook PayPal '{}' ignorado: sin id de orden aplicable&quot;, tipoEvento);</span>
+<span class="nc" id="L216">            return;</span>
+        }
+
+<span class="fc" id="L219">        PagoGarantia pago = pagoGarantiaRepository.findByIdOrdenPaypal(orderId).orElse(null);</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">        if (pago == null) {</span>
+<span class="nc" id="L221">            log.warn(&quot;Webhook PayPal para la orden {}, que no corresponde a ningún pago registrado&quot;, orderId);</span>
+<span class="nc" id="L222">            return;</span>
+        }
+
+        // Idempotencia: PayPal reintenta por diseño y ambos eventos pueden
+        // llegar por la misma orden. Sin esto se duplicaba la transacción.
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        if (!FONDOS_PENDIENTE.equalsIgnoreCase(pago.getEstadoFondos())) {</span>
+<span class="fc" id="L228">            log.info(&quot;Webhook PayPal duplicado para la orden {}: el pago ya está en {}&quot;,</span>
+<span class="fc" id="L229">                    orderId, pago.getEstadoFondos());</span>
+<span class="fc" id="L230">            return;</span>
+        }
+
+<span class="pc bpc" id="L233" title="1 of 4 branches missed.">        if (EVENTO_ORDEN_APROBADA.equals(tipoEvento) &amp;&amp; !capturarOrden(orderId)) {</span>
+<span class="fc" id="L234">            log.error(&quot;No se pudo capturar la orden {}; los fondos siguen pendientes&quot;, orderId);</span>
+<span class="fc" id="L235">            return;</span>
+        }
+
+<span class="fc" id="L238">        pago.setEstadoFondos(FONDOS_RETENIDO);</span>
+<span class="fc" id="L239">        pagoGarantiaRepository.save(pago);</span>
+
+<span class="fc" id="L241">        transaccionPagoRepository.save(TransaccionPago.builder()</span>
+<span class="fc" id="L242">                .pago(pago)</span>
+<span class="fc" id="L243">                .tipoTransaccion(&quot;Ingreso&quot;)</span>
+<span class="fc" id="L244">                .monto(pago.getMontoRetenido())</span>
+<span class="fc" id="L245">                .build());</span>
+
+<span class="fc" id="L247">        log.info(&quot;Pago {} confirmado y capturado. Fondos retenidos: ${}&quot;,</span>
+<span class="fc" id="L248">                pago.getIdPago(), pago.getMontoRetenido());</span>
+
+        // TODO M6: Notificar a ambas partes
+<span class="fc" id="L251">    }</span>
+
+    /**
+     * Verificación de firma contra PayPal (RNF-14). Fail-closed: cualquier duda
+     * —error de red, webhook-id sin configurar, respuesta distinta de SUCCESS—
+     * se resuelve rechazando la notificación. El endpoint es público, así que
+     * esta comprobación es lo único que separa un aviso real de un POST
+     * falsificado que marque un pedido como pagado.
+     */
+    private boolean firmaVerificada(JsonNode evento, String transmissionId, String transmissionTime,
+                                    String transmissionSig, String certUrl, String authAlgo) {
+<span class="pc bpc" id="L262" title="1 of 4 branches missed.">        if (paypalWebhookId == null || paypalWebhookId.isBlank()) {</span>
+<span class="fc" id="L263">            log.error(&quot;paypal.webhook-id sin configurar: no se puede verificar la firma del webhook&quot;);</span>
+<span class="fc" id="L264">            return false;</span>
+        }
+<span class="pc bpc" id="L266" title="3 of 8 branches missed.">        if (transmissionId == null || transmissionSig == null || certUrl == null || authAlgo == null) {</span>
+<span class="fc" id="L267">            log.warn(&quot;Webhook PayPal sin las cabeceras de firma&quot;);</span>
+<span class="fc" id="L268">            return false;</span>
+        }
 
         try {
-            // Parsear el payload para obtener el orderId
-            // En producción se usaría un ObjectMapper completo
-<span class="nc bnc" id="L150" title="All 4 branches missed.">            if (payload.contains(&quot;CHECKOUT.ORDER.APPROVED&quot;) || payload.contains(&quot;PAYMENT.CAPTURE.COMPLETED&quot;)) {</span>
-                // Buscar orderId en el payload
-<span class="nc" id="L152">                int orderIdStart = payload.indexOf(&quot;\&quot;id\&quot;:\&quot;&quot;) + 6;</span>
-<span class="nc" id="L153">                int orderIdEnd = payload.indexOf(&quot;\&quot;&quot;, orderIdStart);</span>
-<span class="nc bnc" id="L154" title="All 4 branches missed.">                if (orderIdStart &gt; 5 &amp;&amp; orderIdEnd &gt; orderIdStart) {</span>
-<span class="nc" id="L155">                    String orderId = payload.substring(orderIdStart, orderIdEnd);</span>
+<span class="fc" id="L272">            ObjectNode peticion = objectMapper.createObjectNode();</span>
+<span class="fc" id="L273">            peticion.put(&quot;auth_algo&quot;, authAlgo);</span>
+<span class="fc" id="L274">            peticion.put(&quot;cert_url&quot;, certUrl);</span>
+<span class="fc" id="L275">            peticion.put(&quot;transmission_id&quot;, transmissionId);</span>
+<span class="fc" id="L276">            peticion.put(&quot;transmission_sig&quot;, transmissionSig);</span>
+<span class="fc" id="L277">            peticion.put(&quot;transmission_time&quot;, transmissionTime);</span>
+<span class="fc" id="L278">            peticion.put(&quot;webhook_id&quot;, paypalWebhookId);</span>
+<span class="fc" id="L279">            peticion.set(&quot;webhook_event&quot;, evento);</span>
 
-<span class="nc" id="L157">                    PagoGarantia pago = pagoGarantiaRepository.findByIdOrdenPaypal(orderId)</span>
-<span class="nc" id="L158">                            .orElse(null);</span>
+<span class="fc" id="L281">            JsonNode respuesta = llamarPayPal(&quot;/v1/notifications/verify-webhook-signature&quot;,</span>
+                    HttpMethod.POST, peticion);
 
-<span class="nc bnc" id="L160" title="All 2 branches missed.">                    if (pago != null) {</span>
-<span class="nc" id="L161">                        pago.setEstadoFondos(&quot;Retenido&quot;);</span>
-<span class="nc" id="L162">                        pagoGarantiaRepository.save(pago);</span>
+<span class="fc" id="L284">            return &quot;SUCCESS&quot;.equals(respuesta.path(&quot;verification_status&quot;).asText());</span>
+<span class="nc" id="L285">        } catch (Exception e) {</span>
+<span class="nc" id="L286">            log.error(&quot;Error verificando la firma del webhook PayPal&quot;, e);</span>
+<span class="nc" id="L287">            return false;</span>
+        }
+    }
 
-                        // Registrar transacción de ingreso
-<span class="nc" id="L165">                        TransaccionPago transaccion = TransaccionPago.builder()</span>
-<span class="nc" id="L166">                                .pago(pago)</span>
-<span class="nc" id="L167">                                .tipoTransaccion(&quot;Ingreso&quot;)</span>
-<span class="nc" id="L168">                                .monto(pago.getMontoRetenido())</span>
-<span class="nc" id="L169">                                .build();</span>
-<span class="nc" id="L170">                        transaccionPagoRepository.save(transaccion);</span>
-
-<span class="nc" id="L172">                        log.info(&quot;Pago {} confirmado. Fondos retenidos: ${}&quot;, pago.getIdPago(), pago.getMontoRetenido());</span>
-
-                        // TODO M6: Notificar a ambas partes
-                    }
-                }
+    /**
+     * Captura la orden aprobada. Devuelve `true` si el dinero quedó cobrado.
+     *
+     * &lt;p&gt;Una orden ya capturada se trata como éxito: es el caso normal cuando
+     * PayPal reintenta la notificación después de que la primera sí capturara.
+     */
+    private boolean capturarOrden(String orderId) {
+        try {
+<span class="fc" id="L299">            JsonNode respuesta = llamarPayPal(&quot;/v2/checkout/orders/&quot; + orderId + &quot;/capture&quot;,</span>
+<span class="fc" id="L300">                    HttpMethod.POST, objectMapper.createObjectNode());</span>
+<span class="fc" id="L301">            String estado = respuesta.path(&quot;status&quot;).asText();</span>
+<span class="fc bfc" id="L302" title="All 2 branches covered.">            if (!&quot;COMPLETED&quot;.equals(estado)) {</span>
+<span class="fc" id="L303">                log.error(&quot;La captura de la orden {} devolvió estado {}&quot;, orderId, estado);</span>
+<span class="fc" id="L304">                return false;</span>
             }
-<span class="nc" id="L178">        } catch (Exception e) {</span>
-<span class="nc" id="L179">            log.error(&quot;Error procesando webhook PayPal&quot;, e);</span>
-<span class="nc" id="L180">        }</span>
-<span class="nc" id="L181">    }</span>
+<span class="fc" id="L306">            return true;</span>
+<span class="nc" id="L307">        } catch (HttpStatusCodeException e) {</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            if (e.getResponseBodyAsString().contains(&quot;ORDER_ALREADY_CAPTURED&quot;)) {</span>
+<span class="nc" id="L309">                log.info(&quot;La orden {} ya estaba capturada&quot;, orderId);</span>
+<span class="nc" id="L310">                return true;</span>
+            }
+<span class="nc" id="L312">            log.error(&quot;Error capturando la orden {}: {}&quot;, orderId, e.getResponseBodyAsString());</span>
+<span class="nc" id="L313">            return false;</span>
+<span class="nc" id="L314">        } catch (Exception e) {</span>
+<span class="nc" id="L315">            log.error(&quot;Error capturando la orden {}&quot;, orderId, e);</span>
+<span class="nc" id="L316">            return false;</span>
+        }
+    }
+
+    // ── Consulta ─────────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPago obtenerEstadoPago(Long idPedido) {
-<span class="nc" id="L186">        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L187">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
+<span class="fc" id="L325">        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L326">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
 
-<span class="nc" id="L189">        PagoGarantia pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato())</span>
-<span class="nc" id="L190">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe pago registrado para este pedido&quot;));</span>
+<span class="fc" id="L328">        PagoGarantia pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato())</span>
+<span class="fc" id="L329">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe pago registrado para este pedido&quot;));</span>
 
-<span class="nc" id="L192">        return RespuestaPago.builder()</span>
-<span class="nc" id="L193">                .idPago(pago.getIdPago())</span>
-<span class="nc" id="L194">                .idContrato(contrato.getIdContrato())</span>
-<span class="nc" id="L195">                .idOrdenPaypal(pago.getIdOrdenPaypal())</span>
-<span class="nc" id="L196">                .montoRetenido(pago.getMontoRetenido())</span>
-<span class="nc" id="L197">                .estadoFondos(pago.getEstadoFondos())</span>
-<span class="nc" id="L198">                .build();</span>
+<span class="fc" id="L331">        return RespuestaPago.builder()</span>
+<span class="fc" id="L332">                .idPago(pago.getIdPago())</span>
+<span class="fc" id="L333">                .idContrato(contrato.getIdContrato())</span>
+<span class="fc" id="L334">                .idOrdenPaypal(pago.getIdOrdenPaypal())</span>
+<span class="fc" id="L335">                .montoRetenido(pago.getMontoRetenido())</span>
+<span class="fc" id="L336">                .estadoFondos(pago.getEstadoFondos())</span>
+<span class="fc" id="L337">                .build();</span>
     }
 
-    // ── Métodos auxiliares ───────────────────────────────────────────────────
+    // ── Cliente HTTP de PayPal ───────────────────────────────────────────────
+
+    /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
+    private JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
+<span class="fc" id="L344">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L345">        headers.setBearerAuth(obtenerAccessToken());</span>
+<span class="fc" id="L346">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">        HttpEntity&lt;String&gt; peticion = new HttpEntity&lt;&gt;(cuerpo != null ? cuerpo.toString() : null, headers);</span>
+
+<span class="fc" id="L350">        ResponseEntity&lt;String&gt; respuesta = restTemplate.exchange(</span>
+<span class="fc" id="L351">                getPayPalBaseUrl() + ruta, metodo, peticion, String.class);</span>
+
+        try {
+<span class="fc" id="L354">            return objectMapper.readTree(respuesta.getBody());</span>
+<span class="nc" id="L355">        } catch (Exception e) {</span>
+<span class="nc" id="L356">            throw new ExcepcionReglaNegocio(&quot;Respuesta ilegible de PayPal en &quot; + ruta);</span>
+        }
+    }
 
     private String obtenerAccessToken() {
-<span class="nc" id="L204">        RestTemplate restTemplate = new RestTemplate();</span>
+<span class="fc" id="L361">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L362">        String credentials = Base64.getEncoder().encodeToString(</span>
+<span class="fc" id="L363">                (paypalClientId + &quot;:&quot; + paypalClientSecret).getBytes());</span>
+<span class="fc" id="L364">        headers.set(&quot;Authorization&quot;, &quot;Basic &quot; + credentials);</span>
+<span class="fc" id="L365">        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
 
-<span class="nc" id="L206">        HttpHeaders headers = new HttpHeaders();</span>
-<span class="nc" id="L207">        String credentials = Base64.getEncoder().encodeToString(</span>
-<span class="nc" id="L208">                (paypalClientId + &quot;:&quot; + paypalClientSecret).getBytes());</span>
-<span class="nc" id="L209">        headers.set(&quot;Authorization&quot;, &quot;Basic &quot; + credentials);</span>
-<span class="nc" id="L210">        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
+<span class="fc" id="L367">        HttpEntity&lt;String&gt; request = new HttpEntity&lt;&gt;(&quot;grant_type=client_credentials&quot;, headers);</span>
 
-<span class="nc" id="L212">        HttpEntity&lt;String&gt; request = new HttpEntity&lt;&gt;(&quot;grant_type=client_credentials&quot;, headers);</span>
-
-<span class="nc" id="L214">        ResponseEntity&lt;Map&gt; response = restTemplate.exchange(</span>
-<span class="nc" id="L215">                getPayPalBaseUrl() + &quot;/v1/oauth2/token&quot;,</span>
+<span class="fc" id="L369">        ResponseEntity&lt;Map&gt; response = restTemplate.exchange(</span>
+<span class="fc" id="L370">                getPayPalBaseUrl() + &quot;/v1/oauth2/token&quot;,</span>
                 HttpMethod.POST, request, Map.class);
 
-<span class="nc" id="L218">        return (String) response.getBody().get(&quot;access_token&quot;);</span>
+<span class="fc" id="L373">        return (String) response.getBody().get(&quot;access_token&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

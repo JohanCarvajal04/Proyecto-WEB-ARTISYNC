@@ -1,0 +1,27 @@
+# Override para mediciones de calidad web (Bloque A.1 — Lighthouse).
+# Reconstruye SOLO el servicio "frontend" con el build de producción de
+# Angular servido por nginx (Dockerfile.medicion + nginx.conf), en vez del
+# `ng serve` de desarrollo del Dockerfile base — necesario porque el dev
+# server no está optimizado (sin gzip, sin cache headers) y da resultados
+# no comparables con los ya archivados en docs/mediciones/lighthouse/.
+#
+# Uso:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.lighthouse.yml \
+#     up -d --build frontend
+#
+# Para volver al frontend de desarrollo (ng serve):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.lighthouse.yml \
+#     down frontend
+#   docker compose up -d --build frontend
+services:
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.medicion
+    # Sin bind mounts de código fuente (a diferencia del servicio base): el
+    # contenedor debe servir el build de producción compilado en la imagen,
+    # no el código montado en vivo.
+    volumes: !reset []
+    environment: !reset {}

@@ -94,5 +94,81 @@ class PaisServiceImplTest {
         assertEquals("País eliminado exitosamente", response.getMensaje());
         verify(paisRepository).delete(pais);
     }
+
+    @Test
+    void deletePais_ShouldThrowNotFound_WhenPaisNoExiste() {
+        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> paisService.deletePais(99L));
+    }
+
+    @Test
+    void getPaisById_ShouldReturnPais_WhenExists() {
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
+
+        PaisResponse result = paisService.getPaisById(1L);
+
+        assertEquals("Ecuador", result.getNombrePais());
+    }
+
+    @Test
+    void getPaisById_ShouldThrowNotFound_WhenDoesNotExist() {
+        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> paisService.getPaisById(99L));
+    }
+
+    @Test
+    void createPais_ShouldThrowNotFound_Never_ButTrimsName() {
+        PaisRequest request = new PaisRequest("  Peru  ");
+        Pais nuevo = Pais.builder().idPais(2L).nombrePais("Peru").build();
+        when(paisRepository.findByNombrePais("Peru")).thenReturn(Optional.empty());
+        when(paisRepository.save(any(Pais.class))).thenReturn(nuevo);
+
+        PaisResponse result = paisService.createPais(request);
+
+        assertEquals("Peru", result.getNombrePais());
+    }
+
+    @Test
+    void updatePais_ShouldUpdateSuccessfully_WhenNoConflict() {
+        PaisRequest request = new PaisRequest("Ecuador Nuevo");
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
+        when(paisRepository.findByNombrePais("Ecuador Nuevo")).thenReturn(Optional.empty());
+        when(paisRepository.save(any(Pais.class))).thenReturn(pais);
+
+        PaisResponse result = paisService.updatePais(1L, request);
+
+        assertNotNull(result);
+        assertEquals("Ecuador Nuevo", pais.getNombrePais());
+    }
+
+    @Test
+    void updatePais_ShouldAllowSameName_WhenSamePais() {
+        PaisRequest request = new PaisRequest("Ecuador");
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
+        when(paisRepository.findByNombrePais("Ecuador")).thenReturn(Optional.of(pais));
+        when(paisRepository.save(any(Pais.class))).thenReturn(pais);
+
+        assertDoesNotThrow(() -> paisService.updatePais(1L, request));
+    }
+
+    @Test
+    void updatePais_ShouldThrowDuplicate_WhenNameBelongsToAnotherPais() {
+        Pais otroPais = Pais.builder().idPais(2L).nombrePais("Peru").build();
+        PaisRequest request = new PaisRequest("Peru");
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
+        when(paisRepository.findByNombrePais("Peru")).thenReturn(Optional.of(otroPais));
+
+        assertThrows(ExcepcionRecursoDuplicado.class, () -> paisService.updatePais(1L, request));
+    }
+
+    @Test
+    void updatePais_ShouldThrowNotFound_WhenPaisNoExiste() {
+        PaisRequest request = new PaisRequest("Ecuador");
+        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> paisService.updatePais(99L, request));
+    }
 }
 

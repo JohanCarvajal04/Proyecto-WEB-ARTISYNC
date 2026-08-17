@@ -17,12 +17,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Date;
 
-<span class="fc" id="L22">@Slf4j</span>
+<span class="fc" id="L21">@Slf4j</span>
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String TIPO_ACCESO = &quot;access&quot;;
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
@@ -34,62 +35,77 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-<span class="fc" id="L37">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="fc" id="L38">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
 
-<span class="pc bpc" id="L39" title="1 of 4 branches missed.">        if (authHeader == null || !authHeader.startsWith(&quot;Bearer &quot;)) {</span>
-<span class="fc" id="L40">            filterChain.doFilter(request, response);</span>
-<span class="fc" id="L41">            return;</span>
+<span class="pc bpc" id="L40" title="1 of 4 branches missed.">        if (authHeader == null || !authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L41">            filterChain.doFilter(request, response);</span>
+<span class="fc" id="L42">            return;</span>
         }
 
-<span class="fc" id="L44">        String token = authHeader.substring(7);</span>
+<span class="fc" id="L45">        String token = authHeader.substring(7);</span>
 
         try {
-<span class="fc" id="L47">            Claims claims = jwtService.extraerTodosLosClaims(token);</span>
-<span class="fc bfc" id="L48" title="All 2 branches covered.">            if (&quot;refresh&quot;.equals(claims.get(&quot;type&quot;))) {</span>
-<span class="fc" id="L49">                log.debug(&quot;Intentando autenticar con refresh token en header Authorization. Rechazado.&quot;);</span>
-<span class="fc" id="L50">                filterChain.doFilter(request, response);</span>
-<span class="fc" id="L51">                return;</span>
+<span class="fc" id="L48">            Claims claims = jwtService.extraerTodosLosClaims(token);</span>
+
+            // Lista blanca (OBS-AUTO-05): solo un token con type=access autentica
+            // peticiones HTTP. Antes era lista negra (rechazaba solo type=refresh),
+            // lo que aceptaba en silencio cualquier token futuro sin &quot;type&quot; o con un
+            // tipo desconocido (p. ej. el ticket pre-auth de 2FA, que es opaco y nunca
+            // llega aqui, pero un JWT mal formado con otro &quot;type&quot; sí colaría).
+<span class="fc bfc" id="L55" title="All 2 branches covered.">            if (!TIPO_ACCESO.equals(claims.get(&quot;type&quot;))) {</span>
+<span class="fc" id="L56">                log.debug(&quot;Token sin claim type=access rechazado en el filtro.&quot;);</span>
+<span class="fc" id="L57">                filterChain.doFilter(request, response);</span>
+<span class="fc" id="L58">                return;</span>
             }
+
             try {
-<span class="fc" id="L54">                String jti = claims.getId();</span>
-<span class="pc bpc" id="L55" title="2 of 4 branches missed.">                if (jti != null &amp;&amp; Boolean.TRUE.equals(redisTemplate.hasKey(&quot;jti:&quot; + jti))) {</span>
-<span class="fc" id="L56">                    log.debug(&quot;Token revocado rechazado en filtro (JTI: {})&quot;, jti);</span>
-<span class="fc" id="L57">                    request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Token revocado u obsoleto&quot;);</span>
-<span class="fc" id="L58">                    filterChain.doFilter(request, response);</span>
-<span class="fc" id="L59">                    return;</span>
+<span class="fc" id="L62">                String jti = claims.getId();</span>
+<span class="pc bpc" id="L63" title="1 of 4 branches missed.">                if (jti != null &amp;&amp; Boolean.TRUE.equals(redisTemplate.hasKey(&quot;jti:&quot; + jti))) {</span>
+<span class="fc" id="L64">                    log.debug(&quot;Token revocado rechazado en filtro (JTI: {})&quot;, jti);</span>
+<span class="fc" id="L65">                    request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Token revocado u obsoleto&quot;);</span>
+<span class="fc" id="L66">                    filterChain.doFilter(request, response);</span>
+<span class="fc" id="L67">                    return;</span>
                 }
-<span class="nc" id="L61">            } catch (org.springframework.dao.DataAccessException e) {</span>
-<span class="nc" id="L62">                log.error(&quot;🚨 ALERTA CRÍTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).&quot;, e);</span>
-<span class="nc" id="L63">                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, &quot;Servicio de autenticación temporalmente no disponible (Redis Blacklist inalcanzable).&quot;);</span>
-<span class="nc" id="L64">                return;</span>
-<span class="nc" id="L65">            }</span>
+<span class="nc" id="L69">            } catch (org.springframework.dao.DataAccessException e) {</span>
+<span class="nc" id="L70">                log.error(&quot;🚨 ALERTA CRÍTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).&quot;, e);</span>
+<span class="nc" id="L71">                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, &quot;Servicio de autenticación temporalmente no disponible (Redis Blacklist inalcanzable).&quot;);</span>
+<span class="nc" id="L72">                return;</span>
+<span class="fc" id="L73">            }</span>
 
-<span class="nc" id="L67">            String username = jwtService.extraerUsername(token);</span>
-<span class="nc" id="L68">            Date expiration = claims.getExpiration();</span>
+<span class="fc" id="L75">            String email = claims.get(&quot;email&quot;, String.class);</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">            String username = email != null ? email : claims.getSubject();</span>
 
-<span class="nc bnc" id="L70" title="All 4 branches missed.">            if (username != null &amp;&amp; SecurityContextHolder.getContext().getAuthentication() == null) {</span>
-<span class="nc" id="L71">                UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
+<span class="pc bpc" id="L78" title="2 of 4 branches missed.">            if (username != null &amp;&amp; SecurityContextHolder.getContext().getAuthentication() == null) {</span>
+<span class="fc" id="L79">                UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
 
-<span class="nc bnc" id="L73" title="All 4 branches missed.">                if (username.equals(userDetails.getUsername()) &amp;&amp; expiration.after(new Date())) {</span>
-<span class="nc" id="L74">                    UsernamePasswordAuthenticationToken authToken =</span>
+                // §2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
+                // y el titular, que la cuenta siga habilitada y no bloqueada. Antes el
+                // filtro ignoraba por completo userDetails.isEnabled(), asi que una
+                // cuenta suspendida seguia autenticando hasta que expirara el token
+                // (hasta 24h) si la revocacion en Redis fallaba o no llegaba a tiempo.
+<span class="fc bfc" id="L86" title="All 2 branches covered.">                if (jwtService.esAccessTokenValido(token, userDetails)) {</span>
+<span class="fc" id="L87">                    UsernamePasswordAuthenticationToken authToken =</span>
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
                                     null,
-<span class="nc" id="L78">                                    userDetails.getAuthorities()</span>
+<span class="fc" id="L91">                                    userDetails.getAuthorities()</span>
                             );
-<span class="nc" id="L80">                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));</span>
-<span class="nc" id="L81">                    SecurityContextHolder.getContext().setAuthentication(authToken);</span>
+<span class="fc" id="L93">                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));</span>
+<span class="fc" id="L94">                    SecurityContextHolder.getContext().setAuthentication(authToken);</span>
+<span class="fc" id="L95">                } else {</span>
+<span class="fc" id="L96">                    log.debug(&quot;Token rechazado por esAccessTokenValido (cuenta deshabilitada o titular no coincide): {}&quot;, username);</span>
+<span class="fc" id="L97">                    request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Credenciales inválidas o cuenta deshabilitada&quot;);</span>
                 }
             }
-<span class="nc" id="L84">        } catch (ExpiredJwtException e) {</span>
-<span class="nc" id="L85">            log.debug(&quot;Token JWT expirado: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L86">            request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Token expirado&quot;);</span>
-<span class="nc" id="L87">        } catch (Exception e) {</span>
-<span class="nc" id="L88">            log.debug(&quot;Token JWT inválido o malformado: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L89">            request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Credenciales inválidas o token malformado&quot;);</span>
-<span class="nc" id="L90">        }</span>
+<span class="nc" id="L100">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L101">            log.debug(&quot;Token JWT expirado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L102">            request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Token expirado&quot;);</span>
+<span class="nc" id="L103">        } catch (Exception e) {</span>
+<span class="nc" id="L104">            log.debug(&quot;Token JWT inválido o malformado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L105">            request.setAttribute(&quot;JWT_ERROR&quot;, &quot;Credenciales inválidas o token malformado&quot;);</span>
+<span class="pc" id="L106">        }</span>
 
-<span class="nc" id="L92">        filterChain.doFilter(request, response);</span>
-<span class="nc" id="L93">    }</span>
+<span class="fc" id="L108">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L109">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

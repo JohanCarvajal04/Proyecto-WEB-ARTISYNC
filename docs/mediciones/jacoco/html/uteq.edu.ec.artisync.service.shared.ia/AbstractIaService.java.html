@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractIaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.ia</a> &gt; <span class="el_source">AbstractIaService.java</span></div><h1>AbstractIaService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.ia;
+
+import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.JsonNode;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+
+<span class="fc" id="L11">@Slf4j</span>
+<span class="fc" id="L12">public abstract class AbstractIaService {</span>
+
+    protected String cargarPrompt(String nombreArchivo, Object... args) {
+<span class="fc" id="L15">        try (InputStream is = getClass().getClassLoader().getResourceAsStream(&quot;IA/&quot; + nombreArchivo)) {</span>
+<span class="fc bfc" id="L16" title="All 2 branches covered.">            if (is == null) {</span>
+<span class="fc" id="L17">                throw new IllegalStateException(&quot;Prompt no encontrado: &quot; + nombreArchivo);</span>
+            }
+<span class="fc" id="L19">            String plantilla = new String(is.readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="fc bfc" id="L20" title="All 2 branches covered.">            return args.length &gt; 0 ? String.format(plantilla, args) : plantilla;</span>
+<span class="nc" id="L21">        } catch (IOException e) {</span>
+<span class="nc" id="L22">            throw new IllegalStateException(&quot;Error al cargar prompt: &quot; + nombreArchivo, e);</span>
+        }
+    }
+
+    protected String extraerJson(String respuesta) {
+<span class="pc bpc" id="L27" title="2 of 4 branches missed.">        if (respuesta == null || respuesta.isBlank()) {</span>
+<span class="nc" id="L28">            return &quot;{}&quot;;</span>
+        }
+<span class="fc" id="L30">        String recortado = respuesta.trim();</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (recortado.contains(&quot;```json&quot;)) {</span>
+<span class="fc" id="L32">            int inicio = recortado.indexOf(&quot;```json&quot;) + 7;</span>
+<span class="fc" id="L33">            int fin = recortado.indexOf(&quot;```&quot;, inicio);</span>
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">            if (fin &gt; inicio) {</span>
+<span class="fc" id="L35">                return recortado.substring(inicio, fin).trim();</span>
+            }
+        }
+<span class="pc bpc" id="L38" title="3 of 4 branches missed.">        if (recortado.startsWith(&quot;```&quot;) &amp;&amp; recortado.endsWith(&quot;```&quot;)) {</span>
+<span class="nc" id="L39">            return recortado.substring(3, recortado.length() - 3).trim();</span>
+        }
+<span class="pc bpc" id="L41" title="1 of 4 branches missed.">        if (recortado.startsWith(&quot;{&quot;) &amp;&amp; recortado.endsWith(&quot;}&quot;)) {</span>
+<span class="fc" id="L42">            return recortado;</span>
+        }
+<span class="fc" id="L44">        int inicio = recortado.indexOf('{');</span>
+<span class="fc" id="L45">        int fin = recortado.lastIndexOf('}');</span>
+<span class="pc bpc" id="L46" title="1 of 4 branches missed.">        if (inicio &gt;= 0 &amp;&amp; fin &gt; inicio) {</span>
+<span class="fc" id="L47">            return recortado.substring(inicio, fin + 1);</span>
+        }
+<span class="fc" id="L49">        log.warn(&quot;No se pudo extraer JSON válido de la respuesta de IA: {}&quot;,</span>
+<span class="fc" id="L50">                recortado.substring(0, Math.min(100, recortado.length())));</span>
+<span class="fc" id="L51">        return &quot;{}&quot;;</span>
+    }
+
+    /**
+     * Lee un campo de texto distinguiendo &quot;vale null&quot; y &quot;no vino&quot; de un valor
+     * real — ambos deben mapear a null de Java, nunca a la cadena &quot;null&quot;.
+     */
+    protected String textoONull(JsonNode nodo, String campo) {
+<span class="fc" id="L59">        JsonNode valor = nodo.path(campo);</span>
+<span class="fc bfc" id="L60" title="All 4 branches covered.">        if (valor.isNull() || valor.isMissingNode()) {</span>
+<span class="fc" id="L61">            return null;</span>
+        }
+<span class="fc" id="L63">        return valor.asString();</span>
+    }
+
+    protected BigDecimal toBigDecimal(Object valor) {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (valor == null) return BigDecimal.ZERO;</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (valor instanceof Number n) return BigDecimal.valueOf(n.doubleValue());</span>
+        try {
+<span class="nc" id="L70">            return new BigDecimal(valor.toString());</span>
+<span class="nc" id="L71">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L72">            return BigDecimal.ZERO;</span>
+        }
+    }
+
+    /** Acota la confianza reportada por la IA a [0,1] (límite de la columna en BD). */
+    protected BigDecimal acotarConfianza(BigDecimal confianza) {
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (confianza == null) return BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ZERO) &lt; 0) return BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ONE) &gt; 0) return BigDecimal.ONE;</span>
+<span class="fc" id="L81">        return confianza;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

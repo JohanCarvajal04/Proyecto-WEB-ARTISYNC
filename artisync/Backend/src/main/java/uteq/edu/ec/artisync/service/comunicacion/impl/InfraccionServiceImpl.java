@@ -1,5 +1,7 @@
 package uteq.edu.ec.artisync.service.comunicacion.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,7 +30,6 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class InfraccionServiceImpl implements InfraccionService {
 
-    private static final int MAX_INFRACCIONES  = 3;
     private static final int PERIODO_DIAS      = 30;
     private static final int SUSPENSION_DIAS   = 15;
 
@@ -36,34 +37,38 @@ public class InfraccionServiceImpl implements InfraccionService {
     private final UsuarioRepository       usuarioRepo;
     private final MensajeFilterService    mensajeFilterService;
     private final NotificacionService     notificacionService;
+    private final ObjectMapper            objectMapper;
 
     @Override
     @Transactional
     public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
-        Usuario usuario = usuarioRepo.findById(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuario));
-
+        // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
+        // total en la ventana de 30 dias y suspende la cuenta si corresponde,
+        // todo en una unica transaccion atomica en el motor (evita la carrera
+        // entre el COUNT y el UPDATE condicional que tenia la version en tres
+        // llamadas independientes al repositorio).
         String patron = mensajeFilterService.detectarPatron(mensaje);
 
-        InfraccionMensaje infraccion = InfraccionMensaje.builder()
-                .usuario(usuario)
-                // El pedido se deja null cuando se llama desde este servicio independiente;
-                // ChatServiceImpl es el flujo primario que siempre incluye el pedido.
-                .pedido(null)
-                .mensajeOriginal(mensaje)
-                .patronDetectado(patron)
-                .build();
-        infraccionRepo.save(infraccion);
-
-        // Contar infracciones en los últimos PERIODO_DIAS días
-        long count = infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(
-                idUsuario, LocalDateTime.now().minusDays(PERIODO_DIAS));
+        String resultadoJson = infraccionRepo.registrarInfraccion(idUsuario, idPedido, mensaje, patron);
+        JsonNode resultado = parseResultado(resultadoJson);
+        int totalPeriodo = resultado.get("totalInfraccionesPeriodo").asInt();
+        boolean cuentaSuspendida = resultado.get("cuentaSuspendida").asBoolean();
 
         log.info("Infracción registrada para usuario {}. Total en últimos {} días: {}",
-                idUsuario, PERIODO_DIAS, count);
+                idUsuario, PERIODO_DIAS, totalPeriodo);
 
-        if (count >= MAX_INFRACCIONES) {
-            suspenderCuenta(usuario);
+        if (cuentaSuspendida) {
+            Usuario usuario = usuarioRepo.findById(idUsuario)
+                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuario));
+            notificarSuspension(usuario);
+        }
+    }
+
+    private JsonNode parseResultado(String json) {
+        try {
+            return objectMapper.readTree(json);
+        } catch (Exception e) {
+            throw new IllegalStateException("Error al interpretar el resultado de fn_registrar_infraccion", e);
         }
     }
 
@@ -94,10 +99,8 @@ public class InfraccionServiceImpl implements InfraccionService {
 
     // -------------------------------------------------------------------------
 
-    private void suspenderCuenta(Usuario usuario) {
-        usuario.setEstadoCuenta(false);
-        usuarioRepo.save(usuario);
-
+    /** El estado_cuenta ya lo actualizo fn_registrar_infraccion; aqui solo se notifica. */
+    private void notificarSuspension(Usuario usuario) {
         LocalDateTime hastaFecha = LocalDateTime.now().plusDays(SUSPENSION_DIAS);
         String mensajeNotif = "Tu cuenta está suspendida hasta " + hastaFecha.toLocalDate()
                 + " por superar el límite de infracciones de datos de contacto.";

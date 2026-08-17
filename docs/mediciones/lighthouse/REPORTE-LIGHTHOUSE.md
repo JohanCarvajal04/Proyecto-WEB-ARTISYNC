@@ -76,8 +76,83 @@ vistas de login y registro. Ver el detalle de la lista de 44 iconos y el riesgo 
 - `unused-javascript` (30 KB reales tras gzip): requeriría revisar lazy loading de rutas —
   descartado en el plan por relación esfuerzo/beneficio desfavorable una vez aplicadas las otras
   fases.
-- Segunda corrida de consistencia sobre el estado "después": pendiente (opcional, no bloqueante
-  para el checklist del Bloque C).
+- Segunda corrida de consistencia sobre el estado "después": resuelto en la sección siguiente
+  (Entrega Final: 3 corridas mobile + 3 desktop).
+
+## Entrega Final — perfil mobile (3 corridas) y perfil desktop (3 corridas)
+
+- Fecha: 2026-08-17
+- Comando: `make lighthouse` (ver `Makefile`). Corre `@lhci/cli` 0.15.1 dentro de un contenedor
+  efímero `node:20-bookworm-slim` + `chromium`, en vez de invocar `npx` directo en la máquina
+  del desarrollador — `chrome-launcher` (dependencia de Lighthouse) tiene un bug de limpieza de
+  directorio temporal en Windows (`EPERM` al borrar el perfil de Chrome) que aborta la corrida
+  antes de escribir el reporte. El contenedor comparte el namespace de red del propio contenedor
+  `frontend` (`--network container:pfc_frontend`) para que `http://localhost:4200/` (la URL ya
+  configurada en `lighthouserc.mobile.json`/`lighthouserc.desktop.json`, sin modificar) resuelva
+  igual que en la máquina del desarrollador — usar el nombre DNS interno de compose (`frontend`)
+  en su lugar rompe la detección de "contexto seguro" de Lighthouse para `localhost` y produce
+  falsos negativos en `is-on-https`/`redirects-http` que no reflejan la aplicación real (se
+  descartó una primera corrida contaminada por este efecto).
+- Objetivo: `http://localhost:4200/`, contenedor `docker-compose.lighthouse.yml` (build de
+  producción de Angular servido por nginx — no `ng serve`).
+- Configuración: `lighthouserc.mobile.json` (formFactor mobile, throttling simulado 1638.4
+  Kbps/150ms RTT/4× CPU, `numberOfRuns: 3`) y `lighthouserc.desktop.json` (formFactor desktop,
+  throttling simulado 10240 Kbps/40ms RTT/1× CPU, `numberOfRuns: 3`).
+
+### Resultados — mobile (3/3 corridas, `lhci-20260817-0315-mobile-run{1,2,3}`)
+
+| Categoría | Run 1 | Run 2 | Run 3 | Umbral | Cumple |
+|---|---|---|---|---|---|
+| Performance | 81 | 81 | 80 | ≥ 80 | ✅ Sí |
+| Accessibility | 93 | 93 | 93 | ≥ 90 | ✅ Sí |
+| Best Practices | 96 | 96 | 96 | ≥ 90 | ✅ Sí |
+| SEO | 100 | 100 | 100 | ≥ 90 | ✅ Sí |
+
+`lhci autorun` terminó con **"All results processed!"** y código de salida 0 en ambos perfiles.
+
+### Resultados — desktop (3/3 corridas, `lhci-20260817-0320-desktop-run{1,2,3}`)
+
+| Categoría | Run 1 | Run 2 | Run 3 | Umbral | Cumple |
+|---|---|---|---|---|---|
+| Performance | 100 | 100 | 100 | ≥ 80 | ✅ Sí |
+| Accessibility | 93 | 93 | 93 | ≥ 90 | ✅ Sí |
+| Best Practices | 96 | 96 | 96 | ≥ 90 | ✅ Sí |
+| SEO | 100 | 100 | 100 | ≥ 90 | ✅ Sí |
+
+### Métricas de carga (run 1 de cada perfil)
+
+| Métrica | Mobile | Desktop |
+|---|---|---|
+| First Contentful Paint | 1.9 s | 0.4 s |
+| Largest Contentful Paint | 3.0 s | 0.6 s |
+| Speed Index | 1.9 s | 0.5 s |
+| Total Blocking Time | 70 ms | 0 ms |
+| Cumulative Layout Shift | 0.231 | 0.021 |
+
+### Hallazgos reales que impiden el 100/100 (no se maquillaron los números)
+
+- **Accessibility 93/100 en ambos perfiles**: `target-size` — algunos elementos táctiles no
+  cumplen el tamaño/espaciado mínimo recomendado.
+- **Best Practices 96/100 en ambos perfiles**: `errors-in-console` — al cargar la página sin
+  sesión iniciada, el navegador registra un `403` de red en `GET /api/auth/refresh` (comportamiento
+  esperado del interceptor JWT al intentar refrescar un token que no existe para un visitante
+  anónimo, pero Lighthouse lo cuenta como error de consola). Candidato a mejora: que el frontend
+  evite disparar ese refresh cuando no hay sesión activa.
+- **CLS 0.231 en mobile** (por encima del umbral "bueno" de 0.1, aunque no impide superar el
+  umbral de Performance ≥ 80): contribuye a que el perfil mobile puntúe 80–81 en vez de más alto;
+  el perfil desktop no lo sufre de forma perceptible (0.021) porque el layout no se recalcula de
+  la misma manera en viewport ancho.
+
+Ninguno de estos tres hallazgos hace fallar los umbrales exigidos por la guía de la Entrega Final
+(Performance ≥ 80, Accessibility/Best Practices/SEO ≥ 90), pero quedan documentados como mejoras
+reales pendientes en vez de ocultarse.
+
+### Reportes archivados
+
+- Mobile: [`run1`](lhci-20260817-0315-mobile-run1.html) / [`run2`](lhci-20260817-0315-mobile-run2.html)
+  / [`run3`](lhci-20260817-0315-mobile-run3.html) (`.json` homónimos en esta misma carpeta)
+- Desktop: [`run1`](lhci-20260817-0320-desktop-run1.html) / [`run2`](lhci-20260817-0320-desktop-run2.html)
+  / [`run3`](lhci-20260817-0320-desktop-run3.html) (`.json` homónimos en esta misma carpeta)
 
 ## Nota de trazabilidad
 

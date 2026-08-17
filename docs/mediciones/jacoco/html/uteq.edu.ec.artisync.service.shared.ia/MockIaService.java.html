@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MockIaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.ia</a> &gt; <span class="el_source">MockIaService.java</span></div><h1>MockIaService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.ia;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import uteq.edu.ec.artisync.dto.ia.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/** Simula respuestas de IA sin llamadas de red. Activo por defecto (ia.provider=mock). */
+@Service
+@ConditionalOnProperty(name = &quot;ia.provider&quot;, havingValue = &quot;mock&quot;, matchIfMissing = true)
+<span class="fc" id="L14">@Slf4j</span>
+public class MockIaService extends AbstractIaService implements IaService {
+
+<span class="fc" id="L17">    public MockIaService() {</span>
+<span class="fc" id="L18">        log.info(&quot;Servicio de IA MOCK inicializado — no se realizarán llamadas reales a APIs de IA&quot;);</span>
+<span class="fc" id="L19">    }</span>
+
+    @Override
+    public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L23">        return IaVerificacionResponse.builder()</span>
+<span class="fc" id="L24">                .aprobado(true)</span>
+<span class="fc" id="L25">                .confianza(new BigDecimal(&quot;0.92&quot;))</span>
+<span class="fc" id="L26">                .tipoDocumento(&quot;cedula&quot;)</span>
+<span class="fc" id="L27">                .nombreDetectado(&quot;Usuario de Prueba&quot;)</span>
+<span class="fc" id="L28">                .mayorEdad(true)</span>
+<span class="fc" id="L29">                .fechaNacimiento(&quot;1995-05-20&quot;)</span>
+<span class="fc" id="L30">                .paisEmision(&quot;Ecuador&quot;)</span>
+<span class="fc" id="L31">                .build();</span>
+    }
+
+    @Override
+    public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
+<span class="fc" id="L36">        return IaVerificacionResponse.builder()</span>
+<span class="fc" id="L37">                .aprobado(true)</span>
+<span class="fc" id="L38">                .confianza(new BigDecimal(&quot;0.88&quot;))</span>
+<span class="fc" id="L39">                .tipoDocumento(&quot;titulo_universitario&quot;)</span>
+<span class="fc" id="L40">                .nombreDetectado(&quot;Usuario de Prueba&quot;)</span>
+<span class="fc" id="L41">                .institucionEmisora(&quot;Universidad de Prueba&quot;)</span>
+<span class="fc" id="L42">                .campoEstudio(&quot;Diseño Gráfico&quot;)</span>
+<span class="fc" id="L43">                .fechaEmision(&quot;2020-07-15&quot;)</span>
+<span class="fc" id="L44">                .build();</span>
+    }
+
+    @Override
+    public IaModeracionResponse moderarContenido(String textoMensaje) {
+<span class="nc" id="L49">        return IaModeracionResponse.builder()</span>
+<span class="nc" id="L50">                .esApropiado(true).categoriaInfraccion(&quot;ninguno&quot;)</span>
+<span class="nc" id="L51">                .confianza(new BigDecimal(&quot;0.95&quot;)).build();</span>
+    }
+
+    @Override
+    public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List&lt;String&gt; categoriasDisponibles) {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        String categoria = categoriasDisponibles.isEmpty() ? &quot;General&quot; : categoriasDisponibles.get(0);</span>
+<span class="nc" id="L57">        return IaClasificacionResponse.builder()</span>
+<span class="nc" id="L58">                .categoriaSugerida(categoria).subcategoriaSugerida(&quot;General&quot;)</span>
+<span class="nc" id="L59">                .etiquetasSugeridas(List.of(&quot;diseño&quot;, &quot;creativo&quot;))</span>
+<span class="nc" id="L60">                .confianza(new BigDecimal(&quot;0.80&quot;)).build();</span>
+    }
+
+    @Override
+    public List&lt;String&gt; sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
+<span class="nc" id="L65">        return List.of(&quot;¿Cuál es el objetivo del proyecto?&quot;, &quot;¿Tienes referencias visuales?&quot;);</span>
+    }
+
+    @Override
+    public IaResenaResponse analizarResena(String textoResena, int estrellas) {
+<span class="nc" id="L70">        return IaResenaResponse.builder()</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">                .sentimiento(estrellas &gt;= 4 ? &quot;positivo&quot; : &quot;neutro&quot;)</span>
+<span class="nc" id="L72">                .esCoherenteConEstrellas(true).esSpam(false).esInapropiado(false)</span>
+<span class="nc" id="L73">                .confianza(new BigDecimal(&quot;0.90&quot;)).build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
