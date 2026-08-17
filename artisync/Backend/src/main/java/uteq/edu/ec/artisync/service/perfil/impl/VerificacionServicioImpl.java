@@ -20,7 +20,6 @@ import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
 import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
 import tools.jackson.databind.ObjectMapper;
@@ -68,10 +67,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
                         "El estado PENDIENTE no está sembrado en estados_verificacion (ver migración V6)."));
 
         String hash = calcularHash(documento);
-        // Con prefijo explícito: es lo que hace que el router mande estas
-        // cédulas y títulos al volumen local en lugar de a Azure.
-        String referenciaAlmacenamiento =
-                almacenamiento.guardar(documento, PrefijoAlmacenamiento.VERIFICACION);
+        String referenciaAlmacenamiento = almacenamiento.guardar(documento);
 
         CertificadoIa certificado = CertificadoIa.builder()
                 .perfil(perfil)
