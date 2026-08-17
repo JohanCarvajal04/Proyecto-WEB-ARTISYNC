@@ -34,151 +34,151 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
     @Override
     @Transactional
     public RespuestaFlujoTrabajo crearFlujoTrabajo(PeticionCrearFlujoTrabajo peticion) {
-<span class="nc bnc" id="L37" title="All 2 branches missed.">        if (flujoTrabajoRepository.existsByNombreFlujo(peticion.getNombreFlujo())) {</span>
-<span class="nc" id="L38">            throw new ExcepcionRecursoDuplicado(&quot;Ya existe un flujo de trabajo con el nombre: &quot; + peticion.getNombreFlujo());</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if (flujoTrabajoRepository.existsByNombreFlujo(peticion.getNombreFlujo())) {</span>
+<span class="fc" id="L38">            throw new ExcepcionRecursoDuplicado(&quot;Ya existe un flujo de trabajo con el nombre: &quot; + peticion.getNombreFlujo());</span>
         }
 
-<span class="nc" id="L41">        FlujoTrabajo flujo = FlujoTrabajo.builder()</span>
-<span class="nc" id="L42">                .nombreFlujo(peticion.getNombreFlujo())</span>
-<span class="nc" id="L43">                .descripcionFlujo(peticion.getDescripcionFlujo())</span>
-<span class="nc" id="L44">                .build();</span>
+<span class="fc" id="L41">        FlujoTrabajo flujo = FlujoTrabajo.builder()</span>
+<span class="fc" id="L42">                .nombreFlujo(peticion.getNombreFlujo())</span>
+<span class="fc" id="L43">                .descripcionFlujo(peticion.getDescripcionFlujo())</span>
+<span class="fc" id="L44">                .build();</span>
 
-<span class="nc" id="L46">        flujo = flujoTrabajoRepository.save(flujo);</span>
+<span class="fc" id="L46">        flujo = flujoTrabajoRepository.save(flujo);</span>
 
         // Crear etapas si se proporcionaron
-<span class="nc bnc" id="L49" title="All 4 branches missed.">        if (peticion.getEtapas() != null &amp;&amp; !peticion.getEtapas().isEmpty()) {</span>
-<span class="nc bnc" id="L50" title="All 2 branches missed.">            for (PeticionEtapaConfig etapaReq : peticion.getEtapas()) {</span>
-<span class="nc" id="L51">                EtapaFlujo etapa = obtenerOCrearEtapa(etapaReq.getNombreEtapa());</span>
+<span class="pc bpc" id="L49" title="1 of 4 branches missed.">        if (peticion.getEtapas() != null &amp;&amp; !peticion.getEtapas().isEmpty()) {</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">            for (PeticionEtapaConfig etapaReq : peticion.getEtapas()) {</span>
+<span class="fc" id="L51">                EtapaFlujo etapa = obtenerOCrearEtapa(etapaReq.getNombreEtapa());</span>
 
-<span class="nc" id="L53">                FlujoEtapaConfig config = FlujoEtapaConfig.builder()</span>
-<span class="nc" id="L54">                        .flujo(flujo)</span>
-<span class="nc" id="L55">                        .etapa(etapa)</span>
-<span class="nc" id="L56">                        .numeroOrden(etapaReq.getNumeroOrden())</span>
-<span class="nc" id="L57">                        .esEtapaFinal(etapaReq.isEsEtapaFinal())</span>
-<span class="nc" id="L58">                        .build();</span>
+<span class="fc" id="L53">                FlujoEtapaConfig config = FlujoEtapaConfig.builder()</span>
+<span class="fc" id="L54">                        .flujo(flujo)</span>
+<span class="fc" id="L55">                        .etapa(etapa)</span>
+<span class="fc" id="L56">                        .numeroOrden(etapaReq.getNumeroOrden())</span>
+<span class="fc" id="L57">                        .esEtapaFinal(etapaReq.isEsEtapaFinal())</span>
+<span class="fc" id="L58">                        .build();</span>
 
-<span class="nc" id="L60">                flujoEtapaConfigRepository.save(config);</span>
-<span class="nc" id="L61">            }</span>
+<span class="fc" id="L60">                flujoEtapaConfigRepository.save(config);</span>
+<span class="fc" id="L61">            }</span>
         }
 
-<span class="nc" id="L64">        log.info(&quot;Flujo de trabajo '{}' creado con ID {}&quot;, flujo.getNombreFlujo(), flujo.getIdFlujo());</span>
-<span class="nc" id="L65">        return mapToRespuesta(flujo);</span>
+<span class="fc" id="L64">        log.info(&quot;Flujo de trabajo '{}' creado con ID {}&quot;, flujo.getNombreFlujo(), flujo.getIdFlujo());</span>
+<span class="fc" id="L65">        return mapToRespuesta(flujo);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaFlujoTrabajo&gt; listarFlujosTrabajo() {
-<span class="nc" id="L71">        return flujoTrabajoRepository.findAll()</span>
-<span class="nc" id="L72">                .stream()</span>
-<span class="nc" id="L73">                .map(this::mapToRespuesta)</span>
-<span class="nc" id="L74">                .collect(Collectors.toList());</span>
+<span class="fc" id="L71">        return flujoTrabajoRepository.findAll()</span>
+<span class="fc" id="L72">                .stream()</span>
+<span class="fc" id="L73">                .map(this::mapToRespuesta)</span>
+<span class="fc" id="L74">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaFlujoTrabajo obtenerFlujoPorId(Long idFlujo) {
-<span class="nc" id="L80">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
-<span class="nc" id="L81">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));</span>
+<span class="fc" id="L80">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
+<span class="pc" id="L81">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));</span>
 <span class="nc" id="L82">        return mapToRespuesta(flujo);</span>
     }
 
     @Override
     @Transactional
     public RespuestaFlujoTrabajo actualizarFlujoTrabajo(Long idFlujo, PeticionCrearFlujoTrabajo peticion) {
-<span class="nc" id="L88">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
-<span class="nc" id="L89">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));</span>
+<span class="fc" id="L88">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
+<span class="pc" id="L89">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));</span>
 
-<span class="nc" id="L91">        flujo.setNombreFlujo(peticion.getNombreFlujo());</span>
-<span class="nc" id="L92">        flujo.setDescripcionFlujo(peticion.getDescripcionFlujo());</span>
-<span class="nc" id="L93">        flujoTrabajoRepository.save(flujo);</span>
+<span class="fc" id="L91">        flujo.setNombreFlujo(peticion.getNombreFlujo());</span>
+<span class="fc" id="L92">        flujo.setDescripcionFlujo(peticion.getDescripcionFlujo());</span>
+<span class="fc" id="L93">        flujoTrabajoRepository.save(flujo);</span>
 
-<span class="nc" id="L95">        log.info(&quot;Flujo de trabajo '{}' actualizado&quot;, flujo.getNombreFlujo());</span>
-<span class="nc" id="L96">        return mapToRespuesta(flujo);</span>
+<span class="fc" id="L95">        log.info(&quot;Flujo de trabajo '{}' actualizado&quot;, flujo.getNombreFlujo());</span>
+<span class="fc" id="L96">        return mapToRespuesta(flujo);</span>
     }
 
     @Override
     @Transactional
     public RespuestaFlujoTrabajo agregarEtapa(Long idFlujo, PeticionEtapaConfig peticion) {
-<span class="nc" id="L102">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
-<span class="nc" id="L103">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));</span>
+<span class="fc" id="L102">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
+<span class="pc" id="L103">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado con ID: &quot; + idFlujo));</span>
 
-<span class="nc" id="L105">        EtapaFlujo etapa = obtenerOCrearEtapa(peticion.getNombreEtapa());</span>
+<span class="fc" id="L105">        EtapaFlujo etapa = obtenerOCrearEtapa(peticion.getNombreEtapa());</span>
 
-<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(idFlujo, etapa.getIdEtapa())) {</span>
-<span class="nc" id="L108">            throw new ExcepcionRecursoDuplicado(&quot;La etapa '&quot; + peticion.getNombreEtapa() + &quot;' ya existe en este flujo&quot;);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(idFlujo, etapa.getIdEtapa())) {</span>
+<span class="fc" id="L108">            throw new ExcepcionRecursoDuplicado(&quot;La etapa '&quot; + peticion.getNombreEtapa() + &quot;' ya existe en este flujo&quot;);</span>
         }
 
-<span class="nc" id="L111">        FlujoEtapaConfig config = FlujoEtapaConfig.builder()</span>
-<span class="nc" id="L112">                .flujo(flujo)</span>
-<span class="nc" id="L113">                .etapa(etapa)</span>
-<span class="nc" id="L114">                .numeroOrden(peticion.getNumeroOrden())</span>
-<span class="nc" id="L115">                .esEtapaFinal(peticion.isEsEtapaFinal())</span>
-<span class="nc" id="L116">                .build();</span>
+<span class="fc" id="L111">        FlujoEtapaConfig config = FlujoEtapaConfig.builder()</span>
+<span class="fc" id="L112">                .flujo(flujo)</span>
+<span class="fc" id="L113">                .etapa(etapa)</span>
+<span class="fc" id="L114">                .numeroOrden(peticion.getNumeroOrden())</span>
+<span class="fc" id="L115">                .esEtapaFinal(peticion.isEsEtapaFinal())</span>
+<span class="fc" id="L116">                .build();</span>
 
-<span class="nc" id="L118">        flujoEtapaConfigRepository.save(config);</span>
-<span class="nc" id="L119">        log.info(&quot;Etapa '{}' agregada al flujo '{}'&quot;, etapa.getNombreEtapa(), flujo.getNombreFlujo());</span>
+<span class="fc" id="L118">        flujoEtapaConfigRepository.save(config);</span>
+<span class="fc" id="L119">        log.info(&quot;Etapa '{}' agregada al flujo '{}'&quot;, etapa.getNombreEtapa(), flujo.getNombreFlujo());</span>
 
-<span class="nc" id="L121">        return mapToRespuesta(flujo);</span>
+<span class="fc" id="L121">        return mapToRespuesta(flujo);</span>
     }
 
     @Override
     @Transactional
     public RespuestaFlujoTrabajo actualizarEtapa(Long idFlujo, Long idFlujoEtapa, PeticionEtapaConfig peticion) {
-<span class="nc" id="L127">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
-<span class="nc" id="L128">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado&quot;));</span>
+<span class="fc" id="L127">        FlujoTrabajo flujo = flujoTrabajoRepository.findById(idFlujo)</span>
+<span class="pc" id="L128">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Flujo de trabajo no encontrado&quot;));</span>
 
-<span class="nc" id="L130">        FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)</span>
-<span class="nc" id="L131">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Configuracion de etapa no encontrada&quot;));</span>
+<span class="fc" id="L130">        FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)</span>
+<span class="pc" id="L131">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Configuracion de etapa no encontrada&quot;));</span>
 
-<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (!config.getFlujo().getIdFlujo().equals(idFlujo)) {</span>
-<span class="nc" id="L134">            throw new ExcepcionReglaNegocio(&quot;La etapa no pertenece al flujo especificado&quot;);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (!config.getFlujo().getIdFlujo().equals(idFlujo)) {</span>
+<span class="fc" id="L134">            throw new ExcepcionReglaNegocio(&quot;La etapa no pertenece al flujo especificado&quot;);</span>
         }
 
-<span class="nc" id="L137">        config.setNumeroOrden(peticion.getNumeroOrden());</span>
-<span class="nc" id="L138">        config.setEsEtapaFinal(peticion.isEsEtapaFinal());</span>
+<span class="fc" id="L137">        config.setNumeroOrden(peticion.getNumeroOrden());</span>
+<span class="fc" id="L138">        config.setEsEtapaFinal(peticion.isEsEtapaFinal());</span>
 
-<span class="nc" id="L140">        flujoEtapaConfigRepository.save(config);</span>
-<span class="nc" id="L141">        log.info(&quot;Etapa {} actualizada en flujo {}&quot;, idFlujoEtapa, idFlujo);</span>
+<span class="fc" id="L140">        flujoEtapaConfigRepository.save(config);</span>
+<span class="fc" id="L141">        log.info(&quot;Etapa {} actualizada en flujo {}&quot;, idFlujoEtapa, idFlujo);</span>
 
-<span class="nc" id="L143">        return mapToRespuesta(flujo);</span>
+<span class="fc" id="L143">        return mapToRespuesta(flujo);</span>
     }
 
     @Override
     @Transactional
     public void eliminarEtapa(Long idFlujo, Long idFlujoEtapa) {
-<span class="nc" id="L149">        FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)</span>
-<span class="nc" id="L150">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Configuracion de etapa no encontrada&quot;));</span>
+<span class="fc" id="L149">        FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)</span>
+<span class="fc" id="L150">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Configuracion de etapa no encontrada&quot;));</span>
 
-<span class="nc bnc" id="L152" title="All 2 branches missed.">        if (!config.getFlujo().getIdFlujo().equals(idFlujo)) {</span>
-<span class="nc" id="L153">            throw new ExcepcionReglaNegocio(&quot;La etapa no pertenece al flujo especificado&quot;);</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (!config.getFlujo().getIdFlujo().equals(idFlujo)) {</span>
+<span class="fc" id="L153">            throw new ExcepcionReglaNegocio(&quot;La etapa no pertenece al flujo especificado&quot;);</span>
         }
 
-<span class="nc" id="L156">        flujoEtapaConfigRepository.delete(config);</span>
-<span class="nc" id="L157">        log.info(&quot;Etapa {} eliminada del flujo {}&quot;, idFlujoEtapa, idFlujo);</span>
-<span class="nc" id="L158">    }</span>
+<span class="fc" id="L156">        flujoEtapaConfigRepository.delete(config);</span>
+<span class="fc" id="L157">        log.info(&quot;Etapa {} eliminada del flujo {}&quot;, idFlujoEtapa, idFlujo);</span>
+<span class="fc" id="L158">    }</span>
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     private EtapaFlujo obtenerOCrearEtapa(String nombreEtapa) {
-<span class="nc" id="L163">        return etapaFlujoRepository.findByNombreEtapa(nombreEtapa)</span>
-<span class="nc" id="L164">                .orElseGet(() -&gt; {</span>
-<span class="nc" id="L165">                    EtapaFlujo nueva = EtapaFlujo.builder()</span>
-<span class="nc" id="L166">                            .nombreEtapa(nombreEtapa)</span>
-<span class="nc" id="L167">                            .build();</span>
-<span class="nc" id="L168">                    return etapaFlujoRepository.save(nueva);</span>
+<span class="fc" id="L163">        return etapaFlujoRepository.findByNombreEtapa(nombreEtapa)</span>
+<span class="fc" id="L164">                .orElseGet(() -&gt; {</span>
+<span class="fc" id="L165">                    EtapaFlujo nueva = EtapaFlujo.builder()</span>
+<span class="fc" id="L166">                            .nombreEtapa(nombreEtapa)</span>
+<span class="fc" id="L167">                            .build();</span>
+<span class="fc" id="L168">                    return etapaFlujoRepository.save(nueva);</span>
                 });
     }
 
     private RespuestaFlujoTrabajo mapToRespuesta(FlujoTrabajo flujo) {
-<span class="nc" id="L173">        List&lt;FlujoEtapaConfig&gt; etapas = flujoEtapaConfigRepository</span>
-<span class="nc" id="L174">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());</span>
+<span class="fc" id="L173">        List&lt;FlujoEtapaConfig&gt; etapas = flujoEtapaConfigRepository</span>
+<span class="fc" id="L174">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());</span>
 
-<span class="nc" id="L176">        return RespuestaFlujoTrabajo.builder()</span>
-<span class="nc" id="L177">                .idFlujo(flujo.getIdFlujo())</span>
-<span class="nc" id="L178">                .nombreFlujo(flujo.getNombreFlujo())</span>
-<span class="nc" id="L179">                .descripcionFlujo(flujo.getDescripcionFlujo())</span>
-<span class="nc" id="L180">                .etapas(etapas.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))</span>
-<span class="nc" id="L181">                .build();</span>
+<span class="fc" id="L176">        return RespuestaFlujoTrabajo.builder()</span>
+<span class="fc" id="L177">                .idFlujo(flujo.getIdFlujo())</span>
+<span class="fc" id="L178">                .nombreFlujo(flujo.getNombreFlujo())</span>
+<span class="fc" id="L179">                .descripcionFlujo(flujo.getDescripcionFlujo())</span>
+<span class="fc" id="L180">                .etapas(etapas.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))</span>
+<span class="fc" id="L181">                .build();</span>
     }
 
     private RespuestaEtapaConfig mapEtapaConfig(FlujoEtapaConfig config) {

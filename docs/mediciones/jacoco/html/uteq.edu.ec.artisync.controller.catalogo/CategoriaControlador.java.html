@@ -25,44 +25,47 @@ public class CategoriaControlador {
 
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarCategoriasActivas() {
-<span class="nc" id="L28">        return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());</span>
+<span class="fc" id="L28">        return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());</span>
     }
 
+    // La gestión del catálogo se autoriza por permiso, no por rol: MODERADOR
+    // recibe CATEGORIA_GESTIONAR en la semilla y es quien administra categorías
+    // desde su panel. Exigir hasRole('ADMIN') lo dejaba fuera con un 403.
     @GetMapping(&quot;/todas&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarTodasLasCategorias() {
-<span class="nc" id="L34">        return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());</span>
+<span class="fc" id="L37">        return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaCategoria&gt; obtenerCategoriaPorId(@PathVariable Long id) {
-<span class="nc" id="L39">        return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));</span>
+<span class="nc" id="L42">        return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));</span>
     }
 
     @PostMapping
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCategoria&gt; crearCategoria(@Valid @RequestBody PeticionCrearCategoria peticion) {
-<span class="nc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(peticion));</span>
+<span class="fc" id="L48">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(peticion));</span>
     }
 
     @PutMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCategoria&gt; actualizarCategoria(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarCategoria peticion) {
-<span class="nc" id="L53">        return ResponseEntity.ok(categoriaServicio.actualizarCategoria(id, peticion));</span>
+<span class="fc" id="L56">        return ResponseEntity.ok(categoriaServicio.actualizarCategoria(id, peticion));</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCategoria(@PathVariable Long id) {
-<span class="nc" id="L59">        categoriaServicio.eliminarCategoria(id);</span>
-<span class="nc" id="L60">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Categoria eliminada exitosamente&quot;));</span>
+<span class="fc" id="L62">        categoriaServicio.eliminarCategoria(id);</span>
+<span class="fc" id="L63">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Categoria eliminada exitosamente&quot;));</span>
     }
 
     @GetMapping(&quot;/{id}/subcategorias&quot;)
     public ResponseEntity&lt;List&lt;RespuestaSubcategoria&gt;&gt; listarSubcategoriasPorCategoria(@PathVariable Long id) {
-<span class="nc" id="L65">        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));</span>
+<span class="nc" id="L68">        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

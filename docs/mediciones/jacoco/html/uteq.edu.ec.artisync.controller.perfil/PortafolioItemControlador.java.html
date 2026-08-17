@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PortafolioItemControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.perfil</a> &gt; <span class="el_source">PortafolioItemControlador.java</span></div><h1>PortafolioItemControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.perfil;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolioItem;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolioItem;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.perfil.IPortafolioItemServicio;
+
+import java.util.List;
+
+/**
+ * Obras del portafolio. Las rutas de lectura cuelgan de /api/v1/portafolios,
+ * que SecurityConfig deja abierto en GET: un portafolio público debe poder
+ * verse sin sesión, y el servicio es quien filtra los privados.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/portafolios&quot;)
+@RequiredArgsConstructor
+public class PortafolioItemControlador {
+
+    private final IPortafolioItemServicio itemServicio;
+
+    @PostMapping(value = &quot;/{idPortafolio}/items&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPortafolioItem&gt; subirItem(
+            @PathVariable Long idPortafolio,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestPart(&quot;datos&quot;) PeticionCrearPortafolioItem datos,
+            @RequestPart(&quot;archivo&quot;) MultipartFile archivo) {
+<span class="fc" id="L41">        RespuestaPortafolioItem respuesta = itemServicio.subirItem(</span>
+<span class="fc" id="L42">                idPortafolio, userDetails.getIdUsuario(), datos, archivo);</span>
+<span class="fc" id="L43">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    @GetMapping(&quot;/{idPortafolio}/items&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaPortafolioItem&gt;&gt; listarItems(
+            @PathVariable Long idPortafolio,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L50">        return ResponseEntity.ok(itemServicio.listarItems(idPortafolio, idDe(userDetails)));</span>
+    }
+
+    @GetMapping(&quot;/items/{idItem}&quot;)
+    public ResponseEntity&lt;RespuestaPortafolioItem&gt; obtenerItem(
+            @PathVariable Long idItem,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L57">        return ResponseEntity.ok(itemServicio.obtenerItem(idItem, idDe(userDetails)));</span>
+    }
+
+    /**
+     * Sirve los bytes cuando el proveedor no firma URLs. Con Azure el frontend
+     * recibe un SAS en la respuesta y no pasa por aquí.
+     *
+     * &lt;p&gt;Content-Disposition attachment y no inline: una obra puede ser un SVG,
+     * y servirlo para que el navegador lo interprete en el dominio de la
+     * plataforma abriría la puerta a XSS almacenado.
+     */
+    @GetMapping(&quot;/items/{idItem}/archivo&quot;)
+    public ResponseEntity&lt;byte[]&gt; descargarArchivo(
+            @PathVariable Long idItem,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L72">        IPortafolioItemServicio.ArchivoItem archivo =</span>
+<span class="fc" id="L73">                itemServicio.descargarArchivo(idItem, idDe(userDetails));</span>
+
+<span class="fc" id="L75">        return ResponseEntity.ok()</span>
+<span class="fc" id="L76">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
+<span class="fc" id="L77">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L78">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())</span>
+<span class="fc" id="L79">                .body(archivo.contenido());</span>
+    }
+
+    @DeleteMapping(&quot;/items/{idItem}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarItem(
+            @PathVariable Long idItem,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L87">        itemServicio.eliminarItem(idItem, userDetails.getIdUsuario());</span>
+<span class="nc" id="L88">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Obra eliminada del portafolio&quot;));</span>
+    }
+
+    /** Nulo cuando la petición es anónima, que en GET es un caso válido. */
+    private Long idDe(CustomUserDetails userDetails) {
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">        return userDetails == null ? null : userDetails.getIdUsuario();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

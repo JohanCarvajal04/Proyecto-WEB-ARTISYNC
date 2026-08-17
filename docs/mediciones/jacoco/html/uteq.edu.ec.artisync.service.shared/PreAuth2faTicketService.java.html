@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PreAuth2faTicketService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared</a> &gt; <span class="el_source">PreAuth2faTicketService.java</span></div><h1>PreAuth2faTicketService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * §2.1 / OBS-AUTO-05: ticket de un solo uso que vincula el paso de contraseña
+ * (AuthServiceImpl.login) con el de código 2FA (verify2Fa). Antes,
+ * /api/auth/2fa/verify aceptaba {correo, codigo} sin ninguna prueba de que el
+ * llamante hubiera pasado por login() — habilitar 2FA degradaba la cuenta de
+ * &quot;contraseña&quot; a &quot;6 dígitos&quot;, fuerza-bruteables sin límite.
+ *
+ * Token OPACO (no un JWT): el uso único y el tope de intentos exigen estado
+ * en Redis de todas formas, así que un JWT type=2fa_pending no aportaría nada
+ * y sí una clase nueva de bug de confused-deputy (no puede confundirse con un
+ * access token porque no es un JWT en absoluto).
+ *
+ * Fail-closed ante caída de Redis: sin ticket no hay prueba de que la
+ * contraseña se validó (a diferencia del rate limit, que es fail-open).
+ */
+<span class="fc" id="L36">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class PreAuth2faTicketService {
+
+    private static final String PREFIJO_CLAVE = &quot;2fa:ticket:&quot;;
+<span class="fc" id="L42">    private static final Duration TTL = Duration.ofMinutes(5);</span>
+    private static final int INTENTOS_MAXIMOS = 5;
+    private static final int LONGITUD_BYTES = 32;
+
+    private final StringRedisTemplate redisTemplate;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+<span class="fc" id="L49">    public record DatosTicket(Long idUsuario, String correo) {</span>
+    }
+
+    /** Se llama únicamente tras validar la contraseña en login(). */
+    public String emitir(Long idUsuario, String correo) {
+<span class="fc" id="L54">        byte[] bytes = new byte[LONGITUD_BYTES];</span>
+<span class="fc" id="L55">        secureRandom.nextBytes(bytes);</span>
+<span class="fc" id="L56">        String ticketPlano = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);</span>
+
+<span class="fc" id="L58">        String clave = construirClave(ticketPlano);</span>
+        try {
+<span class="fc" id="L60">            HashOperations&lt;String, String, String&gt; hashOps = redisTemplate.opsForHash();</span>
+<span class="fc" id="L61">            Map&lt;String, String&gt; valor = Map.of(</span>
+<span class="fc" id="L62">                    &quot;idUsuario&quot;, String.valueOf(idUsuario),</span>
+                    &quot;correo&quot;, correo,
+                    &quot;intentos&quot;, &quot;0&quot;);
+<span class="fc" id="L65">            hashOps.putAll(clave, valor);</span>
+<span class="fc" id="L66">            redisTemplate.expire(clave, TTL);</span>
+<span class="fc" id="L67">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L68">            log.error(&quot;No se pudo emitir el ticket pre-auth de 2FA en Redis (fail-closed): {}&quot;, e.getMessage());</span>
+<span class="fc" id="L69">            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,</span>
+                    &quot;Servicio de autenticación temporalmente no disponible&quot;);
+<span class="fc" id="L71">        }</span>
+<span class="fc" id="L72">        return ticketPlano;</span>
+    }
+
+    /**
+     * Lee los datos del ticket e incrementa su contador de intentos (tanto si el
+     * código resulta correcto como si no — el llamante decide qué hacer con el
+     * resultado). Si supera {@link #INTENTOS_MAXIMOS}, el ticket se invalida de
+     * inmediato y hay que rehacer el login. Vacío si el ticket no existe, ya
+     * expiró, o se acaba de invalidar por exceso de intentos.
+     */
+    public Optional&lt;DatosTicket&gt; resolver(String ticketPlano) {
+<span class="pc bpc" id="L83" title="1 of 4 branches missed.">        if (ticketPlano == null || ticketPlano.isBlank()) {</span>
+<span class="fc" id="L84">            return Optional.empty();</span>
+        }
+<span class="fc" id="L86">        String clave = construirClave(ticketPlano);</span>
+        try {
+<span class="fc" id="L88">            HashOperations&lt;String, String, String&gt; hashOps = redisTemplate.opsForHash();</span>
+<span class="fc" id="L89">            Map&lt;String, String&gt; valor = hashOps.entries(clave);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            if (valor.isEmpty()) {</span>
+<span class="fc" id="L91">                return Optional.empty();</span>
+            }
+
+<span class="fc" id="L94">            Long intentos = hashOps.increment(clave, &quot;intentos&quot;, 1);</span>
+<span class="pc bpc" id="L95" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos &gt; INTENTOS_MAXIMOS) {</span>
+<span class="fc" id="L96">                redisTemplate.delete(clave);</span>
+<span class="fc" id="L97">                log.warn(&quot;Ticket pre-auth de 2FA invalidado por exceso de intentos&quot;);</span>
+<span class="fc" id="L98">                return Optional.empty();</span>
+            }
+
+<span class="fc" id="L101">            return Optional.of(new DatosTicket(Long.valueOf(valor.get(&quot;idUsuario&quot;)), valor.get(&quot;correo&quot;)));</span>
+<span class="fc" id="L102">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L103">            log.error(&quot;No se pudo validar el ticket pre-auth de 2FA en Redis (fail-closed): {}&quot;, e.getMessage());</span>
+<span class="fc" id="L104">            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,</span>
+                    &quot;Servicio de autenticación temporalmente no disponible&quot;);
+        }
+    }
+
+    /**
+     * Consume (borra) el ticket tras un código correcto — uso único, sin carrera
+     * de doble envío: {@code delete} devuelve true solo para quien de verdad
+     * borró la clave, así que solo esa petición puede continuar y emitir tokens.
+     */
+    public boolean consumir(String ticketPlano) {
+<span class="fc" id="L115">        String clave = construirClave(ticketPlano);</span>
+        try {
+<span class="fc" id="L117">            return Boolean.TRUE.equals(redisTemplate.delete(clave));</span>
+<span class="nc" id="L118">        } catch (DataAccessException e) {</span>
+<span class="nc" id="L119">            log.error(&quot;No se pudo consumir el ticket pre-auth de 2FA en Redis: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L120">            return false;</span>
+        }
+    }
+
+    private String construirClave(String ticketPlano) {
+<span class="fc" id="L125">        return PREFIJO_CLAVE + hashSha256(ticketPlano);</span>
+    }
+
+    private String hashSha256(String input) {
+        try {
+<span class="fc" id="L130">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L131">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L132">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="nc" id="L133">        } catch (Exception e) {</span>
+<span class="nc" id="L134">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

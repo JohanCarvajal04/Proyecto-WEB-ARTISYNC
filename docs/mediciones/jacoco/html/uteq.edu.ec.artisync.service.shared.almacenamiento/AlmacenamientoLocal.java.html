@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlmacenamientoLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.almacenamiento</a> &gt; <span class="el_source">AlmacenamientoLocal.java</span></div><h1>AlmacenamientoLocal.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.almacenamiento;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Optional;
+import java.util.UUID;
+
+<span class="fc" id="L20">@Slf4j</span>
+@Component
+@ConditionalOnProperty(name = &quot;documentos.proveedor&quot;, havingValue = &quot;local&quot;, matchIfMissing = true)
+public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
+
+    private final Path rutaBase;
+
+<span class="fc" id="L27">    public AlmacenamientoLocal(AlmacenamientoProperties propiedades) {</span>
+<span class="fc" id="L28">        this.rutaBase = Paths.get(propiedades.getRutaBase()).toAbsolutePath().normalize();</span>
+<span class="fc" id="L29">        log.info(&quot;Almacenamiento local de documentos configurado en {}&quot;, rutaBase);</span>
+<span class="fc" id="L30">    }</span>
+
+    private void asegurarDirectorio() {
+        try {
+<span class="fc" id="L34">            Files.createDirectories(rutaBase);</span>
+<span class="nc" id="L35">        } catch (IOException e) {</span>
+<span class="nc" id="L36">            throw new IllegalStateException(&quot;No se pudo crear el directorio de documentos: &quot; + rutaBase, e);</span>
+<span class="fc" id="L37">        }</span>
+<span class="fc" id="L38">    }</span>
+
+    @Override
+    public String guardar(MultipartFile archivo) {
+<span class="fc" id="L42">        return guardar(archivo, &quot;&quot;);</span>
+    }
+
+    @Override
+    public String guardar(MultipartFile archivo, String prefijo) {
+<span class="fc" id="L47">        asegurarDirectorio();</span>
+<span class="fc" id="L48">        String nombre = PrefijoAlmacenamiento.componer(</span>
+<span class="fc" id="L49">                prefijo, UUID.randomUUID() + ExtensionesArchivo.desde(archivo.getContentType()));</span>
+<span class="fc" id="L50">        Path destino = resolverDentroDeBase(nombre);</span>
+<span class="fc" id="L51">        try (InputStream in = archivo.getInputStream()) {</span>
+            // El prefijo se traduce a subdirectorio; sin esto Files.copy falla.
+<span class="fc" id="L53">            Files.createDirectories(destino.getParent());</span>
+<span class="fc" id="L54">            Files.copy(in, destino, StandardCopyOption.REPLACE_EXISTING);</span>
+<span class="nc" id="L55">        } catch (IOException e) {</span>
+<span class="nc" id="L56">            throw new ExcepcionReglaNegocio(&quot;No se pudo guardar el documento: &quot; + e.getMessage());</span>
+<span class="fc" id="L57">        }</span>
+<span class="fc" id="L58">        return nombre;</span>
+    }
+
+    /** El almacenamiento local no sabe firmar URLs: el consumidor sirve los bytes. */
+    @Override
+    public Optional&lt;String&gt; urlTemporal(String referencia) {
+<span class="fc" id="L64">        return Optional.empty();</span>
+    }
+
+    @Override
+    public byte[] leer(String referencia) {
+<span class="fc" id="L69">        Path ruta = resolverDentroDeBase(referencia);</span>
+        try {
+<span class="fc" id="L71">            return Files.readAllBytes(ruta);</span>
+<span class="fc" id="L72">        } catch (IOException e) {</span>
+<span class="fc" id="L73">            throw new ExcepcionRecursoNoEncontrado(&quot;Documento no disponible: &quot; + referencia);</span>
+        }
+    }
+
+    @Override
+    public void eliminar(String referencia) {
+<span class="fc" id="L79">        Path ruta = resolverDentroDeBase(referencia);</span>
+        try {
+<span class="fc" id="L81">            Files.deleteIfExists(ruta);</span>
+<span class="nc" id="L82">        } catch (IOException e) {</span>
+<span class="nc" id="L83">            throw new ExcepcionReglaNegocio(&quot;No se pudo eliminar el documento: &quot; + e.getMessage());</span>
+<span class="fc" id="L84">        }</span>
+<span class="fc" id="L85">    }</span>
+
+    private Path resolverDentroDeBase(String referencia) {
+<span class="fc" id="L88">        Path ruta = rutaBase.resolve(referencia).normalize();</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (!ruta.startsWith(rutaBase)) {</span>
+<span class="fc" id="L90">            throw new ExcepcionReglaNegocio(&quot;Referencia de documento inválida.&quot;);</span>
+        }
+<span class="fc" id="L92">        return ruta;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

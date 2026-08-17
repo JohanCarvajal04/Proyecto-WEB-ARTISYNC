@@ -4,6 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEntregable;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
@@ -17,7 +22,7 @@ import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
 
 import java.math.BigDecimal;
 
-<span class="fc" id="L20">@Slf4j</span>
+<span class="fc" id="L25">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class EntregableServicioImpl implements IEntregableServicio {
@@ -27,137 +32,217 @@ public class EntregableServicioImpl implements IEntregableServicio {
     private final PagoGarantiaRepository pagoGarantiaRepository;
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
+    private final AlmacenamientoDocumentos almacenamiento;
 
     @Override
     @Transactional
     public RespuestaEntregable subirEntregable(Long idPedido, Long idCreador,
-                                                String urlMarcaAgua, String urlLimpia) {
-<span class="nc" id="L35">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="nc" id="L36">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+                                                MultipartFile versionMarcaAgua, MultipartFile versionLimpia) {
+<span class="fc" id="L41">        PoliticaArchivo.ENTREGABLE.validar(versionMarcaAgua);</span>
+<span class="fc" id="L42">        PoliticaArchivo.ENTREGABLE.validar(versionLimpia);</span>
+
+<span class="fc" id="L44">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L45">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
 
         // Verificar que el usuario es el creador del servicio
-<span class="nc" id="L39">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
-<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (!idCreadorServicio.equals(idCreador)) {</span>
-<span class="nc" id="L41">            throw new ExcepcionReglaNegocio(&quot;Solo el creador del servicio puede subir entregables&quot;);</span>
+<span class="fc" id="L48">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (!idCreadorServicio.equals(idCreador)) {</span>
+<span class="fc" id="L50">            throw new ExcepcionReglaNegocio(&quot;Solo el creador del servicio puede subir entregables&quot;);</span>
         }
 
-        // Crear o actualizar entregable
-<span class="nc" id="L45">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L46">                .orElse(EntregableFinal.builder()</span>
-<span class="nc" id="L47">                        .pedido(pedido)</span>
-<span class="nc" id="L48">                        .estaLiberado(false)</span>
-<span class="nc" id="L49">                        .build());</span>
+<span class="fc" id="L53">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L54">                .orElse(EntregableFinal.builder()</span>
+<span class="fc" id="L55">                        .pedido(pedido)</span>
+<span class="fc" id="L56">                        .estaLiberado(false)</span>
+<span class="fc" id="L57">                        .build());</span>
 
-<span class="nc" id="L51">        entregable.setUrlVersionMarcaAgua(urlMarcaAgua);</span>
-<span class="nc" id="L52">        entregable.setUrlVersionLimpia(urlLimpia);</span>
+        // Resubir reemplaza: las referencias anteriores quedarían sin nadie que
+        // las apunte, y en Azure se seguirían facturando.
+<span class="fc" id="L61">        String anteriorMarcaAgua = entregable.getUrlVersionMarcaAgua();</span>
+<span class="fc" id="L62">        String anteriorLimpia = entregable.getUrlVersionLimpia();</span>
 
-<span class="nc" id="L54">        entregable = entregableRepository.save(entregable);</span>
-<span class="nc" id="L55">        log.info(&quot;Entregable subido para pedido {} por creador {}&quot;, idPedido, idCreador);</span>
+<span class="fc" id="L64">        entregable.setUrlVersionMarcaAgua(</span>
+<span class="fc" id="L65">                almacenamiento.guardar(versionMarcaAgua, PrefijoAlmacenamiento.ENTREGABLES));</span>
+<span class="fc" id="L66">        entregable.setUrlVersionLimpia(</span>
+<span class="fc" id="L67">                almacenamiento.guardar(versionLimpia, PrefijoAlmacenamiento.ENTREGABLES));</span>
 
-<span class="nc" id="L57">        return mapToRespuesta(entregable, false);</span>
+<span class="fc" id="L69">        entregable = entregableRepository.save(entregable);</span>
+<span class="fc" id="L70">        eliminarSiExiste(anteriorMarcaAgua);</span>
+<span class="fc" id="L71">        eliminarSiExiste(anteriorLimpia);</span>
+
+<span class="fc" id="L73">        log.info(&quot;Entregable subido para pedido {} por creador {}&quot;, idPedido, idCreador);</span>
+
+<span class="fc" id="L75">        return mapToRespuesta(entregable, false);</span>
     }
+
+    /**
+     * El archivo viejo ya no se referencia; que no se pueda borrar no debe
+     * tumbar una subida que por lo demás salió bien.
+     */
+    private void eliminarSiExiste(String referencia) {
+<span class="pc bpc" id="L83" title="1 of 4 branches missed.">        if (referencia == null || referencia.isBlank()) {</span>
+<span class="fc" id="L84">            return;</span>
+        }
+        try {
+<span class="fc" id="L87">            almacenamiento.eliminar(referencia);</span>
+<span class="fc" id="L88">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L89">            log.warn(&quot;No se pudo eliminar el entregable reemplazado {}: {}&quot;, referencia, e.getMessage());</span>
+<span class="fc" id="L90">        }</span>
+<span class="fc" id="L91">    }</span>
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaEntregable obtenerEntregable(Long idPedido, Long idUsuario) {
-<span class="nc" id="L63">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L64">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+<span class="fc" id="L96">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L97">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
 
         // El creador siempre ve ambas versiones; el cliente solo la marca de agua hasta aprobación
-<span class="nc" id="L67">        Pedido pedido = entregable.getPedido();</span>
-<span class="nc" id="L68">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
-<span class="nc" id="L69">        boolean esCreador = idCreadorServicio.equals(idUsuario);</span>
+<span class="fc" id="L100">        Pedido pedido = entregable.getPedido();</span>
+<span class="fc" id="L101">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc" id="L102">        boolean esCreador = idCreadorServicio.equals(idUsuario);</span>
 
-<span class="nc bnc" id="L71" title="All 4 branches missed.">        return mapToRespuesta(entregable, esCreador || entregable.getEstaLiberado());</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">        return mapToRespuesta(entregable, esCreador || entregable.getEstaLiberado());</span>
     }
 
     @Override
     @Transactional
     public void aprobarEntrega(Long idPedido, Long idCliente) {
-<span class="nc" id="L77">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="nc" id="L78">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="nc" id="L110">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="nc" id="L111">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
 
         // Verificar que el usuario es el cliente
-<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
-<span class="nc" id="L82">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente puede aprobar la entrega&quot;);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="nc" id="L115">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente puede aprobar la entrega&quot;);</span>
         }
 
-<span class="nc" id="L85">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L86">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+<span class="nc" id="L118">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L119">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
 
-<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (entregable.getEstaLiberado()) {</span>
-<span class="nc" id="L89">            throw new ExcepcionReglaNegocio(&quot;El entregable ya fue aprobado&quot;);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (entregable.getEstaLiberado()) {</span>
+<span class="nc" id="L122">            throw new ExcepcionReglaNegocio(&quot;El entregable ya fue aprobado&quot;);</span>
         }
 
         // Liberar fondos
-<span class="nc" id="L93">        var contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L94">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
+<span class="nc" id="L126">        var contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L127">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
 
-<span class="nc" id="L96">        var pagoOpt = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());</span>
-<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (pagoOpt.isPresent()) {</span>
-<span class="nc" id="L98">            PagoGarantia pago = pagoOpt.get();</span>
-<span class="nc" id="L99">            pago.setEstadoFondos(&quot;Liberado&quot;);</span>
-<span class="nc" id="L100">            pagoGarantiaRepository.save(pago);</span>
+<span class="nc" id="L129">        var pagoOpt = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (pagoOpt.isPresent()) {</span>
+<span class="nc" id="L131">            PagoGarantia pago = pagoOpt.get();</span>
+<span class="nc" id="L132">            pago.setEstadoFondos(&quot;Liberado&quot;);</span>
+<span class="nc" id="L133">            pagoGarantiaRepository.save(pago);</span>
 
             // Registrar transacciones: egreso al creador y comisión plataforma (10%)
-<span class="nc" id="L103">            BigDecimal comision = pago.getMontoRetenido().multiply(BigDecimal.valueOf(0.10));</span>
-<span class="nc" id="L104">            BigDecimal pagoCreador = pago.getMontoRetenido().subtract(comision);</span>
+<span class="nc" id="L136">            BigDecimal comision = pago.getMontoRetenido().multiply(BigDecimal.valueOf(0.10));</span>
+<span class="nc" id="L137">            BigDecimal pagoCreador = pago.getMontoRetenido().subtract(comision);</span>
 
-<span class="nc" id="L106">            transaccionPagoRepository.save(TransaccionPago.builder()</span>
-<span class="nc" id="L107">                    .pago(pago).tipoTransaccion(&quot;Egreso&quot;).monto(pagoCreador).build());</span>
-<span class="nc" id="L108">            transaccionPagoRepository.save(TransaccionPago.builder()</span>
-<span class="nc" id="L109">                    .pago(pago).tipoTransaccion(&quot;Comision&quot;).monto(comision).build());</span>
+<span class="nc" id="L139">            transaccionPagoRepository.save(TransaccionPago.builder()</span>
+<span class="nc" id="L140">                    .pago(pago).tipoTransaccion(&quot;Egreso&quot;).monto(pagoCreador).build());</span>
+<span class="nc" id="L141">            transaccionPagoRepository.save(TransaccionPago.builder()</span>
+<span class="nc" id="L142">                    .pago(pago).tipoTransaccion(&quot;Comision&quot;).monto(comision).build());</span>
 
-<span class="nc" id="L111">            log.info(&quot;Fondos liberados para pedido {}: creador=${}, comision=${}&quot;, idPedido, pagoCreador, comision);</span>
+<span class="nc" id="L144">            log.info(&quot;Fondos liberados para pedido {}: creador=${}, comision=${}&quot;, idPedido, pagoCreador, comision);</span>
         }
 
         // Habilitar descarga
-<span class="nc" id="L115">        entregable.setEstaLiberado(true);</span>
-<span class="nc" id="L116">        entregableRepository.save(entregable);</span>
+<span class="nc" id="L148">        entregable.setEstaLiberado(true);</span>
+<span class="nc" id="L149">        entregableRepository.save(entregable);</span>
 
-<span class="nc" id="L118">        log.info(&quot;Entrega aprobada para pedido {} por cliente {}&quot;, idPedido, idCliente);</span>
+<span class="nc" id="L151">        log.info(&quot;Entrega aprobada para pedido {} por cliente {}&quot;, idPedido, idCliente);</span>
 
         // TODO M6: Cerrar sala de chat
         // chatService.cerrarSala(idPedido);
         // TODO M6: Notificar al creador
         // notificacionService.notificar(..., &quot;PAGO_LIBERADO&quot;, &quot;El pago ha sido liberado por el cliente&quot;);
-<span class="nc" id="L124">    }</span>
+<span class="nc" id="L157">    }</span>
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] descargarVersionLimpia(Long idPedido, Long idCliente) {
-<span class="nc" id="L129">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="nc" id="L130">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+    public ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente) {
+<span class="fc" id="L162">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L163">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
 
-<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
-<span class="nc" id="L133">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente puede descargar el entregable&quot;);</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L166">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente puede descargar el entregable&quot;);</span>
         }
 
-<span class="nc" id="L136">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="nc" id="L137">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+<span class="fc" id="L169">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L170">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
 
-<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (!entregable.getEstaLiberado()) {</span>
-<span class="nc" id="L140">            throw new ExcepcionReglaNegocio(&quot;El entregable no esta disponible hasta que el pago sea liberado&quot;);</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        if (!entregable.getEstaLiberado()) {</span>
+<span class="fc" id="L173">            throw new ExcepcionReglaNegocio(&quot;El entregable no esta disponible hasta que el pago sea liberado&quot;);</span>
         }
 
-        // En producción, aquí se descargaría el archivo del servicio de almacenamiento (S3/R2)
-        // Por ahora retornamos la URL como bytes
-<span class="nc" id="L145">        log.info(&quot;Descarga de version limpia para pedido {}&quot;, idPedido);</span>
-<span class="nc bnc" id="L146" title="All 2 branches missed.">        return entregable.getUrlVersionLimpia() != null</span>
-<span class="nc" id="L147">                ? entregable.getUrlVersionLimpia().getBytes()</span>
-<span class="nc" id="L148">                : new byte[0];</span>
+<span class="fc" id="L176">        String referencia = entregable.getUrlVersionLimpia();</span>
+<span class="pc bpc" id="L177" title="2 of 4 branches missed.">        if (referencia == null || referencia.isBlank()) {</span>
+<span class="nc" id="L178">            throw new ExcepcionRecursoNoEncontrado(&quot;El entregable no tiene un archivo asociado&quot;);</span>
+        }
+
+<span class="fc" id="L181">        log.info(&quot;Descarga de version limpia para pedido {}&quot;, idPedido);</span>
+<span class="fc" id="L182">        return new ArchivoDescargado(</span>
+<span class="fc" id="L183">                almacenamiento.leer(referencia),</span>
+<span class="fc" id="L184">                &quot;entregable-pedido-&quot; + idPedido + extensionDe(referencia),</span>
+<span class="fc" id="L185">                ExtensionesArchivo.contentTypeDe(referencia));</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario) {
+<span class="fc" id="L191">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L192">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+
+        // La ve el cliente que la debe revisar y el creador que la subió; nadie más.
+<span class="fc" id="L195">        Pedido pedido = entregable.getPedido();</span>
+<span class="fc" id="L196">        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);</span>
+<span class="fc" id="L197">        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);</span>
+<span class="fc bfc" id="L198" title="All 4 branches covered.">        if (!esCliente &amp;&amp; !esCreador) {</span>
+<span class="fc" id="L199">            throw new ExcepcionReglaNegocio(&quot;No tiene acceso a este entregable&quot;);</span>
+        }
+
+<span class="fc" id="L202">        String referencia = entregable.getUrlVersionMarcaAgua();</span>
+<span class="pc bpc" id="L203" title="1 of 4 branches missed.">        if (referencia == null || referencia.isBlank()) {</span>
+<span class="fc" id="L204">            throw new ExcepcionRecursoNoEncontrado(&quot;El entregable no tiene version con marca de agua&quot;);</span>
+        }
+
+<span class="fc" id="L207">        return new ArchivoDescargado(</span>
+<span class="fc" id="L208">                almacenamiento.leer(referencia),</span>
+<span class="fc" id="L209">                &quot;vista-previa-pedido-&quot; + idPedido + extensionDe(referencia),</span>
+<span class="fc" id="L210">                ExtensionesArchivo.contentTypeDe(referencia));</span>
+    }
+
+    private String extensionDe(String referencia) {
+<span class="fc" id="L214">        int punto = referencia.lastIndexOf('.');</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        return punto &lt; 0 ? &quot;&quot; : referencia.substring(punto);</span>
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     private RespuestaEntregable mapToRespuesta(EntregableFinal entregable, boolean mostrarVersionLimpia) {
-<span class="nc" id="L154">        return RespuestaEntregable.builder()</span>
-<span class="nc" id="L155">                .idEntregable(entregable.getIdEntregable())</span>
-<span class="nc" id="L156">                .idPedido(entregable.getPedido().getIdPedido())</span>
-<span class="nc" id="L157">                .urlVersionMarcaAgua(entregable.getUrlVersionMarcaAgua())</span>
-<span class="nc bnc" id="L158" title="All 2 branches missed.">                .urlVersionLimpia(mostrarVersionLimpia ? entregable.getUrlVersionLimpia() : null)</span>
-<span class="nc" id="L159">                .estaLiberado(entregable.getEstaLiberado())</span>
-<span class="nc" id="L160">                .build();</span>
+<span class="fc" id="L221">        Long idPedido = entregable.getPedido().getIdPedido();</span>
+<span class="fc" id="L222">        return RespuestaEntregable.builder()</span>
+<span class="fc" id="L223">                .idEntregable(entregable.getIdEntregable())</span>
+<span class="fc" id="L224">                .idPedido(idPedido)</span>
+<span class="fc" id="L225">                .urlVersionMarcaAgua(urlDescarga(</span>
+<span class="fc" id="L226">                        entregable.getUrlVersionMarcaAgua(),</span>
+                        &quot;/api/v1/pedidos/&quot; + idPedido + &quot;/entregable/descargar/marca-agua&quot;))
+<span class="fc bfc" id="L228" title="All 2 branches covered.">                .urlVersionLimpia(mostrarVersionLimpia</span>
+<span class="fc" id="L229">                        ? urlDescarga(entregable.getUrlVersionLimpia(),</span>
+                                &quot;/api/v1/pedidos/&quot; + idPedido + &quot;/entregable/descargar&quot;)
+<span class="fc" id="L231">                        : null)</span>
+<span class="fc" id="L232">                .estaLiberado(entregable.getEstaLiberado())</span>
+<span class="fc" id="L233">                .build();</span>
+    }
+
+    /**
+     * Lo que se persiste es una referencia interna, no algo que el navegador
+     * pueda pedir. Con Azure se entrega un SAS firmado y el archivo viaja
+     * directo desde el blob; sin él, la ruta del endpoint que sirve los bytes.
+     */
+    private String urlDescarga(String referencia, String rutaProxy) {
+<span class="pc bpc" id="L242" title="2 of 4 branches missed.">        if (referencia == null || referencia.isBlank()) {</span>
+<span class="nc" id="L243">            return null;</span>
+        }
+<span class="fc" id="L245">        return almacenamiento.urlTemporal(referencia).orElse(rutaProxy);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

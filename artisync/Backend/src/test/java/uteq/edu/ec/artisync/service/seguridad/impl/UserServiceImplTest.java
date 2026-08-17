@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -119,6 +120,78 @@ class UserServiceImplTest {
         verify(sessionRevocationService).revocarSesionesUsuario(1L);
         verify(usuarioRepository).save(usuario);
         assertFalse(usuario.getEstadoCuenta());
+    }
+
+    @Test
+    void updateCurrentUser_ShouldThrowBadRequest_WhenPaisNoExiste() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setIdPais(99L);
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.updateCurrentUser("user@example.com", request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void changePassword_ShouldUpdateHash_WhenContrasenaActualCorrecta() {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .contrasenaActual("actual").nuevaContrasena("NuevaClave123!").build();
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
+
+        RespuestaMensaje respuesta = userService.changePassword("user@example.com", request);
+
+        assertNotNull(respuesta);
+        assertEquals("nuevo-hash", usuario.getContrasenaHash());
+        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+    }
+
+    @Test
+    void changePassword_ShouldThrowBadRequest_WhenContrasenaActualIncorrecta() {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .contrasenaActual("mala").nuevaContrasena("NuevaClave123!").build();
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("mala", "hash")).thenReturn(false);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.changePassword("user@example.com", request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void changePassword_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        ChangePasswordRequest request = ChangePasswordRequest.builder().contrasenaActual("x").nuevaContrasena("y").build();
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.changePassword("fantasma@example.com", request));
+    }
+
+    @Test
+    void deleteOwnAccount_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.deleteOwnAccount("fantasma@example.com"));
+    }
+
+    @Test
+    void revokeAllMySessions_ShouldRevoke() {
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+
+        RespuestaMensaje respuesta = userService.revokeAllMySessions("user@example.com");
+
+        assertNotNull(respuesta);
+        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+    }
+
+    @Test
+    void revokeAllMySessions_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.revokeAllMySessions("fantasma@example.com"));
     }
 }
 

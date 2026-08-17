@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ExtensionesArchivo.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.almacenamiento</a> &gt; <span class="el_source">ExtensionesArchivo.java</span></div><h1>ExtensionesArchivo.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.almacenamiento;
+
+import java.util.Map;
+
+/**
+ * Traduce el content-type de un archivo subido a la extensión con la que se
+ * persiste. Cubre lo que la plataforma acepta: imágenes de verificación, PDF de
+ * contratos y entregables, y video de portafolio. Un tipo desconocido cae en
+ * &quot;.bin&quot; en lugar de disfrazarse de imagen.
+ */
+public final class ExtensionesArchivo {
+
+<span class="fc" id="L13">    private static final Map&lt;String, String&gt; POR_TIPO_MIME = Map.ofEntries(</span>
+<span class="fc" id="L14">            Map.entry(&quot;image/jpeg&quot;, &quot;.jpg&quot;),</span>
+<span class="fc" id="L15">            Map.entry(&quot;image/jpg&quot;, &quot;.jpg&quot;),</span>
+<span class="fc" id="L16">            Map.entry(&quot;image/png&quot;, &quot;.png&quot;),</span>
+<span class="fc" id="L17">            Map.entry(&quot;image/webp&quot;, &quot;.webp&quot;),</span>
+<span class="fc" id="L18">            Map.entry(&quot;image/gif&quot;, &quot;.gif&quot;),</span>
+<span class="fc" id="L19">            Map.entry(&quot;image/bmp&quot;, &quot;.bmp&quot;),</span>
+<span class="fc" id="L20">            Map.entry(&quot;image/svg+xml&quot;, &quot;.svg&quot;),</span>
+<span class="fc" id="L21">            Map.entry(&quot;application/pdf&quot;, &quot;.pdf&quot;),</span>
+<span class="fc" id="L22">            Map.entry(&quot;application/msword&quot;, &quot;.doc&quot;),</span>
+<span class="fc" id="L23">            Map.entry(&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;, &quot;.docx&quot;),</span>
+<span class="fc" id="L24">            Map.entry(&quot;application/vnd.ms-excel&quot;, &quot;.xls&quot;),</span>
+<span class="fc" id="L25">            Map.entry(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;, &quot;.xlsx&quot;),</span>
+<span class="fc" id="L26">            Map.entry(&quot;text/plain&quot;, &quot;.txt&quot;),</span>
+<span class="fc" id="L27">            Map.entry(&quot;video/mp4&quot;, &quot;.mp4&quot;),</span>
+<span class="fc" id="L28">            Map.entry(&quot;video/webm&quot;, &quot;.webm&quot;),</span>
+<span class="fc" id="L29">            Map.entry(&quot;video/quicktime&quot;, &quot;.mov&quot;),</span>
+<span class="fc" id="L30">            Map.entry(&quot;audio/mpeg&quot;, &quot;.mp3&quot;),</span>
+<span class="fc" id="L31">            Map.entry(&quot;audio/wav&quot;, &quot;.wav&quot;));</span>
+
+    private static final String EXTENSION_DESCONOCIDA = &quot;.bin&quot;;
+
+    private ExtensionesArchivo() {
+    }
+
+    public static String desde(String contentType) {
+<span class="fc bfc" id="L39" title="All 4 branches covered.">        if (contentType == null || contentType.isBlank()) {</span>
+<span class="fc" id="L40">            return EXTENSION_DESCONOCIDA;</span>
+        }
+        // El navegador puede enviar &quot;image/jpeg; charset=...&quot;; solo interesa el tipo.
+<span class="fc" id="L43">        String tipo = contentType.split(&quot;;&quot;)[0].trim().toLowerCase();</span>
+<span class="fc" id="L44">        return POR_TIPO_MIME.getOrDefault(tipo, EXTENSION_DESCONOCIDA);</span>
+    }
+
+    /**
+     * Camino inverso, para responder una descarga con su Content-Type real.
+     * No se deriva de POR_TIPO_MIME dando vuelta el mapa porque varias entradas
+     * comparten extensión (image/jpeg e image/jpg dan ambas &quot;.jpg&quot;) y el
+     * resultado dependería del orden de iteración; aquí se fija el canónico.
+     */
+<span class="fc" id="L53">    private static final Map&lt;String, String&gt; POR_EXTENSION = Map.ofEntries(</span>
+<span class="fc" id="L54">            Map.entry(&quot;.jpg&quot;, &quot;image/jpeg&quot;),</span>
+<span class="fc" id="L55">            Map.entry(&quot;.png&quot;, &quot;image/png&quot;),</span>
+<span class="fc" id="L56">            Map.entry(&quot;.webp&quot;, &quot;image/webp&quot;),</span>
+<span class="fc" id="L57">            Map.entry(&quot;.gif&quot;, &quot;image/gif&quot;),</span>
+<span class="fc" id="L58">            Map.entry(&quot;.bmp&quot;, &quot;image/bmp&quot;),</span>
+<span class="fc" id="L59">            Map.entry(&quot;.svg&quot;, &quot;image/svg+xml&quot;),</span>
+<span class="fc" id="L60">            Map.entry(&quot;.pdf&quot;, &quot;application/pdf&quot;),</span>
+<span class="fc" id="L61">            Map.entry(&quot;.doc&quot;, &quot;application/msword&quot;),</span>
+<span class="fc" id="L62">            Map.entry(&quot;.docx&quot;, &quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;),</span>
+<span class="fc" id="L63">            Map.entry(&quot;.xls&quot;, &quot;application/vnd.ms-excel&quot;),</span>
+<span class="fc" id="L64">            Map.entry(&quot;.xlsx&quot;, &quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;),</span>
+<span class="fc" id="L65">            Map.entry(&quot;.txt&quot;, &quot;text/plain&quot;),</span>
+<span class="fc" id="L66">            Map.entry(&quot;.mp4&quot;, &quot;video/mp4&quot;),</span>
+<span class="fc" id="L67">            Map.entry(&quot;.webm&quot;, &quot;video/webm&quot;),</span>
+<span class="fc" id="L68">            Map.entry(&quot;.mov&quot;, &quot;video/quicktime&quot;),</span>
+<span class="fc" id="L69">            Map.entry(&quot;.mp3&quot;, &quot;audio/mpeg&quot;),</span>
+<span class="fc" id="L70">            Map.entry(&quot;.wav&quot;, &quot;audio/wav&quot;));</span>
+
+    private static final String TIPO_GENERICO = &quot;application/octet-stream&quot;;
+
+    /**
+     * Content-Type deducido de la extensión de la referencia. Un tipo
+     * desconocido cae en octet-stream, que hace que el navegador descargue el
+     * archivo en vez de intentar interpretarlo.
+     */
+    public static String contentTypeDe(String referencia) {
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        if (referencia == null) {</span>
+<span class="nc" id="L81">            return TIPO_GENERICO;</span>
+        }
+<span class="fc" id="L83">        int punto = referencia.lastIndexOf('.');</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (punto &lt; 0) {</span>
+<span class="nc" id="L85">            return TIPO_GENERICO;</span>
+        }
+<span class="fc" id="L87">        return POR_EXTENSION.getOrDefault(referencia.substring(punto).toLowerCase(), TIPO_GENERICO);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

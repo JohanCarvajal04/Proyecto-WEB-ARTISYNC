@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
+import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.RolResponse;
 import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
@@ -23,6 +24,7 @@ import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,5 +107,131 @@ class RolePermissionServiceImplTest {
 
         assertThrows(ResponseStatusException.class, () -> service.deleteRole(1L));
         verify(rolRepository, never()).delete(any(Rol.class));
+    }
+
+    @Test
+    void deleteRole_FailsWhenUsuariosAsignados() {
+        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
+        when(usuarioRolRepository.existsByRolIdRol(10L)).thenReturn(true);
+
+        assertThrows(ResponseStatusException.class, () -> service.deleteRole(10L));
+        verify(rolRepository, never()).delete(any(Rol.class));
+    }
+
+    @Test
+    void deleteRole_ThrowsNotFound_WhenRolNoExiste() {
+        when(rolRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> service.deleteRole(99L));
+    }
+
+    @Test
+    void getAllRoles_MapeaPermisos() {
+        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").build();
+        rolCustom.setPermisos(new HashSet<>(Set.of(permiso)));
+        when(rolRepository.findAll()).thenReturn(List.of(rolCustom));
+
+        List<RolResponse> resultado = service.getAllRoles();
+
+        assertEquals(1, resultado.size());
+        assertEquals(List.of("CATALOGO_VER"), resultado.get(0).getPermisos());
+    }
+
+    @Test
+    void getAllPermisos_Mapea() {
+        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").moduloAplicacion("catalogo").build();
+        when(permisoRepository.findAll()).thenReturn(List.of(permiso));
+
+        List<PermisoResponse> resultado = service.getAllPermisos();
+
+        assertEquals(1, resultado.size());
+        assertEquals("CATALOGO_VER", resultado.get(0).getNombrePermiso());
+    }
+
+    @Test
+    void getPermissionsByRole_DevuelvePermisos() {
+        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").build();
+        rolCustom.setPermisos(new HashSet<>(Set.of(permiso)));
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+
+        List<String> resultado = service.getPermissionsByRole("supervisor");
+
+        assertEquals(List.of("CATALOGO_VER"), resultado);
+    }
+
+    @Test
+    void getPermissionsByRole_ListaVaciaSinPermisos() {
+        rolCustom.setPermisos(null);
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+
+        assertTrue(service.getPermissionsByRole("SUPERVISOR").isEmpty());
+    }
+
+    @Test
+    void getPermissionsByRole_ThrowsNotFound_WhenRolNoExiste() {
+        when(rolRepository.findByNombreRol("FANTASMA")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> service.getPermissionsByRole("fantasma"));
+    }
+
+    @Test
+    void syncPermissions_AsignaLosPermisosIndicados() {
+        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").build();
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+        when(permisoRepository.findByNombrePermiso("CATALOGO_VER")).thenReturn(Optional.of(permiso));
+        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+
+        service.syncPermissions("supervisor", List.of("catalogo_ver"));
+
+        assertEquals(Set.of(permiso), rolCustom.getPermisos());
+    }
+
+    @Test
+    void syncPermissions_LimpiaPermisos_CuandoListaVacia() {
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+
+        service.syncPermissions("SUPERVISOR", List.of());
+
+        assertTrue(rolCustom.getPermisos().isEmpty());
+    }
+
+    @Test
+    void syncPermissions_ThrowsBadRequest_WhenPermisoInexistente() {
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+        when(permisoRepository.findByNombrePermiso("FANTASMA")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> service.syncPermissions("SUPERVISOR", List.of("fantasma")));
+    }
+
+    @Test
+    void syncPermissions_ThrowsNotFound_WhenRolNoExiste() {
+        when(rolRepository.findByNombreRol("FANTASMA")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> service.syncPermissions("fantasma", List.of()));
+    }
+
+    @Test
+    void createRole_AsignaPermisosIniciales() {
+        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").build();
+        CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "desc", List.of("catalogo_ver"));
+        rolCustom.setPermisos(new HashSet<>(Set.of(permiso)));
+
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
+        when(permisoRepository.findByNombrePermiso("CATALOGO_VER")).thenReturn(Optional.of(permiso));
+        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+
+        RolResponse res = service.createRole(req);
+
+        assertEquals(List.of("CATALOGO_VER"), res.getPermisos());
+    }
+
+    @Test
+    void createRole_ThrowsBadRequest_WhenPermisoInicialInexistente() {
+        CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "desc", List.of("fantasma"));
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
+        when(permisoRepository.findByNombrePermiso("FANTASMA")).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> service.createRole(req));
     }
 }

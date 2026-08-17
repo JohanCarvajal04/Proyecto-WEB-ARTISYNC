@@ -10,9 +10,10 @@ import uteq.edu.ec.artisync.repository.seguridad.SesionUsuarioRepository;
 import uteq.edu.ec.artisync.security.JwtService;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
-<span class="fc" id="L15">@Slf4j</span>
+<span class="fc" id="L16">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class SessionRevocationService {
@@ -23,36 +24,57 @@ public class SessionRevocationService {
 
     @Transactional
     public void revocarSesionesUsuario(Long idUsuario) {
-<span class="nc" id="L26">        List&lt;SesionUsuario&gt; sesiones = sesionUsuarioRepository.findByUsuarioIdUsuario(idUsuario);</span>
-<span class="nc bnc" id="L27" title="All 2 branches missed.">        for (SesionUsuario sesion : sesiones) {</span>
-<span class="nc" id="L28">            revocarTokenEnRedis(sesion.getTokenJwt(), idUsuario);</span>
-<span class="nc" id="L29">        }</span>
-<span class="nc" id="L30">        sesionUsuarioRepository.deleteByUsuarioIdUsuario(idUsuario);</span>
-<span class="nc" id="L31">    }</span>
+<span class="nc" id="L27">        List&lt;SesionUsuario&gt; sesiones = sesionUsuarioRepository.findByUsuarioIdUsuario(idUsuario);</span>
+<span class="nc bnc" id="L28" title="All 2 branches missed.">        for (SesionUsuario sesion : sesiones) {</span>
+            // §2.5 (OBS-AUTO-06): se lee el jti guardado directamente, sin volver a
+            // parsear un JWT (que ya no se almacena). Esto además corrige un bug
+            // (F4): antes, si el token guardado ya había expirado, extraerJti()
+            // lanzaba ExpiredJwtException y el catch genérico lo tragaba en
+            // silencio — la sesión no quedaba revocada en Redis en absoluto.
+<span class="nc" id="L34">            Duration tiempoRestante = Duration.between(LocalDateTime.now(), sesion.getFechaExpiracion());</span>
+<span class="nc" id="L35">            revocarJtiEnRedis(sesion.getJti(), tiempoRestante, idUsuario);</span>
+<span class="nc" id="L36">        }</span>
+<span class="nc" id="L37">        sesionUsuarioRepository.deleteByUsuarioIdUsuario(idUsuario);</span>
+<span class="nc" id="L38">    }</span>
 
     @Transactional
     public void revocarTokenPorCabecera(String tokenHeader) {
-<span class="nc bnc" id="L35" title="All 4 branches missed.">        if (tokenHeader != null &amp;&amp; tokenHeader.startsWith(&quot;Bearer &quot;)) {</span>
-<span class="nc" id="L36">            String token = tokenHeader.substring(7);</span>
-<span class="nc" id="L37">            revocarTokenEnRedis(token, null);</span>
-<span class="nc" id="L38">            sesionUsuarioRepository.findByTokenJwt(token).ifPresent(sesionUsuarioRepository::delete);</span>
+<span class="nc bnc" id="L42" title="All 4 branches missed.">        if (tokenHeader != null &amp;&amp; tokenHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L43">            String token = tokenHeader.substring(7);</span>
+<span class="nc" id="L44">            revocarToken(token);</span>
+<span class="nc" id="L45">            eliminarSesionPorToken(token);</span>
         }
-<span class="nc" id="L40">    }</span>
+<span class="nc" id="L47">    }</span>
 
     public void revocarToken(String token) {
-<span class="nc" id="L43">        revocarTokenEnRedis(token, null);</span>
-<span class="nc" id="L44">    }</span>
-
-    private void revocarTokenEnRedis(String token, Long idUsuario) {
         try {
-<span class="nc" id="L48">            String jti = jwtService.extraerJti(token);</span>
-<span class="nc" id="L49">            long tiempoRestante = jwtService.extraerTiempoRestante(token);</span>
-<span class="nc bnc" id="L50" title="All 4 branches missed.">            if (jti != null &amp;&amp; tiempoRestante &gt; 0) {</span>
-<span class="nc" id="L51">                redisTemplate.opsForValue().set(&quot;jti:&quot; + jti, &quot;revocado&quot;, Duration.ofMillis(tiempoRestante));</span>
+<span class="nc" id="L51">            String jti = jwtService.extraerJti(token);</span>
+<span class="nc" id="L52">            long tiempoRestanteMs = jwtService.extraerTiempoRestante(token);</span>
+<span class="nc" id="L53">            revocarJtiEnRedis(jti, Duration.ofMillis(tiempoRestanteMs), null);</span>
+<span class="nc" id="L54">        } catch (Exception e) {</span>
+<span class="nc" id="L55">            log.warn(&quot;Error revocando token en redis: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L56">        }</span>
+<span class="nc" id="L57">    }</span>
+
+    private void eliminarSesionPorToken(String token) {
+        try {
+<span class="nc" id="L61">            String jti = jwtService.extraerJti(token);</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            if (jti != null) {</span>
+<span class="nc" id="L63">                sesionUsuarioRepository.deleteByJti(jti);</span>
             }
-<span class="nc" id="L53">        } catch (Exception e) {</span>
-<span class="nc" id="L54">            log.warn(&quot;Error revocando token en redis para usuario {}: {}&quot;, idUsuario, e.getMessage());</span>
-<span class="nc" id="L55">        }</span>
-<span class="nc" id="L56">    }</span>
+<span class="nc" id="L65">        } catch (Exception e) {</span>
+<span class="nc" id="L66">            log.debug(&quot;No se pudo extraer el jti del token para eliminar su sesión (probablemente expirado o inválido): {}&quot;, e.getMessage());</span>
+<span class="nc" id="L67">        }</span>
+<span class="nc" id="L68">    }</span>
+
+    private void revocarJtiEnRedis(String jti, Duration tiempoRestante, Long idUsuario) {
+        try {
+<span class="nc bnc" id="L72" title="All 6 branches missed.">            if (jti != null &amp;&amp; tiempoRestante != null &amp;&amp; tiempoRestante.compareTo(Duration.ZERO) &gt; 0) {</span>
+<span class="nc" id="L73">                redisTemplate.opsForValue().set(&quot;jti:&quot; + jti, &quot;revocado&quot;, tiempoRestante);</span>
+            }
+<span class="nc" id="L75">        } catch (Exception e) {</span>
+<span class="nc" id="L76">            log.warn(&quot;Error revocando jti {} en redis para usuario {}: {}&quot;, jti, idUsuario, e.getMessage());</span>
+<span class="nc" id="L77">        }</span>
+<span class="nc" id="L78">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -4,17 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.json.ProblemDetailJacksonMixin;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaError;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.net.URI;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -33,30 +33,29 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 <span class="fc" id="L33">                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())</span>
 <span class="fc" id="L34">                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);</span>
         }
-<span class="fc" id="L36">    }</span>
+        // Asegura el soporte de serializacion de ProblemDetail (RFC 7807) sin depender
+        // de si el ObjectMapper inyectado ya trae el mixin de Spring MVC registrado.
+<span class="fc" id="L38">        this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);</span>
+<span class="fc" id="L39">    }</span>
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-<span class="nc" id="L40">        String jwtError = (String) request.getAttribute(&quot;JWT_ERROR&quot;);</span>
-<span class="nc bnc" id="L41" title="All 2 branches missed.">        String message = jwtError != null ? jwtError : &quot;Autenticación requerida&quot;;</span>
+<span class="nc" id="L43">        String jwtError = (String) request.getAttribute(&quot;JWT_ERROR&quot;);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        String message = jwtError != null ? jwtError : &quot;Autenticación requerida&quot;;</span>
 
-<span class="nc" id="L43">        log.warn(&quot;Fallo de autenticación en {}: {} (Excepción: {})&quot;, request.getRequestURI(), message, authException.getMessage());</span>
+<span class="nc" id="L46">        log.warn(&quot;Fallo de autenticación en {}: {} (Excepción: {})&quot;, request.getRequestURI(), message, authException.getMessage());</span>
 
-<span class="nc" id="L45">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
-<span class="nc" id="L46">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
-<span class="nc" id="L47">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
+<span class="nc" id="L48">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="nc" id="L49">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
+<span class="nc" id="L50">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
 
-<span class="nc" id="L49">        RespuestaError respuestaError = RespuestaError.builder()</span>
-<span class="nc" id="L50">                .timestamp(LocalDateTime.now())</span>
-<span class="nc" id="L51">                .status(HttpStatus.UNAUTHORIZED.value())</span>
-<span class="nc" id="L52">                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())</span>
-<span class="nc" id="L53">                .message(message)</span>
-<span class="nc" id="L54">                .path(request.getRequestURI())</span>
-<span class="nc" id="L55">                .fieldErrors(null)</span>
-<span class="nc" id="L56">                .build();</span>
+<span class="nc" id="L52">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, message);</span>
+<span class="nc" id="L53">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/autenticacion&quot;));</span>
+<span class="nc" id="L54">        problemDetail.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());</span>
+<span class="nc" id="L55">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
 
-<span class="nc" id="L58">        objectMapper.writeValue(response.getWriter(), respuestaError);</span>
-<span class="nc" id="L59">    }</span>
+<span class="nc" id="L57">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
+<span class="nc" id="L58">    }</span>
 }
 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -23,8 +23,12 @@ import uteq.edu.ec.artisync.dto.seguridad.request.RegisterRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.TokenResponse;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
+import uteq.edu.ec.artisync.entity.seguridad.TokenRecuperacion;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
 import uteq.edu.ec.artisync.repository.seguridad.*;
@@ -46,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,6 +86,8 @@ class AuthServiceImplTest {
     private PreAuth2faTicketService preAuth2faTicketService;
     @Mock
     private TwoFactorService twoFactorService;
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -263,5 +270,329 @@ class AuthServiceImplTest {
                 () -> authService.verify2Fa("ticket-valido", request));
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
         verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void verify2Fa_ShouldThrowBadRequest_When2faNoConfigurado() {
+        when(preAuth2faTicketService.resolver("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.empty());
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.verify2Fa("ticket-valido", request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void verify2Fa_ShouldThrowBadRequest_WhenRegistroExisteYaDeshabilitado() {
+        when(preAuth2faTicketService.resolver("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L))
+                .thenReturn(Optional.of(AutenticacionDosFactores.builder().estaHabilitado(false).build()));
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.verify2Fa("ticket-valido", request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void verify2Fa_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(preAuth2faTicketService.resolver("ticket-valido"))
+                .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(99L, "fantasma@example.com")));
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.verify2Fa("ticket-valido", request));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    // ── register: ramas adicionales ─────────────────────────────────────────
+
+    @Test
+    void register_ShouldCreatePerfilCreador_WhenRolIsCreador() {
+        registerRequest.setRol("CREADOR");
+        Rol rolCreador = Rol.builder().idRol(2L).nombreRol("CREADOR").build();
+
+        when(usuarioRepository.existsByCorreo(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(rolRepository.findByNombreRol("CREADOR")).thenReturn(Optional.of(rolCreador));
+        when(usuarioRolRepository.save(any(UsuarioRol.class))).thenReturn(new UsuarioRol());
+
+        UserResponse response = authService.register(registerRequest);
+
+        assertEquals(List.of("CREADOR"), response.getRoles());
+        verify(perfilCreadorRepository).save(any());
+    }
+
+    @Test
+    void register_ShouldDefaultToCliente_WhenRolIsBlank() {
+        registerRequest.setRol("");
+        when(usuarioRepository.existsByCorreo(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.of(rolCliente));
+        when(usuarioRolRepository.save(any(UsuarioRol.class))).thenReturn(new UsuarioRol());
+
+        UserResponse response = authService.register(registerRequest);
+
+        assertEquals(List.of("CLIENTE"), response.getRoles());
+        verifyNoInteractions(perfilCreadorRepository);
+    }
+
+    @Test
+    void register_ShouldRejectRolNoPermitido() {
+        registerRequest.setRol("ADMIN");
+        when(usuarioRepository.existsByCorreo(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(registerRequest));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verifyNoInteractions(usuarioRolRepository);
+    }
+
+    @Test
+    void register_ShouldThrowBadRequest_WhenRolNoExisteEnBD() {
+        when(usuarioRepository.existsByCorreo(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(registerRequest));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    // ── login: rama pendiente de 2FA ────────────────────────────────────────
+
+    @Test
+    void login_ShouldReturnPendiente2fa_WhenDosFactoresHabilitado() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setCorreo("juan@example.com");
+        loginRequest.setContrasena("Password123!");
+
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L))
+                .thenReturn(Optional.of(AutenticacionDosFactores.builder().estaHabilitado(true).build()));
+        when(preAuth2faTicketService.emitir(1L, "juan@example.com")).thenReturn("ticket-emitido");
+
+        TokenResponse response = authService.login(loginRequest);
+
+        assertTrue(response.isRequiere2fa());
+        assertEquals("ticket-emitido", response.getPreAuthTicket());
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void login_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setCorreo("fantasma@example.com");
+        loginRequest.setContrasena("cualquiera");
+
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.login(loginRequest));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    // ── refreshToken ─────────────────────────────────────────────────────────
+
+    @Test
+    void refreshToken_ShouldThrowUnauthorized_WhenTokenBlank() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.refreshToken(""));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void refreshToken_ShouldThrowUnauthorized_WhenSesionNoEncontrada() {
+        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.refreshToken("refresh-token"));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void refreshToken_ShouldThrowUnauthorized_WhenJtiNulo() {
+        when(jwtService.extraerJti("refresh-token")).thenReturn(null);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.refreshToken("refresh-token"));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void refreshToken_ShouldThrowUnauthorized_WhenTokenInvalido() {
+        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.SesionUsuario.builder().build()));
+        when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
+        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
+        when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(false);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.refreshToken("refresh-token"));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void refreshToken_ShouldThrowForbidden_WhenCuentaInactiva() {
+        Usuario inactivo = Usuario.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
+
+        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.SesionUsuario.builder().build()));
+        when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
+        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
+        when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(true);
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(inactivo));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.refreshToken("refresh-token"));
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+    }
+
+    @Test
+    void refreshToken_ShouldSucceed_WhenTodoValido() {
+        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.SesionUsuario.builder().build()));
+        when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
+        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
+        when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(true);
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(jwtService.generarToken(userDetails)).thenReturn("nuevo-access");
+        when(jwtService.generarRefreshToken(userDetails)).thenReturn("nuevo-refresh");
+        when(jwtService.extraerJti("nuevo-access")).thenReturn("jti-access");
+        when(jwtService.extraerJti("nuevo-refresh")).thenReturn("jti-refresh");
+        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(UsuarioRol.builder().rol(rolCliente).build()));
+
+        TokenResponse response = authService.refreshToken("refresh-token");
+
+        assertEquals("nuevo-access", response.getAccessToken());
+        verify(sessionRevocationService).revocarToken("refresh-token");
+        verify(sesionUsuarioRepository).deleteByJti("jti-1");
+    }
+
+    @Test
+    void refreshToken_ShouldWrapUnexpectedException_AsUnauthorized() {
+        when(jwtService.extraerJti("token-raro")).thenThrow(new RuntimeException("token malformado"));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.refreshToken("token-raro"));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    // ── logout ───────────────────────────────────────────────────────────────
+
+    @Test
+    void logout_ShouldRevocarAmbosTokensYBorrarSesion() {
+        when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
+
+        RespuestaMensaje respuesta = authService.logout("Bearer access-token", "refresh-token");
+
+        assertNotNull(respuesta);
+        verify(sessionRevocationService).revocarTokenPorCabecera("Bearer access-token");
+        verify(sessionRevocationService).revocarToken("refresh-token");
+        verify(sesionUsuarioRepository).deleteByJti("jti-1");
+    }
+
+    @Test
+    void logout_ShouldIgnoreRefreshToken_WhenBlank() {
+        RespuestaMensaje respuesta = authService.logout("Bearer access-token", "");
+
+        assertNotNull(respuesta);
+        verify(sessionRevocationService, never()).revocarToken(anyString());
+    }
+
+    @Test
+    void logout_ShouldNotPropagate_WhenJtiExtractionFails() {
+        when(jwtService.extraerJti("refresh-token")).thenThrow(new RuntimeException("expirado"));
+
+        RespuestaMensaje respuesta = assertDoesNotThrow(() -> authService.logout("Bearer access-token", "refresh-token"));
+
+        assertNotNull(respuesta);
+        verify(sesionUsuarioRepository, never()).deleteByJti(anyString());
+    }
+
+    // ── forgotPassword / resetPassword ──────────────────────────────────────
+
+    @Test
+    void forgotPassword_ShouldSendEmail_WhenUsuarioExiste() {
+        ForgotPasswordRequest request = ForgotPasswordRequest.builder().correo("juan@example.com").build();
+        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+
+        RespuestaMensaje respuesta = authService.forgotPassword(request);
+
+        assertNotNull(respuesta);
+        verify(tokenRecuperacionRepository).save(any(TokenRecuperacion.class));
+        verify(emailService).enviarCorreoRecuperacion(eq("juan@example.com"), eq("Juan"), anyString());
+    }
+
+    @Test
+    void forgotPassword_ShouldRespondSameMessage_WhenUsuarioNoExiste() {
+        ForgotPasswordRequest request = ForgotPasswordRequest.builder().correo("fantasma@example.com").build();
+        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+
+        RespuestaMensaje respuesta = authService.forgotPassword(request);
+
+        assertNotNull(respuesta);
+        verifyNoInteractions(tokenRecuperacionRepository);
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void resetPassword_ShouldUpdatePassword_WhenTokenValido() {
+        ResetPasswordRequest request = ResetPasswordRequest.builder().token("token-plano").nuevaContrasena("NuevaClave123!").build();
+        TokenRecuperacion tokenRec = TokenRecuperacion.builder()
+                .usuario(usuario).usado(false).fechaGeneracion(java.time.LocalDateTime.now()).build();
+
+        when(tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(anyString())).thenReturn(Optional.of(tokenRec));
+        when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
+
+        RespuestaMensaje respuesta = authService.resetPassword(request);
+
+        assertNotNull(respuesta);
+        assertEquals("nuevo-hash", usuario.getContrasenaHash());
+        assertTrue(tokenRec.getUsado());
+        verify(usuarioRepository).save(usuario);
+        verify(tokenRecuperacionRepository).save(tokenRec);
+    }
+
+    @Test
+    void resetPassword_ShouldThrowBadRequest_WhenTokenNoExiste() {
+        ResetPasswordRequest request = ResetPasswordRequest.builder().token("token-invalido").nuevaContrasena("NuevaClave123!").build();
+        when(tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(anyString())).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.resetPassword(request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void resetPassword_ShouldThrowBadRequest_WhenTokenExpirado() {
+        ResetPasswordRequest request = ResetPasswordRequest.builder().token("token-viejo").nuevaContrasena("NuevaClave123!").build();
+        TokenRecuperacion tokenRec = TokenRecuperacion.builder()
+                .usuario(usuario).usado(false).fechaGeneracion(java.time.LocalDateTime.now().minusHours(2)).build();
+
+        when(tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(anyString())).thenReturn(Optional.of(tokenRec));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.resetPassword(request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(usuarioRepository, never()).save(any());
     }
 }
