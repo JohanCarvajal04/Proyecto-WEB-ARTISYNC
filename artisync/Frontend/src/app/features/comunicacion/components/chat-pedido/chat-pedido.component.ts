@@ -1,11 +1,8 @@
-import { Component, Input, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
-import { Subscription, interval, of, startWith, switchMap, catchError } from 'rxjs';
+import { Component, Input, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ChatService } from '../../services/chat.service';
-import { MAX_CARACTERES_MENSAJE, RespuestaMensajeChat, RespuestaSalaChat } from '../../models/comunicacion.model';
+import { RespuestaMensajeChat, RespuestaSalaChat } from '../../models/comunicacion.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
-
-/** Sondeo del historial mientras no se consuma el canal STOMP. */
-const INTERVALO_SONDEO_MS = 8_000;
 
 @Component({
   selector: 'app-chat-pedido',
@@ -28,41 +25,47 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
   readonly error = signal<string>('');
   readonly borrador = signal<string>('');
 
-  readonly maxCaracteres = MAX_CARACTERES_MENSAJE;
+  readonly maxCaracteres = 500; // MAX_CARACTERES_MENSAJE
 
-  private sondeoSub?: Subscription;
+  private mensajesSub?: Subscription;
 
-  /**
-   * El chat solo existe tras la firma de ambas partes y se cierra al aprobar
-   * la entrega; sin sala, no hay nada que mostrar ni dónde escribir.
-   */
   readonly salaDisponible = computed(() => this.sala()?.salaActiva === true);
 
   readonly puedeEnviar = computed(() =>
     this.salaDisponible() && this.borrador().trim().length > 0 && !this.enviando());
 
+  constructor() {
+    this.chatService.connect();
+  }
+
   ngOnInit(): void {
     this.chatService.obtenerEstadoSala(this.idPedido).subscribe({
-      next: (sala) => this.sala.set(sala),
-      // Un 404 aquí significa "todavía no hay sala", no un fallo de la vista.
-      error: () => this.sala.set(null)
-    });
-
-    this.sondeoSub = interval(INTERVALO_SONDEO_MS).pipe(
-      startWith(0),
-      switchMap(() => this.chatService.obtenerMensajes(this.idPedido).pipe(catchError(() => of(null))))
-    ).subscribe(pagina => {
-      if (pagina) {
-        // El backend pagina el historial en orden descendente; la conversación
-        // se lee de más antiguo a más reciente.
-        this.mensajes.set([...pagina.contenido].reverse());
+      next: (sala) => {
+        this.sala.set(sala);
+        if (sala) {
+          // Unirse a la sala para activar la suscripción STOMP
+          this.chatService.joinSala(sala.idSala, this.idPedido);
+          
+          this.mensajesSub = this.chatService.mensajes$.subscribe(mensajes => {
+            // El backend pagina el historial pero nosotros ahora usamos un BehaviorSubject
+            // Ordenamos ascendente si vienen de WS
+            this.mensajes.set(mensajes.sort((a, b) => new Date(a.fechaHoraEnvio).getTime() - new Date(b.fechaHoraEnvio).getTime()));
+            this.isLoading.set(false);
+          });
+        } else {
+          this.isLoading.set(false);
+        }
+      },
+      error: () => {
+        this.sala.set(null);
+        this.isLoading.set(false);
       }
-      this.isLoading.set(false);
     });
   }
 
   ngOnDestroy(): void {
-    this.sondeoSub?.unsubscribe();
+    this.mensajesSub?.unsubscribe();
+    this.chatService.disconnect();
   }
 
   onBorrador(evento: Event): void {
@@ -78,12 +81,11 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
 
     this.chatService.enviarMensaje(this.idPedido, texto).subscribe({
       next: (mensaje) => {
-        this.mensajes.update(ms => [...ms, mensaje]);
+        // No es necesario agregarlo manualmente porque llegará por el WebSocket
         this.borrador.set('');
         this.enviando.set(false);
       },
       error: (err) => {
-        // RF-15: el backend puede rechazar el mensaje por filtrar datos de contacto.
         this.error.set(err.error?.message || 'No se pudo enviar el mensaje');
         this.enviando.set(false);
       }
