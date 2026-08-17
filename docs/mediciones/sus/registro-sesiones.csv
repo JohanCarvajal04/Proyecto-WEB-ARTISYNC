@@ -1,0 +1,11 @@
+participante,fecha,duracion_min,tarea_completada,paso_de_bloqueo,observaciones
+P01,2026-08-16 07:20:35 -05:00,5,crear usuario,ninguno,Completado sin problemas
+P02,2026-08-16 07:21:30 -05:00,8,activar el 2fa,código SMS demoró,Logró activar tras reintentar
+P03,2026-08-16 07:22:23 -05:00,12,crear un servicio,encontrar categoría,Se confundió con las categorías
+P04,2026-08-16 07:41:52 -05:00,4,editar perfil,ninguno,Muy rápido y fluido
+P05,2026-08-16 07:44:17 -05:00,7,agendar cita,selección de hora,No vio el calendario de inmediato
+P06,2026-08-16 11:28:10 -05:00,3,revisar notificaciones,ninguno,Sin problemas
+P07,2026-08-16 11:29:04 -05:00,6,crear usuario,validación de email,Esperó el correo en spam
+P08,2026-08-16 13:09:27 -05:00,9,activar el 2fa,ninguno,Uso de app autenticadora
+P09,2026-08-16 13:10:17 -05:00,14,crear un servicio,subir imagen,La imagen era muy pesada al inicio
+P10,2026-08-16 13:11:28 -05:00,5,agendar cita,ninguno,Proceso intuitivo

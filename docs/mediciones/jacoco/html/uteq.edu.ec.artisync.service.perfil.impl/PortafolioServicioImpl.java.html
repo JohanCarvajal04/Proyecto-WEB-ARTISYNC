@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PortafolioServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.perfil.impl</a> &gt; <span class="el_source">PortafolioServicioImpl.java</span></div><h1>PortafolioServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.perfil.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.Portafolio;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
+import uteq.edu.ec.artisync.service.perfil.IPortafolioServicio;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class PortafolioServicioImpl implements IPortafolioServicio {
+
+    private final PortafolioRepository portafolioRepository;
+    private final PerfilCreadorRepository perfilRepository;
+
+    @Override
+    @Transactional
+    public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion) {
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {</span>
+<span class="nc" id="L31">            throw new ExcepcionRecursoDuplicado(&quot;El perfil de creador ya cuenta con un portafolio registrado.&quot;);</span>
+        }
+
+<span class="nc" id="L34">        PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())</span>
+<span class="nc" id="L35">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + peticion.idPerfil()));</span>
+
+<span class="nc" id="L37">        Portafolio portafolio = Portafolio.builder()</span>
+<span class="nc" id="L38">                .perfil(perfil)</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">                .esPublico(peticion.esPublico() != null ? peticion.esPublico() : true)</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">                .colorPlantilla(peticion.colorPlantilla() != null ? peticion.colorPlantilla() : &quot;#FFFFFF&quot;)</span>
+<span class="nc" id="L41">                .totalVisitasAcumuladas(0)</span>
+<span class="nc" id="L42">                .build();</span>
+
+<span class="nc" id="L44">        Portafolio guardado = portafolioRepository.save(portafolio);</span>
+<span class="nc" id="L45">        return mapearARespuesta(guardado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio) {
+<span class="nc" id="L51">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
+<span class="nc" id="L52">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+<span class="nc" id="L53">        return mapearARespuesta(portafolio);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil) {
+<span class="nc" id="L59">        Portafolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)</span>
+<span class="nc" id="L60">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No se encontró portafolio para el perfil con ID: &quot; + idPerfil));</span>
+<span class="nc" id="L61">        return mapearARespuesta(portafolio);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPortafolio&gt; listarPortafolios() {
+<span class="nc" id="L67">        return portafolioRepository.findAll().stream()</span>
+<span class="nc" id="L68">                .map(this::mapearARespuesta)</span>
+<span class="nc" id="L69">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion) {
+<span class="nc" id="L75">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
+<span class="nc" id="L76">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (peticion.esPublico() != null) {</span>
+<span class="nc" id="L79">            portafolio.setEsPublico(peticion.esPublico());</span>
+        }
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (peticion.colorPlantilla() != null) {</span>
+<span class="nc" id="L82">            portafolio.setColorPlantilla(peticion.colorPlantilla());</span>
+        }
+
+<span class="nc" id="L85">        Portafolio actualizado = portafolioRepository.save(portafolio);</span>
+<span class="nc" id="L86">        return mapearARespuesta(actualizado);</span>
+    }
+
+    @Override
+    @Transactional
+    public void incrementarVisitas(Long idPortafolio) {
+<span class="nc" id="L92">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
+<span class="nc" id="L93">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+<span class="nc" id="L94">        portafolio.setTotalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas() + 1);</span>
+<span class="nc" id="L95">        portafolioRepository.save(portafolio);</span>
+<span class="nc" id="L96">    }</span>
+
+    @Override
+    @Transactional
+    public void eliminarPortafolio(Long idPortafolio) {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (!portafolioRepository.existsById(idPortafolio)) {</span>
+<span class="nc" id="L102">            throw new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio);</span>
+        }
+<span class="nc" id="L104">        portafolioRepository.deleteById(idPortafolio);</span>
+<span class="nc" id="L105">    }</span>
+
+    private RespuestaPortafolio mapearARespuesta(Portafolio portafolio) {
+<span class="nc" id="L108">        return RespuestaPortafolio.builder()</span>
+<span class="nc" id="L109">                .idPortafolio(portafolio.getIdPortafolio())</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                .idPerfil(portafolio.getPerfil() != null ? portafolio.getPerfil().getIdPerfil() : null)</span>
+<span class="nc" id="L111">                .fechaCreacion(portafolio.getFechaCreacion())</span>
+<span class="nc" id="L112">                .totalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas())</span>
+<span class="nc" id="L113">                .esPublico(portafolio.getEsPublico())</span>
+<span class="nc" id="L114">                .colorPlantilla(portafolio.getColorPlantilla())</span>
+<span class="nc" id="L115">                .build();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

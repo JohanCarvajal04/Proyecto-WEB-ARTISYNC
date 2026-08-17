@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EntregableServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">EntregableServicioImpl.java</span></div><h1>EntregableServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEntregable;
+import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
+import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
+import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.legal.*;
+import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
+
+import java.math.BigDecimal;
+
+<span class="fc" id="L20">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class EntregableServicioImpl implements IEntregableServicio {
+
+    private final EntregableFinalRepository entregableRepository;
+    private final PedidoRepository pedidoRepository;
+    private final PagoGarantiaRepository pagoGarantiaRepository;
+    private final ContratoRepository contratoRepository;
+    private final TransaccionPagoRepository transaccionPagoRepository;
+
+    @Override
+    @Transactional
+    public RespuestaEntregable subirEntregable(Long idPedido, Long idCreador,
+                                                String urlMarcaAgua, String urlLimpia) {
+<span class="nc" id="L35">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="nc" id="L36">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+
+        // Verificar que el usuario es el creador del servicio
+<span class="nc" id="L39">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (!idCreadorServicio.equals(idCreador)) {</span>
+<span class="nc" id="L41">            throw new ExcepcionReglaNegocio(&quot;Solo el creador del servicio puede subir entregables&quot;);</span>
+        }
+
+        // Crear o actualizar entregable
+<span class="nc" id="L45">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L46">                .orElse(EntregableFinal.builder()</span>
+<span class="nc" id="L47">                        .pedido(pedido)</span>
+<span class="nc" id="L48">                        .estaLiberado(false)</span>
+<span class="nc" id="L49">                        .build());</span>
+
+<span class="nc" id="L51">        entregable.setUrlVersionMarcaAgua(urlMarcaAgua);</span>
+<span class="nc" id="L52">        entregable.setUrlVersionLimpia(urlLimpia);</span>
+
+<span class="nc" id="L54">        entregable = entregableRepository.save(entregable);</span>
+<span class="nc" id="L55">        log.info(&quot;Entregable subido para pedido {} por creador {}&quot;, idPedido, idCreador);</span>
+
+<span class="nc" id="L57">        return mapToRespuesta(entregable, false);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaEntregable obtenerEntregable(Long idPedido, Long idUsuario) {
+<span class="nc" id="L63">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L64">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+
+        // El creador siempre ve ambas versiones; el cliente solo la marca de agua hasta aprobación
+<span class="nc" id="L67">        Pedido pedido = entregable.getPedido();</span>
+<span class="nc" id="L68">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="nc" id="L69">        boolean esCreador = idCreadorServicio.equals(idUsuario);</span>
+
+<span class="nc bnc" id="L71" title="All 4 branches missed.">        return mapToRespuesta(entregable, esCreador || entregable.getEstaLiberado());</span>
+    }
+
+    @Override
+    @Transactional
+    public void aprobarEntrega(Long idPedido, Long idCliente) {
+<span class="nc" id="L77">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="nc" id="L78">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+
+        // Verificar que el usuario es el cliente
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="nc" id="L82">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente puede aprobar la entrega&quot;);</span>
+        }
+
+<span class="nc" id="L85">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L86">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (entregable.getEstaLiberado()) {</span>
+<span class="nc" id="L89">            throw new ExcepcionReglaNegocio(&quot;El entregable ya fue aprobado&quot;);</span>
+        }
+
+        // Liberar fondos
+<span class="nc" id="L93">        var contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L94">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido&quot;));</span>
+
+<span class="nc" id="L96">        var pagoOpt = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (pagoOpt.isPresent()) {</span>
+<span class="nc" id="L98">            PagoGarantia pago = pagoOpt.get();</span>
+<span class="nc" id="L99">            pago.setEstadoFondos(&quot;Liberado&quot;);</span>
+<span class="nc" id="L100">            pagoGarantiaRepository.save(pago);</span>
+
+            // Registrar transacciones: egreso al creador y comisión plataforma (10%)
+<span class="nc" id="L103">            BigDecimal comision = pago.getMontoRetenido().multiply(BigDecimal.valueOf(0.10));</span>
+<span class="nc" id="L104">            BigDecimal pagoCreador = pago.getMontoRetenido().subtract(comision);</span>
+
+<span class="nc" id="L106">            transaccionPagoRepository.save(TransaccionPago.builder()</span>
+<span class="nc" id="L107">                    .pago(pago).tipoTransaccion(&quot;Egreso&quot;).monto(pagoCreador).build());</span>
+<span class="nc" id="L108">            transaccionPagoRepository.save(TransaccionPago.builder()</span>
+<span class="nc" id="L109">                    .pago(pago).tipoTransaccion(&quot;Comision&quot;).monto(comision).build());</span>
+
+<span class="nc" id="L111">            log.info(&quot;Fondos liberados para pedido {}: creador=${}, comision=${}&quot;, idPedido, pagoCreador, comision);</span>
+        }
+
+        // Habilitar descarga
+<span class="nc" id="L115">        entregable.setEstaLiberado(true);</span>
+<span class="nc" id="L116">        entregableRepository.save(entregable);</span>
+
+<span class="nc" id="L118">        log.info(&quot;Entrega aprobada para pedido {} por cliente {}&quot;, idPedido, idCliente);</span>
+
+        // TODO M6: Cerrar sala de chat
+        // chatService.cerrarSala(idPedido);
+        // TODO M6: Notificar al creador
+        // notificacionService.notificar(..., &quot;PAGO_LIBERADO&quot;, &quot;El pago ha sido liberado por el cliente&quot;);
+<span class="nc" id="L124">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] descargarVersionLimpia(Long idPedido, Long idCliente) {
+<span class="nc" id="L129">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="nc" id="L130">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="nc" id="L133">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente puede descargar el entregable&quot;);</span>
+        }
+
+<span class="nc" id="L136">        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L137">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay entregable para este pedido&quot;));</span>
+
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (!entregable.getEstaLiberado()) {</span>
+<span class="nc" id="L140">            throw new ExcepcionReglaNegocio(&quot;El entregable no esta disponible hasta que el pago sea liberado&quot;);</span>
+        }
+
+        // En producción, aquí se descargaría el archivo del servicio de almacenamiento (S3/R2)
+        // Por ahora retornamos la URL como bytes
+<span class="nc" id="L145">        log.info(&quot;Descarga de version limpia para pedido {}&quot;, idPedido);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        return entregable.getUrlVersionLimpia() != null</span>
+<span class="nc" id="L147">                ? entregable.getUrlVersionLimpia().getBytes()</span>
+<span class="nc" id="L148">                : new byte[0];</span>
+    }
+
+    // ── Métodos auxiliares ───────────────────────────────────────────────────
+
+    private RespuestaEntregable mapToRespuesta(EntregableFinal entregable, boolean mostrarVersionLimpia) {
+<span class="nc" id="L154">        return RespuestaEntregable.builder()</span>
+<span class="nc" id="L155">                .idEntregable(entregable.getIdEntregable())</span>
+<span class="nc" id="L156">                .idPedido(entregable.getPedido().getIdPedido())</span>
+<span class="nc" id="L157">                .urlVersionMarcaAgua(entregable.getUrlVersionMarcaAgua())</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                .urlVersionLimpia(mostrarVersionLimpia ? entregable.getUrlVersionLimpia() : null)</span>
+<span class="nc" id="L159">                .estaLiberado(entregable.getEstaLiberado())</span>
+<span class="nc" id="L160">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

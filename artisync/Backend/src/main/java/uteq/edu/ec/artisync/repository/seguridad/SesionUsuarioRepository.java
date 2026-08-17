@@ -10,7 +10,9 @@ import java.util.Optional;
 @Repository
 public interface SesionUsuarioRepository extends JpaRepository<SesionUsuario, Long> {
 
-    Optional<SesionUsuario> findByTokenJwt(String tokenJwt);
+    Optional<SesionUsuario> findByJti(String jti);
+
+    void deleteByJti(String jti);
 
     List<SesionUsuario> findByUsuarioIdUsuario(Long idUsuario);
 

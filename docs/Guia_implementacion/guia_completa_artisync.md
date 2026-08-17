@@ -434,10 +434,16 @@ POST   /api/pedidos/{id}/chat/briefing       — Enviar formulario de briefing
 
 **WebSocket:**
 ```
-ws://localhost:8080/ws/chat                  — Endpoint WebSocket
+/ws/chat                                     — Endpoint WebSocket (mismo origen)
 /topic/sala.{salaId}                         — Suscripción STOMP por sala
 /app/chat.enviar                             — Enviar mensaje via STOMP
 ```
+
+> El cliente debe abrirlo contra el mismo origen (`ws://${location.host}/ws/chat`), no contra
+> `localhost:8080`: el backend no publica ese puerto al host (OBS-AUTO-05 / A07 OWASP).
+> **Pendiente:** el proxy del frontend reenvía `/api` y `/actuator`, pero no `/ws`, así que hoy
+> `/ws` cae en el fallback SPA de Angular. Al cablear el chat hay que añadir la regla `/ws` (con
+> `"ws": true`) en `Frontend/proxy.conf.json` y `Frontend/proxy.docker.conf.json`.
 
 **Lógica clave:**
 - Sala se crea automáticamente al firmarse contrato

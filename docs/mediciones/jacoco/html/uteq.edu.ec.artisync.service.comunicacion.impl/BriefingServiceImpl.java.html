@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BriefingServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.comunicacion.impl</a> &gt; <span class="el_source">BriefingServiceImpl.java</span></div><h1>BriefingServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.comunicacion.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.entity.comunicacion.*;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.comunicacion.*;
+import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Implementación del servicio de briefing.
+ * RF-16: Formulario interactivo de hasta 10 preguntas; respuestas inmutables.
+ */
+<span class="fc" id="L31">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class BriefingServiceImpl implements BriefingService {
+
+    private static final int MAX_PREGUNTAS = 10;
+
+    private final BriefingPlantillaRepository plantillaRepo;
+    private final BriefingPreguntaRepository  preguntaRepo;
+    private final BriefingEnviadoRepository   enviadoRepo;
+    private final BriefingRespuestaRepository respuestaRepo;
+    private final PerfilCreadorRepository     perfilRepo;
+    private final PedidoRepository            pedidoRepo;
+
+    // =========================================================================
+    // Gestión de plantillas (CREADOR)
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public RespuestaBriefing crearPlantilla(Long idPerfilCreador, PeticionCrearBriefingPlantilla peticion) {
+<span class="fc" id="L52">        PerfilCreador perfil = perfilRepo.findById(idPerfilCreador)</span>
+<span class="pc" id="L53">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil creador no encontrado: &quot; + idPerfilCreador));</span>
+
+<span class="fc" id="L55">        validarCantidadPreguntas(peticion.getPreguntas().size());</span>
+
+<span class="fc" id="L57">        BriefingPlantilla plantilla = BriefingPlantilla.builder()</span>
+<span class="fc" id="L58">                .perfilCreador(perfil)</span>
+<span class="fc" id="L59">                .nombrePlantilla(peticion.getNombrePlantilla())</span>
+<span class="fc" id="L60">                .preguntas(new ArrayList&lt;&gt;())</span>
+<span class="fc" id="L61">                .build();</span>
+<span class="fc" id="L62">        plantilla = plantillaRepo.save(plantilla);</span>
+
+<span class="fc" id="L64">        agregarPreguntas(plantilla, peticion.getPreguntas());</span>
+<span class="fc" id="L65">        plantilla = plantillaRepo.save(plantilla);</span>
+
+<span class="fc" id="L67">        log.info(&quot;Plantilla de briefing '{}' creada para perfil {}&quot;, peticion.getNombrePlantilla(), idPerfilCreador);</span>
+<span class="fc" id="L68">        return mapPlantillaToResponse(plantilla, null);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaBriefing&gt; obtenerMisPlantillas(Long idPerfilCreador) {
+<span class="nc" id="L74">        return plantillaRepo.findByPerfilCreadorIdPerfil(idPerfilCreador)</span>
+<span class="nc" id="L75">                .stream()</span>
+<span class="nc" id="L76">                .map(p -&gt; mapPlantillaToResponse(p, null))</span>
+<span class="nc" id="L77">                .toList();</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaBriefing editarPlantilla(Long idPlantilla, Long idPerfilCreador,
+                                             PeticionCrearBriefingPlantilla peticion) {
+<span class="nc" id="L84">        BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)</span>
+<span class="nc" id="L85">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Plantilla no encontrada: &quot; + idPlantilla));</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (!plantilla.getPerfilCreador().getIdPerfil().equals(idPerfilCreador)) {</span>
+<span class="nc" id="L88">            throw new ExcepcionReglaNegocio(&quot;No tienes permiso para editar esta plantilla&quot;);</span>
+        }
+
+<span class="nc" id="L91">        validarCantidadPreguntas(peticion.getPreguntas().size());</span>
+
+<span class="nc" id="L93">        plantilla.setNombrePlantilla(peticion.getNombrePlantilla());</span>
+        // Reemplazar preguntas (cascade orphanRemoval las elimina)
+<span class="nc" id="L95">        plantilla.getPreguntas().clear();</span>
+<span class="nc" id="L96">        plantillaRepo.flush(); // Asegura el DELETE antes del INSERT</span>
+<span class="nc" id="L97">        agregarPreguntas(plantilla, peticion.getPreguntas());</span>
+<span class="nc" id="L98">        plantilla = plantillaRepo.save(plantilla);</span>
+
+<span class="nc" id="L100">        log.info(&quot;Plantilla {} actualizada&quot;, idPlantilla);</span>
+<span class="nc" id="L101">        return mapPlantillaToResponse(plantilla, null);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idPerfilCreador) {
+<span class="nc" id="L107">        BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)</span>
+<span class="nc" id="L108">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Plantilla no encontrada: &quot; + idPlantilla));</span>
+
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (!plantilla.getPerfilCreador().getIdPerfil().equals(idPerfilCreador)) {</span>
+<span class="nc" id="L111">            throw new ExcepcionReglaNegocio(&quot;No tienes permiso para eliminar esta plantilla&quot;);</span>
+        }
+
+<span class="nc" id="L114">        plantillaRepo.delete(plantilla);</span>
+<span class="nc" id="L115">        log.info(&quot;Plantilla {} eliminada&quot;, idPlantilla);</span>
+<span class="nc" id="L116">        return new RespuestaMensaje(&quot;Plantilla eliminada correctamente&quot;);</span>
+    }
+
+    // =========================================================================
+    // Envío y respuesta de briefing
+    // =========================================================================
+
+    @Override
+    @Transactional
+    public RespuestaBriefing enviarBriefing(Long idPedido, PeticionEnviarBriefing peticion, Long idCreador) {
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (enviadoRepo.existsByPedidoIdPedido(idPedido)) {</span>
+<span class="fc" id="L127">            throw new ExcepcionReglaNegocio(&quot;Ya se envió un briefing para este pedido&quot;);</span>
+        }
+
+<span class="nc" id="L130">        Pedido pedido = pedidoRepo.findById(idPedido)</span>
+<span class="nc" id="L131">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado: &quot; + idPedido));</span>
+
+<span class="nc" id="L133">        BriefingPlantilla plantilla = plantillaRepo.findById(peticion.getIdBriefingPlantilla())</span>
+<span class="nc" id="L134">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+<span class="nc" id="L135">                        &quot;Plantilla no encontrada: &quot; + peticion.getIdBriefingPlantilla()));</span>
+
+        // Verificar que la plantilla pertenece al creador del servicio
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (!plantilla.getPerfilCreador().getUsuario().getIdUsuario().equals(idCreador)) {</span>
+<span class="nc" id="L139">            throw new ExcepcionReglaNegocio(&quot;No tienes permiso para usar esta plantilla&quot;);</span>
+        }
+
+<span class="nc" id="L142">        BriefingEnviado enviado = BriefingEnviado.builder()</span>
+<span class="nc" id="L143">                .pedido(pedido)</span>
+<span class="nc" id="L144">                .plantilla(plantilla)</span>
+<span class="nc" id="L145">                .completado(false)</span>
+<span class="nc" id="L146">                .build();</span>
+<span class="nc" id="L147">        enviado = enviadoRepo.save(enviado);</span>
+
+<span class="nc" id="L149">        log.info(&quot;Briefing enviado al pedido {} con plantilla '{}'&quot;, idPedido, plantilla.getNombrePlantilla());</span>
+<span class="nc" id="L150">        return mapEnviadoToResponse(enviado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaBriefing obtenerBriefing(Long idPedido) {
+<span class="fc" id="L156">        BriefingEnviado enviado = enviadoRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L157">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;No existe briefing para el pedido &quot; + idPedido));
+<span class="nc" id="L159">        return mapEnviadoToResponse(enviado);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaBriefing responderBriefing(Long idPedido, PeticionResponderBriefing peticion, Long idCliente) {
+<span class="fc" id="L165">        BriefingEnviado enviado = enviadoRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L166">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;No existe briefing para el pedido &quot; + idPedido));
+
+        // RF-16: Inmutabilidad — no se puede responder dos veces
+<span class="fc bfc" id="L170" title="All 2 branches covered.">        if (Boolean.TRUE.equals(enviado.getCompletado())) {</span>
+<span class="fc" id="L171">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Las respuestas del briefing no pueden modificarse una vez enviadas&quot;);
+        }
+
+        // Verificar que el cliente es el propietario del pedido
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        if (!enviado.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L177">            throw new ExcepcionReglaNegocio(&quot;No tienes permiso para responder este briefing&quot;);</span>
+        }
+
+        // Persistir cada respuesta
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        for (PeticionResponderBriefing.RespuestaItem item : peticion.getRespuestas()) {</span>
+<span class="nc" id="L182">            BriefingPregunta pregunta = preguntaRepo.findById(item.getIdPregunta())</span>
+<span class="nc" id="L183">                    .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+<span class="nc" id="L184">                            &quot;Pregunta no encontrada: &quot; + item.getIdPregunta()));</span>
+
+<span class="nc" id="L186">            BriefingRespuesta respuesta = BriefingRespuesta.builder()</span>
+<span class="nc" id="L187">                    .briefingEnviado(enviado)</span>
+<span class="nc" id="L188">                    .pregunta(pregunta)</span>
+<span class="nc" id="L189">                    .textoRespuesta(item.getTextoRespuesta())</span>
+<span class="nc" id="L190">                    .build();</span>
+<span class="nc" id="L191">            respuestaRepo.save(respuesta);</span>
+<span class="nc" id="L192">        }</span>
+
+<span class="nc" id="L194">        enviado.setCompletado(true);</span>
+<span class="nc" id="L195">        enviado = enviadoRepo.save(enviado);</span>
+
+<span class="nc" id="L197">        log.info(&quot;Briefing del pedido {} completado por el cliente {}&quot;, idPedido, idCliente);</span>
+
+        // TODO: Llamar a contratoService.generarContrato(idPedido) cuando M5 esté listo (RF-17)
+
+<span class="nc" id="L201">        return mapEnviadoToResponse(enviado);</span>
+    }
+
+    // =========================================================================
+    // Helpers de mapeo
+    // =========================================================================
+
+    private void validarCantidadPreguntas(int cantidad) {
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (cantidad &gt; MAX_PREGUNTAS) {</span>
+<span class="fc" id="L210">            throw new ExcepcionReglaNegocio(&quot;Una plantilla no puede tener más de &quot; + MAX_PREGUNTAS + &quot; preguntas&quot;);</span>
+        }
+<span class="fc" id="L212">    }</span>
+
+    private void agregarPreguntas(BriefingPlantilla plantilla,
+                                   List&lt;PeticionCrearBriefingPlantilla.PreguntaRequest&gt; preguntas) {
+<span class="fc" id="L216">        preguntas.forEach(p -&gt; {</span>
+<span class="fc" id="L217">            BriefingPregunta pregunta = BriefingPregunta.builder()</span>
+<span class="fc" id="L218">                    .plantilla(plantilla)</span>
+<span class="fc" id="L219">                    .textoPregunta(p.getTextoPregunta())</span>
+<span class="fc" id="L220">                    .numeroOrden(p.getNumeroOrden())</span>
+<span class="fc" id="L221">                    .build();</span>
+<span class="fc" id="L222">            plantilla.getPreguntas().add(pregunta);</span>
+<span class="fc" id="L223">        });</span>
+<span class="fc" id="L224">    }</span>
+
+    private RespuestaBriefing mapPlantillaToResponse(BriefingPlantilla plantilla,
+                                                      BriefingEnviado enviado) {
+<span class="fc" id="L228">        List&lt;RespuestaBriefing.PreguntaRespuestaItem&gt; items = plantilla.getPreguntas().stream()</span>
+<span class="fc" id="L229">                .map(p -&gt; RespuestaBriefing.PreguntaRespuestaItem.builder()</span>
+<span class="fc" id="L230">                        .idPregunta(p.getIdPregunta())</span>
+<span class="fc" id="L231">                        .textoPregunta(p.getTextoPregunta())</span>
+<span class="fc" id="L232">                        .numeroOrden(p.getNumeroOrden())</span>
+<span class="fc" id="L233">                        .textoRespuesta(null)</span>
+<span class="fc" id="L234">                        .fechaRespuesta(null)</span>
+<span class="fc" id="L235">                        .build())</span>
+<span class="fc" id="L236">                .toList();</span>
+
+<span class="fc" id="L238">        return RespuestaBriefing.builder()</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">                .idBriefingEnviado(enviado != null ? enviado.getIdBriefingEnviado() : null)</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">                .idPedido(enviado != null ? enviado.getPedido().getIdPedido() : null)</span>
+<span class="fc" id="L241">                .idPlantilla(plantilla.getIdBriefingPlantilla())</span>
+<span class="fc" id="L242">                .nombrePlantilla(plantilla.getNombrePlantilla())</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">                .fechaEnvio(enviado != null ? enviado.getFechaEnvio() : null)</span>
+<span class="pc bpc" id="L244" title="1 of 2 branches missed.">                .completado(enviado != null ? enviado.getCompletado() : false)</span>
+<span class="fc" id="L245">                .preguntas(items)</span>
+<span class="fc" id="L246">                .build();</span>
+    }
+
+    private RespuestaBriefing mapEnviadoToResponse(BriefingEnviado enviado) {
+<span class="nc" id="L250">        BriefingPlantilla plantilla = enviado.getPlantilla();</span>
+
+        // Construir mapa de respuestas existentes por id de pregunta
+<span class="nc" id="L253">        List&lt;BriefingRespuesta&gt; respuestas = respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(</span>
+<span class="nc" id="L254">                enviado.getIdBriefingEnviado());</span>
+<span class="nc" id="L255">        Map&lt;Long, BriefingRespuesta&gt; respuestaMap = respuestas.stream()</span>
+<span class="nc" id="L256">                .collect(Collectors.toMap(r -&gt; r.getPregunta().getIdPregunta(), r -&gt; r));</span>
+
+<span class="nc" id="L258">        List&lt;RespuestaBriefing.PreguntaRespuestaItem&gt; items = plantilla.getPreguntas().stream()</span>
+<span class="nc" id="L259">                .map(p -&gt; {</span>
+<span class="nc" id="L260">                    BriefingRespuesta r = respuestaMap.get(p.getIdPregunta());</span>
+<span class="nc" id="L261">                    return RespuestaBriefing.PreguntaRespuestaItem.builder()</span>
+<span class="nc" id="L262">                            .idPregunta(p.getIdPregunta())</span>
+<span class="nc" id="L263">                            .textoPregunta(p.getTextoPregunta())</span>
+<span class="nc" id="L264">                            .numeroOrden(p.getNumeroOrden())</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">                            .textoRespuesta(r != null ? r.getTextoRespuesta() : null)</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">                            .fechaRespuesta(r != null ? r.getFechaRespuesta() : null)</span>
+<span class="nc" id="L267">                            .build();</span>
+                })
+<span class="nc" id="L269">                .toList();</span>
+
+<span class="nc" id="L271">        return RespuestaBriefing.builder()</span>
+<span class="nc" id="L272">                .idBriefingEnviado(enviado.getIdBriefingEnviado())</span>
+<span class="nc" id="L273">                .idPedido(enviado.getPedido().getIdPedido())</span>
+<span class="nc" id="L274">                .idPlantilla(plantilla.getIdBriefingPlantilla())</span>
+<span class="nc" id="L275">                .nombrePlantilla(plantilla.getNombrePlantilla())</span>
+<span class="nc" id="L276">                .fechaEnvio(enviado.getFechaEnvio())</span>
+<span class="nc" id="L277">                .completado(enviado.getCompletado())</span>
+<span class="nc" id="L278">                .preguntas(items)</span>
+<span class="nc" id="L279">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

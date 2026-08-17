@@ -1,30 +1,48 @@
 services:
   postgres:
-    image: postgres:16
+    # Pinado por digest (no solo tag) para evitar derivas silenciosas entre
+    # reconstrucciones — Bloque B.1 de la guia de la Tercera Entrega.
+    # Tag de referencia: postgres:16. Renovar con:
+    #   docker pull postgres:16 && docker inspect --format='{{index .RepoDigests 0}}' postgres:16
+    image: postgres:16@sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20
     container_name: pfc_postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-pfc_db}
       POSTGRES_USER: ${DB_USER:-pfc_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
     ports:
       - "5432:5432"
     volumes:
       - pfc_postgres_data:/var/lib/postgresql/data
+      # Bloque B.1: el esquema y la semilla se aplican unicamente desde estos
+      # archivos versionados, montados en /docker-entrypoint-initdb.d/. Postgres
+      # los ejecuta en orden alfabetico en el primer arranque (volumen vacio).
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+      - ./db/seed_privilegios.sh:/docker-entrypoint-initdb.d/seed_privilegios.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db}"]
+      # pg_isready no autentica: reporta "accepting connections" aunque el rol
+      # o la base indicados no existan (crashloop del backend sin que compose
+      # lo detecte). Se usa psql con las credenciales reales para que el
+      # healthcheck falle si la autenticacion falla.
+      test: [ "CMD-SHELL", "PGPASSWORD=${DB_PASSWORD:-changeme} psql -U ${DB_USER:-pfc_user} -d ${DB_NAME:-pfc_db} -c 'SELECT 1' -tAq" ]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    # Pinado por digest — ver nota en el servicio postgres. Tag de referencia:
+    # redis:7-alpine. Renovar con:
+    #   docker pull redis:7-alpine && docker inspect --format='{{index .RepoDigests 0}}' redis:7-alpine
+    image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
     container_name: pfc_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -38,8 +56,13 @@ services:
     env_file: .env
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-pfc_db}
+      # DB_USER/DB_PASSWORD: solo para Flyway (crea/gestiona flyway_schema_history).
       DB_USER: ${DB_USER:-pfc_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      # DB_APP_USER/DB_APP_PASSWORD: datasource real de la app en tiempo de
+      # ejecucion (A.2.3, privilegios minimos — ver db/seed_privilegios.sh).
+      DB_APP_USER: artisync_app
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
@@ -47,15 +70,25 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USER: ${MAIL_USER}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
-    ports:
-      - "8080:8080"
+    # NO se publica el 8080 al host (OBS-AUTO-06 / A07 OWASP): es el limite de
+    # confianza que hace fiable X-Forwarded-For para AuthRateLimitFilter y para
+    # el log de auditoria de login (ver server.forward-headers-strategy en
+    # application.properties). Solo el frontend (proxy /api) y el resto de
+    # servicios de esta red interna pueden alcanzar el backend.
+    # Para acceder directo en desarrollo (Swagger, make bench, captura de
+    # evidencias OWASP), usar el override explicito:
+    #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+    expose:
+      - "8080"
+    volumes:
+      - pfc_documentos_verificacion:/var/artisync/documentos
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -69,9 +102,16 @@ services:
     restart: unless-stopped
     ports:
       - "4200:4200"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+      - /app/.angular
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     depends_on:
       backend:
         condition: service_healthy
 
 volumes:
   pfc_postgres_data:
+  pfc_documentos_verificacion:

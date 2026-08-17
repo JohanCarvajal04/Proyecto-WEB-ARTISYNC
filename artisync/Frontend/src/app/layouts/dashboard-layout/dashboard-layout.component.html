@@ -1,0 +1,192 @@
+<div class="min-h-screen bg-[#EAEFF9] flex flex-col md:flex-row text-slate-800 font-['Inter',sans-serif]">
+  
+  <!-- Mobile Header -->
+  <header class="md:hidden bg-[#2D1B4E] text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
+    <div class="flex items-center gap-2.5">
+      <img src="/images/artisync-icon-white.png" alt="Artisync" class="w-8 h-8 object-contain mix-blend-screen" />
+      <span class="font-headline font-bold text-lg text-white">Artisync</span>
+    </div>
+    <button (click)="toggleMobileMenu()" class="p-2 text-white hover:bg-white/10 rounded-lg">
+      @if (isMobileMenuOpen()) {
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      } @else {
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      }
+    </button>
+  </header>
+
+  <!-- Sidebar (Desktop Collapsed by default, expands on Hover) -->
+  <aside 
+    [class.translate-x-0]="isMobileMenuOpen()"
+    [class.-translate-x-full]="!isMobileMenuOpen()"
+    class="fixed md:sticky top-0 inset-y-0 left-0 z-40 h-screen bg-[#2D1B4E] text-white flex flex-col justify-between transition-all duration-300 ease-in-out md:translate-x-0 shrink-0 group/sidebar w-64 md:w-[72px] md:hover:w-[240px] shadow-xl overflow-hidden">
+    
+    <div class="flex flex-col h-full justify-between py-5 px-3">
+      <div>
+        <!-- Logo: Closed -> Icon PNG, Open -> Full Logo PNG -->
+        <div class="flex items-center justify-center px-1 mb-4 h-24 min-h-[96px] w-full">
+          <!-- Icon PNG (shown when sidebar is closed) -->
+          <img 
+            src="/images/artisync-icon-white.png" 
+            alt="Artisync Icon" 
+            class="w-11 h-11 object-contain shrink-0 mix-blend-screen filter drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] md:group-hover/sidebar:hidden transition-all duration-300" />
+
+          <!-- Full Logo PNG (shown when sidebar is opened / hovered) -->
+          <img 
+            src="/images/artisync-logo-white.png" 
+            alt="Artisync Logo" 
+            class="h-20 w-auto max-w-[215px] object-contain mix-blend-screen filter drop-shadow-[0_0_12px_rgba(255,255,255,0.6)] hidden md:group-hover/sidebar:block transition-all duration-300 transform scale-110" />
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="flex flex-col gap-2">
+          @for (item of navItems(); track item.label) {
+            <a 
+              [routerLink]="['/admin', item.route]"
+              routerLinkActive="active-nav-item"
+              #rla="routerLinkActive"
+              (click)="isMobileMenuOpen.set(false)"
+              class="relative flex items-center h-11 rounded-xl transition-all duration-200 cursor-pointer overflow-hidden group/item text-purple-200 hover:text-white hover:bg-white/10 px-3"
+              [class.bg-white]="rla.isActive"
+              [class.text-purple-950]="rla.isActive"
+              [class.font-semibold]="rla.isActive"
+              [class.shadow-sm]="rla.isActive">
+              
+              <!-- SVG Icon -->
+              <span class="shrink-0 w-6 h-6 flex items-center justify-center">
+                @if (item.icon === 'dashboard') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                } @else if (item.icon === 'group' || item.icon === 'no_accounts') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                } @else if (item.icon === 'lock_person' || item.icon === 'shield_lock' || item.icon === 'lock') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                } @else if (item.icon === 'settings' || item.icon === 'tune') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                } @else if (item.icon === 'verified') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                } @else if (item.icon === 'palette') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />
+                  </svg>
+                } @else if (item.icon === 'chat') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                } @else if (item.icon === 'category') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m-6 3.75l3 3m0 0l3-3m-3 3V1.5m6 9h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5A2.25 2.25 0 019 21v-.75" />
+                  </svg>
+                } @else if (item.icon === 'rate_review') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75" />
+                  </svg>
+                } @else if (item.icon === 'support_agent') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                } @else if (item.icon === 'account_balance' || item.icon === 'receipt_long') {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                  </svg>
+                } @else {
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                }
+              </span>
+
+              <!-- Label -->
+              <span class="ml-3 text-sm whitespace-nowrap opacity-100 md:opacity-0 md:group-hover/sidebar:opacity-100 transition-opacity duration-300">
+                {{ item.label }}
+              </span>
+            </a>
+          }
+        </nav>
+      </div>
+
+      <!-- Logout Button at bottom -->
+      <button 
+        (click)="logout()" 
+        title="Cerrar sesión" 
+        class="flex items-center h-11 rounded-xl text-purple-300 hover:text-white hover:bg-white/10 transition-all px-3 overflow-hidden group/logout">
+        <span class="shrink-0 w-6 h-6 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </span>
+        <span class="ml-3 text-sm whitespace-nowrap opacity-100 md:opacity-0 md:group-hover/sidebar:opacity-100 transition-opacity duration-300">
+          Cerrar sesión
+        </span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Overlay -->
+  @if (isMobileMenuOpen()) {
+    <div (click)="isMobileMenuOpen.set(false)" class="fixed inset-0 bg-black/40 z-30 md:hidden backdrop-blur-xs"></div>
+  }
+
+  <!-- Main Area -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- TopBar Desktop -->
+    <header class="hidden md:flex items-center justify-between px-8 py-4 bg-[#EAEFF9]">
+      <!-- Left Search Input -->
+      <div class="relative w-80">
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 flex items-center">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </span>
+        <input 
+          type="text" 
+          placeholder="Buscar..." 
+          class="w-full bg-white text-slate-800 placeholder-slate-400 text-sm rounded-full pl-10 pr-4 py-2 border-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
+      </div>
+
+      <!-- Right Profile & Actions -->
+      <div class="flex items-center gap-4">
+        <!-- Notifications Bell -->
+        <a routerLink="/admin/notificaciones"
+          [attr.aria-label]="noLeidas() > 0 ? noLeidas() + ' notificaciones sin leer' : 'Notificaciones'"
+          class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-50 transition-colors relative">
+          <svg class="w-5 h-5 text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          @if (noLeidas() > 0) {
+            <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#EFF2F7]">
+              {{ noLeidas() > 99 ? '99+' : noLeidas() }}
+            </span>
+          }
+        </a>
+
+        <!-- User Profile Pill -->
+        <div class="bg-white rounded-full px-3 py-1.5 flex items-center gap-2.5 shadow-sm">
+          <app-avatar [name]="userName()" size="sm"></app-avatar>
+          <div class="text-left leading-tight pr-1">
+            <p class="text-xs font-bold text-slate-800">{{ userName() }}</p>
+            <p class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{{ userRole() }}</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="flex-1 p-6 md:px-10 md:py-6 overflow-y-auto">
+      <router-outlet />
+    </main>
+  </div>
+</div>

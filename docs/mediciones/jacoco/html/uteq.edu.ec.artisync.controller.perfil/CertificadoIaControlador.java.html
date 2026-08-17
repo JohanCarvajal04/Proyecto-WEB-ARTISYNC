@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CertificadoIaControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.perfil</a> &gt; <span class="el_source">CertificadoIaControlador.java</span></div><h1>CertificadoIaControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.perfil;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearCertificadoIa;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaCertificadoIa;
+import uteq.edu.ec.artisync.service.perfil.ICertificadoIaServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/certificados&quot;)
+@RequiredArgsConstructor
+public class CertificadoIaControlador {
+
+    private final ICertificadoIaServicio certificadoServicio;
+
+    @PostMapping
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaCertificadoIa&gt; emitirCertificado(@Valid @RequestBody PeticionCrearCertificadoIa peticion) {
+<span class="nc" id="L26">        RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);</span>
+<span class="nc" id="L27">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaCertificadoIa&gt; obtenerCertificadoPorId(@PathVariable Long id) {
+<span class="nc" id="L32">        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));</span>
+    }
+
+    @GetMapping(&quot;/perfil/{idPerfil}&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarCertificadosPorPerfil(@PathVariable Long idPerfil) {
+<span class="nc" id="L37">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorPerfil(idPerfil));</span>
+    }
+
+    @GetMapping
+    @PreAuthorize(&quot;hasAnyRole('MODERADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarTodosLosCertificados() {
+<span class="nc" id="L43">        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());</span>
+    }
+
+    @PatchMapping(&quot;/{id}/estado/{idNuevoEstado}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('MODERADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaCertificadoIa&gt; actualizarEstadoVerificacion(
+            @PathVariable Long id,
+            @PathVariable Long idNuevoEstado) {
+<span class="nc" id="L51">        return ResponseEntity.ok(certificadoServicio.actualizarEstadoVerificacion(id, idNuevoEstado));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCertificado(@PathVariable Long id) {
+<span class="nc" id="L57">        certificadoServicio.eliminarCertificado(id);</span>
+<span class="nc" id="L58">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Certificado de IA eliminado exitosamente&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

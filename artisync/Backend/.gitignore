@@ -1,6 +1,8 @@
 .gitignore
 
 *.md
+!src/main/resources/IA/*.md
+*.p12
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

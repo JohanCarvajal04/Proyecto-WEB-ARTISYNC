@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilCreadorControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.perfil</a> &gt; <span class="el_source">PerfilCreadorControlador.java</span></div><h1>PerfilCreadorControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.perfil;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPerfil;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPerfil;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPerfil;
+import uteq.edu.ec.artisync.service.perfil.IPerfilCreadorServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/perfiles&quot;)
+@RequiredArgsConstructor
+public class PerfilCreadorControlador {
+
+    private final IPerfilCreadorServicio perfilServicio;
+
+    @PostMapping
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPerfil&gt; crearPerfil(@Valid @RequestBody PeticionCrearPerfil peticion) {
+<span class="nc" id="L27">        RespuestaPerfil respuesta = perfilServicio.crearPerfil(peticion);</span>
+<span class="nc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaPerfil&gt; obtenerPerfilPorId(@PathVariable Long id) {
+<span class="nc" id="L33">        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorId(id));</span>
+    }
+
+    @GetMapping(&quot;/usuario/{idUsuario}&quot;)
+    public ResponseEntity&lt;RespuestaPerfil&gt; obtenerPerfilPorUsuario(@PathVariable Long idUsuario) {
+<span class="nc" id="L38">        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorUsuario(idUsuario));</span>
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;RespuestaPerfil&gt; &gt; listarPerfiles() {
+<span class="nc" id="L43">        return ResponseEntity.ok(perfilServicio.listarPerfiles());</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPerfil&gt; actualizarPerfil(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionActualizarPerfil peticion) {
+<span class="nc" id="L51">        return ResponseEntity.ok(perfilServicio.actualizarPerfil(id, peticion));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPerfil(@PathVariable Long id) {
+<span class="nc" id="L57">        perfilServicio.eliminarPerfil(id);</span>
+<span class="nc" id="L58">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Perfil de creador eliminado exitosamente&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServicioSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.catalogo</a> &gt; <span class="el_source">ServicioSpecification.java</span></div><h1>ServicioSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.catalogo;
+
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.entity.catalogo.Servicio;
+import uteq.edu.ec.artisync.entity.catalogo.ServicioEtiqueta;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="nc" id="L14">public class ServicioSpecification {</span>
+
+    public static Specification&lt;Servicio&gt; conFiltros(
+            Long categoriaId,
+            Long subcategoriaId,
+            BigDecimal precioMin,
+            BigDecimal precioMax,
+            List&lt;Long&gt; etiquetaIds,
+            String textoBusqueda,
+            String estadoPublicacion) {
+
+<span class="nc" id="L25">        return (root, query, cb) -&gt; {</span>
+<span class="nc" id="L26">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+            // Por defecto o por parámetro filtrar por estado de publicación
+<span class="nc bnc" id="L29" title="All 4 branches missed.">            if (estadoPublicacion != null &amp;&amp; !estadoPublicacion.isBlank()) {</span>
+<span class="nc" id="L30">                predicates.add(cb.equal(root.get(&quot;estadoPublicacion&quot;), estadoPublicacion));</span>
+            } else {
+<span class="nc" id="L32">                predicates.add(cb.equal(root.get(&quot;estadoPublicacion&quot;), &quot;ACTIVO&quot;));</span>
+            }
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">            if (categoriaId != null) {</span>
+<span class="nc" id="L36">                predicates.add(cb.equal(</span>
+<span class="nc" id="L37">                        root.get(&quot;subcategoria&quot;).get(&quot;categoria&quot;).get(&quot;idCategoria&quot;), categoriaId));</span>
+            }
+
+<span class="nc bnc" id="L40" title="All 2 branches missed.">            if (subcategoriaId != null) {</span>
+<span class="nc" id="L41">                predicates.add(cb.equal(</span>
+<span class="nc" id="L42">                        root.get(&quot;subcategoria&quot;).get(&quot;idSubcategoria&quot;), subcategoriaId));</span>
+            }
+
+<span class="nc bnc" id="L45" title="All 2 branches missed.">            if (precioMin != null) {</span>
+<span class="nc" id="L46">                predicates.add(cb.greaterThanOrEqualTo(root.get(&quot;precioBase&quot;), precioMin));</span>
+            }
+
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (precioMax != null) {</span>
+<span class="nc" id="L50">                predicates.add(cb.lessThanOrEqualTo(root.get(&quot;precioBase&quot;), precioMax));</span>
+            }
+
+<span class="nc bnc" id="L53" title="All 4 branches missed.">            if (textoBusqueda != null &amp;&amp; !textoBusqueda.isBlank()) {</span>
+<span class="nc" id="L54">                String likePattern = &quot;%&quot; + textoBusqueda.toLowerCase().trim() + &quot;%&quot;;</span>
+<span class="nc" id="L55">                predicates.add(cb.or(</span>
+<span class="nc" id="L56">                        cb.like(cb.lower(root.get(&quot;tituloServicio&quot;)), likePattern),</span>
+<span class="nc" id="L57">                        cb.like(cb.lower(root.get(&quot;descripcionDetallada&quot;)), likePattern)</span>
+                ));
+            }
+
+<span class="nc bnc" id="L61" title="All 4 branches missed.">            if (etiquetaIds != null &amp;&amp; !etiquetaIds.isEmpty()) {</span>
+<span class="nc" id="L62">                Subquery&lt;Long&gt; subquery = query.subquery(Long.class);</span>
+<span class="nc" id="L63">                Root&lt;ServicioEtiqueta&gt; seRoot = subquery.from(ServicioEtiqueta.class);</span>
+<span class="nc" id="L64">                subquery.select(seRoot.get(&quot;servicio&quot;).get(&quot;idServicio&quot;))</span>
+<span class="nc" id="L65">                        .where(seRoot.get(&quot;etiqueta&quot;).get(&quot;idEtiqueta&quot;).in(etiquetaIds));</span>
+<span class="nc" id="L66">                predicates.add(root.get(&quot;idServicio&quot;).in(subquery));</span>
+            }
+
+<span class="nc" id="L69">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

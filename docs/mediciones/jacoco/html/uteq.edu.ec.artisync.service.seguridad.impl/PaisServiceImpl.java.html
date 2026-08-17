@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaisServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">PaisServiceImpl.java</span></div><h1>PaisServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
+import uteq.edu.ec.artisync.service.seguridad.*;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.Pais;
+import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.seguridad.PaisService;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class PaisServiceImpl implements PaisService {
+
+    private final PaisRepository paisRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;PaisResponse&gt; getAllPaises() {
+<span class="fc" id="L31">        return paisRepository.findAll(Sort.by(Sort.Direction.ASC, &quot;nombrePais&quot;)).stream()</span>
+<span class="fc" id="L32">                .map(this::toResponse)</span>
+<span class="fc" id="L33">                .toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaisResponse getPaisById(Long id) {
+<span class="nc" id="L39">        Pais pais = paisRepository.findById(id)</span>
+<span class="nc" id="L40">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="nc" id="L41">        return toResponse(pais);</span>
+    }
+
+    @Override
+    @Transactional
+    public PaisResponse createPais(PaisRequest request) {
+<span class="fc" id="L47">        String nombreTrimmed = request.getNombrePais().trim();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (paisRepository.findByNombrePais(nombreTrimmed).isPresent()) {</span>
+<span class="fc" id="L49">            throw new ExcepcionRecursoDuplicado(&quot;Ya existe un país registrado con el nombre: &quot; + nombreTrimmed);</span>
+        }
+
+<span class="fc" id="L52">        Pais pais = Pais.builder()</span>
+<span class="fc" id="L53">                .nombrePais(nombreTrimmed)</span>
+<span class="fc" id="L54">                .build();</span>
+
+<span class="fc" id="L56">        return toResponse(paisRepository.save(pais));</span>
+    }
+
+    @Override
+    @Transactional
+    public PaisResponse updatePais(Long id, PaisRequest request) {
+<span class="nc" id="L62">        Pais pais = paisRepository.findById(id)</span>
+<span class="nc" id="L63">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+
+<span class="nc" id="L65">        String nombreTrimmed = request.getNombrePais().trim();</span>
+<span class="nc" id="L66">        paisRepository.findByNombrePais(nombreTrimmed).ifPresent(p -&gt; {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">            if (!p.getIdPais().equals(id)) {</span>
+<span class="nc" id="L68">                throw new ExcepcionRecursoDuplicado(&quot;Ya existe otro país registrado con el nombre: &quot; + nombreTrimmed);</span>
+            }
+<span class="nc" id="L70">        });</span>
+
+<span class="nc" id="L72">        pais.setNombrePais(nombreTrimmed);</span>
+<span class="nc" id="L73">        return toResponse(paisRepository.save(pais));</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje deletePais(Long id) {
+<span class="fc" id="L79">        Pais pais = paisRepository.findById(id)</span>
+<span class="pc" id="L80">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (usuarioRepository.existsByPaisIdPais(id)) {</span>
+<span class="fc" id="L83">            throw new ExcepcionReglaNegocio(&quot;No se puede eliminar el país porque tiene usuarios asociados.&quot;);</span>
+        }
+
+<span class="fc" id="L86">        paisRepository.delete(pais);</span>
+<span class="fc" id="L87">        return new RespuestaMensaje(&quot;País eliminado exitosamente&quot;);</span>
+    }
+
+    private PaisResponse toResponse(Pais pais) {
+<span class="fc" id="L91">        return PaisResponse.builder()</span>
+<span class="fc" id="L92">                .idPais(pais.getIdPais())</span>
+<span class="fc" id="L93">                .nombrePais(pais.getNombrePais())</span>
+<span class="fc" id="L94">                .build();</span>
+    }
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

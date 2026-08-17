@@ -1,11 +1,15 @@
 package uteq.edu.ec.artisync.controller.legal;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEntregable;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -18,16 +22,16 @@ public class EntregableControlador {
 
     private final IEntregableServicio entregableServicio;
 
-    @PostMapping("/{idPedido}/entregable")
+    @PostMapping(value = "/{idPedido}/entregable", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
     public ResponseEntity<RespuestaEntregable> subirEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam String urlMarcaAgua,
-            @RequestParam String urlLimpia) {
+            @RequestParam("versionMarcaAgua") MultipartFile versionMarcaAgua,
+            @RequestParam("versionLimpia") MultipartFile versionLimpia) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),
-                        urlMarcaAgua, urlLimpia));
+                        versionMarcaAgua, versionLimpia));
     }
 
     @GetMapping("/{idPedido}/entregable")
@@ -53,7 +57,29 @@ public class EntregableControlador {
     public ResponseEntity<byte[]> descargarVersionLimpia(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        byte[] archivo = entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario());
-        return ResponseEntity.ok(archivo);
+        return responderArchivo(
+                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));
+    }
+
+    @GetMapping("/{idPedido}/entregable/descargar/marca-agua")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> descargarVersionMarcaAgua(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return responderArchivo(
+                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));
+    }
+
+    /**
+     * Content-Disposition como attachment y no inline: un entregable puede ser
+     * HTML o SVG, y servirlo para que el navegador lo interprete en el dominio
+     * de la plataforma abriría la puerta a XSS almacenado.
+     */
+    private ResponseEntity<byte[]> responderArchivo(IEntregableServicio.ArchivoDescargado archivo) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(archivo.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())
+                .body(archivo.contenido());
     }
 }

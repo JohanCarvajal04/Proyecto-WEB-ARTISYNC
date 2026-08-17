@@ -1,0 +1,31 @@
+k6-run1.json: n=1500 errores=0 tasa_error=0.0000%
+k6-run2.json: n=1500 errores=0 tasa_error=0.0000%
+k6-run3.json: n=1500 errores=0 tasa_error=0.0000%
+
+=== Escenario CALIENTE (cache activo) ===
+n total: 4500
+Media: 21.38 ms
+Mediana: 13.01 ms
+Desviacion tipica: 32.71 ms
+IC 95%: [20.42, 22.33] ms
+p50: 13.01 ms
+p90: 31.75 ms
+p95: 50.17 ms
+p99: 205.60 ms
+Tasa de error >=500 agregada: 0.0000%
+
+k6-cold-run1.json: n=1500 errores=0 tasa_error=0.0000%
+k6-cold-run2.json: n=1500 errores=0 tasa_error=0.0000%
+k6-cold-run3.json: n=1500 errores=0 tasa_error=0.0000%
+
+=== Escenario FRIO (cache recien vaciado) ===
+n total: 4500
+Media: 13.62 ms
+Mediana: 9.04 ms
+Desviacion tipica: 14.52 ms
+IC 95%: [13.20, 14.05] ms
+p50: 9.04 ms
+p90: 22.39 ms
+p95: 39.14 ms
+p99: 89.98 ms
+Tasa de error >=500 agregada: 0.0000%

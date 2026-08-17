@@ -1,0 +1,68 @@
+# .gitignore de la raiz del repositorio (exigido por la estructura minima del
+# Bloque B.1 de la guia de la Tercera Entrega).
+#
+# Regla de oro de este archivo: NO ignorar nada que ya este versionado. La
+# evidencia cruda de mediciones (docs/mediciones/**) se versiona a proposito
+# —el Bloque C la exige tal cual la produjo la herramienta— y por tanto no
+# aparece aqui.
+
+# ---------------------------------------------------------------------------
+# Entorno: el .env real nunca se sube; .env.example si (B.1).
+# ---------------------------------------------------------------------------
+.env
+**/.env
+!**/.env.example
+
+# ---------------------------------------------------------------------------
+# Java / Maven
+# ---------------------------------------------------------------------------
+target/
+**/target/
+*.class
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# ---------------------------------------------------------------------------
+# Node / Angular
+# ---------------------------------------------------------------------------
+node_modules/
+**/node_modules/
+**/dist/
+**/.angular/
+
+# ---------------------------------------------------------------------------
+# Salidas locales de herramientas de medicion (los reportes que SI se entregan
+# viven en docs/mediciones/ y estan versionados; esto es solo el scratch local)
+# ---------------------------------------------------------------------------
+.lighthouseci/
+**/.lighthouseci/
+
+# ---------------------------------------------------------------------------
+# Logs y sistema operativo
+# ---------------------------------------------------------------------------
+*.log
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Claude Code (config/estado local del asistente, no se versiona)
+# ---------------------------------------------------------------------------
+.claude/
+graphify-out/
+
+.gitignore
+
+# ---------------------------------------------------------------------------
+# Stitch Screens
+# ---------------------------------------------------------------------------
+artisync/Frontend/stitch_screens/
+
+# ---------------------------------------------------------------------------
+# Docs Ignorados
+# ---------------------------------------------------------------------------
+docs/observaciones/DESIGN-IS-2026-08-07/
+docs/Guia_implementacion/frontend/
+docs/superpowers/
+db/procs
+scripts/audit-sql-dynamic.sh
+scripts/sync-procs.sh
+

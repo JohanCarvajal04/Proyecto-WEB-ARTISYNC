@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaisController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.seguridad</a> &gt; <span class="el_source">PaisController.java</span></div><h1>PaisController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.seguridad;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
+import uteq.edu.ec.artisync.service.seguridad.PaisService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/paises&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Catálogo de Países&quot;, description = &quot;Endpoints para consulta pública y administración (CUD) de países&quot;)
+public class PaisController {
+
+    private final PaisService paisService;
+
+    @Operation(summary = &quot;Listar todos los países ordenados alfabéticamente&quot;)
+    @GetMapping
+    public ResponseEntity&lt;List&lt;PaisResponse&gt;&gt; getAllPaises() {
+<span class="fc" id="L30">        return ResponseEntity.ok(paisService.getAllPaises());</span>
+    }
+
+    @Operation(summary = &quot;Obtener un país por su ID&quot;)
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;PaisResponse&gt; getPaisById(@PathVariable Long id) {
+<span class="nc" id="L36">        return ResponseEntity.ok(paisService.getPaisById(id));</span>
+    }
+
+    @Operation(summary = &quot;Crear un nuevo país&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PreAuthorize(&quot;hasAuthority('PAIS_CREAR') or hasRole('ADMIN')&quot;)
+    @PostMapping
+    public ResponseEntity&lt;PaisResponse&gt; createPais(@Valid @RequestBody PaisRequest request) {
+<span class="fc" id="L43">        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));</span>
+    }
+
+    @Operation(summary = &quot;Actualizar el nombre de un país existente&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PreAuthorize(&quot;hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')&quot;)
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;PaisResponse&gt; updatePais(@PathVariable Long id, @Valid @RequestBody PaisRequest request) {
+<span class="nc" id="L50">        return ResponseEntity.ok(paisService.updatePais(id, request));</span>
+    }
+
+    @Operation(summary = &quot;Eliminar un país si no tiene usuarios asociados&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
+    @PreAuthorize(&quot;hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')&quot;)
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; deletePais(@PathVariable Long id) {
+<span class="fc" id="L57">        return ResponseEntity.ok(paisService.deletePais(id));</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

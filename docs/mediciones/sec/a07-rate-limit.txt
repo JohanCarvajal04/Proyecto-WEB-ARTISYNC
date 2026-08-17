@@ -1,0 +1,145 @@
+### EVIDENCIA OBSOLETA (OBS-AUTO-05, agosto 2026) — pendiente de recaptura ###
+# Esta captura corresponde al LoginRateLimitFilter anterior (limite=5,
+# body JSON ad-hoc {"mensaje": ...} con bug de encoding ISO-8859-1) y a
+# request.getRemoteAddr() SIN resolver via proxy de confianza.
+#
+# El reemplazo (AuthRateLimitFilter) tiene: limite=10 en /login (el intento
+# que dispara el 429 pasa del 6 al 11), respuesta ProblemDetail (RFC 7807,
+# UTF-8, application/json), y cubre ademas /2fa/verify, /forgot-password,
+# /reset-password y /registro. Tambien existe ahora una cuota POR CUENTA
+# (IntentosAutenticacionService) que esta captura no ejercita.
+#
+# Recapturar con el stack levantado via `docker compose up` (SIN el
+# override docker-compose.dev.yml) y peticiones dirigidas a
+# http://localhost:4200/api/... — no a :8080 directo, que ya no esta
+# publicado y es la unica via en la que "limite por IP" significa algo real
+# (ver docker-compose.yml y ADR-002).
+### FIN DE NOTA — evidencia original a continuacion ###
+
+Intento 1:
+HTTP/1.1 401
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 31 Jul 2026 01:13:17 GMT
+
+{"timestamp":"2026-07-31T01:13:17.024973199","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
+---
+
+Intento 2:
+HTTP/1.1 401 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 31 Jul 2026 01:13:17 GMT
+
+{"timestamp":"2026-07-31T01:13:17.503393282","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
+---
+
+Intento 3:
+HTTP/1.1 401 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 31 Jul 2026 01:13:17 GMT
+
+{"timestamp":"2026-07-31T01:13:17.898619589","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
+---
+
+Intento 4:
+HTTP/1.1 401 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 31 Jul 2026 01:13:18 GMT
+
+{"timestamp":"2026-07-31T01:13:18.30210083","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
+---
+
+Intento 5:
+HTTP/1.1 401 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 31 Jul 2026 01:13:18 GMT
+
+{"timestamp":"2026-07-31T01:13:18.7318211","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
+---
+
+Intento 6:
+HTTP/1.1 429 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Retry-After: 60
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json;charset=ISO-8859-1
+Content-Length: 90
+Date: Fri, 31 Jul 2026 01:13:18 GMT
+
+{"mensaje":"Demasiados intentos de inicio de sesi�n. Intenta nuevamente en unos minutos."}
+---
+

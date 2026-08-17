@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PedidoControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.pedido</a> &gt; <span class="el_source">PedidoControlador.java</span></div><h1>PedidoControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.pedido;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaHistorialEstado;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedido;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/pedidos&quot;)
+@RequiredArgsConstructor
+public class PedidoControlador {
+
+    private final IPedidoServicio pedidoServicio;
+
+    @PostMapping
+    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPedido&gt; crearPedido(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionCrearPedido peticion) {
+<span class="nc" id="L34">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L35">                .body(pedidoServicio.crearPedido(userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPedido&gt; obtenerPedido(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L43">        return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id, userDetails.getIdUsuario()));</span>
+    }
+
+    @GetMapping(&quot;/mis-pedidos&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaPedidoResumido&gt;&gt; listarMisPedidos(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L50">        return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));</span>
+    }
+
+    @GetMapping(&quot;/mis-comisiones&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaPedidoResumido&gt;&gt; listarMisComisiones(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L57">        return ResponseEntity.ok(pedidoServicio.listarMisComisiones(userDetails.getIdUsuario()));</span>
+    }
+
+    @PutMapping(&quot;/{id}/avanzar&quot;)
+    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPedido&gt; avanzarEtapa(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody PeticionAvanzarEtapa peticion) {
+<span class="nc" id="L66">        return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    @GetMapping(&quot;/{id}/historial&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaHistorialEstado&gt;&gt; obtenerHistorial(@PathVariable Long id) {
+<span class="nc" id="L72">        return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id));</span>
+    }
+
+    @GetMapping(&quot;/{id}/seguimiento&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaSeguimientoPedido&gt; obtenerSeguimiento(@PathVariable Long id) {
+<span class="nc" id="L78">        return ResponseEntity.ok(pedidoServicio.obtenerSeguimiento(id));</span>
+    }
+
+    // ── Inmutabilidad del Historial (RNF-13) ─────────────────────────────────
+    // Los registros de historial_estados_pedido NO pueden ser eliminados ni modificados
+
+    @DeleteMapping(&quot;/{id}/historial&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; bloquearDeleteHistorial(@PathVariable Long id) {
+<span class="nc" id="L86">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L87">                .body(new RespuestaMensaje(&quot;Operacion no permitida sobre registros de auditoria&quot;));</span>
+    }
+
+    @PatchMapping(&quot;/{id}/historial&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; bloquearPatchHistorial(@PathVariable Long id) {
+<span class="nc" id="L92">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="nc" id="L93">                .body(new RespuestaMensaje(&quot;Operacion no permitida sobre registros de auditoria&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -2,11 +2,15 @@ package uteq.edu.ec.artisync.service.pedido.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
+import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.pedido.*;
@@ -49,18 +53,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
             throw new ExcepcionReglaNegocio("No puedes crear un pedido para tu propio servicio");
         }
 
-        // Obtener el primer flujo de trabajo disponible (o el asociado a la categoría)
-        List<FlujoTrabajo> flujos = flujoTrabajoRepository.findAll();
-        if (flujos.isEmpty()) {
-            throw new ExcepcionReglaNegocio("No hay flujos de trabajo configurados en el sistema");
-        }
-        FlujoTrabajo flujo = flujos.get(0);
+        FlujoTrabajo flujo = resolverFlujoDelServicio(servicio);
 
         // Verificar que el flujo tenga etapas configuradas
         List<FlujoEtapaConfig> etapas = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());
         if (etapas.isEmpty()) {
-            throw new ExcepcionReglaNegocio("El flujo de trabajo no tiene etapas configuradas");
+            throw new ExcepcionReglaNegocio(
+                    "El flujo '" + flujo.getNombreFlujo() + "' no tiene etapas configuradas");
         }
 
         // Crear el pedido
@@ -84,17 +84,80 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .build();
         historialRepository.save(estadoInicial);
 
-        log.info("Pedido {} creado por cliente {} para servicio {}", pedido.getIdPedido(), idCliente, peticion.getIdServicio());
+        log.info("Pedido {} creado por cliente {} para servicio {} con flujo '{}'",
+                pedido.getIdPedido(), idCliente, peticion.getIdServicio(), flujo.getNombreFlujo());
 
         return mapToRespuesta(pedido);
     }
 
+    /**
+     * Flujo que le corresponde al pedido (RF-19): el configurado en la
+     * categoría del servicio, siguiendo servicio → subcategoría → categoría.
+     *
+     * <p>Antes se tomaba {@code findAll().get(0)}, es decir el primer flujo que
+     * devolviese Postgres sin ORDER BY: todos los pedidos compartían flujo y
+     * cuál era dependía del plan de ejecución.
+     *
+     * <p>Si la categoría no tiene flujo asignado se cae al flujo por defecto en
+     * lugar de rechazar el pedido: la columna es nullable y un catálogo a medio
+     * configurar no debe impedir vender.
+     */
+    private FlujoTrabajo resolverFlujoDelServicio(Servicio servicio) {
+        Categoria categoria = servicio.getSubcategoria().getCategoria();
+
+        if (categoria.getFlujo() != null) {
+            return categoria.getFlujo();
+        }
+
+        log.warn("La categoria '{}' no tiene flujo asignado; se usa el flujo por defecto",
+                categoria.getNombreCategoria());
+        return obtenerFlujoPorDefecto();
+    }
+
+    /**
+     * Flujo de respaldo: el de menor id.
+     *
+     * <p>No se busca ningún flujo por nombre a propósito. Los nombres los fija
+     * el seed de fixtures (`database/seed-medicion-referencia.sql`), no el
+     * esquema, y acoplar el servicio a una cadena concreta lo rompería en
+     * cualquier instalación que sembrase otros datos. Lo que sí se garantiza
+     * frente al {@code findAll().get(0)} anterior es que la elección sea
+     * determinista.
+     */
+    private FlujoTrabajo obtenerFlujoPorDefecto() {
+        return flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()
+                .orElseThrow(() -> new ExcepcionReglaNegocio(
+                        "No hay flujos de trabajo configurados en el sistema"));
+    }
+
     @Override
     @Transactional(readOnly = true)
-    public RespuestaPedido obtenerPedidoPorId(Long idPedido) {
+    public RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
+        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);
         return mapToRespuesta(pedido);
+    }
+
+    /**
+     * OBS-08: evita el acceso indebido (IDOR) a pedidos ajenos — solo el cliente dueño,
+     * el creador del servicio pedido o un ADMIN pueden consultarlo.
+     */
+    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
+        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
+        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
+
+        if (esCliente || esCreador) {
+            return;
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean esAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!esAdmin) {
+            throw new AccessDeniedException("No tienes permisos para consultar este pedido");
+        }
     }
 
     @Override

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">UserServiceImpl.java</span></div><h1>UserServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
+import uteq.edu.ec.artisync.service.seguridad.*;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.entity.seguridad.*;
+import uteq.edu.ec.artisync.repository.seguridad.*;
+import uteq.edu.ec.artisync.repository.perfil.*;
+import uteq.edu.ec.artisync.repository.catalogo.*;
+import uteq.edu.ec.artisync.repository.pedido.*;
+import uteq.edu.ec.artisync.repository.legal.*;
+import uteq.edu.ec.artisync.repository.comunicacion.*;
+import uteq.edu.ec.artisync.repository.social.*;
+import uteq.edu.ec.artisync.service.seguridad.UserService;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final PaisRepository paisRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UsuarioMapper usuarioMapper;
+    private final SessionRevocationService sessionRevocationService;
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponse getCurrentUser(String correo) {
+<span class="fc" id="L42">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L43">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="fc" id="L45">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateCurrentUser(String correo, UpdateUserRequest request) {
+<span class="fc" id="L51">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L52">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="pc bpc" id="L54" title="2 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
+<span class="fc" id="L55">            usuario.setNombres(request.getNombres());</span>
+        }
+<span class="pc bpc" id="L57" title="3 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="nc" id="L58">            usuario.setApellidos(request.getApellidos());</span>
+        }
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="nc" id="L61">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+        }
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (request.getIdPais() != null) {</span>
+<span class="fc" id="L64">            Pais pais = paisRepository.findById(request.getIdPais())</span>
+<span class="pc" id="L65">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
+<span class="fc" id="L66">            usuario.setPais(pais);</span>
+        }
+
+<span class="fc" id="L69">        usuario = usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L71">        return usuarioMapper.toUserResponse(usuario);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje changePassword(String correo, ChangePasswordRequest request) {
+<span class="nc" id="L77">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L78">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (!passwordEncoder.matches(request.getContrasenaActual(), usuario.getContrasenaHash())) {</span>
+<span class="nc" id="L81">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;La contraseña actual es incorrecta&quot;);</span>
+        }
+
+<span class="nc" id="L84">        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));</span>
+<span class="nc" id="L85">        usuarioRepository.save(usuario);</span>
+
+<span class="nc" id="L87">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+
+<span class="nc" id="L89">        return new RespuestaMensaje(&quot;Contraseña cambiada exitosamente. Vuelve a iniciar sesión.&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje deleteOwnAccount(String correo) {
+<span class="fc" id="L95">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L96">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="fc" id="L98">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L99">        usuario.setEstadoCuenta(false); // Soft delete</span>
+<span class="fc" id="L100">        usuarioRepository.save(usuario);</span>
+
+<span class="fc" id="L102">        return new RespuestaMensaje(&quot;Cuenta desactivada exitosamente&quot;);</span>
+    }
+
+    @Override
+    public RespuestaMensaje revokeAllMySessions(String correo) {
+<span class="nc" id="L107">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L108">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="nc" id="L109">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+<span class="nc" id="L110">        return new RespuestaMensaje(&quot;Todas las sesiones activas han sido cerradas.&quot;);</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -20,14 +22,43 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
-    @Value("${security.jwt.secret-key}")
-    private String secret;
+    private static final String EMISOR = "artisync-backend";
+    private static final String AUDIENCIA = "artisync-frontend";
+    private static final String TIPO_ACCESO = "access";
+    private static final String TIPO_REFRESH = "refresh";
 
-    @Value("${security.jwt.expiration-time:86400000}")
-    private long expirationMs;
+    /** RFC 7518 §3.2: HS256 exige una clave de al menos 256 bits (32 bytes). */
+    private static final int LONGITUD_MINIMA_CLAVE_BYTES = 32;
+    private static final long TOLERANCIA_RELOJ_SEGUNDOS = 60;
 
-    @Value("${security.jwt.refresh-expiration-time:604800000}")
-    private long refreshExpirationMs;
+    private final SecretKey clave;
+    private final JwtParser parser;
+    private final long expirationMs;
+    private final long refreshExpirationMs;
+
+    public JwtService(
+            @Value("${security.jwt.secret-key}") String secret,
+            @Value("${security.jwt.expiration-time:86400000}") long expirationMs,
+            @Value("${security.jwt.refresh-expiration-time:604800000}") long refreshExpirationMs) {
+
+        byte[] material = secret == null ? new byte[0] : secret.getBytes(StandardCharsets.UTF_8);
+        if (material.length < LONGITUD_MINIMA_CLAVE_BYTES) {
+            throw new IllegalStateException(
+                    "security.jwt.secret-key debe tener al menos " + LONGITUD_MINIMA_CLAVE_BYTES
+                            + " bytes (256 bits) para HS256; se recibieron " + material.length
+                            + ". Generar uno nuevo con: openssl rand -hex 32");
+        }
+
+        this.clave = Keys.hmacShaKeyFor(material);
+        this.parser = Jwts.parser()
+                .verifyWith(this.clave)
+                .requireIssuer(EMISOR)
+                .requireAudience(AUDIENCIA)
+                .clockSkewSeconds(TOLERANCIA_RELOJ_SEGUNDOS)
+                .build();
+        this.expirationMs = expirationMs;
+        this.refreshExpirationMs = refreshExpirationMs;
+    }
 
     public long getExpirationMs() {
         return expirationMs;
@@ -35,10 +66,6 @@ public class JwtService {
 
     public long getRefreshExpirationMs() {
         return refreshExpirationMs;
-    }
-
-    private SecretKey clave() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generarToken(UserDetails userDetails) {
@@ -63,14 +90,41 @@ public class JwtService {
         }
 
         String jti = UUID.randomUUID().toString();
+        Date ahora = new Date();
 
         return Jwts.builder()
                 .claims(claims)
                 .id(jti)
                 .subject(sub)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(clave())
+                .issuer(EMISOR)
+                .audience().add(AUDIENCIA).and()
+                .claim("type", TIPO_ACCESO)
+                .notBefore(ahora)
+                .issuedAt(ahora)
+                .expiration(new Date(ahora.getTime() + expirationMs))
+                .signWith(clave)
+                .compact();
+    }
+
+    public String generarRefreshToken(UserDetails userDetails) {
+        String sub = userDetails.getUsername();
+        if (userDetails instanceof CustomUserDetails customUser && customUser.getIdUsuario() != null) {
+            sub = customUser.getIdUsuario().toString();
+        }
+        String jti = UUID.randomUUID().toString();
+        Date ahora = new Date();
+
+        return Jwts.builder()
+                .claim("type", TIPO_REFRESH)
+                .claim("email", userDetails.getUsername())
+                .id(jti)
+                .subject(sub)
+                .issuer(EMISOR)
+                .audience().add(AUDIENCIA).and()
+                .notBefore(ahora)
+                .issuedAt(ahora)
+                .expiration(new Date(ahora.getTime() + refreshExpirationMs))
+                .signWith(clave)
                 .compact();
     }
 
@@ -94,48 +148,47 @@ public class JwtService {
         return Math.max(0, restante);
     }
 
-    public boolean esValido(String token, UserDetails userDetails) {
-        String username = extraerUsername(token);
-        Date expiracion = parsear(token).getPayload().getExpiration();
-        return username.equals(userDetails.getUsername()) && expiracion.after(new Date()) && !esRefreshToken(token);
+    /**
+     * Valida un access token de forma completa: firma, issuer, audience, tolerancia
+     * de reloj (todo a cargo del {@link #parser}), tipo (allowlist: solo "access"),
+     * titular y que la cuenta siga habilitada y no bloqueada (§2.4 — OBS-AUTO-05).
+     */
+    public boolean esAccessTokenValido(String token, UserDetails userDetails) {
+        try {
+            Claims claims = parsear(token).getPayload();
+            if (!TIPO_ACCESO.equals(claims.get("type"))) {
+                return false;
+            }
+            String email = claims.get("email", String.class);
+            String username = email != null ? email : claims.getSubject();
+            return username != null
+                    && username.equals(userDetails.getUsername())
+                    && userDetails.isEnabled()
+                    && userDetails.isAccountNonLocked();
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     public boolean esRefreshTokenValido(String token, UserDetails userDetails) {
         String username = extraerUsername(token);
         Date expiracion = parsear(token).getPayload().getExpiration();
-        return username.equals(userDetails.getUsername()) && expiracion.after(new Date()) && esRefreshToken(token);
+        return username.equals(userDetails.getUsername())
+                && expiracion.after(new Date())
+                && esRefreshToken(token)
+                && userDetails.isEnabled()
+                && userDetails.isAccountNonLocked();
     }
 
     public boolean esRefreshToken(String token) {
         try {
-            return "refresh".equals(extraerTodosLosClaims(token).get("type"));
+            return TIPO_REFRESH.equals(extraerTodosLosClaims(token).get("type"));
         } catch (Exception e) {
             return false;
         }
     }
 
-    public String generarRefreshToken(UserDetails userDetails) {
-        String sub = userDetails.getUsername();
-        if (userDetails instanceof CustomUserDetails customUser && customUser.getIdUsuario() != null) {
-            sub = customUser.getIdUsuario().toString();
-        }
-        String jti = UUID.randomUUID().toString();
-
-        return Jwts.builder()
-                .claim("type", "refresh")
-                .claim("email", userDetails.getUsername())
-                .id(jti)
-                .subject(sub)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
-                .signWith(clave())
-                .compact();
-    }
-
     private Jws<Claims> parsear(String token) {
-        return Jwts.parser()
-                .verifyWith(clave())
-                .build()
-                .parseSignedClaims(token);
+        return parser.parseSignedClaims(token);
     }
 }

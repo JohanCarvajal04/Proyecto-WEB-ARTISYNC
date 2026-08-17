@@ -1,0 +1,116 @@
+/* Reseñas: listado y distribución de calificaciones. */
+
+.rs-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rs-item {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #eef2f7;
+}
+
+.rs-item:first-child { border-top: 0; }
+
+.rs-item__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rs-item__cliente {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.rs-item__servicio {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.125rem 0 0;
+}
+
+.rs-item__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.rs-item__texto {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.rs-item__texto--vacio {
+  font-style: italic;
+  color: #94a3b8;
+}
+
+/* ── Panel de calificación global ── */
+
+.rs-resumen { align-self: start; }
+
+.rs-promedio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.rs-promedio__valor {
+  font-family: 'Manrope', sans-serif;
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f2027;
+  margin: 0;
+}
+
+.rs-barras {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.rs-barra {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr 1.75rem;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.25rem 0.375rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rs-barra:hover:not(:disabled) { background: #f8fafc; }
+.rs-barra:disabled { cursor: default; opacity: 0.6; }
+.rs-barra.is-active { background: #f0fdfa; }
+
+.rs-barra__nota {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-align: left;
+}
+
+.rs-barra__cantidad {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

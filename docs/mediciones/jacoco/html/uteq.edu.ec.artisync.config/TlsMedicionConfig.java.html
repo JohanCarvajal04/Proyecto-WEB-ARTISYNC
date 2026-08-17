@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TlsMedicionConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.config</a> &gt; <span class="el_source">TlsMedicionConfig.java</span></div><h1>TlsMedicionConfig.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.config;
+
+import org.apache.catalina.connector.Connector;
+import org.apache.tomcat.util.net.SSLHostConfig;
+import org.apache.tomcat.util.net.SSLHostConfigCertificate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+/**
+ * OBS-08 (A02 OWASP, Bloque C.2): conector HTTPS adicional, activo solo bajo
+ * el perfil &quot;medicion&quot;, para poder auditar TLS sin apagar el puerto 8080
+ * plano que usan el resto de las mediciones (k6, A01, A03, A05, A07). No usar
+ * `server.ssl.*` directamente lo haría — esas propiedades reemplazan el único
+ * conector del servidor en vez de sumar uno adicional.
+ */
+@Configuration
+@Profile(&quot;medicion&quot;)
+<span class="nc" id="L22">public class TlsMedicionConfig {</span>
+
+    @Value(&quot;${app.medicion.tls.port:8443}&quot;)
+    private int puertoTls;
+
+    @Value(&quot;${app.medicion.tls.keystore}&quot;)
+    private String rutaKeystore;
+
+    @Value(&quot;${app.medicion.tls.keystore-password}&quot;)
+    private String passwordKeystore;
+
+    @Bean
+    public WebServerFactoryCustomizer&lt;TomcatServletWebServerFactory&gt; conectorTlsAdicional() {
+<span class="nc" id="L35">        return factory -&gt; {</span>
+<span class="nc" id="L36">            Connector connector = new Connector(&quot;org.apache.coyote.http11.Http11NioProtocol&quot;);</span>
+<span class="nc" id="L37">            connector.setScheme(&quot;https&quot;);</span>
+<span class="nc" id="L38">            connector.setSecure(true);</span>
+<span class="nc" id="L39">            connector.setPort(puertoTls);</span>
+<span class="nc" id="L40">            connector.setProperty(&quot;SSLEnabled&quot;, &quot;true&quot;);</span>
+
+<span class="nc" id="L42">            SSLHostConfig sslHostConfig = new SSLHostConfig();</span>
+<span class="nc" id="L43">            sslHostConfig.setProtocols(&quot;TLSv1.3&quot;);</span>
+<span class="nc" id="L44">            sslHostConfig.setCiphers(&quot;TLS_AES_256_GCM_SHA384&quot;);</span>
+
+<span class="nc" id="L46">            SSLHostConfigCertificate certificado =</span>
+                    new SSLHostConfigCertificate(sslHostConfig, SSLHostConfigCertificate.Type.UNDEFINED);
+<span class="nc" id="L48">            certificado.setCertificateKeystoreFile(rutaKeystore);</span>
+<span class="nc" id="L49">            certificado.setCertificateKeystorePassword(passwordKeystore);</span>
+<span class="nc" id="L50">            certificado.setCertificateKeystoreType(&quot;PKCS12&quot;);</span>
+<span class="nc" id="L51">            sslHostConfig.addCertificate(certificado);</span>
+
+<span class="nc" id="L53">            connector.addSslHostConfig(sslHostConfig);</span>
+<span class="nc" id="L54">            factory.addAdditionalConnectors(connector);</span>
+<span class="nc" id="L55">        };</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

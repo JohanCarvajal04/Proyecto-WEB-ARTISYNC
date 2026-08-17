@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RolePermissionServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">RolePermissionServiceImpl.java</span></div><h1>RolePermissionServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
+import uteq.edu.ec.artisync.service.seguridad.*;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
+import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.RolResponse;
+import uteq.edu.ec.artisync.entity.seguridad.Permiso;
+import uteq.edu.ec.artisync.entity.seguridad.Rol;
+import uteq.edu.ec.artisync.repository.seguridad.PermisoRepository;
+import uteq.edu.ec.artisync.repository.seguridad.RolRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+<span class="fc" id="L25">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class RolePermissionServiceImpl implements RolePermissionService {
+
+    private final RolRepository rolRepository;
+    private final PermisoRepository permisoRepository;
+    private final UsuarioRolRepository usuarioRolRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RolResponse&gt; getAllRoles() {
+<span class="nc" id="L37">        return rolRepository.findAll().stream()</span>
+<span class="nc" id="L38">                .map(r -&gt; RolResponse.builder()</span>
+<span class="nc" id="L39">                        .idRol(r.getIdRol())</span>
+<span class="nc" id="L40">                        .nombreRol(r.getNombreRol())</span>
+<span class="nc" id="L41">                        .descripcionRol(r.getDescripcionRol())</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">                        .permisos(r.getPermisos() != null ? r.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
+<span class="nc" id="L43">                        .build())</span>
+<span class="nc" id="L44">                .toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;PermisoResponse&gt; getAllPermisos() {
+<span class="nc" id="L50">        return permisoRepository.findAll().stream()</span>
+<span class="nc" id="L51">                .map(p -&gt; PermisoResponse.builder()</span>
+<span class="nc" id="L52">                        .idPermiso(p.getIdPermiso())</span>
+<span class="nc" id="L53">                        .nombrePermiso(p.getNombrePermiso())</span>
+<span class="nc" id="L54">                        .moduloAplicacion(p.getModuloAplicacion())</span>
+<span class="nc" id="L55">                        .build())</span>
+<span class="nc" id="L56">                .toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;String&gt; getPermissionsByRole(String roleName) {
+<span class="nc" id="L62">        Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())</span>
+<span class="nc" id="L63">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado: &quot; + roleName));</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (rol.getPermisos() == null) {</span>
+<span class="nc" id="L65">            return List.of();</span>
+        }
+<span class="nc" id="L67">        return rol.getPermisos().stream()</span>
+<span class="nc" id="L68">                .map(Permiso::getNombrePermiso)</span>
+<span class="nc" id="L69">                .toList();</span>
+    }
+
+    @Override
+    @Transactional
+    public void syncPermissions(String roleName, List&lt;String&gt; permissionCodes) {
+<span class="nc" id="L75">        Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())</span>
+<span class="nc" id="L76">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado: &quot; + roleName));</span>
+
+<span class="nc" id="L78">        Set&lt;Permiso&gt; nuevosPermisos = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (permissionCodes != null) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            for (String code : permissionCodes) {</span>
+<span class="nc" id="L81">                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())</span>
+<span class="nc" id="L82">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Permiso inexistente: &quot; + code));</span>
+<span class="nc" id="L83">                nuevosPermisos.add(p);</span>
+<span class="nc" id="L84">            }</span>
+        }
+
+<span class="nc" id="L87">        rol.setPermisos(nuevosPermisos);</span>
+<span class="nc" id="L88">        rolRepository.save(rol);</span>
+<span class="nc" id="L89">        log.info(&quot;Permisos sincronizados correctamente para el rol: {}. Total asignados: {}&quot;, roleName, nuevosPermisos.size());</span>
+<span class="nc" id="L90">    }</span>
+
+    @Override
+    @Transactional
+    public RolResponse createRole(CreateRoleRequest request) {
+<span class="fc" id="L95">        String nombreRolUpper = request.getNombreRol().trim().toUpperCase();</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (rolRepository.findByNombreRol(nombreRolUpper).isPresent()) {</span>
+<span class="fc" id="L97">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Ya existe un rol con el nombre: &quot; + nombreRolUpper);</span>
+        }
+
+<span class="fc" id="L100">        Set&lt;Permiso&gt; permisosIniciales = new HashSet&lt;&gt;();</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (request.getPermisosIniciales() != null) {</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            for (String code : request.getPermisosIniciales()) {</span>
+<span class="nc" id="L103">                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())</span>
+<span class="nc" id="L104">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Permiso inexistente: &quot; + code));</span>
+<span class="nc" id="L105">                permisosIniciales.add(p);</span>
+<span class="nc" id="L106">            }</span>
+        }
+
+<span class="fc" id="L109">        Rol nuevoRol = Rol.builder()</span>
+<span class="fc" id="L110">                .nombreRol(nombreRolUpper)</span>
+<span class="fc" id="L111">                .descripcionRol(request.getDescripcionRol())</span>
+<span class="fc" id="L112">                .permisos(permisosIniciales)</span>
+<span class="fc" id="L113">                .build();</span>
+
+<span class="fc" id="L115">        nuevoRol = rolRepository.save(nuevoRol);</span>
+<span class="fc" id="L116">        log.info(&quot;Rol personalizado creado exitosamente: {}&quot;, nombreRolUpper);</span>
+
+<span class="fc" id="L118">        return RolResponse.builder()</span>
+<span class="fc" id="L119">                .idRol(nuevoRol.getIdRol())</span>
+<span class="fc" id="L120">                .nombreRol(nuevoRol.getNombreRol())</span>
+<span class="fc" id="L121">                .descripcionRol(nuevoRol.getDescripcionRol())</span>
+<span class="fc" id="L122">                .permisos(nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())</span>
+<span class="fc" id="L123">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    public RolResponse updateRole(Long idRol, UpdateRoleRequest request) {
+<span class="fc" id="L129">        Rol rol = rolRepository.findById(idRol)</span>
+<span class="pc" id="L130">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
+
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        if (request.getDescripcionRol() != null) {</span>
+<span class="fc" id="L133">            rol.setDescripcionRol(request.getDescripcionRol());</span>
+        }
+
+<span class="fc" id="L136">        rol = rolRepository.save(rol);</span>
+<span class="fc" id="L137">        log.info(&quot;Descripción del rol ID {} ({}) actualizada&quot;, idRol, rol.getNombreRol());</span>
+
+<span class="fc" id="L139">        return RolResponse.builder()</span>
+<span class="fc" id="L140">                .idRol(rol.getIdRol())</span>
+<span class="fc" id="L141">                .nombreRol(rol.getNombreRol())</span>
+<span class="fc" id="L142">                .descripcionRol(rol.getDescripcionRol())</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                .permisos(rol.getPermisos() != null ? rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
+<span class="fc" id="L144">                .build();</span>
+    }
+
+    @Override
+    @Transactional
+    public void deleteRole(Long idRol) {
+<span class="fc" id="L150">        Rol rol = rolRepository.findById(idRol)</span>
+<span class="pc" id="L151">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
+
+<span class="fc" id="L153">        Set&lt;String&gt; rolesProtegidos = Set.of(&quot;ADMIN&quot;, &quot;CLIENTE&quot;, &quot;CREADOR&quot;, &quot;MODERADOR&quot;, &quot;SOPORTE&quot;, &quot;AUDITOR_FINANCIERO&quot;);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (rolesProtegidos.contains(rol.getNombreRol().toUpperCase())) {</span>
+<span class="fc" id="L155">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se puede eliminar un rol base del sistema: &quot; + rol.getNombreRol());</span>
+        }
+
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">        if (usuarioRolRepository.existsByRolIdRol(idRol)) {</span>
+<span class="nc" id="L159">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se puede eliminar el rol porque tiene usuarios activos asignados&quot;);</span>
+        }
+
+<span class="fc" id="L162">        rolRepository.delete(rol);</span>
+<span class="fc" id="L163">        log.info(&quot;Rol personalizado eliminado exitosamente: {} (ID {})&quot;, rol.getNombreRol(), idRol);</span>
+<span class="fc" id="L164">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

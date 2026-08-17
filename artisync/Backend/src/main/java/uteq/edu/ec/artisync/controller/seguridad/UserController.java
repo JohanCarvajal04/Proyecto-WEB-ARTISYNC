@@ -16,7 +16,7 @@ import uteq.edu.ec.artisync.service.seguridad.UserService;
 import java.security.Principal;
 
 @RestController
-@RequestMapping({"/api/usuarios", "/api/users"})
+@RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
 @Tag(name = "Gestión de Usuarios", description = "Endpoints protegidos para administración del perfil del usuario actual")
 @SecurityRequirement(name = "bearerAuth")

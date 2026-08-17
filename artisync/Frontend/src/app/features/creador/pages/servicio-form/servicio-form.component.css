@@ -1,0 +1,36 @@
+/* Formulario de creación / edición de servicios. */
+
+.sf-counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0.25rem 0;
+}
+
+/* ── Alta rápida de atributos ── */
+
+.sf-attr-form {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  align-items: end;
+}
+
+@media (min-width: 768px) {
+  .sf-attr-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 9rem auto;
+  }
+}
+
+.sf-attr-form__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}

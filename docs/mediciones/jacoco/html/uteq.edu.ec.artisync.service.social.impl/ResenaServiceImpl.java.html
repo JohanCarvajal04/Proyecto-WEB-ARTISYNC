@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResenaServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.social.impl</a> &gt; <span class="el_source">ResenaServiceImpl.java</span></div><h1>ResenaServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.social.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
+import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
+import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.social.ResenaServicio;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
+import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.social.ResenaServicioRepository;
+import uteq.edu.ec.artisync.service.social.ResenaService;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Implementación del servicio de reseñas de servicios.
+ * RF-09: Una reseña por pedido, solo después de la liberación del entregable.
+ */
+<span class="fc" id="L29">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ResenaServiceImpl implements ResenaService {
+
+    private final ResenaServicioRepository resenaServicioRepository;
+    private final PedidoRepository pedidoRepository;
+    private final EntregableFinalRepository entregableFinalRepository;
+
+    @Override
+    @Transactional
+    public RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
+<span class="fc" id="L41">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L42">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado: &quot; + idPedido));</span>
+
+        // Validar que es el cliente del pedido
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L46">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
+                    &quot;Solo el cliente del pedido puede dejar una reseña&quot;);
+        }
+
+        // Validar que el entregable fue liberado (post-entrega)
+<span class="fc" id="L51">        EntregableFinal entregable = entregableFinalRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L52">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
+                        &quot;Solo puedes dejar una reseña después de recibir el entregable&quot;));
+
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (!Boolean.TRUE.equals(entregable.getEstaLiberado())) {</span>
+<span class="fc" id="L56">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Solo puedes dejar una reseña después de recibir el entregable&quot;);
+        }
+
+        // Validar que no existe ya una reseña para este pedido (UNIQUE en BD)
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (resenaServicioRepository.existsByPedidoIdPedido(idPedido)) {</span>
+<span class="fc" id="L62">            throw new ExcepcionRecursoDuplicado(&quot;Ya has dejado una reseña para este pedido&quot;);</span>
+        }
+
+<span class="fc" id="L65">        ResenaServicio resena = ResenaServicio.builder()</span>
+<span class="fc" id="L66">                .pedido(pedido)</span>
+<span class="fc" id="L67">                .calificacionEstrellas(peticion.getCalificacionEstrellas())</span>
+<span class="fc" id="L68">                .textoResena(peticion.getTextoResena())</span>
+<span class="fc" id="L69">                .build();</span>
+
+<span class="fc" id="L71">        resena = resenaServicioRepository.save(resena);</span>
+<span class="fc" id="L72">        log.info(&quot;Reseña creada para pedido {} por cliente {}&quot;, idPedido, idCliente);</span>
+<span class="fc" id="L73">        return mapToResponse(resena);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaResena&gt; listarResenasPorCreador(Long idPerfilCreador) {
+<span class="fc" id="L79">        return resenaServicioRepository.findByCreadorIdPerfil(idPerfilCreador)</span>
+<span class="fc" id="L80">                .stream().map(this::mapToResponse).collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Double calcularPromedioPorCreador(Long idPerfilCreador) {
+<span class="fc" id="L86">        Double promedio = resenaServicioRepository.calcularPromedioByCreadorIdPerfil(idPerfilCreador);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        return promedio != null ? Math.round(promedio * 100.0) / 100.0 : 0.0;</span>
+    }
+
+    // -------------------------------------------------------------------------
+    private RespuestaResena mapToResponse(ResenaServicio resena) {
+<span class="fc" id="L92">        Pedido pedido = resena.getPedido();</span>
+<span class="fc" id="L93">        String nombreCliente = pedido.getUsuarioCliente().getNombres()</span>
+<span class="fc" id="L94">                + &quot; &quot; + pedido.getUsuarioCliente().getApellidos();</span>
+<span class="fc" id="L95">        String tituloServicio = pedido.getServicio().getTituloServicio();</span>
+
+<span class="fc" id="L97">        return RespuestaResena.builder()</span>
+<span class="fc" id="L98">                .idResena(resena.getIdResena())</span>
+<span class="fc" id="L99">                .calificacionEstrellas(resena.getCalificacionEstrellas())</span>
+<span class="fc" id="L100">                .textoResena(resena.getTextoResena())</span>
+<span class="fc" id="L101">                .fechaResena(resena.getFechaResena())</span>
+<span class="fc" id="L102">                .nombreCliente(nombreCliente)</span>
+<span class="fc" id="L103">                .tituloServicio(tituloServicio)</span>
+<span class="fc" id="L104">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

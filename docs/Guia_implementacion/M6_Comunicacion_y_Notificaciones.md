@@ -435,7 +435,9 @@ const connections = [];
 const RTTs = [];
 
 for (let i = 0; i < 10; i++) {
-    const ws = new WebSocket('ws://localhost:8080/ws/chat');
+    // Mismo origen que el frontend: el backend no publica el 8080 al host
+    // (OBS-AUTO-05 / A07 OWASP). Requiere que el proxy reenvíe /ws — ver nota abajo.
+    const ws = new WebSocket('ws://localhost:4200/ws/chat');
     ws.on('open', () => {
         const start = Date.now();
         ws.send(JSON.stringify({ type: 'ping', timestamp: start }));
@@ -454,6 +456,12 @@ for (let i = 0; i < 10; i++) {
     connections.push(ws);
 }
 ```
+
+> **Requisito previo para ejecutar este script.** El proxy del frontend reenvía `/api` y
+> `/actuator`, pero no `/ws`: hoy `ws://localhost:4200/ws/chat` cae en el fallback SPA de Angular
+> y la conexión no llega al backend. Antes de medir hay que añadir la regla `/ws` (con `"ws": true`) en
+> `Frontend/proxy.conf.json` y `Frontend/proxy.docker.conf.json`. El puerto 8080 no es una
+> alternativa: el backend dejó de publicarlo al host (OBS-AUTO-05 / A07 OWASP).
 
 ---
 

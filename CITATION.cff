@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Proyecto WEB-ARTISYNC"
+authors:
+  - family-names: "Bone Arroyo"
+    given-names: "Niurca Scarleth"
+  - family-names: "Carvajal Loor"
+    given-names: "Johan Stalin"
+  - family-names: "Figueroa Morales"
+    given-names: "Bryan Javier"
+  - family-names: "Rios Cuyabazo"
+    given-names: "Jhon Kevin"
+version: "v0.9.0-rc"
+date-released: "2026-07-30"
+license: "MIT"
+repository-code: "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
+doi: "10.5281/zenodo.21730559"
+keywords:
+  - web
+  - artisync
+  - pfc

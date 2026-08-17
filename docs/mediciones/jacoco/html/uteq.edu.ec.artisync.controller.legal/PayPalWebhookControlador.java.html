@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PayPalWebhookControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">PayPalWebhookControlador.java</span></div><h1>PayPalWebhookControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.service.legal.IPagoServicio;
+
+<span class="fc" id="L10">@Slf4j</span>
+@RestController
+@RequestMapping(&quot;/api/webhooks&quot;)
+@RequiredArgsConstructor
+public class PayPalWebhookControlador {
+
+    private final IPagoServicio pagoServicio;
+
+    /**
+     * Endpoint público para recibir notificaciones de PayPal.
+     * No requiere autenticación JWT (configurado en SecurityConfig).
+     * PayPal envía headers de verificación de firma.
+     */
+    @PostMapping(&quot;/paypal&quot;)
+    public ResponseEntity&lt;String&gt; recibirWebhook(
+            @RequestBody String payload,
+            @RequestHeader(value = &quot;PAYPAL-TRANSMISSION-ID&quot;, required = false) String transmissionId,
+            @RequestHeader(value = &quot;PAYPAL-TRANSMISSION-TIME&quot;, required = false) String transmissionTime,
+            @RequestHeader(value = &quot;PAYPAL-TRANSMISSION-SIG&quot;, required = false) String transmissionSig,
+            @RequestHeader(value = &quot;PAYPAL-CERT-URL&quot;, required = false) String certUrl,
+            @RequestHeader(value = &quot;PAYPAL-AUTH-ALGO&quot;, required = false) String authAlgo,
+            @RequestHeader(value = &quot;PAYPAL-AUTH-VERSION&quot;, required = false) String authVersion) {
+
+<span class="nc" id="L33">        log.info(&quot;Webhook PayPal recibido - transmissionId: {}&quot;, transmissionId);</span>
+
+<span class="nc" id="L35">        pagoServicio.procesarWebhookPayPal(payload, transmissionId, transmissionTime,</span>
+                transmissionSig, certUrl, authAlgo, authVersion);
+
+<span class="nc" id="L38">        return ResponseEntity.ok(&quot;OK&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,10 @@
+Can't use SSL_get_servername
+SSL handshake has read 1376 bytes and written 1538 bytes
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Protocol: TLSv1.3
+This TLS version forbids renegotiation.
+SSL-Session:
+    Protocol  : TLSv1.3
+    Cipher    : TLS_AES_256_GCM_SHA384
+    TLS session ticket lifetime hint: 86400 (seconds)
+    TLS session ticket:

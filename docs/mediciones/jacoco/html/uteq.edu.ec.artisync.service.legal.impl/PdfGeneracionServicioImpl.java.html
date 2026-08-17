@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PdfGeneracionServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">PdfGeneracionServicioImpl.java</span></div><h1>PdfGeneracionServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
+
+import java.io.ByteArrayOutputStream;
+
+<span class="fc" id="L10">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class PdfGeneracionServicioImpl implements IPdfGeneracionServicio {
+
+    @Override
+    public byte[] generarPdfDesdeHtml(String html) {
+<span class="nc" id="L17">        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {</span>
+<span class="nc" id="L18">            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder =</span>
+                    new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
+<span class="nc" id="L20">            builder.useFastMode();</span>
+<span class="nc" id="L21">            builder.withHtmlContent(html, &quot;/&quot;);</span>
+<span class="nc" id="L22">            builder.toStream(os);</span>
+<span class="nc" id="L23">            builder.run();</span>
+
+<span class="nc" id="L25">            log.info(&quot;PDF generado exitosamente ({} bytes)&quot;, os.size());</span>
+<span class="nc" id="L26">            return os.toByteArray();</span>
+<span class="nc" id="L27">        } catch (Exception e) {</span>
+<span class="nc" id="L28">            log.error(&quot;Error al generar PDF desde HTML&quot;, e);</span>
+<span class="nc" id="L29">            throw new RuntimeException(&quot;Error al generar el documento PDF: &quot; + e.getMessage(), e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

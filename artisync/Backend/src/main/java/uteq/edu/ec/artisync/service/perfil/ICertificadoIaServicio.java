@@ -10,6 +10,5 @@ public interface ICertificadoIaServicio {
     RespuestaCertificadoIa obtenerCertificadoPorId(Long idCertificado);
     List<RespuestaCertificadoIa> listarCertificadosPorPerfil(Long idPerfil);
     List<RespuestaCertificadoIa> listarTodosLosCertificados();
-    RespuestaCertificadoIa actualizarEstadoVerificacion(Long idCertificado, Long idNuevoEstado);
     void eliminarCertificado(Long idCertificado);
 }

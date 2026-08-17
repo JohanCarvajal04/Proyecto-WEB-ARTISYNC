@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwoFactorController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.seguridad</a> &gt; <span class="el_source">TwoFactorController.java</span></div><h1>TwoFactorController.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.seguridad;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorConfirmRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
+import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
+
+import java.security.Principal;
+
+@RestController
+@RequestMapping(&quot;/api/2fa&quot;)
+@RequiredArgsConstructor
+@Tag(name = &quot;Autenticación 2FA&quot;, description = &quot;Endpoints para gestionar la autenticación de dos factores (TOTP) y códigos de respaldo&quot;)
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class TwoFactorController {
+
+    private final TwoFactorService twoFactorService;
+
+    @Operation(summary = &quot;Iniciar configuración de 2FA (obtiene secreto, URI de QR y códigos de respaldo)&quot;)
+    @PostMapping(&quot;/setup&quot;)
+    public ResponseEntity&lt;TwoFactorSetupResponse&gt; setup2Fa(Principal principal) {
+<span class="nc" id="L29">        return ResponseEntity.ok(twoFactorService.setup2Fa(principal.getName()));</span>
+    }
+
+    @Operation(summary = &quot;Confirmar y activar 2FA verificando el primer código TOTP generado por el autenticador&quot;)
+    @PostMapping(&quot;/confirm&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; confirm2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
+<span class="nc" id="L35">        return ResponseEntity.ok(twoFactorService.confirm2Fa(principal.getName(), request.getCodigo()));</span>
+    }
+
+    @Operation(summary = &quot;Desactivar 2FA verificando con un código TOTP o de respaldo&quot;)
+    @DeleteMapping(&quot;/disable&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; disable2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
+<span class="nc" id="L41">        return ResponseEntity.ok(twoFactorService.disable2Fa(principal.getName(), request.getCodigo()));</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedisConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.config</a> &gt; <span class="el_source">RedisConfig.java</span></div><h1>RedisConfig.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import java.time.Duration;
+
+@Configuration
+@EnableCaching
+<span class="fc" id="L17">public class RedisConfig {</span>
+
+    @Value(&quot;${app.cache.catalogo.ttl-seconds:60}&quot;)
+    private long catalogoTtlSeconds;
+
+    @Bean
+    public RedisTemplate&lt;String, String&gt; redisTemplate(RedisConnectionFactory connectionFactory) {
+<span class="fc" id="L24">        RedisTemplate&lt;String, String&gt; template = new RedisTemplate&lt;&gt;();</span>
+<span class="fc" id="L25">        template.setConnectionFactory(connectionFactory);</span>
+<span class="fc" id="L26">        template.setKeySerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L27">        template.setValueSerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L28">        template.setHashKeySerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L29">        template.setHashValueSerializer(new StringRedisSerializer());</span>
+<span class="fc" id="L30">        template.afterPropertiesSet();</span>
+<span class="fc" id="L31">        return template;</span>
+    }
+
+    /**
+     * ADR-004: caché del catálogo con TTL corto configurable externamente (sin
+     * recompilar el backend), habilita el escenario &quot;frío vs caliente&quot; de las
+     * mediciones de rendimiento (Bloque C.1).
+     */
+    @Bean
+    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+<span class="fc" id="L41">        RedisCacheConfiguration catalogoConfig = RedisCacheConfiguration.defaultCacheConfig()</span>
+<span class="fc" id="L42">                .entryTtl(Duration.ofSeconds(catalogoTtlSeconds))</span>
+<span class="fc" id="L43">                .disableCachingNullValues();</span>
+
+<span class="fc" id="L45">        return RedisCacheManager.builder(connectionFactory)</span>
+<span class="fc" id="L46">                .withCacheConfiguration(&quot;catalogo&quot;, catalogoConfig)</span>
+<span class="fc" id="L47">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -10,7 +10,7 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 public interface AuthService {
     UserResponse register(RegisterRequest request);
     TokenResponse login(LoginRequest request);
-    TokenResponse verify2Fa(TwoFactorRequest request);
+    TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request);
     TokenResponse refreshToken(String refreshToken);
     RespuestaMensaje logout(String tokenHeader, String refreshToken);
     RespuestaMensaje forgotPassword(ForgotPasswordRequest request);

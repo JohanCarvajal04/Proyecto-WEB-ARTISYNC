@@ -1,0 +1,94 @@
+<div class="min-h-screen bg-surface-container-low flex items-center justify-center p-4 relative">
+  <div class="bg-surface-container-lowest rounded-2xl p-8 sm:p-10 max-w-[500px] w-full shadow-sm border border-outline-variant flex flex-col items-center">
+    
+    <!-- PASO 1: INICIO -->
+    @if (paso() === 'INICIO') {
+      <div class="w-14 h-14 rounded-2xl bg-primary/20 text-primary flex items-center justify-center mb-4 shadow-inner">
+        <span class="material-symbols-outlined text-[32px]">shield_lock</span>
+      </div>
+      <h1 class="font-headline text-2xl font-bold text-primary text-center">Protege tu Cuenta</h1>
+      <p class="text-sm text-on-surface-variant text-center mt-2 mb-6">
+        Añade una capa extra de seguridad con la autenticación de dos factores (2FA). Te pediremos un código de tu celular cada vez que inicies sesión.
+      </p>
+      <button (click)="iniciarSetup()" [disabled]="isLoading()"
+        class="w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3.5 rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2">
+        @if (isLoading()) {
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+        }
+        <span>Configurar Google Authenticator</span>
+      </button>
+    }
+
+    <!-- PASO 2: MOSTRAR QR Y CÓDIGOS -->
+    @if (paso() === 'QR') {
+      <h1 class="font-headline text-xl font-bold text-primary text-center mb-1">Escanea el Código QR</h1>
+      <p class="text-xs text-on-surface-variant text-center mb-4">
+        Abre Google Authenticator, Authy o tu app de 2FA preferida y escanea esta imagen:
+      </p>
+
+      @if (qrDataUrl()) {
+        <div class="p-3 bg-[#1e293b] rounded-xl border border-outline-variant mb-4 shadow-lg">
+          <img [src]="qrDataUrl()" alt="Código QR para 2FA" class="w-48 h-48 mx-auto rounded-lg">
+        </div>
+      }
+
+      <div class="w-full bg-surface-container p-3 rounded-lg border border-outline-variant mb-4 text-center">
+        <span class="text-[11px] text-on-surface-variant block mb-1">Si no puedes escanear el QR, ingresa esta llave manual:</span>
+        <code class="text-xs font-mono font-bold text-primary select-all">{{ setupData()?.secreto }}</code>
+      </div>
+
+      <div class="w-full mb-6">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-bold text-on-surface flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px] text-error">key</span>
+            Códigos de Respaldo (Guárdalos bien)
+          </span>
+          <button (click)="copiarCodigos()" type="button" class="text-xs text-primary hover:underline flex items-center gap-0.5">
+            <span class="material-symbols-outlined text-[14px]">content_copy</span> Copiar
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5 bg-surface p-3 rounded-lg border border-outline-variant max-h-32 overflow-y-auto">
+          @for (cod of setupData()?.codigosRespaldo; track cod) {
+            <div class="font-mono text-xs text-center font-semibold bg-surface-container-high py-1 rounded text-on-surface">
+              {{ cod }}
+            </div>
+          }
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="confirmar()" class="w-full flex flex-col gap-3 border-t border-outline-variant pt-4">
+        <label class="text-xs font-medium text-on-surface text-center">Ingresa el código de 6 dígitos para verificar</label>
+        <input formControlName="codigo" type="text" maxlength="6" placeholder="000000" 
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2.5 text-center tracking-widest text-lg font-bold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+        
+        @if (form.get('codigo')?.touched && form.get('codigo')?.invalid) {
+          <span class="text-xs text-error text-center">Ingresa los 6 dígitos que muestra tu app</span>
+        }
+
+        <button type="submit" [disabled]="isLoading()"
+          class="w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3 rounded-lg text-sm transition-all shadow flex items-center justify-center gap-2">
+          @if (isLoading()) {
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          }
+          <span>Activar 2FA</span>
+        </button>
+      </form>
+    }
+
+    <!-- PASO 3: CONFIRMADO -->
+    @if (paso() === 'CONFIRMADO') {
+      <div class="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mb-4 shadow-inner">
+        <span class="material-symbols-outlined text-[40px]">check_circle</span>
+      </div>
+      <h1 class="font-headline text-2xl font-bold text-on-surface text-center">¡2FA Activado!</h1>
+      <p class="text-sm text-on-surface-variant text-center mt-2 mb-6">
+        Tu cuenta ahora cuenta con seguridad de autenticación de dos factores. Guarda en un lugar seguro tus códigos de respaldo.
+      </p>
+      <button (click)="finalizar()"
+        class="w-full bg-primary hover:bg-primary/90 text-on-primary font-medium py-3.5 rounded-xl text-sm transition-all shadow-md">
+        Volver al Panel
+      </button>
+    }
+
+  </div>
+</div>

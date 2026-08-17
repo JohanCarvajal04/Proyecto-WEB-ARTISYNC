@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CategoriaControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.catalogo</a> &gt; <span class="el_source">CategoriaControlador.java</span></div><h1>CategoriaControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.catalogo;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
+import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/v1/categorias&quot;)
+@RequiredArgsConstructor
+public class CategoriaControlador {
+
+    private final ICategoriaServicio categoriaServicio;
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarCategoriasActivas() {
+<span class="nc" id="L28">        return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());</span>
+    }
+
+    @GetMapping(&quot;/todas&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarTodasLasCategorias() {
+<span class="nc" id="L34">        return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaCategoria&gt; obtenerCategoriaPorId(@PathVariable Long id) {
+<span class="nc" id="L39">        return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));</span>
+    }
+
+    @PostMapping
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaCategoria&gt; crearCategoria(@Valid @RequestBody PeticionCrearCategoria peticion) {
+<span class="nc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(peticion));</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaCategoria&gt; actualizarCategoria(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionActualizarCategoria peticion) {
+<span class="nc" id="L53">        return ResponseEntity.ok(categoriaServicio.actualizarCategoria(id, peticion));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCategoria(@PathVariable Long id) {
+<span class="nc" id="L59">        categoriaServicio.eliminarCategoria(id);</span>
+<span class="nc" id="L60">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Categoria eliminada exitosamente&quot;));</span>
+    }
+
+    @GetMapping(&quot;/{id}/subcategorias&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaSubcategoria&gt;&gt; listarSubcategoriasPorCategoria(@PathVariable Long id) {
+<span class="nc" id="L65">        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

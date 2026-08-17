@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChatServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.comunicacion.impl</a> &gt; <span class="el_source">ChatServiceImpl.java</span></div><h1>ChatServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.comunicacion.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
+import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
+import uteq.edu.ec.artisync.entity.legal.Mensaje;
+import uteq.edu.ec.artisync.entity.legal.SalaChat;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
+import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
+import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Implementación del servicio de chat.
+ * RF-14: Chat en tiempo real vía WebSocket.
+ * RF-15: Filtrado de datos de contacto con registro de infracciones.
+ */
+<span class="fc" id="L37">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ChatServiceImpl implements ChatService {
+
+    private static final int MAX_INFRACCIONES = 3;
+    private static final int PERIODO_DIAS     = 30;
+
+    private final SalaChatRepository      salaChatRepo;
+    private final MensajeRepository       mensajeRepo;
+    private final UsuarioRepository       usuarioRepo;
+    private final InfraccionRepository    infraccionRepo;
+    private final MensajeFilterService    mensajeFilterService;
+    private final NotificacionService     notificacionService;
+    private final SimpMessagingTemplate   messagingTemplate;
+
+    // -------------------------------------------------------------------------
+    // Sala de Chat
+    // -------------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    public SalaChat crearSala(Pedido pedido) {
+        // Prevenir duplicados: un pedido → una sala
+<span class="fc" id="L61">        return salaChatRepo.findByPedidoIdPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L62">                .orElseGet(() -&gt; {</span>
+<span class="fc" id="L63">                    SalaChat sala = SalaChat.builder()</span>
+<span class="fc" id="L64">                            .pedido(pedido)</span>
+<span class="fc" id="L65">                            .salaActiva(true)</span>
+<span class="fc" id="L66">                            .build();</span>
+<span class="fc" id="L67">                    log.info(&quot;Sala de chat creada para pedido {}&quot;, pedido.getIdPedido());</span>
+<span class="fc" id="L68">                    return salaChatRepo.save(sala);</span>
+                });
+    }
+
+    @Override
+    @Transactional
+    public void cerrarSala(Long idPedido) {
+<span class="fc" id="L75">        salaChatRepo.findByPedidoIdPedido(idPedido).ifPresent(sala -&gt; {</span>
+<span class="fc" id="L76">            sala.setSalaActiva(false);</span>
+<span class="fc" id="L77">            salaChatRepo.save(sala);</span>
+
+            // Notificar a los participantes que la sala fue cerrada
+<span class="fc" id="L80">            messagingTemplate.convertAndSend(</span>
+<span class="fc" id="L81">                    &quot;/topic/sala.&quot; + sala.getIdSala(),</span>
+<span class="fc" id="L82">                    (Object) Map.of(&quot;tipo&quot;, &quot;SALA_CERRADA&quot;, &quot;mensaje&quot;, &quot;Esta sala ha sido cerrada&quot;)</span>
+            );
+<span class="fc" id="L84">            log.info(&quot;Sala {} cerrada para pedido {}&quot;, sala.getIdSala(), idPedido);</span>
+<span class="fc" id="L85">        });</span>
+<span class="fc" id="L86">    }</span>
+
+    // -------------------------------------------------------------------------
+    // Mensajes
+    // -------------------------------------------------------------------------
+
+    @Override
+    @Transactional
+    public RespuestaMensaje enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
+<span class="fc" id="L95">        SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L96">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;No existe sala de chat para el pedido &quot; + idPedido));
+
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (Boolean.FALSE.equals(sala.getSalaActiva())) {</span>
+<span class="fc" id="L100">            throw new ExcepcionReglaNegocio(&quot;Esta sala ha sido cerrada&quot;);</span>
+        }
+
+        // RF-15: Filtrar datos de contacto antes de persistir el mensaje
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (mensajeFilterService.contieneContacto(cuerpoMensaje)) {</span>
+<span class="fc" id="L105">            registrarInfraccionInterna(idRemitente, sala.getPedido(), cuerpoMensaje);</span>
+<span class="fc" id="L106">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Tu mensaje no fue entregado porque contiene datos de contacto. Infracción registrada.&quot;);
+        }
+
+<span class="fc" id="L110">        Usuario remitente = usuarioRepo.getReferenceById(idRemitente);</span>
+<span class="fc" id="L111">        Mensaje mensaje = Mensaje.builder()</span>
+<span class="fc" id="L112">                .sala(sala)</span>
+<span class="fc" id="L113">                .remitente(remitente)</span>
+<span class="fc" id="L114">                .cuerpoMensaje(cuerpoMensaje)</span>
+<span class="fc" id="L115">                .leido(false)</span>
+<span class="fc" id="L116">                .build();</span>
+<span class="fc" id="L117">        mensaje = mensajeRepo.save(mensaje);</span>
+
+<span class="fc" id="L119">        RespuestaMensaje response = mapToResponse(mensaje, remitente);</span>
+
+        // Publicar en el tópico de la sala para entrega en tiempo real
+<span class="fc" id="L122">        messagingTemplate.convertAndSend(&quot;/topic/sala.&quot; + sala.getIdSala(), response);</span>
+
+<span class="fc" id="L124">        return response;</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page&lt;RespuestaMensaje&gt; obtenerMensajes(Long idPedido, Pageable pageable) {
+<span class="nc" id="L130">        SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="nc" id="L131">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;No existe sala de chat para el pedido &quot; + idPedido));
+
+<span class="nc" id="L134">        List&lt;Mensaje&gt; mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());</span>
+<span class="nc" id="L135">        List&lt;RespuestaMensaje&gt; dtos = mensajes.stream()</span>
+<span class="nc" id="L136">                .map(m -&gt; mapToResponse(m, m.getRemitente()))</span>
+<span class="nc" id="L137">                .toList();</span>
+
+<span class="nc" id="L139">        int start = (int) pageable.getOffset();</span>
+<span class="nc" id="L140">        int end = Math.min(start + pageable.getPageSize(), dtos.size());</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        List&lt;RespuestaMensaje&gt; page = start &gt; dtos.size() ? List.of() : dtos.subList(start, end);</span>
+<span class="nc" id="L142">        return new PageImpl&lt;&gt;(page, pageable, dtos.size());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaSalaChat obtenerEstadoSala(Long idPedido) {
+<span class="fc" id="L148">        SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L149">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;No existe sala de chat para el pedido &quot; + idPedido));
+
+<span class="fc" id="L152">        return RespuestaSalaChat.builder()</span>
+<span class="fc" id="L153">                .idSala(sala.getIdSala())</span>
+<span class="fc" id="L154">                .idPedido(sala.getPedido().getIdPedido())</span>
+<span class="fc" id="L155">                .salaActiva(sala.getSalaActiva())</span>
+<span class="fc" id="L156">                .fechaApertura(sala.getFechaApertura())</span>
+<span class="fc" id="L157">                .build();</span>
+    }
+
+    // -------------------------------------------------------------------------
+    // Infracciones (RF-15) — lógica interna de Chat
+    // -------------------------------------------------------------------------
+
+    private void registrarInfraccionInterna(Long idRemitente, Pedido pedido, String cuerpoMensaje) {
+<span class="fc" id="L165">        Usuario usuario = usuarioRepo.findById(idRemitente)</span>
+<span class="pc" id="L166">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idRemitente));</span>
+
+<span class="fc" id="L168">        String patron = mensajeFilterService.detectarPatron(cuerpoMensaje);</span>
+
+<span class="fc" id="L170">        InfraccionMensaje infraccion = InfraccionMensaje.builder()</span>
+<span class="fc" id="L171">                .usuario(usuario)</span>
+<span class="fc" id="L172">                .pedido(pedido)</span>
+<span class="fc" id="L173">                .mensajeOriginal(cuerpoMensaje)</span>
+<span class="fc" id="L174">                .patronDetectado(patron)</span>
+<span class="fc" id="L175">                .build();</span>
+<span class="fc" id="L176">        infraccionRepo.save(infraccion);</span>
+
+<span class="fc" id="L178">        long count = infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(</span>
+<span class="fc" id="L179">                idRemitente, LocalDateTime.now().minusDays(PERIODO_DIAS));</span>
+
+<span class="fc" id="L181">        log.warn(&quot;Infracción RF-15 registrada para usuario {}. Patrón: {}. Total en 30 días: {}&quot;,</span>
+<span class="fc" id="L182">                idRemitente, patron, count);</span>
+
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (count &gt;= MAX_INFRACCIONES) {</span>
+<span class="fc" id="L185">            usuario.setEstadoCuenta(false);</span>
+<span class="fc" id="L186">            usuarioRepo.save(usuario);</span>
+<span class="fc" id="L187">            LocalDateTime hastaFecha = LocalDateTime.now().plusDays(15);</span>
+<span class="fc" id="L188">            String mensaje = &quot;Tu cuenta está suspendida hasta &quot; + hastaFecha.toLocalDate()</span>
+                    + &quot; por superar el límite de infracciones de datos de contacto.&quot;;
+<span class="fc" id="L190">            notificacionService.notificar(usuario, &quot;CUENTA_SUSPENDIDA&quot;, mensaje);</span>
+<span class="fc" id="L191">            log.warn(&quot;Cuenta del usuario {} suspendida hasta {}&quot;, usuario.getCorreo(), hastaFecha.toLocalDate());</span>
+        }
+<span class="fc" id="L193">    }</span>
+
+    // -------------------------------------------------------------------------
+    private RespuestaMensaje mapToResponse(Mensaje m, Usuario remitente) {
+<span class="fc" id="L197">        return RespuestaMensaje.builder()</span>
+<span class="fc" id="L198">                .idMensaje(m.getIdMensaje())</span>
+<span class="fc" id="L199">                .idSala(m.getSala().getIdSala())</span>
+<span class="fc" id="L200">                .idRemitente(remitente.getIdUsuario())</span>
+<span class="fc" id="L201">                .nombreRemitente(remitente.getNombres() + &quot; &quot; + remitente.getApellidos())</span>
+<span class="fc" id="L202">                .cuerpoMensaje(m.getCuerpoMensaje())</span>
+<span class="fc" id="L203">                .fechaHoraEnvio(m.getFechaHoraEnvio())</span>
+<span class="fc" id="L204">                .leido(m.getLeido())</span>
+<span class="fc" id="L205">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

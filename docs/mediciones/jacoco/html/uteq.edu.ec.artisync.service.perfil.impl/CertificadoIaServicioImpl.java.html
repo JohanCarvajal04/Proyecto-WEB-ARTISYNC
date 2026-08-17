@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CertificadoIaServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.perfil.impl</a> &gt; <span class="el_source">CertificadoIaServicioImpl.java</span></div><h1>CertificadoIaServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.perfil.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearCertificadoIa;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaCertificadoIa;
+import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
+import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
+import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.service.perfil.ICertificadoIaServicio;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
+
+    private final CertificadoIaRepository certificadoRepository;
+    private final PerfilCreadorRepository perfilRepository;
+    private final EstadoVerificacionRepository estadoRepository;
+
+    @Override
+    @Transactional
+    public RespuestaCertificadoIa emitirCertificado(PeticionCrearCertificadoIa peticion) {
+<span class="nc" id="L31">        PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())</span>
+<span class="nc" id="L32">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + peticion.idPerfil()));</span>
+
+<span class="nc" id="L34">        EstadoVerificacion estado = estadoRepository.findById(peticion.idEstadoVerificacion())</span>
+<span class="nc" id="L35">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación no encontrado con ID: &quot; + peticion.idEstadoVerificacion()));</span>
+
+<span class="nc" id="L37">        CertificadoIa certificado = CertificadoIa.builder()</span>
+<span class="nc" id="L38">                .perfil(perfil)</span>
+<span class="nc" id="L39">                .estadoVerificacion(estado)</span>
+<span class="nc" id="L40">                .urlDocumentoS3(peticion.urlDocumentoS3())</span>
+<span class="nc" id="L41">                .puntajeConfianzaIa(peticion.puntajeConfianzaIa())</span>
+<span class="nc" id="L42">                .build();</span>
+
+<span class="nc" id="L44">        CertificadoIa guardado = certificadoRepository.save(certificado);</span>
+<span class="nc" id="L45">        return mapearARespuesta(guardado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaCertificadoIa obtenerCertificadoPorId(Long idCertificado) {
+<span class="nc" id="L51">        CertificadoIa certificado = certificadoRepository.findById(idCertificado)</span>
+<span class="nc" id="L52">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado));</span>
+<span class="nc" id="L53">        return mapearARespuesta(certificado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaCertificadoIa&gt; listarCertificadosPorPerfil(Long idPerfil) {
+<span class="nc" id="L59">        return certificadoRepository.findByPerfilIdPerfil(idPerfil).stream()</span>
+<span class="nc" id="L60">                .map(this::mapearARespuesta)</span>
+<span class="nc" id="L61">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaCertificadoIa&gt; listarTodosLosCertificados() {
+<span class="nc" id="L67">        return certificadoRepository.findAll().stream()</span>
+<span class="nc" id="L68">                .map(this::mapearARespuesta)</span>
+<span class="nc" id="L69">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaCertificadoIa actualizarEstadoVerificacion(Long idCertificado, Long idNuevoEstado) {
+<span class="nc" id="L75">        CertificadoIa certificado = certificadoRepository.findById(idCertificado)</span>
+<span class="nc" id="L76">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado));</span>
+
+<span class="nc" id="L78">        EstadoVerificacion nuevoEstado = estadoRepository.findById(idNuevoEstado)</span>
+<span class="nc" id="L79">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación no encontrado con ID: &quot; + idNuevoEstado));</span>
+
+<span class="nc" id="L81">        certificado.setEstadoVerificacion(nuevoEstado);</span>
+<span class="nc" id="L82">        CertificadoIa actualizado = certificadoRepository.save(certificado);</span>
+<span class="nc" id="L83">        return mapearARespuesta(actualizado);</span>
+    }
+
+    @Override
+    @Transactional
+    public void eliminarCertificado(Long idCertificado) {
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (!certificadoRepository.existsById(idCertificado)) {</span>
+<span class="nc" id="L90">            throw new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado);</span>
+        }
+<span class="nc" id="L92">        certificadoRepository.deleteById(idCertificado);</span>
+<span class="nc" id="L93">    }</span>
+
+    private RespuestaCertificadoIa mapearARespuesta(CertificadoIa certificado) {
+<span class="nc" id="L96">        return RespuestaCertificadoIa.builder()</span>
+<span class="nc" id="L97">                .idCertificado(certificado.getIdCertificado())</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                .idPerfil(certificado.getPerfil() != null ? certificado.getPerfil().getIdPerfil() : null)</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                .idEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getIdEstadoVerificacion() : null)</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                .nombreEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getNombreEstado() : null)</span>
+<span class="nc" id="L101">                .urlDocumentoS3(certificado.getUrlDocumentoS3())</span>
+<span class="nc" id="L102">                .puntajeConfianzaIa(certificado.getPuntajeConfianzaIa())</span>
+<span class="nc" id="L103">                .fechaAnalisis(certificado.getFechaAnalisis())</span>
+<span class="nc" id="L104">                .build();</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

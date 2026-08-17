@@ -13,7 +13,7 @@ public interface IPedidoServicio {
 
     RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion);
 
-    RespuestaPedido obtenerPedidoPorId(Long idPedido);
+    RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante);
 
     List<RespuestaPedidoResumido> listarMisPedidos(Long idCliente);
 
