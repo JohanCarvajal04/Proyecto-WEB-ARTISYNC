@@ -8,13 +8,16 @@ import { Portafolio, PortafolioItem } from '../../../perfil/models/portafolio.mo
 import { ResenaService } from '../../../creador/services/resena.service';
 import { SorteoPublicoService } from '../../../social/services/sorteo-publico.service';
 import { RespuestaResena, RespuestaSorteo } from '../../../social/models/social.model';
+import { SeguidorService, RespuestaEstadoSeguimiento } from '../../../social/services/seguidor.service';
+import { AuthService } from '../../../seguridad/services/auth.service';
+import { ComentariosObraComponent } from '../../../social/components/comentarios-obra/comentarios-obra.component';
 
 type Pestana = 'servicios' | 'portafolio' | 'resenas' | 'sorteos';
 
 @Component({
   selector: 'app-creador-publico',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ComentariosObraComponent],
   templateUrl: './creador-publico.component.html'
 })
 export class CreadorPublicoComponent implements OnInit {
@@ -23,6 +26,8 @@ export class CreadorPublicoComponent implements OnInit {
   private portafolioService = inject(PortafolioService);
   private resenaService = inject(ResenaService);
   private sorteoService = inject(SorteoPublicoService);
+  private seguidorService = inject(SeguidorService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
 
   readonly perfil = signal<RespuestaPerfil | null>(null);
@@ -32,6 +37,8 @@ export class CreadorPublicoComponent implements OnInit {
   readonly resenas = signal<RespuestaResena[]>([]);
   readonly promedio = signal<number | null>(null);
   readonly sorteos = signal<RespuestaSorteo[]>([]);
+  readonly estadoSeguimiento = signal<RespuestaEstadoSeguimiento | null>(null);
+  readonly isLogueado = signal<boolean>(false);
 
   readonly pestana = signal<Pestana>('servicios');
   readonly isLoading = signal<boolean>(true);
@@ -39,6 +46,7 @@ export class CreadorPublicoComponent implements OnInit {
 
   ngOnInit(): void {
     const idPerfil = Number(this.route.snapshot.paramMap.get('idPerfil'));
+    this.isLogueado.set(this.authService.isLoggedIn());
     this.cargar(idPerfil);
   }
 
@@ -55,9 +63,10 @@ export class CreadorPublicoComponent implements OnInit {
       portafolio: this.portafolioService.obtenerPorPerfil(idPerfil).pipe(catchError(() => of(null))),
       resenas: this.resenaService.listarPorCreador(idPerfil).pipe(catchError(() => of([] as RespuestaResena[]))),
       promedio: this.resenaService.obtenerPromedio(idPerfil).pipe(catchError(() => of({} as Record<string, unknown>))),
-      sorteos: this.sorteoService.listarPorCreador(idPerfil).pipe(catchError(() => of([] as RespuestaSorteo[])))
+      sorteos: this.sorteoService.listarPorCreador(idPerfil).pipe(catchError(() => of([] as RespuestaSorteo[]))),
+      estadoSeguimiento: this.seguidorService.obtenerEstado(idPerfil).pipe(catchError(() => of(null)))
     }).subscribe({
-      next: ({ perfil, servicios, portafolio, resenas, promedio, sorteos }) => {
+      next: ({ perfil, servicios, portafolio, resenas, promedio, sorteos, estadoSeguimiento }) => {
         this.perfil.set(perfil);
         this.servicios.set(servicios);
         this.portafolio.set(portafolio);
@@ -65,6 +74,7 @@ export class CreadorPublicoComponent implements OnInit {
         const valor = Number(promedio['promedio'] ?? 0);
         this.promedio.set(valor > 0 ? valor : null);
         this.sorteos.set(sorteos);
+        if (estadoSeguimiento) this.estadoSeguimiento.set(estadoSeguimiento);
         this.isLoading.set(false);
 
         if (portafolio) this.cargarPortafolio(portafolio);
@@ -91,6 +101,28 @@ export class CreadorPublicoComponent implements OnInit {
 
   cambiarPestana(pestana: Pestana): void {
     this.pestana.set(pestana);
+  }
+
+  toggleSeguir(): void {
+    const p = this.perfil();
+    if (!p) return;
+    
+    const estado = this.estadoSeguimiento();
+    const isSiguiendo = estado?.estaSiguiendo || false;
+    
+    if (isSiguiendo) {
+      this.seguidorService.dejarDeSeguir(p.idPerfil).subscribe({
+        next: () => {
+          this.estadoSeguimiento.update(e => e ? { estaSiguiendo: false, cantidadSeguidores: Math.max(0, e.cantidadSeguidores - 1) } : null);
+        }
+      });
+    } else {
+      this.seguidorService.seguir(p.idPerfil).subscribe({
+        next: () => {
+          this.estadoSeguimiento.update(e => e ? { estaSiguiendo: true, cantidadSeguidores: e.cantidadSeguidores + 1 } : { estaSiguiendo: true, cantidadSeguidores: 1 });
+        }
+      });
+    }
   }
 
   nombreCompleto(): string {

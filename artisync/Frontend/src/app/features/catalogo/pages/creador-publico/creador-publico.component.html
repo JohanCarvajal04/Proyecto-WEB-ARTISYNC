@@ -42,6 +42,16 @@
             </div>
             <span class="text-sm font-bold text-slate-600">{{ (promedio() || 0).toFixed(1) }}</span>
             <span class="text-xs text-slate-300">({{ resenas().length }} reseñas)</span>
+            
+            <span class="text-slate-200 mx-1">•</span>
+            
+            <span class="text-sm font-bold text-slate-600">{{ estadoSeguimiento()?.cantidadSeguidores || 0 }}</span>
+            <span class="text-xs text-slate-300">seguidores</span>
+          </div>
+        } @else {
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-bold text-slate-600">{{ estadoSeguimiento()?.cantidadSeguidores || 0 }}</span>
+            <span class="text-xs text-slate-300">seguidores</span>
           </div>
         }
 
@@ -59,6 +69,17 @@
           </a>
         }
       </div>
+
+      @if (isLogueado()) {
+        <div class="mt-4 sm:mt-0">
+          <button type="button" (click)="toggleSeguir()"
+            [class]="estadoSeguimiento()?.estaSiguiendo 
+              ? 'px-5 py-2 rounded-xl text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors whitespace-nowrap border border-transparent' 
+              : 'px-5 py-2 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-colors whitespace-nowrap border border-transparent'">
+            {{ estadoSeguimiento()?.estaSiguiendo ? 'Siguiendo' : 'Seguir' }}
+          </button>
+        </div>
+      }
     </div>
 
     <!-- Pestañas -->
@@ -134,12 +155,16 @@
                 <img [src]="obra.urlArchivo" [alt]="obra.tituloObra" class="w-full h-full object-cover"
                   (error)="$any($event.target).style.display='none'" />
               </div>
-              <div class="p-4 flex flex-col gap-1.5">
+              <div class="p-4 flex flex-col gap-1.5 flex-1">
                 <h3 class="font-headline font-semibold text-sm text-[#0F2027]">{{ obra.tituloObra }}</h3>
                 @if (obra.descripcionObra) {
                   <p class="text-xs text-slate-400 leading-relaxed line-clamp-3">{{ obra.descripcionObra }}</p>
                 }
                 <span class="text-[10px] text-slate-300 font-mono mt-1">{{ formatDate(obra.fechaSubida) }}</span>
+
+                <div class="mt-auto pt-4">
+                  <app-comentarios-obra [idItemPortafolio]="obra.idItemPortafolio" [idCreador]="p.idUsuario"></app-comentarios-obra>
+                </div>
               </div>
             </div>
           }
