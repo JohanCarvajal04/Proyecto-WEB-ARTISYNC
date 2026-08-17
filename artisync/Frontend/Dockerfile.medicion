@@ -1,0 +1,23 @@
+# Dockerfile.medicion — build de producción para mediciones reproducibles
+# (Lighthouse, k6, OWASP). No reemplaza Dockerfile (dev, ng serve con live
+# reload): se usa solo vía el override docker-compose.lighthouse.yml.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.lighthouse.yml \
+#     up -d --build frontend
+#
+# Multi-stage: compila el build de producción de Angular y lo sirve con
+# nginx (nginx.conf ya versionado, sin cambios) — el mismo par
+# build-de-producción + nginx que generó los reportes ya archivados en
+# docs/mediciones/lighthouse/ (lhci-20260730-2009.json y -mejorado.json).
+
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npx ng build --configuration production
+
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/Frontend/browser /usr/share/nginx/html
+EXPOSE 4200

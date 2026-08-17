@@ -10,7 +10,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: up down test bench audit clean sus
+.PHONY: up down test bench audit clean sus lighthouse
 
 ## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
 up:
@@ -64,6 +64,48 @@ audit:
 clean:
 	$(COMPOSE) down -v
 	cd artisync/Backend && ./mvnw -B clean
+
+## Auditoria de calidad web Lighthouse (Bloque A.1): perfiles mobile y desktop,
+## 3 corridas cada uno via @lhci/cli, contra el build de PRODUCCION del
+## frontend (nginx), no el ng serve de desarrollo. Requiere el backend ya
+## saludable (`make up`). Reconstruye el frontend con el override de medicion
+## y lo deja asi al terminar; volver al frontend de desarrollo con
+## `docker compose -f artisync/docker-compose.yml up -d --build frontend`.
+##
+## Corre lhci dentro de un contenedor Linux efimero (node:20 + chromium), en
+## vez de invocar npx directo en la maquina del desarrollador: chrome-launcher
+## (dependencia de lighthouse) tiene un bug de limpieza de directorio temporal
+## en Windows (EPERM al borrar el perfil de Chrome) que aborta la corrida
+## antes de escribir el reporte. El contenedor efimero comparte el namespace
+## de red del propio contenedor "frontend" (--network container:pfc_frontend,
+## no la red de compose) para que "localhost:4200" en lighthouserc.*.json
+## resuelva igual que en la maquina del desarrollador — usar el nombre DNS
+## interno de compose ("frontend") en su lugar rompe la deteccion de
+## "contexto seguro" de Lighthouse para localhost y produce falsos negativos
+## en is-on-https/redirects-http que no reflejan la aplicacion real. Los dos
+## perfiles se corren en invocaciones SEPARADAS y SECUENCIALES (nunca en
+## paralelo): ambas comparten el mismo .lighthouseci/ como scratch dir, y
+## correrlas a la vez contamina el conteo de corridas y satura CPU/red,
+## sesgando los resultados.
+lighthouse:
+	$(COMPOSE) -f artisync/docker-compose.lighthouse.yml up -d --wait --build frontend
+	@rm -rf artisync/Frontend/.lighthouseci
+	docker run --rm --network container:pfc_frontend \
+		-v "$(CURDIR):/repo" -w /repo/artisync/Frontend \
+		node:20-bookworm-slim bash -c ' \
+			apt-get update -qq && apt-get install -y -qq chromium >/dev/null; \
+			export CHROME_PATH=$$(command -v chromium); \
+			npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.mobile.json --collect.settings.chromeFlags="--no-sandbox" \
+		' || true
+	@rm -rf artisync/Frontend/.lighthouseci
+	docker run --rm --network container:pfc_frontend \
+		-v "$(CURDIR):/repo" -w /repo/artisync/Frontend \
+		node:20-bookworm-slim bash -c ' \
+			apt-get update -qq && apt-get install -y -qq chromium >/dev/null; \
+			export CHROME_PATH=$$(command -v chromium); \
+			npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.desktop.json --collect.settings.chromeFlags="--no-sandbox" \
+		' || true
+	@echo "OK: reportes en docs/mediciones/lighthouse/ (nombrados localhost--<timestamp>.report.*; renombrar/archivar con la convencion lhci-YYYYMMDD-HHMM-<perfil>-runN antes de comitear)."
 
 ## Calcula el puntaje SUS (Bloque C.3) a partir de docs/mediciones/sus/sus-raw.csv
 ## y escribe docs/mediciones/sus/salida-sus.txt. Falla si el CSV solo tiene
