@@ -1,7 +1,7 @@
 # Artisync — Plataforma web de comisiones y venta de contenido digital
 
 [![CI](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml/badge.svg)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21730559.svg)](https://doi.org/10.5281/zenodo.21730559)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21978572.svg)](https://doi.org/10.5281/zenodo.21978572)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.0.0)
 
@@ -10,7 +10,7 @@ Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computaci�
 
 Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta **Creadores** con **Clientes** y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón *escrow* vía PayPal, y funciones sociales.
 
-> **DOI persistente.** El archivo Zenodo del tag `v0.9.0-rc` está publicado con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559), declarado también en `CITATION.cff`. Pendiente: generar el registro de Zenodo correspondiente al tag `v1.0.0` (requiere crear el Release de GitHub sobre el tag para que Zenodo lo detecte) y declararlo en la portada del documento académico final.
+> **DOI persistente.** El archivo Zenodo del tag `v1.0.0` está publicado con el DOI [`10.5281/zenodo.21978572`](https://doi.org/10.5281/zenodo.21978572), declarado también en `CITATION.cff`. La versión anterior, `v0.9.0-rc`, quedó archivada con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559). Pendiente: declarar el DOI de `v1.0.0` en la portada del documento académico final.
 
 ---
 
