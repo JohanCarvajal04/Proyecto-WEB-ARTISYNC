@@ -19,8 +19,8 @@ import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.repository.seguridad.PermisoRepository;
 import uteq.edu.ec.artisync.repository.seguridad.RolRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -39,9 +39,6 @@ class RolePermissionServiceImplTest {
     @Mock
     private PermisoRepository permisoRepository;
 
-    @Mock
-    private UsuarioRolRepository usuarioRolRepository;
-
     @InjectMocks
     private RolePermissionServiceImpl service;
 
@@ -55,6 +52,11 @@ class RolePermissionServiceImplTest {
                 .descripcionRol("Rol de supervisión")
                 .permisos(new HashSet<>())
                 .build();
+    }
+
+    /** Simula lo que Spring Data envuelve cuando fn_x lanza RAISE EXCEPTION ... USING ERRCODE = '...'. */
+    private static RuntimeException excepcionSql(String sqlState, String mensaje) {
+        return new RuntimeException(new SQLException(mensaje, sqlState));
     }
 
     @Test
@@ -91,38 +93,41 @@ class RolePermissionServiceImplTest {
         verify(rolRepository).save(any(Rol.class));
     }
 
+    // ── deleteRole (REQ-F-004 / fn_eliminar_rol) ────────────────────────────
+
     @Test
     void deleteRole_Success() {
-        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
-        when(usuarioRolRepository.existsByRolIdRol(10L)).thenReturn(false);
+        when(rolRepository.eliminarRol(10L)).thenReturn(Boolean.TRUE);
 
         assertDoesNotThrow(() -> service.deleteRole(10L));
-        verify(rolRepository).delete(rolCustom);
+        verify(rolRepository).eliminarRol(10L);
     }
 
     @Test
     void deleteRole_FailsForSystemRole() {
-        Rol adminRol = Rol.builder().idRol(1L).nombreRol("ADMIN").build();
-        when(rolRepository.findById(1L)).thenReturn(Optional.of(adminRol));
+        when(rolRepository.eliminarRol(1L))
+                .thenThrow(excepcionSql("23514", "No se puede eliminar un rol base del sistema: ADMIN"));
 
-        assertThrows(ResponseStatusException.class, () -> service.deleteRole(1L));
-        verify(rolRepository, never()).delete(any(Rol.class));
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> service.deleteRole(1L));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test
     void deleteRole_FailsWhenUsuariosAsignados() {
-        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
-        when(usuarioRolRepository.existsByRolIdRol(10L)).thenReturn(true);
+        when(rolRepository.eliminarRol(10L))
+                .thenThrow(excepcionSql("23514", "No se puede eliminar el rol porque tiene usuarios activos asignados"));
 
-        assertThrows(ResponseStatusException.class, () -> service.deleteRole(10L));
-        verify(rolRepository, never()).delete(any(Rol.class));
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> service.deleteRole(10L));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test
     void deleteRole_ThrowsNotFound_WhenRolNoExiste() {
-        when(rolRepository.findById(99L)).thenReturn(Optional.empty());
+        when(rolRepository.eliminarRol(99L))
+                .thenThrow(excepcionSql("P0002", "Rol no encontrado con ID: 99"));
 
-        assertThrows(ResponseStatusException.class, () -> service.deleteRole(99L));
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> service.deleteRole(99L));
+        assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
     @Test
@@ -174,39 +179,38 @@ class RolePermissionServiceImplTest {
         assertThrows(ResponseStatusException.class, () -> service.getPermissionsByRole("fantasma"));
     }
 
+    // ── syncPermissions (REQ-F-003 / fn_sincronizar_permisos_rol) ───────────
+
     @Test
     void syncPermissions_AsignaLosPermisosIndicados() {
-        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").build();
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
-        when(permisoRepository.findByNombrePermiso("CATALOGO_VER")).thenReturn(Optional.of(permiso));
-        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class))).thenReturn(1);
 
-        service.syncPermissions("supervisor", List.of("catalogo_ver"));
+        assertDoesNotThrow(() -> service.syncPermissions("supervisor", List.of("catalogo_ver")));
 
-        assertEquals(Set.of(permiso), rolCustom.getPermisos());
+        verify(rolRepository).sincronizarPermisos(eq("SUPERVISOR"), eq(new String[]{"catalogo_ver"}));
     }
 
     @Test
     void syncPermissions_LimpiaPermisos_CuandoListaVacia() {
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
-        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class))).thenReturn(0);
 
-        service.syncPermissions("SUPERVISOR", List.of());
+        assertDoesNotThrow(() -> service.syncPermissions("SUPERVISOR", List.of()));
 
-        assertTrue(rolCustom.getPermisos().isEmpty());
+        verify(rolRepository).sincronizarPermisos(eq("SUPERVISOR"), eq(new String[0]));
     }
 
     @Test
     void syncPermissions_ThrowsBadRequest_WhenPermisoInexistente() {
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
-        when(permisoRepository.findByNombrePermiso("FANTASMA")).thenReturn(Optional.empty());
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class)))
+                .thenThrow(excepcionSql("23503", "Uno o mas permisos son inexistentes para el rol SUPERVISOR"));
 
         assertThrows(ResponseStatusException.class, () -> service.syncPermissions("SUPERVISOR", List.of("fantasma")));
     }
 
     @Test
     void syncPermissions_ThrowsNotFound_WhenRolNoExiste() {
-        when(rolRepository.findByNombreRol("FANTASMA")).thenReturn(Optional.empty());
+        when(rolRepository.sincronizarPermisos(eq("FANTASMA"), any(String[].class)))
+                .thenThrow(excepcionSql("P0002", "Rol no encontrado: FANTASMA"));
 
         assertThrows(ResponseStatusException.class, () -> service.syncPermissions("fantasma", List.of()));
     }

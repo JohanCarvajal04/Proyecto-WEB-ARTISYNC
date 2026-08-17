@@ -1,19 +1,19 @@
 package uteq.edu.ec.artisync.scheduler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,8 +29,9 @@ import java.util.List;
 public class SorteoScheduler {
 
     private final SorteoRepository sorteoRepository;
-    private final ParticipanteSorteoRepository participanteSorteoRepository;
+    private final UsuarioRepository usuarioRepository;
     private final NotificacionService notificacionService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Se ejecuta cada 60 segundos.
@@ -63,39 +64,44 @@ public class SorteoScheduler {
     // =========================================================================
 
     private void ejecutarSorteo(Sorteo sorteo) {
-        List<ParticipanteSorteo> participantes = participanteSorteoRepository
-                .findBySorteoIdSorteoAndEsGanadorFalse(sorteo.getIdSorteo());
+        // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria
+        // (ORDER BY random()) y la actualizacion masiva de participantes+sorteo
+        // en el motor, en vez de Collections.shuffle en Java seguido de un save()
+        // por ganador. La notificacion en tiempo real permanece en Java.
+        String resultadoJson = sorteoRepository.seleccionarGanadores(sorteo.getIdSorteo());
+        JsonNode resultado = parseResultado(resultadoJson);
+        String estado = resultado.get("estado").asText();
+        JsonNode ganadoresNode = resultado.get("ganadores");
 
-        if (participantes.isEmpty()) {
-            sorteo.setEstadoSorteo("Finalizado_Sin_Participantes");
-            sorteoRepository.save(sorteo);
-            log.info("[SorteoScheduler] Sorteo {} finalizado sin participantes.", sorteo.getIdSorteo());
+        if (ganadoresNode == null || !ganadoresNode.isArray() || ganadoresNode.isEmpty()) {
+            log.info("[SorteoScheduler] Sorteo {} finalizado sin ganadores (estado={}).",
+                    sorteo.getIdSorteo(), estado);
             return;
         }
 
-        // Selección aleatoria criptográficamente segura (RF-23)
-        Collections.shuffle(participantes, new SecureRandom());
-        int cantidad = Math.min(sorteo.getCantidadGanadores(), participantes.size());
-        List<ParticipanteSorteo> ganadores = participantes.subList(0, cantidad);
+        String tituloSorteo = resultado.hasNonNull("tituloSorteo")
+                ? resultado.get("tituloSorteo").asText() : sorteo.getTituloSorteo();
 
-        LocalDateTime ahora = LocalDateTime.now();
-        for (ParticipanteSorteo ganador : ganadores) {
-            ganador.setEsGanador(true);
-            ganador.setFechaNotificacionPremio(ahora);
-            participanteSorteoRepository.save(ganador);
-
+        for (JsonNode ganadorNode : ganadoresNode) {
+            Long idUsuario = ganadorNode.get("idUsuario").asLong();
+            Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
             // Notificación en tiempo real al ganador vía WebSocket (M6)
             notificacionService.notificar(
-                    ganador.getUsuario(),
+                    usuario,
                     "SORTEO_GANADOR",
-                    "¡Felicidades! Has ganado el sorteo: " + sorteo.getTituloSorteo()
+                    "¡Felicidades! Has ganado el sorteo: " + tituloSorteo
             );
         }
 
-        sorteo.setEstadoSorteo("Finalizado");
-        sorteoRepository.save(sorteo);
+        log.info("[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es).",
+                tituloSorteo, sorteo.getIdSorteo(), ganadoresNode.size());
+    }
 
-        log.info("[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es) de {} participante(s).",
-                sorteo.getTituloSorteo(), sorteo.getIdSorteo(), cantidad, participantes.size());
+    private JsonNode parseResultado(String json) {
+        try {
+            return objectMapper.readTree(json);
+        } catch (Exception e) {
+            throw new IllegalStateException("Error al interpretar el resultado de fn_seleccionar_ganadores_sorteo", e);
+        }
     }
 }

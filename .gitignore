@@ -62,7 +62,5 @@ artisync/Frontend/stitch_screens/
 docs/observaciones/DESIGN-IS-2026-08-07/
 docs/Guia_implementacion/frontend/
 docs/superpowers/
-db/procs
 scripts/audit-sql-dynamic.sh
-scripts/sync-procs.sh
 
