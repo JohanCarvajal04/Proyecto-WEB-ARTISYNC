@@ -61,4 +61,9 @@ export class AdminUserService {
   getPaises(): Observable<PaisResponse[]> {
     return this.http.get<PaisResponse[]>(`${environment.apiUrl}/paises`);
   }
+
+  downloadTransaccionesCsv(idPerfil: number): void {
+    const url = `${environment.apiUrl}/api/v1/admin/transacciones/${idPerfil}/csv`;
+    window.open(url, '_blank');
+  }
 }

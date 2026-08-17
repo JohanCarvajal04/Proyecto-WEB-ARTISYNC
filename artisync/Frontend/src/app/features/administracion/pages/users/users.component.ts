@@ -221,4 +221,8 @@ export class UsersComponent implements OnInit {
     // El backend actualmente tiene fechaRegistro pero podemos simular o usar fechaRegistro para visualización
     return 'Hace 2 horas';
   }
+
+  descargarCsv(idUsuario: number): void {
+    this.adminUserService.downloadTransaccionesCsv(idUsuario);
+  }
 }
