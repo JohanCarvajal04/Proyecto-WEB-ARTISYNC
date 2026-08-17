@@ -10,10 +10,10 @@ por el apartado **A.2.1** de la Guía de la Entrega Final.
 
 ## Resumen
 
-El sistema declara **catorce rutinas** en `db/procs/` — las seis originales de la Tercera Entrega,
-una por cada categoría funcional del apartado A.2.2, más ocho de la ampliación del 16 de agosto de
+El sistema declara **trece rutinas** en `db/procs/` — las seis originales de la Tercera Entrega,
+una por cada categoría funcional del apartado A.2.2, más siete de la ampliación del 16 de agosto de
 2026 (ver [ADR-006, sección Ampliación](../adr/adr-006-estrategia-acceso-datos.md#ampliación)), con
-prioridad en el módulo de seguridad. A diferencia de las seis originales, las ocho nuevas se
+prioridad en el módulo de seguridad. A diferencia de las seis originales, las siete nuevas se
 verificaron conectadas end-to-end (repositorio Spring Data + servicio Java que las invoca), no solo
 declaradas en SQL.
 
@@ -40,7 +40,7 @@ desde antes de esta ampliación: `fn_listar_cola_verificacion` (`FUNCTION`, `STA
 
 ### Nota sobre modos de parámetro y cursores
 
-Las seis rutinas se declaran como **funciones** de PostgreSQL con valor de retorno escalar o
+Las trece rutinas se declaran como **funciones** de PostgreSQL con valor de retorno escalar o
 `JSONB`. En consecuencia:
 
 - **Todos los parámetros son de modo `IN`.** No hay parámetros `OUT` ni `INOUT` en ninguna rutina:
@@ -54,7 +54,7 @@ Las seis rutinas se declaran como **funciones** de PostgreSQL con valor de retor
 
 ### Postura de seguridad
 
-Ninguna de las seis rutinas construye SQL por concatenación. No aparece `EXECUTE IMMEDIATE`,
+Ninguna de las trece rutinas construye SQL por concatenación. No aparece `EXECUTE IMMEDIATE`,
 `sp_executesql`, `EXECUTE format(...)` ni `EXECUTE <variable>` en ningún archivo. Toda entrada
 externa llega como **parámetro formal tipado**, y los filtros opcionales se neutralizan con el
 patrón `(p_x IS NULL OR columna = p_x)` en lugar de armar el predicado por texto.
