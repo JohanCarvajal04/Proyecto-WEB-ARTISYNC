@@ -239,6 +239,30 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<!-- Analisis estatico de seguridad (Bloque A.2.3): find-sec-bugs detecta
+				     concatenacion sospechosa en SQL/JPQL/HQL que la auditoria de texto de
+				     scripts/audit-sql-dynamic.sh no puede ver (dataflow entre metodos,
+				     StringBuilder, JDBC Statement crudo). `mvn spotbugs:spotbugs` genera
+				     el reporte sin fallar el build (alcance solo local, ver Makefile
+				     `audit`); `mvn spotbugs:check` si se quiere que falle. -->
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.6</version>
+				<configuration>
+					<plugins>
+						<plugin>
+							<groupId>com.h3xstream.findsecbugs</groupId>
+							<artifactId>findsecbugs-plugin</artifactId>
+							<version>1.13.0</version>
+						</plugin>
+					</plugins>
+					<includeFilterFile>spotbugs-security-include.xml</includeFilterFile>
+					<xmlOutput>true</xmlOutput>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<executions>

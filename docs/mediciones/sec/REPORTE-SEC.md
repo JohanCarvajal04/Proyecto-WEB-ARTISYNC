@@ -48,3 +48,67 @@ A04 (diseño inseguro), A06 (componentes vulnerables/desactualizados), A08 (fall
 de software/datos) y A10 (SSRF) no se auditaron en este bloque — no había herramienta ni
 escenario de prueba definido para ellos en la guía de la Tercera Entrega. Quedan como trabajo
 futuro fuera del alcance del Bloque C.2.
+
+## Escaneo automático OWASP ZAP baseline (Entrega Final, A.1)
+
+- Fecha: 2026-08-17
+- Comando: `make audit-zap` (equivalente ejecutado manualmente: `docker run --rm
+  -v "$(pwd)/docs/mediciones/sec/zap:/zap/wrk/:rw" --network host
+  ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://localhost:4200 -r
+  zap-baseline-20260817-0300.html -J zap-baseline-20260817-0300.json`)
+- Objetivo: `http://localhost:4200` (frontend — el backend en `:8080` no se publica al host
+  por diseño, ver nota de A07 más abajo en este documento)
+- Resultado: **`FAIL-NEW: 0` · `WARN-NEW: 8` · `PASS: 59`** — sin hallazgos altos/FAIL, cumple
+  el umbral de la guía ("sin hallazgos altos").
+- Reportes archivados: [`zap-baseline-20260817-0300.html`](zap/zap-baseline-20260817-0300.html) /
+  [`.json`](zap/zap-baseline-20260817-0300.json)
+
+Hallazgos WARN (todos de severidad media/baja, ninguno bloqueante):
+
+| Regla ZAP | Hallazgo | Alcance observado |
+|---|---|---|
+| 10020 | Missing Anti-clickjacking Header | Respuestas estáticas servidas por nginx (`/`, `/sitemap.xml`) — no llevan `X-Frame-Options`/`frame-ancestors` |
+| 10021 | X-Content-Type-Options Header Missing | Assets estáticos (`favicon.ico`, fuentes, `robots.txt`, CSS) |
+| 10036 | Server Leaks Version Information via "Server" Header | nginx expone `Server: nginx/1.31.3` |
+| 10038 | Content Security Policy (CSP) Header Not Set | Mismo alcance que 10020: solo en las respuestas de nginx, no en la API |
+| 10049 | Storable and Cacheable Content | Assets con hash (`main-*.js`, fuentes) cacheados agresivamente — comportamiento intencional, ver `nginx.conf` |
+| 10063 | Permissions Policy Header Not Set | Respuestas de nginx |
+| 10109 | Modern Web Application (informativo) | Detecta que es una SPA — no es un hallazgo de seguridad |
+| 90004 | Cross-Origin-Embedder-Policy Header Missing or Invalid | Respuestas de nginx |
+
+**Nota importante de alcance**: las cabeceras de seguridad (`X-Content-Type-Options`,
+`X-Frame-Options`, CSP, `Permissions-Policy`, etc.) que la evidencia A05 de este mismo documento
+confirma presentes **sí existen en las respuestas de la API servidas por Spring Security**, pero
+**no se replican en las respuestas estáticas que sirve nginx** (HTML/CSS/JS/fuentes del
+frontend) — son dos servidores HTTP distintos (Spring Security vs. `nginx.conf`) y las cabeceras
+de uno no se heredan al otro. Este escaneo evidencia esa brecha real y concreta: agregar las
+mismas cabeceras en `nginx.conf` (bloque `location /` y `location ~* \.(js|css|...)`) cerraría
+los 6 hallazgos WARN que no son informativos. Queda registrado como hallazgo pendiente, no
+corregido en este cierre.
+
+## Análisis estático de bytecode: SpotBugs + find-sec-bugs (Entrega Final, A.2.3)
+
+- Fecha: 2026-08-17
+- Comando: `make audit` (equivalente ejecutado manualmente dentro de un contenedor
+  `maven:3.9-eclipse-temurin-21`, ver nota de plataforma abajo): `mvn -B spotbugs:spotbugs`
+- Alcance: `artisync/Backend/pom.xml`, plugin `spotbugs-maven-plugin` 4.8.6.6 +
+  `findsecbugs-plugin` 1.13.0, filtrado por `spotbugs-security-include.xml` a las reglas de
+  inyección SQL (`SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE`, `SQL_INJECTION_JDBC`,
+  `SQL_INJECTION_JPA`, `SQL_INJECTION_HIBERNATE`, `SQL_INJECTION_SPRING_JDBC`)
+- Resultado: **0 hallazgos** — ningún patrón de concatenación SQL sospechosa detectado en el
+  bytecode compilado de `artisync/Backend/src/main/java`.
+- Reporte archivado: [`static-analysis/spotbugs-20260817-0250.xml`](static-analysis/spotbugs-20260817-0250.xml)
+  (`<BugCollection>` sin instancias — `grep -c "<BugInstance" spotbugs-20260817-0250.xml` = 0)
+
+**Nota de plataforma**: SpotBugs lee, además de las clases de la aplicación, las clases de
+plataforma del JDK que ejecuta el proceso; su ASM embebido no soporta bytecode más nuevo que
+Java 21 (falla con `Unsupported class file major version 69` si la máquina tiene un JDK más
+nuevo por defecto, aunque el proyecto compile correctamente para `release 21`). Por eso el
+target `audit` del `Makefile` corre `mvn spotbugs:spotbugs` dentro de un contenedor
+`maven:3.9-eclipse-temurin-21` en vez de invocar `./mvnw` directo — reproducible sin importar
+el JDK por defecto de la máquina del desarrollador.
+
+Esto complementa, sin sustituir, la auditoría de texto de `scripts/audit-sql-dynamic.sh`
+(`make audit`, sección superior de este documento): SpotBugs analiza bytecode con seguimiento
+de flujo de datos entre métodos (detecta `StringBuilder`, JDBC `Statement` crudo, concatenación
+multilínea) que un `grep` de una sola línea no puede ver.

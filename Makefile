@@ -10,7 +10,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: up down test bench audit clean sus lighthouse
+.PHONY: up down test bench audit audit-zap clean sus lighthouse
 
 ## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
 up:
@@ -44,9 +44,11 @@ bench:
 ## Auditoria estatica minima de SQL dinamico (regla transversal):
 ## falla si aparece EXECUTE IMMEDIATE/sp_executesql, o una @Query nativeQuery=true
 ## que concatene con el operador `+` (indicio de entrada de usuario sin parametrizar).
+## Se complementa con SpotBugs+find-sec-bugs (analisis de bytecode, ve lo que el
+## grep no puede: concatenacion multi-linea, StringBuilder, JDBC Statement crudo).
 ## No sustituye la auditoria OWASP completa de docs/mediciones/sec/.
 audit:
-	@echo "== Auditoria estatica de SQL dinamico (Backend) =="
+	@echo "== Auditoria estatica de SQL dinamico (texto, Backend) =="
 	@if grep -rnE "EXECUTE IMMEDIATE|sp_executesql" artisync/Backend/src/main/java artisync/database 2>/dev/null; then \
 		echo "FALLO: se encontro SQL dinamico prohibido (EXECUTE IMMEDIATE / sp_executesql)."; \
 		exit 1; \
@@ -58,7 +60,34 @@ audit:
 		exit 1; \
 	fi
 	@echo "OK: sin EXECUTE IMMEDIATE/sp_executesql; sin concatenacion en @Query nativeQuery=true."
+	@echo "== Analisis estatico de bytecode: SpotBugs + find-sec-bugs =="
+	@# Se corre dentro de un contenedor maven:3.9-eclipse-temurin-21 (misma imagen que
+	@# compila el backend en Dockerfile) en vez de ./mvnw directo: SpotBugs lee tambien
+	@# las clases de plataforma del JDK que ejecuta el proceso, y su ASM embebido no
+	@# soporta bytecode mas nuevo que Java 21 (falla con class file "major version" >65
+	@# si la maquina tiene un JDK mas nuevo por defecto, aunque el proyecto compile
+	@# correctamente para release 21).
+	docker run --rm -v "$(CURDIR)/artisync/Backend:/app" -w /app \
+		maven:3.9-eclipse-temurin-21 mvn -B spotbugs:spotbugs
+	@mkdir -p docs/mediciones/sec/static-analysis
+	@cp artisync/Backend/target/spotbugsXml.xml \
+		docs/mediciones/sec/static-analysis/spotbugs-$$(date +%Y%m%d-%H%M).xml
+	@echo "OK: reporte SpotBugs archivado en docs/mediciones/sec/static-analysis/."
 	@echo "(Heuristica estatica — la verificacion empirica completa esta en docs/mediciones/sec/REPORTE-SEC.md, control A03.)"
+
+## Escaneo dinamico OWASP ZAP baseline (Bloque A.1/A.2.3) contra el frontend
+## (localhost:4200, el backend en 8080 no se publica al host por diseno — ver
+## docker-compose.yml). Requiere el stack completo arriba (`make up`) y Docker
+## disponible para correr la imagen oficial de ZAP.
+audit-zap:
+	@mkdir -p docs/mediciones/sec/zap
+	docker run --rm -v "$$(pwd)/docs/mediciones/sec/zap:/zap/wrk/:rw" \
+		--network host ghcr.io/zaproxy/zaproxy:stable \
+		zap-baseline.py -t http://localhost:4200 \
+		-r zap-baseline-$$(date +%Y%m%d-%H%M).html \
+		-J zap-baseline-$$(date +%Y%m%d-%H%M).json || true
+	@echo "OK: reporte ZAP baseline archivado en docs/mediciones/sec/zap/."
+	@echo "(zap-baseline.py devuelve codigo != 0 si hay hallazgos WARN/FAIL; revisar el reporte, no solo el exit code.)"
 
 ## Baja los servicios y borra volumenes; limpia el build de Maven.
 clean:
