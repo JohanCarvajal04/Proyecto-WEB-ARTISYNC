@@ -31,4 +31,19 @@ public final class PrefijoAlmacenamiento {
         }
         return limpio + "/" + nombre;
     }
+
+    /**
+     * Prefijo con el que se guardó una referencia, o vacío si no tiene.
+     *
+     * <p>Una referencia sin prefijo no es un error: verificación guardó así
+     * durante un tiempo, antes de que existiera el enrutado por prefijo. El
+     * router las trata como locales, que es donde realmente están.
+     */
+    public static String extraer(String referencia) {
+        if (referencia == null) {
+            return "";
+        }
+        int barra = referencia.indexOf('/');
+        return barra <= 0 ? "" : referencia.substring(0, barra);
+    }
 }
