@@ -164,23 +164,33 @@ sus:
 	python docs/mediciones/sus/analisis-sus.py > docs/mediciones/sus/salida-sus.txt
 	@echo "OK: ver docs/mediciones/sus/salida-sus.txt"
 
-## Compila el documento academico final (Bloque B / D.1) de Markdown a PDF con
-## pandoc, concatenando los capitulos de docs/informe-final/ en orden numerico.
-## Requiere pandoc (y una distribucion LaTeX, ej. MiKTeX/TeX Live, como motor
-## de PDF). Si docs/informe-final/ todavia no existe o pandoc no esta
-## instalado, informa el motivo y termina con error en vez de fallar en
+## Compila el documento academico final (Bloque B / D.1) desde la fuente
+## LaTeX de docs/informe-final/main.tex (bibliografia IEEE en
+## referencias.bib). Requiere una distribucion LaTeX (TeX Live/MiKTeX) con
+## pdflatex y bibtex. Si docs/informe-final/ todavia no existe o pdflatex no
+## esta instalado, informa el motivo y termina con error en vez de fallar en
 ## silencio -- make all debe poder detectar este paso como pendiente.
+##
+## Nota de migracion: hasta la v1.0.0-rc este objetivo compilaba los .md de
+## docs/informe-final/ con pandoc. Esa carpeta ahora contiene la fuente
+## LaTeX (.tex/.bib) directamente, ver docs/informe-final/README.md.
 docs:
-	@if [ ! -d docs/informe-final ]; then \
-		echo "ERROR: docs/informe-final/ no existe todavia (documento academico en borrador)."; \
+	@if [ ! -f docs/informe-final/main.tex ]; then \
+		echo "ERROR: docs/informe-final/main.tex no existe todavia (documento academico en borrador)."; \
 		exit 1; \
 	fi
-	@command -v pandoc >/dev/null 2>&1 || { \
-		echo "ERROR: pandoc no esta instalado. Ver https://pandoc.org/installing.html"; \
+	@command -v pdflatex >/dev/null 2>&1 || { \
+		echo "ERROR: pdflatex no esta instalado. Ver https://www.tug.org/texlive/ (o MiKTeX en Windows)."; \
 		exit 1; \
 	}
-	pandoc docs/informe-final/*.md \
-		--from=markdown --pdf-engine=xelatex \
-		--toc --number-sections \
-		-o docs/informe-final/Informe-Final-v1.0.0.pdf
+	@command -v bibtex >/dev/null 2>&1 || { \
+		echo "ERROR: bibtex no esta instalado (deberia venir con TeX Live/MiKTeX)."; \
+		exit 1; \
+	}
+	cd docs/informe-final && \
+		pdflatex -interaction=nonstopmode main.tex && \
+		bibtex main && \
+		pdflatex -interaction=nonstopmode main.tex && \
+		pdflatex -interaction=nonstopmode main.tex
+	cp docs/informe-final/main.pdf docs/informe-final/Informe-Final-v1.0.0.pdf
 	@echo "OK: docs/informe-final/Informe-Final-v1.0.0.pdf generado."

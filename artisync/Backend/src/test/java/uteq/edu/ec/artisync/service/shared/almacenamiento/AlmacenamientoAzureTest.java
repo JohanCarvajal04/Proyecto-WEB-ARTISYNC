@@ -23,6 +23,7 @@ class AlmacenamientoAzureTest {
 
     private AlmacenamientoAzure almacenamientoConCuentaFicticia() {
         AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        propiedades.setProveedor("azure");
         propiedades.getAzure().setConnectionString(CONEXION_FICTICIA);
         propiedades.getAzure().setContenedor("documentos-prueba");
         return new AlmacenamientoAzure(propiedades);
@@ -31,6 +32,7 @@ class AlmacenamientoAzureTest {
     @Test
     void constructor_sinCadenaDeConexion_fallaAlArrancar() {
         AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        propiedades.setProveedor("azure");
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> new AlmacenamientoAzure(propiedades));

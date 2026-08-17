@@ -24,7 +24,6 @@ import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.VerificacionColaProyeccion;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
 import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
 
@@ -71,8 +70,7 @@ class VerificacionServicioImplTest {
         MockMultipartFile documento = new MockMultipartFile("documento", "cedula.jpg", "image/jpeg", "contenido".getBytes());
         when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfil));
         when(estadoVerificacionRepository.findByNombreEstado("PENDIENTE")).thenReturn(Optional.of(pendiente));
-        when(almacenamiento.guardar(documento, PrefijoAlmacenamiento.VERIFICACION))
-                .thenReturn("verificacion/uuid-generado.jpg");
+        when(almacenamiento.guardar(documento)).thenReturn("uuid-generado.jpg");
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         RespuestaVerificacion respuesta = servicio.subir(1L, TipoDocumentoVerificacion.IDENTIDAD, documento);
@@ -81,10 +79,6 @@ class VerificacionServicioImplTest {
         assertThat(respuesta.tipoDocumento()).isEqualTo("IDENTIDAD");
         verify(preprocesador).validarFormato(documento);
         verifyNoInteractions(iaService);
-        // El prefijo no es cosmético: es lo que hace que el router deje estas
-        // cédulas en el volumen local en vez de subirlas a Azure.
-        verify(almacenamiento).guardar(documento, PrefijoAlmacenamiento.VERIFICACION);
-        verify(almacenamiento, never()).guardar(documento);
     }
 
     @Test

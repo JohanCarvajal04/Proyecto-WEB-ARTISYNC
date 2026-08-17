@@ -8,7 +8,7 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
@@ -23,22 +23,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Persistencia de archivos en Azure Blob Storage. Convive con
- * AlmacenamientoLocal: AlmacenamientoRouter decide por prefijo cuál atiende
- * cada archivo — ver ADR-007.
- *
- * <p>El bean solo se registra si hay cadena de conexión. Así el backend arranca
- * en CI y en desarrollo sin credenciales de Azure ni emulador; el router lo nota
- * y enruta todo al volumen local.
+ * Persistencia de documentos en Azure Blob Storage. Se activa con
+ * "documentos.proveedor=azure"; en su ausencia manda AlmacenamientoLocal.
  *
  * <p>La referencia que devuelve guardar() es el nombre del blob, no su URL: el
- * contenedor es privado, así que una URL directa no sirve para nada. Para
- * exponer un archivo al frontend sin proxearlo por el backend está
- * urlTemporal(), que firma un SAS de vigencia corta.
+ * contenedor es privado porque guarda cédulas y títulos, así que una URL directa
+ * no sirve para nada. Para exponer un archivo al frontend sin proxearlo por el
+ * backend está generarUrlTemporal(), que firma un SAS de vigencia corta.
  */
 @Slf4j
 @Component
-@ConditionalOnExpression("!'${documentos.azure.connection-string:}'.trim().isEmpty()")
+@ConditionalOnProperty(name = "documentos.proveedor", havingValue = "azure")
 public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
 
     private final BlobContainerClient contenedor;
@@ -48,9 +43,8 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
     public AlmacenamientoAzure(AlmacenamientoProperties propiedades) {
         AlmacenamientoProperties.Azure config = propiedades.getAzure();
         if (config.getConnectionString() == null || config.getConnectionString().isBlank()) {
-            // Defensivo: la condición de registro del bean ya exige la cadena.
             throw new IllegalStateException(
-                    "AlmacenamientoAzure requiere documentos.azure.connection-string "
+                    "documentos.proveedor=azure requiere documentos.azure.connection-string "
                             + "(variable de entorno AZURE_STORAGE_CONNECTION_STRING).");
         }
         this.contenedor = new BlobServiceClientBuilder()

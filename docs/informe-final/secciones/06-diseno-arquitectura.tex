@@ -1,0 +1,186 @@
+% 06-diseno-arquitectura.tex — Fuente: docs/informe-final/06-diseno-arquitectura.md
+
+\chapter{Diseño del sistema y arquitectura}
+\label{cap:diseno-arquitectura}
+
+\section{Modelo C4}
+
+\subsection{Nivel 1 --- Contexto}
+
+Artisync se sitúa como sistema central que conecta tres actores (Cliente,
+Creador/Artista, Administrador) con tres sistemas externos: PayPal
+(pagos, patrón \emph{escrow}), un servicio de IA de verificación de
+identidad/certificados, y un proveedor de almacenamiento de objetos
+(Azure Blob Storage o local, según \texttt{ADR-007}). El modelo C4 usado
+como base sigue a Brown~\cite{BROWN2018}. Diagrama completo:
+\texttt{docs/diagramas/C4\_Nivel1\_Contexto.md} y
+\texttt{C4-nivel1-context\_diagram.svg}.
+
+\subsection{Nivel 2 --- Contenedores}
+
+Cuatro contenedores desplegables vía Docker Compose: \textbf{frontend}
+(Angular, SPA servida por nginx), \textbf{backend} (Spring Boot, API REST
+documentada con OpenAPI/Springdoc), \textbf{postgres} (PostgreSQL~16,
+esquema versionado con Flyway) y \textbf{redis} (caché de catálogo,
+blacklist de JWT revocados, rate limiting, tickets 2FA). Diagrama
+completo: \texttt{docs/diagramas/C4\_Nivel2\_Contenedores.md}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{c4-nivel2-contenedores.png}
+\caption{Diagrama C4 Nivel 2 --- Contenedores de Artisync. Fuente:
+\texttt{docs/diagramas/c4-nivel2-contenedores.png}.}
+\label{fig:c4-nivel2}
+\end{figure}
+
+\textbf{Nota de honestidad sobre versiones documentadas vs. reales:} los
+diagramas C4 (y \texttt{ADR-001}) documentan la pila como ``Java~25 +
+Spring Boot~4.0.1'' y ``PostgreSQL~18/Angular~22'' en su versión
+original. La pila \textbf{realmente construida y desplegada}, verificada
+contra \texttt{pom.xml}, los \texttt{Dockerfile} y
+\texttt{docker-compose.yml} a la fecha de este documento, es: \textbf{Java
+21~LTS} (target de bytecode) \textbf{+ Spring Boot~4.1.0}, compilado en
+contenedor \texttt{maven:3.9-eclipse-temurin-21} y ejecutado en
+\texttt{eclipse-temurin:21-jre-alpine}; \textbf{Angular \^{}22.0.0} sobre
+\texttt{node:24-alpine}; \textbf{PostgreSQL~16} (\texttt{postgres:16},
+anclado por digest \texttt{sha256}) y \textbf{Redis~7}
+(\texttt{redis:7-alpine}, igualmente anclado). La documentación
+arquitectónica no se actualizó en cascada cuando el equipo fijó las
+versiones finales --- ver \texttt{docs/entorno/versions.txt} para la
+versión verificada y autoritativa, que este capítulo usa como fuente en
+vez de repetir la cifra desactualizada de los diagramas.
+
+\subsection{Nivel 3 --- Componentes (backend)}
+
+El backend se organiza en siete módulos funcionales por dominio
+(\texttt{seguridad}, \texttt{perfil}, \texttt{catalogo},
+\texttt{pedido}/flujo de trabajo, \texttt{legal}, \texttt{comunicacion},
+\texttt{social}), cada uno con sus capas
+\texttt{entity}/\texttt{dto}/\texttt{repository}/\texttt{service}/\texttt{controller}.
+Detalle completo: \texttt{docs/diagramas/C4\_Nivel3\_Componentes\_Backend.md}.
+
+\section{Resumen de los siete registros de decisión de arquitectura (ADR)}
+
+Los siete ADR siguen la plantilla de Nygard~\cite{NYGARD2011}:
+
+\begin{table}[H]
+\centering
+\caption{Resumen de los siete ADR de Artisync}
+\label{tab:adrs}
+\begin{tabular}{@{}p{1.4cm}p{3.4cm}p{9.4cm}@{}}
+\toprule
+\textbf{ADR} & \textbf{Título} & \textbf{Decisión resumida} \\
+\midrule
+ADR-001 & Selección de la pila tecnológica principal & Java/Spring Boot en
+  el backend (mayor throughput, seguridad/persistencia integradas),
+  Angular/TypeScript en el frontend, PostgreSQL como motor relacional,
+  Redis como caché, Docker Compose como orquestador --- ver nota de
+  versiones \S6.1. \\
+ADR-002 & Esquema de autenticación y control de acceso & JWT (HS256)
+  devuelto en el cuerpo de la respuesta para el access token (no en
+  cookie); refresh token y ticket pre-auth de 2FA en cookies
+  \texttt{HttpOnly + SameSite=Strict}; blacklist de JTI en Redis; bcrypt
+  factor 12; RBAC vía Spring Security. Revisado en agosto 2026 tras
+  corregir una afirmación incorrecta de una versión anterior del ADR (ver
+  texto completo). \\
+ADR-003 & Selección del gestor de base de datos & PostgreSQL~16 sobre
+  MySQL/MariaDB y MongoDB, por ACID completo, tipos \texttt{DECIMAL}
+  precisos para montos financieros, y soporte maduro de PL/pgSQL para la
+  estrategia híbrida de acceso a datos (ADR-006). \\
+ADR-004 & Estrategia de caché & Redis~7 para caché de catálogo (TTL
+  configurable), blacklist de JTI, cuotas de rate limiting y tickets
+  pre-auth 2FA, sobre caché en memoria de la JVM, por ser compartido entre
+  réplicas si el backend escala horizontalmente. \\
+ADR-005 & Estrategia de despliegue y reproducibilidad & Docker Compose con
+  imágenes ancladas por digest \texttt{sha256} + \texttt{Makefile} de un
+  solo comando, sobre despliegue manual o imágenes por tag variable, para
+  máxima reproducibilidad (badge ACM \emph{Artifacts Evaluated ---
+  Reusable}). Las tres acciones pendientes de la Tercera Entrega
+  (Frontend/ ausente, digests por tag, Makefile inexistente) están
+  resueltas y verificadas a la fecha de la Entrega Final. \\
+ADR-006 & Estrategia híbrida de acceso a datos & CRUD elementales vía
+  JPA/Spring Data; operaciones con joins, agregaciones, reportes,
+  actualizaciones masivas o validaciones cruzadas vía
+  procedimientos/funciones PL/pgSQL versionados en \texttt{db/procs/},
+  invocados exclusivamente mediante JPA~2.1. Ampliado el 16 de agosto de
+  2026 con 7 rutinas nuevas conectadas end-to-end (ver
+  Capítulo~\ref{cap:implementacion}). \\
+ADR-007 & Almacenamiento de archivos en la nube & Azure Blob Storage como
+  único destino en la nube (sobre un esquema híbrido Cloudinary+Azure Blob
+  o mantener el volumen local), detrás de la interfaz
+  \texttt{AlmacenamientoDocumentos}, seleccionable por configuración
+  (\texttt{documentos.proveedor}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Texto completo de cada ADR, con contexto, opciones descartadas y
+consecuencias, en \texttt{docs/adr/}.
+
+\section{Atributos de calidad (ISO/IEC 25010) --- prioridad, escenario y estrategia}
+
+\begin{table}[H]
+\centering
+\caption{Atributos de calidad ISO/IEC~25010~\cite{ISO25010} priorizados}
+\label{tab:iso25010}
+\begin{tabular}{@{}p{3.0cm}p{1.6cm}p{4.0cm}p{5.6cm}@{}}
+\toprule
+\textbf{Característica ISO~25010} & \textbf{Prioridad} & \textbf{Escenario} & \textbf{Estrategia aplicada} \\
+\midrule
+Eficiencia de desempeño (rendimiento) & Alta & Listado de catálogo bajo 50
+  usuarios concurrentes & Caché Redis con TTL (ADR-004); índices en
+  columnas de filtro; medido con k6 (Capítulo~\ref{cap:evaluacion-resultados}) \\
+Seguridad & Alta & Acceso no autorizado a rutas protegidas, inyección
+  SQL, credenciales en tránsito & RBAC + JWT (ADR-002);
+  procedimientos/consultas parametrizadas (ADR-006); rate limiting;
+  auditoría estática y dinámica automatizada
+  (Capítulo~\ref{cap:evaluacion-resultados}) \\
+Fiabilidad & Alta & Caída de un contenedor dependiente (Redis, Postgres) &
+  \texttt{healthcheck} de Docker Compose con
+  \texttt{depends\_on: condition: service\_healthy};
+  \texttt{/actuator/health} expone estado por componente \\
+Usabilidad & Media & Usuario nuevo completa el flujo de contratación sin
+  asistencia & Formularios dinámicos, flujo de contratación acotado (SRS
+  \texttt{REQ-NF-008}); medido con SUS
+  (Capítulo~\ref{cap:evaluacion-resultados}) \\
+Mantenibilidad & Media & Incorporar un nuevo procedimiento almacenado sin
+  tocar el código Java existente & Módulos desacoplados por dominio
+  (Nivel~3 C4); \texttt{scripts/sync-procs.sh} mantiene sincronizada la
+  migración repetible \\
+Portabilidad & Media & Desplegar en un proveedor cloud distinto al usado
+  en desarrollo & Configuración externalizada (\texttt{.env}),
+  \texttt{documentos.proveedor} seleccionable (ADR-007), imágenes ancladas
+  por digest (ADR-005) \\
+Compatibilidad & Baja & Integración con PayPal Orders v2 y servicio
+  externo de IA & Contratos de API versionados, adaptadores dedicados por
+  integración \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Modelo de datos}
+
+El esquema relacional completo se versiona con Flyway; el modelo
+entidad-relación se mantiene en \texttt{docs/diagramas/Entidad\_Relacion.png}
+(ver nota de conformidad de nombres de tablas en \texttt{ADR-003}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{Entidad_Relacion.png}
+\caption{Modelo entidad-relación de Artisync. Fuente:
+\texttt{docs/diagramas/Entidad\_Relacion.png}.}
+\label{fig:mer}
+\end{figure}
+
+\section{Matriz de trazabilidad}
+
+La matriz completa (37 filas: requisito $\to$ historia de usuario $\to$
+caso de uso $\to$ módulo de código $\to$ endpoint $\to$ prueba
+automatizada $\to$ \textbf{tipo de acceso} $\to$ evidencia empírica
+$\to$ estado) está en \texttt{docs/trazabilidad/matriz.csv}, validada
+automáticamente en CI por \texttt{scripts/validate-traceability.sh}. La
+columna \texttt{tipo\_acceso} distingue \texttt{CRUD-ORM} de \texttt{SP}
+(procedimiento almacenado): a la fecha de este documento, 8 filas están
+marcadas \texttt{SP} (correspondientes a los 7 requisitos que ya invocan
+una de las rutinas conectadas end-to-end, ver
+Capítulo~\ref{cap:implementacion}), el resto \texttt{CRUD-ORM}.

@@ -1,0 +1,125 @@
+% anexos.tex — Fuente: docs/informe-final/13-declaraciones-referencias.md
+% (sección "Anexos"), más el nuevo Anexo J con la clasificación de
+% impacto de la bibliografía (ver README.md de esta carpeta).
+
+\chapter{Tabla de observaciones acumuladas}
+\label{anexo:a}
+
+Ver \texttt{docs/observaciones/OBSERVACIONES.md} (25 observaciones,
+68\,\% resueltas, 8\,\% parcialmente resueltas, 24\,\% pendientes, con
+razones declaradas).
+
+\chapter{Checklist Ralph et al. 2021}
+\label{anexo:b}
+
+Ver \texttt{docs/checklists/ralph-2021-checklist.md}~\cite{RALPH2021}.
+
+\chapter{Checklist FAIR}
+\label{anexo:c}
+
+Ver \texttt{docs/checklists/fair-checklist.md}~\cite{WILKINSON2016}.
+
+\chapter{Checklist INCOSE v4}
+\label{anexo:d}
+
+Ver \texttt{docs/checklists/incose-checklist.md}~\cite{INCOSE2023}.
+
+\chapter{Checklist PRISMA 2020}
+\label{anexo:e}
+
+Ver \texttt{docs/checklists/prisma-2020-checklist.md}~\cite{PRISMA2021}
+(resuelto como ``No Aplica'', justificado --- ver
+Capítulo~\ref{cap:trabajos-relacionados}~\S3.1).
+
+\chapter{Matriz de trazabilidad completa}
+\label{anexo:f}
+
+Ver \texttt{docs/trazabilidad/matriz.csv}.
+
+\chapter{Protocolo SUS completo (10 preguntas + escala)}
+\label{anexo:g}
+
+Ver \texttt{docs/mediciones/sus/instrucciones-formulario.md}~\cite{BROOKE1996}.
+
+\chapter{Capturas de ejecución del pipeline CI}
+\label{anexo:h}
+
+El equipo debe adjuntar capturas de pantalla de 3 ejecuciones
+consecutivas exitosas del workflow \texttt{.github/workflows/ci.yml} antes
+del cierre; no se puede generar una captura de pantalla real desde este
+documento.
+
+\chapter{Cadena de búsqueda completa del Capítulo 3}
+\label{anexo:i}
+
+Depende de ejecutar la revisión de literatura reducida
+recomendada en el Capítulo~\ref{cap:trabajos-relacionados}~\S3.1. Las
+búsquedas puntuales ejecutadas para verificar y ampliar la bibliografía de
+esta versión (Anexo~\ref{anexo:j}) no siguen una cadena de búsqueda
+reproducible sobre bases de datos bibliográficas y no sustituyen este
+anexo.
+
+\chapter{Clasificación de impacto de la bibliografía}
+\label{anexo:j}
+
+Este anexo es nuevo en esta versión del documento. Clasifica cada
+referencia de \texttt{referencias.bib} según el criterio de la guía de la
+Entrega Final (``alto impacto'' = indexada Scopus/JCR Q1--Q2, \emph{o}
+publicada en las actas de ICSE, FSE, ASE, MSR, EASE o ESEM), con la fuente
+de la clasificación. Ninguna referencia se clasificó como ``alto impacto''
+sin verificar su venue/journal contra una fuente externa (ver
+\texttt{README.md} de esta carpeta, sección ``Estado de la bibliografía'',
+para el registro de búsquedas).
+
+\begin{table}[H]
+\centering
+\caption{Clasificación de impacto por referencia}
+\label{tab:clasificacion-biblio}
+\small
+\begin{tabular}{@{}p{2.6cm}p{6.4cm}p{1.8cm}p{2.8cm}@{}}
+\toprule
+\textbf{Clave} & \textbf{Venue} & \textbf{Alto impacto} & \textbf{Motivo} \\
+\midrule
+HALFOND2005    & ASE 2005                          & Sí & Venue listado \\
+GOULD2004      & ICSE 2004                         & Sí & Venue listado \\
+INOZEMTSEVA2014 & ICSE 2014                        & Sí & Venue listado \\
+ARCURI2011     & ICSE 2011                         & Sí & Venue listado \\
+WANG2021       & Empirical Software Engineering 26 & Sí & JCR Q1 (SE) \\
+RUNESON2009    & Empirical Software Engineering 14(2) & Sí & JCR Q1 (SE) \\
+BALTES2022     & Empirical Software Engineering 27(4) & Sí & JCR Q1 (SE) \\
+ZHU1997        & ACM Computing Surveys 29(4)       & Sí & JCR Q1 \\
+PRISMA2021     & BMJ 372                           & Sí & JCR Q1 \\
+WILKINSON2016  & Scientific Data 3                 & Sí & JCR Q1 \\
+HEVNER2004     & MIS Quarterly 28(1)                & Sí & JCR Q1 (SI) \\
+PEFFERS2007    & J. of Management Information Systems 24(3) & Sí & JCR Q1/Q2 (SI) \\
+HAGIU2015      & Int. J. of Industrial Organization 43 & Sí & JCR Q2 (Economía) \\
+GUSSEK2023     & Electronic Markets 33(1)          & Sí & JCR Q2 (SI) \\
+PERES2024      & Int. J. of Research in Marketing 41(3) & Sí & JCR Q1 (Marketing) \\
+MONSALVE2023   & Applied Sciences (MDPI) 13(14)    & Sí & JCR Q2 \\
+KITCHENHAM2007 & EBSE Technical Report             & No & Informe técnico, no journal/conferencia \\
+RALPH2021      & ACM SIGSOFT Software Eng. Notes 46(1) & No & Boletín, no journal JCR \\
+BASILI1994     & Encyclopedia of Software Engineering & No & Entrada de enciclopedia \\
+BROOKE1996     & Usability Evaluation in Industry (cap. de libro) & No & Capítulo de libro \\
+BANGOR2009     & Journal of Usability Studies 4(3) & No & No indexada JCR \\
+WOHLIN2012     & Libro (Springer)                  & No & Libro, no journal/conferencia \\
+WULFERT2022    & SN Computer Science 3(3)          & No & Sin ranking JCR consolidado a la fecha \\
+COELLO2023     & Investigación, Tecnología e Innovación 15(19) & No & Revista regional, no indexada Scopus/JCR \\
+ASGAONKAR2019  & IEEE ICBC 2019                    & No & Venue de blockchain, no listado en la rúbrica \\
+POHL2010, WIEGERS2013, INCOSE2023, COCKBURN2000, BROWN2018, FIELDING2000, NYGARD2011 & Libros/guías/blog/disertación & No & Fuente primaria técnica, no journal/conferencia \\
+ISO29148, ISO25010, JWT2015, OWASP2021, OWASPSQLI & Estándares/RFC & N/A & Categoría aparte (normativa), no cuenta en el conteo de 30/20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Totales:} 37 referencias en \texttt{referencias.bib}; 32
+corresponden a literatura académica/técnica citable como parte del
+mínimo de 30 (excluye los 5 estándares/RFC, contados aparte); de esas 32,
+\textbf{16 se clasifican como ``alto impacto''} según el criterio
+estricto de la guía --- por debajo del mínimo de 20 exigido.
+\textbf{Esta brecha se declara honestamente}, igual que el resto del
+documento: no se reclasificaron referencias de forma optimista para
+alcanzar el número, y no se añadieron referencias de relevancia dudosa
+solo para acercarse al umbral (ver README.md, ``Por qué nos detuvimos en
+16''). Cerrar la brecha requiere la revisión de literatura reducida
+recomendada en el Capítulo~\ref{cap:trabajos-relacionados}~\S3.1 y en el
+Anexo~\ref{anexo:i}.

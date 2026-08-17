@@ -44,6 +44,30 @@ node_modules/
 Thumbs.db
 
 # ---------------------------------------------------------------------------
+# LaTeX: artefactos auxiliares de compilar docs/informe-final/main.tex
+# (el .pdf generado por `make docs` SI se versiona; solo se ignoran los
+# archivos intermedios que pdflatex/bibtex regeneran en cada corrida)
+# ---------------------------------------------------------------------------
+docs/informe-final/*.aux
+docs/informe-final/*.bbl
+docs/informe-final/*.blg
+docs/informe-final/*.toc
+docs/informe-final/*.lof
+docs/informe-final/*.lot
+docs/informe-final/*.out
+docs/informe-final/*.glo
+docs/informe-final/*.gls
+docs/informe-final/*.glg
+docs/informe-final/*.acn
+docs/informe-final/*.acr
+docs/informe-final/*.alg
+docs/informe-final/*.ist
+docs/informe-final/*.fls
+docs/informe-final/*.fdb_latexmk
+docs/informe-final/*.synctex.gz
+docs/informe-final/secciones/*.aux
+
+# ---------------------------------------------------------------------------
 # Claude Code (config/estado local del asistente, no se versiona)
 # ---------------------------------------------------------------------------
 .claude/

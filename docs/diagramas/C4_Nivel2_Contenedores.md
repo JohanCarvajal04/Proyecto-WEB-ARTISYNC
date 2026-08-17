@@ -12,7 +12,7 @@ En este nivel se abre la caja negra del sistema para mostrar los **contenedores 
 | Contenedor | Identificador Docker | Stack Tecnológico | Responsabilidad Principal |
 | :--- | :--- | :--- | :--- |
 | **Aplicación Web SPA (Frontend)** | `pfc_frontend` <br> *(Puerto 4200 / 80)* | **Angular 22**, TypeScript, HTML5/SCSS, RxJS, Nginx | Proporciona la interfaz de usuario web responsiva de página única (SPA). Permite a Clientes, Artistas y Administradores autenticarse (2FA, JWT), explorar el catálogo dinámico, contratar servicios, gestionar hitos y tickets, y participar en la comunidad social. |
-| **Servidor API REST (Backend)** | `pfc_backend` <br> *(Puerto 8080)* | **Java 25**, **Spring Boot 4.0.1**, Spring Security 6, Spring Data JPA / Hibernate, Flyway, Maven | Núcleo transaccional de la plataforma. Expone los endpoints RESTful documentados con OpenAPI/Swagger (`/api/docs`). Orquesta los 7 módulos funcionales (`seguridad`, `perfil`, `catalogo`, `pedido`, `legal`, `comunicacion`, `social`), gestiona transacciones ACID (`@Transactional`) y valida la seguridad sin estado con tokens JWT y consulta a Redis. |
+| **Servidor API REST (Backend)** | `pfc_backend` <br> *(Puerto 8080)* | **Java 21**, **Spring Boot 4.1.0**, Spring Security 6, Spring Data JPA / Hibernate, Flyway, Maven | Núcleo transaccional de la plataforma. Expone los endpoints RESTful documentados con OpenAPI/Swagger (`/api/docs`). Orquesta los 7 módulos funcionales (`seguridad`, `perfil`, `catalogo`, `pedido`, `legal`, `comunicacion`, `social`), gestiona transacciones ACID (`@Transactional`) y valida la seguridad sin estado con tokens JWT y consulta a Redis. |
 | **Base de Datos Relacional** | `pfc_postgres` <br> *(Puerto 5432)* | **PostgreSQL 16** <br> *(Volumen: `pfc_postgres_data`)* | Almacén principal persistente y transaccional del sistema. Contiene los esquemas y tablas normalizadas (`usuarios`, `roles`, `pedidos`, `flujo_trabajos`, `pago_garantias`, etc.) gestionados y versionados estrictamente por migraciones de **Flyway** (`db/migration`). |
 | **Almacén en Memoria / Caché** | `pfc_redis` <br> *(Puerto 6379)* | **Redis 7 Alpine** <br> *(Estructuras clave-valor in-memory)* | Almacén de ultra-baja latencia O(1). Mantiene la **Blacklist de tokens JWT** (`jti:<token>` con TTL según tiempo restante de expiración) y sesiones revocadas para permitir *logout* inmediato y bloqueo ante compromisos (`SessionRevocationService`). Implementa también el patrón **Cache-Aside** para el catálogo de servicios frecuentemente consultado. |
 
@@ -47,7 +47,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagra
             
             webApp = container "Aplicación Web SPA (Frontend)" "Proporciona la interfaz gráfica interactiva, responsiva y orientada a componentes para todos los perfiles de usuario." "Angular 22 / TypeScript / Nginx" "WebBrowser"
             
-            apiServer = container "Servicio API REST (Backend)" "Orquesta la lógica de negocio modular, autenticación JWT, seguridad e integración externa." "Java 25 / Spring Boot 4.0.1 / Spring Security 6" "Backend"
+            apiServer = container "Servicio API REST (Backend)" "Orquesta la lógica de negocio modular, autenticación JWT, seguridad e integración externa." "Java 21 / Spring Boot 4.1.0 / Spring Security 6" "Backend"
             
             db = container "Base de Datos Relacional" "Almacena los esquemas relacionales, datos de usuarios, pedidos, hitos y contratos migradas con Flyway." "PostgreSQL 16" "Database"
             
@@ -115,7 +115,7 @@ Person(admin, "Administrador de la Plataforma", "Modera catálogos, gestiona usu
 System_Boundary(artisync_boundary, "Plataforma Artisync (PFC)") {
     Container(frontend, "Aplicación Web SPA", "Angular 22, TypeScript, Nginx", "Interfaz de usuario responsiva. Gestiona flujos de navegación, autenticación, formularios, carga de archivos y visualización del portafolio.")
     
-    Container(backend, "Servidor API REST", "Java 25, Spring Boot 4.0.1, Spring Security 6, Hibernate", "Orquestador central. Lógica de negocio de los 7 módulos, validación de reglas, autenticación sin estado JWT y gestión de transacciones.")
+    Container(backend, "Servidor API REST", "Java 21, Spring Boot 4.1.0, Spring Security 6, Hibernate", "Orquestador central. Lógica de negocio de los 7 módulos, validación de reglas, autenticación sin estado JWT y gestión de transacciones.")
     
     ContainerDb(db, "Base de Datos Relacional", "PostgreSQL 16 (pfc_postgres:5432)", "Almacén de datos persistente y relacional (ACID). Contiene usuarios, roles, pedidos, contratos y migraciones de Flyway.")
     
@@ -159,7 +159,7 @@ flowchart TB
         direction TB
         FE["🌐 Aplicación Web SPA (Frontend)<br>----------------------------------------<br>Angular 22 / TypeScript / Nginx<br>Puerto: 4200 / 80"]
         
-        BE["⚙️ Servidor API REST (Backend)<br>----------------------------------------<br>Java 25 / Spring Boot 4.0.1 / Security 6<br>Puerto: 8080 (REST JSON)"]
+        BE["⚙️ Servidor API REST (Backend)<br>----------------------------------------<br>Java 21 / Spring Boot 4.1.0 / Security 6<br>Puerto: 8080 (REST JSON)"]
         
         subgraph DataTier["Persistencia & Caché de Alta Velocidad"]
             DB[("🗄️ Base de Datos Relacional<br>-------------------------<br>PostgreSQL 16 (pfc_postgres)<br>Puerto: 5432 / Flyway")]

@@ -1,0 +1,222 @@
+% 05-materiales-metodos.tex — Fuente: docs/informe-final/05-materiales-metodos.md
+
+\chapter{Materiales y métodos}
+\label{cap:materiales-metodos}
+
+\section{Enfoque metodológico global}
+
+El proyecto sigue la metodología Design Science Research (\gls{dsr}) de
+Peffers et al.~\cite{PEFFERS2007} en sus seis actividades canónicas,
+instanciadas así:
+
+\begin{table}[H]
+\centering
+\caption{Instanciación de las seis actividades DSR de Peffers et al.}
+\label{tab:dsr}
+\begin{tabular}{@{}p{4.6cm}p{9.4cm}@{}}
+\toprule
+\textbf{Actividad DSR} & \textbf{Instanciación en Artisync} \\
+\midrule
+1. Identificación del problema y motivación & Capítulo~\ref{cap:introduccion}
+  --- fragmentación de la economía creativa digital, ausencia de
+  garantías de pago/identidad \\
+2. Definición de objetivos de una solución & Objetivos específicos del
+  Capítulo~\ref{cap:introduccion}~\S1.3, derivados de las RQ \\
+3. Diseño y desarrollo & Capítulos~\ref{cap:diseno-arquitectura}
+  (arquitectura) y~\ref{cap:implementacion} (implementación); cuatro
+  entregas incrementales (1A$\to$1B$\to$3$\to$Final) \\
+4. Demostración & Sistema desplegado y operativo, con usuario demo
+  documentado (\texttt{README.md}) \\
+5. Evaluación & Capítulo~\ref{cap:evaluacion-resultados} --- evaluación
+  empírica multidimensional (rendimiento, seguridad, usabilidad,
+  cobertura, calidad web) \\
+6. Comunicación & Este documento, el repositorio público con DOI Zenodo, y
+  la defensa oral del PFC \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El propio marco DSR de Peffers et al. se apoya en los siete lineamientos
+de rigor de Hevner, March, Park y Ram~\cite{HEVNER2004} para investigación
+en sistemas de información (relevancia del problema, rigor de diseño,
+evaluación del artefacto, contribución a la investigación, rigor de
+investigación, diseño como proceso de búsqueda, comunicación de
+resultados), que este proyecto usa como criterio implícito de calidad al
+decidir qué evidencia archivar en \texttt{docs/mediciones/}.
+
+Dado que el trabajo aporta evaluación empírica de rendimiento y de
+usabilidad de un artefacto único (no un experimento controlado con grupos
+de comparación aleatorizados ni un estudio de caso sobre una organización
+externa), se acoge además el estándar empírico \emph{Engineering
+Research} de Ralph et al.~\cite{RALPH2021} para el reporte metodológico
+--- ver checklist completo en \texttt{docs/checklists/ralph-2021-checklist.md}.
+Se consultaron adicionalmente las guías de reporte de estudios de caso de
+Runeson y Höst~\cite{RUNESON2009} como referencia de rigor metodológico
+para documentar el protocolo experimental (\S5.5), aunque Artisync no se
+reporta formalmente como un estudio de caso en el sentido estricto de esa
+guía (no hay una organización externa como unidad de análisis).
+
+\section{Instrumentos de medición}
+
+\begin{table}[H]
+\centering
+\caption{Instrumentos de medición empírica utilizados}
+\label{tab:instrumentos}
+\begin{tabular}{@{}p{2.6cm}p{2.6cm}p{3.2cm}p{5.0cm}@{}}
+\toprule
+\textbf{Instrumento} & \textbf{Versión exacta} & \textbf{Qué mide} & \textbf{Configuración} \\
+\midrule
+SUS de Brooke~\cite{BROOKE1996,BANGOR2009} & 10 ítems originales, sin
+  modificación & Usabilidad percibida & Formulario Google Forms, escala
+  1--5, ver \texttt{docs/\allowbreak mediciones/\allowbreak sus/\allowbreak
+  instrucciones-\allowbreak formulario.md} \\
+k6 & v2.1.0 (go1.26.4) & Rendimiento bajo carga & 50 VUs, 30 s,
+  \texttt{k6/catalogo-load.js} (ver \S5.5) \\
+Lighthouse / \texttt{@lhci/cli} & Lighthouse 12.6.1 / \texttt{@lhci/cli}
+  0.15.1 & Calidad web (Performance, Accessibility, Best Practices, SEO) &
+  \texttt{lighthouserc.\allowbreak mobile.json} / \texttt{lighthouserc.\allowbreak
+  desktop.json}, 3 corridas por perfil \\
+JaCoCo~\cite{ZHU1997,INOZEMTSEVA2014} & 0.8.13 (jacoco-maven-plugin) &
+  Cobertura de código (líneas, ramas, complejidad) & \texttt{pom.xml},
+  umbral declarado $\geq$70\,\% \\
+OWASP ZAP~\cite{OWASP2021} & \texttt{ghcr.io/\allowbreak zaproxy/\allowbreak
+  zaproxy:stable} (\texttt{zap-baseline.py}) & Escaneo dinámico de
+  seguridad & Modo baseline contra \texttt{http://\allowbreak localhost:4200} \\
+SpotBugs + find-sec-bugs~\cite{HALFOND2005,GOULD2004} & 4.8.6.6 + 1.13.0 &
+  Análisis estático de inyección SQL & Regla
+  \texttt{SQL\_NONCONSTANT\_STRING\_PASSED\_TO\_EXECUTE} y variantes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Versiones exactas de todo el entorno (Docker, JDK, Node, Angular CLI) en
+\texttt{docs/entorno/versions.txt}.
+
+\section{Enfoque de métricas: Goal-Question-Metric (GQM)}
+
+\textbf{Ejemplo de GQM completo aplicado al bloque de rendimiento}, siguiendo
+el enfoque original de Basili, Caldiera y Rombach~\cite{BASILI1994}:
+
+\begin{itemize}
+  \item \textbf{Meta (Goal):} Analizar el rendimiento del endpoint de
+    catálogo con el propósito de caracterizarlo desde el punto de vista
+    de la latencia percibida por el usuario, en el contexto del sistema
+    Artisync bajo carga concurrente moderada.
+  \item \textbf{Preguntas (Questions):}
+    \begin{itemize}
+      \item Q1: ¿Cuál es la latencia p95 del endpoint bajo 50 usuarios
+        virtuales concurrentes?
+      \item Q2: ¿Se mantiene esa latencia dentro del umbral declarado
+        (200~ms con caché caliente, 500~ms con caché frío)?
+      \item Q3: ¿Existen errores de servidor (HTTP $\geq$500) bajo esa
+        carga?
+    \end{itemize}
+  \item \textbf{Métricas (Metrics):}
+    \begin{itemize}
+      \item M1: percentil 95 de \texttt{http\_req\_duration} (ms), por
+        escenario.
+      \item M2: tasa de \texttt{http\_req\_failed} con código $\geq$500
+        (\%).
+      \item M3: throughput agregado (\texttt{http\_reqs}/s).
+    \end{itemize}
+\end{itemize}
+
+El mismo patrón GQM (meta declarada en el \texttt{REPORTE-*.md} de cada
+bloque, preguntas implícitas en los umbrales del SRS, métricas reportadas
+con estadística descriptiva) se repite para seguridad, usabilidad,
+cobertura y calidad web --- ver \texttt{docs/mediciones/<bloque>/REPORTE-*.md}.
+
+\section{Población, muestreo y participantes}
+
+\textbf{Bloque de usabilidad (SUS):} población objetivo --- usuarios
+potenciales de una plataforma de intermediación de servicios digitales
+(perfil generalista, no exclusivamente técnico). Muestra: \textbf{N=16
+participantes externos al equipo de desarrollo}, reclutados por
+conveniencia (red de contactos del equipo), rango de edad 21--62 años
+(M=34.6), 50\,\% femenino / 50\,\% masculino, experiencia web 50\,\% alta
+/ 31.3\,\% media / 18.8\,\% baja, dispositivo 37.5\,\% móvil / 25\,\%
+laptop / 25\,\% desktop / 12.5\,\% tablet
+(\texttt{docs/mediciones/sus/perfil-participantes.csv}).
+
+\textbf{Limitación de muestreo declarada honestamente} (siguiendo Baltes
+y Ralph~\cite{BALTES2022} sobre reporte de muestreo en ingeniería de
+software empírica): el muestreo por conveniencia no garantiza
+representatividad de la población de usuarios reales de la plataforma
+(creadores y clientes de economía creativa específicamente), y
+\textbf{no existe una justificación de tamaño de muestra basada en poder
+estadístico} --- N=16 se decidió por disponibilidad de participantes
+dentro del plazo académico, no por un cálculo a priori. Esta limitación
+se retoma en el Capítulo~\ref{cap:validez} (Amenazas a la validez
+externa).
+
+\textbf{Bloques automatizados (k6, Lighthouse, JaCoCo, OWASP/ZAP):} no
+aplican muestreo de sujetos humanos; el ``tamaño de muestra'' es el
+número de corridas independientes (3 para Lighthouse por perfil, 3+3 para
+k6 por escenario caliente/frío, 1 ejecución exhaustiva para JaCoCo sobre
+la suite de 522 pruebas).
+
+\section{Protocolo experimental replicable}
+
+Cada bloque de evaluación tiene un comando reproducible documentado en
+\texttt{Makefile} y su reporte:
+
+\begin{itemize}
+  \item \textbf{Rendimiento:} \texttt{make bench} (requiere \texttt{make
+    up} y k6 instalado) --- ejecuta \texttt{k6/catalogo-load.js} contra
+    \texttt{GET /api/v1/catalogo?page=0\&size=20}, 50~VUs/30s. Ver
+    \texttt{docs/mediciones/perf/REPORTE-PERF.md} para el protocolo
+    detallado de los escenarios caliente y frío.
+  \item \textbf{Seguridad:} \texttt{make audit} (análisis estático) +
+    \texttt{make audit-zap} (escaneo dinámico) --- ver
+    \texttt{docs/mediciones/sec/REPORTE-SEC.md}.
+  \item \textbf{Usabilidad:} protocolo de tarea guiada
+    (registro/login $\to$ explorar catálogo $\to$ crear pedido $\to$
+    revisar seguimiento $\to$ cerrar sesión) descrito en
+    \texttt{docs/mediciones/sus/instrucciones-formulario.md}, seguido del
+    cuestionario SUS; análisis con \texttt{make sus}.
+  \item \textbf{Cobertura:} \texttt{make test} (JUnit~5 + JaCoCo, reporte
+    en \texttt{docs/mediciones/jacoco/}).
+  \item \textbf{Calidad web:} \texttt{make lighthouse} --- ver detalle de
+    la configuración del contenedor efímero en el propio \texttt{Makefile}
+    (razones técnicas del aislamiento de red documentadas ahí).
+\end{itemize}
+
+\section{Análisis estadístico}
+
+Estadísticos calculados en todas las mediciones cuantitativas:
+\textbf{media, desviación típica e intervalo de confianza al 95\,\%},
+preferidos sobre valores p aislados como forma primaria de reporte,
+siguiendo la recomendación de la comunidad de ingeniería de software
+empírica~\cite{WOHLIN2012,ARCURI2011}. Ver valores concretos por bloque en
+el Capítulo~\ref{cap:evaluacion-resultados}.
+
+\textbf{Brecha declarada honestamente:} la guía de la Entrega Final exige,
+cuando se comparan dos condiciones (ej. caché frío vs. caliente en el
+bloque de rendimiento), un test inferencial no paramétrico (Wilcoxon,
+Mann-Whitney) acompañado de un tamaño de efecto (\emph{Cliff's delta}, r
+de rangos) --- exactamente el procedimiento que Arcuri y
+Briand~\cite{ARCURI2011} sistematizan para algoritmos y comparaciones no
+deterministas en ingeniería de software. \textbf{Ese test no se ejecutó}
+--- \texttt{docs/checklists/ralph-2021-checklist.md} y
+\texttt{docs/checklists/fair-checklist.md} documentan esta ausencia sin
+maquillarla. Además, la propia comparación caliente/frío tiene una
+limitación metodológica de diseño documentada en
+\texttt{docs/mediciones/perf/REPORTE-PERF.md}: el script de carga no
+aísla un \emph{cache miss} real por iteración, por lo que un test
+inferencial sobre los datos actuales no respondería a la pregunta que
+pretende responder. Corregir el diseño del experimento (variar los
+parámetros de consulta para forzar \emph{misses} reales) es prerrequisito
+para que el test inferencial tenga sentido --- declarado como trabajo
+futuro en el Capítulo~\ref{cap:trabajo-futuro}.
+
+No se realizaron comparaciones múltiples que requieran corrección (Holm,
+Benjamini-Hochberg) en esta entrega.
+
+\section{Determinismo y semillas}
+
+Ver el detalle completo en \texttt{docs/entorno/versions.txt}, sección
+``Semillas aleatorias''. Resumen: \texttt{fn\_seleccionar\_ganadores\_sorteo}
+usa \texttt{random()} de PostgreSQL sin semilla fija (no determinista por
+diseño --- es un sorteo real); los scripts de análisis SUS no usan
+muestreo aleatorio. No se identificaron otras dependencias de semillas
+aleatorias en los scripts de medición a la fecha de este documento.
