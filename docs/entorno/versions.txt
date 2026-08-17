@@ -1,0 +1,62 @@
+# Versiones exactas del entorno — Entrega Final (v1.0.0)
+#
+# Generado manualmente el 2026-08-17 contra el commit 519092b (rama
+# feat/ia-verificacion-asistida) para cumplir el Bloque D.2 de la guia de la
+# Entrega Final. Distingue entre:
+#   (a) versiones FIJADAS en el repositorio (Dockerfiles, docker-compose.yml,
+#       pom.xml, package.json) -- estas son la fuente de verdad para
+#       reproducir el sistema; y
+#   (b) versiones de la maquina de desarrollo que genero esta captura --
+#       informativas, pueden diferir de (a) sin afectar la reproducibilidad
+#       porque el pipeline real corre dentro de contenedores Docker.
+
+## (a) Versiones fijadas en el repositorio (fuente de verdad)
+
+Backend (contenedor, artisync/Backend/Dockerfile):
+  - Build stage:   maven:3.9-eclipse-temurin-21
+  - Runtime stage: eclipse-temurin:21-jre-alpine
+  - Java (target): 21 LTS (pom.xml, <java.version>21</java.version>)
+  - Spring Boot:   4.1.0 (pom.xml, spring-boot-starter-parent)
+  - Flyway:        flyway-database-postgresql (version gestionada por Spring Boot BOM)
+  - jjwt:          0.12.6
+
+Frontend (contenedor, artisync/Frontend/Dockerfile):
+  - node:24-alpine
+  - Angular:       ^22.0.0 (@angular/core, @angular/cli — artisync/Frontend/package.json)
+
+Base de datos y cache (artisync/docker-compose.yml, ancladas por digest sha256):
+  - postgres:16@sha256:33f923b05f64ca54ac4401c01126a6b92afe839a0aa0a52bc5aeb5cc958e5f20
+  - redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+
+Docker Compose: version del `docker-compose.yml` sin declaracion de "version:" explicita
+  (formato Compose Specification, compatible con Docker Compose v2+).
+
+## (b) Herramientas de medicion empirica (versiones declaradas en cada reporte)
+
+  - k6:                    v2.1.0 (go1.26.4) — docs/mediciones/perf/REPORTE-PERF.md
+  - Lighthouse / @lhci/cli: Lighthouse 12.6.1 / @lhci/cli 0.15.1 — docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md
+  - JaCoCo:                0.8.13 (jacoco-maven-plugin) — docs/mediciones/jacoco/REPORTE-JACOCO.md
+  - OWASP ZAP:              ghcr.io/zaproxy/zaproxy:stable (zap-baseline.py) — docs/mediciones/sec/REPORTE-SEC.md
+  - SpotBugs:               4.8.6.6 + find-sec-bugs 1.13.0 — docs/mediciones/sec/REPORTE-SEC.md
+
+## (c) Maquina de desarrollo que genero esta captura (informativa)
+
+  Docker:          29.6.2 (build dfc4efb)
+  Docker Compose:  v5.3.1
+  Java (JDK local): 25.0.3 LTS (HotSpot) — la compilacion real del backend
+                     ocurre dentro del contenedor eclipse-temurin:21, no con
+                     este JDK local; Maven Wrapper (`./mvnw`) puede usarlo
+                     para `make test` fuera de Docker, sin afectar el target
+                     de bytecode (release 21, fijado en pom.xml).
+  Node.js (local): v24.16.0
+  npm (local):     11.13.0
+  Sistema operativo: Windows 11 Home 10.0.26200
+
+## Semillas aleatorias
+
+  - `fn_seleccionar_ganadores_sorteo` (db/procs/): usa `random()` de PostgreSQL
+    sin semilla fija — no determinista entre corridas por diseño (sorteo real).
+  - Scripts de analisis SUS (`docs/mediciones/sus/analisis-sus.py`): no usan
+    muestreo aleatorio, procesan el CSV completo de participantes.
+  - No se identificaron otras dependencias de semillas aleatorias en los
+    scripts de `docs/mediciones/` a la fecha de esta captura.

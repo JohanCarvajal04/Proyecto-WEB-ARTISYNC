@@ -107,15 +107,19 @@ Todas las mediciones, con sus datos crudos, están versionadas bajo [`docs/medic
 | Rendimiento (p95, caché caliente) | 50.17 ms | < 200 ms |
 | Rendimiento (p95, caché frío) | 39.14 ms | < 500 ms |
 | Errores HTTP ≥ 500 | 0.00 % | 0 % |
-| Lighthouse — Rendimiento | 92 / 100 | ≥ 80 |
-| Lighthouse — Accesibilidad | 100 / 100 | ≥ 90 |
-| Lighthouse — Buenas prácticas | 100 / 100 | ≥ 90 |
-| Lighthouse — SEO | 100 / 100 | ≥ 90 |
+| Lighthouse — Rendimiento (mobile / desktop) | 80–81 / 100 · 100 / 100 | ≥ 80 |
+| Lighthouse — Accesibilidad (mobile / desktop) | 93 / 100 · 93 / 100 | ≥ 90 |
+| Lighthouse — Buenas prácticas (mobile / desktop) | 96 / 100 · 96 / 100 | ≥ 90 |
+| Lighthouse — SEO (mobile / desktop) | 100 / 100 · 100 / 100 | ≥ 90 |
 | Controles OWASP evidenciados | 6 / 6 | 6 |
-| Cobertura JaCoCo (líneas) | 23.0 % | ≥ 60 % *(no alcanzado)* |
-| Usabilidad SUS | 71.75 / 100 (n=10, Bangor C+) | > 68 puntos, ≥ 10 participantes |
+| Escaneo OWASP ZAP baseline | 0 FAIL · 8 WARN · 59 PASS | 0 hallazgos altos |
+| Análisis estático SQL (SpotBugs + find-sec-bugs) | 0 hallazgos de inyección | 0 hallazgos |
+| Cobertura JaCoCo (líneas / ramas) | 72.0 % / 62.5 % | ≥ 70 % |
+| Usabilidad SUS | 76.88 / 100 (n=16, Bangor B) | > 68 puntos, ≥ 10 participantes |
 
-El diccionario de variables está en [`docs/mediciones/DATA-DICTIONARY.md`](docs/mediciones/DATA-DICTIONARY.md). El estado de cumplimiento frente a la guía de la entrega, incluidas las brechas abiertas, se detalla en [`docs/INFORME-CUMPLIMIENTO-ENTREGA-3.md`](docs/INFORME-CUMPLIMIENTO-ENTREGA-3.md).
+El diccionario de variables está en [`docs/mediciones/DATA-DICTIONARY.md`](docs/mediciones/DATA-DICTIONARY.md). El estado de cumplimiento frente a la guía de la Entrega Final, incluidas las brechas abiertas, se detalla en [`docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md`](docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md).
+
+La colección Postman con 26 peticiones (éxito, validación 400, autorización 401/403, no encontrado 404) está en [`Pruebas.postman_collection.json`](Pruebas.postman_collection.json), en la raíz del repositorio — fuente única; la copia antigua bajo `docs/mediciones/` quedó eliminada por estar desactualizada.
 
 ---
 

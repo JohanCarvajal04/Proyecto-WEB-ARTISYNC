@@ -1,8 +1,14 @@
-# Makefile — Artisync (PFC Tercera Entrega v0.9.0-rc)
+# Makefile — Artisync (PFC Entrega Final v1.0.0)
 #
 # Objetivos minimos exigidos por el Bloque B.1 de la guia de la Tercera Entrega:
 # up, down, test, bench, audit, clean. `make up` debe levantar el sistema
 # completo desde una clonacion limpia sin intervencion humana adicional.
+#
+# `make all` (Bloque D.1 de la guia de la Entrega Final): reproduce end-to-end
+# desde una clonacion limpia -- levanta contenedores (que aplican migraciones
+# Flyway y semillas SQL automaticamente al arrancar), corre pruebas, benchmarks
+# y auditorias, y compila el documento academico final. Termina con codigo 0
+# solo si todo el pipeline fue reproducido sin errores.
 #
 # Requisitos previos: Docker + Docker Compose, y `cp artisync/.env.example artisync/.env`
 # con las variables editadas (ver README).
@@ -10,7 +16,16 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: up down test bench audit audit-zap clean sus lighthouse
+.PHONY: all up down test bench audit audit-zap clean sus lighthouse docs
+
+## Reproduccion end-to-end en un solo comando (Bloque D.1): levanta el stack
+## completo (Flyway aplica migraciones y postgres aplica db/seed.sql al
+## arrancar, sin paso manual aparte), corre pruebas unitarias, benchmark k6,
+## auditoria estatica de SQL dinamico y escaneo ZAP, Lighthouse, el analisis
+## SUS sobre los datos ya recolectados, y compila el documento academico
+## final a PDF. Requiere Docker, k6 y pandoc instalados (ver README).
+all: up test bench audit audit-zap lighthouse sus docs
+	@echo "OK: pipeline de reproduccion completo (make all) termino sin errores."
 
 ## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
 up:
@@ -148,3 +163,24 @@ sus:
 	fi
 	python docs/mediciones/sus/analisis-sus.py > docs/mediciones/sus/salida-sus.txt
 	@echo "OK: ver docs/mediciones/sus/salida-sus.txt"
+
+## Compila el documento academico final (Bloque B / D.1) de Markdown a PDF con
+## pandoc, concatenando los capitulos de docs/informe-final/ en orden numerico.
+## Requiere pandoc (y una distribucion LaTeX, ej. MiKTeX/TeX Live, como motor
+## de PDF). Si docs/informe-final/ todavia no existe o pandoc no esta
+## instalado, informa el motivo y termina con error en vez de fallar en
+## silencio -- make all debe poder detectar este paso como pendiente.
+docs:
+	@if [ ! -d docs/informe-final ]; then \
+		echo "ERROR: docs/informe-final/ no existe todavia (documento academico en borrador)."; \
+		exit 1; \
+	fi
+	@command -v pandoc >/dev/null 2>&1 || { \
+		echo "ERROR: pandoc no esta instalado. Ver https://pandoc.org/installing.html"; \
+		exit 1; \
+	}
+	pandoc docs/informe-final/*.md \
+		--from=markdown --pdf-engine=xelatex \
+		--toc --number-sections \
+		-o docs/informe-final/Informe-Final-v1.0.0.pdf
+	@echo "OK: docs/informe-final/Informe-Final-v1.0.0.pdf generado."

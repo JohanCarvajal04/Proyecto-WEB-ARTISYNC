@@ -42,3 +42,9 @@ jobs:
 
       - name: Validar matriz de trazabilidad (A.3.3)
         run: bash scripts/validate-traceability.sh
+
+      - name: Auditoria estatica de SQL dinamico (A.2.3)
+        run: bash scripts/audit-sql-dynamic.sh
+
+      - name: Verificar sincronizacion de procedimientos (db/procs -> R__procedimientos.sql)
+        run: bash scripts/sync-procs.sh --check

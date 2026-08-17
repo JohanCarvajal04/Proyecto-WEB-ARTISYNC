@@ -7,6 +7,10 @@
   — ver `artisync/database/seed-medicion-servicios.sql`)
 - Configuración: 50 VUs, 30s, 3 corridas independientes por escenario, ~60s de espera entre
   corridas. Caché de catálogo activo (`ADR-004`, TTL 60s).
+- Script versionado (Entrega Final): [`k6/catalogo-load.js`](../../../k6/catalogo-load.js) —
+  reconstrucción de esta configuración, añadida para que `make bench` sea reproducible desde una
+  clonación limpia (ver nota de honestidad en el propio script sobre su relación con estos datos
+  ya archivados).
 
 ## Escenario CALIENTE (calentamiento previo de 10s, cache ya poblado)
 
