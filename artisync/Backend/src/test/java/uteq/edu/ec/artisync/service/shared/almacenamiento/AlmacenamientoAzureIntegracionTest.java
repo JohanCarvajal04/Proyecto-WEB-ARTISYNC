@@ -51,6 +51,7 @@ class AlmacenamientoAzureIntegracionTest {
 
     private AlmacenamientoAzure almacenamiento() {
         AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        propiedades.setProveedor("azure");
         propiedades.getAzure().setConnectionString(CONEXION_AZURITE);
         // Un contenedor por ejecución evita que dos corridas se pisen.
         propiedades.getAzure().setContenedor("prueba-" + UUID.randomUUID());

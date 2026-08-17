@@ -1,0 +1,163 @@
+% 01-introduccion.tex — Fuente: docs/informe-final/01-introduccion.md (borrador)
+
+\chapter{Introducción}
+\label{cap:introduccion}
+
+\section{Contexto y motivación}
+
+La economía creativa digital ---el conjunto de actividades económicas en
+las que músicos, ilustradores, diseñadores y desarrolladores monetizan
+directamente su trabajo a través de internet--- ha crecido de forma
+sostenida como alternativa de ingreso para profesionales
+independientes~\cite{PERES2024}. Sin embargo, la infraestructura que
+sostiene esa economía sigue fragmentada: un creador independiente típico
+coordina la comunicación con clientes por una red social o mensajería
+instantánea, gestiona el cobro por una pasarela de pagos genérica sin
+retención de garantía, y no cuenta con un mecanismo estandarizado de
+contrato ni de verificación de identidad de ninguna de las dos partes.
+Esta fragmentación introduce fricción operativa medible: la literatura
+sobre freelancers de plataformas digitales reporta la gestión de múltiples
+herramientas desconectadas y la ausencia de mecanismos de protección de
+pago como fuentes recurrentes de conflicto y abandono de la
+actividad~\cite{GUSSEK2023}. El patrón de pago en garantía (\emph{escrow})
+---retener los fondos del cliente hasta la aprobación explícita del
+entregable--- es la mitigación estándar de la industria para el riesgo de
+incumplimiento en transacciones entre partes que no se conocen
+previamente, formalizable incluso mediante protocolos de depósito dual
+verificables~\cite{ASGAONKAR2019}, pero su implementación correcta exige
+una arquitectura de datos con garantías transaccionales estrictas, que la
+mayoría de las herramientas genéricas de mensajería y pago no ofrece de
+forma nativa. 
+
+Artisync responde a esa fragmentación con una plataforma que centraliza,
+en un único sistema auditable, el ciclo completo de intermediación entre
+\textbf{Creadores} de contenido digital y \textbf{Clientes}: perfil
+verificado por un servicio de inteligencia artificial, catálogo dinámico
+de servicios y productos, mensajería moderada que bloquea el intercambio
+de datos de contacto externo (mitigación directa del riesgo de que las
+partes se muevan fuera del sistema auditable), contrato con firma
+electrónica generado desde plantilla, flujo de pedido por etapas con
+trazabilidad completa, pago mediante PayPal Orders v2 con patrón
+\emph{escrow}, y funciones sociales (seguidores, comentarios, sorteos)
+para fomentar la retención de usuarios. El modelo de doble lado
+(Creador/Cliente) de Artisync es, en esencia, una plataforma multilateral
+en el sentido de Hagiu y Wright~\cite{HAGIU2015}, orquestando transacciones
+entre dos grupos de usuarios que de otro modo dependerían de
+intermediarios genéricos.
+
+\section{Preguntas de investigación}
+
+\textbf{RQ1.} ¿Cumple el sistema, con evidencia empírica reproducible, los
+umbrales de rendimiento, seguridad, usabilidad, cobertura de código y
+calidad web declarados como requisitos no funcionales de la especificación
+(\texttt{docs/requisitos/SRS.md})?
+
+\textbf{RQ2.} ¿Es la estrategia híbrida de acceso a datos (operaciones
+CRUD elementales vía ORM, operaciones multi-tabla vía procedimientos
+almacenados PL/pgSQL invocados exclusivamente mediante los mecanismos
+formales de JPA~2.1) implementable y verificable end-to-end dentro de las
+restricciones de tiempo y equipo de un proyecto académico de 17 semanas,
+sin introducir vulnerabilidades de inyección SQL?
+
+\textbf{RQ3.} ¿En qué medida el proceso de ingeniería de requisitos
+aplicado (elicitación, negociación, documentación y validación según el
+marco de Pohl~\cite{POHL2010}, con las características de calidad
+INCOSE~v4~\cite{INCOSE2023}) produce un corpus de requisitos verificable y
+trazable de extremo a extremo hacia el código, las pruebas automatizadas y
+la evidencia empírica?
+
+\textbf{RQ4.} ¿Qué amenazas a la validez de constructo, interna, externa y
+de conclusión afectan la generalización de los resultados empíricos
+reportados, y cómo se mitigaron dentro del alcance del proyecto?
+
+\section{Objetivo general y objetivos específicos}
+
+\textbf{Objetivo general.} Diseñar, implementar y evaluar empíricamente
+Artisync, una plataforma web de intermediación entre creadores de
+contenido digital y clientes, con una estrategia híbrida de acceso a datos
+y verificación de identidad asistida por inteligencia artificial,
+documentando el proceso completo con el rigor exigido por la ingeniería de
+software empírica.
+
+\textbf{Objetivos específicos:}
+
+\begin{enumerate}
+  \item Especificar los requisitos funcionales y no funcionales del
+    sistema conforme a ISO/IEC/IEEE~29148:2018~\cite{ISO29148} y validar
+    su calidad contra las características C1--C15 de
+    INCOSE~v4~\cite{INCOSE2023}. \emph{(traza a RQ3)}
+  \item Implementar la estrategia híbrida de acceso a datos, conectando
+    end-to-end al código en ejecución al menos seis procedimientos
+    almacenados o funciones SQL categorizados por tipo de operación
+    (consultas multi-tabla, cálculos agregados, reportes, actualizaciones
+    masivas, validaciones cruzadas, generación de códigos secuenciales).
+    \emph{(traza a RQ2)}
+  \item Evaluar empíricamente el rendimiento bajo carga (k6), la
+    cobertura de pruebas (JaCoCo)~\cite{ZHU1997,INOZEMTSEVA2014}, la
+    calidad web (Lighthouse) y la seguridad (controles OWASP + análisis
+    estático y dinámico automatizado)~\cite{OWASP2021,OWASPSQLI,HALFOND2005,GOULD2004}
+    del sistema entregado, con datos crudos reproducibles.
+    \emph{(traza a RQ1)}
+  \item Evaluar la usabilidad percibida del sistema mediante el
+    instrumento System Usability Scale~\cite{BROOKE1996,BANGOR2009} con
+    una muestra de participantes externos al equipo de desarrollo.
+    \emph{(traza a RQ1)}
+  \item Documentar de forma explícita las amenazas a la validez de los
+    resultados reportados y las decisiones de diseño no resueltas al
+    cierre de la Entrega Final. \emph{(traza a RQ4)}
+\end{enumerate}
+
+\section{Contribuciones}
+
+\begin{enumerate}
+  \item \textbf{Un sistema software completo y desplegable} (backend
+    Spring Boot 4.1.0 / Java 21 LTS, frontend Angular, PostgreSQL 16,
+    Redis 7, orquestado con Docker Compose) que implementa el ciclo
+    completo de intermediación descrito en la Sección~\ref{cap:introduccion}
+    --- ver \texttt{artisync/}.
+  \item \textbf{Una estrategia híbrida de acceso a datos verificada
+    end-to-end}, con 13 procedimientos/funciones PL/pgSQL versionados y 7
+    de ellos conectados al código Java en ejecución mediante JPA~2.1 sin
+    concatenación de SQL dinámico --- ver \texttt{db/procs/},
+    \texttt{docs/basedatos/CATALOGO-SP.md},
+    \texttt{docs/adr/adr-006-estrategia-acceso-datos.md}.
+  \item \textbf{Un corpus de ingeniería de requisitos trazable}, con 37
+    requisitos (23 funcionales, 14 no funcionales) especificados conforme
+    a ISO/IEC/IEEE~29148:2018, historias de usuario en formato Connextra
+    con criterios INVEST, casos de uso en plantilla de
+    Cockburn~\cite{COCKBURN2000}, y una matriz de trazabilidad requisito
+    $\to$ historia $\to$ caso de uso $\to$ módulo $\to$ endpoint $\to$
+    prueba $\to$ evidencia --- ver \texttt{docs/requisitos/},
+    \texttt{docs/trazabilidad/matriz.csv}.
+  \item \textbf{Un paquete de evidencia empírica reproducible y
+    versionada}, cubriendo rendimiento, seguridad, usabilidad, cobertura
+    de código y calidad web, con datos crudos, scripts de análisis y
+    diccionario de variables --- ver \texttt{docs/mediciones/}.
+  \item \textbf{Un conjunto de siete registros de decisiones de
+    arquitectura (ADR)} siguiendo la plantilla de
+    Nygard~\cite{NYGARD2011}, documentando y justificando las decisiones
+    estructurales del sistema --- ver \texttt{docs/adr/}.
+\end{enumerate}
+
+\section{Organización del documento}
+
+El Capítulo~\ref{cap:marco-teorico} presenta el marco teórico
+estrictamente necesario para comprender las decisiones de diseño e
+ingeniería de requisitos del proyecto. El Capítulo~\ref{cap:trabajos-relacionados}
+sitúa el trabajo frente a la literatura de plataformas de intermediación y
+economía creativa. El Capítulo~\ref{cap:ingenieria-requisitos} documenta el
+proceso completo de ingeniería de requisitos. El
+Capítulo~\ref{cap:materiales-metodos} describe la metodología de Design
+Science Research aplicada y los instrumentos de medición empírica. El
+Capítulo~\ref{cap:diseno-arquitectura} presenta el diseño arquitectónico
+del sistema y las decisiones registradas en los ADR. El
+Capítulo~\ref{cap:implementacion} detalla decisiones críticas de
+implementación, con énfasis en la estrategia híbrida de acceso a datos. El
+Capítulo~\ref{cap:evaluacion-resultados} reporta los resultados de la
+evaluación empírica por cada dimensión de calidad. El
+Capítulo~\ref{cap:discusion} discute esos resultados respondiendo a cada
+pregunta de investigación. El Capítulo~\ref{cap:validez} analiza las
+amenazas a la validez. El Capítulo~\ref{cap:trabajo-futuro} describe el
+trabajo futuro y el Capítulo~\ref{cap:conclusiones} sintetiza las
+conclusiones. El documento cierra con las declaraciones obligatorias, la
+bibliografía y los anexos.

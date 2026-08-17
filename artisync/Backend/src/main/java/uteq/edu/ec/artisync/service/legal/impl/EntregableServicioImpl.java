@@ -18,7 +18,6 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
-import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
 
 import java.math.BigDecimal;
@@ -34,7 +33,6 @@ public class EntregableServicioImpl implements IEntregableServicio {
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final AlmacenamientoDocumentos almacenamiento;
-    private final ChatService chatService;
 
     @Override
     @Transactional
@@ -152,11 +150,8 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
         log.info("Entrega aprobada para pedido {} por cliente {}", idPedido, idCliente);
 
-        // RF-14: el chat se cierra al aprobar la entrega. La sala queda visible
-        // en modo lectura; `cerrarSala` avisa además por el tópico para que
-        // quien la tenga abierta se entere.
-        chatService.cerrarSala(idPedido);
-
+        // TODO M6: Cerrar sala de chat
+        // chatService.cerrarSala(idPedido);
         // TODO M6: Notificar al creador
         // notificacionService.notificar(..., "PAGO_LIBERADO", "El pago ha sido liberado por el cliente");
     }

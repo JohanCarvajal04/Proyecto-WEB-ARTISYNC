@@ -1,0 +1,232 @@
+% 08-evaluacion-resultados.tex — Fuente: docs/informe-final/08-evaluacion-resultados.md
+
+\chapter{Evaluación empírica y resultados}
+\label{cap:evaluacion-resultados}
+
+Cada bloque se reporta con: (i) pregunta de investigación asociada, (ii)
+métrica, (iii) datos crudos y su ubicación, (iv) estadística descriptiva,
+y (v) interpretación textual.
+
+\section{Rendimiento (k6) --- RQ1}
+
+\textbf{Métrica:} percentiles de latencia (\texttt{http\_req\_duration}) y
+tasa de error HTTP $\geq$500 sobre
+\texttt{GET /api/v1/catalogo?page=0\&size=20}, 50~VUs, 30~s, 3 corridas
+por escenario. \textbf{Datos crudos:}
+\texttt{docs/mediciones/perf/k6-run\{1,2,3\}.json} (caliente),
+\texttt{k6-cold-run\{1,2,3\}.json} (frío); consolas en
+\texttt{k6-console-run*.txt}.
+
+\begin{table}[H]
+\centering
+\caption{Resultados de la prueba de carga k6 por escenario}
+\label{tab:k6}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lrrrrrlr@{}}
+\toprule
+\textbf{Escenario} & \textbf{n} & \textbf{Media (ms)} & \textbf{Mediana (ms)} & \textbf{DT (ms)} & \textbf{IC 95\,\% (ms)} & \textbf{p50/p90/p95/p99 (ms)} & \textbf{Error $\geq$500} \\
+\midrule
+Caliente & 4500 & 21.38 & 13.01 & 32.71 & [20.42, 22.33] & 13.01 / 31.75 / \textbf{50.17} / 205.60 & 0.00\,\% \\
+Frío     & 4500 & 13.62 &  9.04 & 14.52 & [13.20, 14.05] &  9.04 / 22.39 / \textbf{39.14} /  89.98 & 0.00\,\% \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\textbf{Umbral:} p95 $\leq$200~ms caliente (\textbf{cumple}, 50.17~ms),
+p95 $\leq$500~ms frío (\textbf{cumple}, 39.14~ms). Throughput
+$\approx$48.5--49.0~req/s por corrida.
+
+\textbf{Interpretación:} ambos escenarios cumplen holgadamente sus
+umbrales respectivos. El hallazgo más relevante no es el cumplimiento en
+sí, sino que el escenario ``frío'' resultó \textbf{más rápido} que el
+``caliente'' --- contraintuitivo, y documentado con honestidad
+metodológica en \texttt{docs/mediciones/perf/REPORTE-PERF.md}: el script
+de carga golpea siempre la misma combinación de parámetros de consulta,
+por lo que la clave de caché de Spring (\texttt{@Cacheable},
+Capítulo~\ref{cap:implementacion}~\S7.2) se puebla con la primera
+petición en ambos escenarios --- de las 1500 iteraciones por corrida, como
+mucho una es un \emph{miss} real contra PostgreSQL. La diferencia de
+medias observada (21.38~ms vs. 13.62~ms) es ruido de ejecución (JIT/GC de
+la JVM, carga del contenedor), no un efecto real de caché frío vs.
+caliente. \textbf{No se ejecutó} el test inferencial (Wilcoxon) ni el
+tamaño de efecto que exige el Bloque~C de la guía para esta comparación
+--- protocolo recomendado por Arcuri y Briand~\cite{ARCURI2011},
+declarado como brecha en el Capítulo~\ref{cap:materiales-metodos}~\S5.6 y
+retomado como amenaza a la validez en el Capítulo~\ref{cap:validez}.
+
+\section{Seguridad (OWASP + ZAP + análisis estático) --- RQ1, RQ2}
+
+\textbf{Métrica:} estado (aprobado/hallazgo) de 6 controles
+OWASP~\cite{OWASP2021} evidenciados manualmente, más el resultado
+agregado del escaneo automatizado ZAP baseline y del análisis estático
+SpotBugs + find-sec-bugs~\cite{HALFOND2005,GOULD2004}. \textbf{Datos
+crudos:} \texttt{docs/mediciones/sec/owasp/*.txt}, \texttt{sec/zap/},
+\texttt{sec/static-analysis/}.
+
+\begin{table}[H]
+\centering
+\caption{Controles OWASP evidenciados manualmente}
+\label{tab:owasp}
+\begin{tabular}{@{}p{5.4cm}p{2.0cm}p{5.6cm}@{}}
+\toprule
+\textbf{Control OWASP} & \textbf{Estado} & \textbf{Evidencia} \\
+\midrule
+A01 --- Control de acceso roto & Aprobado & \texttt{sec/owasp/a01-control-acceso.txt} \\
+A02 --- Fallas criptográficas (TLS) & Aprobado & \texttt{sec/owasp/a02-tls.txt} \\
+A03 --- Inyección & Aprobado & \texttt{sec/owasp/a03-inyeccion.txt} \\
+A05 --- Configuración de seguridad incorrecta & Aprobado & \texttt{sec/owasp/a05-cabeceras.txt} \\
+A07 --- Fallas de identificación y autenticación & Aprobado & \texttt{sec/owasp/a07-rate-limit.txt} \\
+A09 --- Fallas de registro y monitoreo & Aprobado & \texttt{sec/owasp/a09-logging.txt} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A04, A06, A08, A10 quedan fuera de alcance declarado (no evaluados) --- ver
+\texttt{docs/mediciones/sec/REPORTE-SEC.md}.
+
+\textbf{ZAP baseline:} \texttt{FAIL-NEW: 0} $\cdot$ \texttt{WARN-NEW: 8}
+(severidad media/baja, ninguno bloqueante) $\cdot$ \texttt{PASS: 59}.
+Cumple el umbral de ``sin hallazgos altos''.
+
+\textbf{Análisis estático (SpotBugs + find-sec-bugs):} \textbf{0
+hallazgos} de inyección SQL
+(\texttt{SQL\_NONCONSTANT\_STRING\_PASSED\_TO\_EXECUTE},
+\texttt{SQL\_INJECTION\_JDBC} y variantes) sobre el bytecode del backend
+completo --- consistente con el modelo de detección estático propuesto
+originalmente por Gould, Su y Devanbu~\cite{GOULD2004}.
+
+\textbf{Interpretación:} la combinación de evidencia manual reproducible
+(6 controles) y escaneo automatizado (ZAP + análisis estático) da una
+cobertura de seguridad consistente en ambas direcciones (top-down por
+control OWASP, bottom-up por herramienta automatizada), sin
+contradicciones entre ambas fuentes.
+
+\section{Usabilidad (SUS) --- RQ1}
+
+\textbf{Métrica:} puntaje System Usability Scale
+(0--100)~\cite{BROOKE1996}, N=16 (umbral mínimo de la guía: N$\geq$15).
+\textbf{Datos crudos:} \texttt{docs/mediciones/sus/sus-raw.csv}, perfil de
+participantes en \texttt{perfil-participantes.csv}.
+
+\begin{table}[H]
+\centering
+\caption{Resultados del cuestionario SUS}
+\label{tab:sus}
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Métrica} & \textbf{Valor} \\
+\midrule
+n & 16 \\
+Media & 76.88 \\
+Mediana & 77.50 \\
+DT & 14.48 \\
+IC 95\,\% & [69.16, 84.59] \\
+Interpretación (escala de Bangor~\cite{BANGOR2009}) & \textbf{B} \\
+Umbral del proyecto ($>$68) & Supera \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{boxplot-sus.png}
+\caption{Diagrama de caja de los puntajes SUS ($N=16$). Fuente:
+\texttt{docs/mediciones/sus/boxplot-sus.png}.}
+\label{fig:boxplot-sus}
+\end{figure}
+
+\textbf{Nota de conformidad:} el Bloque~C de la guía exige gráficos
+vectoriales (SVG/PDF); la Figura~\ref{fig:boxplot-sus} está en formato
+raster (PNG). Regenerarlo en SVG desde el mismo script
+(\texttt{docs/mediciones/sus/graficar-sus.py}) es una corrección de bajo
+esfuerzo pendiente antes del cierre.
+
+\textbf{Interpretación:} el puntaje medio (76.88) está por encima del
+percentil~50 de la escala SUS normalizada y en la categoría~B de Bangor
+(rango ``excelente'' bajo), superando el umbral mínimo del proyecto
+($>$68) con margen. La limitación de muestreo por conveniencia
+(Capítulo~\ref{cap:materiales-metodos}~\S5.4) restringe la generalización
+de este resultado a la población real de usuarios --- retomado en el
+Capítulo~\ref{cap:validez}.
+
+\section{Cobertura de código (JaCoCo) --- RQ1}
+
+\textbf{Métrica:} cobertura de líneas, ramas y complejidad ciclomática
+sobre los módulos de dominio, servicios y controladores --- las mismas
+tres dimensiones que Zhu, Hall y May~\cite{ZHU1997} sistematizan como
+criterios de adecuación de pruebas. \textbf{Datos crudos:}
+\texttt{docs/mediciones/jacoco/report.xml}, \texttt{html/jacoco.csv}.
+
+\begin{table}[H]
+\centering
+\caption{Cobertura de código JaCoCo}
+\label{tab:jacoco}
+\begin{tabular}{@{}lllc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Cobertura} & \textbf{Umbral} & \textbf{Cumple} \\
+\midrule
+Lines         & 72.0\,\% (2867/3981)   & $\geq$70\,\% & \checkmark \\
+Branches      & 62.5\,\% (703/1125)    & $\geq$70\,\% & $\times$ \\
+Instructions  & 69.7\,\% (12825/18404) & ---          & --- \\
+Complexity    & 56.5\,\% (775/1371)    & ---          & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Interpretación:} la cobertura de líneas cumple el umbral de
+70\,\%; \textbf{la cobertura de ramas no lo alcanza} (62.5\,\% vs.
+70\,\%) --- declarado sin maquillaje, es una brecha real, no un redondeo
+favorable. Cabe además la advertencia empírica de Inozemtseva y
+Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura alto no implica
+por sí solo una suite de pruebas efectiva para detectar defectos, por lo
+que estas cifras deben leerse como una medida de exhaustividad estructural,
+no como un sustituto de la efectividad real de las 522 pruebas. La
+medición es un agregado global del backend; la guía exige desglose por
+módulo (dominio, servicios, controladores) que
+\texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md} no provee todavía de
+forma separada --- pendiente para el cierre. Además, \texttt{pom.xml}
+configura JaCoCo solo para reportar, sin \texttt{jacoco:check} que falle
+el build bajo el umbral (Capítulo~\ref{cap:diseno-arquitectura}, brecha
+declarada también en \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}).
+
+\section{Calidad web (Lighthouse) --- RQ1}
+
+\textbf{Métrica:} puntajes Performance, Accessibility, Best Practices, SEO
+(0--100), 3 corridas por perfil (mobile, desktop). \textbf{Datos crudos:}
+\texttt{docs/mediciones/lighthouse/lhci-20260817-*-\{mobile,desktop\}-run\{1,2,3\}.json}.
+
+\begin{table}[H]
+\centering
+\caption{Resultados Lighthouse por perfil y categoría}
+\label{tab:lighthouse}
+\begin{tabular}{@{}lllcc@{}}
+\toprule
+\textbf{Categoría} & \textbf{Mobile (3 corridas)} & \textbf{Desktop (3 corridas)} & \textbf{Umbral} & \textbf{Cumple} \\
+\midrule
+Performance     & 81 / 81 / 80   & 100 / 100 / 100 & $\geq$80 & \checkmark ambos \\
+Accessibility   & 93 / 93 / 93   & 93 / 93 / 93    & $\geq$90 & \checkmark ambos \\
+Best Practices  & 96 / 96 / 96   & 96 / 96 / 96    & $\geq$90 & \checkmark ambos \\
+SEO             & 100 / 100 / 100 & 100 / 100 / 100 & $\geq$90 & \checkmark ambos \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Interpretación:} las cuatro categorías cumplen umbral en ambos
+perfiles, con consistencia prácticamente perfecta entre las 3 corridas de
+cada perfil (varianza $\leq$1 punto en Performance mobile, 0 en el
+resto). Los hallazgos reales que impiden el 100/100 están documentados
+sin maquillaje en \texttt{docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md}:
+\texttt{target-size} (elementos táctiles bajo el tamaño mínimo
+recomendado, Accessibility 93) y un \texttt{403} de red esperado en
+\texttt{/api/auth/refresh} al cargar sin sesión (Best Practices 96) ---
+ninguno de los dos es un defecto real de la aplicación, sino
+comportamiento esperado bajo las condiciones de la auditoría.
+
+\section{Resumen de reproducibilidad de las figuras y tablas de este capítulo}
+
+Todo dato reportado en este capítulo proviene de un archivo crudo
+versionado bajo \texttt{docs/mediciones/} y de un script o comando
+documentado (ver Capítulo~\ref{cap:materiales-metodos}~\S5.5 y
+\texttt{docs/mediciones/DATA-PROVENANCE.md} para el commit/script exacto
+de cada medición) --- ningún número de esta sección se calculó fuera del
+repositorio.

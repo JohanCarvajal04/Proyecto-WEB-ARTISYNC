@@ -1,0 +1,141 @@
+% 02-marco-teorico.tex — Fuente: docs/informe-final/02-marco-teorico.md
+% Todas las citas marcadas "[PENDIENTE: verificar cita]" en el borrador
+% fueron verificadas contra fuente primaria el 17-08-2026 (ver referencias.bib
+% y README.md de esta carpeta) y ya no llevan la marca.
+
+\chapter{Marco teórico}
+\label{cap:marco-teorico}
+
+Este capítulo se limita a los fundamentos estrictamente necesarios para
+comprender las decisiones documentadas en los capítulos posteriores; no es
+un compendio general de teoría de aplicaciones web.
+
+\section{Ingeniería de requisitos: ISO/IEC/IEEE 29148:2018 y el marco de Pohl}
+
+La norma ISO/IEC/IEEE~29148:2018~\cite{ISO29148} define los procesos de
+ciclo de vida para la ingeniería de requisitos de sistemas y software,
+incluyendo la estructura recomendada de un Software Requirements
+Specification (SRS) y el patrón sintáctico de enunciado de requisito
+\emph{[condición] [sujeto] shall [acción] [objeto] [restricción]}.
+Pohl~\cite{POHL2010} organiza el proceso en cuatro actividades
+interdependientes ---elicitación, negociación, documentación y
+validación--- que este proyecto usa como estructura del
+Capítulo~\ref{cap:ingenieria-requisitos}. Wiegers y
+Beatty~\cite{WIEGERS2013} complementan el marco con las prácticas de
+desarrollo y gestión de requisitos (priorización, control de cambios)
+usadas en \texttt{docs/requisitos/CHANGELOG-REQ.md}.
+
+\section{Calidad de requisitos: INCOSE Guide to Writing Requirements v4}
+
+La guía INCOSE~v4~\cite{INCOSE2023} define nueve características de
+calidad para un requisito individual (C1--C9: Necessary, Appropriate,
+Unambiguous, Complete, Singular, Feasible, Verifiable, Correct,
+Conforming) y seis para un conjunto de requisitos (C10--C15: Complete,
+Consistent, Feasible, Comprehensible, Able to be validated, Correct). Este
+proyecto aplica ambos conjuntos de características en
+\texttt{docs/checklists/incose-checklist.md}, con evidencia citada
+requisito por requisito en vez de una declaración genérica de
+cumplimiento.
+
+\section{Historias de usuario y casos de uso como técnicas complementarias}
+
+Las historias de usuario en formato Connextra (\emph{As a [rol], I want
+[funcionalidad], so that [beneficio]}) con criterios INVEST (Independent,
+Negotiable, Valuable, Estimable, Small, Testable) capturan la intención
+funcional desde la perspectiva del usuario, mientras que los casos de uso
+en la plantilla de Cockburn~\cite{COCKBURN2000} formalizan el flujo de
+interacción en niveles 1 a 4 (resumen, cometido de usuario, subfunción,
+implementación). El proyecto usa ambas técnicas de forma complementaria,
+no sustitutiva: las historias en \texttt{docs/requisitos/historias/}
+capturan el valor de negocio; los casos de uso en
+\texttt{docs/requisitos/casos-de-uso/} capturan el flujo detallado de
+interacción para los escenarios críticos.
+
+\section{Modelo arquitectónico C4}
+
+El modelo C4 de Brown~\cite{BROWN2018} describe la arquitectura de un
+sistema en cuatro niveles progresivos de detalle ---Contexto, Contenedores,
+Componentes y Código--- cada uno dirigido a una audiencia distinta (desde
+stakeholders no técnicos hasta desarrolladores). Este proyecto documenta
+los niveles 1 a 3 en \texttt{docs/diagramas/}
+(\texttt{C4\_Nivel1\_Contexto.md}, \texttt{C4\_Nivel2\_Contenedores.md},
+\texttt{C4\_Nivel3\_Componentes\_Backend.md}), usados como base del
+Capítulo~\ref{cap:diseno-arquitectura}.
+
+\section{Calidad de software: ISO/IEC 25010}
+
+ISO/IEC~25010:2011~\cite{ISO25010} define un modelo de características de
+calidad de producto software (adecuación funcional, eficiencia de
+desempeño, compatibilidad, usabilidad, fiabilidad, seguridad,
+mantenibilidad, portabilidad) usado en este proyecto para clasificar los
+requisitos no funcionales del SRS y para estructurar la tabla de atributos
+de calidad del Capítulo~\ref{cap:diseno-arquitectura}. Las dimensiones
+evaluadas empíricamente en el Capítulo~\ref{cap:evaluacion-resultados}
+(rendimiento, seguridad, usabilidad) se mapean directamente a
+subcaracterísticas de este modelo.
+
+\section{Principios REST}
+
+La arquitectura REST (Representational State Transfer), formalizada por
+Fielding en su disertación doctoral~\cite{FIELDING2000}, define un
+conjunto de restricciones arquitectónicas (interfaz uniforme, sin estado
+en el servidor, cacheable, sistema en capas) que la API de Artisync sigue
+para exponer sus recursos (\texttt{/api/v1/...}), documentada con OpenAPI
+(Springdoc).
+
+\section{Autenticación: JWT (RFC 7519)}
+
+JSON Web Token (RFC~7519)~\cite{JWT2015} especifica un formato compacto y
+auto-contenido para representar afirmaciones (\emph{claims}) entre dos
+partes, firmado digitalmente para garantizar integridad. Artisync usa JWT
+firmado HS256 para el access token; la decisión de dónde alojarlo (cuerpo
+de respuesta vs. cookie \texttt{HttpOnly}) y sus alternativas descartadas
+se documentan en \texttt{docs/adr/adr-002-esquema-autenticacion.md}.
+
+\section{Controles OWASP Top 10}
+
+El OWASP Top 10:2021~\cite{OWASP2021} cataloga las diez categorías de
+riesgo de seguridad más críticas en aplicaciones web, resultado de un
+análisis de datos de la industria. Este proyecto evidencia seis de esas
+categorías (A01 Control de acceso roto, A02 Fallas criptográficas, A03
+Inyección, A05 Configuración de seguridad incorrecta, A07 Fallas de
+identificación y autenticación, A09 Fallas de registro y monitoreo de
+seguridad) con evidencia reproducible en \texttt{docs/mediciones/sec/},
+complementadas con un escaneo automatizado OWASP ZAP baseline y análisis
+estático SpotBugs + find-sec-bugs.
+
+\section{Patrones de acceso a datos y modelos de consistencia}
+
+La disyuntiva entre mapeo objeto-relacional (ORM) y acceso directo
+mediante SQL/procedimientos almacenados es un compromiso reconocido en la
+literatura de arquitectura de datos y de ingeniería de software empírica
+sobre seguridad: el ORM reduce el código repetitivo de las operaciones
+CRUD elementales a costa de perder control fino sobre consultas complejas,
+mientras que los procedimientos almacenados ofrecen ejecución más cercana
+a los datos y una superficie de ataque de inyección SQL distinta
+(mitigable con parametrización estricta). La literatura fundacional sobre
+detección y prevención de inyección SQL --- tanto por chequeo estático de
+consultas generadas dinámicamente~\cite{GOULD2004} como por monitoreo en
+tiempo de ejecución de un modelo de consultas legítimas~\cite{HALFOND2005}
+--- coincide en que el riesgo real no es el mecanismo elegido (ORM vs.
+procedimiento almacenado) sino la concatenación de entrada de usuario en
+el texto del comando SQL, sin importar cuál de los dos mecanismos la
+introduzca. La guía OWASP de prevención de inyección
+SQL~\cite{OWASPSQLI} reconoce ambos mecanismos ---consultas parametrizadas
+vía ORM y procedimientos almacenados correctamente parametrizados--- como
+defensas primarias equivalentes contra la inyección, siempre que ninguno
+de los dos concatene entrada de usuario en el texto del comando SQL. Esta
+equivalencia es la base técnica de la estrategia híbrida adoptada en
+\texttt{docs/adr/adr-006-estrategia-acceso-datos.md} y evaluada en el
+Capítulo~\ref{cap:evaluacion-resultados}.
+
+\section{Documentación de decisiones de arquitectura (ADR)}
+
+El formato de \emph{Architecture Decision Record} propuesto por
+Nygard~\cite{NYGARD2011} --- un documento corto por decisión, con
+contexto, decisión y consecuencias --- se adoptó en este proyecto
+precisamente por la razón que motivó su creación: los documentos grandes
+de arquitectura no se mantienen actualizados, mientras que los documentos
+pequeños y modulares sí tienen una oportunidad real de actualizarse. Los
+siete ADR de Artisync (\texttt{docs/adr/}) siguen esta plantilla; el
+Capítulo~\ref{cap:diseno-arquitectura} resume su contenido.
