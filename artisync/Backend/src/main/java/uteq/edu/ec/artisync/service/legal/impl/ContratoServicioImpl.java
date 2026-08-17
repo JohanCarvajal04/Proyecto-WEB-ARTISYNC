@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
 
 import java.nio.charset.StandardCharsets;
@@ -33,6 +34,7 @@ public class ContratoServicioImpl implements IContratoServicio {
     private final PedidoRepository pedidoRepository;
     private final PlantillaContratoRepository plantillaContratoRepository;
     private final IPdfGeneracionServicio pdfGeneracionServicio;
+    private final ChatService chatService;
 
     @Override
     @Transactional
@@ -93,10 +95,13 @@ public class ContratoServicioImpl implements IContratoServicio {
 
         contratoRepository.save(contrato);
 
-        // Si ambos firmaron, crear sala de chat (M6 - placeholder)
+        // RF-14: la sala de chat se abre cuando ambas partes han firmado. Sin
+        // esta llamada `crearSala` no la invocaba nadie y el chat del pedido no
+        // podía existir: la vista se quedaba para siempre en "la sala se abre
+        // cuando ambas partes firmen".
         if (contrato.getHashFirmaCreador() != null && contrato.getHashFirmaCliente() != null) {
-            log.info("Ambas partes firmaron contrato {}. Sala de chat pendiente (M6)", idContrato);
-            // TODO M6: chatService.crearSala(pedido);
+            chatService.crearSala(contrato.getPedido());
+            log.info("Ambas partes firmaron el contrato {}; sala de chat abierta", idContrato);
         }
 
         return mapToRespuesta(contrato);

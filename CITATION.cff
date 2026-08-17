@@ -10,11 +10,11 @@ authors:
     given-names: "Bryan Javier"
   - family-names: "Rios Cuyabazo"
     given-names: "Jhon Kevin"
-version: "v0.9.0-rc"
-date-released: "2026-07-30"
+version: "v1.0.0"
+date-released: "2026-08-17"
 license: "MIT"
 repository-code: "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
-doi: "10.5281/zenodo.21730559"
+doi: "10.5281/zenodo.21978572"
 keywords:
   - web
   - artisync

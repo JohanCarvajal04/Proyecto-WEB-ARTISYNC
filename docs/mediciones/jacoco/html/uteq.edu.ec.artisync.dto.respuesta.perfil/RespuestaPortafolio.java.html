@@ -4,13 +4,13 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 
 @Builder
-<span class="nc" id="L7">public record RespuestaPortafolio(</span>
+<span class="fc" id="L7">public record RespuestaPortafolio(</span>
         Long idPortafolio,
         Long idPerfil,
         LocalDateTime fechaCreacion,
         Integer totalVisitasAcumuladas,
         Boolean esPublico,
-        String colorPlantilla
+        java.util.Map&lt;String, String&gt; opcionesPersonalizacion
 ) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

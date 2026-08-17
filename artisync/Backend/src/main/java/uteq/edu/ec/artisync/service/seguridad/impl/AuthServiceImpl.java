@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.service.seguridad.impl;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -37,12 +39,13 @@ import uteq.edu.ec.artisync.service.shared.EmailService;
 import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 import uteq.edu.ec.artisync.service.shared.PreAuth2faTicketService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -66,10 +69,7 @@ public class AuthServiceImpl implements AuthService {
     private static final Duration VENTANA_INTENTOS_RECUPERACION = Duration.ofHours(1);
 
     private final UsuarioRepository usuarioRepository;
-    private final RolRepository rolRepository;
     private final UsuarioRolRepository usuarioRolRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
-    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final TokenRecuperacionRepository tokenRecuperacionRepository;
     private final SesionUsuarioRepository sesionUsuarioRepository;
 
@@ -82,49 +82,32 @@ public class AuthServiceImpl implements AuthService {
     private final TwoFactorService twoFactorService;
     private final IntentosAutenticacionService intentosAutenticacionService;
     private final PreAuth2faTicketService preAuth2faTicketService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
     public UserResponse register(RegisterRequest request) {
-        if (usuarioRepository.existsByCorreo(request.getCorreo())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado en la plataforma");
+        String rolNombre = request.getRol() != null && !request.getRol().isBlank()
+                ? request.getRol().toUpperCase() : "CLIENTE";
+
+        // REQ-F-001: fn_registrar_usuario valida correo unico, mayoria de edad
+        // (RNF-12) y rol permitido, e inserta usuario + usuario_roles + perfil
+        // de creador opcional en una unica transaccion atomica en el motor.
+        Long idUsuario;
+        try {
+            idUsuario = usuarioRepository.registrarUsuario(
+                    request.getNombres(),
+                    request.getApellidos(),
+                    request.getCorreo(),
+                    passwordEncoder.encode(request.getContrasena()),
+                    request.getFechaNacimiento(),
+                    rolNombre);
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
 
-        // Validación RNF-12: Mayoría de edad (>= 18 años)
-        if (request.getFechaNacimiento() == null || LocalDate.now().minusYears(18).isBefore(request.getFechaNacimiento())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes tener al menos 18 años para registrarte en ARTISYNC (RNF-12)");
-        }
-
-        Usuario usuario = Usuario.builder()
-                .nombres(request.getNombres())
-                .apellidos(request.getApellidos())
-                .correo(request.getCorreo())
-                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))
-                .fechaNacimiento(request.getFechaNacimiento())
-                .estadoCuenta(true)
-                .build();
-        usuario = usuarioRepository.save(usuario);
-
-        String rolNombre = request.getRol() != null && !request.getRol().isBlank() ? request.getRol().toUpperCase() : "CLIENTE";
-        if (!List.of("CLIENTE", "CREADOR").contains(rolNombre)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rol no permitido en registro. Solo se permiten CLIENTE o CREADOR");
-        }
-        Rol rol = rolRepository.findByNombreRol(rolNombre)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol especificado no existe en el sistema: " + rolNombre));
-
-        UsuarioRol usuarioRol = UsuarioRol.builder()
-                .usuario(usuario)
-                .rol(rol)
-                .build();
-        usuarioRolRepository.save(usuarioRol);
-
-        if ("CREADOR".equals(rolNombre)) {
-            PerfilCreador perfil = PerfilCreador.builder()
-                    .usuario(usuario)
-                    .biografia("¡Hola! Soy un creador en ARTISYNC.")
-                    .build();
-            perfilCreadorRepository.save(perfil);
-        }
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al registrar el usuario"));
 
         return UserResponse.builder()
                 .idUsuario(usuario.getIdUsuario())
@@ -161,34 +144,40 @@ public class AuthServiceImpl implements AuthService {
         // Autenticación correcta: limpiar cualquier cuota acumulada por fallos previos.
         intentosAutenticacionService.limpiar(AMBITO_LOGIN, request.getCorreo());
 
-        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        // REQ-F-002: fn_resolver_estado_login resuelve en una sola llamada el
+        // estado de cuenta, el flag de 2FA y los roles (join usuario_roles-roles),
+        // en vez de tres consultas separadas.
+        String estadoLoginJson = usuarioRepository.resolverEstadoLogin(request.getCorreo());
+        if (estadoLoginJson == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        }
+        JsonNode estado = parseEstadoLogin(estadoLoginJson);
+        Long idUsuario = estado.get("idUsuario").asLong();
+        String correoUsuario = estado.get("correo").asText();
+        boolean dosFactoresHabilitado = estado.get("dosFactoresHabilitado").asBoolean();
 
-        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
-                .orElse(null);
+        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
 
-        if (dosFactores != null && Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {
-            log.info("evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}", usuario.getCorreo(), ip, usuario.getIdUsuario());
+        if (dosFactoresHabilitado) {
+            log.info("evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}", correoUsuario, ip, idUsuario);
             // §2.1 (OBS-AUTO-05): ticket de un solo uso que prueba que la
             // contraseña ya se validó — AuthController lo mueve a una cookie
             // HttpOnly. Sin esto, verify2Fa() no tenía forma de saber si el
             // llamante había pasado por aquí.
-            String ticket = preAuth2faTicketService.emitir(usuario.getIdUsuario(), usuario.getCorreo());
+            String ticket = preAuth2faTicketService.emitir(idUsuario, correoUsuario);
             return TokenResponse.builder()
-                    .correo(usuario.getCorreo())
-                    .idUsuario(usuario.getIdUsuario())
+                    .correo(correoUsuario)
+                    .idUsuario(idUsuario)
                     .requiere2fa(true)
                     .preAuthTicket(ticket)
                     .build();
         }
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(correoUsuario);
         String accessToken = jwtService.generarToken(userDetails);
         String refreshToken = jwtService.generarRefreshToken(userDetails);
 
-        List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
-                .map(ur -> ur.getRol().getNombreRol())
-                .toList();
+        List<String> roles = extraerRoles(estado);
 
         List<String> permisos = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -198,13 +187,13 @@ public class AuthServiceImpl implements AuthService {
         registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
         registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
 
-        log.info("evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}", usuario.getCorreo(), ip, usuario.getIdUsuario());
+        log.info("evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}", correoUsuario, ip, idUsuario);
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .idUsuario(usuario.getIdUsuario())
-                .correo(usuario.getCorreo())
+                .idUsuario(idUsuario)
+                .correo(correoUsuario)
                 .roles(roles)
                 .permisos(permisos)
                 .requiere2fa(false)
@@ -221,15 +210,21 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "Sesión de verificación inválida o expirada. Vuelve a iniciar sesión."));
 
-        Usuario usuario = usuarioRepository.findByCorreo(datos.correo())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
-        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "2FA no configurado para este usuario"));
-
-        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no se encuentra habilitado");
+        // REQ-F-002: misma funcion que login() -- consolida usuario + roles + 2FA
+        // en una sola llamada en vez de findByCorreo + findByUsuarioIdUsuario.
+        String estadoLoginJson = usuarioRepository.resolverEstadoLogin(datos.correo());
+        if (estadoLoginJson == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
+        JsonNode estado = parseEstadoLogin(estadoLoginJson);
+        Long idUsuario = estado.get("idUsuario").asLong();
+        boolean dosFactoresHabilitado = estado.get("dosFactoresHabilitado").asBoolean();
+
+        if (!dosFactoresHabilitado) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no se encuentra habilitado para este usuario");
+        }
+
+        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
 
         if (!twoFactorService.validarCodigoOBackup(datos.correo(), request.getCodigo())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
@@ -242,13 +237,11 @@ public class AuthServiceImpl implements AuthService {
                     "Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.");
         }
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(datos.correo());
         String accessToken = jwtService.generarToken(userDetails);
         String refreshToken = jwtService.generarRefreshToken(userDetails);
 
-        List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
-                .map(ur -> ur.getRol().getNombreRol())
-                .toList();
+        List<String> roles = extraerRoles(estado);
 
         List<String> permisos = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -261,8 +254,8 @@ public class AuthServiceImpl implements AuthService {
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .idUsuario(usuario.getIdUsuario())
-                .correo(usuario.getCorreo())
+                .idUsuario(idUsuario)
+                .correo(datos.correo())
                 .roles(roles)
                 .permisos(permisos)
                 .requiere2fa(false)
@@ -382,20 +375,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
+        // REQ-F-005: fn_restablecer_contrasena valida (con FOR UPDATE) que el
+        // token exista, no este usado y no haya expirado, y actualiza usuarios +
+        // tokens_recuperacion de forma atomica, evitando la ventana de doble uso
+        // concurrente que tenia la version en dos save() secuenciales.
         String tokenHash = hashSha256(request.getToken());
-        TokenRecuperacion tokenRec = tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(tokenHash)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este enlace ya ha sido utilizado o ha expirado"));
-
-        if (tokenRec.getFechaGeneracion().plusMinutes(60).isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este enlace ya ha sido utilizado o ha expirado");
+        try {
+            usuarioRepository.restablecerContrasena(tokenHash, passwordEncoder.encode(request.getNuevaContrasena()));
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
-
-        Usuario usuario = tokenRec.getUsuario();
-        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));
-        usuarioRepository.save(usuario);
-
-        tokenRec.setUsado(true);
-        tokenRecuperacionRepository.save(tokenRec);
 
         return new RespuestaMensaje("Contraseña reestablecida exitosamente");
     }
@@ -453,6 +442,21 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Error al generar hash SHA-256", e);
         }
+    }
+
+    /** Deserializa el JSONB devuelto por fn_resolver_estado_login (REQ-F-002). */
+    private JsonNode parseEstadoLogin(String estadoLoginJson) {
+        try {
+            return objectMapper.readTree(estadoLoginJson);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al interpretar el estado de login");
+        }
+    }
+
+    private List<String> extraerRoles(JsonNode estado) {
+        List<String> roles = new ArrayList<>();
+        estado.get("roles").forEach(nodo -> roles.add(nodo.asText()));
+        return roles;
     }
 }
 

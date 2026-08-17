@@ -30,7 +30,7 @@ public class PortafolioControlador {
 
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorId(@PathVariable Long id) {
-<span class="nc" id="L33">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
+<span class="fc" id="L33">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
     }
 
     @GetMapping(&quot;/perfil/{idPerfil}&quot;)

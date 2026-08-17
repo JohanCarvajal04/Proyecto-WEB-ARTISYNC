@@ -2,11 +2,10 @@
 
 import jakarta.validation.constraints.Size;
 
-<span class="nc" id="L5">public record PeticionActualizarPortafolio(</span>
+<span class="fc" id="L5">public record PeticionActualizarPortafolio(</span>
         Boolean esPublico,
 
-        @Size(max = 20, message = &quot;El color de plantilla no puede superar los 20 caracteres&quot;)
-        String colorPlantilla
+        java.util.Map&lt;String, String&gt; opcionesPersonalizacion
 ) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

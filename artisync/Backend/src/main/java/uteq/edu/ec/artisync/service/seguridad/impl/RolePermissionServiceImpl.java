@@ -15,8 +15,8 @@ import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.repository.seguridad.PermisoRepository;
 import uteq.edu.ec.artisync.repository.seguridad.RolRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +29,6 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     private final RolRepository rolRepository;
     private final PermisoRepository permisoRepository;
-    private final UsuarioRolRepository usuarioRolRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -72,21 +71,17 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public void syncPermissions(String roleName, List<String> permissionCodes) {
-        Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado: " + roleName));
-
-        Set<Permiso> nuevosPermisos = new HashSet<>();
-        if (permissionCodes != null) {
-            for (String code : permissionCodes) {
-                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permiso inexistente: " + code));
-                nuevosPermisos.add(p);
-            }
+        // REQ-F-003: fn_sincronizar_permisos_rol reemplaza atomicamente el set
+        // completo de rol_permisos (DELETE+INSERT) en el motor, en vez de que
+        // Hibernate calcule el diff de la coleccion @ManyToMany al hacer save().
+        String[] codigos = permissionCodes != null ? permissionCodes.toArray(new String[0]) : new String[0];
+        Integer totalAsignado;
+        try {
+            totalAsignado = rolRepository.sincronizarPermisos(roleName.toUpperCase(), codigos);
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.NOT_FOUND);
         }
-
-        rol.setPermisos(nuevosPermisos);
-        rolRepository.save(rol);
-        log.info("Permisos sincronizados correctamente para el rol: {}. Total asignados: {}", roleName, nuevosPermisos.size());
+        log.info("Permisos sincronizados correctamente para el rol: {}. Total asignados: {}", roleName, totalAsignado);
     }
 
     @Override
@@ -147,19 +142,14 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Override
     @Transactional
     public void deleteRole(Long idRol) {
-        Rol rol = rolRepository.findById(idRol)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado con ID: " + idRol));
-
-        Set<String> rolesProtegidos = Set.of("ADMIN", "CLIENTE", "CREADOR", "MODERADOR", "SOPORTE", "AUDITOR_FINANCIERO");
-        if (rolesProtegidos.contains(rol.getNombreRol().toUpperCase())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se puede eliminar un rol base del sistema: " + rol.getNombreRol());
+        // REQ-F-004: fn_eliminar_rol valida (en la misma transaccion que el
+        // DELETE) que el rol no sea uno de los roles base protegidos y que no
+        // tenga usuarios activos asignados, antes de aplicar el borrado.
+        try {
+            rolRepository.eliminarRol(idRol);
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
-
-        if (usuarioRolRepository.existsByRolIdRol(idRol)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se puede eliminar el rol porque tiene usuarios activos asignados");
-        }
-
-        rolRepository.delete(rol);
-        log.info("Rol personalizado eliminado exitosamente: {} (ID {})", rol.getNombreRol(), idRol);
+        log.info("Rol personalizado eliminado exitosamente (ID {})", idRol);
     }
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrefijoAlmacenamiento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.almacenamiento</a> &gt; <span class="el_source">PrefijoAlmacenamiento.java</span></div><h1>PrefijoAlmacenamiento.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.almacenamiento;
+
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+
+/**
+ * Prefijos con los que se agrupan los archivos por caso de uso. Son parte de la
+ * referencia que se guarda en base de datos, así que renombrar una constante
+ * deja huérfanos los archivos ya subidos: solo se añaden.
+ */
+public final class PrefijoAlmacenamiento {
+
+    public static final String VERIFICACION = &quot;verificacion&quot;;
+    public static final String PORTAFOLIO = &quot;portafolio&quot;;
+    public static final String ENTREGABLES = &quot;entregables&quot;;
+
+    private PrefijoAlmacenamiento() {
+    }
+
+    /**
+     * Une prefijo y nombre en una referencia. El prefijo lo fija el código, no
+     * el cliente, pero se valida igual: es lo que impide que una referencia
+     * termine apuntando fuera de su carpeta, tanto en disco como en el blob.
+     */
+    static String componer(String prefijo, String nombre) {
+<span class="pc bpc" id="L25" title="1 of 4 branches missed.">        if (prefijo == null || prefijo.isBlank()) {</span>
+<span class="fc" id="L26">            return nombre;</span>
+        }
+<span class="fc" id="L28">        String limpio = prefijo.trim();</span>
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (!limpio.matches(&quot;[a-z0-9-]+&quot;)) {</span>
+<span class="fc" id="L30">            throw new ExcepcionReglaNegocio(&quot;Prefijo de almacenamiento inválido: &quot; + prefijo);</span>
+        }
+<span class="fc" id="L32">        return limpio + &quot;/&quot; + nombre;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

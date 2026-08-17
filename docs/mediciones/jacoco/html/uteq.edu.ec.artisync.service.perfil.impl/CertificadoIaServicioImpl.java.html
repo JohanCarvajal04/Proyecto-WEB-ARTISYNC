@@ -28,80 +28,66 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
     @Override
     @Transactional
     public RespuestaCertificadoIa emitirCertificado(PeticionCrearCertificadoIa peticion) {
-<span class="nc" id="L31">        PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())</span>
-<span class="nc" id="L32">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + peticion.idPerfil()));</span>
+<span class="fc" id="L31">        PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())</span>
+<span class="fc" id="L32">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + peticion.idPerfil()));</span>
 
-<span class="nc" id="L34">        EstadoVerificacion estado = estadoRepository.findById(peticion.idEstadoVerificacion())</span>
-<span class="nc" id="L35">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación no encontrado con ID: &quot; + peticion.idEstadoVerificacion()));</span>
+<span class="fc" id="L34">        EstadoVerificacion estado = estadoRepository.findById(peticion.idEstadoVerificacion())</span>
+<span class="fc" id="L35">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación no encontrado con ID: &quot; + peticion.idEstadoVerificacion()));</span>
 
-<span class="nc" id="L37">        CertificadoIa certificado = CertificadoIa.builder()</span>
-<span class="nc" id="L38">                .perfil(perfil)</span>
-<span class="nc" id="L39">                .estadoVerificacion(estado)</span>
-<span class="nc" id="L40">                .urlDocumentoS3(peticion.urlDocumentoS3())</span>
-<span class="nc" id="L41">                .puntajeConfianzaIa(peticion.puntajeConfianzaIa())</span>
-<span class="nc" id="L42">                .build();</span>
+<span class="fc" id="L37">        CertificadoIa certificado = CertificadoIa.builder()</span>
+<span class="fc" id="L38">                .perfil(perfil)</span>
+<span class="fc" id="L39">                .estadoVerificacion(estado)</span>
+<span class="fc" id="L40">                .urlDocumentoS3(peticion.urlDocumentoS3())</span>
+<span class="fc" id="L41">                .puntajeConfianzaIa(peticion.puntajeConfianzaIa())</span>
+<span class="fc" id="L42">                .build();</span>
 
-<span class="nc" id="L44">        CertificadoIa guardado = certificadoRepository.save(certificado);</span>
-<span class="nc" id="L45">        return mapearARespuesta(guardado);</span>
+<span class="fc" id="L44">        CertificadoIa guardado = certificadoRepository.save(certificado);</span>
+<span class="fc" id="L45">        return mapearARespuesta(guardado);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaCertificadoIa obtenerCertificadoPorId(Long idCertificado) {
-<span class="nc" id="L51">        CertificadoIa certificado = certificadoRepository.findById(idCertificado)</span>
-<span class="nc" id="L52">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado));</span>
-<span class="nc" id="L53">        return mapearARespuesta(certificado);</span>
+<span class="fc" id="L51">        CertificadoIa certificado = certificadoRepository.findById(idCertificado)</span>
+<span class="fc" id="L52">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado));</span>
+<span class="fc" id="L53">        return mapearARespuesta(certificado);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaCertificadoIa&gt; listarCertificadosPorPerfil(Long idPerfil) {
-<span class="nc" id="L59">        return certificadoRepository.findByPerfilIdPerfil(idPerfil).stream()</span>
-<span class="nc" id="L60">                .map(this::mapearARespuesta)</span>
-<span class="nc" id="L61">                .collect(Collectors.toList());</span>
+<span class="fc" id="L59">        return certificadoRepository.findByPerfilIdPerfil(idPerfil).stream()</span>
+<span class="fc" id="L60">                .map(this::mapearARespuesta)</span>
+<span class="fc" id="L61">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaCertificadoIa&gt; listarTodosLosCertificados() {
-<span class="nc" id="L67">        return certificadoRepository.findAll().stream()</span>
-<span class="nc" id="L68">                .map(this::mapearARespuesta)</span>
-<span class="nc" id="L69">                .collect(Collectors.toList());</span>
-    }
-
-    @Override
-    @Transactional
-    public RespuestaCertificadoIa actualizarEstadoVerificacion(Long idCertificado, Long idNuevoEstado) {
-<span class="nc" id="L75">        CertificadoIa certificado = certificadoRepository.findById(idCertificado)</span>
-<span class="nc" id="L76">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado));</span>
-
-<span class="nc" id="L78">        EstadoVerificacion nuevoEstado = estadoRepository.findById(idNuevoEstado)</span>
-<span class="nc" id="L79">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación no encontrado con ID: &quot; + idNuevoEstado));</span>
-
-<span class="nc" id="L81">        certificado.setEstadoVerificacion(nuevoEstado);</span>
-<span class="nc" id="L82">        CertificadoIa actualizado = certificadoRepository.save(certificado);</span>
-<span class="nc" id="L83">        return mapearARespuesta(actualizado);</span>
+<span class="fc" id="L67">        return certificadoRepository.findAll().stream()</span>
+<span class="fc" id="L68">                .map(this::mapearARespuesta)</span>
+<span class="fc" id="L69">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional
     public void eliminarCertificado(Long idCertificado) {
-<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (!certificadoRepository.existsById(idCertificado)) {</span>
-<span class="nc" id="L90">            throw new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (!certificadoRepository.existsById(idCertificado)) {</span>
+<span class="fc" id="L76">            throw new ExcepcionRecursoNoEncontrado(&quot;Certificado IA no encontrado con ID: &quot; + idCertificado);</span>
         }
-<span class="nc" id="L92">        certificadoRepository.deleteById(idCertificado);</span>
-<span class="nc" id="L93">    }</span>
+<span class="fc" id="L78">        certificadoRepository.deleteById(idCertificado);</span>
+<span class="fc" id="L79">    }</span>
 
     private RespuestaCertificadoIa mapearARespuesta(CertificadoIa certificado) {
-<span class="nc" id="L96">        return RespuestaCertificadoIa.builder()</span>
-<span class="nc" id="L97">                .idCertificado(certificado.getIdCertificado())</span>
-<span class="nc bnc" id="L98" title="All 2 branches missed.">                .idPerfil(certificado.getPerfil() != null ? certificado.getPerfil().getIdPerfil() : null)</span>
-<span class="nc bnc" id="L99" title="All 2 branches missed.">                .idEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getIdEstadoVerificacion() : null)</span>
-<span class="nc bnc" id="L100" title="All 2 branches missed.">                .nombreEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getNombreEstado() : null)</span>
-<span class="nc" id="L101">                .urlDocumentoS3(certificado.getUrlDocumentoS3())</span>
-<span class="nc" id="L102">                .puntajeConfianzaIa(certificado.getPuntajeConfianzaIa())</span>
-<span class="nc" id="L103">                .fechaAnalisis(certificado.getFechaAnalisis())</span>
-<span class="nc" id="L104">                .build();</span>
+<span class="fc" id="L82">        return RespuestaCertificadoIa.builder()</span>
+<span class="fc" id="L83">                .idCertificado(certificado.getIdCertificado())</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">                .idPerfil(certificado.getPerfil() != null ? certificado.getPerfil().getIdPerfil() : null)</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">                .idEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getIdEstadoVerificacion() : null)</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                .nombreEstadoVerificacion(certificado.getEstadoVerificacion() != null ? certificado.getEstadoVerificacion().getNombreEstado() : null)</span>
+<span class="fc" id="L87">                .urlDocumentoS3(certificado.getUrlDocumentoS3())</span>
+<span class="fc" id="L88">                .puntajeConfianzaIa(certificado.getPuntajeConfianzaIa())</span>
+<span class="fc" id="L89">                .fechaAnalisis(certificado.getFechaAnalisis())</span>
+<span class="fc" id="L90">                .build();</span>
     }
 }
 

@@ -13,6 +13,23 @@ import uteq.edu.ec.artisync.service.perfil.ICertificadoIaServicio;
 
 import java.util.List;
 
+/**
+ * CRUD administrativo de certificados de IA.
+ *
+ * &lt;p&gt;El alta de verificaciones ya no pasa por {@link #emitirCertificado}: el
+ * camino vigente es {@code POST /api/v1/verificaciones} (ver
+ * {@code VerificacionControlador}). Este {@code POST} se conserva restringido
+ * a {@code ADMIN} solo para no romper clientes existentes del CRUD original
+ * de {@code CertificadoIa}.&lt;/p&gt;
+ *
+ * &lt;p&gt;Este controlador ya NO expone un endpoint para cambiar
+ * {@code id_estado_verificacion}: el único camino auditado para registrar la
+ * decisión de un moderador es {@code PATCH /api/v1/verificaciones/{id}/decision}
+ * (ver {@code VerificacionControlador}), que pasa por
+ * {@code sp_registrar_decision_verificacion} y deja rastro de moderador, fecha
+ * y nota. El antiguo {@code PATCH /{id}/estado/{idNuevoEstado}} escribía el
+ * estado directamente sin ninguna de esas garantías y fue eliminado.&lt;/p&gt;
+ */
 @RestController
 @RequestMapping(&quot;/api/v1/certificados&quot;)
 @RequiredArgsConstructor
@@ -21,41 +38,35 @@ public class CertificadoIaControlador {
     private final ICertificadoIaServicio certificadoServicio;
 
     @PostMapping
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCertificadoIa&gt; emitirCertificado(@Valid @RequestBody PeticionCrearCertificadoIa peticion) {
-<span class="nc" id="L26">        RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);</span>
-<span class="nc" id="L27">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+<span class="fc" id="L43">        RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);</span>
+<span class="fc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCertificadoIa&gt; obtenerCertificadoPorId(@PathVariable Long id) {
-<span class="nc" id="L32">        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));</span>
+<span class="nc" id="L50">        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));</span>
     }
 
     @GetMapping(&quot;/perfil/{idPerfil}&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarCertificadosPorPerfil(@PathVariable Long idPerfil) {
-<span class="nc" id="L37">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorPerfil(idPerfil));</span>
+<span class="nc" id="L56">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorPerfil(idPerfil));</span>
     }
 
     @GetMapping
     @PreAuthorize(&quot;hasAnyRole('MODERADOR', 'ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarTodosLosCertificados() {
-<span class="nc" id="L43">        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());</span>
-    }
-
-    @PatchMapping(&quot;/{id}/estado/{idNuevoEstado}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('MODERADOR', 'ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaCertificadoIa&gt; actualizarEstadoVerificacion(
-            @PathVariable Long id,
-            @PathVariable Long idNuevoEstado) {
-<span class="nc" id="L51">        return ResponseEntity.ok(certificadoServicio.actualizarEstadoVerificacion(id, idNuevoEstado));</span>
+<span class="nc" id="L62">        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCertificado(@PathVariable Long id) {
-<span class="nc" id="L57">        certificadoServicio.eliminarCertificado(id);</span>
-<span class="nc" id="L58">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Certificado de IA eliminado exitosamente&quot;));</span>
+<span class="nc" id="L68">        certificadoServicio.eliminarCertificado(id);</span>
+<span class="nc" id="L69">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Certificado de IA eliminado exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

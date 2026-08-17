@@ -1,7 +1,6 @@
 package uteq.edu.ec.artisync.service.shared.almacenamiento;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
@@ -17,9 +16,12 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Volumen del contenedor. Convive con AlmacenamientoAzure; quién atiende cada
+ * archivo lo decide AlmacenamientoRouter según el prefijo — ver ADR-007.
+ */
 @Slf4j
 @Component
-@ConditionalOnProperty(name = "documentos.proveedor", havingValue = "local", matchIfMissing = true)
 public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
 
     private final Path rutaBase;

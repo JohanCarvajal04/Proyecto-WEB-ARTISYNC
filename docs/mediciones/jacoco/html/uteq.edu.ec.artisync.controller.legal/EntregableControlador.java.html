@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EntregableControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">EntregableControlador.java</span></div><h1>EntregableControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEntregable;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -18,16 +22,16 @@ public class EntregableControlador {
 
     private final IEntregableServicio entregableServicio;
 
-    @PostMapping(&quot;/{idPedido}/entregable&quot;)
+    @PostMapping(value = &quot;/{idPedido}/entregable&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaEntregable&gt; subirEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam String urlMarcaAgua,
-            @RequestParam String urlLimpia) {
-<span class="nc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L29">                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),</span>
-                        urlMarcaAgua, urlLimpia));
+            @RequestParam(&quot;versionMarcaAgua&quot;) MultipartFile versionMarcaAgua,
+            @RequestParam(&quot;versionLimpia&quot;) MultipartFile versionLimpia) {
+<span class="nc" id="L32">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L33">                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),</span>
+                        versionMarcaAgua, versionLimpia));
     }
 
     @GetMapping(&quot;/{idPedido}/entregable&quot;)
@@ -35,8 +39,8 @@ public class EntregableControlador {
     public ResponseEntity&lt;RespuestaEntregable&gt; obtenerEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L38">        return ResponseEntity.ok(</span>
-<span class="nc" id="L39">                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));</span>
+<span class="nc" id="L42">        return ResponseEntity.ok(</span>
+<span class="nc" id="L43">                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @PostMapping(&quot;/{idPedido}/aprobar&quot;)
@@ -44,8 +48,8 @@ public class EntregableControlador {
     public ResponseEntity&lt;RespuestaMensaje&gt; aprobarEntrega(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L47">        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());</span>
-<span class="nc" id="L48">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Entrega aprobada exitosamente. Fondos liberados.&quot;));</span>
+<span class="nc" id="L51">        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());</span>
+<span class="nc" id="L52">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Entrega aprobada exitosamente. Fondos liberados.&quot;));</span>
     }
 
     @GetMapping(&quot;/{idPedido}/entregable/descargar&quot;)
@@ -53,8 +57,30 @@ public class EntregableControlador {
     public ResponseEntity&lt;byte[]&gt; descargarVersionLimpia(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L56">        byte[] archivo = entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario());</span>
-<span class="nc" id="L57">        return ResponseEntity.ok(archivo);</span>
+<span class="nc" id="L60">        return responderArchivo(</span>
+<span class="nc" id="L61">                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));</span>
+    }
+
+    @GetMapping(&quot;/{idPedido}/entregable/descargar/marca-agua&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;byte[]&gt; descargarVersionMarcaAgua(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L69">        return responderArchivo(</span>
+<span class="nc" id="L70">                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Content-Disposition como attachment y no inline: un entregable puede ser
+     * HTML o SVG, y servirlo para que el navegador lo interprete en el dominio
+     * de la plataforma abriría la puerta a XSS almacenado.
+     */
+    private ResponseEntity&lt;byte[]&gt; responderArchivo(IEntregableServicio.ArchivoDescargado archivo) {
+<span class="nc" id="L79">        return ResponseEntity.ok()</span>
+<span class="nc" id="L80">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
+<span class="nc" id="L81">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="nc" id="L82">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())</span>
+<span class="nc" id="L83">                .body(archivo.contenido());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

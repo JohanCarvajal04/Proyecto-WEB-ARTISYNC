@@ -1,38 +1,38 @@
 id_requisito,tipo,prioridad_moscow,historia_usuario,caso_de_uso,modulo_codigo,endpoint_api,prueba_automatizada,tipo_acceso,evidencia_empirica,estado
-REQ-F-001,funcional,Must,HU-01,CU-01,AuthController;UserController,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,,implementado
-REQ-F-002,funcional,Must,HU-02,CU-02,RolePermissionController,GET /api/roles/{id}/permisos,RolePermissionControllerTest,CRUD-ORM,,implementado
-REQ-F-003,funcional,Must,HU-03,CU-03,security.JwtAuthenticationFilter;AuthController,POST /api/auth/login,JwtAuthenticationFilterTest;JwtServiceTest;AuthRateLimitFilterTest,CRUD-ORM,,implementado
-REQ-F-004,funcional,Must,HU-04,CU-04,AuthController,POST /api/auth/recuperar,,CRUD-ORM,,implementado
-REQ-F-005,funcional,Should,HU-05,CU-05,TwoFactorController;service.shared.PreAuth2faTicketService,POST /api/auth/2fa/verify,TwoFactorServiceImplTest;PreAuth2faTicketServiceTest,CRUD-ORM,,implementado
-REQ-F-006,funcional,Must,HU-06,CU-06,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/,implementado
-REQ-F-007,funcional,Should,HU-07,CU-07,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/,implementado
-REQ-F-008,funcional,Must,HU-08,CU-08,PerfilCreadorControlador,PUT /api/perfil,,CRUD-ORM,,implementado
-REQ-F-009,funcional,Must,HU-09,CU-09,(pendiente modulo social),POST /api/social/seguir,,SP,,pendiente
-REQ-F-010,funcional,Should,HU-10,CU-10,(pendiente modulo social),POST /api/social/comentarios,,CRUD-ORM,,pendiente
-REQ-F-011,funcional,Must,HU-11,CU-11,ServicioControlador,POST /api/catalogo/servicios,,CRUD-ORM,,implementado
-REQ-F-012,funcional,Must,HU-12,CU-12,ServicioControlador,POST /api/catalogo/servicios/{id}/atributos,,CRUD-ORM,,implementado
-REQ-F-013,funcional,Must,HU-13,CU-13,ServicioControlador;specification.catalogo,GET /api/catalogo/servicios,,SP,,implementado
-REQ-F-014,funcional,Must,HU-14,CU-14,(pendiente modulo comunicacion),WS /ws/chat,,CRUD-ORM,,pendiente
-REQ-F-015,funcional,Must,HU-15,CU-15,(pendiente modulo comunicacion),WS /ws/chat,,CRUD-ORM,,pendiente
-REQ-F-016,funcional,Must,HU-16,CU-16,(pendiente modulo comunicacion),POST /api/pedidos/{id}/briefing,,CRUD-ORM,,pendiente
-REQ-F-017,funcional,Must,HU-17,CU-17,ContratoControlador,POST /api/legal/contratos,,CRUD-ORM,,implementado
-REQ-F-018,funcional,Must,HU-18,CU-18,ContratoControlador,POST /api/legal/contratos/{id}/firmar,,CRUD-ORM,,implementado
-REQ-F-019,funcional,Must,HU-19,CU-19,FlujoTrabajoControlador;PedidoControlador,PATCH /api/pedidos/{id}/etapa,,CRUD-ORM,,implementado
-REQ-F-020,funcional,Must,HU-20,CU-20,PayPalWebhookControlador,POST /api/legal/paypal/webhook,,CRUD-ORM,,implementado
-REQ-F-021,funcional,Must,HU-21,CU-21,EntregableControlador;PagoControlador,POST /api/legal/entregables/{id}/aprobar,,SP,,implementado
-REQ-F-022,funcional,Should,HU-22,CU-22,TicketRevisionControlador,POST /api/pedidos/{id}/tickets-revision,,CRUD-ORM,,implementado
-REQ-F-023,funcional,Could,HU-23,CU-23,(pendiente modulo social),POST /api/social/sorteos,,SP,,pendiente
-REQ-NF-001,no funcional,Must,,,infraestructura,,,,docs/mediciones/sec/,pendiente
-REQ-NF-002,no funcional,Must,HU-01,CU-01,security.AuthConfig,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,artisync/db/seed.sql,implementado
-REQ-NF-003,no funcional,Must,,,security.JwtService,,JwtAuthenticationFilterTest;JwtServiceTest,,,implementado
-REQ-NF-004,no funcional,Should,,,frontend,,,,docs/mediciones/lighthouse/,pendiente
-REQ-NF-005,no funcional,Should,,,(pendiente modulo comunicacion),,,,docs/mediciones/perf/,pendiente
-REQ-NF-006,no funcional,Should,,,legal,POST /api/legal/contratos,,,docs/mediciones/perf/,pendiente
-REQ-NF-007,no funcional,Should,,,frontend,,,,docs/mediciones/lighthouse/,pendiente
-REQ-NF-008,no funcional,Should,,,frontend,,,,,pendiente
+REQ-F-001,funcional,Must,HU-01,CU-01,AuthController;UserController,POST /api/auth/registro,AuthServiceImplTest,SP,docs/mediciones/jacoco/ (service.seguridad.impl);db/procs/fn_registrar_usuario.sql,verificado
+REQ-F-002,funcional,Must,HU-02,CU-02,RolePermissionController,"GET /api/admin/role-permissions/{roleName};PUT /api/admin/role-permissions/sync;DELETE /api/admin/role-permissions/roles/{idRol}",RolePermissionControllerTest;RolePermissionServiceImplTest,SP,"docs/mediciones/jacoco/ (service.seguridad.impl);db/procs/fn_sincronizar_permisos_rol.sql;db/procs/fn_eliminar_rol.sql -- nota: comentarios en RolePermissionServiceImpl.java citan REQ-F-003/REQ-F-004 para estas rutinas; reasignado aqui por endpoint real del mismo controlador - ver INFORME-BRECHAS-ENTREGA-FINAL.md",verificado
+REQ-F-003,funcional,Must,HU-03,CU-03,security.JwtAuthenticationFilter;AuthController,POST /api/auth/login,JwtAuthenticationFilterTest;JwtServiceTest;AuthRateLimitFilterTest;AuthControllerTest,SP,"docs/mediciones/sec/owasp/a07-rate-limit.txt;docs/mediciones/sec/owasp/a09-logging.txt;db/procs/fn_resolver_estado_login.sql -- nota: comentarios en AuthServiceImpl.java citan REQ-F-002 para esta rutina; reasignado aqui por endpoint real (POST /login) - ver INFORME-BRECHAS-ENTREGA-FINAL.md",verificado
+REQ-F-004,funcional,Must,HU-04,CU-04,AuthController,"POST /api/auth/forgot-password;POST /api/auth/reset-password",,SP,"db/procs/fn_restablecer_contrasena.sql -- nota: comentarios en AuthServiceImpl.java citan REQ-F-005 para esta rutina; reasignado aqui por endpoint real (reset-password) - ver INFORME-BRECHAS-ENTREGA-FINAL.md",implementado
+REQ-F-005,funcional,Should,HU-05,CU-05,TwoFactorController;AuthController;service.shared.PreAuth2faTicketService,POST /api/auth/2fa/verify,TwoFactorServiceImplTest;PreAuth2faTicketServiceTest,CRUD-ORM,docs/mediciones/jacoco/ (service.seguridad.impl),verificado
+REQ-F-006,funcional,Must,HU-06,CU-06,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/jacoco/ (service.perfil.impl),verificado
+REQ-F-007,funcional,Should,HU-07,CU-07,VerificacionControlador;VerificacionServicioImpl,"POST /api/v1/verificaciones;POST /api/v1/verificaciones/{id}/analisis-ia;PATCH /api/v1/verificaciones/{id}/decision",VerificacionServicioImplTest;VerificacionControladorTest;CertificadoIaRepositoryIT,SP,docs/mediciones/jacoco/ (service.perfil.impl),verificado
+REQ-F-008,funcional,Must,HU-08,CU-08,PerfilCreadorControlador,PUT /api/v1/perfiles/{id},PerfilCreadorServicioImplTest,CRUD-ORM,docs/mediciones/jacoco/ (service.perfil.impl),verificado
+REQ-F-009,funcional,Must,HU-09,CU-09,comunicacion.Seguidor;comunicacion.SeguidorRepository (sin servicio ni endpoint propios),POST /api/social/seguir (no implementado),,CRUD-ORM,,pendiente
+REQ-F-010,funcional,Should,HU-10,CU-10,comunicacion.ComentarioPortafolio;comunicacion.ComentarioPortafolioRepository (sin servicio ni controlador),POST /api/social/comentarios (no implementado),,CRUD-ORM,,pendiente
+REQ-F-011,funcional,Must,HU-11,CU-11,ServicioControlador;ServicioCatalogoServicioImpl,POST /api/v1/servicios/creador/{idPerfilCreador},ServicioCatalogoServicioImplTest,CRUD-ORM,docs/mediciones/jacoco/ (service.catalogo.impl),verificado
+REQ-F-012,funcional,Must,HU-12,CU-12,ServicioControlador;ServicioCatalogoServicioImpl,POST /api/v1/servicios/{id}/atributos,ServicioCatalogoServicioImplTest,CRUD-ORM,docs/mediciones/jacoco/ (service.catalogo.impl),verificado
+REQ-F-013,funcional,Must,HU-13,CU-13,CatalogoControlador;specification.catalogo.ServicioSpecification,GET /api/v1/catalogo,ServicioCatalogoServicioImplTest,CRUD-ORM,docs/mediciones/perf/REPORTE-PERF.md;docs/mediciones/sec/a03-inyeccion.txt,verificado
+REQ-F-014,funcional,Must,HU-14,CU-14,config.WebSocketConfig;comunicacion.ChatServiceImpl;ChatControlador,WS /ws/chat;GET /api/v1/pedidos/{idPedido}/chat/mensajes;POST /api/v1/pedidos/{idPedido}/chat/mensajes,ChatServiceImplTest,CRUD-ORM,,verificado
+REQ-F-015,funcional,Must,HU-15,CU-15,comunicacion.MensajeFilterServiceImpl;comunicacion.InfraccionServiceImpl;AdminInfraccionControlador,(interno a POST /api/v1/pedidos/{idPedido}/chat/mensajes),MensajeFilterServiceImplTest;ChatServiceImplTest,SP,db/procs/fn_registrar_infraccion.sql,verificado
+REQ-F-016,funcional,Must,HU-16,CU-16,comunicacion.BriefingServiceImpl;BriefingControlador,POST /api/v1/pedidos/{idPedido}/briefing;POST /api/v1/pedidos/{idPedido}/briefing/responder,BriefingServiceImplTest,CRUD-ORM,,verificado
+REQ-F-017,funcional,Must,HU-17,CU-17,ContratoControlador;ContratoServicioImpl,POST /api/v1/contratos/pedido/{idPedido},ContratoServicioImplTest,CRUD-ORM,,verificado
+REQ-F-018,funcional,Must,HU-18,CU-18,ContratoControlador;ContratoServicioImpl,POST /api/v1/contratos/{id}/firmar,ContratoServicioImplTest,CRUD-ORM,,verificado
+REQ-F-019,funcional,Must,HU-19,CU-19,FlujoTrabajoControlador;PedidoControlador;FlujoTrabajoServicioImpl;PedidoServicioImpl,PUT /api/v1/pedidos/{id}/avanzar,FlujoTrabajoServicioImplTest;PedidoServicioImplFlujoTest,CRUD-ORM,,verificado
+REQ-F-020,funcional,Must,HU-20,CU-20,PayPalWebhookControlador;PagoServicioImpl,POST /api/webhooks/paypal,PagoServicioImplWebhookTest,CRUD-ORM,,verificado
+REQ-F-021,funcional,Must,HU-21,CU-21,EntregableControlador;EntregableServicioImpl,POST /api/v1/pedidos/{idPedido}/aprobar,EntregableServicioImplTest,CRUD-ORM,,verificado
+REQ-F-022,funcional,Should,HU-22,CU-22,TicketRevisionControlador;TicketRevisionServicioImpl,POST /api/v1/pedidos/{idPedido}/tickets-revision,TicketRevisionServicioImplTest,CRUD-ORM,,verificado
+REQ-F-023,funcional,Could,HU-23,CU-23,SorteoControlador;SorteoServiceImpl;SorteoScheduler,POST /api/v1/sorteos,SorteoServiceImplTest,SP,db/procs/fn_seleccionar_ganadores_sorteo.sql,verificado
+REQ-NF-001,no funcional,Must,,,config.TlsMedicionConfig;config.SecurityConfig,,,CRUD-ORM,docs/mediciones/sec/a02-tls.txt;docs/mediciones/sec/REPORTE-SEC.md,implementado
+REQ-NF-002,no funcional,Must,HU-01,CU-01,security.AuthConfig,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,artisync/db/seed.sql;docs/mediciones/sec/REPORTE-SEC.md,verificado
+REQ-NF-003,no funcional,Must,,,security.JwtService,,JwtAuthenticationFilterTest;JwtServiceTest,CRUD-ORM,,verificado
+REQ-NF-004,no funcional,Should,,,frontend (Angular),,,,docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md — desviacion: LCP medido 2.8s > objetivo 2s; ver Cap. 10,implementado
+REQ-NF-005,no funcional,Should,,,comunicacion.ChatServiceImpl;config.WebSocketConfig,WS /ws/chat,ChatServiceImplTest,CRUD-ORM,falta medicion de carga sobre WebSocket (>=10 conexiones simultaneas),pendiente
+REQ-NF-006,no funcional,Should,,,legal.PdfGeneracionServicioImpl;ContratoControlador,GET /api/v1/contratos/{id}/pdf,ContratoServicioImplTest,CRUD-ORM,falta cronometraje de generacion de PDF (objetivo <=5s),pendiente
+REQ-NF-007,no funcional,Should,,,frontend (Angular),,,,docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md,implementado
+REQ-NF-008,no funcional,Should,,,frontend (Angular; features/catalogo;pedido;creador;administracion),,,,docs/mediciones/sus/REPORTE-SUS.md,implementado
 REQ-NF-009,no funcional,Must,,,docker-compose.yml,,,,docs/mediciones/perf/REPORTE-PERF.md,implementado
-REQ-NF-010,no funcional,Should,,,arquitectura,,,,,implementado
-REQ-NF-011,no funcional,Must,,,almacenamiento,,,,docs/mediciones/sec/,pendiente
-REQ-NF-012,no funcional,Must,HU-01,CU-01,AuthController,POST /api/auth/registro,AuthServiceImplTest,,,pendiente
-REQ-NF-013,no funcional,Must,HU-19,CU-19,pedido,GET /api/admin/transacciones/export,,SP,,pendiente
-REQ-NF-014,no funcional,Must,HU-20,CU-20,legal.PayPalWebhookControlador,POST /api/legal/paypal/webhook,,CRUD-ORM,,implementado
+REQ-NF-010,no funcional,Should,,,arquitectura (docs/diagramas/ C4 L1-L3),,,,,implementado
+REQ-NF-011,no funcional,Must,,,service.shared.almacenamiento.AlmacenamientoAzure;AlmacenamientoLocal,,AlmacenamientoAzureTest;AlmacenamientoAzureIntegracionTest;AlmacenamientoLocalTest;ExtensionesArchivoTest,CRUD-ORM,docs/mediciones/sec/,verificado
+REQ-NF-012,no funcional,Must,HU-01,CU-01,AuthController;AuthServiceImpl,POST /api/auth/registro,AuthServiceImplTest,CRUD-ORM,,verificado
+REQ-NF-013,no funcional,Must,HU-19,CU-19,social.AuditServiceImpl;AuditControlador;pedido.PedidoControlador (bloqueo DELETE/PATCH historial),GET /api/v1/admin/transacciones/{idPerfil}/csv,,CRUD-ORM,,implementado
+REQ-NF-014,no funcional,Must,HU-20,CU-20,legal.PayPalWebhookControlador,POST /api/webhooks/paypal,PagoServicioImplWebhookTest,CRUD-ORM,,verificado

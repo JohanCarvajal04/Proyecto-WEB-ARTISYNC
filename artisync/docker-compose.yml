@@ -47,6 +47,21 @@ services:
       timeout: 5s
       retries: 10
 
+  # Emulador de Azure Blob Storage para desarrollo y pruebas de integracion.
+  # No arranca con "up" normal: pertenece al perfil "azure".
+  #   docker compose --profile azure up -d azurite
+  # --skipApiVersionCheck: el SDK de Azure envia una version de API mas nueva
+  # que la que reconoce el emulador; Azure real si la acepta.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: pfc_azurite
+    restart: unless-stopped
+    profiles: [ "azure" ]
+    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+    volumes:
+      - pfc_azurite_data:/data
   backend:
     build:
       context: ./Backend
@@ -115,3 +130,4 @@ services:
 volumes:
   pfc_postgres_data:
   pfc_documentos_verificacion:
+  pfc_azurite_data:

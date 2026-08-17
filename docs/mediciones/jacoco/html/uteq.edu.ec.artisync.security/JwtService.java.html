@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.security</a> &gt; <span class="el_source">JwtService.java</span></div><h1>JwtService.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -18,131 +20,176 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-<span class="fc" id="L21">public class JwtService {</span>
+public class JwtService {
 
-    @Value(&quot;${security.jwt.secret-key}&quot;)
-    private String secret;
+    private static final String EMISOR = &quot;artisync-backend&quot;;
+    private static final String AUDIENCIA = &quot;artisync-frontend&quot;;
+    private static final String TIPO_ACCESO = &quot;access&quot;;
+    private static final String TIPO_REFRESH = &quot;refresh&quot;;
 
-    @Value(&quot;${security.jwt.expiration-time:86400000}&quot;)
-    private long expirationMs;
+    /** RFC 7518 §3.2: HS256 exige una clave de al menos 256 bits (32 bytes). */
+    private static final int LONGITUD_MINIMA_CLAVE_BYTES = 32;
+    private static final long TOLERANCIA_RELOJ_SEGUNDOS = 60;
 
-    @Value(&quot;${security.jwt.refresh-expiration-time:604800000}&quot;)
-    private long refreshExpirationMs;
+    private final SecretKey clave;
+    private final JwtParser parser;
+    private final long expirationMs;
+    private final long refreshExpirationMs;
+
+    public JwtService(
+            @Value(&quot;${security.jwt.secret-key}&quot;) String secret,
+            @Value(&quot;${security.jwt.expiration-time:86400000}&quot;) long expirationMs,
+<span class="fc" id="L42">            @Value(&quot;${security.jwt.refresh-expiration-time:604800000}&quot;) long refreshExpirationMs) {</span>
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        byte[] material = secret == null ? new byte[0] : secret.getBytes(StandardCharsets.UTF_8);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (material.length &lt; LONGITUD_MINIMA_CLAVE_BYTES) {</span>
+<span class="fc" id="L46">            throw new IllegalStateException(</span>
+                    &quot;security.jwt.secret-key debe tener al menos &quot; + LONGITUD_MINIMA_CLAVE_BYTES
+                            + &quot; bytes (256 bits) para HS256; se recibieron &quot; + material.length
+                            + &quot;. Generar uno nuevo con: openssl rand -hex 32&quot;);
+        }
+
+<span class="fc" id="L52">        this.clave = Keys.hmacShaKeyFor(material);</span>
+<span class="fc" id="L53">        this.parser = Jwts.parser()</span>
+<span class="fc" id="L54">                .verifyWith(this.clave)</span>
+<span class="fc" id="L55">                .requireIssuer(EMISOR)</span>
+<span class="fc" id="L56">                .requireAudience(AUDIENCIA)</span>
+<span class="fc" id="L57">                .clockSkewSeconds(TOLERANCIA_RELOJ_SEGUNDOS)</span>
+<span class="fc" id="L58">                .build();</span>
+<span class="fc" id="L59">        this.expirationMs = expirationMs;</span>
+<span class="fc" id="L60">        this.refreshExpirationMs = refreshExpirationMs;</span>
+<span class="fc" id="L61">    }</span>
 
     public long getExpirationMs() {
-<span class="nc" id="L33">        return expirationMs;</span>
+<span class="nc" id="L64">        return expirationMs;</span>
     }
 
     public long getRefreshExpirationMs() {
-<span class="nc" id="L37">        return refreshExpirationMs;</span>
-    }
-
-    private SecretKey clave() {
-<span class="nc" id="L41">        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L68">        return refreshExpirationMs;</span>
     }
 
     public String generarToken(UserDetails userDetails) {
-<span class="nc" id="L45">        Map&lt;String, Object&gt; claims = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L46">        List&lt;String&gt; rolesList = userDetails.getAuthorities().stream()</span>
-<span class="nc" id="L47">                .map(GrantedAuthority::getAuthority)</span>
-<span class="nc" id="L48">                .filter(a -&gt; a.startsWith(&quot;ROLE_&quot;))</span>
-<span class="nc" id="L49">                .toList();</span>
-<span class="nc" id="L50">        claims.put(&quot;roles&quot;, rolesList);</span>
-<span class="nc" id="L51">        List&lt;String&gt; permisosList = userDetails.getAuthorities().stream()</span>
-<span class="nc" id="L52">                .map(GrantedAuthority::getAuthority)</span>
-<span class="nc bnc" id="L53" title="All 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
-<span class="nc" id="L54">                .toList();</span>
-<span class="nc" id="L55">        claims.put(&quot;permisos&quot;, permisosList);</span>
-<span class="nc bnc" id="L56" title="All 2 branches missed.">        String rolSingular = rolesList.isEmpty() ? &quot;ROLE_CLIENTE&quot; : rolesList.get(0);</span>
-<span class="nc" id="L57">        claims.put(&quot;rol&quot;, rolSingular);</span>
-<span class="nc" id="L58">        claims.put(&quot;email&quot;, userDetails.getUsername());</span>
+<span class="fc" id="L72">        Map&lt;String, Object&gt; claims = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L73">        List&lt;String&gt; rolesList = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L74">                .map(GrantedAuthority::getAuthority)</span>
+<span class="fc" id="L75">                .filter(a -&gt; a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L76">                .toList();</span>
+<span class="fc" id="L77">        claims.put(&quot;roles&quot;, rolesList);</span>
+<span class="fc" id="L78">        List&lt;String&gt; permisosList = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L79">                .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L81">                .toList();</span>
+<span class="fc" id="L82">        claims.put(&quot;permisos&quot;, permisosList);</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        String rolSingular = rolesList.isEmpty() ? &quot;ROLE_CLIENTE&quot; : rolesList.get(0);</span>
+<span class="fc" id="L84">        claims.put(&quot;rol&quot;, rolSingular);</span>
+<span class="fc" id="L85">        claims.put(&quot;email&quot;, userDetails.getUsername());</span>
 
-<span class="nc" id="L60">        String sub = userDetails.getUsername();</span>
-<span class="nc bnc" id="L61" title="All 4 branches missed.">        if (userDetails instanceof CustomUserDetails customUser &amp;&amp; customUser.getIdUsuario() != null) {</span>
-<span class="nc" id="L62">            sub = customUser.getIdUsuario().toString();</span>
+<span class="fc" id="L87">        String sub = userDetails.getUsername();</span>
+<span class="pc bpc" id="L88" title="2 of 4 branches missed.">        if (userDetails instanceof CustomUserDetails customUser &amp;&amp; customUser.getIdUsuario() != null) {</span>
+<span class="fc" id="L89">            sub = customUser.getIdUsuario().toString();</span>
         }
 
-<span class="nc" id="L65">        String jti = UUID.randomUUID().toString();</span>
+<span class="fc" id="L92">        String jti = UUID.randomUUID().toString();</span>
+<span class="fc" id="L93">        Date ahora = new Date();</span>
 
-<span class="nc" id="L67">        return Jwts.builder()</span>
-<span class="nc" id="L68">                .claims(claims)</span>
-<span class="nc" id="L69">                .id(jti)</span>
-<span class="nc" id="L70">                .subject(sub)</span>
-<span class="nc" id="L71">                .issuer(&quot;artisync-backend&quot;)</span>
-<span class="nc" id="L72">                .claim(&quot;aud&quot;, &quot;artisync-frontend&quot;)</span>
-<span class="nc" id="L73">                .notBefore(new Date())</span>
-<span class="nc" id="L74">                .issuedAt(new Date())</span>
-<span class="nc" id="L75">                .expiration(new Date(System.currentTimeMillis() + expirationMs))</span>
-<span class="nc" id="L76">                .signWith(clave())</span>
-<span class="nc" id="L77">                .compact();</span>
+<span class="fc" id="L95">        return Jwts.builder()</span>
+<span class="fc" id="L96">                .claims(claims)</span>
+<span class="fc" id="L97">                .id(jti)</span>
+<span class="fc" id="L98">                .subject(sub)</span>
+<span class="fc" id="L99">                .issuer(EMISOR)</span>
+<span class="fc" id="L100">                .audience().add(AUDIENCIA).and()</span>
+<span class="fc" id="L101">                .claim(&quot;type&quot;, TIPO_ACCESO)</span>
+<span class="fc" id="L102">                .notBefore(ahora)</span>
+<span class="fc" id="L103">                .issuedAt(ahora)</span>
+<span class="fc" id="L104">                .expiration(new Date(ahora.getTime() + expirationMs))</span>
+<span class="fc" id="L105">                .signWith(clave)</span>
+<span class="fc" id="L106">                .compact();</span>
+    }
+
+    public String generarRefreshToken(UserDetails userDetails) {
+<span class="fc" id="L110">        String sub = userDetails.getUsername();</span>
+<span class="pc bpc" id="L111" title="2 of 4 branches missed.">        if (userDetails instanceof CustomUserDetails customUser &amp;&amp; customUser.getIdUsuario() != null) {</span>
+<span class="fc" id="L112">            sub = customUser.getIdUsuario().toString();</span>
+        }
+<span class="fc" id="L114">        String jti = UUID.randomUUID().toString();</span>
+<span class="fc" id="L115">        Date ahora = new Date();</span>
+
+<span class="fc" id="L117">        return Jwts.builder()</span>
+<span class="fc" id="L118">                .claim(&quot;type&quot;, TIPO_REFRESH)</span>
+<span class="fc" id="L119">                .claim(&quot;email&quot;, userDetails.getUsername())</span>
+<span class="fc" id="L120">                .id(jti)</span>
+<span class="fc" id="L121">                .subject(sub)</span>
+<span class="fc" id="L122">                .issuer(EMISOR)</span>
+<span class="fc" id="L123">                .audience().add(AUDIENCIA).and()</span>
+<span class="fc" id="L124">                .notBefore(ahora)</span>
+<span class="fc" id="L125">                .issuedAt(ahora)</span>
+<span class="fc" id="L126">                .expiration(new Date(ahora.getTime() + refreshExpirationMs))</span>
+<span class="fc" id="L127">                .signWith(clave)</span>
+<span class="fc" id="L128">                .compact();</span>
     }
 
     public Claims extraerTodosLosClaims(String token) {
-<span class="nc" id="L81">        return parsear(token).getPayload();</span>
+<span class="fc" id="L132">        return parsear(token).getPayload();</span>
     }
 
     public String extraerUsername(String token) {
-<span class="nc" id="L85">        Claims claims = extraerTodosLosClaims(token);</span>
-<span class="nc" id="L86">        String email = claims.get(&quot;email&quot;, String.class);</span>
-<span class="nc bnc" id="L87" title="All 2 branches missed.">        return email != null ? email : claims.getSubject();</span>
+<span class="fc" id="L136">        Claims claims = extraerTodosLosClaims(token);</span>
+<span class="fc" id="L137">        String email = claims.get(&quot;email&quot;, String.class);</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        return email != null ? email : claims.getSubject();</span>
     }
 
     public String extraerJti(String token) {
-<span class="nc" id="L91">        return extraerTodosLosClaims(token).getId();</span>
+<span class="nc" id="L142">        return extraerTodosLosClaims(token).getId();</span>
     }
 
     public long extraerTiempoRestante(String token) {
-<span class="nc" id="L95">        Date expiracion = extraerTodosLosClaims(token).getExpiration();</span>
-<span class="nc" id="L96">        long restante = expiracion.getTime() - System.currentTimeMillis();</span>
-<span class="nc" id="L97">        return Math.max(0, restante);</span>
+<span class="nc" id="L146">        Date expiracion = extraerTodosLosClaims(token).getExpiration();</span>
+<span class="nc" id="L147">        long restante = expiracion.getTime() - System.currentTimeMillis();</span>
+<span class="nc" id="L148">        return Math.max(0, restante);</span>
     }
 
-    public boolean esValido(String token, UserDetails userDetails) {
-<span class="nc" id="L101">        String username = extraerUsername(token);</span>
-<span class="nc" id="L102">        Date expiracion = parsear(token).getPayload().getExpiration();</span>
-<span class="nc bnc" id="L103" title="All 6 branches missed.">        return username.equals(userDetails.getUsername()) &amp;&amp; expiracion.after(new Date()) &amp;&amp; !esRefreshToken(token);</span>
+    /**
+     * Valida un access token de forma completa: firma, issuer, audience, tolerancia
+     * de reloj (todo a cargo del {@link #parser}), tipo (allowlist: solo &quot;access&quot;),
+     * titular y que la cuenta siga habilitada y no bloqueada (§2.4 — OBS-AUTO-05).
+     */
+    public boolean esAccessTokenValido(String token, UserDetails userDetails) {
+        try {
+<span class="fc" id="L158">            Claims claims = parsear(token).getPayload();</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">            if (!TIPO_ACCESO.equals(claims.get(&quot;type&quot;))) {</span>
+<span class="fc" id="L160">                return false;</span>
+            }
+<span class="fc" id="L162">            String email = claims.get(&quot;email&quot;, String.class);</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">            String username = email != null ? email : claims.getSubject();</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">            return username != null</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">                    &amp;&amp; username.equals(userDetails.getUsername())</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">                    &amp;&amp; userDetails.isEnabled()</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">                    &amp;&amp; userDetails.isAccountNonLocked();</span>
+<span class="nc" id="L168">        } catch (JwtException | IllegalArgumentException e) {</span>
+<span class="nc" id="L169">            return false;</span>
+        }
     }
 
     public boolean esRefreshTokenValido(String token, UserDetails userDetails) {
-<span class="nc" id="L107">        String username = extraerUsername(token);</span>
-<span class="nc" id="L108">        Date expiracion = parsear(token).getPayload().getExpiration();</span>
-<span class="nc bnc" id="L109" title="All 6 branches missed.">        return username.equals(userDetails.getUsername()) &amp;&amp; expiracion.after(new Date()) &amp;&amp; esRefreshToken(token);</span>
+<span class="fc" id="L174">        String username = extraerUsername(token);</span>
+<span class="fc" id="L175">        Date expiracion = parsear(token).getPayload().getExpiration();</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        return username.equals(userDetails.getUsername())</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">                &amp;&amp; expiracion.after(new Date())</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">                &amp;&amp; esRefreshToken(token)</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">                &amp;&amp; userDetails.isEnabled()</span>
+<span class="pc bnc" id="L180" title="All 2 branches missed.">                &amp;&amp; userDetails.isAccountNonLocked();</span>
     }
 
     public boolean esRefreshToken(String token) {
         try {
-<span class="nc" id="L114">            return &quot;refresh&quot;.equals(extraerTodosLosClaims(token).get(&quot;type&quot;));</span>
-<span class="nc" id="L115">        } catch (Exception e) {</span>
-<span class="nc" id="L116">            return false;</span>
+<span class="fc" id="L185">            return TIPO_REFRESH.equals(extraerTodosLosClaims(token).get(&quot;type&quot;));</span>
+<span class="nc" id="L186">        } catch (Exception e) {</span>
+<span class="nc" id="L187">            return false;</span>
         }
-    }
-
-    public String generarRefreshToken(UserDetails userDetails) {
-<span class="nc" id="L121">        String sub = userDetails.getUsername();</span>
-<span class="nc bnc" id="L122" title="All 4 branches missed.">        if (userDetails instanceof CustomUserDetails customUser &amp;&amp; customUser.getIdUsuario() != null) {</span>
-<span class="nc" id="L123">            sub = customUser.getIdUsuario().toString();</span>
-        }
-<span class="nc" id="L125">        String jti = UUID.randomUUID().toString();</span>
-
-<span class="nc" id="L127">        return Jwts.builder()</span>
-<span class="nc" id="L128">                .claim(&quot;type&quot;, &quot;refresh&quot;)</span>
-<span class="nc" id="L129">                .claim(&quot;email&quot;, userDetails.getUsername())</span>
-<span class="nc" id="L130">                .id(jti)</span>
-<span class="nc" id="L131">                .subject(sub)</span>
-<span class="nc" id="L132">                .issuer(&quot;artisync-backend&quot;)</span>
-<span class="nc" id="L133">                .claim(&quot;aud&quot;, &quot;artisync-frontend&quot;)</span>
-<span class="nc" id="L134">                .notBefore(new Date())</span>
-<span class="nc" id="L135">                .issuedAt(new Date())</span>
-<span class="nc" id="L136">                .expiration(new Date(System.currentTimeMillis() + refreshExpirationMs))</span>
-<span class="nc" id="L137">                .signWith(clave())</span>
-<span class="nc" id="L138">                .compact();</span>
     }
 
     private Jws&lt;Claims&gt; parsear(String token) {
-<span class="nc" id="L142">        return Jwts.parser()</span>
-<span class="nc" id="L143">                .verifyWith(clave())</span>
-<span class="nc" id="L144">                .build()</span>
-<span class="nc" id="L145">                .parseSignedClaims(token);</span>
+<span class="fc" id="L192">        return parser.parseSignedClaims(token);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

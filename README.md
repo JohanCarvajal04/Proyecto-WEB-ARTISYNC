@@ -1,16 +1,16 @@
 # Artisync — Plataforma web de comisiones y venta de contenido digital
 
 [![CI](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml/badge.svg)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21730559.svg)](https://doi.org/10.5281/zenodo.21730559)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21978572.svg)](https://doi.org/10.5281/zenodo.21978572)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-v0.9.0--rc-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v0.9.0-rc)
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.0.0)
 
 Proyecto Fin de Curso (PFC) — Aplicaciones Web, Quinto nivel.
 Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computación y Diseño Digital · Carrera de Ingeniería de Software.
 
 Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta **Creadores** con **Clientes** y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón *escrow* vía PayPal, y funciones sociales.
 
-> **DOI persistente.** El archivo Zenodo del tag `v0.9.0-rc` está publicado con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559), declarado también en `CITATION.cff`. Falta declararlo en la portada del informe técnico (`docs/informe-entrega-3.pdf`) cuando este se redacte.
+> **DOI persistente.** El archivo Zenodo del tag `v1.0.0` está publicado con el DOI [`10.5281/zenodo.21978572`](https://doi.org/10.5281/zenodo.21978572), declarado también en `CITATION.cff`. La versión anterior, `v0.9.0-rc`, quedó archivada con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559). Pendiente: declarar el DOI de `v1.0.0` en la portada del documento académico final.
 
 ---
 
@@ -107,15 +107,19 @@ Todas las mediciones, con sus datos crudos, están versionadas bajo [`docs/medic
 | Rendimiento (p95, caché caliente) | 50.17 ms | < 200 ms |
 | Rendimiento (p95, caché frío) | 39.14 ms | < 500 ms |
 | Errores HTTP ≥ 500 | 0.00 % | 0 % |
-| Lighthouse — Rendimiento | 92 / 100 | ≥ 80 |
-| Lighthouse — Accesibilidad | 100 / 100 | ≥ 90 |
-| Lighthouse — Buenas prácticas | 100 / 100 | ≥ 90 |
-| Lighthouse — SEO | 100 / 100 | ≥ 90 |
+| Lighthouse — Rendimiento (mobile / desktop) | 80–81 / 100 · 100 / 100 | ≥ 80 |
+| Lighthouse — Accesibilidad (mobile / desktop) | 93 / 100 · 93 / 100 | ≥ 90 |
+| Lighthouse — Buenas prácticas (mobile / desktop) | 96 / 100 · 96 / 100 | ≥ 90 |
+| Lighthouse — SEO (mobile / desktop) | 100 / 100 · 100 / 100 | ≥ 90 |
 | Controles OWASP evidenciados | 6 / 6 | 6 |
-| Cobertura JaCoCo (líneas) | 23.0 % | ≥ 60 % *(no alcanzado)* |
-| Usabilidad SUS | sin participantes *(pendiente)* | ≥ 10 participantes |
+| Escaneo OWASP ZAP baseline | 0 FAIL · 8 WARN · 59 PASS | 0 hallazgos altos |
+| Análisis estático SQL (SpotBugs + find-sec-bugs) | 0 hallazgos de inyección | 0 hallazgos |
+| Cobertura JaCoCo (líneas / ramas) | 72.0 % / 62.5 % | ≥ 70 % |
+| Usabilidad SUS | 76.88 / 100 (n=16, Bangor B) | > 68 puntos, ≥ 10 participantes |
 
-El diccionario de variables está en [`docs/mediciones/DATA-DICTIONARY.md`](docs/mediciones/DATA-DICTIONARY.md). El estado de cumplimiento frente a la guía de la entrega, incluidas las brechas abiertas, se detalla en [`docs/INFORME-CUMPLIMIENTO-ENTREGA-3.md`](docs/INFORME-CUMPLIMIENTO-ENTREGA-3.md).
+El diccionario de variables está en [`docs/mediciones/DATA-DICTIONARY.md`](docs/mediciones/DATA-DICTIONARY.md). El estado de cumplimiento frente a la guía de la Entrega Final, incluidas las brechas abiertas, se detalla en [`docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md`](docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md).
+
+La colección Postman con 26 peticiones (éxito, validación 400, autorización 401/403, no encontrado 404) está en [`Pruebas.postman_collection.json`](Pruebas.postman_collection.json), en la raíz del repositorio — fuente única; la copia antigua bajo `docs/mediciones/` quedó eliminada por estar desactualizada.
 
 ---
 
@@ -128,6 +132,7 @@ El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/) y [Keep a Cha
 | `v0.7.0` | Entrega 1B — módulo de autenticación y acceso a datos |
 | `v0.7.1` | Cierre de la aplicación de observaciones de las Entregas 1A y 1B |
 | `v0.9.0-rc` | Tercera Entrega — *release candidate* |
+| `v1.0.0` | Entrega Final — primera versión estable de producción |
 
 ## Equipo y contribuciones
 

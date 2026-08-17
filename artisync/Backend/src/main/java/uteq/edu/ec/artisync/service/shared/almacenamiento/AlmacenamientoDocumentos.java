@@ -11,7 +11,13 @@ import java.util.Optional;
  */
 public interface AlmacenamientoDocumentos {
 
-    /** Guarda en la raíz. Equivale a guardar(archivo, ""). */
+    /**
+     * @deprecated Sin prefijo no hay forma de decidir a qué backend va el
+     *     archivo. AlmacenamientoRouter lo manda al volumen local. Se conserva
+     *     solo por las referencias que se escribieron así antes del enrutado;
+     *     use {@link #guardar(MultipartFile, String)}.
+     */
+    @Deprecated
     String guardar(MultipartFile archivo);
 
     /**

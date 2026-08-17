@@ -4,6 +4,7 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -13,162 +14,155 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaError;
 
-import java.time.LocalDateTime;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-<span class="fc" id="L22">@Slf4j</span>
+/**
+ * Errores en formato ProblemDetails (RFC 7807), Bloque A.1 de la guia de la Tercera Entrega.
+ */
+<span class="fc" id="L25">@Slf4j</span>
 @RestControllerAdvice
-<span class="fc" id="L24">public class ManejadorGlobalExcepciones {</span>
+<span class="fc" id="L27">public class ManejadorGlobalExcepciones {</span>
+
+    private static final String BASE_TIPO = &quot;https://artisync.dev/errors/&quot;;
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionesValidacion(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionesValidacion(
             MethodArgumentNotValidException ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L30">        Map&lt;String, String&gt; erroresCampos = new HashMap&lt;&gt;();</span>
-<span class="nc bnc" id="L31" title="All 2 branches missed.">        for (FieldError error : ex.getBindingResult().getFieldErrors()) {</span>
-<span class="nc" id="L32">            erroresCampos.put(error.getField(), error.getDefaultMessage());</span>
-<span class="nc" id="L33">        }</span>
+<span class="nc" id="L35">        Map&lt;String, String&gt; erroresCampos = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        for (FieldError error : ex.getBindingResult().getFieldErrors()) {</span>
+<span class="nc" id="L37">            erroresCampos.put(error.getField(), error.getDefaultMessage());</span>
+<span class="nc" id="L38">        }</span>
 
-<span class="nc" id="L35">        RespuestaError respuesta = construirRespuestaError(</span>
+<span class="nc" id="L40">        ProblemDetail pd = construirProblemDetail(</span>
                 HttpStatus.BAD_REQUEST,
+                &quot;validacion&quot;,
                 &quot;Error de validación en los datos de entrada&quot;,
-<span class="nc" id="L38">                peticion.getRequestURI(),</span>
-                erroresCampos
+<span class="nc" id="L44">                peticion.getRequestURI()</span>
         );
+<span class="nc" id="L46">        pd.setProperty(&quot;fieldErrors&quot;, erroresCampos);</span>
 
-<span class="nc" id="L42">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);</span>
+<span class="nc" id="L48">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);</span>
     }
 
     @ExceptionHandler(ExcepcionRecursoNoEncontrado.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionRecursoNoEncontrado(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionRecursoNoEncontrado(
             ExcepcionRecursoNoEncontrado ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L49">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.NOT_FOUND,
-<span class="nc" id="L51">                ex.getMessage(),</span>
-<span class="nc" id="L52">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L55">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);</span>
+<span class="nc" id="L55">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="nc" id="L56">                HttpStatus.NOT_FOUND, &quot;recurso-no-encontrado&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="nc" id="L57">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);</span>
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarNoResourceFoundException(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarNoResourceFoundException(
             NoResourceFoundException ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L62">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.NOT_FOUND,
-                &quot;Recurso no encontrado o ruta inexistente&quot;,
-<span class="nc" id="L65">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L68">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(respuesta);</span>
+<span class="nc" id="L64">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="nc" id="L65">                HttpStatus.NOT_FOUND, &quot;ruta-no-encontrada&quot;, &quot;Recurso no encontrado o ruta inexistente&quot;, peticion.getRequestURI());</span>
+<span class="nc" id="L66">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);</span>
     }
 
     @ExceptionHandler(ExcepcionRecursoDuplicado.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionRecursoDuplicado(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionRecursoDuplicado(
             ExcepcionRecursoDuplicado ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L75">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.CONFLICT,
-<span class="nc" id="L77">                ex.getMessage(),</span>
-<span class="nc" id="L78">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L81">        return ResponseEntity.status(HttpStatus.CONFLICT).body(respuesta);</span>
+<span class="nc" id="L73">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="nc" id="L74">                HttpStatus.CONFLICT, &quot;recurso-duplicado&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="nc" id="L75">        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);</span>
     }
 
     @ExceptionHandler(ExcepcionReglaNegocio.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionReglaNegocio(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionReglaNegocio(
             ExcepcionReglaNegocio ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L88">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.UNPROCESSABLE_ENTITY,
-<span class="nc" id="L90">                ex.getMessage(),</span>
-<span class="nc" id="L91">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L94">        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(respuesta);</span>
+<span class="nc" id="L82">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="nc" id="L83">                HttpStatus.UNPROCESSABLE_ENTITY, &quot;regla-de-negocio&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="nc" id="L84">        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);</span>
+    }
+
+    @ExceptionHandler(ExcepcionServicioIaNoDisponible.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionServicioIaNoDisponible(
+            ExcepcionServicioIaNoDisponible ex, HttpServletRequest peticion) {
+
+<span class="fc" id="L91">        log.warn(&quot;Servicio de IA no disponible en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
+<span class="fc" id="L92">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="fc" id="L93">                HttpStatus.SERVICE_UNAVAILABLE, &quot;ia-no-disponible&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L94">        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);</span>
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarResponseStatusException(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarResponseStatusException(
             ResponseStatusException ex, HttpServletRequest peticion) {
 
 <span class="nc" id="L101">        HttpStatus estado = HttpStatus.valueOf(ex.getStatusCode().value());</span>
-<span class="nc" id="L102">        RespuestaError respuesta = construirRespuestaError(</span>
-                estado,
+<span class="nc" id="L102">        ProblemDetail pd = construirProblemDetail(</span>
+                estado, &quot;peticion-rechazada&quot;,
 <span class="nc bnc" id="L104" title="All 2 branches missed.">                ex.getReason() != null ? ex.getReason() : ex.getMessage(),</span>
-<span class="nc" id="L105">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L108">        return ResponseEntity.status(estado).body(respuesta);</span>
+<span class="nc" id="L105">                peticion.getRequestURI());</span>
+<span class="nc" id="L106">        return ResponseEntity.status(estado).body(pd);</span>
+    }
+
+    @ExceptionHandler(ExcepcionCuotaExcedida.class)
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionCuotaExcedida(
+            ExcepcionCuotaExcedida ex, HttpServletRequest peticion) {
+
+<span class="nc" id="L113">        log.warn(&quot;Cuota de intentos por cuenta excedida en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
+<span class="nc" id="L114">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="nc" id="L115">                HttpStatus.TOO_MANY_REQUESTS, &quot;cuota-excedida&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="nc" id="L116">        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)</span>
+<span class="nc" id="L117">                .header(&quot;Retry-After&quot;, String.valueOf(ex.getRetryAfterSegundos()))</span>
+<span class="nc" id="L118">                .body(pd);</span>
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarAccessDeniedException(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L115">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.FORBIDDEN,
-                &quot;No tienes permisos suficientes para realizar esta acción&quot;,
-<span class="nc" id="L118">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L121">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(respuesta);</span>
+<span class="nc" id="L125">        ProblemDetail pd = construirProblemDetail(</span>
+                HttpStatus.FORBIDDEN, &quot;acceso-denegado&quot;,
+<span class="nc" id="L127">                &quot;No tienes permisos suficientes para realizar esta acción&quot;, peticion.getRequestURI());</span>
+<span class="nc" id="L128">        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);</span>
     }
 
     @ExceptionHandler({AuthenticationException.class, JwtException.class})
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionAutenticacion(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionAutenticacion(
             Exception ex, HttpServletRequest peticion) {
-<span class="nc" id="L127">        log.warn(&quot;Error de autenticación/JWT en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
-<span class="nc" id="L128">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.UNAUTHORIZED,
-                &quot;Credenciales inválidas o token expirado/malformado&quot;,
-<span class="nc" id="L131">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L134">        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(respuesta);</span>
+<span class="nc" id="L134">        log.warn(&quot;Error de autenticación/JWT en {}: {}&quot;, peticion.getRequestURI(), ex.getMessage());</span>
+<span class="nc" id="L135">        ProblemDetail pd = construirProblemDetail(</span>
+                HttpStatus.UNAUTHORIZED, &quot;autenticacion&quot;,
+<span class="nc" id="L137">                &quot;Credenciales inválidas o token expirado/malformado&quot;, peticion.getRequestURI());</span>
+<span class="nc" id="L138">        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);</span>
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionesPeticionIncorrecta(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionesPeticionIncorrecta(
             RuntimeException ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L141">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.BAD_REQUEST,
-<span class="nc" id="L143">                ex.getMessage(),</span>
-<span class="nc" id="L144">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L147">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);</span>
+<span class="nc" id="L145">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="nc" id="L146">                HttpStatus.BAD_REQUEST, &quot;peticion-invalida&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="nc" id="L147">        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);</span>
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity&lt;RespuestaError&gt; manejarExcepcionGeneral(
+    public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionGeneral(
             Exception ex, HttpServletRequest peticion) {
 <span class="nc" id="L153">        log.error(&quot;Error interno no controlado en {}: &quot;, peticion.getRequestURI(), ex);</span>
-<span class="nc" id="L154">        RespuestaError respuesta = construirRespuestaError(</span>
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                &quot;Ha ocurrido un error interno en el servidor&quot;,
-<span class="nc" id="L157">                peticion.getRequestURI(),</span>
-                null
-        );
-<span class="nc" id="L160">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(respuesta);</span>
+<span class="nc" id="L154">        ProblemDetail pd = construirProblemDetail(</span>
+                HttpStatus.INTERNAL_SERVER_ERROR, &quot;error-interno&quot;,
+<span class="nc" id="L156">                &quot;Ha ocurrido un error interno en el servidor&quot;, peticion.getRequestURI());</span>
+<span class="nc" id="L157">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(pd);</span>
     }
 
-    private RespuestaError construirRespuestaError(HttpStatus estado, String mensaje, String ruta, Map&lt;String, String&gt; erroresCampos) {
-<span class="nc" id="L164">        return RespuestaError.builder()</span>
-<span class="nc" id="L165">                .timestamp(LocalDateTime.now())</span>
-<span class="nc" id="L166">                .status(estado.value())</span>
-<span class="nc" id="L167">                .error(estado.getReasonPhrase())</span>
-<span class="nc" id="L168">                .message(mensaje)</span>
-<span class="nc" id="L169">                .path(ruta)</span>
-<span class="nc" id="L170">                .fieldErrors(erroresCampos)</span>
-<span class="nc" id="L171">                .build();</span>
+    private ProblemDetail construirProblemDetail(HttpStatus estado, String tipoSlug, String detalle, String instancia) {
+<span class="fc" id="L161">        ProblemDetail pd = ProblemDetail.forStatusAndDetail(estado, detalle);</span>
+<span class="fc" id="L162">        pd.setType(URI.create(BASE_TIPO + tipoSlug));</span>
+<span class="fc" id="L163">        pd.setTitle(estado.getReasonPhrase());</span>
+<span class="fc" id="L164">        pd.setInstance(URI.create(instancia));</span>
+<span class="fc" id="L165">        return pd;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

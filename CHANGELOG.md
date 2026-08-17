@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.0.0] - 2026-08-17
+### Added
+- Análisis estático SpotBugs + find-sec-bugs sobre concatenación SQL, y escaneo OWASP ZAP baseline
+  archivado (`docs/mediciones/sec/`).
+- 7 procedimientos almacenados nuevos conectados al código real (ADR-006): `fn_registrar_usuario`,
+  `fn_resolver_estado_login`, `fn_sincronizar_permisos_rol`, `fn_eliminar_rol`,
+  `fn_registrar_infraccion`, `fn_restablecer_contrasena`, `fn_seleccionar_ganadores_sorteo`.
+- Perfil Lighthouse desktop, con 3 corridas por perfil (mobile y desktop).
+- `docs/despliegue/` (`DEPLOYMENT.md`, `RUNBOOK.md`, `BACKUP.md`).
+- Checklists FAIR, INCOSE, PRISMA 2020 y Ralph 2021.
+- Servicio `azurite` (perfil `azure`) en `docker-compose.yml` para emular Azure Blob Storage.
+- `AlmacenamientoRouter`: decide por prefijo si un archivo va a Azure Blob Storage o al volumen local, con
+  suite de pruebas propia (`AlmacenamientoRouterTest`, `AlmacenamientoCableadoTest`).
+- Despliegue en Render: `render.yaml` (Blueprint con `artisync-backend` como Private Service en red interna,
+  `artisync-frontend` como Web Service público y `artisync-redis`), `Dockerfile.render`, `nginx.render.conf`
+  y `docker-entrypoint-render.sh`.
+
+### Changed
+- Cobertura (JaCoCo) y mediciones SUS actualizadas.
+- Evidencia OWASP reorganizada en `docs/mediciones/sec/owasp/` + `DATA-PROVENANCE.md`.
+- Checklists y matriz de trazabilidad sincronizados con el estado real del código.
+- Colección Postman ampliada de 10 a 26 peticiones (casos 400/401/403/404).
+- `ChatControlador` y creación de sala de chat (`ContratoServicioImpl`, `EntregableServicioImpl`) con
+  ajustes finales y cobertura de pruebas nueva (`ContratoServicioImplSalaChatTest`).
+
+### Fixed
+- Marcadores de merge sin resolver en `artisync/.env.example`.
+- Subida de documentos de verificación: ahora pasa el prefijo `VERIFICACION` al guardar, para que el
+  router de almacenamiento los envíe al volumen local en vez de a Azure.
+
 ## [v0.9.0-rc] - 2026-07-30
 ### Added
 - Evidencias de mediciones empíricas cuantitativas (rendimiento, seguridad, cobertura).

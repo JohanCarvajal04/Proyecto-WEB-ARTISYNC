@@ -68,107 +68,107 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
-<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (usuarioRepository.existsByCorreo(request.getCorreo())) {</span>
-<span class="nc" id="L72">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;El correo ya está registrado&quot;);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (usuarioRepository.existsByCorreo(request.getCorreo())) {</span>
+<span class="fc" id="L72">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;El correo ya está registrado&quot;);</span>
         }
 
-<span class="nc" id="L75">        Pais pais = null;</span>
-<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (request.getIdPais() != null) {</span>
-<span class="nc" id="L77">            pais = paisRepository.findById(request.getIdPais())</span>
-<span class="nc" id="L78">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
+<span class="fc" id="L75">        Pais pais = null;</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
+<span class="fc" id="L77">            pais = paisRepository.findById(request.getIdPais())</span>
+<span class="pc" id="L78">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
         }
 
-<span class="nc" id="L81">        Usuario usuario = Usuario.builder()</span>
-<span class="nc" id="L82">                .nombres(request.getNombres())</span>
-<span class="nc" id="L83">                .apellidos(request.getApellidos())</span>
-<span class="nc" id="L84">                .correo(request.getCorreo())</span>
-<span class="nc" id="L85">                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))</span>
-<span class="nc" id="L86">                .fechaNacimiento(request.getFechaNacimiento())</span>
-<span class="nc" id="L87">                .pais(pais)</span>
-<span class="nc bnc" id="L88" title="All 2 branches missed.">                .estadoCuenta(request.getEstadoCuenta() != null ? request.getEstadoCuenta() : true)</span>
-<span class="nc" id="L89">                .build();</span>
-<span class="nc" id="L90">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L81">        Usuario usuario = Usuario.builder()</span>
+<span class="fc" id="L82">                .nombres(request.getNombres())</span>
+<span class="fc" id="L83">                .apellidos(request.getApellidos())</span>
+<span class="fc" id="L84">                .correo(request.getCorreo())</span>
+<span class="fc" id="L85">                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))</span>
+<span class="fc" id="L86">                .fechaNacimiento(request.getFechaNacimiento())</span>
+<span class="fc" id="L87">                .pais(pais)</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">                .estadoCuenta(request.getEstadoCuenta() != null ? request.getEstadoCuenta() : true)</span>
+<span class="fc" id="L89">                .build();</span>
+<span class="fc" id="L90">        usuario = usuarioRepository.save(usuario);</span>
 
-<span class="nc bnc" id="L92" title="All 4 branches missed.">        List&lt;String&gt; rolesAsignar = (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty())</span>
-<span class="nc" id="L93">                ? request.getRoles() : List.of(&quot;CLIENTE&quot;);</span>
+<span class="pc bpc" id="L92" title="1 of 4 branches missed.">        List&lt;String&gt; rolesAsignar = (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty())</span>
+<span class="fc" id="L93">                ? request.getRoles() : List.of(&quot;CLIENTE&quot;);</span>
 
-<span class="nc bnc" id="L95" title="All 2 branches missed.">        for (String rolNombre : rolesAsignar) {</span>
-<span class="nc" id="L96">            String rolUpper = rolNombre.toUpperCase();</span>
-<span class="nc" id="L97">            Rol rol = rolRepository.findByNombreRol(rolUpper)</span>
-<span class="nc" id="L98">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El rol especificado no existe en el sistema: &quot; + rolUpper));</span>
-<span class="nc" id="L99">            usuarioRolRepository.save(UsuarioRol.builder().usuario(usuario).rol(rol).build());</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        for (String rolNombre : rolesAsignar) {</span>
+<span class="fc" id="L96">            String rolUpper = rolNombre.toUpperCase();</span>
+<span class="fc" id="L97">            Rol rol = rolRepository.findByNombreRol(rolUpper)</span>
+<span class="fc" id="L98">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El rol especificado no existe en el sistema: &quot; + rolUpper));</span>
+<span class="fc" id="L99">            usuarioRolRepository.save(UsuarioRol.builder().usuario(usuario).rol(rol).build());</span>
 
-<span class="nc bnc" id="L101" title="All 4 branches missed.">            if (&quot;CREADOR&quot;.equals(rolUpper) &amp;&amp; perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {</span>
-<span class="nc" id="L102">                perfilCreadorRepository.save(PerfilCreador.builder().usuario(usuario).biografia(&quot;Perfil creado por Administrador&quot;).build());</span>
+<span class="pc bpc" id="L101" title="1 of 4 branches missed.">            if (&quot;CREADOR&quot;.equals(rolUpper) &amp;&amp; perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {</span>
+<span class="fc" id="L102">                perfilCreadorRepository.save(PerfilCreador.builder().usuario(usuario).biografia(&quot;Perfil creado por Administrador&quot;).build());</span>
             }
-<span class="nc" id="L104">        }</span>
+<span class="fc" id="L104">        }</span>
 
-<span class="nc" id="L106">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L106">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
     @Transactional
     public UserResponse updateUser(Long id, AdminUpdateUserRequest request) {
-<span class="nc" id="L112">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="nc" id="L113">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L112">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L113">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="nc bnc" id="L115" title="All 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
-<span class="nc" id="L116">            usuario.setNombres(request.getNombres());</span>
+<span class="pc bpc" id="L115" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
+<span class="fc" id="L116">            usuario.setNombres(request.getNombres());</span>
         }
-<span class="nc bnc" id="L118" title="All 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="pc bpc" id="L118" title="3 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
 <span class="nc" id="L119">            usuario.setApellidos(request.getApellidos());</span>
         }
-<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
 <span class="nc" id="L122">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
         }
-<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (request.getIdPais() != null) {</span>
-<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (request.getIdPais() &lt;= 0) {</span>
-<span class="nc" id="L126">                usuario.setPais(null);</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">            if (request.getIdPais() &lt;= 0) {</span>
+<span class="fc" id="L126">                usuario.setPais(null);</span>
             } else {
-<span class="nc" id="L128">                Pais pais = paisRepository.findById(request.getIdPais())</span>
-<span class="nc" id="L129">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
-<span class="nc" id="L130">                usuario.setPais(pais);</span>
+<span class="fc" id="L128">                Pais pais = paisRepository.findById(request.getIdPais())</span>
+<span class="fc" id="L129">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
+<span class="fc" id="L130">                usuario.setPais(pais);</span>
             }
         }
-<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (request.getEstadoCuenta() != null) {</span>
-<span class="nc" id="L134">            boolean estadoAnterior = usuario.getEstadoCuenta();</span>
-<span class="nc" id="L135">            usuario.setEstadoCuenta(request.getEstadoCuenta());</span>
-<span class="nc bnc" id="L136" title="All 4 branches missed.">            if (estadoAnterior &amp;&amp; !request.getEstadoCuenta()) {</span>
-<span class="nc" id="L137">                sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (request.getEstadoCuenta() != null) {</span>
+<span class="fc" id="L134">            boolean estadoAnterior = usuario.getEstadoCuenta();</span>
+<span class="fc" id="L135">            usuario.setEstadoCuenta(request.getEstadoCuenta());</span>
+<span class="pc bpc" id="L136" title="2 of 4 branches missed.">            if (estadoAnterior &amp;&amp; !request.getEstadoCuenta()) {</span>
+<span class="fc" id="L137">                sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
             }
         }
 
-<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (Boolean.FALSE.equals(request.getDosFactoresHabilitado())) {</span>
-<span class="nc" id="L142">            final Long idUsuario = usuario.getIdUsuario();</span>
-<span class="nc" id="L143">            final String correoUsuario = usuario.getCorreo();</span>
-<span class="nc" id="L144">            autenticacionDosFactoresRepository.findByUsuarioIdUsuario(idUsuario)</span>
-<span class="nc" id="L145">                    .ifPresent(dosFactores -&gt; {</span>
-<span class="nc" id="L146">                        dosFactores.setEstaHabilitado(false);</span>
-<span class="nc" id="L147">                        autenticacionDosFactoresRepository.save(dosFactores);</span>
-<span class="nc" id="L148">                        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(idUsuario);</span>
-<span class="nc" id="L149">                        log.info(&quot;2FA desactivado por administrador para usuario: {}&quot;, correoUsuario);</span>
-<span class="nc" id="L150">                    });</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (Boolean.FALSE.equals(request.getDosFactoresHabilitado())) {</span>
+<span class="fc" id="L142">            final Long idUsuario = usuario.getIdUsuario();</span>
+<span class="fc" id="L143">            final String correoUsuario = usuario.getCorreo();</span>
+<span class="fc" id="L144">            autenticacionDosFactoresRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L145">                    .ifPresent(dosFactores -&gt; {</span>
+<span class="fc" id="L146">                        dosFactores.setEstaHabilitado(false);</span>
+<span class="fc" id="L147">                        autenticacionDosFactoresRepository.save(dosFactores);</span>
+<span class="fc" id="L148">                        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(idUsuario);</span>
+<span class="fc" id="L149">                        log.info(&quot;2FA desactivado por administrador para usuario: {}&quot;, correoUsuario);</span>
+<span class="fc" id="L150">                    });</span>
         }
 
-<span class="nc bnc" id="L153" title="All 4 branches missed.">        if (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty()) {</span>
-<span class="nc" id="L154">            actualizarRoles(usuario, request.getRoles());</span>
+<span class="pc bpc" id="L153" title="1 of 4 branches missed.">        if (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty()) {</span>
+<span class="fc" id="L154">            actualizarRoles(usuario, request.getRoles());</span>
         }
 
-<span class="nc" id="L157">        usuario = usuarioRepository.save(usuario);</span>
-<span class="nc" id="L158">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L157">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L158">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
     @Transactional
     public UserResponse changeEstado(Long id, ChangeEstadoRequest request) {
 <span class="fc" id="L164">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="pc" id="L165">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L165">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
 <span class="fc" id="L167">        boolean estadoAnterior = usuario.getEstadoCuenta();</span>
 <span class="fc" id="L168">        usuario.setEstadoCuenta(request.getEstadoCuenta());</span>
 <span class="fc" id="L169">        usuario = usuarioRepository.save(usuario);</span>
 
-<span class="pc bpc" id="L171" title="2 of 4 branches missed.">        if (estadoAnterior &amp;&amp; !request.getEstadoCuenta()) {</span>
+<span class="pc bpc" id="L171" title="1 of 4 branches missed.">        if (estadoAnterior &amp;&amp; !request.getEstadoCuenta()) {</span>
 <span class="fc" id="L172">            sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
         }
 
@@ -178,51 +178,51 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public UserResponse assignRoles(Long id, AssignRolesRequest request) {
-<span class="nc" id="L181">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="nc" id="L182">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L181">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L182">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="nc" id="L184">        actualizarRoles(usuario, request.getRoles());</span>
-<span class="nc" id="L185">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles</span>
+<span class="fc" id="L184">        actualizarRoles(usuario, request.getRoles());</span>
+<span class="fc" id="L185">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles</span>
 
-<span class="nc" id="L187">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L187">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
     @Transactional
     public void deleteUser(Long id) {
-<span class="nc" id="L193">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="nc" id="L194">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L193">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L194">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="nc" id="L196">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
-<span class="nc" id="L197">        usuario.setEstadoCuenta(false);</span>
-<span class="nc" id="L198">        usuarioRepository.save(usuario);</span>
-<span class="nc" id="L199">    }</span>
+<span class="fc" id="L196">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L197">        usuario.setEstadoCuenta(false);</span>
+<span class="fc" id="L198">        usuarioRepository.save(usuario);</span>
+<span class="fc" id="L199">    }</span>
 
     @Override
     public RespuestaMensaje revokeUserSessions(Long id) {
-<span class="nc bnc" id="L203" title="All 2 branches missed.">        if (!usuarioRepository.existsById(id)) {</span>
-<span class="nc" id="L204">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado con ID: &quot; + id);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="fc" id="L204">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado con ID: &quot; + id);</span>
         }
-<span class="nc" id="L206">        sessionRevocationService.revocarSesionesUsuario(id);</span>
-<span class="nc" id="L207">        return new RespuestaMensaje(&quot;Se han revocado exitosamente todas las sesiones del usuario ID: &quot; + id);</span>
+<span class="fc" id="L206">        sessionRevocationService.revocarSesionesUsuario(id);</span>
+<span class="fc" id="L207">        return new RespuestaMensaje(&quot;Se han revocado exitosamente todas las sesiones del usuario ID: &quot; + id);</span>
     }
 
     private void actualizarRoles(Usuario usuario, List&lt;String&gt; nuevosRoles) {
-<span class="nc" id="L211">        List&lt;UsuarioRol&gt; rolesActuales = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
-<span class="nc" id="L212">        usuarioRolRepository.deleteAll(rolesActuales);</span>
-<span class="nc" id="L213">        usuarioRolRepository.flush();</span>
+<span class="fc" id="L211">        List&lt;UsuarioRol&gt; rolesActuales = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L212">        usuarioRolRepository.deleteAll(rolesActuales);</span>
+<span class="fc" id="L213">        usuarioRolRepository.flush();</span>
 
-<span class="nc bnc" id="L215" title="All 2 branches missed.">        for (String rolNombre : nuevosRoles) {</span>
-<span class="nc" id="L216">            String rolUpper = rolNombre.toUpperCase();</span>
-<span class="nc" id="L217">            Rol rol = rolRepository.findByNombreRol(rolUpper)</span>
-<span class="nc" id="L218">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El rol especificado no existe en el sistema: &quot; + rolUpper));</span>
-<span class="nc" id="L219">            usuarioRolRepository.save(UsuarioRol.builder().usuario(usuario).rol(rol).build());</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        for (String rolNombre : nuevosRoles) {</span>
+<span class="fc" id="L216">            String rolUpper = rolNombre.toUpperCase();</span>
+<span class="fc" id="L217">            Rol rol = rolRepository.findByNombreRol(rolUpper)</span>
+<span class="pc" id="L218">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El rol especificado no existe en el sistema: &quot; + rolUpper));</span>
+<span class="fc" id="L219">            usuarioRolRepository.save(UsuarioRol.builder().usuario(usuario).rol(rol).build());</span>
 
-<span class="nc bnc" id="L221" title="All 4 branches missed.">            if (&quot;CREADOR&quot;.equals(rolUpper) &amp;&amp; perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {</span>
-<span class="nc" id="L222">                perfilCreadorRepository.save(PerfilCreador.builder().usuario(usuario).biografia(&quot;¡Hola! Soy un creador en ARTISYNC.&quot;).build());</span>
+<span class="pc bpc" id="L221" title="1 of 4 branches missed.">            if (&quot;CREADOR&quot;.equals(rolUpper) &amp;&amp; perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {</span>
+<span class="fc" id="L222">                perfilCreadorRepository.save(PerfilCreador.builder().usuario(usuario).biografia(&quot;¡Hola! Soy un creador en ARTISYNC.&quot;).build());</span>
             }
-<span class="nc" id="L224">        }</span>
-<span class="nc" id="L225">    }</span>
+<span class="fc" id="L224">        }</span>
+<span class="fc" id="L225">    }</span>
 }
 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

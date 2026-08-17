@@ -175,6 +175,27 @@
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
 
+		<!-- Azure Blob Storage — almacenamiento en la nube de documentos y multimedia.
+		     Se excluye el transporte Netty: el SDK se compila contra Netty 4.1.x y el
+		     BOM de Spring Boot 4 lo sube a 4.2.x, un desajuste que solo se manifestaría
+		     en la primera llamada real. En su lugar se usa el HttpClient de Java 21. -->
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-storage-blob</artifactId>
+			<version>12.33.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.azure</groupId>
+					<artifactId>azure-core-http-netty</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-core-http-jdk-httpclient</artifactId>
+			<version>1.1.6</version>
+		</dependency>
+
 		<!-- H2 — base de datos en memoria para pruebas de integración (sin Docker) -->
 		<dependency>
 			<groupId>com.h2database</groupId>
@@ -221,6 +242,30 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<!-- Analisis estatico de seguridad (Bloque A.2.3): find-sec-bugs detecta
+				     concatenacion sospechosa en SQL/JPQL/HQL que la auditoria de texto de
+				     scripts/audit-sql-dynamic.sh no puede ver (dataflow entre metodos,
+				     StringBuilder, JDBC Statement crudo). `mvn spotbugs:spotbugs` genera
+				     el reporte sin fallar el build (alcance solo local, ver Makefile
+				     `audit`); `mvn spotbugs:check` si se quiere que falle. -->
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.6</version>
+				<configuration>
+					<plugins>
+						<plugin>
+							<groupId>com.h3xstream.findsecbugs</groupId>
+							<artifactId>findsecbugs-plugin</artifactId>
+							<version>1.13.0</version>
+						</plugin>
+					</plugins>
+					<includeFilterFile>spotbugs-security-include.xml</includeFilterFile>
+					<xmlOutput>true</xmlOutput>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
 				</configuration>
 			</plugin>
 			<plugin>

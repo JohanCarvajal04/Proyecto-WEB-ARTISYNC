@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,8 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+
+import java.util.Map;
 
 /**
  * Controlador de chat — REST + WebSocket STOMP.
@@ -29,6 +32,7 @@ import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 public class ChatControlador {
 
     private final ChatService chatService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Operation(summary = "Historial de mensajes de un pedido (paginado)")
     @GetMapping("/mensajes")
@@ -63,14 +67,36 @@ public class ChatControlador {
     // -------------------------------------------------------------------------
 
     /**
-     * Endpoint STOMP: el cliente envía a /app/chat.enviar con el idPedido y cuerpo del mensaje.
-     * La respuesta se publica automáticamente en /topic/sala.{idSala} desde ChatServiceImpl.
+     * Envío por STOMP: el cliente publica en /app/chat.enviar con el idPedido y
+     * el cuerpo del mensaje. El método estaba vacío: recibía el mensaje y lo
+     * descartaba, así que publicar en /app/chat.enviar no persistía ni
+     * notificaba nada. `chatService.enviarMensaje` ya difunde en
+     * /topic/sala.{idSala}, con lo que este camino queda cerrado.
+     *
+     * <p>A diferencia de REST, aquí una excepción no llega al cliente como
+     * respuesta HTTP; por eso los rechazos (RF-15: datos de contacto) se
+     * devuelven al remitente por su cola privada.
      */
     @MessageMapping("/chat.enviar")
     public void enviarMensajeWs(
             @Payload PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        // El idPedido debe incluirse en el payload al llamar desde STOMP
-        // Nota: en WebSocket el path variable no está disponible; se pasa en el body
+
+        if (peticion.getIdPedido() == null) {
+            enviarErrorAlRemitente(userDetails, "Falta el id del pedido en el mensaje");
+            return;
+        }
+
+        try {
+            chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(),
+                    peticion.getCuerpoMensaje());
+        } catch (RuntimeException e) {
+            enviarErrorAlRemitente(userDetails, e.getMessage());
+        }
+    }
+
+    private void enviarErrorAlRemitente(CustomUserDetails userDetails, String mensaje) {
+        messagingTemplate.convertAndSendToUser(
+                userDetails.getUsername(), "/queue/errores", Map.of("error", mensaje));
     }
 }
