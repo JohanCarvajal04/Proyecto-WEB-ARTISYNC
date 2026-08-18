@@ -14,6 +14,12 @@ export class ToastService {
   readonly toasts = signal<Toast[]>([]);
 
   show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info'): void {
+    // Si ese mismo aviso ya está en pantalla no se apila otro. Importa con los
+    // 403: una pantalla con varios sondeos puede recibir el mismo rechazo
+    // repetidas veces y el usuario acababa con una columna de avisos idénticos.
+    const yaVisible = this.toasts().some(t => t.message === message && t.type === type);
+    if (yaVisible) return;
+
     const id = this.nextId++;
     const newToast: Toast = { id, message, type };
     this.toasts.update(current => [...current, newToast]);

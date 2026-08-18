@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from './core/guards/guest.guard';
 import { authGuard } from './core/guards/auth.guard';
-import { hasPermissionGuard } from './core/guards/permission.guard';
+import { ADMIN_PANEL_PERMISSIONS, CREADOR_PANEL_PERMISSIONS } from './core/config/nav.config';
 
 export const routes: Routes = [
   {
@@ -15,23 +15,29 @@ export const routes: Routes = [
     loadChildren: () => import('./features/perfil/perfil.routes').then(m => m.PERFIL_ROUTES)
   },
   {
+    // La puerta del panel era una lista fija de cinco nombres de rol, así que
+    // un rol creado por el administrador no podía entrar aunque se le hubieran
+    // concedido permisos administrativos. Ahora basta con tener alguno: qué
+    // páginas ve dentro lo deciden los guards de cada ruta hija.
     path: 'admin',
     canActivate: [authGuard],
-    data: { roles: ['ADMINISTRADOR', 'ADMIN', 'MODERADOR', 'SOPORTE', 'AUDITOR_FINANCIERO'] },
+    data: { permissions: ADMIN_PANEL_PERMISSIONS },
     loadComponent: () => import('./layouts/dashboard-layout/dashboard-layout.component').then(m => m.DashboardLayoutComponent),
     loadChildren: () => import('./features/administracion/administracion.routes').then(m => m.ADMINISTRACION_ROUTES)
   },
   {
+    // Panel base de la aplicación (catálogo público, pedidos propios, perfil):
+    // cualquier usuario autenticado. Antes exigía el rol CLIENTE o CREADOR, lo
+    // que dejaba fuera a cualquier rol nuevo sin necesidad.
     path: 'dashboard',
     canActivate: [authGuard],
-    data: { roles: ['CLIENTE', 'CREADOR'] },
     loadComponent: () => import('./layouts/client-dashboard-layout/client-dashboard-layout.component').then(m => m.ClientDashboardLayoutComponent),
     loadChildren: () => import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES)
   },
   {
     path: 'creador',
     canActivate: [authGuard],
-    data: { roles: ['CREADOR'] },
+    data: { permissions: CREADOR_PANEL_PERMISSIONS },
     loadComponent: () => import('./layouts/client-dashboard-layout/client-dashboard-layout.component').then(m => m.ClientDashboardLayoutComponent),
     loadChildren: () => import('./features/creador/creador.routes').then(m => m.CREADOR_ROUTES)
   },

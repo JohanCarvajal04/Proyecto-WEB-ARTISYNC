@@ -1,26 +1,32 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminUserService } from '../../services/admin-user.service';
+import { RolePermissionService } from '../../services/role-permission.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { UserResponse } from '../../../../shared/models/user.model';
 import { CreateUserRequest, AdminUpdateUserRequest } from '../../models/admin.model';
+import { getRoleDisplay, getRoleLabel, normalizeRoleName, RoleDisplay } from '../../../../core/constants/role-display';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { UserFormModalComponent } from '../../../../shared/components/user-form-modal/user-form-modal.component';
+import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, ConfirmDialogComponent, UserFormModalComponent],
+  imports: [FormsModule, AvatarComponent, ConfirmDialogComponent, UserFormModalComponent, HasPermissionDirective],
   templateUrl: './users.component.html'
 })
 export class UsersComponent implements OnInit {
   private adminUserService = inject(AdminUserService);
+  private rolePermissionService = inject(RolePermissionService);
   private toastService = inject(ToastService);
   authService = inject(AuthService);
 
   readonly users = signal<UserResponse[]>([]);
+  /** Opciones del filtro por rol, traídas de la BD (antes eran 6 <option> fijos). */
+  readonly rolesFiltro = signal<{ key: string; label: string }[]>([]);
   readonly totalElements = signal<number>(0);
   readonly totalPages = signal<number>(0);
   readonly currentPage = signal<number>(0);
@@ -43,6 +49,16 @@ export class UsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+    this.loadRolesFiltro();
+  }
+
+  private loadRolesFiltro(): void {
+    this.rolePermissionService.getAllRoles().subscribe({
+      next: (roles) => this.rolesFiltro.set(
+        roles.map(r => ({ key: normalizeRoleName(r.nombreRol), label: getRoleLabel(r.nombreRol) }))
+      ),
+      error: () => this.rolesFiltro.set([])
+    });
   }
 
   loadUsers(): void {
@@ -71,7 +87,11 @@ export class UsersComponent implements OnInit {
       );
     }
     if (this.selectedRoleFilter !== 'ALL') {
-      list = list.filter(u => u.roles.some(r => r.toUpperCase().includes(this.selectedRoleFilter)));
+      // Comparación exacta sobre el nombre normalizado. Con `includes` el filtro
+      // "ADMINISTRADOR" no casaba con el rol real `ROLE_ADMIN` y devolvía vacío,
+      // y a la inversa "ADMIN" habría arrastrado a cualquier rol que lo contenga.
+      const buscado = normalizeRoleName(this.selectedRoleFilter);
+      list = list.filter(u => u.roles.some(r => normalizeRoleName(r) === buscado));
     }
     if (this.selectedStatusFilter !== 'ALL') {
       const active = this.selectedStatusFilter === 'ACTIVO';
@@ -197,24 +217,12 @@ export class UsersComponent implements OnInit {
     }
   }
 
-  formatRoleBadge(role: string): { label: string, classes: string } {
-    const r = role.replace('ROLE_', '').toUpperCase();
-    switch (r) {
-      case 'ADMINISTRADOR':
-      case 'ADMIN':
-        return { label: 'Administrador', classes: 'bg-error-container text-on-error-container font-medium' };
-      case 'MODERADOR':
-        return { label: 'Moderador', classes: 'bg-primary-container text-on-primary-container font-medium' };
-      case 'SOPORTE':
-        return { label: 'Soporte', classes: 'bg-tertiary-container text-on-tertiary-container font-medium' };
-      case 'AUDITOR_FINANCIERO':
-        return { label: 'Auditor Financiero', classes: 'bg-surface-container-highest text-on-surface font-medium' };
-      case 'CREADOR':
-        return { label: 'Creador', classes: 'bg-secondary-container text-on-secondary-container font-medium' };
-      case 'CLIENTE':
-      default:
-        return { label: 'Cliente', classes: 'bg-surface-container-high text-on-surface-variant' };
-    }
+  /**
+   * El `switch` anterior caía en `default: Cliente`, así que cualquier rol
+   * creado por el administrador se pintaba como Cliente en la tabla.
+   */
+  formatRoleBadge(role: string): RoleDisplay {
+    return getRoleDisplay(role);
   }
 
   formatLastLogin(): string {

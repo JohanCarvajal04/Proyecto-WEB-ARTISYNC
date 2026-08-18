@@ -2,8 +2,10 @@ import { Component, input, output, effect, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { UserResponse, PaisResponse } from '../../models/user.model';
-import { CreateUserRequest, AdminUpdateUserRequest } from '../../../features/administracion/models/admin.model';
+import { CreateUserRequest, AdminUpdateUserRequest, RolMatrixResponse } from '../../../features/administracion/models/admin.model';
 import { AdminUserService } from '../../../features/administracion/services/admin-user.service';
+import { RolePermissionService } from '../../../features/administracion/services/role-permission.service';
+import { getRoleLabel, normalizeRoleName } from '../../../core/constants/role-display';
 
 export interface CalendarDay {
   date: Date;
@@ -236,9 +238,9 @@ export interface CalendarDay {
                     id="dropdownRol"
                     (click)="$event.stopPropagation()"
                     class="absolute z-50 top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-slate-200 p-1 flex flex-col gap-0.5 animate-fadeIn">
-                    @for (r of rolesList; track r.key) {
-                      <button 
-                        type="button" 
+                    @for (r of rolesList(); track r.key) {
+                      <button
+                        type="button"
                         (click)="selectRol(r.key)"
                         class="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center justify-between"
                         [class.bg-purple-50]="form.get('rol')?.value === r.key"
@@ -250,6 +252,10 @@ export interface CalendarDay {
                           </svg>
                         }
                       </button>
+                    } @empty {
+                      <span class="px-3 py-2 text-xs text-slate-400">
+                        {{ rolesCargando() ? 'Cargando roles…' : 'No hay roles disponibles' }}
+                      </span>
                     }
                   </div>
                 }
@@ -313,6 +319,7 @@ export interface CalendarDay {
 export class UserFormModalComponent {
   private fb = inject(FormBuilder);
   private adminUserService = inject(AdminUserService);
+  private rolePermissionService = inject(RolePermissionService);
 
   isOpen = input<boolean>(false);
   mode = input<'create' | 'edit'>('create');
@@ -337,14 +344,16 @@ export class UserFormModalComponent {
   readonly weekDays = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
   readonly yearsList = signal<number[]>([]);
 
-  readonly rolesList = [
-    { key: 'CLIENTE', label: 'Cliente' },
-    { key: 'CREADOR', label: 'Creador' },
-    { key: 'MODERADOR', label: 'Moderador' },
-    { key: 'SOPORTE', label: 'Soporte Técnico' },
-    { key: 'AUDITOR_FINANCIERO', label: 'Auditor Financiero' },
-    { key: 'ADMIN', label: 'Administrador' }
-  ];
+  /**
+   * Roles disponibles, traídos de la BD en cada apertura del modal.
+   *
+   * Antes era un array literal con los seis roles del seed, así que los roles
+   * que el administrador creaba desde "Roles y Permisos" nunca aparecían aquí.
+   * El backend nunca fue el límite: GET /admin/role-permissions/roles hace un
+   * findAll() sin filtros y CreateUserRequest.roles es List<String> sin enum.
+   */
+  readonly rolesList = signal<{ key: string; label: string }[]>([]);
+  readonly rolesCargando = signal<boolean>(false);
 
   maxDate: string;
 
@@ -389,6 +398,7 @@ export class UserFormModalComponent {
           next: (list) => this.paises.set(list),
           error: () => {}
         });
+        this.cargarRoles();
         this.deshabilitar2Fa.set(false);
         this.closeAllPopups();
 
@@ -462,6 +472,47 @@ export class UserFormModalComponent {
     this.activeDropdown.set(null);
   }
 
+  /**
+   * Carga el catálogo de roles de la BD. Se ejecuta en cada apertura para que un
+   * rol recién creado aparezca sin recargar la aplicación.
+   */
+  private cargarRoles(): void {
+    this.rolesCargando.set(true);
+    this.rolePermissionService.getAllRoles().subscribe({
+      next: (roles) => {
+        this.rolesList.set(
+          roles.map((r: RolMatrixResponse) => ({
+            key: normalizeRoleName(r.nombreRol),
+            label: getRoleLabel(r.nombreRol)
+          }))
+        );
+        this.rolesCargando.set(false);
+        this.asegurarRolSeleccionadoValido();
+      },
+      error: () => {
+        this.rolesList.set([]);
+        this.rolesCargando.set(false);
+      }
+    });
+  }
+
+  /**
+   * Al crear, el formulario arranca en CLIENTE; si ese rol se hubiera eliminado
+   * de la BD, el selector mostraría un valor que el backend rechazaría con 400.
+   * En edición no se toca: el rol actual del usuario manda aunque ya no figure
+   * en el catálogo.
+   */
+  private asegurarRolSeleccionadoValido(): void {
+    if (this.mode() === 'edit') return;
+    const disponibles = this.rolesList();
+    if (disponibles.length === 0) return;
+
+    const actual = this.form.get('rol')?.value;
+    if (!disponibles.some(r => r.key === actual)) {
+      this.form.get('rol')?.setValue(disponibles[0].key);
+    }
+  }
+
   selectedPaisName(): string {
     const val = this.form.get('idPais')?.value;
     if (val === null || val === undefined) return 'Seleccione un país';
@@ -471,8 +522,11 @@ export class UserFormModalComponent {
 
   selectedRolLabel(): string {
     const val = this.form.get('rol')?.value;
-    const found = this.rolesList.find(r => r.key === val);
-    return found ? found.label : 'Cliente';
+    if (!val) return 'Seleccione un rol';
+    // Degrada al nombre del propio rol, nunca a "Cliente": un rol nuevo (o uno
+    // que aún no ha llegado de la API) se mostraba antes como Cliente.
+    const found = this.rolesList().find(r => r.key === val);
+    return found ? found.label : getRoleLabel(val);
   }
 
   // --- FLOATING DATEPICKER LOGIC ---

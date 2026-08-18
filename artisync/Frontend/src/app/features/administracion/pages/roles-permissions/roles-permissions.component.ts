@@ -260,11 +260,34 @@ export class RolesPermissionsComponent implements OnInit {
         this.toastService.success(res.mensaje || res.message || 'Matriz de permisos actualizada exitosamente');
         this.roles.update(list => list.map(r => r.idRol === rol.idRol ? { ...r, permisos: codes } : r));
         this.selectedRole.update(r => r ? { ...r, permisos: codes } : r);
+        this.refrescarPermisosPropiosSiAplica(rol.nombreRol);
       },
       error: () => {
         this.isSaving.set(false);
         this.toastService.error('Ocurrió un error al sincronizar los permisos');
       }
+    });
+  }
+
+  /**
+   * Si el rol que se acaba de editar es uno de los del propio usuario, vuelve a
+   * pedir sus permisos para que el menú y los guards reflejen el cambio en el
+   * acto.
+   *
+   * Hace falta porque los permisos se cachean en AuthService (y en
+   * localStorage) a partir del claim `permisos` del JWT, que sigue siendo el
+   * antiguo. El backend no tiene ese problema: JwtAuthenticationFilter recarga
+   * los UserDetails desde la base en cada petición, así que GET
+   * /api/permissions/me ya devuelve la lista nueva.
+   */
+  private refrescarPermisosPropiosSiAplica(nombreRol: string): void {
+    const propio = this.authService.userRoles()
+      .some(r => r.replace(/^ROLE_/, '').toUpperCase() === nombreRol.toUpperCase());
+    if (!propio) return;
+
+    this.authService.fetchUserPermissions().subscribe({
+      next: () => this.toastService.success('Tus permisos se han actualizado'),
+      error: () => this.toastService.error('Permisos guardados, pero no se pudieron recargar los tuyos. Vuelve a iniciar sesión.')
     });
   }
 

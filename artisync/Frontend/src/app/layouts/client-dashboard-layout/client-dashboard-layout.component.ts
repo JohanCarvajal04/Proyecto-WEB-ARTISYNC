@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject, computed, signal } from '@angular
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, interval, of, startWith, switchMap, catchError } from 'rxjs';
 import { AuthService } from '../../features/seguridad/services/auth.service';
-import { NAV_CONFIG, NavItem } from '../../core/config/nav.config';
+import { NavItem } from '../../core/config/nav.config';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { NotificacionService } from '../../features/comunicacion/services/notificacion.service';
 
@@ -48,16 +48,11 @@ export class ClientDashboardLayoutComponent implements OnInit, OnDestroy {
   });
   userRole = computed(() => this.authService.primaryRole() || 'Cliente');
 
-  navItems = computed<NavItem[]>(() => {
-    const role = this.authService.primaryRole() || 'CLIENTE';
-    const config = NAV_CONFIG[role] || NAV_CONFIG['CLIENTE'];
-    return config.items;
-  });
+  /** Mismo origen que el layout de administración: ítems del panel activo ya
+   * filtrados por permiso. Este layout no filtraba nada. */
+  navItems = computed<NavItem[]>(() => this.authService.visibleNavItems());
 
-  navBasePath = computed(() => {
-    const role = this.authService.primaryRole() || 'CLIENTE';
-    return NAV_CONFIG[role]?.basePath || '/dashboard';
-  });
+  navBasePath = computed(() => this.authService.panelBasePath());
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen.update(v => !v);

@@ -11,7 +11,9 @@ import {
 } from '../models/auth.model';
 import { MessageResponse } from '../../../shared/models/common.model';
 import { UserResponse } from '../../../shared/models/user.model';
-import { NAV_CONFIG } from '../../../core/config/nav.config';
+import {
+  NAV_CATALOG, NavItem, PanelId, PANEL_BASE_PATH, resolvePanel
+} from '../../../core/config/nav.config';
 
 @Injectable({
   providedIn: 'root'
@@ -37,6 +39,12 @@ export class AuthService {
 
   readonly isLoggedIn = computed(() => this._currentUser() !== null);
   readonly userRoles = computed(() => this._currentUser()?.roles ?? (this._currentUser()?.rol ? [this._currentUser()?.rol!] : []));
+  /**
+   * Rol principal, SOLO para mostrarlo en la interfaz (cabecera, badges). No
+   * debe usarse para decidir accesos: la jerarquía es una lista fija de nombres
+   * y para un rol nuevo devuelve `roles[0]`, que no significa nada. Para eso
+   * están `activePanel`, `visibleNavItems` y `hasPermission`.
+   */
   readonly primaryRole = computed(() => {
     const roles = this.userRoles();
     if (roles.includes('ROLE_ADMIN') || roles.includes('ADMINISTRADOR') || roles.includes('ADMIN')) return 'ADMINISTRADOR';
@@ -49,16 +57,45 @@ export class AuthService {
   });
 
   /**
-   * Ruta de aterrizaje tras autenticarse: la primera entrada del menú del rol.
-   * Se deriva de NAV_CONFIG para que añadir un panel nuevo (p. ej. el de creador)
-   * no obligue a tocar también el redirect de login.
+   * Panel del usuario: lo fija su rol si es uno conocido, y solo se infiere de
+   * los permisos para roles personalizados. Ver `resolvePanel`.
+   *
+   * Deducirlo únicamente de los permisos hacía que editar los permisos de un
+   * rol lo cambiara de panel — un MODERADOR sin permisos administrativos
+   * aparecía en el panel de cliente.
+   */
+  readonly activePanel = computed<PanelId>(() =>
+    resolvePanel(this.userRoles(), this._userPermissions())
+  );
+
+  /** Prefijo de ruta del panel activo (`/admin`, `/creador`, `/dashboard`). */
+  readonly panelBasePath = computed(() => PANEL_BASE_PATH[this.activePanel()]);
+
+  /**
+   * Ítems de menú visibles: los del panel activo, filtrados por permiso.
+   * Vive aquí y no en cada layout para que ambos apliquen la misma regla — el
+   * layout de cliente no filtraba nada.
+   */
+  readonly visibleNavItems = computed<NavItem[]>(() => {
+    const panel = this.activePanel();
+    const permisos = this._userPermissions();
+    return NAV_CATALOG.filter(item =>
+      item.panel === panel &&
+      // "Cualquiera de": basta un permiso de la pantalla para verla. Con un
+      // único permiso por ítem, un rol con PAIS_CREAR/EDITAR/ELIMINAR pero sin
+      // PAIS_VER no veía Países pese a poder gestionarlos.
+      (!item.permissions?.length || item.permissions.some(p => permisos.includes(p)))
+    );
+  });
+
+  /**
+   * Ruta de aterrizaje tras autenticarse: la primera entrada visible del panel.
+   * Si el rol no tiene ningún permiso que abra una página, se manda a
+   * /no-autorizado en lugar de dejarlo en un panel vacío.
    */
   readonly homeRoute = computed(() => {
-    const role = this.primaryRole();
-    const config = role ? NAV_CONFIG[role] : null;
-    if (!config) return '/dashboard/overview';
-    const primeraRuta = config.items[0]?.route;
-    return primeraRuta ? `${config.basePath}/${primeraRuta}` : config.basePath;
+    const primera = this.visibleNavItems()[0];
+    return primera ? `${this.panelBasePath()}/${primera.route}` : '/no-autorizado';
   });
 
   /**

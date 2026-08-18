@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject, computed, signal } from '@angular
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, interval, of, startWith, switchMap, catchError } from 'rxjs';
 import { AuthService } from '../../features/seguridad/services/auth.service';
-import { NAV_CONFIG, NavItem } from '../../core/config/nav.config';
+import { NavItem } from '../../core/config/nav.config';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { NotificacionService } from '../../features/comunicacion/services/notificacion.service';
 
@@ -47,12 +47,13 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   });
   userRole = computed(() => this.authService.primaryRole() || 'Administrador');
 
-  navItems = computed<NavItem[]>(() => {
-    const role = this.authService.primaryRole() || 'ADMINISTRADOR';
-    const rawItems = NAV_CONFIG[role]?.items || NAV_CONFIG['ADMINISTRADOR'].items;
-    const isAdmin = role === 'ADMINISTRADOR' || role === 'ADMIN';
-    return rawItems.filter(item => !item.permission || isAdmin || this.authService.hasPermission(item.permission));
-  });
+  /**
+   * El filtrado vive en AuthService para que ambos layouts apliquen la misma
+   * regla. Antes, un rol sin entrada en NAV_CONFIG caía al menú completo de
+   * ADMINISTRADOR: enseñaba todas las pantallas de administración a un rol que
+   * no tenía esos permisos.
+   */
+  navItems = computed<NavItem[]>(() => this.authService.visibleNavItems());
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen.update(v => !v);

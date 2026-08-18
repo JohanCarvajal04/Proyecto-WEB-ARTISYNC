@@ -18,5 +18,11 @@ export interface UserResponse {
   dosFactoresHabilitado: boolean;
 }
 
-export type UserRole = 'ADMINISTRADOR' | 'ADMIN' | 'CREADOR' | 'CLIENTE' | 'MODERADOR' | 'SOPORTE' | 'AUDITOR_FINANCIERO';
+/**
+ * Los roles son datos administrables, no un conjunto cerrado: el administrador
+ * crea los suyos desde "Roles y Permisos" y el backend los acepta tal cual
+ * (`CreateUserRequest.roles` es `List<String>`, sin enum ni @Pattern). La unión
+ * de literales anterior no aportaba seguridad real y dejaba fuera esos roles.
+ */
+export type UserRole = string;
 export type UserStatus = 'Activo' | 'Pendiente' | 'Suspendido';
