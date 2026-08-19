@@ -42,6 +42,17 @@ export const routes: Routes = [
     loadChildren: () => import('./features/creador/creador.routes').then(m => m.CREADOR_ROUTES)
   },
   {
+    // Panel de cuenta: notificaciones y configuración propia, sin exigir
+    // ningún permiso. Es el destino de resolvePanel() para cualquier usuario
+    // sin permisos asignados (rol nuevo o rol conocido vaciado) — ver
+    // nav.config.ts#resolvePanel. Al no llevar `data.permissions`, cualquier
+    // usuario autenticado puede entrar, no solo el que tiene este panel activo.
+    path: 'cuenta',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layouts/client-dashboard-layout/client-dashboard-layout.component').then(m => m.ClientDashboardLayoutComponent),
+    loadChildren: () => import('./features/cuenta/cuenta.routes').then(m => m.CUENTA_ROUTES)
+  },
+  {
     path: 'pedido',
     canActivate: [authGuard],
     loadChildren: () => import('./features/pedido/pedido.routes').then(m => m.PEDIDO_ROUTES)

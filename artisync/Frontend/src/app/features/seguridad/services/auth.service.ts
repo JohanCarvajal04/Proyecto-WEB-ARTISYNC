@@ -12,7 +12,7 @@ import {
 import { MessageResponse } from '../../../shared/models/common.model';
 import { UserResponse } from '../../../shared/models/user.model';
 import {
-  NAV_CATALOG, NavItem, PanelId, PANEL_BASE_PATH, resolvePanel
+  NAV_CATALOG, NavItem, PanelId, PANEL_BASE_PATH, resolvePanel, navItemPath
 } from '../../../core/config/nav.config';
 
 @Injectable({
@@ -95,7 +95,11 @@ export class AuthService {
    */
   readonly homeRoute = computed(() => {
     const primera = this.visibleNavItems()[0];
-    return primera ? `${this.panelBasePath()}/${primera.route}` : '/no-autorizado';
+    // navItemPath respeta basePath: concatenar panelBasePath() a secas generaba
+    // /admin/configuracion, que no existe, y el usuario acababa en el wildcard
+    // -> /auth/login. Importa porque homeRoute() es además el destino de
+    // rescate de toda denegación del authGuard.
+    return primera ? navItemPath(primera, this.panelBasePath()) : '/no-autorizado';
   });
 
   /**

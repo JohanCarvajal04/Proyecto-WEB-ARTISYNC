@@ -80,8 +80,9 @@ VALUES
     ('PAIS_ELIMINAR', 'SISTEMA'),
 
     -- SISTEMA / ACCESO A PANTALLAS DE ADMINISTRACIÓN (ver V10__permisos_navegacion.sql)
+    -- CONFIGURACION_GESTIONAR se retiró en V11: la pantalla admin/settings que
+    -- gobernaba ya no existe (ver V11__retirar_permiso_configuracion.sql).
     ('PANEL_MODERACION_VER', 'SISTEMA'),
-    ('CONFIGURACION_GESTIONAR', 'SISTEMA'),
     ('INFRACCION_GESTIONAR', 'SISTEMA'),
     ('FLUJO_GESTIONAR', 'SISTEMA'),
     

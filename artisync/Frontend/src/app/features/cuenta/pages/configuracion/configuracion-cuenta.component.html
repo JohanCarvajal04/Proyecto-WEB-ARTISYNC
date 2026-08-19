@@ -1,0 +1,170 @@
+<div class="max-w-4xl mx-auto py-2 flex flex-col gap-8 animate-[fadeIn_0.4s_ease-out]">
+
+  @if (sinPermisos()) {
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-start gap-3">
+      <span class="material-symbols-outlined text-amber-500 shrink-0">info</span>
+      <p class="text-sm text-amber-800">
+        Tu cuenta todavía no tiene ningún permiso asignado, así que solo ves esta sección y tus notificaciones.
+        Pide a un administrador que revise los permisos de tu rol.
+      </p>
+    </div>
+  }
+
+  <!-- Tarjeta de identidad -->
+  <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="h-24 bg-gradient-to-r from-[#1E0F38] via-[#3B1D6E] to-[#7B39B2]"></div>
+    <div class="px-6 md:px-8 pb-6 -mt-10">
+      <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+        <div class="ring-4 ring-white rounded-full bg-white">
+          <app-avatar [name]="userName()" size="lg"></app-avatar>
+        </div>
+        <div class="flex-1 min-w-0 sm:pb-1">
+          <h2 class="font-headline text-xl font-bold text-slate-800">{{ userName() }}</h2>
+          <p class="text-sm text-slate-500 truncate">{{ userEmail() }}</p>
+        </div>
+      </div>
+
+      <!-- Datos de cuenta -->
+      <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
+        <div>
+          <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Roles</dt>
+          <dd class="text-sm text-slate-700 mt-1">
+            @if (roles().length) {
+              {{ roles().join(', ') }}
+            } @else {
+              —
+            }
+          </dd>
+        </div>
+        <div>
+          <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Permisos activos</dt>
+          <dd class="text-sm text-slate-700 mt-1">{{ totalPermisos() }}</dd>
+        </div>
+        <div>
+          <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sesión válida hasta</dt>
+          <dd class="text-sm text-slate-700 mt-1">{{ sesionExpira() || '—' }}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Seguridad y Acceso -->
+  <section class="space-y-8">
+    <div>
+      <h1 class="font-headline text-3xl font-bold text-[#1E0F38] mb-1">Seguridad y Acceso</h1>
+      <p class="text-sm text-slate-500 max-w-2xl">
+        Gestiona cómo accedes a tu cuenta y mantén tus datos protegidos mediante protocolos de seguridad avanzados.
+      </p>
+    </div>
+
+    <!-- Security Actions Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Reset Password Card -->
+      <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+        <div>
+          <div class="w-12 h-12 bg-[#F3E8FF] rounded-2xl flex items-center justify-center mb-4 text-[#8B5CF6]">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h4 class="font-headline text-lg font-bold text-[#1E0F38] mb-2">Restablecer contraseña</h4>
+          <p class="text-sm text-slate-500 mb-6">
+            Actualiza tu contraseña regularmente para mantener la integridad de tu cuenta. Requeriremos tu contraseña actual para confirmar el cambio.
+          </p>
+        </div>
+        <button (click)="openPasswordModal()" type="button"
+          class="w-fit px-5 py-2.5 bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white rounded-full text-sm font-semibold hover:opacity-95 transition-all flex items-center gap-2 shadow-sm">
+          <span>Cambiar contraseña</span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 2FA Card -->
+      <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+        <div>
+          <div class="w-12 h-12 bg-[#F0F4FC] rounded-2xl flex items-center justify-center mb-4 text-purple-700">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h4 class="font-headline text-lg font-bold text-[#1E0F38] mb-2">Autenticación (2FA)</h4>
+          <p class="text-sm text-slate-500 mb-6">
+            Añade una capa extra de protección. Solicita un código único desde tu aplicación de autenticación móvil cada vez que inicies sesión.
+          </p>
+        </div>
+        @if (!isLoading()) {
+          <div class="flex items-center gap-3">
+            <button (click)="toggle2FA()" type="button"
+              [class.bg-purple-600]="userProfile()?.dosFactoresHabilitado"
+              [class.bg-slate-300]="!userProfile()?.dosFactoresHabilitado"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer">
+              <span class="sr-only">Habilitar 2FA</span>
+              <span
+                [class.translate-x-6]="userProfile()?.dosFactoresHabilitado"
+                [class.translate-x-1]="!userProfile()?.dosFactoresHabilitado"
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm">
+              </span>
+            </button>
+            <span class="text-sm font-semibold"
+              [class.text-purple-700]="userProfile()?.dosFactoresHabilitado"
+              [class.text-slate-500]="!userProfile()?.dosFactoresHabilitado">
+              {{ userProfile()?.dosFactoresHabilitado ? 'Habilitado' : 'Desactivado' }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Security Preferences.
+         Los interruptores se muestran deshabilitados a propósito: todavía no
+         existe endpoint que los persista. Antes eran operables y un botón
+         "Guardar preferencias" confirmaba por escrito que se habían guardado sin
+         hacer ninguna llamada, así que el usuario podía creer que había activado
+         un aviso de acceso inusual inexistente. -->
+    <div class="space-y-4 pt-4">
+      <div class="flex items-center gap-3 flex-wrap">
+        <h4 class="font-headline text-lg font-bold text-[#1E0F38]">Preferencias de Notificación de Seguridad</h4>
+        <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">Próximamente</span>
+      </div>
+      <p class="text-xs text-slate-500">Estas notificaciones aún no están disponibles. Te avisaremos cuando puedas configurarlas.</p>
+      <div class="space-y-3">
+        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-xs opacity-60">
+          <div class="relative inline-flex items-center mt-0.5 shrink-0">
+            <input disabled type="checkbox" class="sr-only peer"/>
+            <div class="w-11 h-6 bg-slate-200 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5"></div>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-800">Alertas de inicio de sesión inusuales</p>
+            <p class="text-xs text-slate-500 mt-0.5">Te avisaremos si detectamos un acceso desde una ubicación o dispositivo no reconocido.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-xs opacity-60">
+          <div class="relative inline-flex items-center mt-0.5 shrink-0">
+            <input disabled type="checkbox" class="sr-only peer"/>
+            <div class="w-11 h-6 bg-slate-200 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5"></div>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-800">Reportes mensuales de seguridad</p>
+            <p class="text-xs text-slate-500 mt-0.5">Un resumen detallado de la actividad de tu cuenta y recomendaciones de protección.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cerrar sesión -->
+  <button (click)="logout()"
+    class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 text-left group w-full sm:w-auto">
+    <div class="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 shrink-0 group-hover:scale-105 transition-transform">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+    </div>
+    <div>
+      <p class="font-semibold text-slate-800 text-sm">Cerrar sesión</p>
+      <p class="text-xs text-slate-400 mt-0.5">Salir de tu cuenta en este dispositivo</p>
+    </div>
+  </button>
+</div>

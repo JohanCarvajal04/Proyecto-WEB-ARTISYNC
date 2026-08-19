@@ -4,9 +4,7 @@
  * Los roles son datos: el administrador puede crear los que quiera desde
  * "Roles y Permisos", así que este mapa NO es la lista de roles válidos —
  * solo cubre los seis del seed para conservar su color y su nombre en
- * castellano. Cualquier rol que no esté aquí degrada a un estilo neutro con
- * su nombre formateado, nunca a "Cliente" (ese `default` hacía que un rol
- * nuevo se mostrara como Cliente en la tabla de usuarios y en el selector).
+ * castellano. Cualquier rol que no esté aquí degrada a un estilo neutro
  */
 export interface RoleDisplay {
   label: string;
@@ -25,7 +23,7 @@ const ROLE_DISPLAY: Record<string, RoleDisplay> = {
   CLIENTE: { label: 'Cliente', classes: 'bg-surface-container-high text-on-surface-variant' }
 };
 
-/** Quita el prefijo `ROLE_` que añade Spring Security y normaliza a mayúsculas. */
+/** Quita el prefijo `ROLE_` y normaliza a mayúsculas. */
 export function normalizeRoleName(role: string): string {
   return role.replace(/^ROLE_/, '').toUpperCase();
 }

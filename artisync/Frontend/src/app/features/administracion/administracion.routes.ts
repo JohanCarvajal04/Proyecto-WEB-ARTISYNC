@@ -27,12 +27,6 @@ export const ADMINISTRACION_ROUTES: Routes = [
     data: { permissions: PAGE_PERMISSIONS.rolesPermisos },
     loadComponent: () => import('./pages/roles-permissions/roles-permissions.component').then(m => m.RolesPermissionsComponent)
   },
-  {
-    path: 'settings',
-    canActivate: [authGuard],
-    data: { permissions: PAGE_PERMISSIONS.configuracion },
-    loadComponent: () => import('./pages/settings/settings.component').then(m => m.SettingsComponent)
-  },
 
   // ─── Moderador ───
   {

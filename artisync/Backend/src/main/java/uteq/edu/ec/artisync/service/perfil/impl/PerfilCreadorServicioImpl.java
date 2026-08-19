@@ -1,6 +1,7 @@
 package uteq.edu.ec.artisync.service.perfil.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPerfil;
@@ -26,13 +27,20 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
 
     @Override
     @Transactional
-    public RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion) {
-        if (perfilRepository.findByUsuarioIdUsuario(peticion.idUsuario()).isPresent()) {
+    public RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion, String correoSolicitante, boolean esAdmin) {
+        // El idUsuario del cuerpo solo se honra para un ADMIN. Antes se confiaba
+        // en él sin más, así que cualquier CREADOR podía crear un perfil a nombre
+        // de un idUsuario arbitrario.
+        Long idDestino = esAdmin
+                ? peticion.idUsuario()
+                : resolverPorCorreo(correoSolicitante).getIdUsuario();
+
+        if (perfilRepository.findByUsuarioIdUsuario(idDestino).isPresent()) {
             throw new ExcepcionRecursoDuplicado("El usuario ya tiene un perfil de creador asignado.");
         }
 
-        Usuario usuario = usuarioRepository.findById(peticion.idUsuario())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado con ID: " + peticion.idUsuario()));
+        Usuario usuario = usuarioRepository.findById(idDestino)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado con ID: " + idDestino));
 
         PerfilCreador perfil = PerfilCreador.builder()
                 .usuario(usuario)
@@ -70,9 +78,20 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
 
     @Override
     @Transactional
-    public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion) {
+    public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion,
+                                            String correoSolicitante, boolean esAdmin) {
         PerfilCreador perfil = perfilRepository.findById(idPerfil)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + idPerfil));
+
+        // El @PreAuthorize del controlador comprueba el ROL, no la propiedad. Sin
+        // esta verificación cualquier CREADOR podía sobrescribir la biografía y la
+        // urlRedSocial de otro creador enumerando ids con GET /api/v1/perfiles.
+        if (!esAdmin) {
+            Long propietario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
+            if (!resolverPorCorreo(correoSolicitante).getIdUsuario().equals(propietario)) {
+                throw new AccessDeniedException("No puedes modificar el perfil de otro usuario");
+            }
+        }
 
         if (peticion.biografia() != null) {
             perfil.setBiografia(peticion.biografia());
@@ -92,6 +111,12 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
             throw new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + idPerfil);
         }
         perfilRepository.deleteById(idPerfil);
+    }
+
+    /** Usuario autenticado a partir del correo que viaja en el token. */
+    private Usuario resolverPorCorreo(String correo) {
+        return usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario autenticado no encontrado"));
     }
 
     private RespuestaPerfil mapearARespuesta(PerfilCreador perfil) {

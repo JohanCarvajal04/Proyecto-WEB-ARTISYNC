@@ -14,7 +14,12 @@
  * permiso a un rol se refleja en el menú sin tocar código.
  */
 
-export type PanelId = 'admin' | 'creador' | 'cliente';
+/**
+ * 'cuenta' es el panel sin permisos: notificaciones y configuración de la
+ * propia cuenta, nada más. Es a donde `resolvePanel` manda a cualquier
+ * usuario sin ningún permiso asignado, sea cual sea su rol.
+ */
+export type PanelId = 'admin' | 'creador' | 'cliente' | 'cuenta';
 
 export interface NavItem {
   label: string;
@@ -34,6 +39,14 @@ export interface NavItem {
    * pantalla.
    */
   permissions?: readonly string[];
+  /**
+   * Si se define, el enlace usa esta base en vez de PANEL_BASE_PATH[panel
+   * activo]. Sirve para un ítem que aparece en el menú de varios paneles pero
+   * siempre apunta a la misma página, como "Mi Cuenta" → /cuenta/configuracion
+   * sin importar si el panel activo es admin, creador o cliente: la página es
+   * una sola, no una copia por panel.
+   */
+  basePath?: string;
 }
 
 /**
@@ -60,7 +73,6 @@ export const PAGE_PERMISSIONS = {
   categorias: ['CATEGORIA_GESTIONAR'],
   infracciones: ['INFRACCION_GESTIONAR'],
   flujos: ['FLUJO_GESTIONAR'],
-  configuracion: ['CONFIGURACION_GESTIONAR'],
   // "Mis Servicios" es el CRUD propio del creador; SERVICIO_MODERAR pertenece a
   // la moderación del catálogo, que es otra pantalla y otro panel.
   servicios: ['SERVICIO_CREAR'],
@@ -74,8 +86,23 @@ export const PAGE_PERMISSIONS = {
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
   admin: '/admin',
   creador: '/creador',
-  cliente: '/dashboard'
+  cliente: '/dashboard',
+  cuenta: '/cuenta'
 };
+
+/**
+ * URL de un ítem del menú. `basePath` gana al prefijo del panel: hay páginas
+ * montadas fuera de su panel —"Mi Cuenta" figura en el menú de admin, creador y
+ * cliente pero vive en /cuenta— y concatenar el prefijo del panel produciría
+ * /admin/configuracion, que no existe.
+ *
+ * Existe como función porque el cálculo estaba repetido en los dos layouts,
+ * en findNavLabel y en AuthService.homeRoute, y homeRoute se quedó sin
+ * actualizar al introducir basePath.
+ */
+export function navItemPath(item: NavItem, basePathDelPanel: string): string {
+  return `${item.basePath ?? basePathDelPanel}/${item.route}`;
+}
 
 /**
  * Nombre visible de la sección a la que apunta una URL, o null si no está en el
@@ -89,7 +116,7 @@ export const PANEL_BASE_PATH: Record<PanelId, string> = {
 export function findNavLabel(url: string): string | null {
   const limpia = url.split('?')[0].split('#')[0].replace(/\/+$/, '');
 
-  const exacta = NAV_CATALOG.find(i => limpia === `${PANEL_BASE_PATH[i.panel]}/${i.route}`);
+  const exacta = NAV_CATALOG.find(i => limpia === navItemPath(i, PANEL_BASE_PATH[i.panel]));
   if (exacta) return exacta.label;
 
   // Rutas montadas fuera de su panel (p. ej. /pedido/mis-pedidos): se compara
@@ -112,7 +139,7 @@ export const ADMIN_PANEL_PERMISSIONS: readonly string[] = [
   'PORTAFOLIO_MODERAR', 'CERTIFICADO_REVISAR', 'CATEGORIA_GESTIONAR', 'SERVICIO_MODERAR',
   'MENSAJE_MODERAR', 'COMENTARIO_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER',
   'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
-  'PANEL_MODERACION_VER', 'CONFIGURACION_GESTIONAR', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR'
+  'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR'
 ];
 
 /** Permisos exclusivos del rol CREADOR frente a CLIENTE. */
@@ -148,18 +175,32 @@ const PRECEDENCIA_PANEL: readonly PanelId[] = ['admin', 'creador', 'cliente'];
 /**
  * Resuelve el panel del usuario.
  *
+ * 0. Sin ningún permiso, no hay panel al que pertenecer: ni el de su rol ni
+ *    uno inferido. Antes esta regla no existía y abría dos huecos:
+ *      - Un rol conocido (MODERADOR, CREADOR...) vaciado de permisos se
+ *        quedaba fijo en su panel por la regla 1, y `homeRoute` lo mandaba a
+ *        la única página sin permiso de ese panel. Pero la PUERTA del panel
+ *        (app.routes.ts, `data.permissions`) sí exige tener alguno, así que
+ *        el usuario rebotaba en bucle contra /no-autorizado en cuanto
+ *        intentaba entrar a su propio "inicio".
+ *      - Un rol personalizado sin permisos no encajaba en ninguna regla y
+ *        caía en el `return 'cliente'` final: un impostor con el menú
+ *        completo de cliente pero sin poder usar ninguna de sus acciones (el
+ *        backend las exige por rol o por permiso y responde 403). Se veía
+ *        como "el usuario se salta al rol de cliente".
+ *    'cuenta' es la única zona que no depende de ningún permiso —
+ *    notificaciones y la configuración de la propia cuenta— y es honesta con
+ *    lo que el usuario puede hacer hasta que un administrador le asigne
+ *    permisos.
  * 1. Si tiene algún rol conocido, manda el rol: es estable y no cambia porque
- *    se editen permisos.
+ *    se editen permisos (mientras conserve al menos uno).
  * 2. Si todos sus roles son personalizados (creados desde "Roles y Permisos",
  *    que no pueden estar en el mapa de arriba), se infiere de los permisos.
  *    Para un rol nuevo no hay expectativa previa que romper.
- *
- * Quedarse sin permisos NO cambia de panel: deja al usuario en el suyo con el
- * menú vacío, y `homeRoute` lo manda a /no-autorizado, que explica que su rol
- * no tiene permisos asignados. Eso es lo correcto: un moderador sin permisos
- * es un moderador sin permisos, no un cliente.
  */
 export function resolvePanel(roles: readonly string[], permisos: readonly string[]): PanelId {
+  if (permisos.length === 0) return 'cuenta';
+
   const panelesPorRol = roles
     .map(r => ROLE_PANEL[r.replace(/^ROLE_/, '').toUpperCase()])
     .filter((p): p is PanelId => p !== undefined);
@@ -193,7 +234,9 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones },
   { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'admin', permissions: PAGE_PERMISSIONS.flujos },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
-  { label: 'Configuración', icon: 'settings', route: 'settings', panel: 'admin', permissions: PAGE_PERMISSIONS.configuracion },
+  // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
+  // misma página que ven creador y cliente — ver NavItem.basePath.
+  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'admin', basePath: '/cuenta' },
 
   // ─── Panel de creador ───
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'creador' },
@@ -205,7 +248,12 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'creador', permissions: PAGE_PERMISSIONS.sorteos },
   { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio },
   { label: 'Certificados IA', icon: 'verified', route: 'certificados', panel: 'creador' },
+  // "Mi Perfil" (perfil de negocio: biografía, red social, verificación) y
+  // "Mi Cuenta" (roles/permisos vigentes, contraseña, 2FA) son cosas
+  // distintas: la primera es de dominio de creador, la segunda es la misma
+  // página que ven admin y cliente. Conviven en el menú, ver NavItem.basePath.
   { label: 'Mi Perfil', icon: 'person', route: 'perfil', panel: 'creador' },
+  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'creador', basePath: '/cuenta' },
 
   // ─── Panel de cliente ───
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'cliente' },
@@ -213,5 +261,12 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Mis Pedidos', icon: 'shopping_bag', route: 'mis-pedidos', panel: 'cliente' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'cliente' },
   { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'cliente' },
-  { label: 'Mi Perfil', icon: 'person', route: 'perfil', panel: 'cliente' }
+  { label: 'Mi Perfil', icon: 'person', route: 'perfil', panel: 'cliente' },
+  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'cliente', basePath: '/cuenta' },
+
+  // ─── Panel de cuenta (sin permisos asignados) ───
+  // El orden fija el aterrizaje: notificaciones es la primera página, igual
+  // que en los otros tres paneles.
+  { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'cuenta' },
+  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'cuenta' }
 ];
