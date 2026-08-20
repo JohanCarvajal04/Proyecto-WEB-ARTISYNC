@@ -243,7 +243,7 @@ Cada requisito seguido de: **Rationale**, **Prioridad (MoSCoW)**, **Criterio de 
 - Prioridad: Must · Verificación: test + inspección HTML · Estado: pendiente de verificación (requiere frontend + regla de negocio confirmada en backend)
 
 **REQ-NF-013** (ex RNF-13) — Auditoría inmutable de transiciones de pedido y transacciones; exportación CSV por el administrador.
-- Prioridad: Must · Verificación: test (DELETE/PATCH → 403) · Estado: parcial (historial existe; falta confirmar bloqueo explícito de edición/borrado y exportación CSV)
+- Prioridad: Must · Verificación: test (UPDATE/DELETE/TRUNCATE → error de base de datos) · Estado: verificado. Además de `historial_estados_pedido` (dominio) y el exportador de transacciones (`AuditControlador`), existe desde V12__modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre los 7 módulos, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV. Verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real.
 
 **REQ-NF-014** (ex RNF-14) — Integración exclusiva con PayPal Orders v2; credenciales en variables de entorno; verificación de firma de webhook.
 - Prioridad: Must · Verificación: inspección de Git + simulación de webhook inválido · Estado: implementado (config PayPal vía `.env`; falta test explícito de firma inválida)

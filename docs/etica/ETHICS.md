@@ -28,6 +28,39 @@ repositorio, y solo el equipo tiene acceso a ella.
   dispositivo) — sin nombre, correo ni identificador que permita reidentificación a partir del
   dataset publicado.
 
+## Bitácora de auditoría del sistema (REQ-NF-013)
+
+Desde V12__modulo_auditoria.sql el sistema registra, en la tabla inmutable `auditoria_eventos`,
+un evento por cada operación sensible que un usuario realiza (login, cambios de rol y permisos,
+liberación de fondos, gestión de catálogo, etc.), con actor, dirección IP y, cuando aplica, un
+detalle estructurado del cambio.
+
+- **Qué se registra y por qué**: la mínima información necesaria para reconstruir "quién hizo
+  qué, cuándo, desde dónde y con qué resultado" — el correo del actor, su id de usuario, la IP y
+  el user-agent de la petición, la acción y el módulo afectado, y un resumen no sensible del
+  cambio. Es la base técnica que permite investigar un incidente de seguridad o disputar una
+  decisión administrativa (p. ej. por qué se suspendió una cuenta).
+- **Qué NUNCA se registra**: contraseñas (ni en claro ni hasheadas), tokens de sesión o de
+  refresco, secretos de doble factor y códigos de respaldo, el contenido de mensajes de chat
+  (que ya vive en `infracciones_mensaje` con su propio control de acceso) y los documentos de
+  verificación de identidad (que `REQ-F-006` exige eliminar tras la decisión). Un sanitizador
+  aplicado a cada evento antes de persistirlo enmascara además, por nombre de campo, cualquier
+  valor que coincida con estos patrones, como defensa adicional ante un descuido al declarar
+  qué se audita.
+- **Quién puede leerla**: únicamente ADMIN, SOPORTE y AUDITOR_FINANCIERO, y solo el primero y el
+  último pueden exportarla a CSV (permisos `AUDITORIA_VER` y `AUDITORIA_EXPORTAR`, deliberadamente
+  separados porque exportar extrae datos personales del sistema en un archivo). El propio acceso
+  a la bitácora — consultarla o exportarla — queda a su vez auditado.
+- **Inmutabilidad frente al derecho al olvido**: la tabla es de solo inserción a nivel de base de
+  datos (trigger que rechaza `UPDATE`/`DELETE`/`TRUNCATE`, y la cuenta de aplicación solo tiene
+  concedidos `SELECT` e `INSERT`). Esto es una tensión real, no un descuido: la finalidad de
+  seguridad de la bitácora exige que un evento no pueda alterarse ni borrarse después del hecho,
+  lo que es incompatible con implementar un derecho al olvido como un simple borrado de filas. La
+  postura del equipo es que esa finalidad prevalece, con una retención acotada en el tiempo; una
+  purga futura solo podría ejecutarla el superusuario de la base de datos fuera de la aplicación,
+  nunca la aplicación por sí sola — es decir, purgar la bitácora debe seguir siendo una decisión
+  administrativa deliberada y auditable en sí misma, no una operación rutinaria.
+
 ## Declaración de uso de asistentes de inteligencia artificial
 
 Ver [`ai-disclosure.md`](ai-disclosure.md) para el detalle completo (herramienta, versión,
