@@ -1,6 +1,7 @@
 export interface PaisResponse {
   idPais: number;
   nombrePais: string;
+  estado: boolean;
 }
 
 export interface UserResponse {

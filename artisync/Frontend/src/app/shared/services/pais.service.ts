@@ -17,6 +17,10 @@ export class PaisService {
     return this.http.get<PaisResponse[]>(this.apiUrl);
   }
 
+  getPaisesActivos(): Observable<PaisResponse[]> {
+    return this.http.get<PaisResponse[]>(`${this.apiUrl}/activos`);
+  }
+
   getPaisById(id: number): Observable<PaisResponse> {
     return this.http.get<PaisResponse>(`${this.apiUrl}/${id}`);
   }

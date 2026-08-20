@@ -5,8 +5,11 @@ import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.domain.Sort;
 
 @Repository
 public interface PaisRepository extends JpaRepository<Pais, Long> {
     Optional<Pais> findByNombrePais(String nombrePais);
+    List<Pais> findByEstadoTrue(Sort sort);
 }

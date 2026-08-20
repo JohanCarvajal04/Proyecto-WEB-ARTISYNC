@@ -30,6 +30,12 @@ public class PaisController {
         return ResponseEntity.ok(paisService.getAllPaises());
     }
 
+    @Operation(summary = "Listar solo los países activos ordenados alfabéticamente")
+    @GetMapping("/activos")
+    public ResponseEntity<List<PaisResponse>> getPaisesActivos() {
+        return ResponseEntity.ok(paisService.getPaisesActivos());
+    }
+
     @Operation(summary = "Obtener un país por su ID")
     @GetMapping("/{id}")
     public ResponseEntity<PaisResponse> getPaisById(@PathVariable Long id) {

@@ -177,7 +177,7 @@ export class CompleteProfileModalComponent implements OnInit {
   }
 
   private loadPaises(): void {
-    this.paisService.getPaises().subscribe({
+    this.paisService.getPaisesActivos().subscribe({
       next: (data) => this.paises.set(data),
       error: () => this.toastService.error('Error al cargar la lista de países')
     });

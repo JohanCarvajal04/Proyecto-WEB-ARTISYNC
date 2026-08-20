@@ -39,7 +39,7 @@ class PaisControllerTest {
     @Test
     void createPais_ShouldReturnCreated() {
         PaisRequest request = new PaisRequest("Perú");
-        PaisResponse response = new PaisResponse(2L, "Perú");
+        PaisResponse response = new PaisResponse(2L, "Perú", true);
         when(paisService.createPais(request)).thenReturn(response);
 
         ResponseEntity<PaisResponse> result = paisController.createPais(request);

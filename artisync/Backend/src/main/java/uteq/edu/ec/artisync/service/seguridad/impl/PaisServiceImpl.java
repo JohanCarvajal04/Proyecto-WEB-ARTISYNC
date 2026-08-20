@@ -35,6 +35,14 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PaisResponse> getPaisesActivos() {
+        return paisRepository.findByEstadoTrue(Sort.by(Sort.Direction.ASC, "nombrePais")).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PaisResponse getPaisById(Long id) {
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
@@ -79,18 +87,19 @@ public class PaisServiceImpl implements PaisService {
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
 
-        if (usuarioRepository.existsByPaisIdPais(id)) {
-            throw new ExcepcionReglaNegocio("No se puede eliminar el país porque tiene usuarios asociados.");
-        }
+        boolean nuevoEstado = !pais.getEstado();
+        pais.setEstado(nuevoEstado);
+        paisRepository.save(pais);
 
-        paisRepository.delete(pais);
-        return new RespuestaMensaje("País eliminado exitosamente");
+        String accionStr = nuevoEstado ? "reactivado" : "desactivado";
+        return new RespuestaMensaje("País " + accionStr + " exitosamente");
     }
 
     private PaisResponse toResponse(Pais pais) {
         return PaisResponse.builder()
                 .idPais(pais.getIdPais())
                 .nombrePais(pais.getNombrePais())
+                .estado(pais.getEstado())
                 .build();
     }
 }

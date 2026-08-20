@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class PaisResponse {
     private Long idPais;
     private String nombrePais;
+    private Boolean estado;
 }

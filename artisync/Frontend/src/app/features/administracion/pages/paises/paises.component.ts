@@ -121,7 +121,8 @@ export class PaisesComponent implements OnInit {
       next: () => {
         this.isActionLoading.set(false);
         this.isConfirmOpen.set(false);
-        this.toastService.success('País desactivado/eliminado exitosamente');
+        const accionStr = pais.estado ? 'desactivado' : 'reactivado';
+        this.toastService.success(`País ${accionStr} exitosamente`);
         this.loadPaises();
       },
       error: () => this.isActionLoading.set(false)

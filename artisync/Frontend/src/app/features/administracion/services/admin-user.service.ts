@@ -61,4 +61,8 @@ export class AdminUserService {
   getPaises(): Observable<PaisResponse[]> {
     return this.http.get<PaisResponse[]>(`${environment.apiUrl}/v1/paises`);
   }
+
+  getPaisesActivos(): Observable<PaisResponse[]> {
+    return this.http.get<PaisResponse[]>(`${environment.apiUrl}/v1/paises/activos`);
+  }
 }
