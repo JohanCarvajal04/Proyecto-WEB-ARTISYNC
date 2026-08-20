@@ -1,0 +1,201 @@
+<div class="flex flex-col gap-6">
+
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-[#1E0F38] font-headline">Auditoría</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        Bitácora inmutable de eventos del sistema (REQ-NF-013): quién hizo qué, cuándo y con qué resultado.
+      </p>
+    </div>
+
+    <button type="button" (click)="exportar()" [disabled]="exportando()"
+      *appHasPermission="'AUDITORIA_EXPORTAR'"
+      class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-90 disabled:opacity-60 transition-opacity inline-flex items-center gap-2">
+      @if (exportando()) {
+        <span class="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></span>
+      }
+      Exportar CSV
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+      <input type="text" placeholder="Correo del actor"
+        [ngModel]="filtro().correoActor" (ngModelChange)="actualizarFiltro('correoActor', $event)"
+        class="col-span-1 sm:col-span-2 px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <select [ngModel]="filtro().accion" (ngModelChange)="actualizarFiltro('accion', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300">
+        <option value="">Cualquier acción</option>
+        @for (accion of acciones(); track accion) {
+          <option [value]="accion">{{ accion }}</option>
+        }
+      </select>
+
+      <select [ngModel]="filtro().modulo" (ngModelChange)="actualizarFiltro('modulo', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300">
+        <option value="">Cualquier módulo</option>
+        @for (modulo of modulos; track modulo) {
+          <option [value]="modulo">{{ modulo }}</option>
+        }
+      </select>
+
+      <select [ngModel]="filtro().resultado" (ngModelChange)="actualizarFiltro('resultado', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300">
+        <option value="">Cualquier resultado</option>
+        @for (resultado of resultados; track resultado) {
+          <option [value]="resultado">{{ resultado }}</option>
+        }
+      </select>
+
+      <div class="flex gap-2">
+        <button type="button" (click)="aplicarFiltros()"
+          class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-[#7B39B2] hover:opacity-90 transition-opacity">
+          Filtrar
+        </button>
+        <button type="button" (click)="limpiarFiltros()"
+          class="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors">
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+      <label class="flex items-center gap-2 text-xs text-slate-500">
+        Desde
+        <input type="datetime-local"
+          [ngModel]="filtro().desde" (ngModelChange)="actualizarFiltro('desde', $event)"
+          class="flex-1 px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+      </label>
+      <label class="flex items-center gap-2 text-xs text-slate-500">
+        Hasta
+        <input type="datetime-local"
+          [ngModel]="filtro().hasta" (ngModelChange)="actualizarFiltro('hasta', $event)"
+          class="flex-1 px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+      </label>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-4">Fecha</th>
+              <th class="px-6 py-4">Actor</th>
+              <th class="px-6 py-4">Módulo</th>
+              <th class="px-6 py-4">Acción</th>
+              <th class="px-6 py-4">Entidad</th>
+              <th class="px-6 py-4">Resultado</th>
+              <th class="px-6 py-4 text-right">IP</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (e of pagina().contenido; track e.idEventoAuditoria) {
+              <tr class="hover:bg-slate-50/50 transition-colors cursor-pointer" (click)="verDetalle(e)">
+                <td class="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{{ formatFecha(e.fechaEvento) }}</td>
+                <td class="px-6 py-4 font-medium text-slate-800">{{ e.correoActor }}</td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">{{ e.moduloAuditoria }}</span>
+                </td>
+                <td class="px-6 py-4 font-mono text-xs text-slate-600">{{ e.accionAuditoria }}</td>
+                <td class="px-6 py-4 text-xs text-slate-400">
+                  {{ e.entidadAfectada ? e.entidadAfectada + ' #' + e.idEntidadAfectada : '—' }}
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-semibold" [class]="claseBadge(e.resultadoEvento)">
+                    {{ e.resultadoEvento }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-right font-mono text-xs text-slate-400">{{ e.direccionIp || '—' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+                  <p>No hay eventos que coincidan con el filtro.</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pagina().totalPaginas > 1) {
+        <div class="flex items-center justify-center gap-3 py-4 border-t border-slate-100">
+          <button type="button" (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Anterior
+          </button>
+          <span class="text-xs text-slate-400 font-mono">
+            Página {{ pagina().numero + 1 }} de {{ pagina().totalPaginas }} · {{ pagina().totalElementos }} registro(s)
+          </span>
+          <button type="button" (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Siguiente
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+<!-- Detalle del evento -->
+@if (detalle(); as d) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="cerrarDetalle()"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100 flex items-start justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">{{ d.accionAuditoria }}</h2>
+          <p class="text-xs text-slate-400 mt-0.5">{{ d.correoActor }} · {{ formatFecha(d.fechaEvento) }}</p>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-xs font-semibold" [class]="claseBadge(d.resultadoEvento)">
+          {{ d.resultadoEvento }}
+        </span>
+      </div>
+      <div class="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Módulo</span>
+            <p class="text-slate-700 mt-1">{{ d.moduloAuditoria }}</p>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Entidad</span>
+            <p class="text-slate-700 mt-1">{{ d.entidadAfectada ? d.entidadAfectada + ' #' + d.idEntidadAfectada : '—' }}</p>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">IP</span>
+            <p class="text-slate-700 mt-1 font-mono">{{ d.direccionIp || '—' }}</p>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Duración</span>
+            <p class="text-slate-700 mt-1">{{ d.duracionMs !== null ? d.duracionMs + ' ms' : '—' }}</p>
+          </div>
+        </div>
+
+        @if (d.mensajeError) {
+          <div>
+            <span class="text-xs font-bold text-rose-500 uppercase tracking-wider">Mensaje de error</span>
+            <p class="text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-3 mt-1">{{ d.mensajeError }}</p>
+          </div>
+        }
+
+        <div>
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Detalle del cambio</span>
+          <pre class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 mt-1 overflow-auto max-h-80">{{ json(d.detalleCambio) }}</pre>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-100 flex justify-end">
+        <button type="button" (click)="cerrarDetalle()"
+          class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
