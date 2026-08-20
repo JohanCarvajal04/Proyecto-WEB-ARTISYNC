@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
@@ -83,6 +85,9 @@ public class PagoServicioImpl implements IPagoServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "PAGO_ORDEN_CREAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{monto: #monto}")
     public RespuestaPago crearOrdenPayPal(Long idPedido, BigDecimal monto) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
@@ -184,6 +189,12 @@ public class PagoServicioImpl implements IPagoServicio {
      */
     @Override
     @Transactional
+    // Jamás #payload en el detalle: es el cuerpo crudo del webhook y puede
+    // llevar datos de la orden completos. Solo se registra transmissionId,
+    // suficiente para correlacionar con los logs de PayPal si hace falta.
+    @Auditable(accion = "PAGO_WEBHOOK_RECIBIR", modulo = ModuloAuditoria.FINANZAS,
+            correoActor = "'sistema:paypal'",
+            detalle = "{transmissionId: #transmissionId}")
     public void procesarWebhookPayPal(String payload, String transmissionId, String transmissionTime,
                                       String transmissionSig, String certUrl, String authAlgo, String authVersion) {
         JsonNode evento;

@@ -11,6 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -30,6 +33,7 @@ import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
@@ -67,6 +71,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Auditable(accion = "USUARIO_CREAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#resultado.idUsuario",
+            detalle = "{correo: #request.correo, roles: #request.roles}")
     public UserResponse createUser(CreateUserRequest request) {
         if (usuarioRepository.existsByCorreo(request.getCorreo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");
@@ -108,9 +115,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Auditable(accion = "USUARIO_EDITAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#id",
+            detalle = "{estadoCuenta: #request.estadoCuenta, roles: #request.roles}")
     public UserResponse updateUser(Long id, AdminUpdateUserRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        ContextoAuditoria.aportar("antes", Map.of(
+                "nombres", usuario.getNombres(),
+                "apellidos", usuario.getApellidos(),
+                "estadoCuenta", usuario.getEstadoCuenta()));
 
         if (request.getNombres() != null && !request.getNombres().isBlank()) {
             usuario.setNombres(request.getNombres());
@@ -160,6 +175,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Auditable(accion = "USUARIO_CAMBIAR_ESTADO", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#id",
+            detalle = "{estadoCuenta: #request.estadoCuenta}")
     public UserResponse changeEstado(Long id, ChangeEstadoRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -177,9 +195,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Auditable(accion = "USUARIO_ASIGNAR_ROLES", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#id",
+            detalle = "{roles: #request.roles}")
     public UserResponse assignRoles(Long id, AssignRolesRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        ContextoAuditoria.aportar("antes", Map.of("roles",
+                usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
+                        .map(ur -> ur.getRol().getNombreRol())
+                        .toList()));
 
         actualizarRoles(usuario, request.getRoles());
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles
@@ -189,6 +215,11 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    // Es un soft-delete (estadoCuenta=false), no un borrado físico: la acción
+    // se llama USUARIO_DESACTIVAR y no USUARIO_ELIMINAR para que la bitácora
+    // describa lo que realmente ocurre en la base de datos.
+    @Auditable(accion = "USUARIO_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#id")
     public void deleteUser(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -199,6 +230,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    @Auditable(accion = "SESION_REVOCAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#id")
     public RespuestaMensaje revokeUserSessions(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + id);

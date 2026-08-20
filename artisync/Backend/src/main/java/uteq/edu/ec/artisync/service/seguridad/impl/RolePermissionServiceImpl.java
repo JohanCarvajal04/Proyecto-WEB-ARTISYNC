@@ -9,6 +9,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
@@ -25,6 +28,7 @@ import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -77,11 +81,28 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    // El cambio más sensible del sistema: quién puede hacer qué. Se registra
+    // el conjunto "antes" (vía ContextoAuditoria) y "después" (los propios
+    // parámetros del método) para que el evento sea auditable como un diff,
+    // no solo como "se llamó a syncPermissions".
+    @Auditable(accion = "ROL_SINCRONIZAR_PERMISOS", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", detalle = "{rol: #roleName, despues: #permissionCodes}")
     public void syncPermissions(String roleName, List<String> permissionCodes) {
         // REQ-F-003: fn_sincronizar_permisos_rol reemplaza atomicamente el set
         // completo de rol_permisos (DELETE+INSERT) en el motor, en vez de que
         // Hibernate calcule el diff de la coleccion @ManyToMany al hacer save().
         String nombreRolUpper = roleName.toUpperCase();
+
+        // A propósito NO se usa getPermissionsByRole (lanza 404 si el rol no
+        // existe): capturar el "antes" es una mejora de la auditoría, nunca
+        // debe cambiar qué excepción ve el cliente cuando el rol no existe —
+        // esa decisión la sigue tomando exclusivamente sincronizarPermisos()
+        // más abajo, vía StoredProcedureExceptionTranslator.
+        rolRepository.findByNombreRol(nombreRolUpper).ifPresent(rol ->
+                ContextoAuditoria.aportar("antes", Map.of("permisos",
+                        rol.getPermisos() == null ? List.of()
+                                : rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())));
+
         String[] codigos = permissionCodes != null ? permissionCodes.toArray(new String[0]) : new String[0];
         Integer totalAsignado;
         try {
@@ -134,6 +155,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    @Auditable(accion = "ROL_CREAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", idEntidad = "#resultado.idRol",
+            detalle = "{nombreRol: #request.nombreRol, permisosIniciales: #request.permisosIniciales}")
     public RolResponse createRole(CreateRoleRequest request) {
         String nombreRolUpper = request.getNombreRol().trim().toUpperCase();
         if (rolRepository.findByNombreRol(nombreRolUpper).isPresent()) {
@@ -168,6 +192,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    @Auditable(accion = "ROL_ACTUALIZAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", idEntidad = "#idRol",
+            detalle = "{descripcionRol: #request.descripcionRol}")
     public RolResponse updateRole(Long idRol, UpdateRoleRequest request) {
         Rol rol = rolRepository.findById(idRol)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado con ID: " + idRol));
@@ -189,6 +216,8 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    @Auditable(accion = "ROL_ELIMINAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", idEntidad = "#idRol")
     public void deleteRole(Long idRol) {
         // REQ-F-004: fn_eliminar_rol valida (en la misma transaccion que el
         // DELETE) que el rol no sea uno de los roles base protegidos y que no

@@ -8,6 +8,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
@@ -41,6 +44,12 @@ public class InfraccionServiceImpl implements InfraccionService {
 
     @Override
     @Transactional
+    // Jamás #mensaje en el detalle: el texto ya vive en
+    // infracciones_mensaje.mensaje_original con su propio control de acceso;
+    // duplicarlo en una bitácora que ni el ADMIN puede borrar empeoraría la
+    // posición de privacidad. Solo se registra su longitud y el patrón.
+    @Auditable(accion = "INFRACCION_REGISTRAR", modulo = ModuloAuditoria.COMUNICACION,
+            entidad = "pedidos", idEntidad = "#idPedido")
     public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
         // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
         // total en la ventana de 30 dias y suspende la cuenta si corresponde,
@@ -48,6 +57,9 @@ public class InfraccionServiceImpl implements InfraccionService {
         // entre el COUNT y el UPDATE condicional que tenia la version en tres
         // llamadas independientes al repositorio).
         String patron = mensajeFilterService.detectarPatron(mensaje);
+        ContextoAuditoria.aportar("idUsuarioInfractor", idUsuario);
+        ContextoAuditoria.aportar("patronDetectado", patron);
+        ContextoAuditoria.aportar("longitudMensaje", mensaje != null ? mensaje.length() : 0);
 
         String resultadoJson = infraccionRepo.registrarInfraccion(idUsuario, idPedido, mensaje, patron);
         JsonNode resultado = parseResultado(resultadoJson);
@@ -88,6 +100,8 @@ public class InfraccionServiceImpl implements InfraccionService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SUSPENSION_REVERTIR", modulo = ModuloAuditoria.COMUNICACION,
+            entidad = "usuarios", idEntidad = "#idUsuario")
     public RespuestaMensaje revertirSuspension(Long idUsuario) {
         Usuario usuario = usuarioRepo.findById(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuario));

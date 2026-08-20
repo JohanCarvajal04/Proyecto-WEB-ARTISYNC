@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.service.seguridad.impl;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -86,6 +88,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @Auditable(accion = "USUARIO_AUTOREGISTRO", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#resultado.idUsuario",
+            correoActor = "#request.correo",
+            detalle = "{rol: #request.rol}")
     public UserResponse register(RegisterRequest request) {
         String rolNombre = request.getRol() != null && !request.getRol().isBlank()
                 ? request.getRol().toUpperCase() : "CLIENTE";
@@ -124,6 +130,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @Auditable(accion = "AUTENTICACION_LOGIN", modulo = ModuloAuditoria.SEGURIDAD,
+            correoActor = "#request.correo")
     public TokenResponse login(LoginRequest request) {
         String ip = obtenerIpActual();
 
@@ -202,6 +210,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    // El correo real se resuelve DENTRO del método a partir del ticket
+    // (preAuthTicket), no está disponible como parámetro para el SpEL de
+    // correoActor; el evento queda con actor "anonimo", que es correcto: en
+    // este punto el usuario aún no tiene una sesión completa.
+    @Auditable(accion = "AUTENTICACION_2FA_VERIFICAR", modulo = ModuloAuditoria.SEGURIDAD)
     public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
         // ticket emitido por login() tras validar la contraseña — ya no desde
@@ -330,6 +343,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    // tokenHeader y refreshToken son secretos: nunca en detalle. No hace falta
+    // correoActor explícito, hay SecurityContext porque se llama autenticado.
+    @Auditable(accion = "AUTENTICACION_LOGOUT", modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
@@ -350,6 +366,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @Auditable(accion = "CONTRASENA_SOLICITAR_RESET", modulo = ModuloAuditoria.SEGURIDAD,
+            correoActor = "#request.correo")
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
         // llamada implica el mismo costo de abuso (correo potencialmente enviado)
@@ -374,6 +392,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    // request.getToken() y la nueva contraseña son secretos: jamás #request
+    // completo en detalle. El usuario se resuelve dentro por el token, no hay
+    // correo disponible como parámetro.
+    @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
         // REQ-F-005: fn_restablecer_contrasena valida (con FOR UPDATE) que el
         // token exista, no este usado y no haya expirado, y actualiza usuarios +

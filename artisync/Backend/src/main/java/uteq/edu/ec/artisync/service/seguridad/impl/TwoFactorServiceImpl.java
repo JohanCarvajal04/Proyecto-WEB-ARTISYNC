@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
@@ -46,6 +48,9 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    // Nunca el secreto TOTP ni los códigos de respaldo en el detalle: solo el
+    // hecho de que se inició la configuración.
+    @Auditable(accion = "SEGURIDAD_2FA_CONFIGURAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
     public TwoFactorSetupResponse setup2Fa(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -98,6 +103,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SEGURIDAD_2FA_ACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
     public RespuestaMensaje confirm2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -117,6 +123,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SEGURIDAD_2FA_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
     public RespuestaMensaje disable2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));

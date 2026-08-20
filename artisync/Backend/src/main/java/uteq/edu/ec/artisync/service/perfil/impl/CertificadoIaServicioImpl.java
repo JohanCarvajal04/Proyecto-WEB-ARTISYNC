@@ -3,6 +3,8 @@ package uteq.edu.ec.artisync.service.perfil.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearCertificadoIa;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaCertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
@@ -27,6 +29,9 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CERTIFICADO_EMITIR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
+            detalle = "{idPerfil: #peticion.idPerfil, idEstadoVerificacion: #peticion.idEstadoVerificacion}")
     public RespuestaCertificadoIa emitirCertificado(PeticionCrearCertificadoIa peticion) {
         PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + peticion.idPerfil()));
@@ -71,6 +76,8 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CERTIFICADO_ELIMINAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "certificados_ia", idEntidad = "#idCertificado")
     public void eliminarCertificado(Long idCertificado) {
         if (!certificadoRepository.existsById(idCertificado)) {
             throw new ExcepcionRecursoNoEncontrado("Certificado IA no encontrado con ID: " + idCertificado);

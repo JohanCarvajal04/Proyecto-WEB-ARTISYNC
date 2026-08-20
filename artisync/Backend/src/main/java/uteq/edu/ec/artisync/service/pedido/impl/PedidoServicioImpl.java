@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
@@ -41,6 +43,9 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "PEDIDO_CREAR", modulo = ModuloAuditoria.PEDIDOS,
+            entidad = "pedidos", idEntidad = "#resultado.idPedido",
+            detalle = "{idServicio: #peticion.idServicio}")
     public RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion) {
         Usuario cliente = usuarioRepository.findById(idCliente)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario cliente no encontrado"));
@@ -180,6 +185,11 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
+    // Las transiciones de flujo: incluye los intentos FALLIDOS, que
+    // historial_estados_pedido (tabla de dominio) nunca registra.
+    @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = ModuloAuditoria.PEDIDOS,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{observacion: #peticion.observacion}")
     public RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));

@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
@@ -36,6 +38,8 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CONTRATO_GENERAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "contratos", idEntidad = "#resultado.idContrato")
     public RespuestaContrato generarContrato(Long idPedido) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -65,6 +69,8 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CONTRATO_FIRMAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "contratos", idEntidad = "#idContrato")
     public RespuestaContrato firmarContrato(Long idContrato, Long idUsuario) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));

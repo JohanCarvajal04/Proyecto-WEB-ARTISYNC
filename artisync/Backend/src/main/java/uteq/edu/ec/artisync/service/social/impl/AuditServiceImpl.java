@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.social.AuditService;
@@ -26,6 +28,8 @@ public class AuditServiceImpl implements AuditService {
 
     @Override
     @Transactional(readOnly = true)
+    @Auditable(accion = "TRANSACCIONES_EXPORTAR_CSV", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "perfiles_creadores", idEntidad = "#idCreadorPerfil")
     public byte[] exportarTransaccionesCreadorCsv(Long idCreadorPerfil) {
         // Obtenemos las transacciones navegando por la cadena:
         // TransaccionPago → PagoGarantia → Contrato → Pedido → Servicio → PerfilCreador

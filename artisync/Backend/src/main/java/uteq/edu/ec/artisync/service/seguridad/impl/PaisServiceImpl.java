@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
@@ -51,6 +53,9 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional
+    @Auditable(accion = "PAIS_CREAR", modulo = ModuloAuditoria.SISTEMA,
+            entidad = "pais", idEntidad = "#resultado.idPais",
+            detalle = "{nombrePais: #request.nombrePais}")
     public PaisResponse createPais(PaisRequest request) {
         String nombreTrimmed = request.getNombrePais().trim();
         if (paisRepository.findByNombrePais(nombreTrimmed).isPresent()) {
@@ -66,6 +71,9 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional
+    @Auditable(accion = "PAIS_EDITAR", modulo = ModuloAuditoria.SISTEMA,
+            entidad = "pais", idEntidad = "#id",
+            detalle = "{nombrePais: #request.nombrePais}")
     public PaisResponse updatePais(Long id, PaisRequest request) {
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
@@ -83,6 +91,7 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional
+    @Auditable(accion = "PAIS_CAMBIAR_ESTADO", modulo = ModuloAuditoria.SISTEMA, entidad = "pais", idEntidad = "#id")
     public RespuestaMensaje deletePais(Long id) {
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
