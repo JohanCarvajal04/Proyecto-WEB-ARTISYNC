@@ -14,12 +14,10 @@ import org.springframework.data.domain.Sort;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,8 +31,6 @@ class PaisServiceImplTest {
 
     @Mock
     private PaisRepository paisRepository;
-    @Mock
-    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private PaisServiceImpl paisService;
@@ -76,23 +72,32 @@ class PaisServiceImplTest {
         assertEquals("Ecuador", result.getNombrePais());
     }
 
+    // deletePais es un interruptor: la baja ya no borra la fila, invierte el
+    // estado. Por eso hay una prueba por sentido, y ninguna que compruebe la
+    // antigua regla de "no se puede eliminar si tiene usuarios asociados":
+    // esa restricción desapareció junto con el borrado físico.
     @Test
-    void deletePais_ShouldThrowBusinessRule_WhenUsersAssociated() {
+    void deletePais_ShouldDeactivate_WhenActive() {
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(usuarioRepository.existsByPaisIdPais(1L)).thenReturn(true);
-
-        assertThrows(ExcepcionReglaNegocio.class, () -> paisService.deletePais(1L));
-    }
-
-    @Test
-    void deletePais_ShouldDeleteSuccessfully() {
-        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(usuarioRepository.existsByPaisIdPais(1L)).thenReturn(false);
 
         RespuestaMensaje response = paisService.deletePais(1L);
 
-        assertEquals("País eliminado exitosamente", response.getMensaje());
-        verify(paisRepository).delete(pais);
+        assertEquals("País desactivado exitosamente", response.getMensaje());
+        assertFalse(pais.getEstado());
+        verify(paisRepository).save(pais);
+        verify(paisRepository, never()).delete(any(Pais.class));
+    }
+
+    @Test
+    void deletePais_ShouldReactivate_WhenInactive() {
+        pais.setEstado(false);
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
+
+        RespuestaMensaje response = paisService.deletePais(1L);
+
+        assertEquals("País reactivado exitosamente", response.getMensaje());
+        assertTrue(pais.getEstado());
+        verify(paisRepository).save(pais);
     }
 
     @Test

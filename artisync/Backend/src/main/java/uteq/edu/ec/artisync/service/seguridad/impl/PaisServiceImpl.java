@@ -10,12 +10,10 @@ import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.seguridad.PaisService;
 
 import java.util.List;
@@ -25,7 +23,6 @@ import java.util.List;
 public class PaisServiceImpl implements PaisService {
 
     private final PaisRepository paisRepository;
-    private final UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional(readOnly = true)
