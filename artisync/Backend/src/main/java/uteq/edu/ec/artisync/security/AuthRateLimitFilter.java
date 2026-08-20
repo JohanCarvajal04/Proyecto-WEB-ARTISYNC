@@ -25,7 +25,7 @@ import java.util.List;
  * OBS-AUTO-06 (A07 OWASP): limita por IP los intentos sobre las rutas publicas
  * de autenticacion mas expuestas a abuso (fuerza bruta de login/2FA, spam de
  * cuentas, mail-bombing vía forgot-password). Generaliza el antiguo
- * LoginRateLimitFilter, que solo cubria /api/auth/login.
+ * LoginRateLimitFilter, que solo cubria /api/v1/auth/login.
  *
  * La cuota POR IP vive aqui; la cuota POR CUENTA vive en
  * {@link uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService},
@@ -45,11 +45,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private static final List<Politica> POLITICAS = List.of(
-            new Politica("/api/auth/login", "POST", 10, Duration.ofSeconds(60), "login"),
-            new Politica("/api/auth/2fa/verify", "POST", 10, Duration.ofSeconds(60), "2fa"),
-            new Politica("/api/auth/forgot-password", "POST", 5, Duration.ofMinutes(15), "recuperacion"),
-            new Politica("/api/auth/reset-password", "POST", 10, Duration.ofMinutes(15), "reset"),
-            new Politica("/api/auth/registro", "POST", 5, Duration.ofMinutes(60), "registro")
+            new Politica("/api/v1/auth/login", "POST", 10, Duration.ofSeconds(60), "login"),
+            new Politica("/api/v1/auth/2fa/verify", "POST", 10, Duration.ofSeconds(60), "2fa"),
+            new Politica("/api/v1/auth/forgot-password", "POST", 5, Duration.ofMinutes(15), "recuperacion"),
+            new Politica("/api/v1/auth/reset-password", "POST", 10, Duration.ofMinutes(15), "reset"),
+            new Politica("/api/v1/auth/registro", "POST", 5, Duration.ofMinutes(60), "registro")
     );
 
     private final StringRedisTemplate redisTemplate;

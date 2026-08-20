@@ -11,7 +11,7 @@ import { MessageResponse } from '../models/common.model';
 })
 export class PaisService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/paises`;
+  private apiUrl = `${environment.apiUrl}/v1/paises`;
 
   getPaises(): Observable<PaisResponse[]> {
     return this.http.get<PaisResponse[]>(this.apiUrl);

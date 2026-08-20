@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.service.seguridad.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Tag(name = "Autenticación", description = "Endpoints públicos para registro (RNF-12), login, 2FA, refresh token y recuperación de contraseña")
 public class AuthController {
@@ -29,11 +29,11 @@ public class AuthController {
     private static final int MAX_AGE_REFRESH_SEGUNDOS = 604800; // 7 días
 
     // §2.1 (OBS-AUTO-05): cookie del ticket pre-auth de 2FA — ver
-    // PreAuth2faTicketService. El path debe ser "/api/auth" (no el más
-    // estrecho "/api/auth/2fa/verify") porque el navegador solo envía una
+    // PreAuth2faTicketService. El path debe ser "/api/v1/auth" (no el más
+    // estrecho "/api/v1/auth/2fa/verify") porque el navegador solo envía una
     // cookie cuyo path es prefijo de la ruta solicitada, y esta cookie
-    // también debe poder LIMPIARSE desde /api/auth/login (login sin 2FA) y
-    // /api/auth/logout.
+    // también debe poder LIMPIARSE desde /api/v1/auth/login (login sin 2FA) y
+    // /api/v1/auth/logout.
     private static final String COOKIE_PRE_AUTH_2FA = "preAuth2fa";
     private static final int MAX_AGE_PRE_AUTH_2FA_SEGUNDOS = 300; // 5 min — igual TTL que en Redis
 
@@ -137,7 +137,7 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from(nombre, valor)
                 .httpOnly(true)
                 .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)
-                .path("/api/auth")
+                .path("/api/v1/auth")
                 .maxAge(maxAgeSegundos)
                 .sameSite("Lax")
                 .build();

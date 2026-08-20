@@ -107,7 +107,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // Redis y su fila de sesiones borrada, de modo que la siguiente petición
         // daba 401, el refresh fallaba y la UI acababa mostrando que no tenía los
         // permisos necesarios. Él ya conoce los permisos nuevos porque acaba de
-        // fijarlos; el frontend recarga los suyos con GET /api/permissions/me.
+        // fijarlos; el frontend recarga los suyos con GET /api/v1/permissions/me.
         Long idActual = idUsuarioAutenticado();
 
         List<Long> afectados = usuarioRolRepository.findIdsUsuarioByNombreRol(roleName).stream()

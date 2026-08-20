@@ -41,7 +41,7 @@ class AuthRateLimitFilterTest {
     private MockHttpServletRequest peticionLogin() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod("POST");
-        request.setRequestURI("/api/auth/login");
+        request.setRequestURI("/api/v1/auth/login");
         return request;
     }
 
@@ -97,7 +97,7 @@ class AuthRateLimitFilterTest {
 
         MockHttpServletRequest peticion2fa = new MockHttpServletRequest();
         peticion2fa.setMethod("POST");
-        peticion2fa.setRequestURI("/api/auth/2fa/verify");
+        peticion2fa.setRequestURI("/api/v1/auth/2fa/verify");
         peticion2fa.setRemoteAddr("10.0.0.5");
         filter.doFilterInternal(peticion2fa, new MockHttpServletResponse(), filterChain);
 

@@ -413,7 +413,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Registro del refresh token: obligatorio (propaga la excepción). A diferencia
-     * del access token, la corrección del siguiente /api/auth/refresh DEPENDE de que
+     * del access token, la corrección del siguiente /api/v1/auth/refresh DEPENDE de que
      * esta fila exista (ver refreshToken(): busca por jti). Antes ambos registros
      * fallaban en silencio (catch genérico que solo logueaba), lo que dejaba al
      * usuario con un refresh token que el sistema rechazaría como "revocado o

@@ -11,7 +11,7 @@ import { MessageResponse } from '../../../shared/models/common.model';
 })
 export class UserService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/usuarios`;
+  private apiUrl = `${environment.apiUrl}/v1/usuarios`;
 
   getCurrentUser(): Observable<UserResponse> {
     return this.http.get<UserResponse>(`${this.apiUrl}/me`);

@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.service.seguridad.PaisService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/paises")
+@RequestMapping("/api/v1/paises")
 @RequiredArgsConstructor
 @Tag(name = "Catálogo de Países", description = "Endpoints para consulta pública y administración (CUD) de países")
 public class PaisController {

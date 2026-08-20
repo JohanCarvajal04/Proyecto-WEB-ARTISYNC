@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 import java.security.Principal;
 
 @RestController
-@RequestMapping("/api/2fa")
+@RequestMapping("/api/v1/2fa")
 @RequiredArgsConstructor
 @Tag(name = "Autenticación 2FA", description = "Endpoints para gestionar la autenticación de dos factores (TOTP) y códigos de respaldo")
 @SecurityRequirement(name = "bearerAuth")

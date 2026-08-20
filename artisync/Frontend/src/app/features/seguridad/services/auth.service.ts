@@ -173,7 +173,7 @@ export class AuthService {
   }
 
   fetchUserPermissions(): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiUrl}/permissions/me`).pipe(
+    return this.http.get<string[]>(`${environment.apiUrl}/v1/permissions/me`).pipe(
       tap(permisos => {
         this._userPermissions.set(permisos);
         localStorage.setItem('userPermissions', JSON.stringify(permisos));
@@ -190,7 +190,7 @@ export class AuthService {
     // withCredentials: obligatorio para que el navegador acepte el Set-Cookie
     // del ticket pre-auth de 2FA (preAuth2fa) y el de refreshToken cuando el
     // login es exitoso — §2.1 (OBS-AUTO-05).
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/login`, credentials, { withCredentials: true }).pipe(
+    return this.http.post<TokenResponse>(`${environment.apiUrl}/v1/auth/login`, credentials, { withCredentials: true }).pipe(
       tap(response => this.handleAuthentication(response)),
       finalize(() => this._isLoading.set(false))
     );
@@ -198,7 +198,7 @@ export class AuthService {
 
   register(data: RegisterRequest): Observable<UserResponse> {
     this._isLoading.set(true);
-    return this.http.post<UserResponse>(`${environment.apiUrl}/auth/registro`, data).pipe(
+    return this.http.post<UserResponse>(`${environment.apiUrl}/v1/auth/registro`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
@@ -207,7 +207,7 @@ export class AuthService {
     this._isLoading.set(true);
     // withCredentials: envía la cookie preAuth2fa (que prueba que la contraseña
     // ya se validó en /auth/login) y recibe el Set-Cookie de refreshToken.
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/2fa/verify`, data, { withCredentials: true }).pipe(
+    return this.http.post<TokenResponse>(`${environment.apiUrl}/v1/auth/2fa/verify`, data, { withCredentials: true }).pipe(
       tap(response => this.handleAuthentication(response)),
       finalize(() => this._isLoading.set(false))
     );
@@ -215,35 +215,35 @@ export class AuthService {
 
   forgotPassword(data: ForgotPasswordRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.post<MessageResponse>(`${environment.apiUrl}/auth/forgot-password`, data).pipe(
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/forgot-password`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.post<MessageResponse>(`${environment.apiUrl}/auth/reset-password`, data).pipe(
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/reset-password`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   setup2fa(): Observable<TwoFactorSetupResponse> {
     this._isLoading.set(true);
-    return this.http.post<TwoFactorSetupResponse>(`${environment.apiUrl}/2fa/setup`, {}).pipe(
+    return this.http.post<TwoFactorSetupResponse>(`${environment.apiUrl}/v1/2fa/setup`, {}).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   confirm2fa(data: TwoFactorConfirmRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.post<MessageResponse>(`${environment.apiUrl}/2fa/confirm`, data).pipe(
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/2fa/confirm`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   disable2fa(data: TwoFactorConfirmRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.delete<MessageResponse>(`${environment.apiUrl}/2fa/disable`, { body: data }).pipe(
+    return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/2fa/disable`, { body: data }).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
@@ -269,7 +269,7 @@ export class AuthService {
     }
 
     this.refreshEnVuelo = this.http
-      .post<TokenResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true })
+      .post<TokenResponse>(`${environment.apiUrl}/v1/auth/refresh`, {}, { withCredentials: true })
       .pipe(
         tap(response => this.handleAuthentication(response)),
         catchError(err => {
@@ -287,7 +287,7 @@ export class AuthService {
   }
 
   logout(): void {
-    this.http.post<MessageResponse>(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true }).subscribe({
+    this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/logout`, {}, { withCredentials: true }).subscribe({
       next: () => this.clearSessionAndRedirect(),
       error: () => this.clearSessionAndRedirect()
     });
