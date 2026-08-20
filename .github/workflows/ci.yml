@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, "entrega-*"]
+    branches: [main, develop, "entrega-*", "feat/ia-verificacion-asistida*"]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, "entrega-*", "feat/ia-verificacion-asistida*"]
 
 jobs:
   backend:
@@ -31,9 +31,33 @@ jobs:
         working-directory: artisync/Backend
         run: ./mvnw -B test
 
+      - name: Ejecutar pruebas de integración con PostgreSQL real (REQ-NF-013)
+        working-directory: artisync/Backend
+        run: ./mvnw -B test -Dtest='*IT' -Dspring.profiles.active=postgres-it
+
       - name: Construir imagen Docker
         working-directory: artisync/Backend
         run: docker build -t pfc-backend:ci .
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: artisync/Frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: artisync/Frontend
+        run: npm ci
+
+      - name: Ejecutar pruebas
+        working-directory: artisync/Frontend
+        run: npm test
 
   trazabilidad:
     runs-on: ubuntu-latest
