@@ -58,7 +58,7 @@ VALUES
 ON CONFLICT (nombre_rol) DO UPDATE 
 SET descripcion_rol = EXCLUDED.descripcion_rol;
 
--- 2. Insertar los 35 Permisos Granulares clasificados por Módulo de Aplicación
+-- 2. Insertar los 40 Permisos Granulares clasificados por Módulo de Aplicación
 INSERT INTO permisos (nombre_permiso, modulo_aplicacion)
 VALUES 
     -- SEGURIDAD
@@ -72,7 +72,10 @@ VALUES
     ('PERMISO_VER', 'SEGURIDAD'),
     ('ROL_ASIGNAR_PERMISO', 'SEGURIDAD'),
     ('SESION_REVOCAR', 'SEGURIDAD'),
-    
+    -- Bitácora de auditoría transversal (ver V12__modulo_auditoria.sql)
+    ('AUDITORIA_VER', 'SEGURIDAD'),
+    ('AUDITORIA_EXPORTAR', 'SEGURIDAD'),
+
     -- SISTEMA / PAISES
     ('PAIS_VER', 'SISTEMA'),
     ('PAIS_CREAR', 'SISTEMA'),
@@ -147,7 +150,8 @@ FROM roles r, permisos p
 WHERE r.nombre_rol = 'SOPORTE'
   AND p.nombre_permiso IN (
       'USUARIO_VER', 'USUARIO_SUSPENDER', 'ROL_VER', 'PERMISO_VER', 'SESION_REVOCAR',
-      'TICKET_REVISAR', 'TICKET_RESOLVER', 'SALA_VER', 'NOTIFICACION_ENVIAR', 'PAIS_VER'
+      'TICKET_REVISAR', 'TICKET_RESOLVER', 'SALA_VER', 'NOTIFICACION_ENVIAR', 'PAIS_VER',
+      'AUDITORIA_VER'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 
@@ -158,7 +162,7 @@ FROM roles r, permisos p
 WHERE r.nombre_rol = 'AUDITOR_FINANCIERO'
   AND p.nombre_permiso IN (
       'CONTRATO_VER', 'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
-      'PAIS_VER', 'ROL_VER'
+      'PAIS_VER', 'ROL_VER', 'AUDITORIA_VER', 'AUDITORIA_EXPORTAR'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 

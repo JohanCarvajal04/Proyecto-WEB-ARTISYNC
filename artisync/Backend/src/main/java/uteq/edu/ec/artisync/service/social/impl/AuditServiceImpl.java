@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.social.AuditService;
+import uteq.edu.ec.artisync.util.CsvUtil;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -51,25 +52,16 @@ public class AuditServiceImpl implements AuditService {
 
             csv.append(String.format("%d,%s,%.2f,%s,%s,%s,%s\n",
                     t.getIdTransaccion(),
-                    escapeCsv(t.getTipoTransaccion()),
+                    CsvUtil.escapeCsv(t.getTipoTransaccion()),
                     monto,
                     t.getFechaEjecucion() != null ? t.getFechaEjecucion().toString() : "",
                     idPedido != null ? idPedido.toString() : "",
                     idPago != null ? idPago.toString() : "",
-                    escapeCsv(estadoFondos)
+                    CsvUtil.escapeCsv(estadoFondos)
             ));
         }
 
         log.info("CSV generado para creador {}: {} transacciones", idCreadorPerfil, transacciones.size());
         return csv.toString().getBytes(StandardCharsets.UTF_8);
-    }
-
-    /** Escapa caracteres especiales de CSV (comillas, comas). */
-    private String escapeCsv(String valor) {
-        if (valor == null) return "";
-        if (valor.contains(",") || valor.contains("\"") || valor.contains("\n")) {
-            return "\"" + valor.replace("\"", "\"\"") + "\"";
-        }
-        return valor;
     }
 }

@@ -14,7 +14,7 @@ import uteq.edu.ec.artisync.service.social.AuditService;
  * RNF-13: El historial es inmutable; solo lectura. Solo accesible para ADMIN.
  * El endpoint de exportación CSV permite auditoría externa de transacciones.
  */
-@Tag(name = "Auditoría", description = "Exportación de historial de transacciones para ADMIN (RNF-13)")
+@Tag(name = "Finanzas — Exportación de transacciones", description = "Exportación de historial de transacciones para ADMIN (RNF-13). No confundir con la bitácora transversal de /api/v1/admin/auditoria.")
 @RestController
 @RequiredArgsConstructor
 public class AuditControlador {
