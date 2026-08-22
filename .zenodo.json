@@ -1,0 +1,53 @@
+{
+  "title": "Proyecto WEB-ARTISYNC",
+  "description": "Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta a Creadores con Clientes y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón escrow vía PayPal, y funciones sociales. Proyecto Fin de Curso — Aplicaciones Web, Quinto nivel. Universidad Técnica Estatal de Quevedo, Facultad de Ciencias de la Computación y Diseño Digital, Carrera de Ingeniería de Software.",
+  "creators": [
+    {
+      "name": "Bone Arroyo, Niurca Scarleth",
+      "affiliation": "Universidad Técnica Estatal de Quevedo",
+      "orcid": "0009-0002-2219-2800"
+    },
+    {
+      "name": "Carvajal Loor, Johan Stalin",
+      "affiliation": "Universidad Técnica Estatal de Quevedo",
+      "orcid": "0009-0008-9229-382X"
+    },
+    {
+      "name": "Figueroa Morales, Bryan Javier",
+      "affiliation": "Universidad Técnica Estatal de Quevedo",
+      "orcid": "0009-0009-6357-4996"
+    },
+    {
+      "name": "Rios Cuyabazo, Jhon Kevin",
+      "affiliation": "Universidad Técnica Estatal de Quevedo",
+      "orcid": "0009-0003-7446-9450"
+    }
+  ],
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "version": "1.0.0",
+  "language": "spa",
+  "keywords": [
+    "web",
+    "artisync",
+    "marketplace de servicios creativos",
+    "escrow",
+    "Spring Boot",
+    "Angular",
+    "PFC"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "10.5281/zenodo.21730559",
+      "relation": "isNewVersionOf",
+      "resource_type": "software"
+    }
+  ],
+  "notes": "Documentación completa en README.md y CITATION.cff (fuente canónica de la autoría; este archivo es un espejo para el flujo de depósito de Zenodo, ver docs/checklists/fair-checklist.md)."
+}
