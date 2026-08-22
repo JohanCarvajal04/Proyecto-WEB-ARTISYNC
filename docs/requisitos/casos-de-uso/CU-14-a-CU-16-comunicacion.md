@@ -4,6 +4,7 @@
 
 ## CU-14: Conversar en el chat del pedido
 **Trazabilidad:** REQ-F-014 / HU-14
+**Prueba de integración:** `ChatServiceImplTest`
 
 **1. Actor principal y objetivo:** Cliente o Creador — intercambiar mensajes en tiempo real dentro de un pedido activo.
 
@@ -29,6 +30,7 @@
 
 ## CU-15: Bloquear contenido de contacto externo
 **Trazabilidad:** REQ-F-015 / HU-15
+**Prueba de integración:** `MensajeFilterServiceImplTest` · `ChatServiceImplTest`
 
 **1. Actor principal y objetivo:** Sistema (actor de apoyo, iniciado por Cliente o Creador al enviar un mensaje) — impedir el intercambio de datos de contacto directo.
 
@@ -54,6 +56,7 @@
 
 ## CU-16: Completar el briefing del pedido
 **Trazabilidad:** REQ-F-016 / HU-16
+**Prueba de integración:** `BriefingServiceImplTest`
 
 **1. Actor principal y objetivo:** Cliente — responder el formulario de briefing configurado por el Creador.
 

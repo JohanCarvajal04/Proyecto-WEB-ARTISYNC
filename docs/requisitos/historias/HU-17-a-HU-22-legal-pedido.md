@@ -4,6 +4,7 @@
 
 ## HU-17 — Generación automática de contrato
 **Trazabilidad:** REQ-F-017
+**Prueba de aceptación:** `ContratoServicioImplTest`
 
 **As a** Cliente que inicia un pedido,
 **I want** que se genere automáticamente un contrato con los datos del servicio contratado,
@@ -20,6 +21,7 @@ Escenario: Generación con datos correctos
 
 ## HU-18 — Firma electrónica del contrato
 **Trazabilidad:** REQ-F-018
+**Prueba de aceptación:** `ContratoServicioImplTest`
 
 **As a** Cliente o Creador,
 **I want** firmar electrónicamente el contrato de mi pedido,
@@ -41,6 +43,7 @@ Escenario: Descarga del contrato firmado
 
 ## HU-19 — Seguimiento del flujo de trabajo del pedido
 **Trazabilidad:** REQ-F-019
+**Prueba de aceptación:** `FlujoTrabajoServicioImplTest` · `PedidoServicioImplFlujoTest`
 
 **As a** Cliente,
 **I want** ver en tiempo real la etapa actual de mi pedido,
@@ -58,6 +61,7 @@ Escenario: Transición de etapa registrada
 
 ## HU-20 — Pago del pedido vía PayPal
 **Trazabilidad:** REQ-F-020
+**Prueba de aceptación:** `PagoServicioImplWebhookTest`
 
 **As a** Cliente,
 **I want** pagar mi pedido a través de un enlace de PayPal generado automáticamente,
@@ -74,6 +78,7 @@ Escenario: Confirmación de pago vía webhook
 
 ## HU-21 — Aprobación de entregable y liberación de fondos
 **Trazabilidad:** REQ-F-021
+**Prueba de aceptación:** `EntregableServicioImplTest`
 
 **As a** Cliente,
 **I want** previsualizar el entregable con marca de agua antes de aprobarlo,
@@ -92,6 +97,7 @@ Escenario: Aprobación libera fondos
 
 ## HU-22 — Solicitud de revisión adicional
 **Trazabilidad:** REQ-F-022
+**Prueba de aceptación:** `TicketRevisionServicioImplTest`
 
 **As a** Cliente,
 **I want** solicitar una revisión adicional cuando ya agoté las incluidas en el contrato,

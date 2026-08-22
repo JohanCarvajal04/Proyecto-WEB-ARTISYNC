@@ -31,8 +31,14 @@
 - [x] **C7 — Verifiable (Verificable):** ¿existe una forma medible u objetiva de comprobar que se cumple?
   **Sí, sistemáticamente.** Los 37 requisitos tienen un campo "Verificación" explícito en `SRS.md` (Test/análisis/demostración) y una columna `prueba_automatizada` en `matriz.csv`. Es la característica mejor cubierta del conjunto.
 
-- [ ] **C8 — Correct (Correcto):** ¿el enunciado refleja fielmente la necesidad real, sin errores?
-  **Parcial — inconsistencia documental encontrada.** `docs/requisitos/SRS.md` (fechado 24-jul-2026) declara REQ-F-006 y REQ-F-007 con **Estado: pendiente** ("requiere integración real con servicio de IA"), pero `docs/trazabilidad/matriz.csv` (con evidencia más reciente, `CertificadoIaRepositoryIT`) los marca **verificado**. Uno de los dos documentos está desactualizado respecto al otro — no se pudo determinar cuál sin ejecutar las pruebas, pero la inconsistencia en sí es un hallazgo de calidad de C8/C15 a resolver antes de considerar el SRS "final" (Bloque A.3.1 exige que el SRS-v1.0.0 sea la fuente de verdad validada).
+- [x] **C8 — Correct (Correcto):** ¿el enunciado refleja fielmente la necesidad real, sin errores?
+  **Cumplida desde el 21-08-2026 (antes parcial).** La revisión anterior encontró que `SRS.md` y `matriz.csv` declaraban estados distintos para REQ-F-006 y REQ-F-007, sin poder determinar cuál era correcto. La reconciliación posterior confirmó que la divergencia era mucho mayor de lo detectado: **23 de los 37 requisitos** discrepaban, y en ambos sentidos. Se resolvió requisito por requisito, no en bloque:
+  - Se declaró `matriz.csv` fuente de verdad del estado (es la única que exige prueba y evidencia en la misma fila) y `SRS.md` fuente del enunciado, la prioridad y el criterio de aceptación.
+  - Se corrigieron **dos estados inflados**: REQ-F-009 figuraba como `verificado` sin tener servicio ni endpoint —se implementó la rodaja vertical y hoy el estado es cierto—, y REQ-F-010 se bajó a `pendiente`, que es su estado real.
+  - Se eliminó el valor `parcial`, ajeno al enum de A.3.3.
+  - Se corrigieron notas obsoletas que afirmaban carencias ya resueltas (p. ej. REQ-NF-003 decía que faltaban los claims `iss`/`aud`/`jti`, y REQ-NF-014 que faltaba la prueba de firma inválida; ambas existen).
+
+  La corrección no depende de la disciplina del equipo: `scripts/validate-traceability.sh` falla si los dos documentos vuelven a divergir.
 
 - [ ] **C9 — Conforming (Conforme):** ¿sigue el patrón de redacción estándar `[condición] [sujeto] shall [acción] [objeto] [restricción]` de ISO/IEC/IEEE 29148:2018?
   **No, de forma consistente.** Los requisitos en `SRS.md` están redactados en prosa descriptiva en español ("El sistema debe permitir...", "Control de acceso basado en roles..."), no en el patrón sintáctico formal de condición-sujeto-shall-acción-objeto-restricción que exige explícitamente el Bloque A.3.1/B.6bis de la guía y las 42 reglas de INCOSE v4 para redacción de enunciados. Esto es consistente entre los 37 requisitos (no es un error puntual, es el estilo de redacción elegido) — requiere reescritura sistemática para alcanzar conformidad total, no solo ajustes puntuales.
@@ -54,28 +60,38 @@
 - [x] **C14 — Able to be validated (Factible de validar):** ¿se puede confirmar que el conjunto satisface la necesidad original?
   **Sí, vía trazabilidad.** `docs/trazabilidad/matriz.csv` conecta cada requisito a historia de usuario → caso de uso → módulo de código → endpoint → prueba automatizada → evidencia empírica, permitiendo validar el conjunto contra el sistema entregado de forma sistemática (aunque, como señala `INFORME-BRECHAS-ENTREGA-FINAL.md`, la columna `tipo_acceso` no se actualizó tras la integración de los procedimientos almacenados de hoy — una brecha de mantenimiento de la matriz, no de su diseño).
 
-- [ ] **C15 — Correct (Correcto, a nivel de conjunto):** ¿el conjunto refleja fielmente el estado real del sistema, sin errores agregados?
-  **Parcial.** Mismo hallazgo que C8 pero a nivel agregado: mientras `SRS.md` no se actualice para coincidir con `matriz.csv` (o viceversa), el conjunto como documento no es una fuente de verdad única y correcta. Esto bloquea directamente el criterio D0R de la rúbrica, que exige que el SRS-v1.0.0 firmado sea correcto y esté alineado con el sistema entregado.
+- [x] **C15 — Correct (Correcto, a nivel de conjunto):** ¿el conjunto refleja fielmente el estado real del sistema, sin errores agregados?
+  **Cumplida desde el 21-08-2026 (antes parcial).** Resuelta junto con C8: el conjunto ya es una fuente de verdad única, con la regla de precedencia declarada explícitamente en la cabecera del SRS y comprobada de forma automática en cada ejecución del CI. Los tres requisitos que no alcanzan el estado que su prioridad exige (REQ-NF-001, REQ-NF-009, REQ-F-010) no se ocultan: figuran en `docs/trazabilidad/excepciones-estado.txt` con su motivo y su condición de cierre, de modo que el conjunto declara su propia deuda en vez de aparentar completitud.
 
 ---
 
 ## Métricas de calidad de requisitos (exigidas por A.3.1 y B.6bis de la guía)
 
-Calculadas desde `docs/trazabilidad/matriz.csv` (37 filas) el 2026-08-17:
+Calculadas desde `docs/trazabilidad/matriz.csv` (37 filas) el 2026-08-21. La versión anterior de esta tabla, fechada el 17-08-2026, declaraba cifras que no se correspondían con la matriz (Must 29 / Should 7 frente a los 26 / 10 reales, y 67.6 % verificado frente al 75.7 %); se recalculó desde el archivo, no desde la versión previa de la tabla.
 
 | Métrica | Valor |
 |---|---|
 | Número total de requisitos | 37 (23 funcionales, 14 no funcionales) |
-| Distribución por tipo | Funcionales 62.2% (23/37) · No funcionales 37.8% (14/37) |
-| Distribución por prioridad MoSCoW | Must: 29 (78.4%) · Should: 7 (18.9%) · Could: 1 (2.7%) · Won't: 0 |
-| % verificado (estado=`verificado`) | 67.6% (25/37) |
-| % implementado o verificado (no pendiente) | 89.2% (33/37) |
-| % pendiente | 10.8% (4/37 — REQ-F-009, REQ-F-010, REQ-NF-005, REQ-NF-006) |
-| Cambios registrados en `CHANGELOG-REQ.md` | 1 entrada (`v0.9.0-rc`, 2026-07-24: renombrado de IDs `RF-NN`→`REQ-F-0NN`) |
-| Tasa de estabilidad (1 − modificados/totales) | Nominalmente 100% (0 modificaciones semánticas registradas) — **con salvedad**: `matriz.csv` refleja cambios de estado reales no registrados en `CHANGELOG-REQ.md` (ej. REQ-F-023 pasó de `pendiente` a `verificado` sin una entrada correspondiente). La tasa de 100% probablemente sobreestima la estabilidad real por subregistro en el changelog, no por ausencia genuina de cambios. |
+| Distribución por tipo | Funcionales 62.2 % (23/37) · No funcionales 37.8 % (14/37) |
+| Distribución por prioridad MoSCoW | Must: 26 (70.3 %) · Should: 10 (27.0 %) · Could: 1 (2.7 %) · Won't: 0 |
+| Distribución por estrategia de acceso | CRUD-ORM: 24 · SP: 8 · sin acceso a datos: 5 |
+| % verificado (estado=`verificado`) | 75.7 % (28/37) |
+| % implementado o verificado (no pendiente) | 91.9 % (34/37) |
+| % pendiente | 8.1 % (3/37 — REQ-F-010, y REQ-NF-001/REQ-NF-009 en `implementado` por dependencia externa) |
+| Must verificados | 92.3 % (24/26); los 2 restantes con excepción declarada |
+| Requisitos con prueba automatizada | 81.1 % (30/37); ninguno figura como `verificado` sin prueba |
+| Cambios registrados en `CHANGELOG-REQ.md` | 4 entradas (v0.3.0, v0.9.0-rc, v1.0.0 del 20-08 y la reconciliación del 21-08, esta última con detalle por requisito) |
+| Tasa de estabilidad (1 − modificados/totales) | **100 % (1 − 0/37)**: el corpus mantiene los mismos 37 requisitos desde la Entrega 1A, sin altas, bajas ni cambios de enunciado o alcance. La salvedad que anotaba la versión anterior de esta tabla —cambios de estado sin registrar en el changelog— quedó resuelta: los cambios de estado se registran ahora requisito por requisito y, además, no cuentan como modificaciones de la especificación. Se mantiene, eso sí, la cautela metodológica: una estabilidad del 100 % es esperable en un proyecto académico de alcance cerrado y sin cliente externo que renegocie requisitos, y no debe leerse como mérito de la especificación. |
 
 ---
 
 ## Resumen
 
-**7 de 15 características (C1, C2, C4, C6, C7, C11, C12, C13, C14 — 9 de 15) cumplidas**, **5 parciales con evidencia concreta (C3, C8, C10, C15, y parcialmente C2)**, **2 no cumplidas (C5, C9)**. Los hallazgos más accionables antes del cierre de la Entrega Final: (1) resolver la inconsistencia SRS.md↔matriz.csv en REQ-F-006/007 (C8/C15); (2) desdoblar REQ-NF-013 y revisar REQ-F-006 por violación de Singularidad (C5); (3) si el equipo busca conformidad estricta con INCOSE v4, reescribir los 37 enunciados al patrón `[condición] [sujeto] shall [acción] [objeto] [restricción]` (C9) — el esfuerzo más grande de los tres, y el único que requiere reescribir el SRS completo en vez de corregir casos puntuales.
+**11 de 15 características cumplidas** (C1, C2, C4, C6, C7, C8, C11, C12, C13, C14, C15), **2 parciales con evidencia concreta** (C3, C10) y **2 no cumplidas** (C5, C9).
+
+Respecto a la revisión del 17-08-2026, C8 y C15 pasan de parciales a cumplidas: la inconsistencia entre `SRS.md` y `matriz.csv` está resuelta —y resultó afectar a 23 requisitos, no solo a REQ-F-006/007— con una regla de precedencia declarada y comprobada automáticamente en el CI.
+
+Quedan dos hallazgos accionables, ambos de redacción y no de coherencia:
+
+1. **C5 (Singular):** desdoblar REQ-NF-013 y revisar REQ-F-006, que agrupan varias capacidades en un solo enunciado.
+2. **C9 (Conforming):** si el equipo busca conformidad estricta con INCOSE v4, reescribir los 37 enunciados al patrón `[condición] [sujeto] shall [acción] [objeto] [restricción]`. Es el esfuerzo mayor y el único que exige reescribir el SRS completo en lugar de corregir casos puntuales; se declara abiertamente como no cumplido en vez de darlo por bueno.

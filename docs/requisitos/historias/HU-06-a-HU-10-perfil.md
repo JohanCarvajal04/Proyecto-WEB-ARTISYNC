@@ -4,6 +4,7 @@
 
 ## HU-06 — Verificación de mayoría de edad
 **Trazabilidad:** REQ-F-006
+**Prueba de aceptación:** `VerificacionServicioImplTest` · `VerificacionControladorTest` · `CertificadoIaRepositoryIT`
 
 **As a** Creador que se registra por primera vez,
 **I want** verificar mi mayoría de edad subiendo un documento de identidad,
@@ -28,6 +29,7 @@ Escenario: Verificación rechazada por minoría de edad
 
 ## HU-07 — Verificación de certificados profesionales
 **Trazabilidad:** REQ-F-007
+**Prueba de aceptación:** `VerificacionServicioImplTest` · `VerificacionControladorTest` · `CertificadoIaRepositoryIT`
 
 **As a** Creador con estudios o certificaciones relevantes,
 **I want** subir mis certificados para que sean validados automáticamente,
@@ -50,6 +52,7 @@ Escenario: Certificado con puntaje insuficiente
 
 ## HU-08 — Personalización de perfil público
 **Trazabilidad:** REQ-F-008
+**Prueba de aceptación:** `PerfilCreadorServicioImplTest`
 
 **As a** Creador,
 **I want** personalizar mi perfil público con foto, biografía y enlaces a redes sociales,
@@ -76,6 +79,7 @@ Escenario: Actualización exitosa
 
 ## HU-09 — Seguir a un Creador y ver su reputación
 **Trazabilidad:** REQ-F-009
+**Prueba de aceptación:** `SeguidorServiceImplTest` · `SeguidorRepositoryIT`
 
 **As a** usuario autenticado,
 **I want** seguir a un Creador y ver su cantidad de seguidores, servicios activos y calificación promedio,
@@ -97,6 +101,7 @@ Escenario: Visitante no autenticado intenta seguir
 
 ## HU-10 — Comentar en el portafolio
 **Trazabilidad:** REQ-F-010
+**Prueba de aceptación:** _sin prueba automatizada: el requisito está en estado `pendiente` y su excepción se declara en `docs/trazabilidad/excepciones-estado.txt`_
 
 **As a** usuario autenticado,
 **I want** dejar comentarios en los ítems del portafolio de un Creador,
