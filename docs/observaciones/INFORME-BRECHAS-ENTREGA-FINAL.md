@@ -4,6 +4,14 @@
 **Referencia:** Guía de la Entrega Final (Cuarta Entrega), PPA 2026-2027, Aplicaciones Web — Quinto nivel, UTEQ-FCI.
 **Objetivo:** documentar, bloque por bloque, qué requisitos de la guía ya están cubiertos por el repositorio y cuáles faltan, con evidencia verificable (ruta de archivo, contenido leído, comandos ejecutados). No es un plan de implementación; es un diagnóstico.
 
+> ## ⚠ Actualización — 18 de agosto de 2026: el Bloque 0 de este informe está superado
+>
+> Las cifras del Bloque~0 que aparecen más abajo (**68 %**, 17/25 resueltas, «por debajo del 70 % que activa la regla transversal #10») corresponden al estado del 16–17 de agosto y **ya no son válidas**. Tras la re-verificación del 18-08-2026 la bitácora declara **23 de 27 observaciones resueltas (85,2 %)**, con 1 parcial y 3 pendientes.
+>
+> El cambio se debe a que tres observaciones estaban resueltas de hecho y solo mal registradas (OBS-09, OBS-11, OBS-15), a que se cerraron OBS-04 y OBS-AUTO-11, y a que la misma revisión detectó dos brechas nuevas (OBS-AUTO-10, falta `docs/etica/ai-disclosure.md`; y OBS-AUTO-11, mecanismo de invocación de rutinas), que elevan el denominador de 25 a 27.
+>
+> **La regla transversal #10 ya no se activa.** Para el estado vigente, la fuente de verdad es `docs/observaciones/OBSERVACIONES.md`; el resto de este informe se conserva como diagnóstico fechado, no como estado actual.
+
 ## Actualización — 17 de agosto de 2026 (tras 9 commits)
 
 Desde el informe original (2026-08-16, commit `6f8c09c`) se hicieron 9 commits nuevos que cierran una parte real de las brechas de abajo. Esta sección se re-auditó desde cero contra el estado actual del repositorio (`HEAD` en `6af8595` al momento de escribir esto) — no se asume nada del informe original sin volver a verificar.
@@ -186,9 +194,9 @@ Leyenda: ✅ existe y cumple · 🟡 existe mas incompleto/desactualizado · ❌
 | Cuadernos ejecutables (Jupyter/RMarkdown) con salidas archivadas | ❌ | no existe ningún `.ipynb` ni `.Rmd` en todo el repositorio |
 | `docs/entorno/versions.txt` con versiones exactas de herramientas | ❌ | la carpeta `docs/entorno/` no existe |
 | Semillas aleatorias declaradas en cada script y en el README | 🟡 | no verificado de forma sistemática en los scripts existentes |
-| Depósito en Zenodo del software con DOI propio | ✅ | declarado en `README.md` y `CITATION.cff` (`10.5281/zenodo.21730559`) — pero corresponde aún a la versión v0.9.0-rc |
-| Depósito en Zenodo del dataset de mediciones, DOI separado y licencia propia (ej. CC BY 4.0) | ❌ | no hay evidencia de un segundo DOI para el dataset |
-| `CITATION.cff` v1.2.0 con todos los campos exigidos (incl. ORCID de cada autor y `preferred-citation`) | 🟡 | formato y campos base correctos (`cff-version`, `title`, `authors`, `version`, `date-released`, `license`, `repository-code`, `doi`, `keywords`), pero **sin ORCID de ningún autor** y **sin bloque `preferred-citation`**; versión todavía v0.9.0-rc |
+| Depósito en Zenodo del software con DOI propio | ✅ | declarado en `README.md` y `CITATION.cff` (`10.5281/zenodo.21730559`) — pero corresponde aún a la versión v0.9.0-rc. **Actualización 21-08-2026: ya corresponde a v1.0.0**, DOI `10.5281/zenodo.21978572`, declarado también en la portada del documento académico. |
+| Depósito en Zenodo del dataset de mediciones, DOI separado y licencia propia (ej. CC BY 4.0) | ❌ | no hay evidencia de un segundo DOI para el dataset. **Sigue sin resolver al 21-08-2026** — es la única brecha real que queda en esta fila. |
+| `CITATION.cff` v1.2.0 con todos los campos exigidos (incl. ORCID de cada autor y `preferred-citation`) | 🟡 | formato y campos base correctos (`cff-version`, `title`, `authors`, `version`, `date-released`, `license`, `repository-code`, `doi`, `keywords`), pero **sin ORCID de ningún autor** y **sin bloque `preferred-citation`**; versión todavía v0.9.0-rc. **Actualización 21-08-2026: resuelto — ✅.** Los 4 autores tienen `orcid`, hay bloque `preferred-citation` con los 4 autores y ORCID, `version: "1.0.0"`, `type: software`, `abstract` y `affiliation` por autor. Validado contra el esquema oficial CFF 1.2.0. |
 
 ### Bloque E — Cumplimiento de estándares de reporte
 
@@ -214,7 +222,7 @@ Leyenda: ✅ existe y cumple · 🟡 existe mas incompleto/desactualizado · ❌
 |---|---|---|
 | `docs/etica/ETHICS.md` (dónde se resguardan los consentimientos firmados, fuera del repo) | ❌ | no existe (ya señalada como brecha por la propia bitácora en OBS-15) |
 | Plantilla de consentimiento informado + resguardo técnico fuera del repositorio público | ✅ | `docs/etica/consentimientos/plantilla.md`, con un `.gitignore` propio que bloquea la subida accidental de consentimientos firmados; participantes referenciados solo por código (P01, P02…) |
-| Declaración de uso de asistentes de IA generativa (fase, propósito, revisión del equipo) | ❌ | no existe ningún archivo `ai-disclosure.md` ni declaración equivalente en el repositorio |
+| Declaración de uso de asistentes de IA generativa (fase, propósito, revisión del equipo) | ❌ | no existe ningún archivo `ai-disclosure.md` ni declaración equivalente en el repositorio. **Actualización 21-08-2026: 🟡.** `docs/etica/ai-disclosure.md` ya existe con la estructura exigida (tabla de herramienta/versión/fase/propósito, qué no se generó con IA, revisión posterior), pero deliberadamente sin datos concretos: el historial de commits no atribuye autoría a ninguna herramienta de IA, y completar los marcadores `[COMPLETAR]` con el uso real es una decisión del equipo, no algo inferible del repositorio. Sigue siendo una brecha hasta que el equipo la rellene. |
 
 ### Entregables consolidados (sección 4 de la guía)
 

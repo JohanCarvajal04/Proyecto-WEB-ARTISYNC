@@ -99,3 +99,40 @@ ampliación no las reconecta, por estar fuera del alcance solicitado (sumar ruti
 las existentes). Reconectarlas queda pendiente como una brecha aparte, ya no de C1/C6 (la ampliación
 suma rutinas realmente en uso) sino de deuda técnica: seis archivos `.sql` y su documentación
 describen un comportamiento que el backend en ejecución no reproduce.
+
+## Mecanismo de invocación: `@Query(nativeQuery=true)` frente a `@Procedure` (OBS-AUTO-11)
+
+El apartado A.2.1 de la guía pide invocar las rutinas «mediante los mecanismos formales de la
+especificación JPA 2.1 (`@Procedure` sobre método de repositorio Spring Data o
+`@NamedStoredProcedureQuery` sobre entidad)» y **prohíbe expresamente** invocarlas «mediante
+concatenación de cadenas en `createNativeQuery(...)`».
+
+**Estado real, verificado el 20-08-2026.** De las rutinas conectadas, siete se invocan con
+`@Query(value = "SELECT fn_...(:param)", nativeQuery = true)` y parámetros nombrados
+(`UsuarioRepository`, `RolRepository`, `InfraccionRepository`, `SorteoRepository`), y una con el
+mecanismo formal `@Procedure`
+(`repository/perfil/CertificadoIaRepository.java:24`, `sp_registrar_decision_verificacion`).
+No existe **ninguna** ocurrencia de `createNativeQuery` en el backend
+(`grep -rn "createNativeQuery" artisync/Backend/src` → sin resultados), ni ninguna concatenación de
+entrada de usuario en SQL: la regla que el script `scripts/audit-sql-dynamic.sh` verifica en cada
+ejecución del CI.
+
+**Decisión: no refactorizar las siete invocaciones existentes**, y declarar la divergencia
+abiertamente. Las razones:
+
+1. **Son funciones, no procedimientos.** Las rutinas son `fn_*` (`CREATE FUNCTION`), y `@Procedure`
+   está definido en JPA sobre `StoredProcedureQuery`, que emite la sintaxis de escape JDBC
+   `{call ...}`. Forzar ese camino sobre funciones de PostgreSQL que devuelven `JSONB` o escalares
+   es frágil y aporta poco.
+2. **La prohibición explícita de la norma se cumple con holgura.** Lo que A.2.1 prohíbe es la
+   concatenación de cadenas; aquí todos los argumentos viajan como parámetros nombrados vinculados
+   por el driver. La *Cheat Sheet* de prevención de inyección SQL de OWASP reconoce las consultas
+   parametrizadas y los procedimientos almacenados parametrizados como defensas primarias
+   **equivalentes**.
+3. **El riesgo supera el beneficio.** Reescribir siete puntos de acceso a datos en el tramo final de
+   la entrega, con 522 pruebas dependiendo de ellos, cambia comportamiento verificado a cambio de
+   una diferencia interpretativa de forma, no de seguridad.
+
+**Compromiso hacia adelante:** las rutinas que se conecten a partir de ahora usarán `@Procedure`
+siempre que el tipo de retorno lo permita, para elevar el número de invocaciones que satisfacen la
+letra del requisito además de su espíritu.

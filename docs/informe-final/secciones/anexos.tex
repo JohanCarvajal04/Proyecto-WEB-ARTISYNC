@@ -5,9 +5,78 @@
 \chapter{Tabla de observaciones acumuladas}
 \label{anexo:a}
 
-Ver \texttt{docs/observaciones/OBSERVACIONES.md} (25 observaciones,
-68\,\% resueltas, 8\,\% parcialmente resueltas, 24\,\% pendientes, con
-razones declaradas).
+Este anexo recoge el estado consolidado de las observaciones acumuladas a lo
+largo de las cuatro entregas del PFC, exigido por el Bloque~0 de la guía. La
+fuente de verdad es \texttt{docs/observaciones/OBSERVACIONES.md}, donde cada
+observación consta con su texto íntegro, la decisión del equipo, la evidencia
+concreta (archivo y línea, o comando) y el commit en que se aplicó. Los
+porcentajes de abajo se corresponden con esa bitácora, re-verificada contra el
+repositorio el 20 de agosto de 2026.
+
+\begin{table}[H]
+\centering
+\caption{Resolución de observaciones por entrega de origen}
+\label{tab:observaciones-por-entrega}
+\small
+\begin{tabular}{@{}p{3.6cm}ccccc@{}}
+\toprule
+\textbf{Origen} & \textbf{Total} & \textbf{Resueltas} & \textbf{Parciales} &
+\textbf{Pendientes} & \textbf{\% resuelto} \\
+\midrule
+Entrega 1A (09-06-2026)      & 5  & 4  & 0 & 1 & 80,0\,\% \\
+Entrega 1B (29-06-2026)      & 7  & 7  & 0 & 0 & 100,0\,\% \\
+Tercera Entrega              & 4  & 3  & 0 & 1 & 75,0\,\% \\
+Auto-detectadas (rev. téc.)  & 11 & 9  & 2 & 0 & 81,8\,\% \\
+\midrule
+\textbf{Total}               & \textbf{27} & \textbf{23} & \textbf{2} &
+\textbf{2} & \textbf{85,2\,\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{Razones de las no resueltas}
+
+Cuatro observaciones siguen sin resolución completa, y ninguna se presenta
+como cerrada sin serlo:
+
+\begin{itemize}
+  \item \textbf{OBS-05} (wireframe genérico, Entrega 1A). La imagen
+    \texttt{Pantalla\_principal.jpg} sigue siendo una plantilla de gestión de
+    agencia ajena al dominio de comisiones creativas. Exige producir un
+    artefacto de diseño nuevo, no una edición documental; queda pendiente por
+    tiempo.
+  \item \textbf{OBS-14} (access-token en cookie \texttt{HttpOnly}, Tercera
+    Entrega). \emph{Pendiente justificada}: el cambio toca el módulo de
+    autenticación, respaldado por 522 pruebas, a muy poca distancia del cierre,
+    y el riesgo de regresión en el inicio de sesión supera la mejora marginal.
+    Las mitigaciones vigentes ---HSTS, \texttt{SameSite}, expiración corta del
+    access-token y revocación por \texttt{jti} en Redis--- acotan la
+    exposición. La mitad de la observación (activar \texttt{Secure}) se
+    resuelve sin tocar código, mediante la variable de entorno
+    \texttt{APP\_COOKIE\_SECURE} en producción.
+  \item \textbf{OBS-AUTO-10} (\texttt{docs/etica/ai-disclosure.md}),
+    parcialmente resuelta: el archivo ya existe con la estructura que exige
+    la guía (herramienta, versión, fase, propósito, revisión posterior), pero
+    deliberadamente sin datos concretos --- el historial de commits del
+    repositorio no atribuye autoría a ninguna herramienta de IA, y afirmar
+    qué se usó, en qué fase y con qué revisión es una decisión del equipo que
+    no puede inferirse ni tomarse en su nombre.
+  \item \textbf{OBS-AUTO-02} (procedimientos almacenados), parcialmente
+    resuelta: 7 de 13 rutinas están conectadas end-to-end al código Java. Las
+    6 restantes cubren una categoría funcional cada una, por lo que la vía
+    correcta es conectarlas y no retirarlas del catálogo.
+\end{itemize}
+
+Conviene señalar el sentido de la revisión del 20 de agosto: tres
+observaciones que la versión anterior de la bitácora daba por pendientes o
+parciales estaban resueltas de hecho y solo mal registradas (OBS-09, OBS-11 y
+OBS-15), mientras que la misma revisión destapó dos brechas no registradas
+hasta entonces ---OBS-AUTO-10, la ausencia de \texttt{ai-disclosure.md}
+(hoy resuelta parcialmente, ver arriba), y OBS-AUTO-11, el mecanismo de
+invocación de las rutinas SQL que el Capítulo~\ref{cap:implementacion} ya
+señalaba---. El denominador subió por tanto de 25 a 27 observaciones. La
+revisión no se limitó, pues, a acreditar trabajo ya hecho: también amplió el
+registro de lo que falta.
 
 \chapter{Checklist Ralph et al. 2021}
 \label{anexo:b}
