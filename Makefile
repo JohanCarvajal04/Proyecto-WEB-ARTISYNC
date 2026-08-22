@@ -16,7 +16,16 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up down test bench audit audit-zap clean sus lighthouse docs
+.PHONY: all up down test bench audit audit-zap clean sus lighthouse docs srs
+
+# Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
+# de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
+PANDOC_IMAGE ?= pandoc/latex:3.1
+
+# Opciones de pandoc compartidas por el target srs.
+SRS_PANDOC_OPTS ?= --toc --number-sections --pdf-engine=xelatex \
+                   -V lang=es -V geometry:margin=2.5cm -V documentclass=report \
+                   --metadata title="SRS - Artisync v1.0.0"
 
 ## Reproduccion end-to-end en un solo comando (Bloque D.1): levanta el stack
 ## completo (Flyway aplica migraciones y postgres aplica db/seed.sql al
@@ -24,7 +33,7 @@ COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.en
 ## auditoria estatica de SQL dinamico y escaneo ZAP, Lighthouse, el analisis
 ## SUS sobre los datos ya recolectados, y compila el documento academico
 ## final a PDF. Requiere Docker, k6 y pandoc instalados (ver README).
-all: up test bench audit audit-zap lighthouse sus docs
+all: up test bench audit audit-zap lighthouse sus srs docs
 	@echo "OK: pipeline de reproduccion completo (make all) termino sin errores."
 
 ## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
@@ -194,3 +203,45 @@ docs:
 		pdflatex -interaction=nonstopmode main.tex
 	cp docs/informe-final/main.pdf docs/informe-final/Informe-Final-v1.0.0.pdf
 	@echo "OK: docs/informe-final/Informe-Final-v1.0.0.pdf generado."
+
+## Genera el PDF del SRS (Bloque A.3.1) desde docs/requisitos/SRS.md.
+##
+## No exige una instalacion local de LaTeX: usa la imagen oficial pandoc/latex
+## en un contenedor efimero, igual que el resto del pipeline se apoya en Docker.
+## Asi `make srs` funciona desde una clonacion limpia con solo Docker instalado,
+## que es lo que exige el Bloque D.1.
+##
+## Si prefieres una instalacion local, exporta PANDOC_LOCAL=1 y se usara el
+## pandoc del PATH en lugar del contenedor.
+srs:
+	@test -f docs/requisitos/SRS.md || { echo "ERROR: docs/requisitos/SRS.md no existe."; exit 1; }
+	@# La fuente por defecto de xelatex (Latin Modern) no trae los glifos U+2264
+	@# ni U+2265, que el SRS usa en los umbrales de los requisitos no funcionales.
+	@# Sin esta sustitucion xelatex los omite EN SILENCIO: el PDF saldria con los
+	@# umbrales incompletos y el fallo solo apareceria como WARNING en el log, no
+	@# en el codigo de salida. Por eso se sustituyen por <= y >= en una copia
+	@# temporal, nunca en el fuente. No sirve mapearlos a notacion matematica de
+	@# pandoc: varios aparecen dentro de spans de codigo, donde no se interpreta.
+	@sed -e 's/≤/<=/g' -e 's/≥/>=/g' docs/requisitos/SRS.md > docs/requisitos/.srs-build.md
+	@if [ "$${PANDOC_LOCAL:-0}" = "1" ]; then \
+		command -v pandoc >/dev/null 2>&1 || { \
+			echo "ERROR: PANDOC_LOCAL=1 pero pandoc no esta en el PATH."; \
+			rm -f docs/requisitos/.srs-build.md; \
+			exit 1; \
+		}; \
+		pandoc docs/requisitos/.srs-build.md \
+			-o docs/requisitos/SRS-v1.0.0.pdf $(SRS_PANDOC_OPTS); \
+	else \
+		command -v docker >/dev/null 2>&1 || { \
+			echo "ERROR: se necesita Docker (o PANDOC_LOCAL=1 con pandoc instalado)."; \
+			rm -f docs/requisitos/.srs-build.md; \
+			exit 1; \
+		}; \
+		docker run --rm -v "$(CURDIR):/data" -w /data $(PANDOC_IMAGE) \
+			docs/requisitos/.srs-build.md \
+			-o docs/requisitos/SRS-v1.0.0.pdf $(SRS_PANDOC_OPTS); \
+	fi
+	@rm -f docs/requisitos/.srs-build.md
+	@echo "OK: docs/requisitos/SRS-v1.0.0.pdf generado."
+	@echo "    Recuerda: el PDF solo cierra el criterio D0R cuando lleva la firma"
+	@echo "    de aprobacion del docente-director (seccion 8 del SRS)."
