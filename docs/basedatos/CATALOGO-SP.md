@@ -10,12 +10,21 @@ por el apartado **A.2.1** de la Guía de la Entrega Final.
 
 ## Resumen
 
-El sistema declara **trece rutinas** en `db/procs/` — las seis originales de la Tercera Entrega,
-una por cada categoría funcional del apartado A.2.2, más siete de la ampliación del 16 de agosto de
-2026 (ver [ADR-006, sección Ampliación](../adr/adr-006-estrategia-acceso-datos.md#ampliación)), con
-prioridad en el módulo de seguridad. A diferencia de las seis originales, las siete nuevas se
-verificaron conectadas end-to-end (repositorio Spring Data + servicio Java que las invoca), no solo
-declaradas en SQL.
+El sistema declara **veintiséis rutinas** en `db/procs/` — las seis originales de la Tercera
+Entrega, una por cada categoría funcional del apartado A.2.2; siete de la ampliación del 16 de
+agosto de 2026 (ver [ADR-006, sección Ampliación](../adr/adr-006-estrategia-acceso-datos.md#ampliación)),
+con prioridad en el módulo de seguridad; cuatro de la **Fase 1 de concurrencia** del 22 de agosto de
+2026 (ver [`PLAN-CONCURRENCIA-SP.md`](PLAN-CONCURRENCIA-SP.md), sección 15 de este catálogo),
+orientadas a cerrar anomalías concretas de actualización perdida, lectura no repetible y lectura
+fantasma bajo `READ COMMITTED`; una de la **Fase 2 de rendimiento**, ese mismo día (sección 16),
+que elimina el N+1 de la ruta de autenticación; siete de la **Fase 3 de concurrencia** (sección
+17), que cierran las anomalías restantes del plan (estado a medias, acumulación no controlada,
+actualización perdida y lectura fantasma en los flujos de 2FA, recuperación de contraseña,
+cambio de contraseña, alta de usuarios/roles y países); y una de la **Fase 4 de mantenimiento**
+(sección 18) — el único `PROCEDURE` de todo `db/procs/` — que purga por lotes lo que las tres
+fases anteriores dejaban crecer sin límite. Todas las rutinas posteriores a las seis originales
+se verificaron conectadas end-to-end (repositorio Spring Data + servicio Java que las invoca), no
+solo declaradas en SQL.
 
 | # | Rutina | Categoría funcional | Requisito | Tipo | Volatilidad | Escribe |
 |---|---|---|---|---|---|---|
@@ -40,8 +49,10 @@ desde antes de esta ampliación: `fn_listar_cola_verificacion` (`FUNCTION`, `STA
 
 ### Nota sobre modos de parámetro y cursores
 
-Las trece rutinas se declaran como **funciones** de PostgreSQL con valor de retorno escalar o
-`JSONB`. En consecuencia:
+Veinticinco de las veintiséis rutinas (trece anteriores + las cuatro de la Fase 1 de concurrencia +
+la de la Fase 2 de rendimiento + las siete de la Fase 3 de concurrencia) se declaran como
+**funciones** de PostgreSQL con valor de retorno escalar o `JSONB`. En consecuencia, para esas
+veinticinco:
 
 - **Todos los parámetros son de modo `IN`.** No hay parámetros `OUT` ni `INOUT` en ninguna rutina:
   el resultado viaja siempre por el valor de retorno.
@@ -52,9 +63,14 @@ Las trece rutinas se declaran como **funciones** de PostgreSQL con valor de reto
   que el driver materializa en un único valor. El razonamiento completo está en
   `db/procs/README.md`, sección *"Por qué `fn_` y no `sp_`"*.
 
+La rutina restante, `sp_purgar_datos_seguridad` (Fase 4, sección 18), es deliberadamente la
+**única `PROCEDURE`** de `db/procs/`: necesita `COMMIT`/`ROLLBACK` reales por lote, algo que una
+`FUNCTION` no puede hacer bajo ninguna circunstancia (§0.1 de `PLAN-CONCURRENCIA-SP.md`). No
+devuelve nada y se invoca con `CALL`, nunca con `SELECT`.
+
 ### Postura de seguridad
 
-Ninguna de las trece rutinas construye SQL por concatenación. No aparece `EXECUTE IMMEDIATE`,
+Ninguna de las veintiséis rutinas construye SQL por concatenación. No aparece `EXECUTE IMMEDIATE`,
 `sp_executesql`, `EXECUTE format(...)` ni `EXECUTE <variable>` en ningún archivo. Toda entrada
 externa llega como **parámetro formal tipado**, y los filtros opcionales se neutralizan con el
 patrón `(p_x IS NULL OR columna = p_x)` en lugar de armar el predicado por texto.
@@ -683,3 +699,399 @@ del moderador.
 
 **Tablas implicadas:** `certificados_ia` (lectura y escritura de `id_estado_verificacion`),
 `estados_verificacion` (lectura).
+
+---
+
+## 15. Fase 1 de concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md)
+
+Cuatro rutinas adicionales, incorporadas para cerrar anomalías de concurrencia concretas del módulo
+de seguridad bajo `READ COMMITTED` (nivel de aislamiento efectivo del proyecto — ver
+[`PLAN-CONCURRENCIA-SP.md §0.4`](PLAN-CONCURRENCIA-SP.md#04-nivel-de-aislamiento-vigente-en-el-proyecto)).
+A diferencia de las 13 anteriores, su motivación primaria no es rendimiento sino **corrección bajo
+acceso concurrente**: cada una documenta la anomalía que cierra y la técnica usada (predicado
+`UPDATE ... WHERE`, `SELECT ... FOR UPDATE`, o `DELETE ... RETURNING`).
+
+| # | Rutina | Categoría funcional | Anomalía que cierra | Tipo | Volatilidad | Escribe |
+|---|---|---|---|---|---|---|
+| 14 | `fn_consumir_codigo_respaldo_2fa` | Validaciones cruzadas | Actualización perdida (A1) | `FUNCTION` | `VOLATILE` | Sí |
+| 15 | `fn_sincronizar_roles_usuario` | Actualizaciones masivas | Lectura fantasma (A2) | `FUNCTION` | `VOLATILE` | Sí |
+| 16 | `fn_revocar_sesiones_usuario` | Actualizaciones masivas | Lectura no repetible (A6) | `FUNCTION` | `VOLATILE` | Sí |
+| 17 | `fn_cambiar_estado_cuenta` | Validaciones cruzadas | Actualización perdida / lectura no repetible (A6) | `FUNCTION` | `VOLATILE` | Sí |
+
+### 15a. `fn_consumir_codigo_respaldo_2fa`
+
+**Archivo:** [`db/procs/fn_consumir_codigo_respaldo_2fa.sql`](../../db/procs/fn_consumir_codigo_respaldo_2fa.sql)
+
+Sustituye a `TwoFactorServiceImpl.validarCodigoOBackup` (rama de códigos de respaldo), que leía
+todos los códigos no usados del usuario a memoria Java y comparaba en un bucle — dos peticiones
+concurrentes con el mismo código lo consumían ambas (actualización perdida, bypass de segundo
+factor). La rutina es un único `UPDATE ... WHERE usado = FALSE RETURNING`: bajo READ COMMITTED,
+PostgreSQL re-evalúa el predicado sobre la versión confirmada más reciente (*EvalPlanQual*) antes
+de aplicar el cambio, de modo que el segundo llamante concurrente nunca encuentra fila.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_usuario` | IN | `BIGINT` | Usuario dueño del código |
+| 2 | `p_codigo_hash` | IN | `VARCHAR(255)` | SHA-256 del código de respaldo ingresado |
+
+**Retorno:** `BOOLEAN` — `TRUE` solo para el primer llamante concurrente que consume el código.
+
+**Excepciones:** `p_id_usuario`/`p_codigo_hash` nulos (`22004`).
+
+**Tablas implicadas:** `codigos_respaldo_2fa` (lectura y escritura condicionada).
+
+### 15b. `fn_sincronizar_roles_usuario`
+
+**Archivo:** [`db/procs/fn_sincronizar_roles_usuario.sql`](../../db/procs/fn_sincronizar_roles_usuario.sql)
+
+Gemela de `fn_sincronizar_permisos_rol` (#9) para el lado usuario↔rol. Sustituye a
+`AdminUserServiceImpl.actualizarRoles`, que hacía `findByUsuarioIdUsuario` + `deleteAll` + `flush` +
+por cada rol nuevo (`findByNombreRol` + `save` + alta de perfil de creador) — unos 10 viajes sin
+atomicidad entre ellos. `SELECT ... FOR UPDATE` sobre `usuarios` serializa dos sincronizaciones
+concurrentes del mismo usuario; `ON CONFLICT (id_usuario, id_rol) DO NOTHING`, respaldado por la
+restricción `uq_usuario_rol` (V14), cierra estructuralmente la lectura fantasma que antes permitía
+roles duplicados. Valida todos los roles nuevos antes de borrar los antiguos.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_usuario` | IN | `BIGINT` | Usuario a sincronizar |
+| 2 | `p_nombres_rol` | IN | `TEXT[]` | Conjunto completo de roles deseado |
+
+**Retorno:** `INTEGER` — número de filas de `usuario_roles` insertadas.
+
+**Excepciones:**
+
+| Condición | `SQLSTATE` |
+|---|---|
+| Usuario no encontrado | `P0002` |
+| Array de roles nulo o vacío | `22004` |
+| Algún nombre de rol inexistente | `23514` |
+
+**Tablas implicadas:** `usuarios` (bloqueo `FOR UPDATE`), `roles` (lectura), `usuario_roles`
+(escritura `DELETE`+`INSERT`), `perfiles_creadores` (alta perezosa si se asigna `CREADOR`).
+
+### 15c. `fn_revocar_sesiones_usuario`
+
+**Archivo:** [`db/procs/fn_revocar_sesiones_usuario.sql`](../../db/procs/fn_revocar_sesiones_usuario.sql)
+
+Sustituye la parte SQL de `SessionRevocationService.revocarSesionesUsuario`, que hacía
+`findByUsuarioIdUsuario` + revocación en Redis + `deleteByUsuarioIdUsuario` en tres pasos: una
+sesión creada entre el primero y el último se borraba de la base sin haberse revocado nunca en
+Redis (lectura no repetible). `DELETE ... RETURNING` lee y borra en una sola sentencia sobre un
+único snapshot.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_usuario` | IN | `BIGINT` | Usuario cuyas sesiones se revocan |
+
+**Retorno:** `TABLE (jti VARCHAR(36), segundos_restantes INTEGER)` — una fila por sesión borrada.
+
+**Excepciones:** `p_id_usuario` nulo (`22004`).
+
+**Tablas implicadas:** `sesiones_usuario` (lectura y escritura en la misma sentencia).
+
+### 15d. `fn_cambiar_estado_cuenta`
+
+**Archivo:** [`db/procs/fn_cambiar_estado_cuenta.sql`](../../db/procs/fn_cambiar_estado_cuenta.sql)
+
+Unifica el patrón "cambiar `estado_cuenta` + revocar sesiones si hubo transición activa→inactiva"
+que se repetía en `AdminUserServiceImpl.changeEstado`/`deleteUser`/`updateUser` y
+`UserServiceImpl.deleteOwnAccount`. `SELECT ... FOR UPDATE` sobre `usuarios` serializa dos
+administradores concurrentes sobre el mismo usuario, evitando que uno decida no revocar sesiones a
+partir de un `estadoAnterior` que el otro ya dejó obsoleto (actualización perdida). Delega en
+`fn_revocar_sesiones_usuario` (15c) cuando corresponde.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_usuario` | IN | `BIGINT` | Usuario a modificar |
+| 2 | `p_estado` | IN | `BOOLEAN` | Nuevo valor de `estado_cuenta` |
+
+**Retorno:** `TABLE (jti VARCHAR(36), segundos_restantes INTEGER)` — vacío si no hubo transición
+activa→inactiva.
+
+**Excepciones:**
+
+| Condición | `SQLSTATE` |
+|---|---|
+| Usuario no encontrado | `P0002` |
+| Parámetros nulos | `22004` |
+
+**Tablas implicadas:** `usuarios` (bloqueo `FOR UPDATE` + escritura), `sesiones_usuario`
+(vía `fn_revocar_sesiones_usuario`).
+
+### Objetos de esquema de apoyo (V14__concurrencia_seguridad.sql)
+
+| Objeto | Tabla | Propósito |
+|---|---|---|
+| `uq_usuario_rol` | `usuario_roles (id_usuario, id_rol)` | Respalda el `ON CONFLICT` de 15b; cierra la lectura fantasma de A2 de forma estructural |
+| `uq_codigo_respaldo_usuario_hash` | `codigos_respaldo_2fa (id_usuario, codigo_hash)` | Localiza por índice el código que consume 15a |
+| `idx_usuario_roles_id_usuario` | `usuario_roles (id_usuario)` | Ruta caliente: `CustomUserDetailsService`, `UsuarioMapper`, `fn_resolver_estado_login` |
+| `idx_usuario_roles_id_rol` | `usuario_roles (id_rol)` | `existsByRolIdRol`, `fn_eliminar_rol`, `findIdsUsuarioByNombreRol` |
+| `idx_tokens_recuperacion_hash` | `tokens_recuperacion (hash_token)` | Evita que el `FOR UPDATE` de `fn_restablecer_contrasena` (#11) degrade a *seq scan* |
+| `idx_usuarios_id_pais` | `usuarios (id_pais)` | `existsByPaisIdPais` |
+
+---
+
+## 16. Fase 2 de rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8)
+
+Una rutina adicional, orientada a eliminar el N+1 de la ruta de autenticación (la más caliente del
+sistema: se ejecuta en cada petición autenticada). El segundo hallazgo de rendimiento de la Fase 2
+— el listado paginado de administración de usuarios — **no** se resolvió con una rutina almacenada:
+ver la nota al final de esta sección.
+
+| # | Rutina | Categoría funcional | Motivación | Tipo | Volatilidad | Escribe |
+|---|---|---|---|---|---|---|
+| 18 | `fn_permisos_efectivos_usuario` | Consultas multi-tabla | N+1 en cada petición autenticada | `FUNCTION` | `STABLE` | No |
+
+### 16a. `fn_permisos_efectivos_usuario`
+
+**Archivo:** [`db/procs/fn_permisos_efectivos_usuario.sql`](../../db/procs/fn_permisos_efectivos_usuario.sql)
+
+Sustituye a `CustomUserDetailsService.loadUserByUsername`, invocado por `JwtAuthenticationFilter`
+en **cada** petición autenticada. La versión anterior hacía `findByCorreo` + `findByUsuarioIdUsuario`
+sobre `usuario_roles` + un `SELECT` adicional por cada rol al acceder a `Rol.permisos`
+(`FetchType.EAGER`) — entre 4 y 8 consultas por petición con N+1 clásico. La rutina resuelve
+usuario + `authorities` (roles con prefijo `ROLE_` más permisos, deduplicados vía `UNION` dentro de
+un `jsonb_agg(DISTINCT ...)`) en una sola sentencia `STABLE`: todas las subconsultas se evalúan
+sobre el mismo snapshot, así que roles y permisos quedan garantizados coherentes entre sí, algo que
+las consultas independientes no garantizaban bajo `READ COMMITTED` si una sincronización
+(`fn_sincronizar_roles_usuario`, `fn_sincronizar_permisos_rol`) se colaba justo entre ellas.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_correo` | IN | `VARCHAR(150)` | Correo del usuario a autenticar |
+
+**Retorno:** `JSONB` con la forma `{ idUsuario, correo, contrasenaHash, estadoCuenta,
+authorities: [] }`. `NULL` si el correo no existe — `CustomUserDetailsService` lo traduce a
+`UsernameNotFoundException`, igual que antes.
+
+**Tablas implicadas:** `usuarios` (lectura), `usuario_roles` (lectura), `roles` (lectura),
+`rol_permisos` (lectura), `permisos` (lectura).
+
+### Nota: el listado de administración de usuarios se resolvió sin rutina almacenada
+
+`AdminUserServiceImpl.getAllUsers` (`GET /api/v1/admin/usuarios`) tenía el mismo síntoma de N+1 que
+la ruta de autenticación: `UsuarioMapper.toUserResponse` se invocaba una vez por fila de la página
+(~2 consultas por usuario). El plan original proponía una rutina `fn_listar_usuarios_admin` al
+estilo de `fn_catalogo_filtrado` (#1). Al implementarla se identificó un conflicto real con una
+funcionalidad ya existente: el endpoint acepta `sortBy` **arbitrario** sobre cualquier campo
+paginable (`?sortBy=correo&direction=desc`), resuelto hoy por `Pageable`/`Sort` de Spring Data, que
+JPA traduce de forma segura a `ORDER BY` parametrizado. Reproducir un `ORDER BY` por columna
+arbitraria dentro de una función SQL exige `EXECUTE format(...)` (SQL dinámico) o una enumeración
+manual de columnas soportadas — lo primero viola la regla transversal 7 de la guía (cero SQL
+dinámico, verificado por `scripts/audit-sql-dynamic.sh`); lo segundo degradaría o rompería el
+contrato de ordenamiento que el frontend ya consume.
+
+La solución adoptada resuelve el N+1 sin tocar ese contrato: `usuarioRepository.findAll(pageable)`
+seguimos usándolo (conserva el `Sort` dinámico intacto), pero `UsuarioMapper` gana un método por
+lotes, `toUserResponseList`, que sustituye N invocaciones de `findByUsuarioIdUsuario` /
+`findByUsuarioIdUsuario` (roles y 2FA) por **dos** consultas `findByUsuarioIdUsuarioIn(ids)` sobre
+toda la página a la vez. Para una página de 20 usuarios: de ~42 consultas a 4 (página, conteo,
+roles por lote, 2FA por lote). Ver
+[`UsuarioMapper.java`](../../artisync/Backend/src/main/java/uteq/edu/ec/artisync/service/shared/UsuarioMapper.java)
+y [`PagedResponseBuilder.buildAndMapList`](../../artisync/Backend/src/main/java/uteq/edu/ec/artisync/util/PagedResponseBuilder.java).
+
+Pendiente identificado pero fuera de alcance de esta fase: `UsuarioMapper` accede a
+`usuario.getPais()` (`FetchType.LAZY`) por cada fila sin batch, un N+1 menor preexistente (no
+introducido por esta fase) sobre una tabla pequeña y de baja cardinalidad. Candidato a un
+`JOIN FETCH` en `findAll` si el catálogo de países creciera.
+
+---
+
+## 17. Fase 3 de concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4, §6, §7)
+
+Siete rutinas que cierran las anomalías restantes del plan: A3 (lectura fantasma en
+`createUser`), A4 (estado a medias en `setup2Fa`, código duplicado entre `disable2Fa` y
+`updateUser`), A5 (acumulación no controlada en `forgotPassword`), A7 (actualización perdida en
+`changePassword`), A8 (lectura fantasma en `createRole`) y A9 (lectura fantasma en `updatePais`).
+Dos técnicas se repiten en todas ellas:
+
+- **Captura de `unique_violation`** (`A3`, `A8`, `A9`): PostgreSQL no ofrece bloqueo de rango bajo
+  `READ COMMITTED`, así que no existe forma de "bloquear un nombre/correo que aún no existe". La
+  única defensa correcta es intentar la escritura y capturar la violación de la restricción
+  `UNIQUE` con un bloque `EXCEPTION` — el mismo molde en las tres rutinas.
+- **`UPDATE` condicionado** (`A7`): compare-and-swap sobre el propio valor verificado, sin
+  necesidad de `SELECT ... FOR UPDATE` previo.
+
+Dos de las siete **componen** con rutinas de fases anteriores en vez de reimplementar su lógica:
+`fn_crear_usuario_admin` invoca a `fn_sincronizar_roles_usuario` (Fase 1, §3) y `fn_crear_rol`
+invoca a `fn_sincronizar_permisos_rol` (#9, ya existente).
+
+| # | Rutina | Categoría funcional | Anomalía que cierra | Tipo | Volatilidad | Escribe |
+|---|---|---|---|---|---|---|
+| 19 | `fn_configurar_2fa` | Validaciones cruzadas + escritura multi-tabla | Estado a medias (A4) | `FUNCTION` | `VOLATILE` | Sí |
+| 20 | `fn_desactivar_2fa` | Validaciones cruzadas + escritura multi-tabla | Código duplicado (A4) | `FUNCTION` | `VOLATILE` | Sí |
+| 21 | `fn_solicitar_recuperacion` | Validaciones cruzadas + escritura multi-tabla | Acumulación no controlada (A5) | `FUNCTION` | `VOLATILE` | Sí |
+| 22 | `fn_cambiar_contrasena` | Validaciones cruzadas | Actualización perdida (A7) | `FUNCTION` | `VOLATILE` | Sí |
+| 23 | `fn_crear_usuario_admin` | Validaciones cruzadas + inserción multi-tabla | Lectura fantasma (A3) | `FUNCTION` | `VOLATILE` | Sí |
+| 24 | `fn_crear_rol` | Validaciones cruzadas | Lectura fantasma (A8) | `FUNCTION` | `VOLATILE` | Sí |
+| 25 | `fn_guardar_pais` | Validaciones cruzadas | Lectura fantasma (A9) | `FUNCTION` | `VOLATILE` | Sí |
+
+### 17a. `fn_configurar_2fa` y `fn_desactivar_2fa`
+
+**Archivos:** [`db/procs/fn_configurar_2fa.sql`](../../db/procs/fn_configurar_2fa.sql),
+[`db/procs/fn_desactivar_2fa.sql`](../../db/procs/fn_desactivar_2fa.sql)
+
+`fn_configurar_2fa` sustituye la parte de escritura de `TwoFactorServiceImpl.setup2Fa`: upsert
+(`ON CONFLICT` sobre `autenticacion_dos_factores.id_usuario`, ya `UNIQUE`) del secreto TOTP +
+reemplazo completo de los 8 códigos de respaldo, en una transacción — antes eran 10 pasos no
+atómicos (upsert manual + `DELETE` + 8 `save()` individuales) que podían dejar un secreto nuevo
+emparejado con un juego de códigos incompleto si el proceso fallaba a mitad del bucle.
+
+`fn_desactivar_2fa` desactiva el flag y purga los códigos de respaldo atómicamente, y es
+**idempotente** (devuelve `FALSE`, no lanza, si el usuario no tenía 2FA configurado). Unifica el
+código que antes estaba **duplicado** entre `TwoFactorServiceImpl.disable2Fa` (con código validado)
+y `AdminUserServiceImpl.updateUser` (forzado por un administrador, sin validar código).
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_usuario` | IN | `BIGINT` | Usuario a configurar/desactivar |
+| 2 | `p_llave_secreta` *(solo configurar)* | IN | `VARCHAR(255)` | Secreto TOTP nuevo |
+| 3 | `p_hashes` *(solo configurar)* | IN | `TEXT[]` | SHA-256 de los códigos de respaldo nuevos |
+
+**Retorno:** `fn_configurar_2fa` → `INTEGER` (códigos insertados). `fn_desactivar_2fa` → `BOOLEAN`
+(`TRUE` si había 2FA configurado).
+
+**Tablas implicadas:** `autenticacion_dos_factores` (upsert / `UPDATE`), `codigos_respaldo_2fa`
+(`DELETE` + `INSERT`).
+
+### 17b. `fn_solicitar_recuperacion`
+
+**Archivo:** [`db/procs/fn_solicitar_recuperacion.sql`](../../db/procs/fn_solicitar_recuperacion.sql)
+
+Sustituye la parte de escritura de `AuthServiceImpl.forgotPassword`, que insertaba un
+`TokenRecuperacion` sin invalidar los anteriores: cada solicitud de recuperación dejaba un token
+más válido durante 60 minutos (ventana de `fn_restablecer_contrasena`, #11), acumulando N tokens
+utilizables simultáneamente. La rutina invalida los tokens previos no usados e inserta el nuevo en
+la misma transacción, bajo `SELECT ... FOR UPDATE` sobre `usuarios` (serializa dobles solicitudes
+del mismo correo). Preserva la respuesta indistinguible: devuelve `NULL` (no lanza) si la cuenta no
+existe o está inactiva.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_correo` | IN | `VARCHAR(150)` | Correo que solicita la recuperación |
+| 2 | `p_hash_token` | IN | `VARCHAR(255)` | SHA-256 del nuevo token (plano generado y enviado por Java) |
+
+**Retorno:** `JSONB` `{ idUsuario, nombres }`, o `NULL` si la cuenta no existe/está inactiva.
+
+**Tablas implicadas:** `usuarios` (bloqueo `FOR UPDATE`), `tokens_recuperacion` (`UPDATE` + `INSERT`).
+
+### 17c. `fn_cambiar_contrasena`
+
+**Archivo:** [`db/procs/fn_cambiar_contrasena.sql`](../../db/procs/fn_cambiar_contrasena.sql)
+
+Sustituye la parte de escritura de `UserServiceImpl.changePassword`. BCrypt permanece fuera del
+motor (la comparación de la contraseña actual se sigue haciendo en Java); lo que se traslada es la
+**escritura condicionada**: `UPDATE ... WHERE contrasena_hash = p_hash_esperado`, un
+compare-and-swap con el propio hash verificado como testigo de versión. Si otra sesión cambió la
+contraseña entre la verificación en Java y este `UPDATE`, el predicado no coincide (0 filas) y la
+función lanza en vez de pisar en silencio ese cambio.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_usuario` | IN | `BIGINT` | Usuario que cambia su contraseña |
+| 2 | `p_hash_esperado` | IN | `VARCHAR(255)` | Hash BCrypt ya verificado en Java |
+| 3 | `p_hash_nuevo` | IN | `VARCHAR(255)` | Hash BCrypt de la nueva contraseña |
+
+**Retorno:** `BOOLEAN` (`TRUE` si se aplicó). Lanza `SQLSTATE 40001` (`serialization_failure`) si el
+hash ya no coincidía — la capa Java lo traduce a `409 CONFLICT`.
+
+**Tablas implicadas:** `usuarios` (`UPDATE` condicionado).
+
+### 17d. `fn_crear_usuario_admin` y `fn_crear_rol`
+
+**Archivos:** [`db/procs/fn_crear_usuario_admin.sql`](../../db/procs/fn_crear_usuario_admin.sql),
+[`db/procs/fn_crear_rol.sql`](../../db/procs/fn_crear_rol.sql)
+
+Sustituyen `AdminUserServiceImpl.createUser` y `RolePermissionServiceImpl.createRole`, que
+comprobaban `existsByCorreo`/`findByNombreRol` y luego hacían `save()` en sentencias separadas —
+lectura fantasma no atómica, mitigada en la práctica por las restricciones `UNIQUE` pero sin
+traducción de error (500 crudo en vez de 409). Ambas capturan `unique_violation` con un bloque
+`EXCEPTION` (mismo molde que `fn_crear_rol` describe en su cabecera) y delegan el resto en rutinas
+ya existentes: `fn_crear_usuario_admin` invoca `fn_sincronizar_roles_usuario` (Fase 1, §15b) para
+los roles y el alta perezosa de `perfiles_creadores`; `fn_crear_rol` invoca
+`fn_sincronizar_permisos_rol` (#9) para los permisos iniciales.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| — | *(`fn_crear_usuario_admin`)* | | | `p_nombres, p_apellidos, p_correo, p_contrasena_hash, p_fecha_nacimiento, p_id_pais, p_estado_cuenta, p_nombres_rol` |
+| — | *(`fn_crear_rol`)* | | | `p_nombre_rol, p_descripcion_rol, p_codigos_permiso` |
+
+**Retorno:** `BIGINT` (id generado) en ambas.
+
+**Tablas implicadas:** `usuarios` / `roles` (`INSERT` capturando `unique_violation`), más las de la
+rutina delegada (`usuario_roles`+`perfiles_creadores`, o `rol_permisos`, respectivamente).
+
+### 17e. `fn_guardar_pais`
+
+**Archivo:** [`db/procs/fn_guardar_pais.sql`](../../db/procs/fn_guardar_pais.sql)
+
+Sustituye la parte de escritura de `PaisServiceImpl.createPais` y `.updatePais`. Una sola rutina
+cubre ambos casos (`p_id_pais NULL` = crear, con valor = renombrar) porque comparten la misma
+técnica: ni crear ni renombrar pueden usar `SELECT ... FOR UPDATE` para "bloquear" el nombre en
+conflicto (esa fila, si existe, pertenece a *otro* país); la única defensa correcta en ambos casos
+es la restricción `UNIQUE` como predicado. Renombrar un país a su propio nombre actual no dispara
+la restricción (misma fila, mismo valor), preservando el comportamiento previo de permitir ese
+"no-op". La capa Java (`PaisServiceImpl`) traduce el resultado de vuelta al vocabulario de
+excepciones ya establecido en ese servicio (`ExcepcionRecursoDuplicado`/`ExcepcionRecursoNoEncontrado`)
+en vez de adoptar `ResponseStatusException`, para no romper su contrato con la capa de presentación.
+
+| # | Nombre | Modo | Tipo | Significado |
+|---|---|---|---|---|
+| 1 | `p_id_pais` | IN | `BIGINT` | `NULL` para crear; id del país a renombrar en caso contrario |
+| 2 | `p_nombre_pais` | IN | `VARCHAR(100)` | Nombre nuevo |
+
+**Retorno:** `BIGINT` (id del país afectado).
+
+**Tablas implicadas:** `pais` (`INSERT`/`UPDATE` capturando `unique_violation`).
+
+---
+
+## 18. Fase 4 de mantenimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7)
+
+Una rutina, y la única `PROCEDURE` (no `FUNCTION`) de todo `db/procs/`: corrige la anomalía A10
+— `sesiones_usuario`, `tokens_recuperacion` y `codigos_respaldo_2fa` crecían sin ningún proceso de
+purga; el índice `idx_sesiones_usuario_fecha_expiracion` que ya crea V8 no lo usaba nadie.
+
+| # | Rutina | Categoría funcional | Anomalía que cierra | Tipo | Volatilidad | Escribe |
+|---|---|---|---|---|---|---|
+| 26 | `sp_purgar_datos_seguridad` | Actualizaciones masivas (mantenimiento) | Crecimiento sin límite (A10) | `PROCEDURE` | `VOLATILE` | Sí |
+
+### 18a. `sp_purgar_datos_seguridad`
+
+**Archivo:** [`db/procs/sp_purgar_datos_seguridad.sql`](../../db/procs/sp_purgar_datos_seguridad.sql)
+
+Es la única rutina de todo el módulo que hace `COMMIT`/`ROLLBACK` **reales** (§0.3 del plan): un
+`PROCEDURE`, invocado con `CALL`, fuera de cualquier transacción abierta. Borrar en una sola
+transacción un historial completo de sesiones/tokens mantendría una transacción de larga duración
+que bloquearía a `VACUUM` en toda la base mientras dura, así que confirma **un lote a la vez**
+(`FOR UPDATE SKIP LOCKED` + `COMMIT`), compatible con tráfico de login/logout concurrente: en vez
+de esperar una fila bloqueada, la salta y la recoge en la siguiente ejecución diaria.
+
+Alcance deliberadamente acotado en `codigos_respaldo_2fa`: **solo** purga los ya consumidos
+(`usado = TRUE`). Los códigos sin usar de un usuario con 2FA deshabilitado **no** se tocan —
+la tabla no tiene columna de fecha que distinga un código huérfano (2FA desactivado hace tiempo) de
+uno recién generado por `fn_configurar_2fa` a la espera de `confirm2Fa`; purgar por
+`esta_habilitado = FALSE` borraría códigos de una configuración de 2FA en curso, todavía sin
+confirmar. `tokens_recuperacion` sí se purga por antigüedad (usados, o generados hace más de 24h —
+la ventana de validez real es 60 minutos, ver `fn_restablecer_contrasena` #11).
+
+| # | Nombre | Modo | Tipo | Por defecto | Significado |
+|---|---|---|---|---|---|
+| 1 | `p_tamano_lote` | IN | `INTEGER` | `1000` | Filas por lote antes de cada `COMMIT` |
+
+**Retorno:** ninguno (`PROCEDURE`). Cualquier fallo hace `ROLLBACK` del lote en curso (los lotes ya
+confirmados permanecen) y relanza la excepción.
+
+**Tablas implicadas:** `sesiones_usuario` (`DELETE` de expiradas), `tokens_recuperacion` (`DELETE`
+de usados/>24h), `codigos_respaldo_2fa` (`DELETE` solo de usados).
+
+**Invocación:** `SeguridadPurgaScheduler` (`@Scheduled(cron = "0 30 3 * * *")`), vía `JdbcTemplate`
+bajo `@Transactional(propagation = Propagation.NOT_SUPPORTED)` — obligatorio, no cosmético: un
+`PROCEDURE` con `COMMIT` interno falla con `2D000 invalid_transaction_termination` si Spring ya
+abrió una transacción antes de invocarlo.
+
+**Privilegios:** a diferencia de las `FUNCTION` de `db/procs/` (cubiertas por
+`ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS` en `seed_privilegios.sh`), un
+`PROCEDURE` requiere su propio `GRANT EXECUTE ON PROCEDURE` explícito — mismo patrón que
+`sp_registrar_decision_verificacion` (§14b), el único otro `PROCEDURE` del proyecto.
