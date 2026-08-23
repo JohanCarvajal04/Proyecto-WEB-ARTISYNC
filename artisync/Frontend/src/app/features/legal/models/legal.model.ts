@@ -4,7 +4,9 @@ export interface RespuestaContrato {
   idContrato: number;
   idPedido: number;
   tituloServicio: string;
+  idCreador: number;
   nombreCreador: string;
+  idCliente: number;
   nombreCliente: string;
   versionLegal: string;
   contenidoHtml: string;

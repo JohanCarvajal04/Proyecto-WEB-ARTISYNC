@@ -2102,7 +2102,7 @@ COMMENT ON FUNCTION fn_sincronizar_permisos_rol(VARCHAR, TEXT[])
 --   * Lectura fantasma: sin restriccion unica, dos administradores editando
 --     el mismo usuario a la vez podian dejar roles duplicados en
 --     usuario_roles. Cerrada de forma ESTRUCTURAL por uq_usuario_rol
---     (V14__concurrencia_seguridad.sql) + ON CONFLICT DO NOTHING: el fantasma
+--     (V17__concurrencia_seguridad.sql) + ON CONFLICT DO NOTHING: el fantasma
 --     es imposible aunque otra transaccion se adelante entre el DELETE y el
 --     INSERT de esta misma rutina.
 --

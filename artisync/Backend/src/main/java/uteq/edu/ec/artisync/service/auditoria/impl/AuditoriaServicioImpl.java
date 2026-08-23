@@ -37,7 +37,7 @@ import java.util.Set;
 public class AuditoriaServicioImpl implements IAuditoriaServicio {
 
     /** Campos que el cliente puede pedir para ordenar: todos los demás caerían
-     *  en un sort sin índice. Ver los índices de V12__modulo_auditoria.sql. */
+     *  en un sort sin índice. Ver los índices de V15__modulo_auditoria.sql. */
     private static final Set<String> CAMPOS_ORDENABLES = Set.of("fechaEvento", "accionAuditoria", "correoActor");
 
     private static final int TOPE_FILAS_CSV = 50_000;

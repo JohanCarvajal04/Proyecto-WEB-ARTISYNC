@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * Bitácora inmutable de eventos (REQ-NF-013). Ver V12__modulo_auditoria.sql
+ * Bitácora inmutable de eventos (REQ-NF-013). Ver V15__modulo_auditoria.sql
  * para la tabla, el trigger de inmutabilidad y los GRANTs restringidos.
  *
  * fechaEvento NO lleva @CreationTimestamp: la estampa AspectoAuditoria en el

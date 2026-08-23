@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Verifica el trigger de inmutabilidad de V12__modulo_auditoria.sql. Requiere
+ * Verifica el trigger de inmutabilidad de V15__modulo_auditoria.sql. Requiere
  * Postgres real: H2 (perfil de test por defecto) no ejecuta Flyway ni soporta
  * funciones/triggers PL/pgSQL, así que estas aserciones darían una falsa
  * garantía si se ejecutaran ahí — el UPDATE simplemente pasaría.

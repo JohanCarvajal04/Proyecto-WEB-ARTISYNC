@@ -76,7 +76,7 @@ a una categoría A.2.2 de rendimiento sino a una anomalía de concurrencia concr
 COMMITTED` (el nivel de aislamiento efectivo del proyecto), que ese documento detalla junto con la
 técnica usada en cada una (`UPDATE ... WHERE <predicado>`, `SELECT ... FOR UPDATE`,
 `DELETE ... RETURNING`). Dependen del esquema que crea
-`artisync/Backend/src/main/resources/db/migration/V14__concurrencia_seguridad.sql`
+`artisync/Backend/src/main/resources/db/migration/V17__concurrencia_seguridad.sql`
 (`uq_usuario_rol`, `uq_codigo_respaldo_usuario_hash` y los índices de clave foránea que la ruta de
 autenticación necesitaba).
 

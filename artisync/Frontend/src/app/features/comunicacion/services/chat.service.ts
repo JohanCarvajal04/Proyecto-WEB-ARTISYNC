@@ -1,15 +1,17 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { RespuestaMensajeChat, PeticionEnviarMensaje, RespuestaSalaChat } from '../models/comunicacion.model';
+import { AuthService } from '../../seguridad/services/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
   private apiUrl = '/api/v1/pedidos';
+  private authService = inject(AuthService);
   private stompClient: Client;
   private currentSubscription?: StompSubscription;
   
@@ -46,8 +48,10 @@ export class ChatService {
 
   public connect(): void {
     if (!this.stompClient.active) {
-      // Obtenemos el token JWT del local storage para enviarlo
-      const token = localStorage.getItem('token');
+      // El access token vive en memoria (AuthService), no en localStorage: ahí
+      // nunca se guarda, así que este header salía siempre vacío y
+      // WebSocketAuthInterceptor aceptaba la conexión sin autenticar a nadie.
+      const token = this.authService.accessToken();
       if (token) {
         this.stompClient.connectHeaders = {
           Authorization: `Bearer ${token}`
@@ -68,42 +72,54 @@ export class ChatService {
   }
 
   public joinSala(idSala: number, idPedido: number): void {
-    if (!this.stompClient.active) {
-      console.warn('STOMP no está activo, conectando primero...');
+    // Cargar historial por REST no depende del WebSocket: se dispara ya.
+    this.cargarHistorialMensajes(idPedido);
+
+    const suscribirse = () => {
+      // Si ya estábamos suscritos a otra sala, nos desuscribimos
+      if (this.currentSubscription) {
+        this.currentSubscription.unsubscribe();
+      }
+
+      const topic = `/topic/sala.${idSala}`;
+      this.currentSubscription = this.stompClient.subscribe(topic, (message: IMessage) => {
+        if (message.body) {
+          try {
+            const body = JSON.parse(message.body);
+            if (body.tipo === 'SALA_CERRADA') {
+              // Manejar sala cerrada
+              console.log('La sala fue cerrada');
+            } else {
+              // Es un Mensaje nuevo
+              const nuevoMensaje = body as RespuestaMensajeChat;
+              const actuales = this.mensajesSubject.value;
+              // Evitar duplicados por si acaso el REST y el WS traen el mismo
+              if (!actuales.find(m => m.idMensaje === nuevoMensaje.idMensaje)) {
+                this.mensajesSubject.next([...actuales, nuevoMensaje]);
+              }
+            }
+          } catch (e) {
+            console.error('Error parseando mensaje WS:', e);
+          }
+        }
+      });
+    };
+
+    // stompClient.subscribe() exige una conexión ya establecida (CONNECTED),
+    // no solo "activada": activate() dispara el handshake de forma asíncrona,
+    // así que suscribirse en el mismo tick lanzaba
+    // "There is no underlying STOMP connection". Se espera la conexión real.
+    if (this.stompClient.connected) {
+      suscribirse();
+    } else {
+      const sub = this.isConnected$.subscribe(conectado => {
+        if (conectado) {
+          suscribirse();
+          sub.unsubscribe();
+        }
+      });
       this.connect();
     }
-    
-    // Si ya estábamos suscritos a otra sala, nos desuscribimos
-    if (this.currentSubscription) {
-      this.currentSubscription.unsubscribe();
-    }
-    
-    // Cargar historial por REST
-    this.cargarHistorialMensajes(idPedido);
-    
-    // Suscribirse a la sala de STOMP
-    const topic = `/topic/sala.${idSala}`;
-    this.currentSubscription = this.stompClient.subscribe(topic, (message: IMessage) => {
-      if (message.body) {
-        try {
-          const body = JSON.parse(message.body);
-          if (body.tipo === 'SALA_CERRADA') {
-            // Manejar sala cerrada
-            console.log('La sala fue cerrada');
-          } else {
-            // Es un Mensaje nuevo
-            const nuevoMensaje = body as RespuestaMensajeChat;
-            const actuales = this.mensajesSubject.value;
-            // Evitar duplicados por si acaso el REST y el WS traen el mismo
-            if (!actuales.find(m => m.idMensaje === nuevoMensaje.idMensaje)) {
-              this.mensajesSubject.next([...actuales, nuevoMensaje]);
-            }
-          }
-        } catch (e) {
-          console.error('Error parseando mensaje WS:', e);
-        }
-      }
-    });
   }
 
   public enviarMensaje(idPedido: number, cuerpo: string): Observable<RespuestaMensajeChat> {
@@ -113,7 +129,7 @@ export class ChatService {
 
   public enviarMensajeWs(idPedido: number, cuerpo: string): void {
     if (this.stompClient.active) {
-      const peticion: PeticionEnviarMensaje = { cuerpoMensaje: cuerpo };
+      const peticion: PeticionEnviarMensaje = { idPedido, cuerpoMensaje: cuerpo };
       this.stompClient.publish({
         destination: '/app/chat.enviar',
         body: JSON.stringify(peticion)

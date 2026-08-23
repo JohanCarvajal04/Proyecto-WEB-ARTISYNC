@@ -72,7 +72,7 @@ VALUES
     ('PERMISO_VER', 'SEGURIDAD'),
     ('ROL_ASIGNAR_PERMISO', 'SEGURIDAD'),
     ('SESION_REVOCAR', 'SEGURIDAD'),
-    -- Bitácora de auditoría transversal (ver V12__modulo_auditoria.sql)
+    -- Bitácora de auditoría transversal (ver V15__modulo_auditoria.sql)
     ('AUDITORIA_VER', 'SEGURIDAD'),
     ('AUDITORIA_EXPORTAR', 'SEGURIDAD'),
 

@@ -28,7 +28,7 @@ import static org.mockito.Mockito.mock;
 
 /**
  * AUDITORIA_VER y AUDITORIA_EXPORTAR son dos permisos deliberadamente
- * distintos (V12__modulo_auditoria.sql): consultar la bitácora no implica
+ * distintos (V15__modulo_auditoria.sql): consultar la bitácora no implica
  * poder sacar sus datos personales del sistema en un CSV. Este test es el que
  * justifica esa separación — SOPORTE tiene el primero pero no el segundo.
  *

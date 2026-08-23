@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * Bitácora inmutable de eventos del sistema (REQ-NF-013). Ver
- * V12__modulo_auditoria.sql para la garantía de inmutabilidad a nivel de
+ * V15__modulo_auditoria.sql para la garantía de inmutabilidad a nivel de
  * base de datos.
  *
  * No confundir con AuditControlador (paquete controller.social): ese

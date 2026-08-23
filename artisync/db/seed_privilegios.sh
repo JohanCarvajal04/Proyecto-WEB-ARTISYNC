@@ -39,7 +39,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     ALTER DEFAULT PRIVILEGES IN SCHEMA public
         GRANT EXECUTE ON FUNCTIONS TO artisync_app;
 
-    -- La bitacora de auditoria (auditoria_eventos, V12__modulo_auditoria.sql)
+    -- La bitacora de auditoria (auditoria_eventos, V15__modulo_auditoria.sql)
     -- es de solo insercion (REQ-NF-013). En el arranque inicial de un volumen
     -- vacio la tabla aun no existe (la crea Flyway despues de este script), asi
     -- que el bloque de abajo es no-op y el REVOKE/GRANT explicito de la propia

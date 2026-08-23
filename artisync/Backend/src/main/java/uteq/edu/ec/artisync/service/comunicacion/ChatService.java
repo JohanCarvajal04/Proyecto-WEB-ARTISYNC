@@ -25,9 +25,19 @@ public interface ChatService {
      */
     RespuestaMensaje enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje);
 
-    /** Historial de mensajes paginado de un pedido (por su sala). */
-    Page<RespuestaMensaje> obtenerMensajes(Long idPedido, Pageable pageable);
+    /**
+     * Historial de mensajes paginado de un pedido (por su sala).
+     *
+     * @param idUsuario quien consulta; debe ser el cliente o el creador del
+     *                  pedido, o se rechaza (ver ExcepcionReglaNegocio).
+     */
+    Page<RespuestaMensaje> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable);
 
-    /** Estado actual de la sala (activa/cerrada). */
-    RespuestaSalaChat obtenerEstadoSala(Long idPedido);
+    /**
+     * Estado actual de la sala (activa/cerrada).
+     *
+     * @param idUsuario quien consulta; debe ser el cliente o el creador del
+     *                  pedido, o se rechaza (ver ExcepcionReglaNegocio).
+     */
+    RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario);
 }

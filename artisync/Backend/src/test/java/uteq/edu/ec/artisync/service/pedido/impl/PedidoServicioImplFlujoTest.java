@@ -56,6 +56,7 @@ class PedidoServicioImplFlujoTest {
     @Mock private FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     @Mock private HistorialEstadoPedidoRepository historialRepository;
     @Mock private uteq.edu.ec.artisync.repository.pedido.EtapaFlujoRepository etapaFlujoRepository;
+    @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, interval, of, switchMap, take, catchError } from 'rxjs';
 import { PagoService } from '../../services/pago.service';
@@ -54,7 +54,8 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
 
   constructor(
     private pagoService: PagoService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -74,10 +75,12 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
       next: (pago) => {
         this.pago = pago;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.pago = null;
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -94,10 +97,12 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
           window.open(pago.approvalUrl, '_blank', 'noopener');
           this.iniciarSondeo();
         }
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al crear la orden de pago';
         this.creandoPago = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -135,7 +140,10 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
       },
       // Se agotaron los intentos sin confirmación: se deja de esperar, pero el
       // estado que muestre el backend sigue siendo el bueno.
-      complete: () => this.esperandoConfirmacion = false
+      complete: () => {
+        this.esperandoConfirmacion = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -144,6 +152,7 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
     if (this.esEstadoTerminal(pago)) {
       this.detenerSondeo();
     }
+    this.cdr.markForCheck();
   }
 
   private esEstadoTerminal(pago: RespuestaPago): boolean {

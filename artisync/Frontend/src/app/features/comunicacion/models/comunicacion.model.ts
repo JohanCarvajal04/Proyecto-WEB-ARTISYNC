@@ -33,6 +33,8 @@ export interface RespuestaSalaChat {
 }
 
 export interface PeticionEnviarMensaje {
+  /** Solo requerido al enviar por WebSocket (STOMP); ignorado por el endpoint REST. */
+  idPedido?: number;
   cuerpoMensaje: string;
 }
 

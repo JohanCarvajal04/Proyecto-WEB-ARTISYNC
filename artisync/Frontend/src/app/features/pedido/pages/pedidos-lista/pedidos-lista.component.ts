@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PedidoService } from '../../services/pedido.service';
 import { RespuestaPedidoResumido } from '../../models/pedido.model';
@@ -17,7 +17,8 @@ export class PedidosListaComponent implements OnInit {
 
   constructor(
     private pedidoService: PedidoService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -39,10 +40,12 @@ export class PedidosListaComponent implements OnInit {
       next: (data) => {
         this.pedidos = data;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al cargar pedidos';
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
   }

@@ -819,7 +819,7 @@ activa→inactiva.
 **Tablas implicadas:** `usuarios` (bloqueo `FOR UPDATE` + escritura), `sesiones_usuario`
 (vía `fn_revocar_sesiones_usuario`).
 
-### Objetos de esquema de apoyo (V14__concurrencia_seguridad.sql)
+### Objetos de esquema de apoyo (V17__concurrencia_seguridad.sql)
 
 | Objeto | Tabla | Propósito |
 |---|---|---|

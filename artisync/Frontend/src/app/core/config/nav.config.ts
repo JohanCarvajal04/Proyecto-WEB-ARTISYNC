@@ -81,7 +81,7 @@ export const PAGE_PERMISSIONS = {
   portafolioPropio: ['PORTAFOLIO_CREAR'],
   pedidosCliente: ['PEDIDO_CREAR', 'PEDIDO_GESTIONAR'],
   pedidoCrear: ['PEDIDO_CREAR'],
-  // Bitácora de auditoría transversal (V12__modulo_auditoria.sql). Exportar
+  // Bitácora de auditoría transversal (V15__modulo_auditoria.sql). Exportar
   // es un permiso aparte (AUDITORIA_EXPORTAR): no abre la pantalla por sí
   // solo, así que no va en esta lista — ver ADMIN_PANEL_PERMISSIONS.
   auditoria: ['AUDITORIA_VER']

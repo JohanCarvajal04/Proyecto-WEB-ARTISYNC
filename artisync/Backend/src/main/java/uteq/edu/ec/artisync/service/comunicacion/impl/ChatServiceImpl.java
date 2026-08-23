@@ -96,6 +96,11 @@ public class ChatServiceImpl implements ChatService {
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
 
+        // Los controladores (REST y @MessageMapping) solo exigen
+        // isAuthenticated(): sin esto, cualquier usuario logueado podía
+        // escribir en el chat de un pedido ajeno.
+        verificarParticipante(sala.getPedido(), idRemitente);
+
         if (Boolean.FALSE.equals(sala.getSalaActiva())) {
             throw new ExcepcionReglaNegocio("Esta sala ha sido cerrada");
         }
@@ -121,15 +126,37 @@ public class ChatServiceImpl implements ChatService {
         // Publicar en el tópico de la sala para entrega en tiempo real
         messagingTemplate.convertAndSend("/topic/sala." + sala.getIdSala(), response);
 
+        // El WS solo llega a quien tenga esa sala abierta en ese momento; sin
+        // esto, la otra parte no se enteraba de un mensaje nuevo salvo que
+        // entrara a revisar el pedido por su cuenta.
+        Pedido pedido = sala.getPedido();
+        Usuario destinatario = idRemitente.equals(pedido.getUsuarioCliente().getIdUsuario())
+                ? pedido.getServicio().getPerfil().getUsuario()
+                : pedido.getUsuarioCliente();
+        notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO",
+                remitente.getNombres() + " te escribió en \"" + pedido.getServicio().getTituloServicio()
+                        + "\": " + resumirMensaje(cuerpoMensaje));
+
         return response;
+    }
+
+    private String resumirMensaje(String cuerpoMensaje) {
+        final int maxCaracteres = 80;
+        return cuerpoMensaje.length() > maxCaracteres
+                ? cuerpoMensaje.substring(0, maxCaracteres) + "…"
+                : cuerpoMensaje;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RespuestaMensaje> obtenerMensajes(Long idPedido, Pageable pageable) {
+    public Page<RespuestaMensaje> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
+
+        // El controlador solo exige isAuthenticated(): sin esto, cualquier
+        // usuario logueado podía leer el historial de un chat ajeno.
+        verificarParticipante(sala.getPedido(), idUsuario);
 
         List<Mensaje> mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());
         List<RespuestaMensaje> dtos = mensajes.stream()
@@ -144,10 +171,14 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaSalaChat obtenerEstadoSala(Long idPedido) {
+    public RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
+
+        // El controlador solo exige isAuthenticated(): sin esto, cualquier
+        // usuario logueado podía ver el estado del chat de un pedido ajeno.
+        verificarParticipante(sala.getPedido(), idUsuario);
 
         return RespuestaSalaChat.builder()
                 .idSala(sala.getIdSala())
@@ -189,6 +220,19 @@ public class ChatServiceImpl implements ChatService {
                     + " por superar el límite de infracciones de datos de contacto.";
             notificacionService.notificar(usuario, "CUENTA_SUSPENDIDA", mensaje);
             log.warn("Cuenta del usuario {} suspendida hasta {}", usuario.getCorreo(), hastaFecha.toLocalDate());
+        }
+    }
+
+    /**
+     * Único chequeo de pertenencia al pedido, reutilizado por los tres
+     * métodos de arriba: nadie fuera del cliente o el creador del pedido
+     * puede leer, escuchar o escribir en su sala de chat.
+     */
+    private void verificarParticipante(Pedido pedido, Long idUsuario) {
+        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
+        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
+        if (!esCliente && !esCreador) {
+            throw new ExcepcionReglaNegocio("No tiene acceso al chat de este pedido");
         }
     }
 
