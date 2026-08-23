@@ -12,6 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaHistorialEstado;
@@ -25,9 +26,13 @@ import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
+import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
@@ -45,7 +50,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Pruebas unitarias de {@link PedidoServicioImpl} complementarias a
@@ -64,6 +72,9 @@ class PedidoServicioImplTest {
     @Mock private FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     @Mock private HistorialEstadoPedidoRepository historialRepository;
     @Mock private EtapaFlujoRepository etapaFlujoRepository;
+    @Mock private ContratoRepository contratoRepository;
+    @Mock private NotificacionService notificacionService;
+    @Mock private ChatService chatService;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -139,6 +150,9 @@ class PedidoServicioImplTest {
         RespuestaPedido respuesta = pedidoServicio.crearPedido(1L, peticion);
 
         assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("20.00");
+        // La sala se abre desde la creación, no al firmar: así pueden
+        // negociar por chat antes de comprometerse con el contrato.
+        verify(chatService).crearSala(any(Pedido.class));
     }
 
     @Test
@@ -148,6 +162,77 @@ class PedidoServicioImplTest {
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, PeticionCrearPedido.builder().idServicio(1L).build()))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    // ---------- actualizarTerminos ----------
+
+    @Test
+    @DisplayName("actualizarTerminos rechaza si no llega ningun campo")
+    void actualizarTerminos_rechazaPeticionVacia() {
+        assertThatThrownBy(() -> pedidoServicio.actualizarTerminos(
+                10L, 1L, PeticionActualizarTerminosPedido.builder().build()))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+    }
+
+    @Test
+    @DisplayName("actualizarTerminos rechaza a un usuario que no es cliente ni creador del pedido")
+    void actualizarTerminos_rechazaUsuarioAjeno() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        PeticionActualizarTerminosPedido peticion =
+                PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
+
+        assertThatThrownBy(() -> pedidoServicio.actualizarTerminos(10L, 999L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+    }
+
+    @Test
+    @DisplayName("actualizarTerminos permite al cliente cambiar el precio y notifica al creador")
+    void actualizarTerminos_clientePuedeCambiarPrecio() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
+        given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
+        PeticionActualizarTerminosPedido peticion =
+                PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
+
+        RespuestaPedido respuesta = pedidoServicio.actualizarTerminos(10L, 1L, peticion);
+
+        assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("35.00");
+        verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(creador), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("actualizarTerminos permite al creador cambiar la fecha de entrega")
+    void actualizarTerminos_creadorPuedeCambiarFecha() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
+        given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
+        var nuevaFecha = java.time.LocalDateTime.now().plusDays(10);
+        PeticionActualizarTerminosPedido peticion =
+                PeticionActualizarTerminosPedido.builder().fechaEntregaEstimada(nuevaFecha).build();
+
+        RespuestaPedido respuesta = pedidoServicio.actualizarTerminos(10L, 2L, peticion);
+
+        assertThat(respuesta.getFechaEntregaEstimada()).isEqualTo(nuevaFecha);
+        verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("actualizarTerminos rechaza si el contrato ya tiene alguna firma")
+    void actualizarTerminos_rechazaConContratoFirmado() {
+        Contrato contrato = Contrato.builder().idContrato(5L).pedido(pedido).hashFirmaCliente("hash").build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.of(contrato));
+        PeticionActualizarTerminosPedido peticion =
+                PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
+
+        assertThatThrownBy(() -> pedidoServicio.actualizarTerminos(10L, 1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+
+        verify(pedidoRepository, never()).save(any());
     }
 
     // ---------- obtenerPedidoPorId (IDOR, OBS-08) ----------

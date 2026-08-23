@@ -17,9 +17,11 @@ import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IPagoServicio;
 
 import java.math.BigDecimal;
@@ -42,6 +44,7 @@ public class PagoServicioImpl implements IPagoServicio {
     private final PagoGarantiaRepository pagoGarantiaRepository;
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
+    private final NotificacionService notificacionService;
 
     /**
      * Mapper propio, no el del contexto: la app no expone un bean ObjectMapper
@@ -83,9 +86,16 @@ public class PagoServicioImpl implements IPagoServicio {
 
     @Override
     @Transactional
-    public RespuestaPago crearOrdenPayPal(Long idPedido, BigDecimal monto) {
+    public RespuestaPago crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+
+        // @PreAuthorize solo exige el rol CLIENTE, no que el pedido sea suyo:
+        // sin esto, cualquier cliente autenticado podía crear (y ver el estado
+        // de) la orden de pago de un pedido ajeno.
+        if (!contrato.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
+            throw new ExcepcionReglaNegocio("Solo el cliente del pedido puede iniciar el pago");
+        }
 
         if (contrato.getHashFirmaCreador() == null || contrato.getHashFirmaCliente() == null) {
             throw new ExcepcionReglaNegocio("El contrato debe estar firmado por ambas partes antes de realizar el pago");
@@ -247,7 +257,12 @@ public class PagoServicioImpl implements IPagoServicio {
         log.info("Pago {} confirmado y capturado. Fondos retenidos: ${}",
                 pago.getIdPago(), pago.getMontoRetenido());
 
-        // TODO M6: Notificar a ambas partes
+        Pedido pedido = pago.getContrato().getPedido();
+        String mensaje = "El pago de tu pedido \"" + pedido.getServicio().getTituloServicio()
+                + "\" fue confirmado. Los fondos quedan en garantía hasta la aprobación de la entrega.";
+        notificacionService.notificar(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
+        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO",
+                "Se confirmó el pago de garantía para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
     }
 
     /**
@@ -321,9 +336,19 @@ public class PagoServicioImpl implements IPagoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaPago obtenerEstadoPago(Long idPedido) {
+    public RespuestaPago obtenerEstadoPago(Long idPedido, Long idUsuario) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+
+        // El controlador solo exige isAuthenticated(): sin esta verificación,
+        // cualquier usuario logueado podía consultar el monto retenido y el id
+        // de orden de PayPal de un pedido ajeno.
+        Pedido pedidoDelContrato = contrato.getPedido();
+        boolean esCliente = pedidoDelContrato.getUsuarioCliente().getIdUsuario().equals(idUsuario);
+        boolean esCreador = pedidoDelContrato.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
+        if (!esCliente && !esCreador) {
+            throw new ExcepcionReglaNegocio("No tiene acceso al pago de este pedido");
+        }
 
         PagoGarantia pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe pago registrado para este pedido"));

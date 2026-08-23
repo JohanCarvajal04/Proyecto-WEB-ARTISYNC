@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
@@ -19,8 +20,11 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
+import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.*;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
 
 import java.util.List;
@@ -38,6 +42,9 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private final FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     private final HistorialEstadoPedidoRepository historialRepository;
     private final EtapaFlujoRepository etapaFlujoRepository;
+    private final ContratoRepository contratoRepository;
+    private final NotificacionService notificacionService;
+    private final ChatService chatService;
 
     @Override
     @Transactional
@@ -86,6 +93,62 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
         log.info("Pedido {} creado por cliente {} para servicio {} con flujo '{}'",
                 pedido.getIdPedido(), idCliente, peticion.getIdServicio(), flujo.getNombreFlujo());
+
+        // La sala se abre desde ya, antes de cualquier firma: así cliente y
+        // creador pueden negociar precio/alcance por chat antes de
+        // comprometerse con un contrato (ver actualizarTerminos). Antes solo
+        // se abría cuando ambas partes ya habían firmado.
+        chatService.crearSala(pedido);
+
+        return mapToRespuesta(pedido);
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPedido actualizarTerminos(Long idPedido, Long idUsuario, PeticionActualizarTerminosPedido peticion) {
+        if (peticion.getPrecioPactado() == null && peticion.getFechaEntregaEstimada() == null) {
+            throw new ExcepcionReglaNegocio("Debes indicar al menos un término a actualizar");
+        }
+
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+
+        Long idCliente = pedido.getUsuarioCliente().getIdUsuario();
+        Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();
+        boolean esCliente = idCliente.equals(idUsuario);
+        boolean esCreador = idCreador.equals(idUsuario);
+        if (!esCliente && !esCreador) {
+            throw new ExcepcionReglaNegocio("No tienes permiso para modificar los términos de este pedido");
+        }
+
+        // Los términos quedan congelados apenas hay una firma: el contrato ya
+        // renderiza precio/fecha en vivo desde el pedido (ver
+        // ContratoServicioImpl#generarContratoHtml), así que cambiarlos
+        // después de que alguien firmó reescribiría en silencio lo que esa
+        // persona ya aceptó.
+        contratoRepository.findByPedidoIdPedido(idPedido).ifPresent(contrato -> {
+            if (contrato.getHashFirmaCreador() != null || contrato.getHashFirmaCliente() != null) {
+                throw new ExcepcionReglaNegocio(
+                        "No se pueden modificar los términos: el contrato ya tiene al menos una firma");
+            }
+        });
+
+        if (peticion.getPrecioPactado() != null) {
+            pedido.setPrecioPactado(peticion.getPrecioPactado());
+        }
+        if (peticion.getFechaEntregaEstimada() != null) {
+            pedido.setFechaEntregaEstimada(peticion.getFechaEntregaEstimada());
+        }
+        pedido = pedidoRepository.save(pedido);
+
+        log.info("Pedido {} actualizó términos (usuario {}): precio={}, entrega={}",
+                idPedido, idUsuario, pedido.getPrecioPactado(), pedido.getFechaEntregaEstimada());
+
+        Usuario otraParte = esCliente
+                ? pedido.getServicio().getPerfil().getUsuario()
+                : pedido.getUsuarioCliente();
+        notificacionService.notificar(otraParte, "PEDIDO_TERMINOS_ACTUALIZADOS",
+                "Se actualizaron los términos del pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
 
         return mapToRespuesta(pedido);
     }
@@ -220,9 +283,8 @@ public class PedidoServicioImpl implements IPedidoServicio {
         log.info("Pedido {} avanzó a etapa '{}' (orden {})",
                 idPedido, siguienteConfig.getEtapa().getNombreEtapa(), siguienteConfig.getNumeroOrden());
 
-        // TODO M6: Notificar al cliente vía NotificacionService
-        // notificacionService.notificar(pedido.getUsuarioCliente(),
-        //     "PEDIDO_AVANCE", "Tu pedido ha avanzado a: " + siguienteConfig.getEtapa().getNombreEtapa());
+        notificacionService.notificar(pedido.getUsuarioCliente(), "PEDIDO_AVANCE",
+                "Tu pedido ha avanzado a: " + siguienteConfig.getEtapa().getNombreEtapa());
 
         return mapToRespuesta(pedido);
     }

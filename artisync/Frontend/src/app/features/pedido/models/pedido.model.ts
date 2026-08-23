@@ -85,6 +85,16 @@ export interface PeticionAvanzarEtapa {
   observacion: string;
 }
 
+/**
+ * Ajuste de precio y/o fecha negociado por chat antes de firmar el contrato.
+ * Al menos uno de los dos debe venir; el backend rechaza el resto de casos
+ * (ver PedidoServicioImpl#actualizarTerminos).
+ */
+export interface PeticionActualizarTerminosPedido {
+  precioPactado?: number | null;
+  fechaEntregaEstimada?: string | null;
+}
+
 // ── Tickets de Revisión ──
 export interface RespuestaTicketRevision {
   idTicket: number;

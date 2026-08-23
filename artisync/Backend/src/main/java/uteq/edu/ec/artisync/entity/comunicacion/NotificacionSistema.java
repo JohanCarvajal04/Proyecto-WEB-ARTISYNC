@@ -32,6 +32,16 @@ public class NotificacionSistema {
     @JoinColumn(name = "id_tipo_notificacion", nullable = false)
     private TipoNotificacion tipoNotificacion;
 
+    /**
+     * Texto propio de esta notificación, no el compartido de
+     * {@link TipoNotificacion#getFormatoMensaje()}: ese campo se fija una
+     * sola vez, la primera vez que se dispara el tipo de evento, así que
+     * usarlo para listar notificaciones pasadas mostraba el mismo texto para
+     * todas las notificaciones de un mismo tipo (ver migración V14).
+     */
+    @Column(name = "mensaje", columnDefinition = "TEXT")
+    private String mensaje;
+
     @CreationTimestamp
     @Column(name = "fecha_emision", updatable = false)
     private LocalDateTime fechaEmision;

@@ -41,6 +41,7 @@ public class NotificacionServiceImpl implements NotificacionService {
         NotificacionSistema notificacion = NotificacionSistema.builder()
                 .usuario(destinatario)
                 .tipoNotificacion(tipo)
+                .mensaje(mensajeTexto)
                 .estaLeida(false)
                 .build();
         notificacion = notificacionRepo.save(notificacion);
@@ -60,7 +61,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     public Page<RespuestaNotificacion> listarMisNotificaciones(Long idUsuario, Pageable pageable) {
         return notificacionRepo
                 .findByUsuarioIdUsuarioOrderByFechaEmisionDesc(idUsuario, pageable)
-                .map(n -> mapToResponse(n, n.getTipoNotificacion().getFormatoMensaje()));
+                .map(n -> mapToResponse(n, n.getMensaje()));
     }
 
     @Override
@@ -72,7 +73,7 @@ public class NotificacionServiceImpl implements NotificacionService {
                         "Notificación no encontrada o no pertenece al usuario"));
         notificacion.setEstaLeida(true);
         notificacion = notificacionRepo.save(notificacion);
-        return mapToResponse(notificacion, notificacion.getTipoNotificacion().getFormatoMensaje());
+        return mapToResponse(notificacion, notificacion.getMensaje());
     }
 
     @Override

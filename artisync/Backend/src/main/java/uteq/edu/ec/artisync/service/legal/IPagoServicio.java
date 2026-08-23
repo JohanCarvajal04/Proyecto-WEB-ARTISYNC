@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 public interface IPagoServicio {
 
-    RespuestaPago crearOrdenPayPal(Long idPedido, BigDecimal monto);
+    RespuestaPago crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto);
 
     /**
      * El último parámetro es la cabecera PAYPAL-AUTH-VERSION, no el webhook-id:
@@ -16,5 +16,5 @@ public interface IPagoServicio {
     void procesarWebhookPayPal(String payload, String transmissionId, String transmissionTime,
                                 String transmissionSig, String certUrl, String authAlgo, String authVersion);
 
-    RespuestaPago obtenerEstadoPago(Long idPedido);
+    RespuestaPago obtenerEstadoPago(Long idPedido, Long idUsuario);
 }

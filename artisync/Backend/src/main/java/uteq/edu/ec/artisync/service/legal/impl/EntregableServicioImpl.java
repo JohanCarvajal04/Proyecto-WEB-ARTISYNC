@@ -18,6 +18,8 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
 
 import java.math.BigDecimal;
@@ -33,6 +35,8 @@ public class EntregableServicioImpl implements IEntregableServicio {
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final AlmacenamientoDocumentos almacenamiento;
+    private final ChatService chatService;
+    private final NotificacionService notificacionService;
 
     @Override
     @Transactional
@@ -150,10 +154,10 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
         log.info("Entrega aprobada para pedido {} por cliente {}", idPedido, idCliente);
 
-        // TODO M6: Cerrar sala de chat
-        // chatService.cerrarSala(idPedido);
-        // TODO M6: Notificar al creador
-        // notificacionService.notificar(..., "PAGO_LIBERADO", "El pago ha sido liberado por el cliente");
+        chatService.cerrarSala(idPedido);
+        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_LIBERADO",
+                "El cliente aprobó la entrega de \"" + pedido.getServicio().getTituloServicio()
+                        + "\" y el pago fue liberado a tu favor.");
     }
 
     @Override

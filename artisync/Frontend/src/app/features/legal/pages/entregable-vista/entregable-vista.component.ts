@@ -1,8 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { EntregableService } from '../../services/entregable.service';
 import { RespuestaEntregable } from '../../models/legal.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { PedidoService } from '../../../pedido/services/pedido.service';
+import { RespuestaPedido } from '../../../pedido/models/pedido.model';
 import { ACEPTA_ENTREGABLE, formatSize, validarEntregable } from '../../utils/archivo-entregable';
 
 type TipoPrevisualizacion = 'imagen' | 'video' | 'otro';
@@ -15,6 +18,8 @@ type TipoPrevisualizacion = 'imagen' | 'video' | 'otro';
 })
 export class EntregableVistaComponent implements OnInit, OnDestroy {
   entregable: RespuestaEntregable | null = null;
+  /** Solo para saber quién es el cliente/creador de este pedido (ver esCliente/esCreador). */
+  pedido: RespuestaPedido | null = null;
   loading = true;
   error = '';
   successMsg = '';
@@ -39,13 +44,25 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
 
   constructor(
     private entregableService: EntregableService,
+    private pedidoService: PedidoService,
     public authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.idPedido = Number(this.route.snapshot.paramMap.get('idPedido'));
     this.cargarEntregable();
+
+    // RespuestaEntregable no trae quién es el cliente/creador (y ni siquiera
+    // existe hasta que el creador sube algo), así que se carga el pedido
+    // aparte para saberlo desde ya — ver esCliente/esCreador.
+    this.pedidoService.obtenerPedido(this.idPedido)
+      .pipe(catchError(() => of(null)))
+      .subscribe(pedido => {
+        this.pedido = pedido;
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnDestroy(): void {
@@ -59,10 +76,12 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
         this.entregable = ent;
         this.loading = false;
         this.cargarPreview();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.entregable = null;
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -82,10 +101,12 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
         this.previewUrl = URL.createObjectURL(blob);
         this.previewTipo = this.tipoDe(blob.type);
         this.cargandoPreview = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.previewUrl = null;
         this.cargandoPreview = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -144,11 +165,13 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
         this.archivoMarcaAgua = null;
         this.archivoLimpia = null;
         this.cargarPreview();
-        setTimeout(() => this.successMsg = '', 4000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMsg = ''; this.cdr.markForCheck(); }, 4000);
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al subir entregable';
         this.subiendo = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -164,11 +187,13 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
         this.aprobando = false;
         this.successMsg = '¡Entrega aprobada! Fondos liberados al creador.';
         this.cargarEntregable();
-        setTimeout(() => this.successMsg = '', 5000);
+        this.cdr.markForCheck();
+        setTimeout(() => { this.successMsg = ''; this.cdr.markForCheck(); }, 5000);
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al aprobar la entrega';
         this.aprobando = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -178,6 +203,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
       next: (blob) => this.descargar(blob, `entregable_${this.idPedido}_limpio`),
       error: (err) => {
         this.error = err.error?.message || 'El entregable no está disponible hasta que el pago sea liberado';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -187,6 +213,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
       next: (blob) => this.descargar(blob, `vista_previa_pedido_${this.idPedido}`),
       error: (err) => {
         this.error = err.error?.message || 'No se pudo descargar la previsualización';
+        this.cdr.markForCheck();
       }
     });
   }
@@ -200,11 +227,15 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
     window.URL.revokeObjectURL(url);
   }
 
+  // Por identidad, no por rol global — mismo motivo que en pedido-detalle:
+  // el backend (EntregableServicioImpl) tampoco da bypass a ADMIN, y una
+  // cuenta con ambos roles CLIENTE y CREADOR veía botones de la parte que no
+  // le correspondía en este pedido.
   get esCreador(): boolean {
-    return this.authService.hasAnyRole('CREADOR', 'ADMIN');
+    return this.pedido?.idCreador === this.authService.getCurrentUserId();
   }
 
   get esCliente(): boolean {
-    return this.authService.hasAnyRole('CLIENTE', 'ADMIN');
+    return this.pedido?.idCliente === this.authService.getCurrentUserId();
   }
 }

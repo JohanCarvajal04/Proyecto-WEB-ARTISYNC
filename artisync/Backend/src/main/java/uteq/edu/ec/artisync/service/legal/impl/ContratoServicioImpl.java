@@ -15,6 +15,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
 
@@ -33,6 +34,7 @@ public class ContratoServicioImpl implements IContratoServicio {
     private final PedidoRepository pedidoRepository;
     private final PlantillaContratoRepository plantillaContratoRepository;
     private final IPdfGeneracionServicio pdfGeneracionServicio;
+    private final ChatService chatService;
 
     @Override
     @Transactional
@@ -93,10 +95,10 @@ public class ContratoServicioImpl implements IContratoServicio {
 
         contratoRepository.save(contrato);
 
-        // Si ambos firmaron, crear sala de chat (M6 - placeholder)
+        // Si ambos firmaron, abrir la sala de chat del pedido (idempotente: no duplica si ya existe)
         if (contrato.getHashFirmaCreador() != null && contrato.getHashFirmaCliente() != null) {
-            log.info("Ambas partes firmaron contrato {}. Sala de chat pendiente (M6)", idContrato);
-            // TODO M6: chatService.crearSala(pedido);
+            chatService.crearSala(pedido);
+            log.info("Ambas partes firmaron contrato {}. Sala de chat abierta para pedido {}", idContrato, pedido.getIdPedido());
         }
 
         return mapToRespuesta(contrato);
@@ -238,7 +240,9 @@ public class ContratoServicioImpl implements IContratoServicio {
                 .idContrato(contrato.getIdContrato())
                 .idPedido(pedido.getIdPedido())
                 .tituloServicio(pedido.getServicio().getTituloServicio())
+                .idCreador(creador.getIdUsuario())
                 .nombreCreador(creador.getNombres() + " " + creador.getApellidos())
+                .idCliente(cliente.getIdUsuario())
                 .nombreCliente(cliente.getNombres() + " " + cliente.getApellidos())
                 .versionLegal(contrato.getPlantilla().getVersionLegal())
                 .contenidoHtml(htmlRenderizado)
