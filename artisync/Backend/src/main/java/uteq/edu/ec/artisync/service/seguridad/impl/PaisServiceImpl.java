@@ -3,8 +3,10 @@ import uteq.edu.ec.artisync.service.seguridad.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
@@ -15,6 +17,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
 import uteq.edu.ec.artisync.service.seguridad.PaisService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
 import java.util.List;
 
@@ -53,17 +56,30 @@ public class PaisServiceImpl implements PaisService {
     @Auditable(accion = "PAIS_CREAR", modulo = ModuloAuditoria.SISTEMA,
             entidad = "pais", idEntidad = "#resultado.idPais",
             detalle = "{nombrePais: #request.nombrePais}")
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_guardar_pais, que captura unique_violation sobre el nombre en vez
+    // de la comprobacion findByNombrePais previa a esta version, que no era
+    // atomica respecto al save() (lectura fantasma, misma clase de anomalia
+    // que A9 en updatePais). El tipo de excepcion de negocio se preserva
+    // (ExcepcionRecursoDuplicado) para no romper el contrato ya establecido
+    // de este servicio con su capa de presentacion.
     public PaisResponse createPais(PaisRequest request) {
-        String nombreTrimmed = request.getNombrePais().trim();
-        if (paisRepository.findByNombrePais(nombreTrimmed).isPresent()) {
-            throw new ExcepcionRecursoDuplicado("Ya existe un país registrado con el nombre: " + nombreTrimmed);
+        Long idPais;
+        try {
+            idPais = paisRepository.guardarPais(null, request.getNombrePais());
+        } catch (RuntimeException e) {
+            throw traducirExcepcionDuplicado(e, request.getNombrePais());
         }
 
-        Pais pais = Pais.builder()
-                .nombrePais(nombreTrimmed)
-                .build();
-
-        return toResponse(paisRepository.save(pais));
+        // Camino inalcanzable en operacion normal (la fila que se acaba de
+        // insertar en la MISMA transaccion siempre deberia ser legible aqui):
+        // ResponseStatusException(500), no una excepcion de negocio -- esto
+        // senalaria un fallo del servidor, no un error de entrada del cliente.
+        // (IllegalStateException se descarto: ManejadorGlobalExcepciones la
+        // mapea a 400, la semantica HTTP incorrecta para un fallo interno.)
+        Pais pais = paisRepository.findById(idPais)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear el país"));
+        return toResponse(pais);
     }
 
     @Override
@@ -71,19 +87,44 @@ public class PaisServiceImpl implements PaisService {
     @Auditable(accion = "PAIS_EDITAR", modulo = ModuloAuditoria.SISTEMA,
             entidad = "pais", idEntidad = "#id",
             detalle = "{nombrePais: #request.nombrePais}")
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): corrige
+    // la anomalia A9. fn_guardar_pais captura unique_violation sobre el
+    // nombre en vez de la comprobacion findByNombrePais previa a esta
+    // version, que no era atomica respecto al save(): entre comprobar "el
+    // nombre no pertenece a otro pais" y guardar, otra transaccion podia
+    // tomar ese mismo nombre (lectura fantasma).
     public PaisResponse updatePais(Long id, PaisRequest request) {
+        if (!paisRepository.existsById(id)) {
+            throw new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id);
+        }
+
+        try {
+            paisRepository.guardarPais(id, request.getNombrePais());
+        } catch (RuntimeException e) {
+            throw traducirExcepcionDuplicado(e, request.getNombrePais());
+        }
+
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
+        return toResponse(pais);
+    }
 
-        String nombreTrimmed = request.getNombrePais().trim();
-        paisRepository.findByNombrePais(nombreTrimmed).ifPresent(p -> {
-            if (!p.getIdPais().equals(id)) {
-                throw new ExcepcionRecursoDuplicado("Ya existe otro país registrado con el nombre: " + nombreTrimmed);
-            }
-        });
-
-        pais.setNombrePais(nombreTrimmed);
-        return toResponse(paisRepository.save(pais));
+    /**
+     * Traduce la excepcion nativa de fn_guardar_pais al vocabulario de
+     * excepciones de negocio ya establecido en este servicio
+     * (ExcepcionRecursoDuplicado/ExcepcionRecursoNoEncontrado), reutilizando
+     * StoredProcedureExceptionTranslator solo para el trabajo de desenvolver
+     * la SQLException y limpiar el mensaje.
+     */
+    private RuntimeException traducirExcepcionDuplicado(RuntimeException origen, String nombrePais) {
+        ResponseStatusException traducido = StoredProcedureExceptionTranslator.traducir(origen, HttpStatus.BAD_REQUEST);
+        if (traducido.getStatusCode() == HttpStatus.CONFLICT) {
+            return new ExcepcionRecursoDuplicado(traducido.getReason());
+        }
+        if (traducido.getStatusCode() == HttpStatus.NOT_FOUND) {
+            return new ExcepcionRecursoNoEncontrado(traducido.getReason());
+        }
+        return traducido;
     }
 
     @Override

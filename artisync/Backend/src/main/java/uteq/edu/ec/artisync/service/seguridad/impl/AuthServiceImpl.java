@@ -72,7 +72,6 @@ public class AuthServiceImpl implements AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioRolRepository usuarioRolRepository;
-    private final TokenRecuperacionRepository tokenRecuperacionRepository;
     private final SesionUsuarioRepository sesionUsuarioRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -375,18 +374,22 @@ public class AuthServiceImpl implements AuthService {
         intentosAutenticacionService.verificarCuota(
                 AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);
 
-        usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -> {
-            String tokenPlain = UUID.randomUUID().toString();
-            String tokenHash = hashSha256(tokenPlain);
-            TokenRecuperacion tokenRec = TokenRecuperacion.builder()
-                    .usuario(usuario)
-                    .hashToken(tokenHash)
-                    .usado(false)
-                    .build();
-            tokenRecuperacionRepository.save(tokenRec);
-            log.debug("Generado token de recuperación para usuario ID: {}", usuario.getIdUsuario());
-            emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), tokenPlain);
-        });
+        String tokenPlain = UUID.randomUUID().toString();
+        String tokenHash = hashSha256(tokenPlain);
+
+        // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
+        // fn_solicitar_recuperacion invalida los tokens previos no usados del
+        // usuario e inserta el nuevo en la MISMA transaccion, cerrando la
+        // ventana en la que una cuenta acumulaba N tokens de recuperacion
+        // validos simultaneamente (A5). Devuelve NULL (no encontro cuenta
+        // activa) sin lanzar, preservando la respuesta indistinguible.
+        String resultadoJson = usuarioRepository.solicitarRecuperacion(request.getCorreo(), tokenHash);
+        if (resultadoJson != null) {
+            JsonNode resultado = parseJson(resultadoJson, "Error al interpretar la solicitud de recuperación");
+            String nombres = resultado.get("nombres").asText();
+            log.debug("Generado token de recuperación para usuario ID: {}", resultado.get("idUsuario").asLong());
+            emailService.enviarCorreoRecuperacion(request.getCorreo(), nombres, tokenPlain);
+        }
         return new RespuestaMensaje("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
     }
 
@@ -468,10 +471,15 @@ public class AuthServiceImpl implements AuthService {
 
     /** Deserializa el JSONB devuelto por fn_resolver_estado_login (REQ-F-002). */
     private JsonNode parseEstadoLogin(String estadoLoginJson) {
+        return parseJson(estadoLoginJson, "Error al interpretar el estado de login");
+    }
+
+    /** Deserializa el JSONB devuelto por una rutina de db/procs/, con un mensaje de error especifico del llamante. */
+    private JsonNode parseJson(String json, String mensajeError) {
         try {
-            return objectMapper.readTree(estadoLoginJson);
+            return objectMapper.readTree(json);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al interpretar el estado de login");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, mensajeError);
         }
     }
 

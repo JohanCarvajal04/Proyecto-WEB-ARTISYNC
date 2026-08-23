@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
 
@@ -13,4 +15,16 @@ public interface CodigoRespaldo2FaRepository extends JpaRepository<CodigoRespald
     List<CodigoRespaldo2Fa> findByUsuarioIdUsuarioAndUsadoFalse(Long idUsuario);
 
     void deleteByUsuarioIdUsuario(Long idUsuario);
+
+    /**
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §2) -
+     * fn_consumir_codigo_respaldo_2fa: UPDATE atomico ({@code WHERE usado = FALSE})
+     * que consume un codigo de respaldo una sola vez, eliminando la actualizacion
+     * perdida del patron anterior (SELECT de todos los codigos + comparacion en
+     * Java + save()). Devuelve TRUE solo para el primer llamante concurrente.
+     */
+    @Query(value = "SELECT fn_consumir_codigo_respaldo_2fa(:p_id_usuario, :p_codigo_hash)", nativeQuery = true)
+    Boolean consumirCodigoRespaldo(
+            @Param("p_id_usuario") Long idUsuario,
+            @Param("p_codigo_hash") String codigoHash);
 }

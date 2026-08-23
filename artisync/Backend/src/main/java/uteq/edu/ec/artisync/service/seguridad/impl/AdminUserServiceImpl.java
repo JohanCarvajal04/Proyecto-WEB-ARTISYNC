@@ -1,6 +1,7 @@
 package uteq.edu.ec.artisync.service.seguridad.impl;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,7 +18,6 @@ import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.*;
 import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
 
 @Slf4j
@@ -44,21 +45,25 @@ import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final UsuarioRepository usuarioRepository;
-    private final RolRepository rolRepository;
     private final UsuarioRolRepository usuarioRolRepository;
     private final PaisRepository paisRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
     private final PasswordEncoder passwordEncoder;
     private final UsuarioMapper usuarioMapper;
     private final SessionRevocationService sessionRevocationService;
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
-    private final CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
+    // Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8):
+    // toUserResponseList batchea los roles/permisos/2FA de toda la pagina en
+    // dos consultas IN (...), en vez del N+1 de invocar toUserResponse() (dos
+    // consultas por fila) elemento a elemento. El Pageable/Sort de la peticion
+    // se conserva intacto -- se sigue resolviendo con findAll(pageable), no se
+    // reemplaza por una rutina con orden fijo.
     public PagedResponse<UserResponse> getAllUsers(Pageable pageable) {
         Page<Usuario> usuariosPage = usuarioRepository.findAll(pageable);
-        return PagedResponseBuilder.buildAndMap(usuariosPage, usuarioMapper::toUserResponse);
+        return PagedResponseBuilder.buildAndMapList(usuariosPage, usuarioMapper::toUserResponseList);
     }
 
     @Override
@@ -74,41 +79,34 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_CREAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#resultado.idUsuario",
             detalle = "{correo: #request.correo, roles: #request.roles}")
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_crear_usuario_admin, que captura unique_violation sobre el correo
+    // en vez de la comprobacion existsByCorreo previa a esta version, que no
+    // era atomica respecto al save() (lectura fantasma, A3), y compone con
+    // fn_sincronizar_roles_usuario (Fase 1) para los roles y el perfil de
+    // creador en la misma transaccion.
     public UserResponse createUser(CreateUserRequest request) {
-        if (usuarioRepository.existsByCorreo(request.getCorreo())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");
-        }
-
-        Pais pais = null;
-        if (request.getIdPais() != null) {
-            pais = paisRepository.findById(request.getIdPais())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "País no encontrado"));
-        }
-
-        Usuario usuario = Usuario.builder()
-                .nombres(request.getNombres())
-                .apellidos(request.getApellidos())
-                .correo(request.getCorreo())
-                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))
-                .fechaNacimiento(request.getFechaNacimiento())
-                .pais(pais)
-                .estadoCuenta(request.getEstadoCuenta() != null ? request.getEstadoCuenta() : true)
-                .build();
-        usuario = usuarioRepository.save(usuario);
-
         List<String> rolesAsignar = (request.getRoles() != null && !request.getRoles().isEmpty())
                 ? request.getRoles() : List.of("CLIENTE");
+        String[] roles = rolesAsignar.stream().map(String::toUpperCase).toArray(String[]::new);
 
-        for (String rolNombre : rolesAsignar) {
-            String rolUpper = rolNombre.toUpperCase();
-            Rol rol = rolRepository.findByNombreRol(rolUpper)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol especificado no existe en el sistema: " + rolUpper));
-            usuarioRolRepository.save(UsuarioRol.builder().usuario(usuario).rol(rol).build());
-
-            if ("CREADOR".equals(rolUpper) && perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {
-                perfilCreadorRepository.save(PerfilCreador.builder().usuario(usuario).biografia("Perfil creado por Administrador").build());
-            }
+        Long idUsuario;
+        try {
+            idUsuario = usuarioRepository.crearUsuarioAdmin(
+                    request.getNombres(),
+                    request.getApellidos(),
+                    request.getCorreo(),
+                    passwordEncoder.encode(request.getContrasena()),
+                    request.getFechaNacimiento(),
+                    request.getIdPais(),
+                    request.getEstadoCuenta(),
+                    roles);
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
+
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear el usuario"));
 
         return usuarioMapper.toUserResponse(usuario);
     }
@@ -145,31 +143,47 @@ public class AdminUserServiceImpl implements AdminUserService {
                 usuario.setPais(pais);
             }
         }
-        if (request.getEstadoCuenta() != null) {
-            boolean estadoAnterior = usuario.getEstadoCuenta();
-            usuario.setEstadoCuenta(request.getEstadoCuenta());
-            if (estadoAnterior && !request.getEstadoCuenta()) {
-                sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
-            }
-        }
-
         if (Boolean.FALSE.equals(request.getDosFactoresHabilitado())) {
-            final Long idUsuario = usuario.getIdUsuario();
-            final String correoUsuario = usuario.getCorreo();
-            autenticacionDosFactoresRepository.findByUsuarioIdUsuario(idUsuario)
-                    .ifPresent(dosFactores -> {
-                        dosFactores.setEstaHabilitado(false);
-                        autenticacionDosFactoresRepository.save(dosFactores);
-                        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(idUsuario);
-                        log.info("2FA desactivado por administrador para usuario: {}", correoUsuario);
-                    });
+            // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7):
+            // fn_desactivar_2fa desactiva el flag y purga los codigos de
+            // respaldo en una unica transaccion; es idempotente (no lanza si
+            // el usuario no tenia 2FA configurado, igual que el ifPresent
+            // anterior). Unifica el codigo antes duplicado con
+            // TwoFactorServiceImpl.disable2Fa.
+            boolean desactivado = autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());
+            if (desactivado) {
+                log.info("2FA desactivado por administrador para usuario: {}", usuario.getCorreo());
+            }
         }
 
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
             actualizarRoles(usuario, request.getRoles());
         }
 
+        // Persiste primero nombres/apellidos/fechaNacimiento/pais (los unicos
+        // campos mutados directamente en la entidad hasta aqui) para que este
+        // UPDATE no incluya estado_cuenta -- ese campo se cambia mas abajo por
+        // la rutina atomica, nunca por esta escritura JPA.
         usuario = usuarioRepository.save(usuario);
+
+        if (request.getEstadoCuenta() != null) {
+            // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+            // fn_cambiar_estado_cuenta decide "hubo transicion activa->inactiva?"
+            // y revoca sesiones bajo SELECT FOR UPDATE en el motor, en vez de
+            // comparar aqui un estadoAnterior que otro administrador concurrente
+            // pudo dejar obsoleto (actualizacion perdida).
+            //
+            // entityManager.refresh() en vez de usuario.setEstadoCuenta(...):
+            // el save() de arriba ya vacio cualquier cambio pendiente, asi que
+            // no hay nada que perder; refresh() releae la fila (reflejando el
+            // estado_cuenta que la funcion nativa acaba de escribir) y
+            // resincroniza el snapshot de Hibernate, evitando que el commit de
+            // esta transaccion dispare un SEGUNDO UPDATE redundante reescribiendo
+            // el mismo valor que la funcion atomica ya persistio.
+            sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());
+            entityManager.refresh(usuario);
+        }
+
         return usuarioMapper.toUserResponse(usuario);
     }
 
@@ -182,13 +196,20 @@ public class AdminUserServiceImpl implements AdminUserService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        boolean estadoAnterior = usuario.getEstadoCuenta();
-        usuario.setEstadoCuenta(request.getEstadoCuenta());
-        usuario = usuarioRepository.save(usuario);
-
-        if (estadoAnterior && !request.getEstadoCuenta()) {
-            sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
-        }
+        // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+        // fn_cambiar_estado_cuenta aplica el cambio y revoca sesiones (si hubo
+        // transicion activa->inactiva) en una unica transaccion serializada con
+        // SELECT FOR UPDATE, sustituyendo el find+mutate+save+revocar en cuatro
+        // pasos no atomicos que tenia esta operacion.
+        //
+        // entityManager.refresh() en vez de usuario.setEstadoCuenta(...): este
+        // metodo no tiene ningun otro cambio pendiente sobre `usuario`, asi que
+        // mutar el campo en el objeto managed lo marcaria "dirty" y Hibernate
+        // emitiria, al confirmar la transaccion, un UPDATE adicional reescribiendo
+        // el mismo valor que la funcion atomica ya persistio. refresh() releae la
+        // fila real (sin escribir nada) y resincroniza el snapshot de Hibernate.
+        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());
+        entityManager.refresh(usuario);
 
         return usuarioMapper.toUserResponse(usuario);
     }
@@ -221,12 +242,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
     public void deleteUser(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
-        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
-        usuario.setEstadoCuenta(false);
-        usuarioRepository.save(usuario);
+        if (!usuarioRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        }
+        // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+        // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
+        // atomicamente; ya no hace falta cargar la entidad completa.
+        sessionRevocationService.cambiarEstadoCuenta(id, false);
     }
 
     @Override
@@ -240,20 +262,23 @@ public class AdminUserServiceImpl implements AdminUserService {
         return new RespuestaMensaje("Se han revocado exitosamente todas las sesiones del usuario ID: " + id);
     }
 
+    /**
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §3) -
+     * fn_sincronizar_roles_usuario reemplaza atomicamente, en una unica llamada
+     * al motor, lo que antes eran ~10 viajes no atomicos (findByUsuarioIdUsuario
+     * + deleteAll + flush + por cada rol: findByNombreRol + save + consulta de
+     * perfil + save de perfil). Corrige dos anomalias: la lectura fantasma que
+     * permitia roles duplicados cuando dos administradores editaban al mismo
+     * usuario a la vez, y el estado a medias (usuario sin ningun rol) si el
+     * bucle en Java fallaba despues del delete.
+     */
     private void actualizarRoles(Usuario usuario, List<String> nuevosRoles) {
-        List<UsuarioRol> rolesActuales = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());
-        usuarioRolRepository.deleteAll(rolesActuales);
-        usuarioRolRepository.flush();
-
-        for (String rolNombre : nuevosRoles) {
-            String rolUpper = rolNombre.toUpperCase();
-            Rol rol = rolRepository.findByNombreRol(rolUpper)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol especificado no existe en el sistema: " + rolUpper));
-            usuarioRolRepository.save(UsuarioRol.builder().usuario(usuario).rol(rol).build());
-
-            if ("CREADOR".equals(rolUpper) && perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {
-                perfilCreadorRepository.save(PerfilCreador.builder().usuario(usuario).biografia("¡Hola! Soy un creador en ARTISYNC.").build());
-            }
+        try {
+            usuarioRolRepository.sincronizarRoles(
+                    usuario.getIdUsuario(),
+                    nuevosRoles.stream().map(String::toUpperCase).toArray(String[]::new));
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
     }
 }

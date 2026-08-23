@@ -22,4 +22,16 @@ public interface RolRepository extends JpaRepository<Rol, Long> {
     /** REQ-F-004 - fn_eliminar_rol: elimina un rol solo si no es protegido y no tiene usuarios asignados. */
     @Query(value = "SELECT fn_eliminar_rol(:p_id_rol)", nativeQuery = true)
     Boolean eliminarRol(@Param("p_id_rol") Long idRol);
+
+    /**
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4) -
+     * fn_crear_rol: crea un rol y asigna sus permisos iniciales atomicamente,
+     * capturando unique_violation sobre el nombre en vez de una comprobacion
+     * findByNombreRol no atomica (A8). Devuelve el id_rol generado.
+     */
+    @Query(value = "SELECT fn_crear_rol(:p_nombre_rol, :p_descripcion_rol, :p_codigos_permiso)", nativeQuery = true)
+    Long crearRol(
+            @Param("p_nombre_rol") String nombreRol,
+            @Param("p_descripcion_rol") String descripcionRol,
+            @Param("p_codigos_permiso") String[] codigosPermiso);
 }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
@@ -69,25 +70,30 @@ class RolePermissionServiceImplTest {
         return new RuntimeException(new SQLException(mensaje, sqlState));
     }
 
+    // Fase 3 concurrencia: createRole delega en fn_crear_rol (rolRepository.crearRol),
+    // que captura unique_violation en el motor en vez de una comprobacion
+    // findByNombreRol previa no atomica (A8).
     @Test
     void createRole_Success() {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", List.of());
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
-        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+        when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0])).thenReturn(10L);
+        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
 
         RolResponse res = service.createRole(req);
 
         assertNotNull(res);
         assertEquals("SUPERVISOR", res.getNombreRol());
-        verify(rolRepository).save(any(Rol.class));
+        verify(rolRepository).crearRol("SUPERVISOR", "Rol de supervisión", new String[0]);
     }
 
     @Test
     void createRole_ConflictWhenRoleExists() {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", List.of());
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+        when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0]))
+                .thenThrow(excepcionSql("23505", "Ya existe un rol con el nombre: SUPERVISOR"));
 
-        assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(rolRepository, never()).save(any(Rol.class));
     }
 
@@ -286,9 +292,8 @@ class RolePermissionServiceImplTest {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "desc", List.of("catalogo_ver"));
         rolCustom.setPermisos(new HashSet<>(Set.of(permiso)));
 
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
-        when(permisoRepository.findByNombrePermiso("CATALOGO_VER")).thenReturn(Optional.of(permiso));
-        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+        when(rolRepository.crearRol("SUPERVISOR", "desc", new String[]{"CATALOGO_VER"})).thenReturn(10L);
+        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
 
         RolResponse res = service.createRole(req);
 
@@ -297,10 +302,13 @@ class RolePermissionServiceImplTest {
 
     @Test
     void createRole_ThrowsBadRequest_WhenPermisoInicialInexistente() {
+        // fn_sincronizar_permisos_rol (invocada dentro de fn_crear_rol) lanza
+        // ERRCODE 23503 cuando un codigo de permiso es invalido.
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "desc", List.of("fantasma"));
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
-        when(permisoRepository.findByNombrePermiso("FANTASMA")).thenReturn(Optional.empty());
+        when(rolRepository.crearRol("SUPERVISOR", "desc", new String[]{"FANTASMA"}))
+                .thenThrow(excepcionSql("23503", "Uno o mas permisos son inexistentes para el rol SUPERVISOR"));
 
-        assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 }

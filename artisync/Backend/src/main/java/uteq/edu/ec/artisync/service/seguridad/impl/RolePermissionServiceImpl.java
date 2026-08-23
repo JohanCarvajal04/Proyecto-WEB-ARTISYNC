@@ -26,10 +26,8 @@ import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -158,35 +156,33 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Auditable(accion = "ROL_CREAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "roles", idEntidad = "#resultado.idRol",
             detalle = "{nombreRol: #request.nombreRol, permisosIniciales: #request.permisosIniciales}")
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_crear_rol, que captura unique_violation sobre el nombre en vez de
+    // la comprobacion findByNombreRol previa a esta version, que no era
+    // atomica respecto al save() (lectura fantasma, A8), y compone con
+    // fn_sincronizar_permisos_rol (REQ-F-003) para los permisos iniciales.
     public RolResponse createRole(CreateRoleRequest request) {
         String nombreRolUpper = request.getNombreRol().trim().toUpperCase();
-        if (rolRepository.findByNombreRol(nombreRolUpper).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un rol con el nombre: " + nombreRolUpper);
+        String[] codigos = request.getPermisosIniciales() != null
+                ? request.getPermisosIniciales().stream().map(String::toUpperCase).toArray(String[]::new)
+                : new String[0];
+
+        Long idRol;
+        try {
+            idRol = rolRepository.crearRol(nombreRolUpper, request.getDescripcionRol(), codigos);
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
 
-        Set<Permiso> permisosIniciales = new HashSet<>();
-        if (request.getPermisosIniciales() != null) {
-            for (String code : request.getPermisosIniciales()) {
-                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permiso inexistente: " + code));
-                permisosIniciales.add(p);
-            }
-        }
-
-        Rol nuevoRol = Rol.builder()
-                .nombreRol(nombreRolUpper)
-                .descripcionRol(request.getDescripcionRol())
-                .permisos(permisosIniciales)
-                .build();
-
-        nuevoRol = rolRepository.save(nuevoRol);
+        Rol nuevoRol = rolRepository.findById(idRol)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear el rol"));
         log.info("Rol personalizado creado exitosamente: {}", nombreRolUpper);
 
         return RolResponse.builder()
                 .idRol(nuevoRol.getIdRol())
                 .nombreRol(nuevoRol.getNombreRol())
                 .descripcionRol(nuevoRol.getDescripcionRol())
-                .permisos(nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())
+                .permisos(nuevoRol.getPermisos() != null ? nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())
                 .build();
     }
 
