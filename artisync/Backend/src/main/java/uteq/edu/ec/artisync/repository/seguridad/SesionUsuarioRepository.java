@@ -16,9 +16,14 @@ public interface SesionUsuarioRepository extends JpaRepository<SesionUsuario, Lo
 
     void deleteByJti(String jti);
 
-    List<SesionUsuario> findByUsuarioIdUsuario(Long idUsuario);
-
-    void deleteByUsuarioIdUsuario(Long idUsuario);
+    // CR-02 (revision de codigo): findByUsuarioIdUsuario y
+    // deleteByUsuarioIdUsuario vivian aqui hasta el refactor de concurrencia.
+    // Eran el patron en tres pasos (leer sesiones -> revocar en Redis -> borrar)
+    // que revocarSesionesUsuario/fn_revocar_sesiones_usuario sustituyo: una
+    // sesion creada entre el primer y el ultimo paso se borraba sin haberse
+    // revocado nunca en Redis (lectura no repetible, A6). Se eliminan -no se
+    // dejan como codigo muerto- para que nadie los reintroduzca sin darse
+    // cuenta de que reabren esa anomalia.
 
     /**
      * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5) -

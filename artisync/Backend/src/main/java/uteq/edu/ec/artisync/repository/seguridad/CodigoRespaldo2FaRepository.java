@@ -6,15 +6,17 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
 
-import java.util.List;
-import java.util.Optional;
-
 @Repository
 public interface CodigoRespaldo2FaRepository extends JpaRepository<CodigoRespaldo2Fa, Long> {
 
-    List<CodigoRespaldo2Fa> findByUsuarioIdUsuarioAndUsadoFalse(Long idUsuario);
-
-    void deleteByUsuarioIdUsuario(Long idUsuario);
+    // CR-02 (revision de codigo): findByUsuarioIdUsuarioAndUsadoFalse y
+    // deleteByUsuarioIdUsuario vivian aqui hasta el refactor de concurrencia.
+    // Eran, respectivamente, la mitad del patron read-modify-write que
+    // permitia consumir dos veces el mismo codigo de respaldo (bypass de 2FA,
+    // A1) y el borrado sin revocacion previa (A6) que sustituyo
+    // consumirCodigoRespaldo/fn_consumir_codigo_respaldo_2fa mas abajo. Se
+    // eliminan -no se dejan como codigo muerto- para que nadie los reintroduzca
+    // sin darse cuenta de que reabren esas dos anomalias.
 
     /**
      * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §2) -
