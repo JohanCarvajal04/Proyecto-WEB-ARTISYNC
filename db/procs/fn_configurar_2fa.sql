@@ -37,7 +37,7 @@ RETURNS INTEGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_total INTEGER;
+    v_total INTEGER := 0;
 BEGIN
     IF p_id_usuario IS NULL OR p_llave_secreta IS NULL THEN
         RAISE EXCEPTION 'fn_configurar_2fa: p_id_usuario y p_llave_secreta son obligatorios'
@@ -61,13 +61,21 @@ BEGIN
     -- de codigos de respaldo, nunca de uno parcial o del anterior.
     DELETE FROM codigos_respaldo_2fa WHERE id_usuario = p_id_usuario;
 
+    -- CR-01 (revision de codigo): GET DIAGNOSTICS captura el ROW_COUNT de la
+    -- ULTIMA sentencia ejecutada, no de este INSERT en particular. Antes vivia
+    -- fuera de este IF, asi que con p_hashes NULL/vacio devolvia el ROW_COUNT
+    -- del DELETE de arriba (hasta 8) en vez de 0, contradiciendo el contrato
+    -- documentado ("Devuelve el numero de codigos de respaldo insertados").
+    -- v_total se inicializa en 0 arriba para que ese caso devuelva el valor
+    -- correcto sin necesidad de un ELSE.
     IF p_hashes IS NOT NULL AND array_length(p_hashes, 1) > 0 THEN
         INSERT INTO codigos_respaldo_2fa (id_usuario, codigo_hash, usado)
         SELECT p_id_usuario, h, FALSE
           FROM unnest(p_hashes) AS h;
+
+        GET DIAGNOSTICS v_total = ROW_COUNT;
     END IF;
 
-    GET DIAGNOSTICS v_total = ROW_COUNT;
     RETURN v_total;
 END;
 $$;
