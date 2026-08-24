@@ -75,8 +75,11 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
 
           this.mensajesSub = this.chatService.mensajes$.subscribe(mensajes => {
             // El backend pagina el historial pero nosotros ahora usamos un BehaviorSubject
-            // Ordenamos ascendente si vienen de WS
-            const ordenados = mensajes.sort((a, b) => new Date(a.fechaHoraEnvio).getTime() - new Date(b.fechaHoraEnvio).getTime());
+            // Ordenamos ascendente si vienen de WS. [...mensajes] copia antes de
+            // ordenar: sort() muta en sitio, y mensajes es el mismo array que
+            // ChatService guarda en su BehaviorSubject (NG-04) -- mutarlo aqui
+            // corrompe el estado bajo cualquier otro suscriptor futuro.
+            const ordenados = [...mensajes].sort((a, b) => new Date(a.fechaHoraEnvio).getTime() - new Date(b.fechaHoraEnvio).getTime());
             const cantidadAnterior = this.mensajes().length;
             this.mensajes.set(ordenados);
             this.isLoading.set(false);

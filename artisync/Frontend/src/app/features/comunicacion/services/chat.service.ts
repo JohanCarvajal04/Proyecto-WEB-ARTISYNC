@@ -69,9 +69,21 @@ export class ChatService {
     if (this.stompClient.active) {
       this.stompClient.deactivate();
     }
+    // NG-01 (auditoria Angular): este servicio es providedIn:'root' -- sobrevive
+    // al componente de chat -- y mensajesSubject es un BehaviorSubject: sin este
+    // reset, el siguiente componente que se suscriba a mensajes$ (al abrir el
+    // chat de OTRO pedido) recibe de inmediato la conversacion que quedo aqui,
+    // antes de que llegue la respuesta de cargarHistorialMensajes. Son
+    // contrapartes distintas, asi que era una fuga de confidencialidad entre
+    // conversaciones, no solo un parpadeo visual.
+    this.mensajesSubject.next([]);
   }
 
   public joinSala(idSala: number, idPedido: number): void {
+    // Vaciar antes de pedir el historial nuevo: cubre entrar a otra sala sin
+    // que el componente anterior llegara a destruirse (mismo motivo que en
+    // disconnect() de arriba).
+    this.mensajesSubject.next([]);
     // Cargar historial por REST no depende del WebSocket: se dispara ya.
     this.cargarHistorialMensajes(idPedido);
 
@@ -146,6 +158,9 @@ export class ChatService {
       },
       error: (err) => {
         console.error('Error cargando historial de mensajes:', err);
+        // NG-01: sin esto, un fallo de red dejaba en pantalla el historial del
+        // pedido/sala anterior en vez de un estado vacio/de error.
+        this.mensajesSubject.next([]);
       }
     });
   }
