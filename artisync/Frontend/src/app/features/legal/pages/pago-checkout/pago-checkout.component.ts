@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, interval, of, switchMap, take, catchError } from 'rxjs';
 import { PagoService } from '../../services/pago.service';
@@ -31,14 +31,20 @@ const ICONO_RELOJ = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
   templateUrl: './pago-checkout.component.html'
 })
 export class PagoCheckoutComponent implements OnInit, OnDestroy {
-  pago: RespuestaPago | null = null;
-  loading = true;
-  creandoPago = false;
-  error = '';
-  idPedido = 0;
-
+  // NG-03 (auditoria Angular): estado como signals en vez de propiedades
+  // planas + ChangeDetectorRef.markForCheck() manual. En zoneless, olvidar
+  // markForCheck() tras un camino asincrono nuevo deja la pantalla de pago
+  // congelada en silencio, sin ningun error visible; con signal.set() el
+  // fallo es imposible por construccion -- es lo que ya usa el resto de
+  // componentes de la app (ver docs de la auditoria).
+  readonly pago = signal<RespuestaPago | null>(null);
+  readonly loading = signal(true);
+  readonly creandoPago = signal(false);
+  readonly error = signal('');
   /** `true` mientras se espera la confirmación del webhook tras abrir PayPal. */
-  esperandoConfirmacion = false;
+  readonly esperandoConfirmacion = signal(false);
+
+  idPedido = 0;
 
   private sondeoSub?: Subscription;
 
@@ -47,15 +53,14 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
    * siguiente tick: es justo cuando el usuario acaba de pagar y vuelve.
    */
   private readonly alRecuperarFoco = () => {
-    if (this.esperandoConfirmacion) {
+    if (this.esperandoConfirmacion()) {
       this.refrescarEstado();
     }
   };
 
   constructor(
     private pagoService: PagoService,
-    private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -70,39 +75,35 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
   }
 
   cargarEstado(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.pagoService.obtenerEstadoPago(this.idPedido).subscribe({
       next: (pago) => {
-        this.pago = pago;
-        this.loading = false;
-        this.cdr.markForCheck();
+        this.pago.set(pago);
+        this.loading.set(false);
       },
       error: () => {
-        this.pago = null;
-        this.loading = false;
-        this.cdr.markForCheck();
+        this.pago.set(null);
+        this.loading.set(false);
       }
     });
   }
 
   crearOrdenPago(): void {
-    this.creandoPago = true;
-    this.error = '';
+    this.creandoPago.set(true);
+    this.error.set('');
 
     this.pagoService.crearOrdenPago(this.idPedido).subscribe({
       next: (pago) => {
-        this.pago = pago;
-        this.creandoPago = false;
+        this.pago.set(pago);
+        this.creandoPago.set(false);
         if (pago.approvalUrl) {
           window.open(pago.approvalUrl, '_blank', 'noopener');
           this.iniciarSondeo();
         }
-        this.cdr.markForCheck();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al crear la orden de pago';
-        this.creandoPago = false;
-        this.cdr.markForCheck();
+        this.error.set(err.error?.message || 'Error al crear la orden de pago');
+        this.creandoPago.set(false);
       }
     });
   }
@@ -125,7 +126,7 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
 
   private iniciarSondeo(): void {
     this.detenerSondeo();
-    this.esperandoConfirmacion = true;
+    this.esperandoConfirmacion.set(true);
 
     this.sondeoSub = interval(INTERVALO_SONDEO_MS).pipe(
       take(MAX_INTENTOS_SONDEO),
@@ -141,18 +142,16 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
       // Se agotaron los intentos sin confirmación: se deja de esperar, pero el
       // estado que muestre el backend sigue siendo el bueno.
       complete: () => {
-        this.esperandoConfirmacion = false;
-        this.cdr.markForCheck();
+        this.esperandoConfirmacion.set(false);
       }
     });
   }
 
   private aplicarEstado(pago: RespuestaPago): void {
-    this.pago = pago;
+    this.pago.set(pago);
     if (this.esEstadoTerminal(pago)) {
       this.detenerSondeo();
     }
-    this.cdr.markForCheck();
   }
 
   private esEstadoTerminal(pago: RespuestaPago): boolean {
@@ -162,7 +161,7 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
   private detenerSondeo(): void {
     this.sondeoSub?.unsubscribe();
     this.sondeoSub = undefined;
-    this.esperandoConfirmacion = false;
+    this.esperandoConfirmacion.set(false);
   }
 
   readonly pasosEscrow = [
