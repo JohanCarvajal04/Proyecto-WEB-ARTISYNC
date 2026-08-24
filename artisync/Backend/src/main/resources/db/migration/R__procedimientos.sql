@@ -1,30 +1,41 @@
+﻿-- ===========================================================================
+-- R__procedimientos.sql - ARCHIVO GENERADO.
 -- ===========================================================================
--- R__procedimientos.sql — ARCHIVO GENERADO. NO EDITAR A MANO.
--- ===========================================================================
 --
--- Generado por scripts/sync-procs.sh a partir de db/procs/*.sql, que es la
--- ubicacion canonica de las rutinas (apartado A.2.1 de la guia de la Entrega
--- Final). Para modificar una rutina se edita su archivo en db/procs/ y se
--- ejecuta `make sync-procs`.
---
--- Migracion REPETIBLE: Flyway la reaplica cada vez que cambia su checksum.
--- Todas las rutinas usan CREATE OR REPLACE, por lo que reaplicarla es inocuo.
---
--- Rutinas incluidas (14):
+-- Rutinas incluidas (33):
 --   - V8__estructuras_para_procedimientos.sql
+--   - fn_actualizar_portada_creador.sql
 --   - fn_calificacion_promedio_creador.sql
+--   - fn_cambiar_contrasena.sql
+--   - fn_cambiar_estado_cuenta.sql
 --   - fn_catalogo_filtrado.sql
 --   - fn_cerrar_pedidos_vencidos.sql
+--   - fn_configurar_2fa.sql
+--   - fn_consumir_codigo_respaldo_2fa.sql
+--   - fn_conteo_seguidores.sql
+--   - fn_crear_rol.sql
+--   - fn_crear_usuario_admin.sql
+--   - fn_dejar_de_seguir_creador.sql
+--   - fn_desactivar_2fa.sql
 --   - fn_eliminar_rol.sql
+--   - fn_es_seguidor.sql
 --   - fn_generar_codigo_pedido.sql
+--   - fn_guardar_pais.sql
 --   - fn_liberar_fondos_escrow.sql
+--   - fn_listar_creadores_seguidos_novedades.sql
+--   - fn_permisos_efectivos_usuario.sql
 --   - fn_registrar_infraccion.sql
 --   - fn_registrar_usuario.sql
 --   - fn_reporte_comisiones_creador.sql
 --   - fn_resolver_estado_login.sql
 --   - fn_restablecer_contrasena.sql
+--   - fn_revocar_sesiones_usuario.sql
+--   - fn_seguir_creador.sql
 --   - fn_seleccionar_ganadores_sorteo.sql
 --   - fn_sincronizar_permisos_rol.sql
+--   - fn_sincronizar_roles_usuario.sql
+--   - fn_solicitar_recuperacion.sql
+--   - sp_purgar_datos_seguridad.sql
 -- ===========================================================================
 
 
@@ -86,6 +97,44 @@ CREATE INDEX IF NOT EXISTS idx_servicios_subcategoria_estado
     ON servicios (id_subcategoria, estado_publicacion);
 
 
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_actualizar_portada_creador.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_actualizar_portada_creador
+-- Categoria funcional: actualizaciones
+-- =============================================================================
+-- Actualiza la URL de portada y el titulo profesional de un perfil de creador.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_actualizar_portada_creador(
+    p_id_perfil BIGINT,
+    p_url_portada VARCHAR(500),
+    p_titulo_profesional VARCHAR(150)
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id_perfil IS NULL THEN
+        RAISE EXCEPTION 'El id de perfil es obligatorio';
+    END IF;
+
+    UPDATE perfiles_creadores
+       SET url_portada = COALESCE(p_url_portada, url_portada),
+           titulo_profesional = COALESCE(p_titulo_profesional, titulo_profesional)
+     WHERE id_perfil = p_id_perfil;
+
+    RETURN FOUND;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
+    IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
+
+
+
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_calificacion_promedio_creador.sql
 -- ---------------------------------------------------------------------------
@@ -140,6 +189,166 @@ $$;
 
 COMMENT ON FUNCTION fn_calificacion_promedio_creador(BIGINT)
     IS 'REQ-F-009 - Calculo agregado: calificacion media 1..5 de un creador. NULL si no tiene resenas.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_cambiar_contrasena.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_cambiar_contrasena
+-- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §6 — corrige la anomalia A7.
+-- =============================================================================
+-- Aplica un cambio de contrasena de forma condicionada: solo si el hash
+-- almacenado sigue siendo EXACTAMENTE el que Java verifico con BCrypt antes
+-- de invocar esta funcion (compare-and-swap).
+--
+-- Sustituye a UserServiceImpl.changePassword (parte de escritura), que hacia
+-- un UPDATE incondicional tras la verificacion: usuario.setContrasenaHash(...)
+-- + save(). Si dos peticiones concurrentes cambiaban la contrasena del mismo
+-- usuario (dos pestanas, un cliente reintentando tras un timeout aparente),
+-- la segunda en escribir pisaba silenciosamente el resultado de la primera --
+-- ninguna de las dos se enteraba de que "gano" la otra (actualizacion perdida).
+--
+-- BCrypt en si permanece fuera del motor (la comparacion de la contrasena
+-- ACTUAL contra el hash se sigue haciendo en Java, con passwordEncoder.matches,
+-- antes de invocar esta funcion): lo que se traslada al motor es la ESCRITURA
+-- condicionada, usando el propio hash verificado como testigo de version. Si
+-- el hash cambio entre la verificacion en Java y este UPDATE, el predicado
+-- "contrasena_hash = p_hash_esperado" no coincide y la fila no se actualiza
+-- (0 filas afectadas), sin necesidad de un SELECT ... FOR UPDATE previo.
+--
+-- Lanza excepcion (ERRCODE 40001, serialization_failure: el codigo estandar
+-- de PostgreSQL para "otra transaccion se te adelanto") si 0 filas resultaron
+-- afectadas, para que la capa Java pueda distinguir "contrasena actual
+-- incorrecta" (validado antes, en Java) de "alguien mas cambio la contrasena
+-- justo ahora" (aqui).
+--
+-- Devuelve TRUE si el cambio se aplico.
+--
+-- Seguridad: parametros formales tipados (los hashes BCrypt, nunca la
+-- contrasena en texto plano); sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_cambiar_contrasena(
+    p_id_usuario    BIGINT,
+    p_hash_esperado VARCHAR(255),
+    p_hash_nuevo    VARCHAR(255)
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_afectadas INTEGER;
+BEGIN
+    IF p_id_usuario IS NULL OR p_hash_esperado IS NULL OR p_hash_nuevo IS NULL THEN
+        RAISE EXCEPTION 'fn_cambiar_contrasena: todos los parametros son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    -- El predicado contrasena_hash = p_hash_esperado es el compare-and-swap:
+    -- bajo READ COMMITTED, si otra transaccion ya cambio la contrasena y
+    -- confirmo, PostgreSQL re-evalua este WHERE sobre esa version nueva
+    -- (EvalPlanQual) y el predicado deja de cumplirse -- ROW_COUNT queda en 0
+    -- sin que ninguna de las dos escrituras se pierda en silencio.
+    UPDATE usuarios
+       SET contrasena_hash = p_hash_nuevo
+     WHERE id_usuario = p_id_usuario
+       AND contrasena_hash = p_hash_esperado;
+
+    GET DIAGNOSTICS v_afectadas = ROW_COUNT;
+
+    IF v_afectadas = 0 THEN
+        RAISE EXCEPTION 'La contrasena fue modificada por otra sesion. Vuelve a intentarlo.'
+            USING ERRCODE = '40001';
+    END IF;
+
+    RETURN TRUE;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_cambiar_contrasena(BIGINT, VARCHAR, VARCHAR)
+    IS 'Fase 3 concurrencia - UPDATE condicionado (compare-and-swap sobre el hash) que aplica un cambio de contrasena solo si nadie mas la cambio primero, eliminando la actualizacion perdida (A7).';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_cambiar_estado_cuenta.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_cambiar_estado_cuenta
+-- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
+-- Fase 1 de docs/basedatos/PLAN-CONCURRENCIA-SP.md — corrige la anomalia A6 (compuesta).
+-- =============================================================================
+-- Cambia estado_cuenta de un usuario y, solo si la cuenta pasa de activa a
+-- inactiva, revoca sus sesiones (fn_revocar_sesiones_usuario) en la MISMA
+-- transaccion. Unifica el par "cambiar estado + revocar sesiones" que hoy se
+-- repite, con ligeras variaciones, en:
+--   - AdminUserServiceImpl.changeEstado
+--   - AdminUserServiceImpl.deleteUser (soft-delete: estadoCuenta = false)
+--   - UserServiceImpl.deleteOwnAccount (idem)
+--   - la rama de estadoCuenta dentro de AdminUserServiceImpl.updateUser
+--
+-- Anomalia que corrige: sin SELECT ... FOR UPDATE, dos administradores
+-- operando sobre el mismo usuario a la vez (uno reactivandolo, otro
+-- desactivandolo) pueden pisarse: el que desactiva puede leer un
+-- estado_cuenta ya obsoleto y decidir, incorrectamente, NO revocar sesiones
+-- -- exactamente el caso en que mas importa hacerlo. El FOR UPDATE serializa
+-- ambas operaciones: la segunda espera a que la primera confirme y lee su
+-- resultado real, nunca un valor a medias (actualizacion perdida cerrada).
+--
+-- Devuelve las filas de fn_revocar_sesiones_usuario (jti + segundos
+-- restantes) cuando hubo transicion activa->inactiva, o un conjunto vacio si
+-- no la hubo (incluye reactivar una cuenta, o "cambiar" a un estado igual al
+-- actual).
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_cambiar_estado_cuenta(
+    p_id_usuario BIGINT,
+    p_estado     BOOLEAN
+)
+RETURNS TABLE (jti VARCHAR(36), segundos_restantes INTEGER)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_estado_anterior BOOLEAN;
+BEGIN
+    IF p_id_usuario IS NULL OR p_estado IS NULL THEN
+        RAISE EXCEPTION 'fn_cambiar_estado_cuenta: p_id_usuario y p_estado son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    -- FOR UPDATE: serializa dos cambios de estado concurrentes del mismo
+    -- usuario. Sin el, el segundo escritor podria leer un estado_anterior ya
+    -- superado por el primero y decidir mal si corresponde revocar sesiones.
+    SELECT estado_cuenta INTO v_estado_anterior
+      FROM usuarios
+     WHERE id_usuario = p_id_usuario
+       FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Usuario no encontrado con ID: %', p_id_usuario
+            USING ERRCODE = 'P0002';
+    END IF;
+
+    UPDATE usuarios
+       SET estado_cuenta = p_estado
+     WHERE id_usuario = p_id_usuario;
+
+    IF v_estado_anterior AND NOT p_estado THEN
+        RETURN QUERY SELECT * FROM fn_revocar_sesiones_usuario(p_id_usuario);
+    END IF;
+
+    RETURN;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_cambiar_estado_cuenta(BIGINT, BOOLEAN)
+    IS 'Fase 1 concurrencia - Cambia estado_cuenta y revoca sesiones (transicion activa->inactiva) atomicamente bajo SELECT FOR UPDATE, unificando el patron repetido en changeEstado/deleteUser/deleteOwnAccount.';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -271,6 +480,7 @@ COMMENT ON FUNCTION fn_catalogo_filtrado(BIGINT, BIGINT, NUMERIC, NUMERIC, VARCH
     IS 'REQ-F-013 - Consulta multi-tabla del catalogo publico con filtros combinados. Devuelve JSONB {total, limite, offset, elementos[]}.';
 
 
+
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_cerrar_pedidos_vencidos.sql
 -- ---------------------------------------------------------------------------
@@ -359,6 +569,466 @@ COMMENT ON FUNCTION fn_cerrar_pedidos_vencidos(INTEGER)
     IS 'REQ-F-019 - Actualizacion masiva: cierra los pedidos vencidos insertando su transicion a etapa final. Idempotente. Devuelve el numero de pedidos cerrados.';
 
 
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_configurar_2fa.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_configurar_2fa
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla   Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §7 — corrige la anomalia A4.
+-- =============================================================================
+-- Inicia o reinicia la configuracion de 2FA de un usuario: fija la nueva
+-- llave secreta TOTP y reemplaza el juego completo de codigos de respaldo.
+--
+-- Sustituye a TwoFactorServiceImpl.setup2Fa (parte de escritura): upsert de
+-- autenticacion_dos_factores + DELETE de codigos anteriores + 8 INSERT
+-- individuales de codigos_respaldo_2fa -- 10 viajes no atomicos a la base. Si
+-- el proceso fallaba a mitad del bucle de codigos (timeout, caida de
+-- conexion), el usuario quedaba con un secreto TOTP nuevo pero un juego de
+-- codigos de respaldo incompleto, sin ningun aviso.
+--
+-- El upsert usa ON CONFLICT sobre autenticacion_dos_factores.id_usuario, que
+-- ya es UNIQUE (V1__schema_inicial.sql): no hay ventana entre "verificar si
+-- existe" e "insertar o actualizar". El borrado + alta de los 8 codigos ocurre
+-- en la MISMA transaccion que el upsert del secreto: es imposible observar un
+-- secreto nuevo emparejado con codigos de respaldo del secreto anterior.
+--
+-- Los codigos de respaldo llegan ya hasheados (SHA-256, calculado en Java
+-- antes de invocar esta funcion, igual que en fn_restablecer_contrasena): la
+-- funcion nunca ve el codigo en texto plano.
+--
+-- Devuelve el numero de codigos de respaldo insertados (normalmente 8).
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_configurar_2fa(
+    p_id_usuario    BIGINT,
+    p_llave_secreta VARCHAR(255),
+    p_hashes        TEXT[]
+)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_total INTEGER := 0;
+BEGIN
+    IF p_id_usuario IS NULL OR p_llave_secreta IS NULL THEN
+        RAISE EXCEPTION 'fn_configurar_2fa: p_id_usuario y p_llave_secreta son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario) THEN
+        RAISE EXCEPTION 'Usuario no encontrado con ID: %', p_id_usuario
+            USING ERRCODE = 'P0002';
+    END IF;
+
+    -- Upsert atomico: nunca hay una ventana en la que el registro no exista y
+    -- dos peticiones concurrentes de setup2Fa intenten ambas un INSERT.
+    INSERT INTO autenticacion_dos_factores (id_usuario, llave_secreta, esta_habilitado)
+    VALUES (p_id_usuario, p_llave_secreta, FALSE)
+    ON CONFLICT (id_usuario)
+    DO UPDATE SET llave_secreta = EXCLUDED.llave_secreta, esta_habilitado = FALSE;
+
+    -- Borrado + alta de los codigos en la MISMA transaccion que el upsert de
+    -- arriba: un secreto nuevo siempre viene acompanado de SU juego completo
+    -- de codigos de respaldo, nunca de uno parcial o del anterior.
+    DELETE FROM codigos_respaldo_2fa WHERE id_usuario = p_id_usuario;
+
+    -- CR-01 (revision de codigo): GET DIAGNOSTICS captura el ROW_COUNT de la
+    -- ULTIMA sentencia ejecutada, no de este INSERT en particular. Antes vivia
+    -- fuera de este IF, asi que con p_hashes NULL/vacio devolvia el ROW_COUNT
+    -- del DELETE de arriba (hasta 8) en vez de 0, contradiciendo el contrato
+    -- documentado ("Devuelve el numero de codigos de respaldo insertados").
+    -- v_total se inicializa en 0 arriba para que ese caso devuelva el valor
+    -- correcto sin necesidad de un ELSE.
+    IF p_hashes IS NOT NULL AND array_length(p_hashes, 1) > 0 THEN
+        INSERT INTO codigos_respaldo_2fa (id_usuario, codigo_hash, usado)
+        SELECT p_id_usuario, h, FALSE
+          FROM unnest(p_hashes) AS h;
+
+        GET DIAGNOSTICS v_total = ROW_COUNT;
+    END IF;
+
+    RETURN v_total;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_configurar_2fa(BIGINT, VARCHAR, TEXT[])
+    IS 'Fase 3 concurrencia - Upsert atomico del secreto TOTP + reemplazo completo de codigos de respaldo en una unica transaccion, eliminando el estado a medias (A4) de la version en 10 pasos.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_consumir_codigo_respaldo_2fa.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_consumir_codigo_respaldo_2fa
+-- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
+-- Fase 1 de docs/basedatos/PLAN-CONCURRENCIA-SP.md — corrige la anomalia A1.
+-- =============================================================================
+-- Marca un codigo de respaldo 2FA como usado, si y solo si sigue sin usar.
+--
+-- Sustituye a TwoFactorServiceImpl.validarCodigoOBackup() en la rama de
+-- codigos de respaldo, que hacia: SELECT de todos los codigos no usados del
+-- usuario -> comparar el hash en un bucle Java -> UPDATE del que coincide.
+-- Ese patron read-modify-write NO es atomico: dos peticiones concurrentes con
+-- el mismo codigo leen ambas usado = FALSE antes de que ninguna escriba, y
+-- ambas terminan devolviendo TRUE. Un codigo de un solo uso quedaba
+-- consumible dos veces (actualizacion perdida) -- un bypass de segundo factor.
+--
+-- Por que esta forma lo corrige: es una UNICA sentencia UPDATE con el propio
+-- "usado = FALSE" como predicado. Bajo READ COMMITTED (el nivel del proyecto,
+-- ver docs/basedatos/PLAN-CONCURRENCIA-SP.md §0.4), cuando un UPDATE encuentra
+-- una fila que otra transaccion ya modifico y confirmo, PostgreSQL re-evalua
+-- el WHERE sobre esa version nueva (EvalPlanQual) antes de aplicar el cambio.
+-- Si la primera transaccion ya puso usado = TRUE, la segunda ve el predicado
+-- fallar y no actualiza nada: no hace falta SELECT ... FOR UPDATE previo, el
+-- propio UPDATE toma el bloqueo de fila y la re-evaluacion cierra la ventana.
+--
+-- Devuelve TRUE si este codigo (usuario + hash) existia y no estaba usado
+-- -- exactamente uno de los llamantes concurrentes lo recibe --, FALSE en
+-- cualquier otro caso (no existe, o ya estaba usado).
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE. Solo
+-- ve el hash SHA-256 del codigo, nunca el codigo en texto plano (se calcula
+-- en Java antes de invocar esta funcion, igual que en fn_restablecer_contrasena).
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_consumir_codigo_respaldo_2fa(
+    p_id_usuario  BIGINT,
+    p_codigo_hash VARCHAR(255)
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_codigo BIGINT;
+BEGIN
+    IF p_id_usuario IS NULL OR p_codigo_hash IS NULL THEN
+        RAISE EXCEPTION 'fn_consumir_codigo_respaldo_2fa: p_id_usuario y p_codigo_hash son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    UPDATE codigos_respaldo_2fa
+       SET usado = TRUE
+     WHERE id_usuario = p_id_usuario
+       AND codigo_hash = p_codigo_hash
+       AND usado = FALSE
+    RETURNING id_codigo INTO v_id_codigo;
+
+    RETURN v_id_codigo IS NOT NULL;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_consumir_codigo_respaldo_2fa(BIGINT, VARCHAR)
+    IS 'Fase 1 concurrencia - UPDATE atomico que consume un codigo de respaldo 2FA una sola vez, eliminando la actualizacion perdida del patron read-modify-write anterior.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_conteo_seguidores.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_conteo_seguidores
+-- Categoria funcional: calculos agregados
+-- =============================================================================
+-- Retorna el total de seguidores acumulados por un perfil de creador.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_conteo_seguidores(
+    p_id_perfil_creador BIGINT
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    IF p_id_perfil_creador IS NULL THEN
+        RETURN 0;
+    END IF;
+
+    RETURN (
+        SELECT COUNT(*)
+          FROM seguidores
+         WHERE id_perfil_creador = p_id_perfil_creador
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION fn_conteo_seguidores(BIGINT)
+    IS 'Calcula el numero total de seguidores de un perfil de creador.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_crear_rol.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_crear_rol
+-- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §4 — corrige la anomalia A8.
+-- =============================================================================
+-- Crea un rol personalizado y le asigna sus permisos iniciales, en una unica
+-- transaccion.
+--
+-- Sustituye a RolePermissionServiceImpl.createRole, que comprobaba
+-- rolRepository.findByNombreRol(...).isPresent() y luego hacia save() en
+-- sentencias separadas -- lectura fantasma no atomica: entre la comprobacion
+-- y el insert, otra transaccion podia crear un rol con el mismo nombre.
+-- Mitigado en la practica por roles.nombre_rol UNIQUE, pero sin traduccion de
+-- error (500 crudo en vez de 409).
+--
+-- Captura la violacion de unicidad con un bloque EXCEPTION (mismo molde que
+-- fn_crear_usuario_admin) en vez de una comprobacion previa: PostgreSQL no
+-- ofrece bloqueo de rango bajo READ COMMITTED, asi que la restriccion UNIQUE
+-- como predicado es la unica defensa correcta.
+--
+-- Delega la asignacion de permisos iniciales en fn_sincronizar_permisos_rol
+-- (REQ-F-003, ya existente): evita reimplementar la validacion de codigos de
+-- permiso y garantiza el mismo comportamiento que syncPermissions.
+--
+-- Devuelve el id_rol generado. Lanza excepcion si el nombre ya existe, o si
+-- algun codigo de permiso inicial es invalido (via fn_sincronizar_permisos_rol).
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_crear_rol(
+    p_nombre_rol       VARCHAR(50),
+    p_descripcion_rol  TEXT,
+    p_codigos_permiso  TEXT[]
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_rol         BIGINT;
+    v_nombre_rol_norm VARCHAR(50);
+BEGIN
+    IF p_nombre_rol IS NULL OR btrim(p_nombre_rol) = '' THEN
+        RAISE EXCEPTION 'fn_crear_rol: p_nombre_rol es obligatorio'
+            USING ERRCODE = '22004';
+    END IF;
+
+    v_nombre_rol_norm := UPPER(btrim(p_nombre_rol));
+
+    -- Subtransaccion explicita: el bloque EXCEPTION abre un SAVEPOINT
+    -- implicito. Si el INSERT viola uq roles.nombre_rol (fantasma
+    -- materializado por otra transaccion concurrente), se hace ROLLBACK TO
+    -- SAVEPOINT automatico y se traduce a 409 en vez de un 500 crudo.
+    BEGIN
+        INSERT INTO roles (nombre_rol, descripcion_rol)
+        VALUES (v_nombre_rol_norm, p_descripcion_rol)
+        RETURNING id_rol INTO v_id_rol;
+    EXCEPTION
+        WHEN unique_violation THEN
+            RAISE EXCEPTION 'Ya existe un rol con el nombre: %', v_nombre_rol_norm
+                USING ERRCODE = '23505';
+    END;
+
+    IF p_codigos_permiso IS NOT NULL AND array_length(p_codigos_permiso, 1) > 0 THEN
+        PERFORM fn_sincronizar_permisos_rol(v_nombre_rol_norm, p_codigos_permiso);
+    END IF;
+
+    RETURN v_id_rol;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_crear_rol(VARCHAR, TEXT, TEXT[])
+    IS 'Fase 3 concurrencia - Crea un rol y asigna sus permisos iniciales atomicamente, capturando unique_violation en vez de una comprobacion findByNombreRol no atomica (A8).';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_crear_usuario_admin.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_crear_usuario_admin
+-- Categoria funcional: validaciones cruzadas + inserción multi-tabla   Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §4 — corrige la anomalia A3.
+-- =============================================================================
+-- Crea un usuario desde el panel administrativo, con su(s) rol(es) y el
+-- perfil de creador si corresponde, en una unica transaccion.
+--
+-- Sustituye a AdminUserServiceImpl.createUser, que comprobaba
+-- existsByCorreo(...) y luego hacia save() en sentencias separadas -- una
+-- comprobacion "existe?" no atomica respecto a la insercion (lectura
+-- fantasma): entre ambas, otra transaccion podia insertar el mismo correo.
+-- PostgreSQL no ofrece bloqueo de rango bajo READ COMMITTED ni REPEATABLE READ
+-- (no se puede "bloquear un correo que aun no existe"), asi que la unica
+-- defensa correcta es la restriccion UNIQUE usuarios.correo como predicado,
+-- capturada aqui con un bloque EXCEPTION en vez de una comprobacion previa.
+-- En el peor caso el correo duplicado terminaba en un 500 crudo en vez del
+-- 409 CONFLICT esperado (el fantasma SI quedaba bloqueado por el UNIQUE, pero
+-- sin traduccion de error).
+--
+-- Delega la asignacion de roles (y el alta perezosa de perfiles_creadores) en
+-- fn_sincronizar_roles_usuario (Fase 1, docs/basedatos/PLAN-CONCURRENCIA-SP.md
+-- §3): evita reimplementar esa logica y garantiza el mismo comportamiento que
+-- assignRoles/updateUser para el caso "rol CREADOR incluido".
+--
+-- Devuelve el id_usuario generado. Lanza excepcion si el correo ya existe, si
+-- el pais no existe, o si algun rol solicitado no existe (via
+-- fn_sincronizar_roles_usuario).
+--
+-- Seguridad: parametros formales tipados (la contrasena llega ya hasheada con
+-- BCrypt, calculada en Java); sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_crear_usuario_admin(
+    p_nombres          VARCHAR(100),
+    p_apellidos        VARCHAR(100),
+    p_correo           VARCHAR(150),
+    p_contrasena_hash  VARCHAR(255),
+    p_fecha_nacimiento DATE,
+    p_id_pais          BIGINT,
+    p_estado_cuenta    BOOLEAN,
+    p_nombres_rol      TEXT[]
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_usuario BIGINT;
+BEGIN
+    IF p_correo IS NULL OR p_contrasena_hash IS NULL THEN
+        RAISE EXCEPTION 'fn_crear_usuario_admin: p_correo y p_contrasena_hash son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    IF p_id_pais IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pais WHERE id_pais = p_id_pais) THEN
+        RAISE EXCEPTION 'Pais no encontrado' USING ERRCODE = '23503';
+    END IF;
+
+    -- Subtransaccion explicita: el bloque EXCEPTION abre un SAVEPOINT
+    -- implicito. Si el INSERT viola uq usuarios.correo (fantasma
+    -- materializado por otra transaccion concurrente), se hace ROLLBACK TO
+    -- SAVEPOINT automatico y se traduce a 409 en vez de un 500 crudo.
+    BEGIN
+        INSERT INTO usuarios (nombres, apellidos, correo, contrasena_hash,
+                               fecha_nacimiento, id_pais, estado_cuenta)
+        VALUES (p_nombres, p_apellidos, p_correo, p_contrasena_hash,
+                p_fecha_nacimiento, p_id_pais, COALESCE(p_estado_cuenta, TRUE))
+        RETURNING id_usuario INTO v_id_usuario;
+    EXCEPTION
+        WHEN unique_violation THEN
+            RAISE EXCEPTION 'El correo ya esta registrado: %', p_correo
+                USING ERRCODE = '23505';
+    END;
+
+    PERFORM fn_sincronizar_roles_usuario(
+        v_id_usuario,
+        COALESCE(NULLIF(p_nombres_rol, ARRAY[]::TEXT[]), ARRAY['CLIENTE']));
+
+    RETURN v_id_usuario;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_crear_usuario_admin(VARCHAR, VARCHAR, VARCHAR, VARCHAR, DATE, BIGINT, BOOLEAN, TEXT[])
+    IS 'Fase 3 concurrencia - Crea un usuario administrativo con sus roles en una transaccion atomica, capturando unique_violation en vez de una comprobacion existsByCorreo no atomica (A3).';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_dejar_de_seguir_creador.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_dejar_de_seguir_creador
+-- Categoria funcional: actualizaciones masivas / eliminacion
+-- =============================================================================
+-- Permite a un usuario dejar de seguir a un perfil de creador.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_dejar_de_seguir_creador(
+    p_id_usuario_seguidor BIGINT,
+    p_id_perfil_creador BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    DELETE FROM seguidores
+     WHERE id_usuario_seguidor = p_id_usuario_seguidor
+       AND id_perfil_creador = p_id_perfil_creador;
+
+    RETURN TRUE;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_dejar_de_seguir_creador(BIGINT, BIGINT)
+    IS 'Elimina la relacion de seguimiento entre un usuario y un perfil de creador.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_desactivar_2fa.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_desactivar_2fa
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla   Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §7 — corrige la anomalia A4.
+-- =============================================================================
+-- Desactiva el 2FA de un usuario y purga sus codigos de respaldo, en una
+-- unica transaccion. Contraparte de fn_configurar_2fa; unifica el codigo que
+-- antes estaba DUPLICADO entre dos sitios que hacian exactamente lo mismo:
+--   - TwoFactorServiceImpl.disable2Fa (con el codigo/TOTP ya validado)
+--   - AdminUserServiceImpl.updateUser, rama dosFactoresHabilitado = false
+--     (el administrador fuerza la desactivacion sin validar codigo)
+-- Ambos hacian: findByUsuarioIdUsuario + set esta_habilitado=false + save +
+-- deleteByUsuarioIdUsuario en Java, sin atomicidad entre el UPDATE y el DELETE.
+--
+-- Es intencionalmente IDEMPOTENTE y silenciosa si el usuario no tiene 2FA
+-- configurado: devuelve FALSE en vez de lanzar excepcion, porque el caso de
+-- uso administrativo (forzar 2FA=false) es legitimo aunque el usuario nunca
+-- lo haya configurado -- exactamente el comportamiento que ya tenia el
+-- `ifPresent(...)` de AdminUserServiceImpl.updateUser.
+--
+-- Devuelve TRUE si habia un registro de 2FA y quedo desactivado, FALSE si el
+-- usuario no tenia 2FA configurado (no-op).
+--
+-- Seguridad: parametro formal tipado; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_desactivar_2fa(
+    p_id_usuario BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_afectadas INTEGER;
+BEGIN
+    IF p_id_usuario IS NULL THEN
+        RAISE EXCEPTION 'fn_desactivar_2fa: p_id_usuario es obligatorio'
+            USING ERRCODE = '22004';
+    END IF;
+
+    UPDATE autenticacion_dos_factores
+       SET esta_habilitado = FALSE
+     WHERE id_usuario = p_id_usuario;
+
+    GET DIAGNOSTICS v_afectadas = ROW_COUNT;
+
+    -- Purga de codigos de respaldo en la misma transaccion que el UPDATE: no
+    -- hay ventana en la que el 2FA aparezca desactivado pero sus codigos de
+    -- respaldo sigan siendo validos (o viceversa).
+    DELETE FROM codigos_respaldo_2fa WHERE id_usuario = p_id_usuario;
+
+    RETURN v_afectadas > 0;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_desactivar_2fa(BIGINT)
+    IS 'Fase 3 concurrencia - Desactiva 2FA y purga codigos de respaldo atomicamente; idempotente si el usuario no tenia 2FA configurado. Unifica el codigo duplicado entre TwoFactorServiceImpl.disable2Fa y AdminUserServiceImpl.updateUser.';
+
+
+
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_eliminar_rol.sql
 -- ---------------------------------------------------------------------------
@@ -430,6 +1100,44 @@ $$;
 
 COMMENT ON FUNCTION fn_eliminar_rol(BIGINT)
     IS 'REQ-F-004 - Validacion cruzada: elimina un rol personalizado solo si no es un rol base protegido y no tiene usuarios asignados.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_es_seguidor.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_es_seguidor
+-- Categoria funcional: consultas multi-tabla / validaciones
+-- =============================================================================
+-- Retorna TRUE si el usuario especificado sigue al perfil de creador.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_es_seguidor(
+    p_id_usuario_seguidor BIGINT,
+    p_id_perfil_creador BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN EXISTS (
+        SELECT 1
+          FROM seguidores
+         WHERE id_usuario_seguidor = p_id_usuario_seguidor
+           AND id_perfil_creador = p_id_perfil_creador
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION fn_es_seguidor(BIGINT, BIGINT)
+    IS 'Verifica si un usuario dado sigue a un perfil de creador determinado.';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -508,6 +1216,96 @@ $$;
 
 COMMENT ON FUNCTION fn_generar_codigo_pedido(BIGINT)
     IS 'REQ-F-018 - Generacion de codigo secuencial ART-AAAA-NNNNNN para un pedido. Idempotente: devuelve el codigo ya asignado si existe.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_guardar_pais.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_guardar_pais
+-- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §4 — corrige la anomalia A9.
+-- =============================================================================
+-- Crea (p_id_pais NULL) o renombra (p_id_pais con valor) un pais, validando
+-- la unicidad del nombre de forma atomica respecto a la escritura.
+--
+-- Sustituye la parte de escritura de PaisServiceImpl.createPais y .updatePais,
+-- que comprobaban paisRepository.findByNombrePais(...) y luego hacian save()
+-- en sentencias separadas -- lectura fantasma no atomica: entre la
+-- comprobacion y el insert/update, otra transaccion podia tomar el mismo
+-- nombre. Mitigado en la practica por pais.nombre_pais UNIQUE, pero sin
+-- traduccion de error (ExcepcionRecursoDuplicado nunca se lanzaba realmente
+-- por una condicion de carrera; solo por la lectura previa, que era la parte
+-- no atomica).
+--
+-- Una sola rutina cubre ambos casos porque comparten la misma tecnica: ni
+-- crear ni renombrar pueden usar SELECT ... FOR UPDATE para "bloquear" el
+-- nombre en conflicto (esa fila, si existe, pertenece a OTRO pais, no al que
+-- se esta creando o editando); la unica defensa correcta en ambos casos es la
+-- restriccion UNIQUE como predicado, capturada con un bloque EXCEPTION.
+-- Renombrar un pais a su propio nombre actual no dispara la restriccion (es
+-- la misma fila, mismo valor), preservando el comportamiento previo de
+-- permitir un "no-op" de nombre.
+--
+-- Devuelve el id_pais afectado. Lanza excepcion si el nombre ya pertenece a
+-- otro pais, o (al renombrar) si el id no existe.
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_guardar_pais(
+    p_id_pais     BIGINT,
+    p_nombre_pais VARCHAR(100)
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_pais      BIGINT;
+    v_nombre_norm  VARCHAR(100);
+BEGIN
+    IF p_nombre_pais IS NULL OR btrim(p_nombre_pais) = '' THEN
+        RAISE EXCEPTION 'fn_guardar_pais: p_nombre_pais es obligatorio'
+            USING ERRCODE = '22004';
+    END IF;
+
+    v_nombre_norm := btrim(p_nombre_pais);
+
+    -- Subtransaccion explicita: el bloque EXCEPTION abre un SAVEPOINT
+    -- implicito. Si el INSERT/UPDATE viola uq pais.nombre_pais (fantasma
+    -- materializado por otra transaccion concurrente), se hace ROLLBACK TO
+    -- SAVEPOINT automatico y se traduce a 409 en vez de dejar pasar el
+    -- duplicado o fallar con un error generico.
+    BEGIN
+        IF p_id_pais IS NULL THEN
+            INSERT INTO pais (nombre_pais)
+            VALUES (v_nombre_norm)
+            RETURNING id_pais INTO v_id_pais;
+        ELSE
+            UPDATE pais
+               SET nombre_pais = v_nombre_norm
+             WHERE id_pais = p_id_pais
+            RETURNING id_pais INTO v_id_pais;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'Pais no encontrado con ID: %', p_id_pais
+                    USING ERRCODE = 'P0002';
+            END IF;
+        END IF;
+    EXCEPTION
+        WHEN unique_violation THEN
+            RAISE EXCEPTION 'Ya existe un pais registrado con el nombre: %', v_nombre_norm
+                USING ERRCODE = '23505';
+    END;
+
+    RETURN v_id_pais;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_guardar_pais(BIGINT, VARCHAR)
+    IS 'Fase 3 concurrencia - Crea o renombra un pais capturando unique_violation en vez de una comprobacion findByNombrePais no atomica (A9).';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -632,6 +1430,141 @@ COMMENT ON FUNCTION fn_liberar_fondos_escrow(BIGINT)
     IS 'REQ-F-021 - Validacion cruzada: libera los fondos escrow de un pedido tras verificar contrato firmado, entregable cargado y ausencia de revisiones abiertas. TRUE si libero, FALSE si ya estaba liberado.';
 
 
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_listar_creadores_seguidos_novedades.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_listar_creadores_seguidos_novedades
+-- Categoria funcional: consultas multi-tabla / reportes
+-- =============================================================================
+-- Devuelve los creadores que el usuario sigue junto a su resumen de novedades.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_listar_creadores_seguidos_novedades(
+    p_id_usuario_seguidor BIGINT
+)
+RETURNS TABLE (
+    id_perfil BIGINT,
+    id_usuario BIGINT,
+    nombres_usuario VARCHAR,
+    apellidos_usuario VARCHAR,
+    handle VARCHAR,
+    url_foto_perfil VARCHAR,
+    titulo_profesional VARCHAR,
+    resumen_novedad TEXT,
+    tipo_novedad VARCHAR,
+    fecha_novedad TIMESTAMP
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        pc.id_perfil,
+        u.id_usuario,
+        u.nombres_usuario,
+        u.apellidos_usuario,
+        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
+        u.url_foto_perfil,
+        pc.titulo_profesional,
+        'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
+        'GENERAL'::VARCHAR AS tipo_novedad,
+        s.fecha_seguimiento::TIMESTAMP AS fecha_novedad
+    FROM seguidores s
+    JOIN perfiles_creadores pc ON pc.id_perfil = s.id_perfil_creador
+    JOIN usuarios u ON u.id_usuario = pc.id_usuario
+    WHERE s.id_usuario_seguidor = p_id_usuario_seguidor
+    ORDER BY s.fecha_seguimiento DESC;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
+    IS 'Devuelve los creadores seguidos por el usuario con su resumen de novedades.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_permisos_efectivos_usuario.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_permisos_efectivos_usuario
+-- Categoria funcional: consultas multi-tabla                    Requisito: REQ-NF (rendimiento)
+-- Fase 2 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §8.
+-- =============================================================================
+-- Resuelve, en una sola llamada, todo lo que CustomUserDetailsService.loadUserByUsername
+-- necesita para autenticar una peticion: datos basicos de la cuenta y el
+-- conjunto completo de authorities de Spring Security (roles con prefijo
+-- ROLE_ + permisos), ya deduplicado.
+--
+-- Por que en el motor: loadUserByUsername se ejecuta EN CADA peticion
+-- autenticada (via JwtAuthenticationFilter), y hacia: findByCorreo (1) +
+-- findByUsuarioIdUsuario en usuario_roles (1) + por cada rol, el acceso a
+-- Rol.permisos (FetchType.EAGER) resuelto con un SELECT propio (N) -- entre 4
+-- y 8 consultas por peticion segun cuantos roles tenga el usuario, con el N+1
+-- clasico. Aqui se resuelve con dos subconsultas (UNION, deduplicadas por
+-- DISTINCT dentro del jsonb_agg) sobre usuario_roles/roles/rol_permisos/permisos.
+--
+-- STABLE (no LANGUAGE plpgsql con side effects, no escribe nada): dentro de
+-- una misma llamada a la funcion, PostgreSQL evalua todas las subconsultas
+-- sobre el MISMO snapshot, asi que roles y permisos siempre son coherentes
+-- entre si -- a diferencia de las 2-3 consultas independientes que sustituye,
+-- que bajo READ COMMITTED podian ver una version de los roles y otra de los
+-- permisos si una sincronizacion (fn_sincronizar_roles_usuario,
+-- fn_sincronizar_permisos_rol) se colaba justo entremedias.
+--
+-- La contrasena_hash SI viaja en el JSONB (a diferencia de fn_resolver_estado_login,
+-- que no la necesita): loadUserByUsername construye un UserDetails completo, y
+-- el AuthenticationManager de Spring Security compara el hash BCrypt fuera del
+-- motor. El valor nunca se loguea ni se expone en ninguna respuesta HTTP.
+--
+-- Devuelve NULL si el correo no existe (la capa Java lo traduce a
+-- UsernameNotFoundException, igual que antes).
+--
+-- Seguridad: parametro formal tipado; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_permisos_efectivos_usuario(
+    p_correo VARCHAR(150)
+)
+RETURNS JSONB
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT jsonb_build_object(
+               'idUsuario', u.id_usuario,
+               'correo', u.correo,
+               'contrasenaHash', u.contrasena_hash,
+               'estadoCuenta', u.estado_cuenta,
+               'authorities', COALESCE(
+                   (SELECT jsonb_agg(DISTINCT a.autoridad)
+                      FROM (
+                            SELECT CASE
+                                       WHEN UPPER(r.nombre_rol) LIKE 'ROLE\_%' ESCAPE '\' THEN UPPER(r.nombre_rol)
+                                       ELSE 'ROLE_' || UPPER(r.nombre_rol)
+                                   END AS autoridad
+                              FROM usuario_roles ur
+                              JOIN roles r ON r.id_rol = ur.id_rol
+                             WHERE ur.id_usuario = u.id_usuario
+                            UNION
+                            SELECT UPPER(p.nombre_permiso)
+                              FROM usuario_roles ur
+                              JOIN rol_permisos rp ON rp.id_rol = ur.id_rol
+                              JOIN permisos p ON p.id_permiso = rp.id_permiso
+                             WHERE ur.id_usuario = u.id_usuario
+                           ) a),
+                   '[]'::jsonb)
+           )
+      FROM usuarios u
+     WHERE u.correo = p_correo;
+$$;
+
+COMMENT ON FUNCTION fn_permisos_efectivos_usuario(VARCHAR)
+    IS 'Fase 2 rendimiento - Resuelve usuario + authorities (roles ROLE_* y permisos) en una sola llamada STABLE, sustituyendo el N+1 de CustomUserDetailsService en cada peticion autenticada.';
+
+
+
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_registrar_infraccion.sql
 -- ---------------------------------------------------------------------------
@@ -723,6 +1656,7 @@ $$;
 
 COMMENT ON FUNCTION fn_registrar_infraccion(BIGINT, BIGINT, TEXT, VARCHAR)
     IS 'REQ-F-015 - Calculo agregado + validacion cruzada: registra una infraccion de mensaje, cuenta las del usuario en 30 dias y suspende la cuenta automaticamente al llegar a 3.';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -817,6 +1751,7 @@ $$;
 
 COMMENT ON FUNCTION fn_registrar_usuario(VARCHAR, VARCHAR, VARCHAR, VARCHAR, DATE, VARCHAR)
     IS 'REQ-F-001 - Insercion multi-tabla: registra usuario + usuario_roles + perfil de creador opcional, validando correo unico, mayoria de edad y rol permitido.';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -925,6 +1860,7 @@ COMMENT ON FUNCTION fn_reporte_comisiones_creador(BIGINT, TIMESTAMP, TIMESTAMP, 
     IS 'REQ-NF-013 - Reporte financiero por creador (bruto, comision, neto y detalle) sobre la cadena escrow.';
 
 
+
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_resolver_estado_login.sql
 -- ---------------------------------------------------------------------------
@@ -995,6 +1931,7 @@ $$;
 
 COMMENT ON FUNCTION fn_resolver_estado_login(VARCHAR)
     IS 'REQ-F-002 - Consulta multi-tabla: resuelve estado de cuenta, 2FA y roles de un usuario en una sola llamada para el flujo de login.';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -1078,6 +2015,124 @@ $$;
 
 COMMENT ON FUNCTION fn_restablecer_contrasena(VARCHAR, VARCHAR)
     IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_revocar_sesiones_usuario.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_revocar_sesiones_usuario
+-- Categoria funcional: actualizaciones masivas                  Requisito: REQ-NF (concurrencia)
+-- Fase 1 de docs/basedatos/PLAN-CONCURRENCIA-SP.md — corrige la anomalia A6.
+-- =============================================================================
+-- Borra todas las sesiones de un usuario y devuelve, en la misma sentencia,
+-- el jti y el tiempo de vida restante de cada una que borro.
+--
+-- Sustituye la parte SQL de SessionRevocationService.revocarSesionesUsuario():
+--   (1) List<SesionUsuario> sesiones = findByUsuarioIdUsuario(idUsuario);
+--   (2) por cada sesion: revocarJtiEnRedis(...)
+--   (3) deleteByUsuarioIdUsuario(idUsuario);
+-- son tres sentencias separadas. Bajo READ COMMITTED cada una ve su propio
+-- snapshot: una sesion CREADA entre (1) y (3) -- por ejemplo, un login
+-- concurrente del mismo usuario justo cuando un administrador lo desactiva --
+-- nunca aparece en la lista leida en (1), pero SI la borra el DELETE de (3),
+-- porque ese filtra de nuevo por id_usuario sobre el estado mas reciente. El
+-- resultado: una sesion se elimina de la base sin haberse revocado nunca en
+-- Redis. Su JWT sigue siendo valido hasta que expire por si solo, y ya no
+-- queda ninguna fila que permita rastrearlo (lectura no repetible).
+--
+-- Por que esta forma lo corrige: DELETE ... RETURNING lee y borra en UNA sola
+-- sentencia sobre UN solo snapshot. No existe "entre (1) y (3)" porque no hay
+-- dos pasos: es imposible que una sesion se cuele sin ser devuelta, porque
+-- toda fila que la sentencia borra es, por definicion, una fila que tambien
+-- devuelve.
+--
+-- La escritura en Redis permanece deliberadamente en Java (SessionRevocationService):
+-- Redis no participa en la transaccion de PostgreSQL, y un fallo suyo no debe
+-- revertir el borrado en la base (ni al reves). Lo que esta funcion garantiza
+-- es que Java recibe EXACTAMENTE el conjunto de jti que se borro, ni uno mas
+-- ni uno menos.
+--
+-- segundos_restantes se calcula en el mismo SELECT para que Java no tenga que
+-- releer fecha_expiracion por separado; GREATEST(0, ...) evita valores
+-- negativos si la sesion ya habia expirado.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_revocar_sesiones_usuario(
+    p_id_usuario BIGINT
+)
+RETURNS TABLE (jti VARCHAR(36), segundos_restantes INTEGER)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id_usuario IS NULL THEN
+        RAISE EXCEPTION 'fn_revocar_sesiones_usuario: p_id_usuario es obligatorio'
+            USING ERRCODE = '22004';
+    END IF;
+
+    RETURN QUERY
+    DELETE FROM sesiones_usuario s
+     WHERE s.id_usuario = p_id_usuario
+    RETURNING s.jti,
+              GREATEST(0, EXTRACT(EPOCH FROM (s.fecha_expiracion - CURRENT_TIMESTAMP))::INTEGER);
+END;
+$$;
+
+COMMENT ON FUNCTION fn_revocar_sesiones_usuario(BIGINT)
+    IS 'Fase 1 concurrencia - DELETE ... RETURNING atomico: lee y borra las sesiones de un usuario en una sola sentencia, eliminando la ventana de lectura no repetible entre leer y borrar por separado.';
+
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_seguir_creador.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- fn_seguir_creador
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla
+-- =============================================================================
+-- Permite a un usuario autenticado seguir a un perfil de creador.
+-- Valida que el perfil exista y que el usuario no sea el propietario del perfil.
+-- Es idempotente (ON CONFLICT DO NOTHING).
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_seguir_creador(
+    p_id_usuario_seguidor BIGINT,
+    p_id_perfil_creador BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_usuario_creador BIGINT;
+BEGIN
+    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
+        RAISE EXCEPTION 'Los parametros usuario seguidor y perfil creador son obligatorios';
+    END IF;
+
+    SELECT id_usuario INTO v_id_usuario_creador
+      FROM perfiles_creadores
+     WHERE id_perfil = p_id_perfil_creador;
+
+    IF v_id_usuario_creador IS NULL THEN
+        RAISE EXCEPTION 'El perfil de creador especificado no existe';
+    END IF;
+
+    IF v_id_usuario_creador = p_id_usuario_seguidor THEN
+        RAISE EXCEPTION 'Un creador no puede seguirse a si mismo';
+    END IF;
+
+    INSERT INTO seguidores (id_usuario_seguidor, id_perfil_creador, fecha_seguimiento, notificaciones_activas)
+    VALUES (p_id_usuario_seguidor, p_id_perfil_creador, NOW(), TRUE)
+    ON CONFLICT (id_usuario_seguidor, id_perfil_creador) DO NOTHING;
+
+    RETURN TRUE;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
+    IS 'Registra un seguimiento de usuario a creador validando no auto-seguimiento.';
+
 
 
 -- ---------------------------------------------------------------------------
@@ -1211,6 +2266,7 @@ COMMENT ON FUNCTION fn_seleccionar_ganadores_sorteo(BIGINT)
     IS 'REQ-F-023 - Seleccion aleatoria + actualizacion masiva: sortea ganadores entre los participantes no ganadores de un sorteo activo y marca en bloque participantes y sorteo.';
 
 
+
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_sincronizar_permisos_rol.sql
 -- ---------------------------------------------------------------------------
@@ -1305,202 +2361,358 @@ COMMENT ON FUNCTION fn_sincronizar_permisos_rol(VARCHAR, TEXT[])
     IS 'REQ-F-003 - Actualizacion masiva: reemplaza atomicamente el conjunto de permisos de un rol (DELETE+INSERT en rol_permisos), validando cada codigo antes de aplicar el cambio.';
 
 
+
 -- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_seguir_creador.sql
+-- Origen: db/procs/fn_sincronizar_roles_usuario.sql
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_seguir_creador(
-    p_id_usuario_seguidor BIGINT,
-    p_id_perfil_creador BIGINT
+-- =============================================================================
+-- fn_sincronizar_roles_usuario
+-- Categoria funcional: actualizaciones masivas                  Requisito: REQ-NF (concurrencia)
+-- Fase 1 de docs/basedatos/PLAN-CONCURRENCIA-SP.md — corrige la anomalia A2.
+-- =============================================================================
+-- Reemplaza atomicamente el conjunto completo de roles de un usuario. Gemela
+-- de fn_sincronizar_permisos_rol (REQ-F-003), que ya resolvio este mismo
+-- patron para roles<->permisos.
+--
+-- Sustituye a AdminUserServiceImpl.actualizarRoles(): findByUsuarioIdUsuario +
+-- deleteAll + flush + POR CADA rol nuevo (findByNombreRol + save + consulta
+-- de perfil de creador + save de perfil) -- unos 10 viajes a la base sin
+-- ninguna atomicidad entre ellos.
+--
+-- Dos anomalias que corrige:
+--
+--   * Lectura fantasma: sin restriccion unica, dos administradores editando
+--     el mismo usuario a la vez podian dejar roles duplicados en
+--     usuario_roles. Cerrada de forma ESTRUCTURAL por uq_usuario_rol
+--     (V17__concurrencia_seguridad.sql) + ON CONFLICT DO NOTHING: el fantasma
+--     es imposible aunque otra transaccion se adelante entre el DELETE y el
+--     INSERT de esta misma rutina.
+--
+--   * Actualizacion perdida / estado a medias: SELECT ... FOR UPDATE sobre la
+--     fila de usuarios serializa dos sincronizaciones concurrentes del MISMO
+--     usuario (el segundo escritor espera y ve el resultado ya confirmado del
+--     primero, no un estado intermedio). Ademas, TODOS los roles nuevos se
+--     validan ANTES de borrar los antiguos: si un nombre de rol no existe, se
+--     aborta sin haber dejado al usuario sin ningun rol (la version en Java
+--     borraba primero y podia fallar a mitad del bucle de alta).
+--
+-- Orden de bloqueo: usuarios -> usuario_roles -> roles (convencion canonica
+-- del modulo, ver docs/basedatos/PLAN-CONCURRENCIA-SP.md §0.5.4), evita
+-- interbloqueos con fn_sincronizar_permisos_rol y fn_eliminar_rol.
+--
+-- Devuelve el total de filas de usuario_roles insertadas. Lanza excepcion si
+-- el usuario no existe, si el array de roles es nulo/vacio, o si alguno de
+-- los nombres de rol no existe en el sistema.
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_sincronizar_roles_usuario(
+    p_id_usuario  BIGINT,
+    p_nombres_rol TEXT[]
 )
-RETURNS BOOLEAN
+RETURNS INTEGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_id_usuario_creador BIGINT;
+    v_existe     BOOLEAN;
+    v_nombre_rol TEXT;
+    v_total      INTEGER := 0;
 BEGIN
-    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
-        RAISE EXCEPTION 'Los parametros usuario seguidor y perfil creador son obligatorios';
+    IF p_id_usuario IS NULL THEN
+        RAISE EXCEPTION 'fn_sincronizar_roles_usuario: p_id_usuario es obligatorio'
+            USING ERRCODE = '22004';
     END IF;
 
-    SELECT id_usuario INTO v_id_usuario_creador
-      FROM perfiles_creadores
-     WHERE id_perfil = p_id_perfil_creador;
-
-    IF v_id_usuario_creador IS NULL THEN
-        RAISE EXCEPTION 'El perfil de creador especificado no existe';
+    IF p_nombres_rol IS NULL OR array_length(p_nombres_rol, 1) IS NULL THEN
+        RAISE EXCEPTION 'fn_sincronizar_roles_usuario: se requiere al menos un rol'
+            USING ERRCODE = '22004';
     END IF;
 
-    IF v_id_usuario_creador = p_id_usuario_seguidor THEN
-        RAISE EXCEPTION 'Un creador no puede seguirse a si mismo';
+    -- Bloqueo del agregado raiz: serializa sincronizaciones concurrentes del
+    -- mismo usuario y evita que este SELECT vea un conjunto de roles que otra
+    -- transaccion cambia justo despues (lectura no repetible).
+    SELECT TRUE INTO v_existe
+      FROM usuarios
+     WHERE id_usuario = p_id_usuario
+       FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Usuario no encontrado con ID: %', p_id_usuario
+            USING ERRCODE = 'P0002';
     END IF;
 
-    INSERT INTO seguidores (id_usuario_seguidor, id_perfil_creador, fecha_seguimiento, notificaciones_activas)
-    VALUES (p_id_usuario_seguidor, p_id_perfil_creador, NOW(), TRUE)
-    ON CONFLICT (id_usuario_seguidor, id_perfil_creador) DO NOTHING;
+    -- Validacion completa antes de tocar usuario_roles: aborta limpio (todo o
+    -- nada) si algun nombre de rol no existe.
+    FOREACH v_nombre_rol IN ARRAY p_nombres_rol LOOP
+        IF NOT EXISTS (SELECT 1 FROM roles WHERE UPPER(nombre_rol) = UPPER(v_nombre_rol)) THEN
+            RAISE EXCEPTION 'El rol especificado no existe en el sistema: %', UPPER(v_nombre_rol)
+                USING ERRCODE = '23514';
+        END IF;
+    END LOOP;
 
-    RETURN TRUE;
+    DELETE FROM usuario_roles WHERE id_usuario = p_id_usuario;
+
+    -- ON CONFLICT DO NOTHING: idempotente aunque el array traiga nombres
+    -- repetidos, y ultima linea de defensa estructural contra el fantasma si
+    -- alguna otra via insertara sobre esta misma pareja (usuario, rol).
+    INSERT INTO usuario_roles (id_usuario, id_rol)
+    SELECT p_id_usuario, r.id_rol
+      FROM unnest(p_nombres_rol) AS n(nombre)
+      JOIN roles r ON UPPER(r.nombre_rol) = UPPER(n.nombre)
+    ON CONFLICT (id_usuario, id_rol) DO NOTHING;
+
+    GET DIAGNOSTICS v_total = ROW_COUNT;
+
+    -- Alta perezosa del perfil de creador (mismo criterio que
+    -- AdminUserServiceImpl.actualizarRoles ya aplicaba), tambien idempotente.
+    IF EXISTS (SELECT 1 FROM unnest(p_nombres_rol) AS n(nombre) WHERE UPPER(n.nombre) = 'CREADOR') THEN
+        INSERT INTO perfiles_creadores (id_usuario, biografia)
+        SELECT p_id_usuario, 'Hola! Soy un creador en ARTISYNC.'
+         WHERE NOT EXISTS (SELECT 1 FROM perfiles_creadores WHERE id_usuario = p_id_usuario);
+    END IF;
+
+    RETURN v_total;
 END;
 $$;
 
-COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
-    IS 'Registra un seguimiento de usuario a creador validando no auto-seguimiento.';
+COMMENT ON FUNCTION fn_sincronizar_roles_usuario(BIGINT, TEXT[])
+    IS 'Fase 1 concurrencia - Reemplaza atomicamente el conjunto de roles de un usuario (DELETE+INSERT con ON CONFLICT), serializado con SELECT FOR UPDATE sobre usuarios; cierra lectura fantasma y estados a medias.';
+
 
 
 -- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_dejar_de_seguir_creador.sql
+-- Origen: db/procs/fn_solicitar_recuperacion.sql
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_dejar_de_seguir_creador(
-    p_id_usuario_seguidor BIGINT,
-    p_id_perfil_creador BIGINT
+-- =============================================================================
+-- fn_solicitar_recuperacion
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla   Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §6 — corrige la anomalia A5.
+-- =============================================================================
+-- Invalida los tokens de recuperacion previos de un usuario e inserta el
+-- nuevo, en una unica transaccion.
+--
+-- Sustituye a AuthServiceImpl.forgotPassword (parte de escritura), que
+-- insertaba un TokenRecuperacion mas sin tocar los anteriores: cada solicitud
+-- de "olvide mi contrasena" dejaba un token adicional valido durante 60
+-- minutos (ventana de fn_restablecer_contrasena, REQ-F-005), de modo que un
+-- usuario que pedia varios enlaces de recuperacion acumulaba N tokens
+-- utilizables simultaneamente -- superficie de ataque innecesaria si alguno se
+-- filtraba (log, proxy, bandeja de entrada comprometida).
+--
+-- SELECT ... FOR UPDATE sobre la fila de usuarios serializa solicitudes
+-- concurrentes del mismo correo (p. ej. un usuario haciendo doble clic en
+-- "reenviar enlace"): la segunda espera a que la primera confirme su
+-- invalidacion+insercion antes de repetir el mismo patron, en vez de que
+-- ambas lean "no hay token que invalidar" y dejen dos tokens validos.
+--
+-- Preserva DELIBERADAMENTE el comportamiento de "respuesta indistinguible" de
+-- forgotPassword: devuelve NULL (no lanza excepcion) si el correo no existe o
+-- la cuenta esta inactiva, para que la capa Java responda el mismo mensaje
+-- gener ico exista o no la cuenta (no revelar informacion de la cuenta).
+--
+-- El nuevo hash de token (SHA-256 del valor plano enviado por correo) se
+-- calcula en Java antes de invocar esta funcion, igual que en
+-- fn_restablecer_contrasena; la funcion nunca ve el token en texto plano.
+--
+-- Devuelve JSONB {idUsuario, nombres} si la cuenta existe y esta activa, o
+-- NULL en caso contrario.
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION fn_solicitar_recuperacion(
+    p_correo     VARCHAR(150),
+    p_hash_token VARCHAR(255)
 )
-RETURNS BOOLEAN
+RETURNS JSONB
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_id_usuario BIGINT;
+    v_nombres    VARCHAR(100);
 BEGIN
-    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
-        RETURN FALSE;
+    IF p_correo IS NULL OR p_hash_token IS NULL THEN
+        RAISE EXCEPTION 'fn_solicitar_recuperacion: p_correo y p_hash_token son obligatorios'
+            USING ERRCODE = '22004';
     END IF;
 
-    DELETE FROM seguidores
-     WHERE id_usuario_seguidor = p_id_usuario_seguidor
-       AND id_perfil_creador = p_id_perfil_creador;
+    SELECT id_usuario, nombres INTO v_id_usuario, v_nombres
+      FROM usuarios
+     WHERE correo = p_correo
+       AND estado_cuenta = TRUE
+       FOR UPDATE;
 
-    RETURN TRUE;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_dejar_de_seguir_creador(BIGINT, BIGINT)
-    IS 'Elimina la relacion de seguimiento entre un usuario y un perfil de creador.';
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_es_seguidor.sql
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_es_seguidor(
-    p_id_usuario_seguidor BIGINT,
-    p_id_perfil_creador BIGINT
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
-        RETURN FALSE;
+    IF NOT FOUND THEN
+        RETURN NULL;
     END IF;
 
-    RETURN EXISTS (
-        SELECT 1
-          FROM seguidores
-         WHERE id_usuario_seguidor = p_id_usuario_seguidor
-           AND id_perfil_creador = p_id_perfil_creador
-    );
+    -- Invalida cualquier token previo aun vigente antes de insertar el nuevo:
+    -- a lo sumo un token de recuperacion vigente por usuario en todo momento.
+    UPDATE tokens_recuperacion
+       SET usado = TRUE
+     WHERE id_usuario = v_id_usuario
+       AND usado = FALSE;
+
+    INSERT INTO tokens_recuperacion (id_usuario, hash_token, usado)
+    VALUES (v_id_usuario, p_hash_token, FALSE);
+
+    RETURN jsonb_build_object('idUsuario', v_id_usuario, 'nombres', v_nombres);
 END;
 $$;
 
-COMMENT ON FUNCTION fn_es_seguidor(BIGINT, BIGINT)
-    IS 'Verifica si un usuario dado sigue a un perfil de creador determinado.';
+COMMENT ON FUNCTION fn_solicitar_recuperacion(VARCHAR, VARCHAR)
+    IS 'Fase 3 concurrencia - Invalida tokens de recuperacion previos e inserta el nuevo atomicamente bajo SELECT FOR UPDATE, garantizando a lo sumo un token vigente por usuario. Devuelve NULL si la cuenta no existe (respuesta indistinguible).';
+
 
 
 -- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_conteo_seguidores.sql
+-- Origen: db/procs/sp_purgar_datos_seguridad.sql
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_conteo_seguidores(
-    p_id_perfil_creador BIGINT
+-- =============================================================================
+-- sp_purgar_datos_seguridad
+-- Categoria funcional: actualizaciones masivas (mantenimiento)   Requisito: REQ-NF (concurrencia)
+-- Fase 4 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §7 — corrige la anomalia A10.
+-- =============================================================================
+-- Purga por lotes los datos de seguridad que hoy crecen sin limite:
+-- sesiones_usuario expiradas, tokens_recuperacion muertos y codigos_respaldo_2fa
+-- ya consumidos. No existe hoy ninguna tarea de mantenimiento sobre estas tres
+-- tablas -- el indice idx_sesiones_usuario_fecha_expiracion que V8 creo para
+-- esto no lo usa nadie.
+--
+-- Es un PROCEDURE, no una FUNCTION, y es la UNICA rutina de db/procs/ que hace
+-- COMMIT/ROLLBACK reales (ver docs/basedatos/PLAN-CONCURRENCIA-SP.md §0.3):
+-- borrar en una sola transaccion un historial completo de sesiones/tokens
+-- mantendria una transaccion de larga duracion que impide a VACUUM recuperar
+-- espacio en TODA la base mientras dura. Se confirma un lote a la vez.
+--
+-- FOR UPDATE SKIP LOCKED es lo que hace la purga compatible con el trafico en
+-- vivo: en vez de esperar a una fila que un login/logout concurrente tiene
+-- bloqueada, la salta y la recoge en la siguiente ejecucion (se corre a diario,
+-- no hay prisa). ORDER BY <pk> ASC antes del LIMIT mantiene el orden de borrado
+-- estable entre lotes sucesivos.
+--
+-- Alcance deliberadamente ACOTADO en codigos_respaldo_2fa: solo se purgan los
+-- YA CONSUMIDOS (usado = TRUE). Los no usados de un usuario con 2FA
+-- deshabilitado NO se tocan aqui: la tabla no tiene una columna de fecha que
+-- distinga un codigo "huerfano" (2FA desactivado hace tiempo) de uno recien
+-- generado por fn_configurar_2fa a la espera de que el usuario llame a
+-- confirm2Fa -- purgar por esta_habilitado = FALSE borraria codigos de una
+-- configuracion de 2FA en curso, todavia sin confirmar, dejando al usuario sin
+-- sus codigos de respaldo antes de haber podido guardarlos.
+--
+-- tokens_recuperacion: se purgan los ya usados y los generados hace mas de 24h
+-- (la ventana de validez real es 60 minutos, ver fn_restablecer_contrasena
+-- REQ-F-005); 24h da margen de sobra sin acumular tokens muertos indefinidamente.
+--
+-- No devuelve nada (PROCEDURE). Si una sentencia falla a mitad de un lote (p.
+-- ej. deadlock, disco lleno), PostgreSQL aborta automaticamente la
+-- transaccion en curso -- sin necesidad de un ROLLBACK explicito -- y los
+-- lotes de las tablas anteriores que ya hicieron COMMIT permanecen intactos.
+-- El error se propaga tal cual a traves del CALL hasta el llamante Java
+-- (SeguridadPurgaScheduler), que ya lo captura y registra sin tumbar el
+-- proceso; la siguiente ejecucion programada retoma desde donde quedo.
+--
+-- A PROPOSITO no hay un bloque EXCEPTION en este procedimiento: PL/pgSQL
+-- implementa cada BEGIN...EXCEPTION...END como una subtransaccion respaldada
+-- por un SAVEPOINT implicito, y PostgreSQL PROHIBE ejecutar COMMIT/ROLLBACK
+-- mientras ese savepoint sigue abierto -- falla con
+-- "invalid transaction termination" en el primer COMMIT del primer lote. Es
+-- el mismo motivo por el que una FUNCTION no puede hacer COMMIT/ROLLBACK
+-- (§0.1 de PLAN-CONCURRENCIA-SP.md), aplicado aqui a un bloque con manejo de
+-- excepciones dentro de un PROCEDURE. El propio manual de PostgreSQL resuelve
+-- esto separando ambos: la excepcion se atrapa en un bloque interno SIN
+-- COMMIT, y el COMMIT ocurre en el bloque externo, fuera de cualquier
+-- EXCEPTION -- exactamente la estructura de este archivo (tres LOOP con
+-- COMMIT, ninguno envuelto en un manejador de excepciones).
+--
+-- Seguridad: parametro formal tipado; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE PROCEDURE sp_purgar_datos_seguridad(
+    p_tamano_lote INTEGER DEFAULT 1000
 )
-RETURNS BIGINT
 LANGUAGE plpgsql
-STABLE
 AS $$
+DECLARE
+    v_borradas INTEGER;
 BEGIN
-    IF p_id_perfil_creador IS NULL THEN
-        RETURN 0;
+    IF p_tamano_lote IS NULL OR p_tamano_lote <= 0 THEN
+        RAISE EXCEPTION 'sp_purgar_datos_seguridad: p_tamano_lote debe ser un entero positivo'
+            USING ERRCODE = '22004';
     END IF;
 
-    RETURN (
-        SELECT COUNT(*)
-          FROM seguidores
-         WHERE id_perfil_creador = p_id_perfil_creador
-    );
+    -- 1) Sesiones expiradas.
+    LOOP
+        DELETE FROM sesiones_usuario
+         WHERE id_sesion IN (
+               SELECT id_sesion
+                 FROM sesiones_usuario
+                WHERE fecha_expiracion < CURRENT_TIMESTAMP
+                ORDER BY id_sesion
+                LIMIT p_tamano_lote
+                FOR UPDATE SKIP LOCKED);
+
+        GET DIAGNOSTICS v_borradas = ROW_COUNT;
+        COMMIT;
+        EXIT WHEN v_borradas = 0;
+    END LOOP;
+
+    -- 2) Tokens de recuperacion muertos: usados, o con mas de 24h de antiguedad.
+    LOOP
+        DELETE FROM tokens_recuperacion
+         WHERE id_token IN (
+               SELECT id_token
+                 FROM tokens_recuperacion
+                WHERE usado = TRUE
+                   OR fecha_generacion < CURRENT_TIMESTAMP - INTERVAL '24 hours'
+                ORDER BY id_token
+                LIMIT p_tamano_lote
+                FOR UPDATE SKIP LOCKED);
+
+        GET DIAGNOSTICS v_borradas = ROW_COUNT;
+        COMMIT;
+        EXIT WHEN v_borradas = 0;
+    END LOOP;
+
+    -- 3) Codigos de respaldo 2FA ya consumidos (ver nota de alcance arriba:
+    --    los no usados no se tocan, para no interferir con un setup2Fa en curso).
+    LOOP
+        DELETE FROM codigos_respaldo_2fa
+         WHERE id_codigo IN (
+               SELECT id_codigo
+                 FROM codigos_respaldo_2fa
+                WHERE usado = TRUE
+                ORDER BY id_codigo
+                LIMIT p_tamano_lote
+                FOR UPDATE SKIP LOCKED);
+
+        GET DIAGNOSTICS v_borradas = ROW_COUNT;
+        COMMIT;
+        EXIT WHEN v_borradas = 0;
+    END LOOP;
 END;
 $$;
 
-COMMENT ON FUNCTION fn_conteo_seguidores(BIGINT)
-    IS 'Calcula el numero total de seguidores de un perfil de creador.';
+COMMENT ON PROCEDURE sp_purgar_datos_seguridad(INTEGER)
+    IS 'Fase 4 mantenimiento - Purga por lotes (COMMIT real por lote, FOR UPDATE SKIP LOCKED) sesiones expiradas, tokens de recuperacion muertos y codigos de respaldo 2FA consumidos. Corrige el crecimiento sin limite de A10.';
 
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_actualizar_portada_creador.sql
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_actualizar_portada_creador(
-    p_id_perfil BIGINT,
-    p_url_portada VARCHAR(500),
-    p_titulo_profesional VARCHAR(150)
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS $$
+-- -----------------------------------------------------------------------------
+-- Privilegios: igual que sp_registrar_decision_verificacion
+-- (V7__verificacion_asistida_ia.sql), el unico otro PROCEDURE del proyecto.
+-- ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS de
+-- seed_privilegios.sh cubre las FUNCTION de este directorio, pero un
+-- PROCEDURE requiere su propio GRANT EXECUTE ON PROCEDURE explicito. Guardado
+-- tras la existencia del rol: seed_privilegios.sh solo lo crea en el primer
+-- arranque de un volumen de datos vacio; en una BD restaurada de un dump, en
+-- CI o en una instancia gestionada ese rol no existe todavia.
+-- -----------------------------------------------------------------------------
+DO $$
 BEGIN
-    IF p_id_perfil IS NULL THEN
-        RAISE EXCEPTION 'El id de perfil es obligatorio';
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'artisync_app') THEN
+        GRANT EXECUTE ON PROCEDURE sp_purgar_datos_seguridad(INTEGER) TO artisync_app;
     END IF;
-
-    UPDATE perfiles_creadores
-       SET url_portada = COALESCE(p_url_portada, url_portada),
-           titulo_profesional = COALESCE(p_titulo_profesional, titulo_profesional)
-     WHERE id_perfil = p_id_perfil;
-
-    RETURN FOUND;
-END;
+END
 $$;
-
-COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
-    IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_listar_creadores_seguidos_novedades.sql
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_listar_creadores_seguidos_novedades(
-    p_id_usuario_seguidor BIGINT
-)
-RETURNS TABLE (
-    id_perfil BIGINT,
-    id_usuario BIGINT,
-    nombres_usuario VARCHAR,
-    apellidos_usuario VARCHAR,
-    handle VARCHAR,
-    url_foto_perfil VARCHAR,
-    titulo_profesional VARCHAR,
-    resumen_novedad TEXT,
-    tipo_novedad VARCHAR,
-    fecha_novedad TIMESTAMP
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        pc.id_perfil,
-        u.id_usuario,
-        u.nombres_usuario,
-        u.apellidos_usuario,
-        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
-        u.url_foto_perfil,
-        pc.titulo_profesional,
-        'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
-        'GENERAL'::VARCHAR AS tipo_novedad,
-        s.fecha_seguimiento::TIMESTAMP AS fecha_novedad
-    FROM seguidores s
-    JOIN perfiles_creadores pc ON pc.id_perfil = s.id_perfil_creador
-    JOIN usuarios u ON u.id_usuario = pc.id_usuario
-    WHERE s.id_usuario_seguidor = p_id_usuario_seguidor
-    ORDER BY s.fecha_seguimiento DESC;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
-    IS 'Devuelve los creadores seguidos por el usuario con su resumen de novedades.';
 
 
