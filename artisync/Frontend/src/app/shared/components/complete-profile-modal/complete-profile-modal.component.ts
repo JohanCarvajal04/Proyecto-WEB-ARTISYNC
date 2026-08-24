@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Input, Output, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PaisResponse, UserResponse } from '../../models/user.model';
 import { PaisService } from '../../services/pais.service';
@@ -19,7 +18,7 @@ export interface CalendarDay {
 @Component({
   selector: 'app-complete-profile-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './complete-profile-modal.component.html'
 })
 export class CompleteProfileModalComponent implements OnInit {

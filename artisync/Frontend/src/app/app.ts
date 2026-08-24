@@ -1,6 +1,5 @@
 import { Component, inject, signal, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { AuthService } from './features/seguridad/services/auth.service';
 import { UserService } from './features/perfil/services/user.service';
@@ -10,7 +9,7 @@ import { CompleteProfileModalComponent } from './shared/components/complete-prof
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, CommonModule, CompleteProfileModalComponent],
+  imports: [RouterOutlet, ToastComponent, CompleteProfileModalComponent],
   templateUrl: './app.html'
 })
 export class App {

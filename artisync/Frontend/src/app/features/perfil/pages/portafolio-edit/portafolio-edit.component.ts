@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PortafolioService } from '../../services/portafolio.service';
 import { PeticionActualizarPortafolio, Portafolio, OpcionesPersonalizacion } from '../../models/portafolio.model';
@@ -7,7 +6,7 @@ import { PeticionActualizarPortafolio, Portafolio, OpcionesPersonalizacion } fro
 @Component({
   selector: 'app-portafolio-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './portafolio-edit.component.html',
   styleUrls: ['./portafolio-edit.component.css']
 })
