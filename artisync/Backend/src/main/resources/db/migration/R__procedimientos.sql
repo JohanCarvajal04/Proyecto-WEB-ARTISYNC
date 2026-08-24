@@ -1304,3 +1304,203 @@ $$;
 COMMENT ON FUNCTION fn_sincronizar_permisos_rol(VARCHAR, TEXT[])
     IS 'REQ-F-003 - Actualizacion masiva: reemplaza atomicamente el conjunto de permisos de un rol (DELETE+INSERT en rol_permisos), validando cada codigo antes de aplicar el cambio.';
 
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_seguir_creador.sql
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_seguir_creador(
+    p_id_usuario_seguidor BIGINT,
+    p_id_perfil_creador BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_usuario_creador BIGINT;
+BEGIN
+    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
+        RAISE EXCEPTION 'Los parametros usuario seguidor y perfil creador son obligatorios';
+    END IF;
+
+    SELECT id_usuario INTO v_id_usuario_creador
+      FROM perfiles_creadores
+     WHERE id_perfil = p_id_perfil_creador;
+
+    IF v_id_usuario_creador IS NULL THEN
+        RAISE EXCEPTION 'El perfil de creador especificado no existe';
+    END IF;
+
+    IF v_id_usuario_creador = p_id_usuario_seguidor THEN
+        RAISE EXCEPTION 'Un creador no puede seguirse a si mismo';
+    END IF;
+
+    INSERT INTO seguidores (id_usuario_seguidor, id_perfil_creador, fecha_seguimiento, notificaciones_activas)
+    VALUES (p_id_usuario_seguidor, p_id_perfil_creador, NOW(), TRUE)
+    ON CONFLICT (id_usuario_seguidor, id_perfil_creador) DO NOTHING;
+
+    RETURN TRUE;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
+    IS 'Registra un seguimiento de usuario a creador validando no auto-seguimiento.';
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_dejar_de_seguir_creador.sql
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_dejar_de_seguir_creador(
+    p_id_usuario_seguidor BIGINT,
+    p_id_perfil_creador BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    DELETE FROM seguidores
+     WHERE id_usuario_seguidor = p_id_usuario_seguidor
+       AND id_perfil_creador = p_id_perfil_creador;
+
+    RETURN TRUE;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_dejar_de_seguir_creador(BIGINT, BIGINT)
+    IS 'Elimina la relacion de seguimiento entre un usuario y un perfil de creador.';
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_es_seguidor.sql
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_es_seguidor(
+    p_id_usuario_seguidor BIGINT,
+    p_id_perfil_creador BIGINT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    IF p_id_usuario_seguidor IS NULL OR p_id_perfil_creador IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN EXISTS (
+        SELECT 1
+          FROM seguidores
+         WHERE id_usuario_seguidor = p_id_usuario_seguidor
+           AND id_perfil_creador = p_id_perfil_creador
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION fn_es_seguidor(BIGINT, BIGINT)
+    IS 'Verifica si un usuario dado sigue a un perfil de creador determinado.';
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_conteo_seguidores.sql
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_conteo_seguidores(
+    p_id_perfil_creador BIGINT
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    IF p_id_perfil_creador IS NULL THEN
+        RETURN 0;
+    END IF;
+
+    RETURN (
+        SELECT COUNT(*)
+          FROM seguidores
+         WHERE id_perfil_creador = p_id_perfil_creador
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION fn_conteo_seguidores(BIGINT)
+    IS 'Calcula el numero total de seguidores de un perfil de creador.';
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_actualizar_portada_creador.sql
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_actualizar_portada_creador(
+    p_id_perfil BIGINT,
+    p_url_portada VARCHAR(500),
+    p_titulo_profesional VARCHAR(150)
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id_perfil IS NULL THEN
+        RAISE EXCEPTION 'El id de perfil es obligatorio';
+    END IF;
+
+    UPDATE perfiles_creadores
+       SET url_portada = COALESCE(p_url_portada, url_portada),
+           titulo_profesional = COALESCE(p_titulo_profesional, titulo_profesional)
+     WHERE id_perfil = p_id_perfil;
+
+    RETURN FOUND;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
+    IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/fn_listar_creadores_seguidos_novedades.sql
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_listar_creadores_seguidos_novedades(
+    p_id_usuario_seguidor BIGINT
+)
+RETURNS TABLE (
+    id_perfil BIGINT,
+    id_usuario BIGINT,
+    nombres_usuario VARCHAR,
+    apellidos_usuario VARCHAR,
+    handle VARCHAR,
+    url_foto_perfil VARCHAR,
+    titulo_profesional VARCHAR,
+    resumen_novedad TEXT,
+    tipo_novedad VARCHAR,
+    fecha_novedad TIMESTAMP
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        pc.id_perfil,
+        u.id_usuario,
+        u.nombres_usuario,
+        u.apellidos_usuario,
+        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
+        u.url_foto_perfil,
+        pc.titulo_profesional,
+        'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
+        'GENERAL'::VARCHAR AS tipo_novedad,
+        s.fecha_seguimiento::TIMESTAMP AS fecha_novedad
+    FROM seguidores s
+    JOIN perfiles_creadores pc ON pc.id_perfil = s.id_perfil_creador
+    JOIN usuarios u ON u.id_usuario = pc.id_usuario
+    WHERE s.id_usuario_seguidor = p_id_usuario_seguidor
+    ORDER BY s.fecha_seguimiento DESC;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
+    IS 'Devuelve los creadores seguidos por el usuario con su resumen de novedades.';
+
+
