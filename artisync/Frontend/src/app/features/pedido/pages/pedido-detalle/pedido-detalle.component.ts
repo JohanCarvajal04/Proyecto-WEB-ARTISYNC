@@ -1,12 +1,14 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { interval, Subscription, switchMap, of, catchError } from 'rxjs';
 import { PedidoService } from '../../services/pedido.service';
 import { TicketRevisionService } from '../../services/ticket-revision.service';
-import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision } from '../../models/pedido.model';
+import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision, PeticionActualizarTerminosPedido } from '../../models/pedido.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { EntregableService } from '../../../legal/services/entregable.service';
+import { ContratoService } from '../../../legal/services/contrato.service';
+import { RespuestaContrato } from '../../../legal/models/legal.model';
 import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedido/chat-pedido.component';
 import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
 import { ResenaFormComponent } from '../../../social/components/resena-form/resena-form.component';
@@ -21,8 +23,15 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
   pedido: RespuestaPedido | null = null;
   seguimiento: RespuestaSeguimientoPedido | null = null;
   tickets: RespuestaTicketRevision[] = [];
+  contrato: RespuestaContrato | null = null;
   loading = true;
   error = '';
+
+  // Negociar términos (precio / fecha) antes de firmar el contrato
+  nuevoPrecio: number | null = null;
+  nuevaFechaEntrega = '';
+  actualizandoTerminos = false;
+  mensajeTerminos = '';
 
   /**
    * La reseña solo se habilita tras la aprobación del entregable, que es la
@@ -47,8 +56,10 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     private pedidoService: PedidoService,
     private ticketService: TicketRevisionService,
     private entregableService: EntregableService,
+    private contratoService: ContratoService,
     public authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -62,6 +73,12 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       switchMap(() => this.pedidoService.obtenerSeguimiento(this.pedidoId).pipe(catchError(() => of(null))))
     ).subscribe(seg => {
       if (seg) this.seguimiento = seg;
+      // La app corre con detección de cambios zoneless: varias peticiones HTTP
+      // concurrentes en ngOnInit más este polling en segundo plano dejaban la
+      // vista pintada con datos viejos (o con el spinner) aunque el estado ya
+      // se hubiera actualizado, porque ninguna fuente rastreada por Angular
+      // disparaba el siguiente tick. markForCheck lo fuerza explícitamente.
+      this.cdr.markForCheck();
     });
   }
 
@@ -75,25 +92,89 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       next: (pedido) => {
         this.pedido = pedido;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al cargar el pedido';
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
 
     this.pedidoService.obtenerSeguimiento(this.pedidoId).subscribe({
-      next: (seg) => this.seguimiento = seg
+      next: (seg) => {
+        this.seguimiento = seg;
+        this.cdr.markForCheck();
+      }
     });
 
     this.ticketService.listarTickets(this.pedidoId).subscribe({
-      next: (tickets) => this.tickets = tickets
+      next: (tickets) => {
+        this.tickets = tickets;
+        this.cdr.markForCheck();
+      }
     });
 
     // Un 404 aquí solo significa que aún no hay entregable para este pedido.
     this.entregableService.obtenerEntregable(this.pedidoId)
       .pipe(catchError(() => of(null)))
-      .subscribe(entregable => this.entregaAprobada = entregable?.estaLiberado === true);
+      .subscribe(entregable => {
+        this.entregaAprobada = entregable?.estaLiberado === true;
+        this.cdr.markForCheck();
+      });
+
+    // 404 aquí = contrato aún no generado; también es la señal de que la
+    // negociación de términos sigue abierta.
+    this.contratoService.obtenerContratoPorPedido(this.pedidoId)
+      .pipe(catchError(() => of(null)))
+      .subscribe(contrato => {
+        this.contrato = contrato;
+        this.cdr.markForCheck();
+      });
+  }
+
+  /**
+   * El contrato renderiza precio/fecha en vivo desde el pedido, así que
+   * cambiarlos deja de ser seguro apenas alguien firmó: quien ya firmó vería
+   * en silencio un contenido distinto del que aceptó. El backend aplica la
+   * misma regla (ver PedidoServicioImpl#actualizarTerminos); esto solo evita
+   * mostrar un formulario que el servidor va a rechazar.
+   */
+  get puedeNegociarTerminos(): boolean {
+    return !this.contrato || (!this.contrato.hashFirmaCreador && !this.contrato.hashFirmaCliente);
+  }
+
+  actualizarTerminos(): void {
+    if (this.actualizandoTerminos) return;
+
+    const peticion: PeticionActualizarTerminosPedido = {};
+    if (this.nuevoPrecio != null) peticion.precioPactado = this.nuevoPrecio;
+    if (this.nuevaFechaEntrega) peticion.fechaEntregaEstimada = this.nuevaFechaEntrega;
+
+    if (peticion.precioPactado == null && !peticion.fechaEntregaEstimada) {
+      this.mensajeTerminos = 'Indica un nuevo precio o una nueva fecha de entrega.';
+      return;
+    }
+
+    this.actualizandoTerminos = true;
+    this.mensajeTerminos = '';
+
+    this.pedidoService.actualizarTerminos(this.pedidoId, peticion).subscribe({
+      next: (pedido) => {
+        this.pedido = pedido;
+        this.nuevoPrecio = null;
+        this.nuevaFechaEntrega = '';
+        this.actualizandoTerminos = false;
+        this.mensajeTerminos = 'Términos actualizados.';
+        this.cdr.markForCheck();
+        setTimeout(() => { this.mensajeTerminos = ''; this.cdr.markForCheck(); }, 4000);
+      },
+      error: (err) => {
+        this.mensajeTerminos = err.error?.message || 'No se pudieron actualizar los términos';
+        this.actualizandoTerminos = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   avanzarEtapa(): void {
@@ -142,12 +223,22 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Por identidad (idCreador de ESTE pedido), no por rol global: el backend
+   * tampoco da paso libre a ADMIN en avanzarEtapa/aprobarEntrega/etc (ver
+   * PedidoServicioImpl, EntregableServicioImpl — todo por identidad, sin
+   * excepción para ADMIN), así que un rol global aquí solo lograba mostrar
+   * botones que el servidor iba a rechazar de todas formas. Además, una
+   * cuenta con ambos roles CLIENTE y CREADOR (el admin puede asignar los dos)
+   * veía secciones de "creador" en un pedido donde en realidad es el
+   * cliente, solo por tener ese rol en otro servicio suyo.
+   */
   get esCreador(): boolean {
-    return this.authService.hasAnyRole('CREADOR', 'ADMIN');
+    return this.pedido?.idCreador === this.authService.getCurrentUserId();
   }
 
   get esCliente(): boolean {
-    return this.authService.hasAnyRole('CLIENTE', 'ADMIN');
+    return this.pedido?.idCliente === this.authService.getCurrentUserId();
   }
 
   get progresoRedondeado(): number {

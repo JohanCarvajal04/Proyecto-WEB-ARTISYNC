@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/role-permissions")
+@RequestMapping("/api/v1/admin/role-permissions")
 @RequiredArgsConstructor
 @Tag(name = "Administración de Roles y Permisos", description = "Endpoints para consultar y sincronizar dinámicamente la matriz de permisos por rol")
 @SecurityRequirement(name = "bearerAuth")

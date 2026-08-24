@@ -29,7 +29,7 @@ El diagrama de contexto sitúa al sistema **Artisync** como una **caja negra** c
 | :--- | :--- | :--- | :--- |
 | **Servicio de Correo Electrónico (SMTP Transaccional)** | Sistema de Notificaciones | `SMTP / TLS` <br> (Puerto 587) | Sistema de correo saliente (ej. Gmail SMTP, SendGrid, Amazon SES) consumido por la plataforma (`EmailService`) para enviar correos transaccionales asíncronos (`@Async`): códigos de autenticación de dos factores (2FA), enlaces de verificación de cuenta y recuperación de contraseña (`tokenPlano`), y alertas de estado de pedidos. |
 | **Pasarela de Pagos Externa (PayPal API v2)** | Pasarela Financiera REST | `HTTPS / REST JSON` <br> (Webhooks & Orders v2) | Plataforma financiera global (`PayPalConfig`, `PayPalWebhookControlador`) invocada para procesar pagos seguros. Gestiona la creación de órdenes de cobro, la retención de fondos en garantía (*Escrow*) durante la ejecución de los pedidos (`PagoGarantia`) y la notificación de eventos transaccionales vía Webhooks firmados. |
-| **Almacenamiento de Archivos en Nube (Cloud Storage / CDN)** | Sistema de Almacenamiento | `HTTPS / REST` <br> (S3 / Cloudinary) | Infraestructura externa para el almacenamiento y distribución optimizada de recursos estáticos de alto volumen: imágenes y videos multimedia de portafolios artísticos, adjuntos de chat entre usuarios y archivos entregables de proyectos de alta resolución. |
+| **Almacenamiento de Archivos en Nube (Cloud Storage / CDN)** | Sistema de Almacenamiento | `HTTPS / REST` <br> (Azure Blob Storage) | Infraestructura externa para el almacenamiento y distribución optimizada de recursos estáticos de alto volumen: imágenes y videos multimedia de portafolios artísticos, adjuntos de chat entre usuarios y archivos entregables de proyectos de alta resolución. |
 
 ---
 
@@ -52,7 +52,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagra
         // Sistemas Externos
         smtpSystem = softwareSystem "Servicio de Correo Transaccional" "Servidor SMTP saliente (Gmail / SendGrid) para envío de correos de recuperación de contraseña, 2FA y alertas transaccionales." "External System"
         paypalSystem = softwareSystem "Pasarela de Pagos (PayPal API v2)" "Plataforma financiera externa para procesamiento de transacciones, retención de fondos en garantía (Escrow) y notificaciones de pago vía Webhooks." "External System"
-        cloudStorageSystem = softwareSystem "Almacenamiento en Nube / CDN" "Servicio externo (AWS S3 / Cloudinary) para almacenamiento persistente y streaming de archivos multimedia de portafolios y entregables." "External System"
+        cloudStorageSystem = softwareSystem "Almacenamiento en Nube / CDN" "Servicio externo (Azure Blob Storage) para almacenamiento persistente y streaming de archivos multimedia de portafolios y entregables." "External System"
 
         // Relaciones: Usuarios -> Sistema Artisync
         cliente -> artisyncSystem "Explora catálogo, solicita cotizaciones, realiza pagos en garantía, revisa hitos y califica entregables" "HTTPS / JSON"
@@ -63,7 +63,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagra
         artisyncSystem -> smtpSystem "Envía correos asíncronos de verificación, recuperación de contraseña y alertas del sistema" "SMTP / TLS (587)"
         artisyncSystem -> paypalSystem "Crea órdenes de pago v2, verifica transacciones y gestiona fondos en garantía (Escrow)" "HTTPS / REST JSON"
         paypalSystem -> artisyncSystem "Envía notificaciones instantáneas de eventos de cobro y liberación de fondos" "HTTPS / Webhooks"
-        artisyncSystem -> cloudStorageSystem "Sube y recupera imágenes de portafolios, archivos de chat y entregables multimedia pesados" "HTTPS / REST S3"
+        artisyncSystem -> cloudStorageSystem "Sube y recupera imágenes de portafolios, archivos de chat y entregables multimedia pesados" "HTTPS / REST Azure"
     }
 
     views {

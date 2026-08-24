@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
@@ -15,6 +18,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
 
@@ -33,9 +37,12 @@ public class ContratoServicioImpl implements IContratoServicio {
     private final PedidoRepository pedidoRepository;
     private final PlantillaContratoRepository plantillaContratoRepository;
     private final IPdfGeneracionServicio pdfGeneracionServicio;
+    private final ChatService chatService;
 
     @Override
     @Transactional
+    @Auditable(accion = "CONTRATO_GENERAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "contratos", idEntidad = "#resultado.idContrato")
     public RespuestaContrato generarContrato(Long idPedido) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -65,6 +72,8 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CONTRATO_FIRMAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "contratos", idEntidad = "#idContrato")
     public RespuestaContrato firmarContrato(Long idContrato, Long idUsuario) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
@@ -93,10 +102,10 @@ public class ContratoServicioImpl implements IContratoServicio {
 
         contratoRepository.save(contrato);
 
-        // Si ambos firmaron, crear sala de chat (M6 - placeholder)
+        // Si ambos firmaron, abrir la sala de chat del pedido (idempotente: no duplica si ya existe)
         if (contrato.getHashFirmaCreador() != null && contrato.getHashFirmaCliente() != null) {
-            log.info("Ambas partes firmaron contrato {}. Sala de chat pendiente (M6)", idContrato);
-            // TODO M6: chatService.crearSala(pedido);
+            chatService.crearSala(pedido);
+            log.info("Ambas partes firmaron contrato {}. Sala de chat abierta para pedido {}", idContrato, pedido.getIdPedido());
         }
 
         return mapToRespuesta(contrato);
@@ -167,20 +176,36 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
+    /**
+     * Hallazgo SEC-01 (auditoria de seguridad): cada valor que entra aqui desde
+     * datos de usuario (nombres, descripcion del servicio) se escapa con
+     * HtmlUtils.htmlEscape antes de sustituirse en la plantilla. Antes se
+     * interpolaban crudos: un creador podia poner una etiqueta HTML en la
+     * descripcion de su servicio (p. ej. <img src="http://...">) y, al generar
+     * el PDF, ese marcado se renderizaba tal cual. plantilla.getCuerpoHtmlPlantilla()
+     * NO se escapa: es la plantilla legal en si, solo sembrable por migracion
+     * (V13__seed_plantilla_contrato.sql), sin ningun endpoint que la edite.
+     */
     private String generarContratoHtml(PlantillaContrato plantilla, Contrato contrato) {
         Pedido pedido = contrato.getPedido();
         Usuario creador = pedido.getServicio().getPerfil().getUsuario();
         Usuario cliente = pedido.getUsuarioCliente();
 
         String html = plantilla.getCuerpoHtmlPlantilla();
-        html = html.replace("{{nombre_creador}}", creador.getNombres() + " " + creador.getApellidos());
-        html = html.replace("{{nombre_cliente}}", cliente.getNombres() + " " + cliente.getApellidos());
-        html = html.replace("{{descripcion_servicio}}", pedido.getServicio().getDescripcionDetallada());
-        html = html.replace("{{precio_pactado}}", pedido.getPrecioPactado().toString());
-        html = html.replace("{{limite_revisiones}}", String.valueOf(contrato.getLimiteRevisiones()));
-        html = html.replace("{{fecha_entrega}}",
-                pedido.getFechaEntregaEstimada() != null ? pedido.getFechaEntregaEstimada().toString() : "Por definir");
-        html = html.replace("{{fecha_actual}}", LocalDate.now().toString());
+        html = html.replace("{{nombre_creador}}",
+                HtmlUtils.htmlEscape(creador.getNombres() + " " + creador.getApellidos()));
+        html = html.replace("{{nombre_cliente}}",
+                HtmlUtils.htmlEscape(cliente.getNombres() + " " + cliente.getApellidos()));
+        html = html.replace("{{descripcion_servicio}}",
+                HtmlUtils.htmlEscape(pedido.getServicio().getDescripcionDetallada()));
+        // precio_pactado, limite_revisiones, fecha_entrega y fecha_actual no son
+        // controlables por el usuario (numeros/fechas calculados en servidor), pero
+        // se escapan igual por uniformidad con el resto de placeholders.
+        html = html.replace("{{precio_pactado}}", HtmlUtils.htmlEscape(pedido.getPrecioPactado().toString()));
+        html = html.replace("{{limite_revisiones}}", HtmlUtils.htmlEscape(String.valueOf(contrato.getLimiteRevisiones())));
+        html = html.replace("{{fecha_entrega}}", HtmlUtils.htmlEscape(
+                pedido.getFechaEntregaEstimada() != null ? pedido.getFechaEntregaEstimada().toString() : "Por definir"));
+        html = html.replace("{{fecha_actual}}", HtmlUtils.htmlEscape(LocalDate.now().toString()));
 
         return html;
     }
@@ -188,7 +213,9 @@ public class ContratoServicioImpl implements IContratoServicio {
     private String renderizarContratoCompleto(Contrato contrato) {
         String html = generarContratoHtml(contrato.getPlantilla(), contrato);
 
-        // Agregar hashes de firma al pie del documento
+        // Agregar hashes de firma al pie del documento. No requieren
+        // HtmlUtils.htmlEscape: son hex SHA-256 calculados en servidor por
+        // generarHashFirma(), no texto libre de usuario.
         StringBuilder footer = new StringBuilder();
         footer.append("<hr><div style='font-size:10px; color:#666;'>");
         if (contrato.getHashFirmaCreador() != null) {
@@ -238,7 +265,9 @@ public class ContratoServicioImpl implements IContratoServicio {
                 .idContrato(contrato.getIdContrato())
                 .idPedido(pedido.getIdPedido())
                 .tituloServicio(pedido.getServicio().getTituloServicio())
+                .idCreador(creador.getIdUsuario())
                 .nombreCreador(creador.getNombres() + " " + creador.getApellidos())
+                .idCliente(cliente.getIdUsuario())
                 .nombreCliente(cliente.getNombres() + " " + cliente.getApellidos())
                 .versionLegal(contrato.getPlantilla().getVersionLegal())
                 .contenidoHtml(htmlRenderizado)

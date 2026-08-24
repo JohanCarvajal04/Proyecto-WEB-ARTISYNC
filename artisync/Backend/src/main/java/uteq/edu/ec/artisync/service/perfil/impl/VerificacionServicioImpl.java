@@ -6,6 +6,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
@@ -49,6 +51,11 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
+    // Nunca el contenido ni el nombre del documento: REQ-F-006 exige
+    // eliminarlo tras la respuesta, y guardarlo aquí lo contradiría.
+    @Auditable(accion = "VERIFICACION_SOLICITAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
+            detalle = "{tipoDocumento: #tipo}")
     public RespuestaVerificacion subir(Long idUsuarioSolicitante, TipoDocumentoVerificacion tipo, MultipartFile documento) {
         PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuarioSolicitante)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
@@ -147,6 +154,9 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "VERIFICACION_DECIDIR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "certificados_ia", idEntidad = "#idCertificado",
+            detalle = "{idNuevoEstado: #idNuevoEstado}")
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
         CertificadoIa certificado = buscarPorId(idCertificado);
 

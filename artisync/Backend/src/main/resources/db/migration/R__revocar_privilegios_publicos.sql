@@ -1,0 +1,38 @@
+-- =============================================================================
+-- R__revocar_privilegios_publicos.sql
+-- =============================================================================
+-- SEC-02 (auditoria de seguridad): PostgreSQL concede EXECUTE a PUBLIC
+-- automaticamente al crear una funcion o procedimiento, salvo que se revoque
+-- explicitamente. Sin esto, cualquier rol capaz de conectarse a la base
+-- podia invocar fn_permisos_efectivos_usuario (devuelve el hash BCrypt del
+-- usuario), fn_crear_usuario_admin o fn_sincronizar_roles_usuario, entre
+-- otras. Endurecimiento, no vulnerabilidad activa: ninguna funcion de
+-- db/procs/ es SECURITY DEFINER, asi que todas corren como SECURITY INVOKER
+-- y los GRANT de tabla de seed_privilegios.sh ya limitan lo que un rol sin
+-- permisos puede leer o escribir a traves de ellas.
+--
+-- Por que una migracion REPETIBLE separada, en vez de anadir esto a
+-- seed_privilegios.sh: ese script corre en /docker-entrypoint-initdb.d/,
+-- ANTES de que Flyway cree ninguna funcion (ver su propio comentario sobre
+-- el orden de arranque en un volumen vacio), asi que un REVOKE ahi no
+-- tendria nada sobre lo que actuar. Tampoco sirve `ALTER DEFAULT PRIVILEGES
+-- ... REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`: se verifico empiricamente
+-- (tres bases de datos aisladas, PostgreSQL 16) que esa forma NO impide que
+-- las funciones creadas despues sigan recibiendo EXECUTE para PUBLIC -- el
+-- ACL inicial de una funcion nueva incluye el baseline implicito (dueno +
+-- PUBLIC) y solo LE SUMA lo que el default-privilege GRANT especifica; el
+-- REVOKE del default-privilege no logra suprimir ese baseline. Un REVOKE
+-- directo sobre las funciones YA EXISTENTES si funciona (confirmado
+-- igualmente), y es justamente lo que hace esta migracion.
+--
+-- Migracion REPETIBLE, no versionada: Flyway aplica las migraciones
+-- repetibles DESPUES de todas las versionadas pendientes, ordenadas por su
+-- descripcion -- "procedimientos" < "revocar_privilegios_publicos"
+-- alfabeticamente, asi que esta se ejecuta SIEMPRE despues de
+-- R__procedimientos.sql en la misma corrida de Flyway, cuando las funciones
+-- ya existen. Reaplicarla es inocuo (REVOKE de un privilegio que ya no
+-- estaba es un no-op), asi que un futuro cambio de checksum no rompe nada.
+-- =============================================================================
+
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC;
+REVOKE EXECUTE ON ALL PROCEDURES IN SCHEMA public FROM PUBLIC;

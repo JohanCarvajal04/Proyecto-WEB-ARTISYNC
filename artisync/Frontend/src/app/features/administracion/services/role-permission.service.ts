@@ -13,7 +13,7 @@ import {
 })
 export class RolePermissionService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/admin/role-permissions`;
+  private apiUrl = `${environment.apiUrl}/v1/admin/role-permissions`;
 
   getAllRoles(): Observable<RolMatrixResponse[]> {
     return this.http.get<RolMatrixResponse[]>(`${this.apiUrl}/roles`);

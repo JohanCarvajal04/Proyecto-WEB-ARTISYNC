@@ -52,13 +52,9 @@ class AdminUserServiceImplTest {
     @Mock
     private UsuarioRepository usuarioRepository;
     @Mock
-    private RolRepository rolRepository;
-    @Mock
     private UsuarioRolRepository usuarioRolRepository;
     @Mock
     private PaisRepository paisRepository;
-    @Mock
-    private PerfilCreadorRepository perfilCreadorRepository;
     @Mock
     private UsuarioMapper usuarioMapper;
     @Mock
@@ -68,7 +64,7 @@ class AdminUserServiceImplTest {
     @Mock
     private AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     @Mock
-    private CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
+    private jakarta.persistence.EntityManager entityManager;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
@@ -95,13 +91,21 @@ class AdminUserServiceImplTest {
                 .build();
     }
 
+    /** Simula lo que Spring Data envuelve cuando fn_x lanza RAISE EXCEPTION ... USING ERRCODE = '...'. */
+    private static RuntimeException excepcionSql(String sqlState, String mensaje) {
+        return new RuntimeException(new java.sql.SQLException(mensaje, sqlState));
+    }
+
     @Test
     void getAllUsers_ShouldReturnPagedResponse() {
+        // Fase 2 rendimiento: getAllUsers mapea la pagina en un solo lote via
+        // toUserResponseList (batchea roles/permisos/2FA), no fila a fila con
+        // toUserResponse.
         PageRequest pageRequest = PageRequest.of(0, 10);
         Page<Usuario> page = new PageImpl<>(List.of(usuario));
 
         when(usuarioRepository.findAll(pageRequest)).thenReturn(page);
-        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+        when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
 
         PagedResponse<UserResponse> result = adminUserService.getAllUsers(pageRequest);
 
@@ -131,18 +135,31 @@ class AdminUserServiceImplTest {
 
     @Test
     void changeEstado_ShouldRevokeSessions_WhenDeactivatingUser() {
+        // Fase 1 concurrencia: fn_cambiar_estado_cuenta decide internamente (bajo
+        // SELECT FOR UPDATE) si hubo transicion activa->inactiva y revoca
+        // sesiones; el servicio ya no compara un estadoAnterior en Java ni llama
+        // a usuarioRepository.save() por separado.
+        //
+        // entityManager.refresh() (no un usuario.setEstadoCuenta() explicito) es
+        // quien deja el campo en memoria coherente con lo que la funcion atomica
+        // ya escribio -- se simula aqui exactamente como lo haria Hibernate real.
         ChangeEstadoRequest request = new ChangeEstadoRequest();
         request.setEstadoCuenta(false);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+        doAnswer(inv -> {
+            usuario.setEstadoCuenta(false);
+            return null;
+        }).when(entityManager).refresh(usuario);
 
         UserResponse result = adminUserService.changeEstado(1L, request);
 
         assertNotNull(result);
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
-        verify(usuarioRepository).save(usuario);
+        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(entityManager).refresh(usuario);
+        verify(usuarioRepository, never()).save(any());
+        assertFalse(usuario.getEstadoCuenta());
     }
 
     @Test
@@ -152,12 +169,13 @@ class AdminUserServiceImplTest {
         request.setEstadoCuenta(true);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(inactivo));
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(inactivo);
         when(usuarioMapper.toUserResponse(inactivo)).thenReturn(userResponse);
 
         adminUserService.changeEstado(1L, request);
 
-        verify(sessionRevocationService, never()).revocarSesionesUsuario(any());
+        // La decision de revocar (o no) ahora vive dentro de fn_cambiar_estado_cuenta;
+        // el servicio siempre delega, sin ramificar en Java.
+        verify(sessionRevocationService).cambiarEstadoCuenta(1L, true);
     }
 
     @Test
@@ -174,29 +192,37 @@ class AdminUserServiceImplTest {
     // ── createUser ───────────────────────────────────────────────────────────
 
     @Test
+    // Fase 3 concurrencia: createUser delega en fn_crear_usuario_admin
+    // (usuarioRepository.crearUsuarioAdmin), que captura unique_violation
+    // sobre el correo en vez de existsByCorreo (A3), y compone con
+    // fn_sincronizar_roles_usuario para los roles.
     void createUser_ShouldCreateWithDefaultRoleCliente() {
         CreateUserRequest request = CreateUserRequest.builder()
                 .nombres("Nuevo").apellidos("Usuario").correo("nuevo@example.com")
                 .contrasena("Password123!").build();
-        Rol rolCliente = Rol.builder().idRol(1L).nombreRol("CLIENTE").build();
 
-        when(usuarioRepository.existsByCorreo("nuevo@example.com")).thenReturn(false);
         when(passwordEncoder.encode("Password123!")).thenReturn("hashed");
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
-        when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.of(rolCliente));
+        when(usuarioRepository.crearUsuarioAdmin(eq("Nuevo"), eq("Usuario"), eq("nuevo@example.com"), eq("hashed"),
+                any(), isNull(), eq(true), eq(new String[]{"CLIENTE"}))).thenReturn(1L);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         UserResponse result = adminUserService.createUser(request);
 
         assertNotNull(result);
-        verify(usuarioRolRepository).save(any(UsuarioRol.class));
-        verifyNoInteractions(perfilCreadorRepository);
+        verify(usuarioRepository).crearUsuarioAdmin(eq("Nuevo"), eq("Usuario"), eq("nuevo@example.com"), eq("hashed"),
+                any(), isNull(), eq(true), eq(new String[]{"CLIENTE"}));
     }
 
     @Test
     void createUser_ShouldRejectCorreoDuplicado() {
-        CreateUserRequest request = CreateUserRequest.builder().correo("admin@example.com").build();
-        when(usuarioRepository.existsByCorreo("admin@example.com")).thenReturn(true);
+        // fn_crear_usuario_admin captura unique_violation (ERRCODE 23505)
+        // sobre usuarios.correo en vez de una comprobacion existsByCorreo
+        // previa no atomica (A3).
+        CreateUserRequest request = CreateUserRequest.builder().correo("admin@example.com").contrasena("x").build();
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(usuarioRepository.crearUsuarioAdmin(any(), any(), eq("admin@example.com"), any(), any(), any(), any(), any()))
+                .thenThrow(excepcionSql("23505", "El correo ya esta registrado: admin@example.com"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> adminUserService.createUser(request));
@@ -205,9 +231,10 @@ class AdminUserServiceImplTest {
 
     @Test
     void createUser_ShouldRejectPaisInexistente() {
-        CreateUserRequest request = CreateUserRequest.builder().correo("nuevo@example.com").idPais(99L).build();
-        when(usuarioRepository.existsByCorreo("nuevo@example.com")).thenReturn(false);
-        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+        CreateUserRequest request = CreateUserRequest.builder().correo("nuevo@example.com").idPais(99L).contrasena("x").build();
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(usuarioRepository.crearUsuarioAdmin(any(), any(), eq("nuevo@example.com"), any(), any(), eq(99L), any(), any()))
+                .thenThrow(excepcionSql("23503", "Pais no encontrado"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> adminUserService.createUser(request));
@@ -216,31 +243,36 @@ class AdminUserServiceImplTest {
 
     @Test
     void createUser_ShouldCreatePerfilCreador_WhenRolCreadorAsignado() {
+        // El alta perezosa del perfil de creador ahora ocurre DENTRO de
+        // fn_sincronizar_roles_usuario (compuesta por fn_crear_usuario_admin);
+        // este test verifica que el rol solicitado llegue tal cual a la
+        // rutina, no que el servicio Java toque perfiles_creadores.
         CreateUserRequest request = CreateUserRequest.builder()
                 .nombres("Nuevo").apellidos("Creador").correo("creador@example.com")
                 .contrasena("Password123!").roles(List.of("CREADOR")).build();
-        Rol rolCreador = Rol.builder().idRol(2L).nombreRol("CREADOR").build();
 
-        when(usuarioRepository.existsByCorreo("creador@example.com")).thenReturn(false);
         when(passwordEncoder.encode("Password123!")).thenReturn("hashed");
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
-        when(rolRepository.findByNombreRol("CREADOR")).thenReturn(Optional.of(rolCreador));
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.empty());
+        when(usuarioRepository.crearUsuarioAdmin(any(), any(), eq("creador@example.com"), any(), any(), any(), any(),
+                eq(new String[]{"CREADOR"}))).thenReturn(1L);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         adminUserService.createUser(request);
 
-        verify(perfilCreadorRepository).save(any());
+        verify(usuarioRepository).crearUsuarioAdmin(any(), any(), eq("creador@example.com"), any(), any(), any(), any(),
+                eq(new String[]{"CREADOR"}));
     }
 
     @Test
     void createUser_ShouldRejectRolInexistente() {
+        // fn_sincronizar_roles_usuario (invocada dentro de fn_crear_usuario_admin)
+        // lanza ERRCODE 23514 cuando un rol solicitado no existe.
         CreateUserRequest request = CreateUserRequest.builder()
                 .correo("nuevo@example.com").contrasena("Password123!").roles(List.of("FANTASMA")).build();
-        when(usuarioRepository.existsByCorreo("nuevo@example.com")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("hashed");
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
-        when(rolRepository.findByNombreRol("FANTASMA")).thenReturn(Optional.empty());
+        when(usuarioRepository.crearUsuarioAdmin(any(), any(), eq("nuevo@example.com"), any(), any(), any(), any(),
+                eq(new String[]{"FANTASMA"})))
+                .thenThrow(excepcionSql("23514", "El rol especificado no existe en el sistema: FANTASMA"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> adminUserService.createUser(request));
@@ -301,6 +333,15 @@ class AdminUserServiceImplTest {
 
     @Test
     void updateUser_ShouldRevokeSessions_WhenDeactivating() {
+        // Fase 1 concurrencia: la rama estadoCuenta de updateUser delega en
+        // fn_cambiar_estado_cuenta (SELECT FOR UPDATE + revocacion atomica) en
+        // vez de comparar un estadoAnterior leido en Java.
+        //
+        // Ademas fija el hallazgo del code-review: estado_cuenta se persiste
+        // UNA sola vez (via la funcion atomica) -- usuarioRepository.save() ya
+        // no debe reescribirlo por dirty-checking. Se verifica con
+        // times(1)/entityManager.refresh() en vez de un usuario.setEstadoCuenta()
+        // que dejaria el campo "dirty" para el siguiente flush.
         AdminUpdateUserRequest request = AdminUpdateUserRequest.builder().estadoCuenta(false).build();
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
@@ -308,38 +349,40 @@ class AdminUserServiceImplTest {
 
         adminUserService.updateUser(1L, request);
 
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(usuarioRepository, times(1)).save(usuario);
+        verify(entityManager).refresh(usuario);
     }
 
     @Test
     void updateUser_ShouldDisable2fa_WhenDosFactoresHabilitadoIsFalse() {
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder().estaHabilitado(true).build();
+        // Fase 3 concurrencia: la rama dosFactoresHabilitado=false delega en
+        // fn_desactivar_2fa (autenticacionDosFactoresRepository.desactivar2Fa),
+        // que desactiva el flag y purga codigos de respaldo atomicamente.
         AdminUpdateUserRequest request = AdminUpdateUserRequest.builder().dosFactoresHabilitado(false).build();
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
+        when(autenticacionDosFactoresRepository.desactivar2Fa(1L)).thenReturn(true);
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         adminUserService.updateUser(1L, request);
 
-        assertFalse(dosFactores.getEstaHabilitado());
-        verify(codigoRespaldo2FaRepository).deleteByUsuarioIdUsuario(1L);
+        verify(autenticacionDosFactoresRepository).desactivar2Fa(1L);
     }
 
     @Test
     void updateUser_ShouldUpdateRoles_WhenRolesProvided() {
-        Rol rolCliente = Rol.builder().idRol(1L).nombreRol("CLIENTE").build();
+        // Fase 1 concurrencia: actualizarRoles() delega en fn_sincronizar_roles_usuario
+        // (una unica llamada atomica) en vez del find+deleteAll+bucle de save() anterior.
         AdminUpdateUserRequest request = AdminUpdateUserRequest.builder().roles(List.of("CLIENTE")).build();
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of());
-        when(rolRepository.findByNombreRol("CLIENTE")).thenReturn(Optional.of(rolCliente));
+        when(usuarioRolRepository.sincronizarRoles(1L, new String[]{"CLIENTE"})).thenReturn(1);
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         adminUserService.updateUser(1L, request);
 
-        verify(usuarioRolRepository).deleteAll(List.of());
-        verify(usuarioRolRepository).save(any(UsuarioRol.class));
+        verify(usuarioRolRepository).sincronizarRoles(1L, new String[]{"CLIENTE"});
     }
 
     @Test
@@ -355,19 +398,20 @@ class AdminUserServiceImplTest {
 
     @Test
     void assignRoles_ShouldUpdateRolesAndRevokeSessions() {
-        Rol rolCreador = Rol.builder().idRol(2L).nombreRol("CREADOR").build();
+        // Fase 1 concurrencia: actualizarRoles() delega en fn_sincronizar_roles_usuario
+        // (incluye el alta perezosa de perfiles_creadores dentro del motor); ya no
+        // hay llamadas a rolRepository/perfilCreadorRepository desde este metodo.
         AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("CREADOR")).build();
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of());
-        when(rolRepository.findByNombreRol("CREADOR")).thenReturn(Optional.of(rolCreador));
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.empty());
+        when(usuarioRolRepository.sincronizarRoles(1L, new String[]{"CREADOR"})).thenReturn(1);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         UserResponse result = adminUserService.assignRoles(1L, request);
 
         assertNotNull(result);
+        verify(usuarioRolRepository).sincronizarRoles(1L, new String[]{"CREADOR"});
         verify(sessionRevocationService).revocarSesionesUsuario(1L);
-        verify(perfilCreadorRepository).save(any());
     }
 
     @Test
@@ -380,19 +424,20 @@ class AdminUserServiceImplTest {
 
     @Test
     void deleteUser_ShouldDeactivateAndRevokeSessions() {
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
-
+        // Fase 1 concurrencia: deleteUser ya no carga la entidad completa ni
+        // comprueba existencia por su cuenta; delega la desactivacion +
+        // revocacion atomica (y la validacion de existencia, via P0002) en
+        // fn_cambiar_estado_cuenta.
         adminUserService.deleteUser(1L);
 
-        assertFalse(usuario.getEstadoCuenta());
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
-        verify(usuarioRepository).save(usuario);
+        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(usuarioRepository, never()).save(any());
     }
 
     @Test
     void deleteUser_ShouldThrowNotFound_WhenUsuarioNoExiste() {
-        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: 99"))
+                .when(sessionRevocationService).cambiarEstadoCuenta(99L, false);
 
         assertThrows(ResponseStatusException.class, () -> adminUserService.deleteUser(99L));
     }

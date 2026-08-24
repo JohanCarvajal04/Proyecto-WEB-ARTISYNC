@@ -23,4 +23,8 @@ public class Pais {
     @Size(max = 100, message = "El nombre del pais no puede superar los 100 caracteres")
     @Column(name = "nombre_pais", nullable = false, unique = true, length = 100)
     private String nombrePais;
+
+    @Column(name = "estado", nullable = false)
+    @Builder.Default
+    private Boolean estado = true;
 }

@@ -4,6 +4,7 @@
 
 ## HU-14 — Chat en tiempo real por pedido
 **Trazabilidad:** REQ-F-014
+**Prueba de aceptación:** `ChatServiceImplTest`
 
 **As a** Cliente o Creador con un contrato firmado,
 **I want** comunicarme en tiempo real dentro de una sala de chat exclusiva del pedido,
@@ -25,6 +26,7 @@ Escenario: Cierre de la sala al finalizar el pedido
 
 ## HU-15 — Moderación automática de contacto externo
 **Trazabilidad:** REQ-F-015
+**Prueba de aceptación:** `MensajeFilterServiceImplTest` · `ChatServiceImplTest`
 
 **As a** administrador de la plataforma,
 **I want** que el sistema detecte automáticamente teléfonos o correos en los mensajes del chat,
@@ -46,6 +48,7 @@ Escenario: Suspensión por reincidencia
 
 ## HU-16 — Formulario de briefing
 **Trazabilidad:** REQ-F-016
+**Prueba de aceptación:** `BriefingServiceImplTest`
 
 **As a** Creador,
 **I want** configurar un formulario de briefing con hasta 10 preguntas específicas de mi servicio,

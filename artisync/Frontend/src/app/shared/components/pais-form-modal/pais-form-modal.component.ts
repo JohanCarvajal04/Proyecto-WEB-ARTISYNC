@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Input, Output, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PaisResponse } from '../../models/user.model';
 import { PaisRequest } from '../../../features/administracion/models/admin.model';
@@ -7,7 +6,7 @@ import { PaisRequest } from '../../../features/administracion/models/admin.model
 @Component({
   selector: 'app-pais-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './pais-form-modal.component.html'
 })
 export class PaisFormModalComponent implements OnInit {

@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
@@ -18,6 +20,8 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
 
 import java.math.BigDecimal;
@@ -33,6 +37,8 @@ public class EntregableServicioImpl implements IEntregableServicio {
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final AlmacenamientoDocumentos almacenamiento;
+    private final ChatService chatService;
+    private final NotificacionService notificacionService;
 
     @Override
     @Transactional
@@ -106,6 +112,12 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
     @Override
     @Transactional
+    // El evento financiero central del sistema: aquí se liberan los fondos en
+    // garantía. Es exactamente el tipo de operación que REQ-NF-013 exige
+    // poder auditar, incluidos los intentos fallidos (cliente equivocado,
+    // entregable ya liberado).
+    @Auditable(accion = "FONDOS_LIBERAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "pedidos", idEntidad = "#idPedido")
     public void aprobarEntrega(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -150,14 +162,16 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
         log.info("Entrega aprobada para pedido {} por cliente {}", idPedido, idCliente);
 
-        // TODO M6: Cerrar sala de chat
-        // chatService.cerrarSala(idPedido);
-        // TODO M6: Notificar al creador
-        // notificacionService.notificar(..., "PAGO_LIBERADO", "El pago ha sido liberado por el cliente");
+        chatService.cerrarSala(idPedido);
+        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_LIBERADO",
+                "El cliente aprobó la entrega de \"" + pedido.getServicio().getTituloServicio()
+                        + "\" y el pago fue liberado a tu favor.");
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Auditable(accion = "ENTREGABLE_DESCARGAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "pedidos", idEntidad = "#idPedido")
     public ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));

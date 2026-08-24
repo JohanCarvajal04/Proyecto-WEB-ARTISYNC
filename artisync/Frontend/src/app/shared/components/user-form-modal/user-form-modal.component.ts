@@ -394,7 +394,7 @@ export class UserFormModalComponent {
 
     effect(() => {
       if (this.isOpen()) {
-        this.adminUserService.getPaises().subscribe({
+        this.adminUserService.getPaisesActivos().subscribe({
           next: (list) => this.paises.set(list),
           error: () => {}
         });

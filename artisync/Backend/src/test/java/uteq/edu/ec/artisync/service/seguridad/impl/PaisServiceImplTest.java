@@ -14,12 +14,10 @@ import org.springframework.data.domain.Sort;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,8 +31,6 @@ class PaisServiceImplTest {
 
     @Mock
     private PaisRepository paisRepository;
-    @Mock
-    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private PaisServiceImpl paisService;
@@ -56,10 +52,15 @@ class PaisServiceImplTest {
         assertEquals("Ecuador", result.get(0).getNombrePais());
     }
 
+    // Fase 3 concurrencia: createPais/updatePais delegan en fn_guardar_pais,
+    // que captura unique_violation sobre el nombre en vez de una comprobacion
+    // findByNombrePais previa no atomica (A9). El tipo de excepcion de negocio
+    // (ExcepcionRecursoDuplicado/NoEncontrado) se preserva vía traducirExcepcionDuplicado.
     @Test
     void createPais_ShouldThrowDuplicate_WhenNameExists() {
         PaisRequest request = new PaisRequest("Ecuador");
-        when(paisRepository.findByNombrePais("Ecuador")).thenReturn(Optional.of(pais));
+        when(paisRepository.guardarPais(isNull(), eq("Ecuador")))
+                .thenThrow(excepcionSql("23505", "Ya existe un pais registrado con el nombre: Ecuador"));
 
         assertThrows(ExcepcionRecursoDuplicado.class, () -> paisService.createPais(request));
     }
@@ -67,8 +68,8 @@ class PaisServiceImplTest {
     @Test
     void createPais_ShouldCreateSuccessfully() {
         PaisRequest request = new PaisRequest("Ecuador");
-        when(paisRepository.findByNombrePais("Ecuador")).thenReturn(Optional.empty());
-        when(paisRepository.save(any(Pais.class))).thenReturn(pais);
+        when(paisRepository.guardarPais(isNull(), eq("Ecuador"))).thenReturn(1L);
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
 
         PaisResponse result = paisService.createPais(request);
 
@@ -76,23 +77,37 @@ class PaisServiceImplTest {
         assertEquals("Ecuador", result.getNombrePais());
     }
 
-    @Test
-    void deletePais_ShouldThrowBusinessRule_WhenUsersAssociated() {
-        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(usuarioRepository.existsByPaisIdPais(1L)).thenReturn(true);
-
-        assertThrows(ExcepcionReglaNegocio.class, () -> paisService.deletePais(1L));
+    /** Simula lo que Spring Data envuelve cuando fn_x lanza RAISE EXCEPTION ... USING ERRCODE = '...'. */
+    private static RuntimeException excepcionSql(String sqlState, String mensaje) {
+        return new RuntimeException(new java.sql.SQLException(mensaje, sqlState));
     }
 
+    // deletePais es un interruptor: la baja ya no borra la fila, invierte el
+    // estado. Por eso hay una prueba por sentido, y ninguna que compruebe la
+    // antigua regla de "no se puede eliminar si tiene usuarios asociados":
+    // esa restricción desapareció junto con el borrado físico.
     @Test
-    void deletePais_ShouldDeleteSuccessfully() {
+    void deletePais_ShouldDeactivate_WhenActive() {
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(usuarioRepository.existsByPaisIdPais(1L)).thenReturn(false);
 
         RespuestaMensaje response = paisService.deletePais(1L);
 
-        assertEquals("País eliminado exitosamente", response.getMensaje());
-        verify(paisRepository).delete(pais);
+        assertEquals("País desactivado exitosamente", response.getMensaje());
+        assertFalse(pais.getEstado());
+        verify(paisRepository).save(pais);
+        verify(paisRepository, never()).delete(any(Pais.class));
+    }
+
+    @Test
+    void deletePais_ShouldReactivate_WhenInactive() {
+        pais.setEstado(false);
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
+
+        RespuestaMensaje response = paisService.deletePais(1L);
+
+        assertEquals("País reactivado exitosamente", response.getMensaje());
+        assertTrue(pais.getEstado());
+        verify(paisRepository).save(pais);
     }
 
     @Test
@@ -120,10 +135,13 @@ class PaisServiceImplTest {
 
     @Test
     void createPais_ShouldThrowNotFound_Never_ButTrimsName() {
+        // El trim ahora ocurre dentro de fn_guardar_pais (btrim); este test
+        // solo verifica que Java pase el nombre sin trimear (la funcion es la
+        // responsable del recorte) y construya la respuesta desde lo guardado.
         PaisRequest request = new PaisRequest("  Peru  ");
         Pais nuevo = Pais.builder().idPais(2L).nombrePais("Peru").build();
-        when(paisRepository.findByNombrePais("Peru")).thenReturn(Optional.empty());
-        when(paisRepository.save(any(Pais.class))).thenReturn(nuevo);
+        when(paisRepository.guardarPais(isNull(), eq("  Peru  "))).thenReturn(2L);
+        when(paisRepository.findById(2L)).thenReturn(Optional.of(nuevo));
 
         PaisResponse result = paisService.createPais(request);
 
@@ -132,33 +150,36 @@ class PaisServiceImplTest {
 
     @Test
     void updatePais_ShouldUpdateSuccessfully_WhenNoConflict() {
+        Pais actualizado = Pais.builder().idPais(1L).nombrePais("Ecuador Nuevo").build();
         PaisRequest request = new PaisRequest("Ecuador Nuevo");
-        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(paisRepository.findByNombrePais("Ecuador Nuevo")).thenReturn(Optional.empty());
-        when(paisRepository.save(any(Pais.class))).thenReturn(pais);
+        when(paisRepository.existsById(1L)).thenReturn(true);
+        when(paisRepository.guardarPais(1L, "Ecuador Nuevo")).thenReturn(1L);
+        when(paisRepository.findById(1L)).thenReturn(Optional.of(actualizado));
 
         PaisResponse result = paisService.updatePais(1L, request);
 
         assertNotNull(result);
-        assertEquals("Ecuador Nuevo", pais.getNombrePais());
+        assertEquals("Ecuador Nuevo", result.getNombrePais());
     }
 
     @Test
     void updatePais_ShouldAllowSameName_WhenSamePais() {
+        // Renombrar un pais a su propio nombre actual no dispara la
+        // restriccion UNIQUE (es la misma fila): fn_guardar_pais no lanza.
         PaisRequest request = new PaisRequest("Ecuador");
+        when(paisRepository.existsById(1L)).thenReturn(true);
+        when(paisRepository.guardarPais(1L, "Ecuador")).thenReturn(1L);
         when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(paisRepository.findByNombrePais("Ecuador")).thenReturn(Optional.of(pais));
-        when(paisRepository.save(any(Pais.class))).thenReturn(pais);
 
         assertDoesNotThrow(() -> paisService.updatePais(1L, request));
     }
 
     @Test
     void updatePais_ShouldThrowDuplicate_WhenNameBelongsToAnotherPais() {
-        Pais otroPais = Pais.builder().idPais(2L).nombrePais("Peru").build();
         PaisRequest request = new PaisRequest("Peru");
-        when(paisRepository.findById(1L)).thenReturn(Optional.of(pais));
-        when(paisRepository.findByNombrePais("Peru")).thenReturn(Optional.of(otroPais));
+        when(paisRepository.existsById(1L)).thenReturn(true);
+        when(paisRepository.guardarPais(1L, "Peru"))
+                .thenThrow(excepcionSql("23505", "Ya existe un pais registrado con el nombre: Peru"));
 
         assertThrows(ExcepcionRecursoDuplicado.class, () -> paisService.updatePais(1L, request));
     }
@@ -166,7 +187,7 @@ class PaisServiceImplTest {
     @Test
     void updatePais_ShouldThrowNotFound_WhenPaisNoExiste() {
         PaisRequest request = new PaisRequest("Ecuador");
-        when(paisRepository.findById(99L)).thenReturn(Optional.empty());
+        when(paisRepository.existsById(99L)).thenReturn(false);
 
         assertThrows(ExcepcionRecursoNoEncontrado.class, () -> paisService.updatePais(99L, request));
     }

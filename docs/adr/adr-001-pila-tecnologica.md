@@ -11,6 +11,12 @@ El equipo debía seleccionar el lenguaje/framework de servidor para Artisync, un
 - **B — Express (Node.js 4.18.2):** mayor fiabilidad bajo cargas extremas, pero requiere librerías adicionales para RBAC, validación y persistencia estructurada.
 - **C — Django (Python 3.11):** desarrollo rápido pero menor eficiencia observada en pruebas comparativas de carga.
 
+### Nota sobre las comparativas de rendimiento (OBS-04)
+
+Las afirmaciones comparativas de las tres opciones anteriores —«mayor throughput», «mayor fiabilidad bajo cargas extremas», «menor eficiencia observada en pruebas comparativas de carga»— son **apreciaciones cualitativas tomadas de comparativas publicadas por terceros y de la experiencia previa del equipo, no mediciones propias de este proyecto**. No deben leerse como un benchmark de Artisync ni citarse como evidencia empírica.
+
+Las únicas cifras de rendimiento medidas sobre este sistema, con su método, número de corridas y estadística descriptiva, están en `docs/mediciones/perf/REPORTE-PERF.md` (k6, 50 VU / 30 s, 3 corridas en caliente y 3 en frío) y se discuten en el capítulo de evaluación empírica del documento académico. Una versión anterior de este ADR citaba cifras absolutas de usuarios concurrentes sin fuente; se retiraron por no ser verificables.
+
 ## Decisión
 Se adopta **Java 21 + Spring Boot 4.1.0** para el backend, **Angular 22 + TypeScript + Bootstrap 5** para el frontend, **PostgreSQL 16** como motor relacional, **Redis 7** como caché, y **Docker/Docker Compose** para el despliegue.
 

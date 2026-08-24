@@ -1,12 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { PortafolioService } from '../../services/portafolio.service';
 import { Portafolio, OpcionesPersonalizacion } from '../../models/portafolio.model';
 
 @Component({
   selector: 'app-portafolio-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './portafolio-view.component.html',
   styleUrls: ['./portafolio-view.component.css']
 })

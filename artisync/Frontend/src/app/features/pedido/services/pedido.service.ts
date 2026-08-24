@@ -8,7 +8,8 @@ import {
   RespuestaHistorialEstado,
   RespuestaSeguimientoPedido,
   PeticionCrearPedido,
-  PeticionAvanzarEtapa
+  PeticionAvanzarEtapa,
+  PeticionActualizarTerminosPedido
 } from '../models/pedido.model';
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +37,11 @@ export class PedidoService {
 
   avanzarEtapa(id: number, peticion: PeticionAvanzarEtapa): Observable<RespuestaPedido> {
     return this.http.put<RespuestaPedido>(`${this.API}/${id}/avanzar`, peticion);
+  }
+
+  /** Negociación pre-firma: solo funciona mientras el contrato no tenga ninguna firma. */
+  actualizarTerminos(id: number, peticion: PeticionActualizarTerminosPedido): Observable<RespuestaPedido> {
+    return this.http.patch<RespuestaPedido>(`${this.API}/${id}/terminos`, peticion);
   }
 
   obtenerHistorial(id: number): Observable<RespuestaHistorialEstado[]> {

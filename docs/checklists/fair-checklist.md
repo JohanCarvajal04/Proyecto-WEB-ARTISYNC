@@ -2,16 +2,29 @@
 
 *Findable, Accessible, Interoperable, and Reusable data (Wilkinson et al. 2016).*
 
-**Alcance:** el paquete de datos y metadatos de mediciones empíricas bajo `docs/mediciones/` (rendimiento, seguridad, usabilidad, cobertura, calidad web), documentado en `docs/mediciones/DATA-DICTIONARY.md` y `docs/mediciones/DATA-PROVENANCE.md`.
+**Alcance:** el paquete de datos y metadatos de mediciones empíricas bajo `docs/mediciones/` (rendimiento, seguridad, usabilidad, cobertura, calidad web), documentado en `docs/mediciones/DATA-DICTIONARY.md` y `docs/mediciones/DATA-PROVENANCE.md`. La sección 0 evalúa aparte los metadatos del **software**, porque el Bloque E de la guía exige que el checklist FAIR cubra "el paquete completo (software + datos + metadatos)" y las secciones 1–4 originales solo cubrían el dataset.
 
-**Fecha de evaluación:** 2026-08-17. **Evaluado contra:** commit `6af8595`.
+**Fecha de evaluación:** 2026-08-17 (secciones 1–4); ampliado 21-08-2026 (sección 0). **Evaluado contra:** commit `6af8595` (1–4); estado actual del repositorio (0).
+
+---
+
+## 0. Metadatos del software (ampliación de alcance, 21-08-2026)
+
+- [x] ¿El software tiene metadatos de citación formales y completos (`CITATION.cff`)?
+  **Sí.** `CITATION.cff` v1.2.0, validado contra el esquema oficial del formato: `cff-version`, `message`, `type: software`, `title`, `abstract`, `authors` (con `affiliation` y `orcid` los 4), `version` (`1.0.0`, sin la `v` que llevaba antes), `date-released`, `license`, `repository-code`, `url`, `doi`, `keywords` y un bloque `preferred-citation` completo con los mismos 4 autores.
+
+- [x] ¿Cada autor tiene un identificador persistente (ORCID)?
+  **Sí.** Los 4 integrantes tienen ORCID declarado tanto en `CITATION.cff` como en la portada del documento académico (`docs/informe-final/secciones/00-portada-resumen.tex`).
+
+- [x] ¿Existe un espejo de metadatos para el flujo de depósito de Zenodo (`.zenodo.json` o `codemeta.json`)?
+  **Sí.** `.zenodo.json` en la raíz, con `creators[].orcid`, `upload_type: software`, `license`, `version` y `related_identifiers` apuntando al repositorio y al DOI de la versión anterior (`isNewVersionOf`). `CITATION.cff` sigue siendo la fuente canónica de autoría; este archivo es un espejo para Zenodo.
 
 ---
 
 ## 1. Findable (Encontrable)
 
 - [ ] ¿Los datos y metadatos tienen identificadores únicos (ej. DOIs si aplica, o rutas claras)?
-  **Parcial.** El software en su conjunto tiene DOI de Zenodo (`10.5281/zenodo.21730559`, declarado en `CITATION.cff` y en el README), pero corresponde a la versión `v0.9.0-rc`, no a `v1.0.0`. **El dataset de mediciones no tiene un DOI propio** — la guía exige un depósito Zenodo separado para datos, con licencia propia, siguiendo el principio de citación independiente de software y datos (Bloque D.3). Las rutas dentro del repositorio (`docs/mediciones/<bloque>/<archivo>`) sí son claras, estables y referenciadas de forma consistente en `DATA-DICTIONARY.md`, pero eso no sustituye un identificador persistente externo.
+  **Parcial (actualizado 21-08-2026).** El software en su conjunto tiene DOI de Zenodo propio de `v1.0.0` (`10.5281/zenodo.21978572`, declarado en `CITATION.cff`, en el README y en la portada del documento académico). **El dataset de mediciones sigue sin un DOI propio** — la guía exige un depósito Zenodo separado para datos, con licencia propia, siguiendo el principio de citación independiente de software y datos (Bloque D.3). Las rutas dentro del repositorio (`docs/mediciones/<bloque>/<archivo>`) sí son claras, estables y referenciadas de forma consistente en `DATA-DICTIONARY.md`, pero eso no sustituye un identificador persistente externo. Es la única brecha real que mantiene este ítem en "parcial": el DOI del software ya no lo es.
 
 - [x] ¿Están los datos descritos con metadatos ricos (DATA-DICTIONARY.md)?
   **Sí.** `docs/mediciones/DATA-DICTIONARY.md` documenta 17 variables con nombre, descripción, tipo, unidad, fuente (archivo crudo), umbral esperado y valor medido — cubre perf, SUS, Lighthouse, JaCoCo y los 6 controles OWASP.
@@ -59,4 +72,8 @@
 
 ## Resumen
 
-**4 de 11 ítems cumplidos completamente**, 6 parciales, 1 no cumplido. El hallazgo transversal que explica la mayoría de los ítems parciales/no cumplidos es el mismo: **no existe un DOI ni licencia de dataset independiente del software** (Bloque D.3 de la guía — depósito Zenodo del dataset con DOI y licencia CC BY 4.0 propios). Resolver ese punto único destrabaría directamente Findable #1 y #3, Accessible #3, e Interoperable #3 y Reusable #2. El resto (vocabularios formales, estándares comunitarios) son mejoras de mayor esfuerzo, razonables como trabajo futuro. No se marcan ítems como cumplidos sin evidencia verificada en el repositorio.
+**Sección 0 (software, ampliación 21-08-2026): 3 de 3 cumplidos.** Los metadatos de citación del software —`CITATION.cff`, ORCID por autor y `.zenodo.json`— están completos y validados contra el esquema oficial.
+
+**Secciones 1–4 (dataset, evaluación original): 4 de 11 ítems cumplidos completamente**, 6 parciales, 1 no cumplido. El hallazgo transversal que explica la mayoría de los ítems parciales/no cumplidos es el mismo: **no existe un DOI ni licencia de dataset independiente del software** (Bloque D.3 de la guía — depósito Zenodo del dataset con DOI y licencia CC BY 4.0 propios). Resolver ese punto único destrabaría directamente Findable #1 y #3, Accessible #3, e Interoperable #3 y Reusable #2. El resto (vocabularios formales, estándares comunitarios) son mejoras de mayor esfuerzo, razonables como trabajo futuro.
+
+**Total: 7 de 14 ítems cumplidos completamente** (50 %), 6 parciales, 1 no cumplido. No se marcan ítems como cumplidos sin evidencia verificada en el repositorio.

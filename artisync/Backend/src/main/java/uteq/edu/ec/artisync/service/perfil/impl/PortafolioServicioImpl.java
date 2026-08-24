@@ -3,6 +3,8 @@ package uteq.edu.ec.artisync.service.perfil.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
@@ -77,6 +79,9 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "portafolios", idEntidad = "#idPortafolio",
+            detalle = "{esPublico: #peticion.esPublico}")
     public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
@@ -103,6 +108,8 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "portafolios", idEntidad = "#idPortafolio")
     public void eliminarPortafolio(Long idPortafolio) {
         if (!portafolioRepository.existsById(idPortafolio)) {
             throw new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio);

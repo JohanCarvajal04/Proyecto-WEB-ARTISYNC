@@ -23,7 +23,7 @@ En este nivel se abre la caja negra del sistema para mostrar los **contenedores 
 | :--- | :--- | :--- |
 | **Servidor SMTP Transaccional** | **SMTP / TLS** (Puerto 587) <br> *Spring Boot Starter Mail (`EmailService`)* | Envío asíncrono (`@Async`) de plantillas HTML renderizadas con **Thymeleaf**: verificación de cuenta, códigos de autenticación 2FA, reseteo de contraseñas y alertas de hitos de pedidos. |
 | **Pasarela PayPal (API v2 & Webhooks)** | **HTTPS / REST JSON** <br> *(PayPal Orders v2 / `PayPalConfig`)* | Procesamiento de pagos seguros. Gestión de retención de fondos en garantía (*Escrow* en `PagoGarantia`), capturas al aprobar entregables y recepción de Webhooks asíncronos para actualizar estados transaccionales en tiempo real. |
-| **Almacenamiento Cloud / CDN** | **HTTPS / REST API** <br> *(Cloud Storage: S3 / Cloudinary)* | Almacenamiento externo escalable para imágenes multimedia de portafolio artístico, banners de perfiles, archivos adjuntos en el chat y entregables creativos de alta capacidad (`.zip`, `.psd`, `.mp4`). |
+| **Almacenamiento Cloud / CDN** | **HTTPS / REST API** <br> *(Azure Blob Storage)* | Almacenamiento externo escalable para imágenes multimedia de portafolio artístico, banners de perfiles, archivos adjuntos en el chat y entregables creativos de alta capacidad (`.zip`, `.psd`, `.mp4`). |
 
 ---
 
@@ -70,7 +70,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagra
         apiServer -> smtpSystem "Envía correos asíncronos (@Async) con plantillas Thymeleaf" "SMTP / TLS / Puerto 587"
         apiServer -> paypalSystem "Crea órdenes y gestiona depósitos de garantía Escrow" "HTTPS / REST JSON v2"
         paypalSystem -> apiServer "Envía notificaciones de pago confirmadas o disputadas" "HTTPS / Webhooks (POST)"
-        apiServer -> cloudStorageSystem "Sube y genera URLs pre-firmadas para recursos multimedia" "HTTPS / REST S3"
+        apiServer -> cloudStorageSystem "Sube y genera URLs pre-firmadas para recursos multimedia" "HTTPS / REST Azure"
     }
 
     views {
@@ -124,7 +124,7 @@ System_Boundary(artisync_boundary, "Plataforma Artisync (PFC)") {
 
 System_Ext(smtp, "Servicio de Correo Transaccional", "SMTP TLS (Puerto 587) - Envio de correos 2FA y plantillas de recuperación.")
 System_Ext(paypal, "Pasarela de Pagos (PayPal API v2)", "HTTPS / REST JSON - Procesamiento de órdenes y retención de depósitos Escrow.")
-System_Ext(storage, "Almacenamiento Cloud / CDN", "HTTPS / REST S3 - Persistencia de archivos pesados multimedia del portafolio y entregables.")
+System_Ext(storage, "Almacenamiento Cloud / CDN", "HTTPS / REST Azure - Persistencia de archivos pesados multimedia del portafolio y entregables.")
 
 Rel(cliente, frontend, "Explora catálogo, cotiza, paga en garantía y revisa hitos", "HTTPS / Puerto 4200/443")
 Rel(artista, frontend, "Publica servicios, sube avances de pedidos y cobra", "HTTPS / Puerto 4200/443")

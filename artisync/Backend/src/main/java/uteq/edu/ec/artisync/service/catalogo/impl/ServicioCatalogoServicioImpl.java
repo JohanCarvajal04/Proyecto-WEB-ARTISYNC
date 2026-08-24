@@ -12,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.*;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.*;
 import uteq.edu.ec.artisync.entity.catalogo.*;
@@ -43,6 +45,9 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#resultado.idServicio",
+            detalle = "{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}")
     public RespuestaServicio crearServicio(Long idPerfilCreador, PeticionCrearServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -79,6 +84,9 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#idServicio",
+            detalle = "{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}")
     public RespuestaServicio actualizarServicio(Long idServicio, PeticionActualizarServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -137,6 +145,8 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#idServicio")
     public void eliminarServicio(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));

@@ -22,6 +22,7 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
 
 import java.util.List;
@@ -81,8 +82,18 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña actual es incorrecta");
         }
 
-        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));
-        usuarioRepository.save(usuario);
+        // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
+        // fn_cambiar_contrasena aplica el UPDATE solo si el hash sigue siendo
+        // el que se acaba de verificar con BCrypt (compare-and-swap), en vez
+        // de un save() incondicional. Si otra sesion cambio la contrasena
+        // justo entre la verificacion y este punto, la funcion lanza en vez
+        // de pisar silenciosamente ese cambio (actualizacion perdida, A7).
+        try {
+            usuarioRepository.cambiarContrasena(usuario.getIdUsuario(), usuario.getContrasenaHash(),
+                    passwordEncoder.encode(request.getNuevaContrasena()));
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.CONFLICT);
+        }
 
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
 
@@ -95,9 +106,10 @@ public class UserServiceImpl implements UserService {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
-        usuario.setEstadoCuenta(false); // Soft delete
-        usuarioRepository.save(usuario);
+        // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+        // fn_cambiar_estado_cuenta desactiva la cuenta (soft delete) y revoca
+        // sus sesiones atomicamente, bajo SELECT FOR UPDATE.
+        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), false);
 
         return new RespuestaMensaje("Cuenta desactivada exitosamente");
     }

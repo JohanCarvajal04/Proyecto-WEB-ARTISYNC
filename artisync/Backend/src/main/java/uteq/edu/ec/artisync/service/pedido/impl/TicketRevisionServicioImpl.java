@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearTicketRevision;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaTicketRevision;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
@@ -34,6 +36,9 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "TICKET_CREAR", modulo = ModuloAuditoria.PEDIDOS,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{idMotivo: #peticion.idMotivo}")
     public RespuestaTicketRevision crearTicketRevision(Long idPedido, Long idCliente,
                                                         PeticionCrearTicketRevision peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
@@ -111,6 +116,9 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "TICKET_CAMBIAR_ESTADO", modulo = ModuloAuditoria.PEDIDOS,
+            entidad = "tickets_revision", idEntidad = "#idTicket",
+            detalle = "{nuevoEstado: #nuevoEstado}")
     public RespuestaTicketRevision cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado) {
         TicketRevision ticket = ticketRevisionRepository.findById(idTicket)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Ticket de revision no encontrado"));

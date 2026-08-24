@@ -211,7 +211,7 @@ flowchart TB
         HTTP_IN["HTTP request: GET/POST/PUT/DELETE<br>Authorization: Bearer <jwt_token>"]
     end
 
-    subgraph SpringBoot["⚙️ Contenedor Backend Spring Boot 4.0.1 (`pfc_backend:8080`)"]
+    subgraph SpringBoot["⚙️ Contenedor Backend Spring Boot 4.1.0 (`pfc_backend:8080`)"]
         
         subgraph SecurityLayer["🛡️ Capa de Seguridad (Security & Filter Chain)"]
             SEC_CFG["SecurityConfig<br>(SecurityFilterChain / CORS)"]
@@ -220,11 +220,11 @@ flowchart TB
         end
 
         subgraph WebLayer["🎯 Capa de Controladores (Spring MVC)"]
-            CTRL["Controladores REST<br>(controller.*)<br>AuthController, UserController, PagoControlador"]
+            CTRL["Controladores REST & WebSockets<br>(controller.*)<br>AuthController, UserController, PagoControlador, ChatControlador"]
         end
 
         subgraph BusinessLayer["🧠 Capa de Lógica de Negocio (@Transactional)"]
-            SVC["Servicios de Negocio<br>(service.impl.*)<br>UserServiceImpl, PagoServicioImpl, PedidoServicioImpl"]
+            SVC["Servicios de Negocio<br>(service.impl.*)<br>UserServiceImpl, PagoServicioImpl, PedidoServicioImpl, AlmacenamientoAzure, AuditoriaServicio"]
             REV_SVC["SessionRevocationService<br>(Revocación JTI con TTL)"]
             MAIL_SVC["EmailService (@Async)<br>(Plantillas Thymeleaf)"]
         end

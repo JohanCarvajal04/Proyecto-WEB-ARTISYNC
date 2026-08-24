@@ -1,13 +1,16 @@
 import { Component, Input, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { Subscription, catchError, of } from 'rxjs';
 import { ChatService } from '../../services/chat.service';
 import { RespuestaMensajeChat, RespuestaSalaChat } from '../../models/comunicacion.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { ContratoService } from '../../../legal/services/contrato.service';
+import { RespuestaContrato } from '../../../legal/models/legal.model';
 
 @Component({
   selector: 'app-chat-pedido',
   standalone: true,
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './chat-pedido.component.html'
 })
 export class ChatPedidoComponent implements OnInit, OnDestroy {
@@ -16,6 +19,7 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
 
   private chatService = inject(ChatService);
   private authService = inject(AuthService);
+  private contratoService = inject(ContratoService);
 
   readonly mensajes = signal<RespuestaMensajeChat[]>([]);
   readonly sala = signal<RespuestaSalaChat | null>(null);
@@ -25,32 +29,66 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
   readonly error = signal<string>('');
   readonly borrador = signal<string>('');
 
+  /**
+   * Ventana flotante: arranca minimizada para no taparle el resto del
+   * detalle del pedido al abrir la página; el badge de no leídos es lo que
+   * avisa que conviene expandirla.
+   */
+  readonly panelAbierto = signal<boolean>(false);
+  readonly noLeidos = signal<number>(0);
+
+  // Atajo para generar el contrato sin salir del chat, una vez que cliente y
+  // creador llegaron a un acuerdo negociando por acá.
+  readonly contrato = signal<RespuestaContrato | null>(null);
+  readonly generandoContrato = signal<boolean>(false);
+  readonly errorContrato = signal<string>('');
+
   readonly maxCaracteres = 500; // MAX_CARACTERES_MENSAJE
 
   private mensajesSub?: Subscription;
+  /** Evita contar como "no leído" el historial que se carga al entrar. */
+  private primerLote = true;
 
   readonly salaDisponible = computed(() => this.sala()?.salaActiva === true);
 
   readonly puedeEnviar = computed(() =>
     this.salaDisponible() && this.borrador().trim().length > 0 && !this.enviando());
 
-  constructor() {
-    this.chatService.connect();
-  }
-
   ngOnInit(): void {
+    // 404 = todavía no se generó el contrato: es el estado normal mientras
+    // negocian por chat, no un error que mostrarle al usuario.
+    this.contratoService.obtenerContratoPorPedido(this.idPedido)
+      .pipe(catchError(() => of(null)))
+      .subscribe(contrato => this.contrato.set(contrato));
+
     this.chatService.obtenerEstadoSala(this.idPedido).subscribe({
       next: (sala) => {
         this.sala.set(sala);
         if (sala) {
+          // Solo se conecta el WebSocket cuando de verdad hay una sala:
+          // antes se activaba en el constructor para todo pedido, incluso sin
+          // contrato firmado, así que cada vista del pedido abría un socket
+          // sin nada a lo que unirse.
+          this.chatService.connect();
           // Unirse a la sala para activar la suscripción STOMP
           this.chatService.joinSala(sala.idSala, this.idPedido);
-          
+
           this.mensajesSub = this.chatService.mensajes$.subscribe(mensajes => {
             // El backend pagina el historial pero nosotros ahora usamos un BehaviorSubject
-            // Ordenamos ascendente si vienen de WS
-            this.mensajes.set(mensajes.sort((a, b) => new Date(a.fechaHoraEnvio).getTime() - new Date(b.fechaHoraEnvio).getTime()));
+            // Ordenamos ascendente si vienen de WS. [...mensajes] copia antes de
+            // ordenar: sort() muta en sitio, y mensajes es el mismo array que
+            // ChatService guarda en su BehaviorSubject (NG-04) -- mutarlo aqui
+            // corrompe el estado bajo cualquier otro suscriptor futuro.
+            const ordenados = [...mensajes].sort((a, b) => new Date(a.fechaHoraEnvio).getTime() - new Date(b.fechaHoraEnvio).getTime());
+            const cantidadAnterior = this.mensajes().length;
+            this.mensajes.set(ordenados);
             this.isLoading.set(false);
+
+            if (!this.primerLote && !this.panelAbierto() && ordenados.length > cantidadAnterior) {
+              const nuevosDeOtros = ordenados.slice(cantidadAnterior).filter(m => !this.esMio(m));
+              if (nuevosDeOtros.length > 0) this.noLeidos.update(n => n + nuevosDeOtros.length);
+            }
+            this.primerLote = false;
           });
         } else {
           this.isLoading.set(false);
@@ -59,6 +97,29 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
       error: () => {
         this.sala.set(null);
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  togglePanel(): void {
+    this.panelAbierto.update(v => !v);
+    if (this.panelAbierto()) this.noLeidos.set(0);
+  }
+
+  generarContrato(): void {
+    if (this.generandoContrato() || this.contrato()) return;
+
+    this.generandoContrato.set(true);
+    this.errorContrato.set('');
+
+    this.contratoService.generarContrato(this.idPedido).subscribe({
+      next: (contrato) => {
+        this.contrato.set(contrato);
+        this.generandoContrato.set(false);
+      },
+      error: (err) => {
+        this.errorContrato.set(err.error?.message || 'No se pudo generar el contrato');
+        this.generandoContrato.set(false);
       }
     });
   }

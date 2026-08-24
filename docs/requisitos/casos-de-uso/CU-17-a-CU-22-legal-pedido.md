@@ -4,6 +4,7 @@
 
 ## CU-17: Generar contrato del pedido
 **Trazabilidad:** REQ-F-017 / HU-17
+**Prueba de integración:** `ContratoServicioImplTest`
 
 **1. Actor principal y objetivo:** Sistema (iniciado por el Cliente al contratar un servicio) — generar el documento de contrato a partir de una plantilla.
 
@@ -29,6 +30,7 @@
 
 ## CU-18: Firmar el contrato electrónicamente
 **Trazabilidad:** REQ-F-018 / HU-18
+**Prueba de integración:** `ContratoServicioImplTest`
 
 **1. Actor principal y objetivo:** Cliente o Creador — firmar electrónicamente el contrato generado para su pedido.
 
@@ -54,6 +56,7 @@
 
 ## CU-19: Avanzar el flujo de trabajo del pedido
 **Trazabilidad:** REQ-F-019 / HU-19
+**Prueba de integración:** `FlujoTrabajoServicioImplTest` · `PedidoServicioImplFlujoTest`
 
 **1. Actor principal y objetivo:** Creador — actualizar la etapa actual del pedido a medida que avanza el trabajo.
 
@@ -79,6 +82,7 @@
 
 ## CU-20: Pagar el pedido vía PayPal
 **Trazabilidad:** REQ-F-020 / HU-20
+**Prueba de integración:** `PagoServicioImplWebhookTest`
 
 **1. Actor principal y objetivo:** Cliente — pagar el pedido a través de PayPal, quedando los fondos en garantía.
 
@@ -105,6 +109,7 @@
 
 ## CU-21: Aprobar el entregable y liberar fondos
 **Trazabilidad:** REQ-F-021 / HU-21
+**Prueba de integración:** `EntregableServicioImplTest`
 
 **1. Actor principal y objetivo:** Cliente — aprobar el entregable final para liberar el pago al Creador.
 
@@ -131,6 +136,7 @@
 
 ## CU-22: Solicitar una revisión adicional
 **Trazabilidad:** REQ-F-022 / HU-22
+**Prueba de integración:** `TicketRevisionServicioImplTest`
 
 **1. Actor principal y objetivo:** Cliente — solicitar ajustes al entregable una vez agotadas las revisiones incluidas en el contrato.
 

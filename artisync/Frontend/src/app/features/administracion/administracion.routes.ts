@@ -84,5 +84,11 @@ export const ADMINISTRACION_ROUTES: Routes = [
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.flujos },
     loadComponent: () => import('../pedido/pages/flujos-admin/flujos-admin.component').then(m => m.FlujosAdminComponent)
+  },
+  {
+    path: 'auditoria',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.auditoria },
+    loadComponent: () => import('./pages/auditoria/auditoria.component').then(m => m.AuditoriaComponent)
   }
 ];

@@ -46,22 +46,38 @@ Competencia / referencia de mercado & Plataformas genéricas de freelance y
 
 \section{Técnicas de elicitación aplicadas}
 
-\textbf{Declaración honesta de brecha:} la guía exige declarar
-explícitamente las técnicas de elicitación usadas con evidencia archivada
-bajo \texttt{docs/requisitos/elicitacion/} (notas, guiones de entrevista,
-prototipos de baja fidelidad). Esa carpeta no existe en el
-repositorio a la fecha de este documento --- ver
-\texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}, Bloque~A.3.
-El corpus original de requisitos (\texttt{Entrega 1A.docx}, semana del 4
-de junio de 2026, referenciado en \texttt{docs/requisitos/SRS.md}~\S1.4)
-se produjo mediante análisis de documentos y discusión interna del equipo
-sobre el dominio de la economía creativa, pero no se conservó evidencia
-granular (notas de sesión, guiones) organizada como técnica de
-elicitación formal. Esta es una acción pendiente declarada, no una
-omisión silenciosa: el equipo debe decidir si reconstruye la evidencia
-disponible (actas de reunión, capturas de discusión) antes del cierre, o
-si documenta explícitamente la ausencia como limitación metodológica en
-el Capítulo~\ref{cap:validez} (Amenazas a la validez).
+Las técnicas de elicitación aplicadas se documentan en
+\texttt{docs/requisitos/elicitacion/README.md}, que declara tanto las que
+se usaron como las que no, junto con la evidencia conservada de cada una.
+
+Se aplicaron dos técnicas con evidencia archivada. La primera, el
+\textbf{análisis de documentos}: el corpus original de requisitos
+(\texttt{Entrega 1A.docx}, semana del 4 de junio de 2026, referenciado en
+\texttt{docs/requisitos/SRS.md}~\S1.4) es la fuente de la que derivan los
+37 requisitos vigentes. La segunda, el \textbf{prototipado de baja
+fidelidad}: seis wireframes archivados en
+\texttt{docs/diagramas/wireframes/} fijaron el alcance de las pantallas
+principales antes de implementarlas. Se aplicó además la
+\textbf{discusión interna del equipo} sobre el dominio de la economía
+creativa, de la que no se conservaron actas ni notas de sesión.
+
+\textbf{Limitación metodológica declarada:} no hubo entrevistas
+semi-estructuradas, observación de usuarios, cuestionarios ni workshops
+con stakeholders externos. El corpus se elicitó \emph{sin usuarios
+finales reales}: refleja la comprensión del dominio que tiene el propio
+equipo y la comparación con plataformas del sector, no necesidades
+declaradas por Creadores o Clientes. Deliberadamente no se reconstruyeron
+notas ni guiones a posteriori para rellenar el expediente: fabricar esa
+evidencia después del hecho invalidaría justamente lo que la trazabilidad
+pretende acreditar.
+
+Esta limitación tiene dos consecuencias que se recogen en el
+Capítulo~\ref{cap:validez}. Por un lado, un \emph{sesgo de constructo}:
+el estudio SUS con 16 participantes mide la usabilidad del sistema
+construido, no la pertinencia de los requisitos que lo originaron. Por
+otro, la tasa de estabilidad de requisitos del 100\,\% (\S7.4 del SRS) es
+coherente con un corpus que nunca se renegoció con un cliente externo, y
+por eso no debe leerse como un mérito de la especificación.
 
 \section{Requisitos funcionales y no funcionales: categorización y priorización}
 

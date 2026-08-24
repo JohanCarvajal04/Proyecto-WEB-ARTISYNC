@@ -4,6 +4,7 @@
 
 ## HU-11 — Publicar un producto o servicio
 **Trazabilidad:** REQ-F-011
+**Prueba de aceptación:** `ServicioCatalogoServicioImplTest`
 
 **As a** Creador,
 **I want** publicar un producto o servicio con precio, imagen y descripción,
@@ -25,6 +26,7 @@ Escenario: Descripción demasiado corta
 
 ## HU-12 — Atributos personalizados por categoría
 **Trazabilidad:** REQ-F-012
+**Prueba de aceptación:** `ServicioCatalogoServicioImplTest`
 
 **As a** Creador,
 **I want** que el formulario de publicación muestre campos específicos según mi categoría (ej. "técnica" para ilustración, "duración" para música),
@@ -41,6 +43,7 @@ Escenario: Atributos dinámicos según categoría
 
 ## HU-13 — Búsqueda y filtrado en el catálogo
 **Trazabilidad:** REQ-F-013
+**Prueba de aceptación:** `ServicioCatalogoServicioImplTest`
 
 **As a** Cliente,
 **I want** buscar y filtrar servicios por categoría, subcategoría, rango de precio, etiquetas y texto libre,

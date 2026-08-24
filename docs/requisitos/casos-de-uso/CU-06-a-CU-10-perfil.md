@@ -4,6 +4,7 @@
 
 ## CU-06: Verificar mayoría de edad
 **Trazabilidad:** REQ-F-006 / HU-06
+**Prueba de integración:** `VerificacionServicioImplTest` · `VerificacionControladorTest` · `CertificadoIaRepositoryIT`
 
 **1. Actor principal y objetivo:** Creador — obtener el estado de cuenta verificada mediante validación de su documento de identidad.
 
@@ -32,6 +33,7 @@
 
 ## CU-07: Verificar certificado profesional
 **Trazabilidad:** REQ-F-007 / HU-07
+**Prueba de integración:** `VerificacionServicioImplTest` · `VerificacionControladorTest` · `CertificadoIaRepositoryIT`
 
 **1. Actor principal y objetivo:** Creador — obtener el sello de verificación profesional mediante análisis automático de un certificado.
 
@@ -58,6 +60,7 @@
 
 ## CU-08: Editar perfil público
 **Trazabilidad:** REQ-F-008 / HU-08
+**Prueba de integración:** `PerfilCreadorServicioImplTest`
 
 **1. Actor principal y objetivo:** Creador — actualizar su foto, biografía y enlaces de redes sociales.
 
@@ -86,6 +89,7 @@
 
 ## CU-09: Seguir a un Creador
 **Trazabilidad:** REQ-F-009 / HU-09
+**Prueba de integración:** `SeguidorServiceImplTest` · `SeguidorRepositoryIT`
 
 **1. Actor principal y objetivo:** Usuario autenticado — seguir a un Creador para ver su actividad y reputación.
 
@@ -111,6 +115,7 @@
 
 ## CU-10: Comentar en un ítem de portafolio
 **Trazabilidad:** REQ-F-010 / HU-10
+**Prueba de integración:** _sin prueba automatizada: el requisito está en estado `pendiente` y su excepción se declara en `docs/trazabilidad/excepciones-estado.txt`_
 
 **1. Actor principal y objetivo:** Usuario autenticado — publicar un comentario en un ítem de portafolio de un Creador.
 

@@ -80,7 +80,11 @@ export const PAGE_PERMISSIONS = {
   sorteos: ['SORTEO_CREAR'],
   portafolioPropio: ['PORTAFOLIO_CREAR'],
   pedidosCliente: ['PEDIDO_CREAR', 'PEDIDO_GESTIONAR'],
-  pedidoCrear: ['PEDIDO_CREAR']
+  pedidoCrear: ['PEDIDO_CREAR'],
+  // Bitácora de auditoría transversal (V15__modulo_auditoria.sql). Exportar
+  // es un permiso aparte (AUDITORIA_EXPORTAR): no abre la pantalla por sí
+  // solo, así que no va en esta lista — ver ADMIN_PANEL_PERMISSIONS.
+  auditoria: ['AUDITORIA_VER']
 } as const satisfies Record<string, readonly string[]>;
 
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
@@ -139,7 +143,8 @@ export const ADMIN_PANEL_PERMISSIONS: readonly string[] = [
   'PORTAFOLIO_MODERAR', 'CERTIFICADO_REVISAR', 'CATEGORIA_GESTIONAR', 'SERVICIO_MODERAR',
   'MENSAJE_MODERAR', 'COMENTARIO_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER',
   'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
-  'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR'
+  'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR',
+  'AUDITORIA_VER', 'AUDITORIA_EXPORTAR'
 ];
 
 /** Permisos exclusivos del rol CREADOR frente a CLIENTE. */
@@ -233,6 +238,9 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', panel: 'admin', permissions: PAGE_PERMISSIONS.rolesPermisos },
   { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones },
   { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'admin', permissions: PAGE_PERMISSIONS.flujos },
+  // 'receipt_long' ya tiene rama SVG en dashboard-layout.component.html
+  // (compartida con 'account_balance'): no hace falta tocar el layout.
+  { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
   // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
   // misma página que ven creador y cliente — ver NavItem.basePath.

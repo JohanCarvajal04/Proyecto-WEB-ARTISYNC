@@ -16,7 +16,9 @@ public class RespuestaContrato {
     private Long idContrato;
     private Long idPedido;
     private String tituloServicio;
+    private Long idCreador;
     private String nombreCreador;
+    private Long idCliente;
     private String nombreCliente;
     private String versionLegal;
     private String contenidoHtml;

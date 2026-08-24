@@ -87,3 +87,6 @@ docs/observaciones/DESIGN-IS-2026-08-07/
 docs/Guia_implementacion/frontend/
 docs/superpowers/
 
+
+# Copia temporal que genera `make srs` (se borra al terminar el target)
+docs/requisitos/.srs-build.md

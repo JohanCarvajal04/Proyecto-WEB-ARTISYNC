@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.service.seguridad.impl;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -70,7 +72,6 @@ public class AuthServiceImpl implements AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioRolRepository usuarioRolRepository;
-    private final TokenRecuperacionRepository tokenRecuperacionRepository;
     private final SesionUsuarioRepository sesionUsuarioRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -86,6 +87,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @Auditable(accion = "USUARIO_AUTOREGISTRO", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "usuarios", idEntidad = "#resultado.idUsuario",
+            correoActor = "#request.correo",
+            detalle = "{rol: #request.rol}")
     public UserResponse register(RegisterRequest request) {
         String rolNombre = request.getRol() != null && !request.getRol().isBlank()
                 ? request.getRol().toUpperCase() : "CLIENTE";
@@ -124,6 +129,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @Auditable(accion = "AUTENTICACION_LOGIN", modulo = ModuloAuditoria.SEGURIDAD,
+            correoActor = "#request.correo")
     public TokenResponse login(LoginRequest request) {
         String ip = obtenerIpActual();
 
@@ -202,6 +209,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    // El correo real se resuelve DENTRO del método a partir del ticket
+    // (preAuthTicket), no está disponible como parámetro para el SpEL de
+    // correoActor; el evento queda con actor "anonimo", que es correcto: en
+    // este punto el usuario aún no tiene una sesión completa.
+    @Auditable(accion = "AUTENTICACION_2FA_VERIFICAR", modulo = ModuloAuditoria.SEGURIDAD)
     public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
         // ticket emitido por login() tras validar la contraseña — ya no desde
@@ -330,6 +342,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    // tokenHeader y refreshToken son secretos: nunca en detalle. No hace falta
+    // correoActor explícito, hay SecurityContext porque se llama autenticado.
+    @Auditable(accion = "AUTENTICACION_LOGOUT", modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
@@ -350,6 +365,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    @Auditable(accion = "CONTRASENA_SOLICITAR_RESET", modulo = ModuloAuditoria.SEGURIDAD,
+            correoActor = "#request.correo")
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
         // llamada implica el mismo costo de abuso (correo potencialmente enviado)
@@ -357,23 +374,31 @@ public class AuthServiceImpl implements AuthService {
         intentosAutenticacionService.verificarCuota(
                 AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);
 
-        usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -> {
-            String tokenPlain = UUID.randomUUID().toString();
-            String tokenHash = hashSha256(tokenPlain);
-            TokenRecuperacion tokenRec = TokenRecuperacion.builder()
-                    .usuario(usuario)
-                    .hashToken(tokenHash)
-                    .usado(false)
-                    .build();
-            tokenRecuperacionRepository.save(tokenRec);
-            log.debug("Generado token de recuperación para usuario ID: {}", usuario.getIdUsuario());
-            emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), tokenPlain);
-        });
+        String tokenPlain = UUID.randomUUID().toString();
+        String tokenHash = hashSha256(tokenPlain);
+
+        // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
+        // fn_solicitar_recuperacion invalida los tokens previos no usados del
+        // usuario e inserta el nuevo en la MISMA transaccion, cerrando la
+        // ventana en la que una cuenta acumulaba N tokens de recuperacion
+        // validos simultaneamente (A5). Devuelve NULL (no encontro cuenta
+        // activa) sin lanzar, preservando la respuesta indistinguible.
+        String resultadoJson = usuarioRepository.solicitarRecuperacion(request.getCorreo(), tokenHash);
+        if (resultadoJson != null) {
+            JsonNode resultado = parseJson(resultadoJson, "Error al interpretar la solicitud de recuperación");
+            String nombres = resultado.get("nombres").asText();
+            log.debug("Generado token de recuperación para usuario ID: {}", resultado.get("idUsuario").asLong());
+            emailService.enviarCorreoRecuperacion(request.getCorreo(), nombres, tokenPlain);
+        }
         return new RespuestaMensaje("Si el correo se encuentra registrado, recibirás un enlace de recuperación");
     }
 
     @Override
     @Transactional
+    // request.getToken() y la nueva contraseña son secretos: jamás #request
+    // completo en detalle. El usuario se resuelve dentro por el token, no hay
+    // correo disponible como parámetro.
+    @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
         // REQ-F-005: fn_restablecer_contrasena valida (con FOR UPDATE) que el
         // token exista, no este usado y no haya expirado, y actualiza usuarios +
@@ -413,7 +438,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Registro del refresh token: obligatorio (propaga la excepción). A diferencia
-     * del access token, la corrección del siguiente /api/auth/refresh DEPENDE de que
+     * del access token, la corrección del siguiente /api/v1/auth/refresh DEPENDE de que
      * esta fila exista (ver refreshToken(): busca por jti). Antes ambos registros
      * fallaban en silencio (catch genérico que solo logueaba), lo que dejaba al
      * usuario con un refresh token que el sistema rechazaría como "revocado o
@@ -446,10 +471,15 @@ public class AuthServiceImpl implements AuthService {
 
     /** Deserializa el JSONB devuelto por fn_resolver_estado_login (REQ-F-002). */
     private JsonNode parseEstadoLogin(String estadoLoginJson) {
+        return parseJson(estadoLoginJson, "Error al interpretar el estado de login");
+    }
+
+    /** Deserializa el JSONB devuelto por una rutina de db/procs/, con un mensaje de error especifico del llamante. */
+    private JsonNode parseJson(String json, String mensajeError) {
         try {
-            return objectMapper.readTree(estadoLoginJson);
+            return objectMapper.readTree(json);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al interpretar el estado de login");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, mensajeError);
         }
     }
 

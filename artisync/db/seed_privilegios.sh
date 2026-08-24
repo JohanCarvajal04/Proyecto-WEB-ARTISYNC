@@ -38,4 +38,22 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         GRANT USAGE, SELECT ON SEQUENCES TO artisync_app;
     ALTER DEFAULT PRIVILEGES IN SCHEMA public
         GRANT EXECUTE ON FUNCTIONS TO artisync_app;
+
+    -- La bitacora de auditoria (auditoria_eventos, V15__modulo_auditoria.sql)
+    -- es de solo insercion (REQ-NF-013). En el arranque inicial de un volumen
+    -- vacio la tabla aun no existe (la crea Flyway despues de este script), asi
+    -- que el bloque de abajo es no-op y el REVOKE/GRANT explicito de la propia
+    -- migracion V12 es quien deja los permisos correctos la primera vez. Este
+    -- bloque sirve cuando seed_privilegios.sh se re-ejecuta sobre una base ya
+    -- migrada: el ALTER DEFAULT PRIVILEGES de arriba no alcanza a corregir los
+    -- permisos ya otorgados sobre una tabla que ya existia.
+    DO \$\$
+    BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'auditoria_eventos') THEN
+            REVOKE ALL ON auditoria_eventos FROM artisync_app;
+            GRANT SELECT, INSERT ON auditoria_eventos TO artisync_app;
+            GRANT USAGE, SELECT ON SEQUENCE auditoria_eventos_id_evento_auditoria_seq TO artisync_app;
+        END IF;
+    END
+    \$\$;
 EOSQL

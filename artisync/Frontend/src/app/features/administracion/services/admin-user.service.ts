@@ -14,7 +14,7 @@ import { PagedResponse, MessageResponse } from '../../../shared/models/common.mo
 })
 export class AdminUserService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/admin/usuarios`;
+  private apiUrl = `${environment.apiUrl}/v1/admin/usuarios`;
 
   getUsers(page = 0, size = 10, sortBy = 'idUsuario', direction = 'asc'): Observable<PagedResponse<UserResponse>> {
     const params = new HttpParams()
@@ -59,6 +59,10 @@ export class AdminUserService {
   }
 
   getPaises(): Observable<PaisResponse[]> {
-    return this.http.get<PaisResponse[]>(`${environment.apiUrl}/paises`);
+    return this.http.get<PaisResponse[]>(`${environment.apiUrl}/v1/paises`);
+  }
+
+  getPaisesActivos(): Observable<PaisResponse[]> {
+    return this.http.get<PaisResponse[]>(`${environment.apiUrl}/v1/paises/activos`);
   }
 }

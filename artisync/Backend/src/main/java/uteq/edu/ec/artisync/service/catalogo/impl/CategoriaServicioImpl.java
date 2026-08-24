@@ -3,6 +3,8 @@ package uteq.edu.ec.artisync.service.catalogo.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
@@ -57,6 +59,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CATEGORIA_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "categorias", idEntidad = "#resultado.idCategoria",
+            detalle = "{nombreCategoria: #peticion.nombreCategoria}")
     public RespuestaCategoria crearCategoria(PeticionCrearCategoria peticion) {
         if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {
             throw new ExcepcionReglaNegocio("Ya existe una categoria con el nombre: " + peticion.getNombreCategoria());
@@ -72,6 +77,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CATEGORIA_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "categorias", idEntidad = "#idCategoria",
+            detalle = "{nombreCategoria: #peticion.nombreCategoria, estadoActiva: #peticion.estadoActiva}")
     public RespuestaCategoria actualizarCategoria(Long idCategoria, PeticionActualizarCategoria peticion) {
         Categoria cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria));
@@ -95,6 +103,8 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CATEGORIA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "categorias", idEntidad = "#idCategoria")
     public void eliminarCategoria(Long idCategoria) {
         if (!categoriaRepository.existsById(idCategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria);
@@ -125,6 +135,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "SUBCATEGORIA_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "subcategorias", idEntidad = "#resultado.idSubcategoria",
+            detalle = "{idCategoria: #peticion.idCategoria, nombreSubcategoria: #peticion.nombreSubcategoria}")
     public RespuestaSubcategoria crearSubcategoria(PeticionCrearSubcategoria peticion) {
         Categoria cat = categoriaRepository.findById(peticion.getIdCategoria())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + peticion.getIdCategoria()));
@@ -144,6 +157,8 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "SUBCATEGORIA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "subcategorias", idEntidad = "#idSubcategoria")
     public void eliminarSubcategoria(Long idSubcategoria) {
         if (!subcategoriaRepository.existsById(idSubcategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + idSubcategoria);

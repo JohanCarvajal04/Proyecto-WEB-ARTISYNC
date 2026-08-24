@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface PaisService {
     List<PaisResponse> getAllPaises();
+    List<PaisResponse> getPaisesActivos();
     PaisResponse getPaisById(Long id);
     PaisResponse createPais(PaisRequest request);
     PaisResponse updatePais(Long id, PaisRequest request);

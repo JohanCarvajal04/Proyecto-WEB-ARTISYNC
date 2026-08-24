@@ -9,6 +9,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
@@ -23,9 +26,8 @@ import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -77,11 +79,28 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    // El cambio más sensible del sistema: quién puede hacer qué. Se registra
+    // el conjunto "antes" (vía ContextoAuditoria) y "después" (los propios
+    // parámetros del método) para que el evento sea auditable como un diff,
+    // no solo como "se llamó a syncPermissions".
+    @Auditable(accion = "ROL_SINCRONIZAR_PERMISOS", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", detalle = "{rol: #roleName, despues: #permissionCodes}")
     public void syncPermissions(String roleName, List<String> permissionCodes) {
         // REQ-F-003: fn_sincronizar_permisos_rol reemplaza atomicamente el set
         // completo de rol_permisos (DELETE+INSERT) en el motor, en vez de que
         // Hibernate calcule el diff de la coleccion @ManyToMany al hacer save().
         String nombreRolUpper = roleName.toUpperCase();
+
+        // A propósito NO se usa getPermissionsByRole (lanza 404 si el rol no
+        // existe): capturar el "antes" es una mejora de la auditoría, nunca
+        // debe cambiar qué excepción ve el cliente cuando el rol no existe —
+        // esa decisión la sigue tomando exclusivamente sincronizarPermisos()
+        // más abajo, vía StoredProcedureExceptionTranslator.
+        rolRepository.findByNombreRol(nombreRolUpper).ifPresent(rol ->
+                ContextoAuditoria.aportar("antes", Map.of("permisos",
+                        rol.getPermisos() == null ? List.of()
+                                : rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())));
+
         String[] codigos = permissionCodes != null ? permissionCodes.toArray(new String[0]) : new String[0];
         Integer totalAsignado;
         try {
@@ -107,7 +126,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // Redis y su fila de sesiones borrada, de modo que la siguiente petición
         // daba 401, el refresh fallaba y la UI acababa mostrando que no tenía los
         // permisos necesarios. Él ya conoce los permisos nuevos porque acaba de
-        // fijarlos; el frontend recarga los suyos con GET /api/permissions/me.
+        // fijarlos; el frontend recarga los suyos con GET /api/v1/permissions/me.
         Long idActual = idUsuarioAutenticado();
 
         List<Long> afectados = usuarioRolRepository.findIdsUsuarioByNombreRol(roleName).stream()
@@ -134,40 +153,44 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    @Auditable(accion = "ROL_CREAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", idEntidad = "#resultado.idRol",
+            detalle = "{nombreRol: #request.nombreRol, permisosIniciales: #request.permisosIniciales}")
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_crear_rol, que captura unique_violation sobre el nombre en vez de
+    // la comprobacion findByNombreRol previa a esta version, que no era
+    // atomica respecto al save() (lectura fantasma, A8), y compone con
+    // fn_sincronizar_permisos_rol (REQ-F-003) para los permisos iniciales.
     public RolResponse createRole(CreateRoleRequest request) {
         String nombreRolUpper = request.getNombreRol().trim().toUpperCase();
-        if (rolRepository.findByNombreRol(nombreRolUpper).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un rol con el nombre: " + nombreRolUpper);
+        String[] codigos = request.getPermisosIniciales() != null
+                ? request.getPermisosIniciales().stream().map(String::toUpperCase).toArray(String[]::new)
+                : new String[0];
+
+        Long idRol;
+        try {
+            idRol = rolRepository.crearRol(nombreRolUpper, request.getDescripcionRol(), codigos);
+        } catch (RuntimeException e) {
+            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
 
-        Set<Permiso> permisosIniciales = new HashSet<>();
-        if (request.getPermisosIniciales() != null) {
-            for (String code : request.getPermisosIniciales()) {
-                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permiso inexistente: " + code));
-                permisosIniciales.add(p);
-            }
-        }
-
-        Rol nuevoRol = Rol.builder()
-                .nombreRol(nombreRolUpper)
-                .descripcionRol(request.getDescripcionRol())
-                .permisos(permisosIniciales)
-                .build();
-
-        nuevoRol = rolRepository.save(nuevoRol);
+        Rol nuevoRol = rolRepository.findById(idRol)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear el rol"));
         log.info("Rol personalizado creado exitosamente: {}", nombreRolUpper);
 
         return RolResponse.builder()
                 .idRol(nuevoRol.getIdRol())
                 .nombreRol(nuevoRol.getNombreRol())
                 .descripcionRol(nuevoRol.getDescripcionRol())
-                .permisos(nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())
+                .permisos(nuevoRol.getPermisos() != null ? nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())
                 .build();
     }
 
     @Override
     @Transactional
+    @Auditable(accion = "ROL_ACTUALIZAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", idEntidad = "#idRol",
+            detalle = "{descripcionRol: #request.descripcionRol}")
     public RolResponse updateRole(Long idRol, UpdateRoleRequest request) {
         Rol rol = rolRepository.findById(idRol)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado con ID: " + idRol));
@@ -189,6 +212,8 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
+    @Auditable(accion = "ROL_ELIMINAR", modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = "roles", idEntidad = "#idRol")
     public void deleteRole(Long idRol) {
         // REQ-F-004: fn_eliminar_rol valida (en la misma transaccion que el
         // DELETE) que el rol no sea uno de los roles base protegidos y que no

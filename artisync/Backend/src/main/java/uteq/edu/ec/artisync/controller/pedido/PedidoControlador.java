@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
@@ -64,6 +65,15 @@ public class PedidoControlador {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody PeticionAvanzarEtapa peticion) {
         return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));
+    }
+
+    @PatchMapping("/{id}/terminos")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaPedido> actualizarTerminos(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionActualizarTerminosPedido peticion) {
+        return ResponseEntity.ok(pedidoServicio.actualizarTerminos(id, userDetails.getIdUsuario(), peticion));
     }
 
     @GetMapping("/{id}/historial")

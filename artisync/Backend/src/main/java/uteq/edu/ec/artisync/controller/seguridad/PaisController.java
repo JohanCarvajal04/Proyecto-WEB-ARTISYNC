@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.service.seguridad.PaisService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/paises")
+@RequestMapping("/api/v1/paises")
 @RequiredArgsConstructor
 @Tag(name = "Catálogo de Países", description = "Endpoints para consulta pública y administración (CUD) de países")
 public class PaisController {
@@ -28,6 +28,12 @@ public class PaisController {
     @GetMapping
     public ResponseEntity<List<PaisResponse>> getAllPaises() {
         return ResponseEntity.ok(paisService.getAllPaises());
+    }
+
+    @Operation(summary = "Listar solo los países activos ordenados alfabéticamente")
+    @GetMapping("/activos")
+    public ResponseEntity<List<PaisResponse>> getPaisesActivos() {
+        return ResponseEntity.ok(paisService.getPaisesActivos());
     }
 
     @Operation(summary = "Obtener un país por su ID")

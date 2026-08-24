@@ -9,10 +9,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
-import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
 import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
@@ -46,6 +47,9 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    // Nunca el secreto TOTP ni los códigos de respaldo en el detalle: solo el
+    // hecho de que se inició la configuración.
+    @Auditable(accion = "SEGURIDAD_2FA_CONFIGURAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
     public TwoFactorSetupResponse setup2Fa(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -63,29 +67,23 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         GoogleAuthenticatorKey key = gAuth.createCredentials();
         String secreto = key.getKey();
 
-        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
-                .orElseGet(() -> AutenticacionDosFactores.builder().usuario(usuario).build());
-
-        dosFactores.setLlaveSecreta(secreto);
-        dosFactores.setEstaHabilitado(false);
-        autenticacionDosFactoresRepository.save(dosFactores);
-
-        // Limpiar códigos anteriores si hubiera
-        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());
-
-        // Generar 8 nuevos códigos de respaldo
+        // Generar 8 nuevos códigos de respaldo (en texto plano, para devolver
+        // al usuario una única vez) y sus hashes (lo único que se persiste).
         List<String> codigosPlano = new ArrayList<>();
+        String[] hashes = new String[8];
         for (int i = 0; i < 8; i++) {
             String codigo = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
             codigosPlano.add(codigo);
-
-            CodigoRespaldo2Fa respaldo = CodigoRespaldo2Fa.builder()
-                    .usuario(usuario)
-                    .codigoHash(hashSha256(codigo))
-                    .usado(false)
-                    .build();
-            codigoRespaldo2FaRepository.save(respaldo);
+            hashes[i] = hashSha256(codigo);
         }
+
+        // Fase 3 concurrencia (§7): fn_configurar_2fa hace el upsert del
+        // secreto TOTP + el reemplazo completo de los codigos de respaldo en
+        // UNA transaccion atomica, en vez de los 10 pasos no atomicos
+        // anteriores (upsert manual + delete + 8 save() individuales), que
+        // dejaban al usuario con un secreto nuevo y codigos incompletos si el
+        // proceso fallaba a mitad del bucle.
+        autenticacionDosFactoresRepository.configurar2Fa(usuario.getIdUsuario(), secreto, hashes);
 
         String otpauthUri = String.format("otpauth://totp/Artisync:%s?secret=%s&issuer=Artisync", correo, secreto);
 
@@ -98,6 +96,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SEGURIDAD_2FA_ACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
     public RespuestaMensaje confirm2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -117,6 +116,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SEGURIDAD_2FA_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
     public RespuestaMensaje disable2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -132,9 +132,10 @@ public class TwoFactorServiceImpl implements TwoFactorService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
 
-        dosFactores.setEstaHabilitado(false);
-        autenticacionDosFactoresRepository.save(dosFactores);
-        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());
+        // Fase 3 concurrencia (§7): fn_desactivar_2fa desactiva el flag y
+        // purga los codigos de respaldo en una unica transaccion, en vez del
+        // UPDATE + DELETE separados anteriores.
+        autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());
 
         return new RespuestaMensaje("Autenticación de dos factores desactivada exitosamente");
     }
@@ -164,19 +165,18 @@ public class TwoFactorServiceImpl implements TwoFactorService {
             }
         }
 
-        // Probar si es un código de respaldo
+        // Probar si es un código de respaldo. §2 (Fase 1 concurrencia):
+        // fn_consumir_codigo_respaldo_2fa hace el UPDATE atomico
+        // "WHERE usado = FALSE" en una sola sentencia, en vez de leer todos los
+        // códigos no usados a memoria y comparar en un bucle Java -- ese patrón
+        // read-modify-write permitía que dos peticiones concurrentes con el
+        // mismo código de respaldo lo consumieran ambas (actualización perdida).
         String hashIngresado = hashSha256(codigoIngresado.trim().toUpperCase());
-        List<CodigoRespaldo2Fa> codigos = codigoRespaldo2FaRepository.findByUsuarioIdUsuarioAndUsadoFalse(usuario.getIdUsuario());
-        for (CodigoRespaldo2Fa respaldo : codigos) {
-            if (respaldo.getCodigoHash().equals(hashIngresado)) {
-                respaldo.setUsado(true);
-                codigoRespaldo2FaRepository.save(respaldo);
-                log.info("Código de respaldo 2FA utilizado para el usuario: {}", correo);
-                return true;
-            }
+        boolean consumido = codigoRespaldo2FaRepository.consumirCodigoRespaldo(usuario.getIdUsuario(), hashIngresado);
+        if (consumido) {
+            log.info("Código de respaldo 2FA utilizado para el usuario: {}", correo);
         }
-
-        return false;
+        return consumido;
     }
 
     private boolean validarTotp(String secreto, String codigo) {

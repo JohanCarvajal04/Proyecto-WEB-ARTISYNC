@@ -144,6 +144,15 @@ fn\_x(...)} (compatible con \texttt{FUNCTION}), o (c) declara
 explícitamente en el capítulo de Diseño por qué
 \texttt{@Query(nativeQuery=true)} parametrizado satisface el espíritu de
 la regla (invocación formal, sin concatenación) aunque no su letra exacta.
-Este hallazgo no estaba señalado en
-\texttt{docs/observaciones/OBSERVACIONES.md} antes de este documento ---
-se recomienda añadirlo como observación nueva.
+Este hallazgo, que no figuraba en
+\texttt{docs/observaciones/OBSERVACIONES.md} cuando se redactó este
+capítulo, quedó registrado el 20-08-2026 como \texttt{OBS-AUTO-11} y
+resuelto por la vía~(c): la divergencia se declara de forma explícita en
+\texttt{docs/adr/adr-006-estrategia-acceso-datos.md}, sección «Mecanismo de
+invocación». El fundamento es que las rutinas son funciones \texttt{fn\_*} y
+no procedimientos, que todos los argumentos viajan como parámetros nombrados
+---defensa que OWASP reconoce como equivalente a la consulta
+parametrizada~\cite{OWASPSQLI}--- y que no existe ninguna ocurrencia de
+\texttt{createNativeQuery} en el backend, que es lo que el apartado A.2.1
+prohíbe expresamente. Las rutinas que se conecten en adelante usarán
+\texttt{@Procedure} siempre que el tipo de retorno lo permita.

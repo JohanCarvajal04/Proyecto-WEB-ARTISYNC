@@ -21,7 +21,7 @@ import java.util.Optional;
 /**
  * §2.1 / OBS-AUTO-05: ticket de un solo uso que vincula el paso de contraseña
  * (AuthServiceImpl.login) con el de código 2FA (verify2Fa). Antes,
- * /api/auth/2fa/verify aceptaba {correo, codigo} sin ninguna prueba de que el
+ * /api/v1/auth/2fa/verify aceptaba {correo, codigo} sin ninguna prueba de que el
  * llamante hubiera pasado por login() — habilitar 2FA degradaba la cuenta de
  * "contraseña" a "6 dígitos", fuerza-bruteables sin límite.
  *

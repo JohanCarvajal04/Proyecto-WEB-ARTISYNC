@@ -295,6 +295,34 @@ class ContratoServicioImplTest {
     }
 
     @Test
+    @DisplayName("SEC-01: generarPdf escapa HTML controlado por el usuario antes de pasarlo al renderizador")
+    void generarPdf_escapaHtmlDeUsuario() {
+        // Servicio propio para este test: la descripcion detallada trae un
+        // payload de SSRF/lectura de archivos como el que motivo el hallazgo
+        // (ver docs del informe de seguridad, SEC-01).
+        PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
+        Servicio servicioMalicioso = Servicio.builder().idServicio(2L).perfil(perfil)
+                .tituloServicio("Logo")
+                .descripcionDetallada("<img src=\"http://169.254.169.254/latest/meta-data/\">")
+                .limiteRevisionesBase(2).build();
+        Pedido pedidoMalicioso = Pedido.builder().idPedido(2L).usuarioCliente(cliente)
+                .servicio(servicioMalicioso).precioPactado(new BigDecimal("50.00")).build();
+        Contrato contrato = Contrato.builder().idContrato(11L).pedido(pedidoMalicioso).plantilla(plantilla)
+                .hashFirmaCreador("h1").hashFirmaCliente("h2").limiteRevisiones(2).build();
+        given(contratoRepository.findById(11L)).willReturn(Optional.of(contrato));
+        given(pdfGeneracionServicio.generarPdfDesdeHtml(org.mockito.ArgumentMatchers.anyString())).willReturn(new byte[]{1});
+
+        contratoServicio.generarPdf(11L);
+
+        org.mockito.ArgumentCaptor<String> htmlCapturado = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(pdfGeneracionServicio).generarPdfDesdeHtml(htmlCapturado.capture());
+        String html = htmlCapturado.getValue();
+
+        assertThat(html).contains("&lt;img");
+        assertThat(html).doesNotContain("<img src=\"http");
+    }
+
+    @Test
     @DisplayName("generarPdf lanza recurso no encontrado si el contrato no existe")
     void generarPdf_inexistente() {
         given(contratoRepository.findById(10L)).willReturn(Optional.empty());

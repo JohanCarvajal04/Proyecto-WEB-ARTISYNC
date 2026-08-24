@@ -2,10 +2,18 @@
 
 Formato Connextra (*As a ⟨rol⟩, I want ⟨objetivo⟩, so that ⟨beneficio⟩*), evaluado contra los criterios INVEST (Independent, Negotiable, Valuable, Estimable, Small, Testable) de Cohn. Criterios de aceptación en Gherkin (Given/When/Then). Trazabilidad: cada historia soporta exactamente un requisito funcional del SRS (`docs/requisitos/SRS.md`).
 
+> **Convención de trazabilidad (aplica a las seis colecciones de historias).** Cada historia declara dos campos bajo su título:
+>
+> - **Trazabilidad:** el requisito del SRS que la historia soporta.
+> - **Prueba de aceptación:** la prueba automatizada que la verifica, tomada de la columna `prueba_automatizada` de [`docs/trazabilidad/matriz.csv`](../../trazabilidad/matriz.csv), que es la fuente de verdad. Cuando un requisito no tiene prueba, el campo lo dice explícitamente en vez de omitirse, para que la ausencia sea visible y no se confunda con un descuido de redacción.
+>
+> **Limitación declarada:** la justificación INVEST está redactada solo en HU-01, como ejemplo trabajado del criterio. Las 22 historias restantes cumplen el formato Connextra y tienen criterios de aceptación en Gherkin, pero no llevan su valoración INVEST individual escrita. Es una brecha de documentación conocida, no un descuido: se declara aquí en lugar de rellenarla con texto formulario que no aportaría análisis real.
+
 ---
 
 ## HU-01 — Registro con selección de rol
 **Trazabilidad:** REQ-F-001
+**Prueba de aceptación:** `AuthServiceImplTest`
 
 **As a** visitante que quiere ofrecer o contratar servicios creativos,
 **I want** registrarme eligiendo si seré Creador o Cliente,
@@ -30,6 +38,7 @@ Escenario: Un Cliente no puede acceder a rutas de Creador
 
 ## HU-02 — Control de acceso basado en roles (RBAC)
 **Trazabilidad:** REQ-F-002
+**Prueba de aceptación:** `RolePermissionControllerTest` · `RolePermissionServiceImplTest`
 
 **As a** administrador de la plataforma,
 **I want** asignar y revocar permisos específicos a cada rol,
@@ -47,6 +56,7 @@ Escenario: Revocación de permiso surte efecto inmediato
 
 ## HU-03 — Autenticación con sesión JWT
 **Trazabilidad:** REQ-F-003
+**Prueba de aceptación:** `JwtAuthenticationFilterTest` · `JwtServiceTest` · `AuthRateLimitFilterTest` · `AuthControllerTest`
 
 **As a** usuario registrado,
 **I want** iniciar sesión y mantenerla activa de forma segura durante 24 horas,
@@ -73,6 +83,7 @@ Escenario: Acceso sin token
 
 ## HU-04 — Recuperación de contraseña
 **Trazabilidad:** REQ-F-004
+**Prueba de aceptación:** `AuthServiceImplTest#forgotPassword_ShouldSendEmail_WhenUsuarioExiste` · `AuthServiceImplTest#resetPassword_ShouldUpdatePassword_WhenTokenValido` · `AuthServiceImplTest#resetPassword_ShouldThrowBadRequest_WhenTokenExpirado`
 
 **As a** usuario que olvidó su contraseña,
 **I want** recibir un enlace de un solo uso para restablecerla,
@@ -99,6 +110,7 @@ Escenario: Flujo completo exitoso
 
 ## HU-05 — Segundo factor de autenticación (2FA)
 **Trazabilidad:** REQ-F-005
+**Prueba de aceptación:** `TwoFactorServiceImplTest` · `PreAuth2faTicketServiceTest`
 
 **As a** Creador con identidad verificada,
 **I want** activar un segundo factor de autenticación basado en TOTP,

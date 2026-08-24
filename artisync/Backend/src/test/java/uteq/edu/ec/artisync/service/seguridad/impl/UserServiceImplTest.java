@@ -111,15 +111,18 @@ class UserServiceImplTest {
 
     @Test
     void deleteOwnAccount_ShouldRevokeSessionsAndDeleteUser() {
+        // Fase 1 concurrencia: deleteOwnAccount delega la desactivacion +
+        // revocacion atomica en fn_cambiar_estado_cuenta (SessionRevocationService
+        // .cambiarEstadoCuenta), en vez de mutar la entidad y llamar a save() por
+        // separado de revocarSesionesUsuario.
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
 
         RespuestaMensaje response = userService.deleteOwnAccount("user@example.com");
 
         assertNotNull(response);
         assertEquals("Cuenta desactivada exitosamente", response.getMensaje());
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
-        verify(usuarioRepository).save(usuario);
-        assertFalse(usuario.getEstadoCuenta());
+        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(usuarioRepository, never()).save(any());
     }
 
     @Test
@@ -135,18 +138,41 @@ class UserServiceImplTest {
     }
 
     @Test
+    // Fase 3 concurrencia: changePassword delega en fn_cambiar_contrasena
+    // (compare-and-swap sobre el hash actual), en vez de mutar la entidad y
+    // llamar a save() incondicionalmente (A7).
     void changePassword_ShouldUpdateHash_WhenContrasenaActualCorrecta() {
         ChangePasswordRequest request = ChangePasswordRequest.builder()
                 .contrasenaActual("actual").nuevaContrasena("NuevaClave123!").build();
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
         when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
+        when(usuarioRepository.cambiarContrasena(1L, "hash", "nuevo-hash")).thenReturn(true);
 
         RespuestaMensaje respuesta = userService.changePassword("user@example.com", request);
 
         assertNotNull(respuesta);
-        assertEquals("nuevo-hash", usuario.getContrasenaHash());
+        verify(usuarioRepository).cambiarContrasena(1L, "hash", "nuevo-hash");
         verify(sessionRevocationService).revocarSesionesUsuario(1L);
+    }
+
+    @Test
+    void changePassword_ShouldThrowConflict_WhenOtraSesionCambioLaContrasenaConcurrentemente() {
+        // fn_cambiar_contrasena lanza ERRCODE 40001 (serialization_failure) si
+        // el hash ya no coincidia con el verificado: otra sesion se adelanto.
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .contrasenaActual("actual").nuevaContrasena("NuevaClave123!").build();
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
+        when(usuarioRepository.cambiarContrasena(1L, "hash", "nuevo-hash"))
+                .thenThrow(new RuntimeException(new java.sql.SQLException(
+                        "La contrasena fue modificada por otra sesion. Vuelve a intentarlo.", "40001")));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.changePassword("user@example.com", request));
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        verify(sessionRevocationService, never()).revocarSesionesUsuario(any());
     }
 
     @Test
