@@ -17,4 +17,8 @@ public class CustomUserDetails extends User {
         super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
         this.idUsuario = idUsuario;
     }
+
+    public Long getIdUsuario() {
+        return idUsuario;
+    }
 }

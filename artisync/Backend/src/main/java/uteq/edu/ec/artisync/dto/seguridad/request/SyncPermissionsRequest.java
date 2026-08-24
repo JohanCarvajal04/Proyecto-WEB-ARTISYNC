@@ -18,4 +18,20 @@ public class SyncPermissionsRequest {
 
     @NotNull(message = "La lista de códigos de permisos es obligatoria")
     private List<String> permissionCodes;
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+
+    public List<String> getPermissionCodes() {
+        return permissionCodes;
+    }
+
+    public void setPermissionCodes(List<String> permissionCodes) {
+        this.permissionCodes = permissionCodes;
+    }
 }

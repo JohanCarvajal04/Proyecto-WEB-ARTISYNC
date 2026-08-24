@@ -36,4 +36,20 @@ public class TokenResponse {
     // fuera del alcance de JavaScript en el cliente.
     @JsonIgnore
     private String preAuthTicket;
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public String getPreAuthTicket() {
+        return preAuthTicket;
+    }
+
+    public void setPreAuthTicket(String preAuthTicket) {
+        this.preAuthTicket = preAuthTicket;
+    }
 }

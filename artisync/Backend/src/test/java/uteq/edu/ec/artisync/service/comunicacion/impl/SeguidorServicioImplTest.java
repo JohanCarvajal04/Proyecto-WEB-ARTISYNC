@@ -41,8 +41,8 @@ class SeguidorServicioImplTest {
     void setUp() {
         usuarioCreador = Usuario.builder()
                 .idUsuario(10L)
-                .nombresUsuario("Valentina")
-                .apellidosUsuario("Ríos")
+                .nombres("Valentina")
+                .apellidos("Ríos")
                 .correo("valentina@artisync.com")
                 .build();
 

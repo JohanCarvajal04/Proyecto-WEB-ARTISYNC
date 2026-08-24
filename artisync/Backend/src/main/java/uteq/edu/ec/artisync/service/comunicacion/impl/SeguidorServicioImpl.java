@@ -94,8 +94,12 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
         List<Seguidor> lista = seguidorRepository.findByPerfilCreadorIdPerfil(idPerfilCreador);
         return lista.stream()
                 .map(s -> RespuestaSeguidor.builder()
+                        .idSeguimiento(s.getIdSeguimiento())
                         .idUsuarioSeguidor(s.getUsuarioSeguidor().getIdUsuario())
-                        .nombreSeguidor(s.getUsuarioSeguidor().getNombresUsuario() + " " + s.getUsuarioSeguidor().getApellidosUsuario())
+                        .nombreSeguidor((s.getUsuarioSeguidor().getNombres() + " " + s.getUsuarioSeguidor().getApellidos()).trim())
+                        .idPerfilCreador(s.getPerfilCreador().getIdPerfil())
+                        .notificacionesActivas(s.getNotificacionesActivas())
+                        .fechaSeguimiento(s.getFechaSeguimiento())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -107,14 +111,14 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
         return seguidos.stream()
                 .map(s -> {
                     PerfilCreador p = s.getPerfilCreador();
-                    String nombre = (p.getUsuario().getNombresUsuario() + " " + p.getUsuario().getApellidosUsuario()).trim();
-                    String handle = "@" + p.getUsuario().getNombresUsuario().toLowerCase().replace(" ", "");
+                    String nombre = (p.getUsuario().getNombres() + " " + p.getUsuario().getApellidos()).trim();
+                    String handle = "@" + (p.getUsuario().getNombres() != null ? p.getUsuario().getNombres().toLowerCase().replace(" ", "") : "creador");
                     return RespuestaCreadorSeguidoNovedad.builder()
                             .idPerfil(p.getIdPerfil())
                             .idUsuario(p.getUsuario().getIdUsuario())
                             .nombreCreador(nombre)
                             .handle(handle)
-                            .urlFotoPerfil(p.getUsuario().getUrlFotoPerfil())
+                            .urlFotoPerfil(p.getUrlPortada())
                             .tituloProfesional(p.getTituloProfesional())
                             .resumenNovedad("Actividad reciente en su catálogo y publicaciones")
                             .tipoNovedad("GENERAL")

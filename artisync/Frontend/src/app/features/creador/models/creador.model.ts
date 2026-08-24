@@ -105,6 +105,9 @@ export interface RespuestaPerfil {
   apellidosUsuario: string;
   biografia: string | null;
   urlRedSocial: string | null;
+  urlPortada?: string | null;
+  urlFotoPerfil?: string | null;
+  tituloProfesional?: string | null;
 }
 
 export interface PeticionCrearPerfil {
