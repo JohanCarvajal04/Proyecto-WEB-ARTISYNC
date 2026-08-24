@@ -197,13 +197,41 @@ class WebSocketAuthInterceptorTest {
     }
 
     @Test
-    @DisplayName("no interviene en suscripciones fuera de /topic/sala.*")
+    @DisplayName("no interviene en suscripciones a /user/** (acotadas por Spring al Principal)")
     void ignoraSuscripcionesAOtrosDestinos() {
         Message<byte[]> subscribe = subscribeConUsuario("/user/queue/notificaciones", ID_CLIENTE);
 
         Message<?> resultado = interceptor.preSend(subscribe, null);
 
         assertThat(resultado).isSameAs(subscribe);
+    }
+
+    @Test
+    @DisplayName("rechaza por defecto un /topic/* sin autorizador registrado (fail-closed)")
+    void rechazaTopicoSinAutorizadorRegistrado() {
+        Message<byte[]> subscribe = subscribeConUsuario("/topic/otro-destino", ID_CLIENTE);
+
+        assertThatThrownBy(() -> interceptor.preSend(subscribe, null))
+                .isInstanceOf(MessagingException.class);
+    }
+
+    @Test
+    @DisplayName("rechaza por defecto un /queue/* directo (no /user/queue/*) sin autorizador registrado")
+    void rechazaQueueDirectoSinAutorizadorRegistrado() {
+        Message<byte[]> subscribe = subscribeConUsuario("/queue/notificaciones", ID_CLIENTE);
+
+        assertThatThrownBy(() -> interceptor.preSend(subscribe, null))
+                .isInstanceOf(MessagingException.class);
+    }
+
+    @Test
+    @DisplayName("rechaza la suscripcion sin destino")
+    void rechazaSuscripcionSinDestino() {
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        Message<byte[]> subscribe = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        assertThatThrownBy(() -> interceptor.preSend(subscribe, null))
+                .isInstanceOf(MessagingException.class);
     }
 
     private Message<byte[]> connectConHeader(String authorizationHeader) {

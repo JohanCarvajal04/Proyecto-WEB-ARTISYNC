@@ -23,6 +23,7 @@ import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
 
 import java.util.Date;
+import java.util.Map;
 
 /**
  * Interceptor de canal STOMP que autentica el JWT en CONNECT y autoriza las
@@ -41,7 +42,11 @@ import java.util.Date;
  *   {@link org.springframework.messaging.simp.config.MessageBrokerRegistry
  *   SimpleBroker} no aplica ningún control de acceso por tópico. Aquí se
  *   verifica que quien se suscribe sea el cliente o el creador del pedido
- *   dueño de esa sala.</li>
+ *   dueño de esa sala. Cualquier destino {@code /topic/*} o {@code /queue/*}
+ *   sin un autorizador registrado en {@link #autorizadoresPorPrefijo} se
+ *   rechaza por defecto — antes, cualquier destino distinto de
+ *   {@code /topic/sala.*} pasaba sin ningún control (fail-open por
+ *   omisión).</li>
  * </ul>
  * Cualquier fallo lanza {@link MessagingException}, que hace que Spring
  * devuelva un frame STOMP ERROR y cierre la conexión — igual que un 401/403
@@ -54,6 +59,30 @@ import java.util.Date;
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private static final String PREFIJO_TOPIC_SALA = "/topic/sala.";
+
+    /**
+     * Destinos {@code /user/**} ya quedan acotados por Spring al Principal de
+     * la propia sesión (traducidos internamente a una cola por-sesión antes
+     * de llegar aquí), así que no necesitan un autorizador explícito.
+     */
+    private static final String PREFIJO_USER = "/user/";
+
+    @FunctionalInterface
+    private interface AutorizadorTopico {
+        void autorizar(StompHeaderAccessor accessor, String destino);
+    }
+
+    /**
+     * Revision de codigo (hallazgo HIGH/altitude): antes, cualquier destino
+     * que no empezara con {@link #PREFIJO_TOPIC_SALA} pasaba sin ningun
+     * control de acceso (fail-open por omision). Este registro hace explicito
+     * que autorizacion existe para cada prefijo — para sumar un nuevo
+     * {@code /topic/*} o {@code /queue/*} en el futuro, se agrega su entrada
+     * aqui; cualquier prefijo no registrado se rechaza por defecto en
+     * {@link #autorizarSuscripcion} (fail-closed).
+     */
+    private final Map<String, AutorizadorTopico> autorizadoresPorPrefijo =
+            Map.of(PREFIJO_TOPIC_SALA, this::autorizarSala);
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
@@ -124,12 +153,30 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private void autorizarSuscripcion(StompHeaderAccessor accessor) {
         String destino = accessor.getDestination();
-        if (destino == null || !destino.startsWith(PREFIJO_TOPIC_SALA)) {
-            // Otros destinos (p.ej. /user/queue/notificaciones) ya quedan
-            // acotados por Spring al Principal de la propia sesión.
+        if (destino == null) {
+            log.warn("SUBSCRIBE rechazado: sin destino");
+            throw new MessagingException("Destino de suscripción requerido");
+        }
+
+        if (destino.startsWith(PREFIJO_USER)) {
             return;
         }
 
+        AutorizadorTopico autorizador = autorizadoresPorPrefijo.entrySet().stream()
+                .filter(entrada -> destino.startsWith(entrada.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+
+        if (autorizador == null) {
+            log.warn("SUBSCRIBE rechazado: destino sin autorizador registrado ({})", destino);
+            throw new MessagingException("Destino de suscripción no permitido: " + destino);
+        }
+
+        autorizador.autorizar(accessor, destino);
+    }
+
+    private void autorizarSala(StompHeaderAccessor accessor, String destino) {
         Long idUsuario = idUsuarioDe(accessor);
         if (idUsuario == null) {
             log.warn("SUBSCRIBE rechazado a {}: sesión sin Principal autenticado", destino);

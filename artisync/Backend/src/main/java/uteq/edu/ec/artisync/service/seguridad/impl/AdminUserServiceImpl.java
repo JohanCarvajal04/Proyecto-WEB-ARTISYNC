@@ -242,12 +242,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
     public void deleteUser(Long id) {
-        if (!usuarioRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
-        }
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
         // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
-        // atomicamente; ya no hace falta cargar la entidad completa.
+        // atomicamente; ya no hace falta cargar la entidad completa. El
+        // existsById previo era redundante: fn_cambiar_estado_cuenta ya
+        // lanza P0002 si el usuario no existe, y SessionRevocationService
+        // ya lo traduce a 404 (revision de codigo, hallazgo de eficiencia).
         sessionRevocationService.cambiarEstadoCuenta(id, false);
     }
 

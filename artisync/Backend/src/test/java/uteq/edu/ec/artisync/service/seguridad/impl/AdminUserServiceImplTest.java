@@ -424,11 +424,10 @@ class AdminUserServiceImplTest {
 
     @Test
     void deleteUser_ShouldDeactivateAndRevokeSessions() {
-        // Fase 1 concurrencia: deleteUser ya no carga la entidad completa; solo
-        // comprueba existencia y delega la desactivacion + revocacion atomica en
+        // Fase 1 concurrencia: deleteUser ya no carga la entidad completa ni
+        // comprueba existencia por su cuenta; delega la desactivacion +
+        // revocacion atomica (y la validacion de existencia, via P0002) en
         // fn_cambiar_estado_cuenta.
-        when(usuarioRepository.existsById(1L)).thenReturn(true);
-
         adminUserService.deleteUser(1L);
 
         verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
@@ -437,7 +436,8 @@ class AdminUserServiceImplTest {
 
     @Test
     void deleteUser_ShouldThrowNotFound_WhenUsuarioNoExiste() {
-        when(usuarioRepository.existsById(99L)).thenReturn(false);
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: 99"))
+                .when(sessionRevocationService).cambiarEstadoCuenta(99L, false);
 
         assertThrows(ResponseStatusException.class, () -> adminUserService.deleteUser(99L));
     }

@@ -50,7 +50,10 @@ AS $$
                'authorities', COALESCE(
                    (SELECT jsonb_agg(DISTINCT a.autoridad)
                       FROM (
-                            SELECT 'ROLE_' || UPPER(r.nombre_rol) AS autoridad
+                            SELECT CASE
+                                       WHEN UPPER(r.nombre_rol) LIKE 'ROLE\_%' ESCAPE '\' THEN UPPER(r.nombre_rol)
+                                       ELSE 'ROLE_' || UPPER(r.nombre_rol)
+                                   END AS autoridad
                               FROM usuario_roles ur
                               JOIN roles r ON r.id_rol = ur.id_rol
                              WHERE ur.id_usuario = u.id_usuario
