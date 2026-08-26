@@ -90,5 +90,17 @@ export const ADMINISTRACION_ROUTES: Routes = [
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.auditoria },
     loadComponent: () => import('./pages/auditoria/auditoria.component').then(m => m.AuditoriaComponent)
+  },
+  {
+    path: 'reportes-finanzas',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.reportesFinanzas },
+    loadComponent: () => import('./pages/reportes-finanzas/reportes-finanzas.component').then(m => m.ReportesFinanzasComponent)
+  },
+  {
+    path: 'reportes-contratos',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.reportesContratos },
+    loadComponent: () => import('./pages/reportes-contratos/reportes-contratos.component').then(m => m.ReportesContratosComponent)
   }
 ];

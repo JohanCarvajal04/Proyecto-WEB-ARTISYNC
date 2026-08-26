@@ -84,7 +84,15 @@ export const PAGE_PERMISSIONS = {
   // Bitácora de auditoría transversal (V15__modulo_auditoria.sql). Exportar
   // es un permiso aparte (AUDITORIA_EXPORTAR): no abre la pantalla por sí
   // solo, así que no va en esta lista — ver ADMIN_PANEL_PERMISSIONS.
-  auditoria: ['AUDITORIA_VER']
+  auditoria: ['AUDITORIA_VER'],
+  // Igual criterio que auditoria: TRANSACCION_VER abre la pantalla y
+  // muestra el reporte; REPORTE_*_EXPORTAR (V19__permisos_reportes.sql)
+  // habilita solo el botón de exportar, no va aquí. Ambos reportes usan
+  // TRANSACCION_VER (y no CONTRATO_VER) para la vista: CONTRATO_VER lo
+  // tienen también CREADOR y CLIENTE (ver ADMIN_PANEL_PERMISSIONS más abajo),
+  // así que abriría esta pantalla admin a cualquiera con un contrato propio.
+  reportesFinanzas: ['TRANSACCION_VER'],
+  reportesContratos: ['TRANSACCION_VER']
 } as const satisfies Record<string, readonly string[]>;
 
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
@@ -144,7 +152,8 @@ export const ADMIN_PANEL_PERMISSIONS: readonly string[] = [
   'MENSAJE_MODERAR', 'COMENTARIO_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER',
   'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
   'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR',
-  'AUDITORIA_VER', 'AUDITORIA_EXPORTAR'
+  'AUDITORIA_VER', 'AUDITORIA_EXPORTAR',
+  'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR'
 ];
 
 /** Permisos exclusivos del rol CREADOR frente a CLIENTE. */
@@ -241,6 +250,8 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // 'receipt_long' ya tiene rama SVG en dashboard-layout.component.html
   // (compartida con 'account_balance'): no hace falta tocar el layout.
   { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria },
+  { label: 'Reporte financiero', icon: 'account_balance', route: 'reportes-finanzas', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesFinanzas },
+  { label: 'Reporte de contratos', icon: 'description', route: 'reportes-contratos', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesContratos },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
   // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
   // misma página que ven creador y cliente — ver NavItem.basePath.
