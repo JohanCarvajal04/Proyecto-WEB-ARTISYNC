@@ -39,10 +39,30 @@ fi
 # Orden alfabetico estable e independiente de la configuracion regional: el
 # archivo generado debe ser identico byte a byte en cualquier maquina, o el
 # modo --check produciria falsos positivos en CI.
-mapfile -t ARCHIVOS < <(LC_ALL=C find "$ORIGEN" -maxdepth 1 -name '*.sql' -type f | LC_ALL=C sort)
+#
+# Solo se admiten fn_*.sql, sp_*.sql y V8__*.sql: son los unicos patrones de
+# rutina reales en db/procs/. Un glob abierto (*.sql) concatenaria CUALQUIER
+# archivo que caiga aqui -- incluido, por ejemplo, un pg_dump completo --
+# dentro de esta migracion REPETIBLE, que Flyway reaplica en cada arranque
+# donde cambie su checksum.
+mapfile -t ARCHIVOS < <(
+    LC_ALL=C find "$ORIGEN" -maxdepth 1 -type f \
+        \( -name 'fn_*.sql' -o -name 'sp_*.sql' -o -name 'V8__*.sql' \) | LC_ALL=C sort
+)
 
 if [[ ${#ARCHIVOS[@]} -eq 0 ]]; then
     echo "ERROR: ${ORIGEN} no contiene ningun archivo .sql" >&2
+    exit 1
+fi
+
+mapfile -t INTRUSOS < <(
+    LC_ALL=C find "$ORIGEN" -maxdepth 1 -type f -name '*.sql' \
+        ! -name 'fn_*.sql' ! -name 'sp_*.sql' ! -name 'V8__*.sql' | LC_ALL=C sort
+)
+if [[ ${#INTRUSOS[@]} -gt 0 ]]; then
+    echo "ERROR: ${ORIGEN} contiene archivos .sql que no son rutinas:" >&2
+    printf '  - %s\n' "${INTRUSOS[@]#"$ORIGEN"/}" >&2
+    echo "       Solo se admiten fn_*.sql, sp_*.sql y V8__*.sql. Mueve o elimina los demas." >&2
     exit 1
 fi
 

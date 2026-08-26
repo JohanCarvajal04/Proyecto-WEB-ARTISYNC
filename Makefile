@@ -16,7 +16,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up down test bench audit audit-zap clean sus lighthouse docs srs
+.PHONY: all up down test bench audit audit-zap clean sus lighthouse docs srs sync-procs sync-procs-check
 
 # Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
 # de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
@@ -47,6 +47,14 @@ down:
 ## Ejecuta la suite de pruebas JUnit del backend (no requiere Docker).
 test:
 	cd artisync/Backend && ./mvnw -B test
+
+## Regenera R__procedimientos.sql a partir de db/procs/ (fuente canonica, A.2.1).
+sync-procs:
+	bash scripts/sync-procs.sh
+
+## Verifica que R__procedimientos.sql este sincronizado (lo mismo que corre el CI).
+sync-procs-check:
+	bash scripts/sync-procs.sh --check
 
 ## Prueba de carga k6 (50 VUs, 30s) contra el endpoint de catalogo, igual
 ## configuracion que docs/mediciones/perf/REPORTE-PERF.md. Requiere k6

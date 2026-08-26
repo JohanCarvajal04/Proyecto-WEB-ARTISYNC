@@ -14,6 +14,15 @@
 !**/.env.example
 
 # ---------------------------------------------------------------------------
+# Volcados de base de datos: nunca se versionan. Pueden contener datos de
+# usuarios y, si caen dentro de db/procs/, sync-procs.sh los concatenaria
+# enteros a la migracion repetible de Flyway (ver db/procs/README.md).
+# ---------------------------------------------------------------------------
+*.dump
+*dump*.sql
+db/dumps/
+
+# ---------------------------------------------------------------------------
 # Java / Maven
 # ---------------------------------------------------------------------------
 target/

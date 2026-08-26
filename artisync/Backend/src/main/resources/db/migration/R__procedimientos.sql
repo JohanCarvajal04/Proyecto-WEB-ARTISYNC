@@ -1,6 +1,14 @@
-﻿-- ===========================================================================
--- R__procedimientos.sql - ARCHIVO GENERADO.
 -- ===========================================================================
+-- R__procedimientos.sql — ARCHIVO GENERADO. NO EDITAR A MANO.
+-- ===========================================================================
+--
+-- Generado por scripts/sync-procs.sh a partir de db/procs/*.sql, que es la
+-- ubicacion canonica de las rutinas (apartado A.2.1 de la guia de la Entrega
+-- Final). Para modificar una rutina se edita su archivo en db/procs/ y se
+-- ejecuta `make sync-procs`.
+--
+-- Migracion REPETIBLE: Flyway la reaplica cada vez que cambia su checksum.
+-- Todas las rutinas usan CREATE OR REPLACE, por lo que reaplicarla es inocuo.
 --
 -- Rutinas incluidas (33):
 --   - V8__estructuras_para_procedimientos.sql
@@ -97,7 +105,6 @@ CREATE INDEX IF NOT EXISTS idx_servicios_subcategoria_estado
     ON servicios (id_subcategoria, estado_publicacion);
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_actualizar_portada_creador.sql
 -- ---------------------------------------------------------------------------
@@ -132,7 +139,6 @@ $$;
 
 COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
     IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -189,7 +195,6 @@ $$;
 
 COMMENT ON FUNCTION fn_calificacion_promedio_creador(BIGINT)
     IS 'REQ-F-009 - Calculo agregado: calificacion media 1..5 de un creador. NULL si no tiene resenas.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -272,7 +277,6 @@ COMMENT ON FUNCTION fn_cambiar_contrasena(BIGINT, VARCHAR, VARCHAR)
     IS 'Fase 3 concurrencia - UPDATE condicionado (compare-and-swap sobre el hash) que aplica un cambio de contrasena solo si nadie mas la cambio primero, eliminando la actualizacion perdida (A7).';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_cambiar_estado_cuenta.sql
 -- ---------------------------------------------------------------------------
@@ -348,7 +352,6 @@ $$;
 
 COMMENT ON FUNCTION fn_cambiar_estado_cuenta(BIGINT, BOOLEAN)
     IS 'Fase 1 concurrencia - Cambia estado_cuenta y revoca sesiones (transicion activa->inactiva) atomicamente bajo SELECT FOR UPDATE, unificando el patron repetido en changeEstado/deleteUser/deleteOwnAccount.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -480,7 +483,6 @@ COMMENT ON FUNCTION fn_catalogo_filtrado(BIGINT, BIGINT, NUMERIC, NUMERIC, VARCH
     IS 'REQ-F-013 - Consulta multi-tabla del catalogo publico con filtros combinados. Devuelve JSONB {total, limite, offset, elementos[]}.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_cerrar_pedidos_vencidos.sql
 -- ---------------------------------------------------------------------------
@@ -567,7 +569,6 @@ $$;
 
 COMMENT ON FUNCTION fn_cerrar_pedidos_vencidos(INTEGER)
     IS 'REQ-F-019 - Actualizacion masiva: cierra los pedidos vencidos insertando su transicion a etapa final. Idempotente. Devuelve el numero de pedidos cerrados.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -659,7 +660,6 @@ COMMENT ON FUNCTION fn_configurar_2fa(BIGINT, VARCHAR, TEXT[])
     IS 'Fase 3 concurrencia - Upsert atomico del secreto TOTP + reemplazo completo de codigos de respaldo en una unica transaccion, eliminando el estado a medias (A4) de la version en 10 pasos.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_consumir_codigo_respaldo_2fa.sql
 -- ---------------------------------------------------------------------------
@@ -726,7 +726,6 @@ COMMENT ON FUNCTION fn_consumir_codigo_respaldo_2fa(BIGINT, VARCHAR)
     IS 'Fase 1 concurrencia - UPDATE atomico que consume un codigo de respaldo 2FA una sola vez, eliminando la actualizacion perdida del patron read-modify-write anterior.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_conteo_seguidores.sql
 -- ---------------------------------------------------------------------------
@@ -759,7 +758,6 @@ $$;
 
 COMMENT ON FUNCTION fn_conteo_seguidores(BIGINT)
     IS 'Calcula el numero total de seguidores de un perfil de creador.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -838,7 +836,6 @@ $$;
 
 COMMENT ON FUNCTION fn_crear_rol(VARCHAR, TEXT, TEXT[])
     IS 'Fase 3 concurrencia - Crea un rol y asigna sus permisos iniciales atomicamente, capturando unique_violation en vez de una comprobacion findByNombreRol no atomica (A8).';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -930,7 +927,6 @@ COMMENT ON FUNCTION fn_crear_usuario_admin(VARCHAR, VARCHAR, VARCHAR, VARCHAR, D
     IS 'Fase 3 concurrencia - Crea un usuario administrativo con sus roles en una transaccion atomica, capturando unique_violation en vez de una comprobacion existsByCorreo no atomica (A3).';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_dejar_de_seguir_creador.sql
 -- ---------------------------------------------------------------------------
@@ -963,7 +959,6 @@ $$;
 
 COMMENT ON FUNCTION fn_dejar_de_seguir_creador(BIGINT, BIGINT)
     IS 'Elimina la relacion de seguimiento entre un usuario y un perfil de creador.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1026,7 +1021,6 @@ $$;
 
 COMMENT ON FUNCTION fn_desactivar_2fa(BIGINT)
     IS 'Fase 3 concurrencia - Desactiva 2FA y purga codigos de respaldo atomicamente; idempotente si el usuario no tenia 2FA configurado. Unifica el codigo duplicado entre TwoFactorServiceImpl.disable2Fa y AdminUserServiceImpl.updateUser.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1102,7 +1096,6 @@ COMMENT ON FUNCTION fn_eliminar_rol(BIGINT)
     IS 'REQ-F-004 - Validacion cruzada: elimina un rol personalizado solo si no es un rol base protegido y no tiene usuarios asignados.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_es_seguidor.sql
 -- ---------------------------------------------------------------------------
@@ -1137,7 +1130,6 @@ $$;
 
 COMMENT ON FUNCTION fn_es_seguidor(BIGINT, BIGINT)
     IS 'Verifica si un usuario dado sigue a un perfil de creador determinado.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1216,7 +1208,6 @@ $$;
 
 COMMENT ON FUNCTION fn_generar_codigo_pedido(BIGINT)
     IS 'REQ-F-018 - Generacion de codigo secuencial ART-AAAA-NNNNNN para un pedido. Idempotente: devuelve el codigo ya asignado si existe.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1305,7 +1296,6 @@ $$;
 
 COMMENT ON FUNCTION fn_guardar_pais(BIGINT, VARCHAR)
     IS 'Fase 3 concurrencia - Crea o renombra un pais capturando unique_violation en vez de una comprobacion findByNombrePais no atomica (A9).';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1430,7 +1420,6 @@ COMMENT ON FUNCTION fn_liberar_fondos_escrow(BIGINT)
     IS 'REQ-F-021 - Validacion cruzada: libera los fondos escrow de un pedido tras verificar contrato firmado, entregable cargado y ausencia de revisiones abiertas. TRUE si libero, FALSE si ya estaba liberado.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_listar_creadores_seguidos_novedades.sql
 -- ---------------------------------------------------------------------------
@@ -1482,7 +1471,6 @@ $$;
 
 COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
     IS 'Devuelve los creadores seguidos por el usuario con su resumen de novedades.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1562,7 +1550,6 @@ $$;
 
 COMMENT ON FUNCTION fn_permisos_efectivos_usuario(VARCHAR)
     IS 'Fase 2 rendimiento - Resuelve usuario + authorities (roles ROLE_* y permisos) en una sola llamada STABLE, sustituyendo el N+1 de CustomUserDetailsService en cada peticion autenticada.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1658,7 +1645,6 @@ COMMENT ON FUNCTION fn_registrar_infraccion(BIGINT, BIGINT, TEXT, VARCHAR)
     IS 'REQ-F-015 - Calculo agregado + validacion cruzada: registra una infraccion de mensaje, cuenta las del usuario en 30 dias y suspende la cuenta automaticamente al llegar a 3.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_registrar_usuario.sql
 -- ---------------------------------------------------------------------------
@@ -1751,7 +1737,6 @@ $$;
 
 COMMENT ON FUNCTION fn_registrar_usuario(VARCHAR, VARCHAR, VARCHAR, VARCHAR, DATE, VARCHAR)
     IS 'REQ-F-001 - Insercion multi-tabla: registra usuario + usuario_roles + perfil de creador opcional, validando correo unico, mayoria de edad y rol permitido.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -1860,7 +1845,6 @@ COMMENT ON FUNCTION fn_reporte_comisiones_creador(BIGINT, TIMESTAMP, TIMESTAMP, 
     IS 'REQ-NF-013 - Reporte financiero por creador (bruto, comision, neto y detalle) sobre la cadena escrow.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_resolver_estado_login.sql
 -- ---------------------------------------------------------------------------
@@ -1931,7 +1915,6 @@ $$;
 
 COMMENT ON FUNCTION fn_resolver_estado_login(VARCHAR)
     IS 'REQ-F-002 - Consulta multi-tabla: resuelve estado de cuenta, 2FA y roles de un usuario en una sola llamada para el flujo de login.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -2017,7 +2000,6 @@ COMMENT ON FUNCTION fn_restablecer_contrasena(VARCHAR, VARCHAR)
     IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_revocar_sesiones_usuario.sql
 -- ---------------------------------------------------------------------------
@@ -2083,7 +2065,6 @@ COMMENT ON FUNCTION fn_revocar_sesiones_usuario(BIGINT)
     IS 'Fase 1 concurrencia - DELETE ... RETURNING atomico: lee y borra las sesiones de un usuario en una sola sentencia, eliminando la ventana de lectura no repetible entre leer y borrar por separado.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_seguir_creador.sql
 -- ---------------------------------------------------------------------------
@@ -2132,7 +2113,6 @@ $$;
 
 COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
     IS 'Registra un seguimiento de usuario a creador validando no auto-seguimiento.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -2266,7 +2246,6 @@ COMMENT ON FUNCTION fn_seleccionar_ganadores_sorteo(BIGINT)
     IS 'REQ-F-023 - Seleccion aleatoria + actualizacion masiva: sortea ganadores entre los participantes no ganadores de un sorteo activo y marca en bloque participantes y sorteo.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_sincronizar_permisos_rol.sql
 -- ---------------------------------------------------------------------------
@@ -2359,7 +2338,6 @@ $$;
 
 COMMENT ON FUNCTION fn_sincronizar_permisos_rol(VARCHAR, TEXT[])
     IS 'REQ-F-003 - Actualizacion masiva: reemplaza atomicamente el conjunto de permisos de un rol (DELETE+INSERT en rol_permisos), validando cada codigo antes de aplicar el cambio.';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -2480,7 +2458,6 @@ COMMENT ON FUNCTION fn_sincronizar_roles_usuario(BIGINT, TEXT[])
     IS 'Fase 1 concurrencia - Reemplaza atomicamente el conjunto de roles de un usuario (DELETE+INSERT con ON CONFLICT), serializado con SELECT FOR UPDATE sobre usuarios; cierra lectura fantasma y estados a medias.';
 
 
-
 -- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_solicitar_recuperacion.sql
 -- ---------------------------------------------------------------------------
@@ -2563,7 +2540,6 @@ $$;
 
 COMMENT ON FUNCTION fn_solicitar_recuperacion(VARCHAR, VARCHAR)
     IS 'Fase 3 concurrencia - Invalida tokens de recuperacion previos e inserta el nuevo atomicamente bajo SELECT FOR UPDATE, garantizando a lo sumo un token vigente por usuario. Devuelve NULL si la cuenta no existe (respuesta indistinguible).';
-
 
 
 -- ---------------------------------------------------------------------------
@@ -2714,5 +2690,4 @@ BEGIN
     END IF;
 END
 $$;
-
 
