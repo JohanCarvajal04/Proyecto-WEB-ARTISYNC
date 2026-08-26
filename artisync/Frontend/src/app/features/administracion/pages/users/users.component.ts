@@ -11,11 +11,14 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar.com
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { UserFormModalComponent } from '../../../../shared/components/user-form-modal/user-form-modal.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [FormsModule, AvatarComponent, ConfirmDialogComponent, UserFormModalComponent, HasPermissionDirective],
+  imports: [FormsModule, AvatarComponent, ConfirmDialogComponent, UserFormModalComponent, HasPermissionDirective, BotonExportarComponent],
   templateUrl: './users.component.html'
 })
 export class UsersComponent implements OnInit {
@@ -33,6 +36,7 @@ export class UsersComponent implements OnInit {
   readonly pageSize = signal<number>(10);
   readonly isLoading = signal<boolean>(false);
   readonly isActionLoading = signal<boolean>(false);
+  readonly exportando = signal<boolean>(false);
 
   // Filtros
   searchTerm = '';
@@ -50,6 +54,21 @@ export class UsersComponent implements OnInit {
   ngOnInit(): void {
     this.loadUsers();
     this.loadRolesFiltro();
+  }
+
+  exportar(formato: FormatoReporte): void {
+    this.exportando.set(true);
+    this.adminUserService.exportar(formato).subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarRespuesta(respuesta, `usuarios.${formato.toLowerCase()}`);
+      },
+      error: async (err) => {
+        this.exportando.set(false);
+        const mensaje = await mensajeErrorBlob(err, 'No se pudo exportar el listado de usuarios');
+        this.toastService.error(mensaje);
+      }
+    });
   }
 
   private loadRolesFiltro(): void {

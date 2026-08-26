@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
@@ -11,6 +11,8 @@ import {
   PeticionAvanzarEtapa,
   PeticionActualizarTerminosPedido
 } from '../models/pedido.model';
+import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
+import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
 
 @Injectable({ providedIn: 'root' })
 export class PedidoService {
@@ -33,6 +35,22 @@ export class PedidoService {
 
   listarMisComisiones(): Observable<RespuestaPedidoResumido[]> {
     return this.http.get<RespuestaPedidoResumido[]>(`${this.API}/mis-comisiones`);
+  }
+
+  /**
+   * Exportación "propia": sin permiso aparte, hereda el guard del propio
+   * listado (ver PedidoControlador.exportarMisPedidos).
+   */
+  exportarMisPedidos(formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.API}/mis-pedidos/exportar`, {
+      ...sinErrorGlobal(), params: { formato }, responseType: 'blob', observe: 'response'
+    });
+  }
+
+  exportarMisComisiones(formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.API}/mis-comisiones/exportar`, {
+      ...sinErrorGlobal(), params: { formato }, responseType: 'blob', observe: 'response'
+    });
   }
 
   avanzarEtapa(id: number, peticion: PeticionAvanzarEtapa): Observable<RespuestaPedido> {

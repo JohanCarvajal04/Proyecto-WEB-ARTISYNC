@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { UserResponse, PaisResponse } from '../../../shared/models/user.model';
@@ -8,6 +8,8 @@ import {
   AssignRolesRequest, ChangeEstadoRequest
 } from '../models/admin.model';
 import { PagedResponse, MessageResponse } from '../../../shared/models/common.model';
+import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
+import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
 
 @Injectable({
   providedIn: 'root'
@@ -56,6 +58,12 @@ export class AdminUserService {
    */
   revokeSessions(id: number): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/${id}/sesiones`);
+  }
+
+  exportar(formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.apiUrl}/exportar`, {
+      ...sinErrorGlobal(), params: { formato }, responseType: 'blob', observe: 'response'
+    });
   }
 
   getPaises(): Observable<PaisResponse[]> {

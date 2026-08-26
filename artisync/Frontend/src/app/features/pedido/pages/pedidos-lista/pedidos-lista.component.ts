@@ -2,11 +2,14 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PedidoService } from '../../services/pedido.service';
 import { RespuestaPedidoResumido } from '../../models/pedido.model';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 @Component({
   selector: 'app-pedidos-lista',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, BotonExportarComponent],
   templateUrl: './pedidos-lista.component.html'
 })
 export class PedidosListaComponent implements OnInit {
@@ -14,6 +17,7 @@ export class PedidosListaComponent implements OnInit {
   loading = true;
   error = '';
   modo: 'cliente' | 'creador' = 'cliente';
+  exportando = false;
 
   constructor(
     private pedidoService: PedidoService,
@@ -58,6 +62,26 @@ export class PedidosListaComponent implements OnInit {
     return this.modo === 'creador'
       ? 'Pedidos asignados a ti como creador'
       : 'Servicios que has solicitado';
+  }
+
+  exportar(formato: FormatoReporte): void {
+    this.exportando = true;
+    const obs$ = this.modo === 'creador'
+      ? this.pedidoService.exportarMisComisiones(formato)
+      : this.pedidoService.exportarMisPedidos(formato);
+
+    obs$.subscribe({
+      next: (respuesta) => {
+        this.exportando = false;
+        this.cdr.markForCheck();
+        descargarRespuesta(respuesta, `${this.modo === 'creador' ? 'comisiones' : 'pedidos'}.${formato.toLowerCase()}`);
+      },
+      error: async (err) => {
+        this.exportando = false;
+        this.error = await mensajeErrorBlob(err, 'No se pudo exportar el listado');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   getBadgeClass(etapa: string): string {

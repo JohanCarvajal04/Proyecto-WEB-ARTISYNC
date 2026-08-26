@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Pagina, normalizarPagina } from '../../../shared/models/pagina.model';
 import { EventoAuditoria, EventoAuditoriaResumen, FiltroAuditoria } from '../models/auditoria.model';
 import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
+import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
 
 /**
  * Bitácora inmutable de eventos del sistema (REQ-NF-013). Solo lectura: no
@@ -32,14 +33,19 @@ export class AuditoriaService {
   }
 
   /**
-   * Un 422 (tope de 50 000 filas superado) llega con cuerpo Blob sin
-   * parsear; el errorInterceptor no lo sabe leer y mostraría el mensaje
-   * genérico. Se marca con sinErrorGlobal() y el componente decodifica el
-   * blob de error él mismo.
+   * Un 422 (tope de filas del formato elegido superado) llega con cuerpo
+   * Blob sin parsear; el errorInterceptor no lo sabe leer y mostraría el
+   * mensaje genérico. Se marca con sinErrorGlobal() y el componente
+   * decodifica el blob de error él mismo (ver mensajeErrorBlob).
+   *
+   * `observe: 'response'` para poder leer el nombre de archivo real del
+   * header Content-Disposition en descargarRespuesta().
    */
-  exportarCsv(filtro: FiltroAuditoria): Observable<Blob> {
-    const params = this.aParams(filtro);
-    return this.http.get(`${this.API}/csv`, { ...sinErrorGlobal(), params, responseType: 'blob' });
+  exportar(filtro: FiltroAuditoria, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+    const params = this.aParams(filtro).set('formato', formato);
+    return this.http.get(`${this.API}/exportar`, {
+      ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
+    });
   }
 
   private aParams(filtro: FiltroAuditoria): HttpParams {

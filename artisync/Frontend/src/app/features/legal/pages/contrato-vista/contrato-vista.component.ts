@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ContratoService } from '../../services/contrato.service';
 import { RespuestaContrato, RespuestaEstadoFirma } from '../../models/legal.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { descargarBlob } from '../../../../shared/utils/descarga-archivo';
 
 @Component({
   selector: 'app-contrato-vista',
@@ -127,14 +128,7 @@ export class ContratoVistaComponent implements OnInit {
   descargarPdf(): void {
     if (!this.idContrato) return;
     this.contratoService.descargarPdf(this.idContrato).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `contrato_${this.idContrato}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
+      next: (blob) => descargarBlob(blob, `contrato_${this.idContrato}.pdf`),
       error: () => {
         this.error = 'Error al descargar el PDF';
         this.cdr.markForCheck();

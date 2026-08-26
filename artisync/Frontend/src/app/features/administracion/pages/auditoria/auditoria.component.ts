@@ -7,12 +7,14 @@ import {
 } from '../../models/auditoria.model';
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
 import { ToastService } from '../../../../core/services/toast.service';
-import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 @Component({
   selector: 'app-auditoria',
   standalone: true,
-  imports: [FormsModule, HasPermissionDirective],
+  imports: [FormsModule, BotonExportarComponent],
   templateUrl: './auditoria.component.html'
 })
 export class AuditoriaComponent implements OnInit {
@@ -93,28 +95,19 @@ export class AuditoriaComponent implements OnInit {
     this.detalle.set(null);
   }
 
-  exportar(): void {
+  exportar(formato: FormatoReporte): void {
     this.exportando.set(true);
-    this.auditoriaService.exportarCsv(this.filtro()).subscribe({
-      next: (blob) => this.descargar(blob),
+    this.auditoriaService.exportar(this.filtro(), formato).subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarRespuesta(respuesta, `auditoria_${new Date().toISOString().slice(0, 10)}.${formato.toLowerCase()}`);
+      },
       error: async (err) => {
         this.exportando.set(false);
-        const detalle = err?.error instanceof Blob
-          ? JSON.parse(await err.error.text())
-          : err?.error;
-        this.toastService.error(detalle?.detail || 'No se pudo exportar la bitácora');
+        const mensaje = await mensajeErrorBlob(err, 'No se pudo exportar la bitácora');
+        this.toastService.error(mensaje);
       }
     });
-  }
-
-  private descargar(blob: Blob): void {
-    this.exportando.set(false);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   formatFecha(fecha: string | null): string {

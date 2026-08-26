@@ -70,12 +70,13 @@ describe('AuditoriaService', () => {
     req.flush(['PAIS_CREAR', 'USUARIO_CREAR']);
   });
 
-  it('exportarCsv() pide un blob y no un JSON', () => {
-    service.exportarCsv({ modulo: 'FINANZAS' }).subscribe();
+  it('exportar() pide un blob al endpoint /exportar con el formato elegido', () => {
+    service.exportar({ modulo: 'FINANZAS' }, 'XLSX').subscribe();
 
-    const req = httpMock.expectOne(r => r.url === `${API}/csv`);
+    const req = httpMock.expectOne(r => r.url === `${API}/exportar`);
     expect(req.request.responseType).toBe('blob');
     expect(req.request.params.get('modulo')).toBe('FINANZAS');
+    expect(req.request.params.get('formato')).toBe('XLSX');
 
     req.flush(new Blob(['x']));
   });

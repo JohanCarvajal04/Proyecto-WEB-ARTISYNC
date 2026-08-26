@@ -8,14 +8,8 @@
       </p>
     </div>
 
-    <button type="button" (click)="exportar()" [disabled]="exportando()"
-      *appHasPermission="'AUDITORIA_EXPORTAR'"
-      class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-90 disabled:opacity-60 transition-opacity inline-flex items-center gap-2">
-      @if (exportando()) {
-        <span class="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></span>
-      }
-      Exportar CSV
-    </button>
+    <app-boton-exportar permiso="AUDITORIA_EXPORTAR" [cargando]="exportando()"
+      (exportar)="exportar($event)" />
   </div>
 
   <!-- Filtros -->

@@ -7,6 +7,7 @@ import { AuthService } from '../../../seguridad/services/auth.service';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedido } from '../../../pedido/models/pedido.model';
 import { ACEPTA_ENTREGABLE, formatSize, validarEntregable } from '../../utils/archivo-entregable';
+import { descargarBlob } from '../../../../shared/utils/descarga-archivo';
 
 type TipoPrevisualizacion = 'imagen' | 'video' | 'otro';
 
@@ -200,7 +201,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
 
   descargarLimpia(): void {
     this.entregableService.descargarVersionLimpia(this.idPedido).subscribe({
-      next: (blob) => this.descargar(blob, `entregable_${this.idPedido}_limpio`),
+      next: (blob) => descargarBlob(blob, `entregable_${this.idPedido}_limpio`),
       error: (err) => {
         this.error = err.error?.message || 'El entregable no está disponible hasta que el pago sea liberado';
         this.cdr.markForCheck();
@@ -210,21 +211,12 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
 
   descargarMarcaAgua(): void {
     this.entregableService.descargarVersionMarcaAgua(this.idPedido).subscribe({
-      next: (blob) => this.descargar(blob, `vista_previa_pedido_${this.idPedido}`),
+      next: (blob) => descargarBlob(blob, `vista_previa_pedido_${this.idPedido}`),
       error: (err) => {
         this.error = err.error?.message || 'No se pudo descargar la previsualización';
         this.cdr.markForCheck();
       }
     });
-  }
-
-  private descargar(blob: Blob, nombre: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nombre;
-    a.click();
-    window.URL.revokeObjectURL(url);
   }
 
   // Por identidad, no por rol global — mismo motivo que en pedido-detalle:
