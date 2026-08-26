@@ -19,12 +19,4 @@ public class TwoFactorRequest {
     // fuerza bruta contra este endpoint sin haber pasado por login().
     @NotBlank(message = "El código 2FA es obligatorio")
     private String codigo;
-
-    public String getCodigo() {
-        return codigo;
-    }
-
-    public void setCodigo(String codigo) {
-        this.codigo = codigo;
-    }
 }

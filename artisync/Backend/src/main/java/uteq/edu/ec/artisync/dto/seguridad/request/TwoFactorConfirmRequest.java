@@ -14,12 +14,4 @@ public class TwoFactorConfirmRequest {
 
     @NotBlank(message = "El código TOTP es obligatorio")
     private String codigo;
-
-    public String getCodigo() {
-        return codigo;
-    }
-
-    public void setCodigo(String codigo) {
-        this.codigo = codigo;
-    }
 }

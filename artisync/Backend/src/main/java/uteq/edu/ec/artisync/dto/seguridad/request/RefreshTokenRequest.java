@@ -15,12 +15,4 @@ public class RefreshTokenRequest {
 
     @Schema(description = "Refresh Token emitido durante el inicio de sesión", example = "eyJhbGciOiJIUzI1NiIsIn...")
     private String refreshToken;
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
 }
