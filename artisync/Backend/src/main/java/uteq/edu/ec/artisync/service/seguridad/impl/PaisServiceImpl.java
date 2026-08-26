@@ -53,7 +53,7 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional
-    @Auditable(accion = "PAIS_CREAR", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "País creado desde el panel de administración", modulo = ModuloAuditoria.SISTEMA,
             entidad = "pais", idEntidad = "#resultado.idPais",
             detalle = "{nombrePais: #request.nombrePais}")
     // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega

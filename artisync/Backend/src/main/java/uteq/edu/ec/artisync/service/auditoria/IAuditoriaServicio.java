@@ -5,6 +5,8 @@ import uteq.edu.ec.artisync.audit.DatosEventoAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.List;
@@ -18,8 +20,8 @@ public interface IAuditoriaServicio {
 
     RespuestaEventoAuditoria obtenerPorId(Long idEvento);
 
-    /** Lanza ExcepcionReglaNegocio si el filtro devuelve más de 50 000 filas. */
-    byte[] exportarCsv(FiltroAuditoria filtro);
+    /** Lanza ExcepcionReglaNegocio si el filtro devuelve más filas que el tope del formato pedido. */
+    DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante);
 
     List<String> listarAccionesDisponibles();
 }

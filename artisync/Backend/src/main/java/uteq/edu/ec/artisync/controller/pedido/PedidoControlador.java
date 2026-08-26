@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
@@ -17,6 +18,9 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.util.RespuestaDocumento;
 
 import java.util.List;
 
@@ -56,6 +60,33 @@ public class PedidoControlador {
     public ResponseEntity<List<RespuestaPedidoResumido>> listarMisComisiones(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(pedidoServicio.listarMisComisiones(userDetails.getIdUsuario()));
+    }
+
+    /**
+     * Exportación "propia": mismo @PreAuthorize que el listado, sin permiso
+     * de exportación aparte — a diferencia de auditoría/finanzas/contratos,
+     * que son reportes administrativos y sí lo llevan.
+     */
+    @GetMapping("/mis-pedidos/exportar")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')")
+    public ResponseEntity<byte[]> exportarMisPedidos(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam FormatoReporte formato,
+            Authentication authentication) {
+        DocumentoGenerado documento = pedidoServicio.exportarMisPedidos(
+                userDetails.getIdUsuario(), formato, authentication.getName());
+        return RespuestaDocumento.de(documento);
+    }
+
+    @GetMapping("/mis-comisiones/exportar")
+    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    public ResponseEntity<byte[]> exportarMisComisiones(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam FormatoReporte formato,
+            Authentication authentication) {
+        DocumentoGenerado documento = pedidoServicio.exportarMisComisiones(
+                userDetails.getIdUsuario(), formato, authentication.getName());
+        return RespuestaDocumento.de(documento);
     }
 
     @PutMapping("/{id}/avanzar")

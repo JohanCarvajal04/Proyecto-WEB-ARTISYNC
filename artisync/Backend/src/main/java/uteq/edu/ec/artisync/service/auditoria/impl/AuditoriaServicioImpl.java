@@ -21,14 +21,18 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.auditoria.EventoAuditoriaRepository;
 import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
 import uteq.edu.ec.artisync.specification.auditoria.EventoAuditoriaSpecification;
-import uteq.edu.ec.artisync.util.CsvUtil;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
-import java.nio.charset.StandardCharsets;
-import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -40,9 +44,8 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      *  en un sort sin índice. Ver los índices de V15__modulo_auditoria.sql. */
     private static final Set<String> CAMPOS_ORDENABLES = Set.of("fechaEvento", "accionAuditoria", "correoActor");
 
-    private static final int TOPE_FILAS_CSV = 50_000;
-
     private final EventoAuditoriaRepository eventoAuditoriaRepository;
+    private final IServicioExportacion servicioExportacion;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -88,38 +91,66 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
     @Transactional(readOnly = true)
     // Auditar al auditor: exportar la propia bitácora es la operación más
     // sensible del módulo (extrae datos personales del sistema en un
-    // archivo), así que queda registrada igual que cualquier otra.
-    @Auditable(accion = "AUDITORIA_EXPORTAR_CSV", modulo = ModuloAuditoria.SEGURIDAD)
-    public byte[] exportarCsv(FiltroAuditoria filtro) {
-        Pageable primeraPaginaConTope = PageRequest.of(0, TOPE_FILAS_CSV, Sort.by(Sort.Direction.DESC, "fechaEvento"));
+    // archivo), así que queda registrada igual que cualquier otra, con el
+    // formato pedido en el detalle.
+    @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, detalle = "{formato: #formato}")
+    public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante) {
+        Pageable primeraPaginaConTope =
+                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaEvento"));
         Page<EventoAuditoria> pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), primeraPaginaConTope);
 
-        if (pagina.getTotalElements() > TOPE_FILAS_CSV) {
+        if (pagina.getTotalElements() > formato.topeFilas()) {
             throw new ExcepcionReglaNegocio(
                     "El filtro actual devuelve " + pagina.getTotalElements() + " eventos, más de los "
-                            + TOPE_FILAS_CSV + " que admite una exportación. Acote el rango de fechas.");
+                            + formato.topeFilas() + " que admite una exportación en " + formato
+                            + ". Acote el rango de fechas.");
         }
 
-        DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        StringBuilder csv = new StringBuilder(CsvUtil.BOM_UTF8);
-        csv.append("Fecha,Actor,Modulo,Accion,Resultado,Entidad,Id_Entidad,IP,Mensaje_Error\n");
+        ModeloReporte<EventoAuditoria> modelo = ModeloReporte.<EventoAuditoria>builder()
+                .titulo("Auditoría")
+                .subtitulo("Bitácora de eventos del sistema")
+                .filtrosAplicados(filtrosLegibles(filtro))
+                .columnas(List.of(
+                        ColumnaReporte.fechaHora("Fecha", EventoAuditoria::getFechaEvento),
+                        ColumnaReporte.texto("Actor", EventoAuditoria::getCorreoActor),
+                        ColumnaReporte.texto("Módulo", EventoAuditoria::getModuloAuditoria),
+                        ColumnaReporte.texto("Acción", EventoAuditoria::getAccionAuditoria),
+                        ColumnaReporte.texto("Resultado", EventoAuditoria::getResultadoEvento),
+                        ColumnaReporte.texto("Entidad", EventoAuditoria::getEntidadAfectada),
+                        ColumnaReporte.entero("Id. entidad", EventoAuditoria::getIdEntidadAfectada),
+                        ColumnaReporte.texto("IP", EventoAuditoria::getDireccionIp),
+                        ColumnaReporte.texto("Mensaje de error", EventoAuditoria::getMensajeError)))
+                .filas(pagina.getContent())
+                .generadoPor(correoSolicitante)
+                .build();
 
-        for (EventoAuditoria e : pagina.getContent()) {
-            csv.append(String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-                    e.getFechaEvento() != null ? e.getFechaEvento().format(formatoFecha) : "",
-                    CsvUtil.escapeCsv(e.getCorreoActor()),
-                    CsvUtil.escapeCsv(e.getModuloAuditoria()),
-                    CsvUtil.escapeCsv(e.getAccionAuditoria()),
-                    CsvUtil.escapeCsv(e.getResultadoEvento()),
-                    CsvUtil.escapeCsv(e.getEntidadAfectada()),
-                    e.getIdEntidadAfectada() != null ? e.getIdEntidadAfectada().toString() : "",
-                    CsvUtil.escapeCsv(e.getDireccionIp()),
-                    CsvUtil.escapeCsv(e.getMensajeError())
-            ));
+        return servicioExportacion.exportar(modelo, formato);
+    }
+
+    private Map<String, String> filtrosLegibles(FiltroAuditoria filtro) {
+        Map<String, String> filtros = new LinkedHashMap<>();
+        if (filtro.getCorreoActor() != null) {
+            filtros.put("Actor", filtro.getCorreoActor());
         }
-
-        log.info("Exportación CSV de auditoría: {} eventos", pagina.getContent().size());
-        return csv.toString().getBytes(StandardCharsets.UTF_8);
+        if (filtro.getAccion() != null) {
+            filtros.put("Acción", filtro.getAccion());
+        }
+        if (filtro.getModulo() != null) {
+            filtros.put("Módulo", filtro.getModulo());
+        }
+        if (filtro.getResultado() != null) {
+            filtros.put("Resultado", filtro.getResultado());
+        }
+        if (filtro.getEntidad() != null) {
+            filtros.put("Entidad", filtro.getEntidad());
+        }
+        if (filtro.getDesde() != null) {
+            filtros.put("Desde", filtro.getDesde().toString());
+        }
+        if (filtro.getHasta() != null) {
+            filtros.put("Hasta", filtro.getHasta().toString());
+        }
+        return filtros;
     }
 
     @Override

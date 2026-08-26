@@ -5,7 +5,9 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +21,7 @@ import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.*;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
 import uteq.edu.ec.artisync.repository.catalogo.*;
@@ -28,6 +31,11 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.security.JwtService;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
@@ -52,6 +60,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final SessionRevocationService sessionRevocationService;
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final EntityManager entityManager;
+    private final IServicioExportacion servicioExportacion;
 
     @Override
     @Transactional(readOnly = true)
@@ -249,6 +258,41 @@ public class AdminUserServiceImpl implements AdminUserService {
         // lanza P0002 si el usuario no existe, y SessionRevocationService
         // ya lo traduce a 404 (revision de codigo, hallazgo de eficiencia).
         sessionRevocationService.cambiarEstadoCuenta(id, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
+            detalle = "{formato: #formato}")
+    public DocumentoGenerado exportar(FormatoReporte formato, String correoSolicitante) {
+        long total = usuarioRepository.count();
+        if (total > formato.topeFilas()) {
+            throw new ExcepcionReglaNegocio(
+                    "El sistema tiene " + total + " usuarios, más de los " + formato.topeFilas()
+                            + " que admite una exportación en " + formato + ".");
+        }
+
+        Page<Usuario> pagina = usuarioRepository.findAll(
+                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, "idUsuario")));
+        List<UserResponse> filas = usuarioMapper.toUserResponseList(pagina.getContent());
+
+        ModeloReporte<UserResponse> modelo = ModeloReporte.<UserResponse>builder()
+                .titulo("Usuarios")
+                .subtitulo("Listado administrativo de usuarios")
+                .columnas(List.of(
+                        ColumnaReporte.entero("Id", UserResponse::getIdUsuario),
+                        ColumnaReporte.texto("Nombres", UserResponse::getNombres),
+                        ColumnaReporte.texto("Apellidos", UserResponse::getApellidos),
+                        ColumnaReporte.texto("Correo", UserResponse::getCorreo),
+                        ColumnaReporte.texto("País", UserResponse::getNombrePais),
+                        ColumnaReporte.fechaHora("Registrado", UserResponse::getFechaRegistro),
+                        ColumnaReporte.booleano("Activo", UserResponse::getEstadoCuenta),
+                        ColumnaReporte.texto("Roles", u -> u.getRoles() == null ? "" : String.join(", ", u.getRoles()))))
+                .filas(filas)
+                .generadoPor(correoSolicitante)
+                .build();
+
+        return servicioExportacion.exportar(modelo, formato);
     }
 
     @Override

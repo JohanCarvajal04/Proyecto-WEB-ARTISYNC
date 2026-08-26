@@ -18,13 +18,17 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
 import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * AUDITORIA_VER y AUDITORIA_EXPORTAR son dos permisos deliberadamente
@@ -46,7 +50,14 @@ class AuditoriaAutorizacionTest {
 
         @Bean
         IAuditoriaServicio auditoriaServicio() {
-            return mock(IAuditoriaServicio.class);
+            IAuditoriaServicio servicio = mock(IAuditoriaServicio.class);
+            // Un mock de exportar() sin stub devuelve null y RespuestaDocumento.de(null)
+            // reventaría con NPE en documento.contentType() — se stubea un documento no
+            // nulo para que los casos "autorizado" del test puedan afirmar
+            // assertDoesNotThrow sin que el propio mock rompa la aserción.
+            when(servicio.exportar(any(), any(), any()))
+                    .thenReturn(new DocumentoGenerado(new byte[0], "text/csv", "auditoria.csv"));
+            return servicio;
         }
 
         @Bean
@@ -81,12 +92,13 @@ class AuditoriaAutorizacionTest {
     }
 
     @Test
-    @DisplayName("SOPORTE con AUDITORIA_VER puede listar, pero exportarCsv le devuelve 403 porque no tiene AUDITORIA_EXPORTAR")
+    @DisplayName("SOPORTE con AUDITORIA_VER puede listar, pero exportar le devuelve 403 porque no tiene AUDITORIA_EXPORTAR")
     void soporte_puedeListarPeroNoExportar() {
         autenticar("ROLE_SOPORTE", "AUDITORIA_VER");
 
         assertDoesNotThrow(() -> controlador.listar(new FiltroAuditoria(), PageRequest.of(0, 20)));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportarCsv(new FiltroAuditoria()));
+        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+                new FiltroAuditoria(), FormatoReporte.CSV, autenticacionActual()));
     }
 
     @Test
@@ -97,7 +109,7 @@ class AuditoriaAutorizacionTest {
         assertDoesNotThrow(() -> controlador.listar(new FiltroAuditoria(), PageRequest.of(0, 20)));
         assertDoesNotThrow(() -> controlador.obtenerPorId(1L));
         assertDoesNotThrow(() -> controlador.listarAcciones());
-        assertDoesNotThrow(() -> controlador.exportarCsv(new FiltroAuditoria()));
+        assertDoesNotThrow(() -> controlador.exportar(new FiltroAuditoria(), FormatoReporte.CSV, autenticacionActual()));
     }
 
     @Test
@@ -108,6 +120,11 @@ class AuditoriaAutorizacionTest {
         assertThrows(AccessDeniedException.class, () -> controlador.listar(new FiltroAuditoria(), PageRequest.of(0, 20)));
         assertThrows(AccessDeniedException.class, () -> controlador.obtenerPorId(1L));
         assertThrows(AccessDeniedException.class, () -> controlador.listarAcciones());
-        assertThrows(AccessDeniedException.class, () -> controlador.exportarCsv(new FiltroAuditoria()));
+        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+                new FiltroAuditoria(), FormatoReporte.CSV, autenticacionActual()));
+    }
+
+    private org.springframework.security.core.Authentication autenticacionActual() {
+        return SecurityContextHolder.getContext().getAuthentication();
     }
 }

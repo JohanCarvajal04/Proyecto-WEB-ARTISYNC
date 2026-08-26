@@ -31,8 +31,19 @@ public class PdfGeneracionServicioImpl implements IPdfGeneracionServicio {
             // TODA carga externa (predicado constante `false`) no rompe nada legitimo;
             // si algun dia una plantilla necesita imagenes, sera una decision explicita,
             // no un descuido.
+            //
+            // Unica excepcion, anadida para el logo del motor de reportes
+            // (service/shared/reporte): se permite el esquema `data:` porque un
+            // data: URI no hace peticion de red ni lee un archivo — el navegador/
+            // renderizador decodifica el Base64 inline, no resuelve nada externo.
+            // El logo se lee del classpath en Java (ClassPathResource) y se inyecta
+            // ya codificado; NO se permite `classpath:` aqui, porque los reportes
+            // tienen celdas con datos de usuario y un `classpath:` abierto dejaria
+            // leer `classpath:/application.properties` (credenciales de BD) desde
+            // el HTML de una celda. `data:` no tiene ese riesgo: no hay URI que
+            // resolver, solo bytes ya presentes en el propio HTML.
             builder.useExternalResourceAccessControl(
-                    (uri, type) -> false,
+                    (uri, type) -> uri != null && uri.startsWith("data:"),
                     ExternalResourceControlPriority.RUN_BEFORE_RESOLVING_URI);
             builder.withHtmlContent(html, "/");
             builder.toStream(os);

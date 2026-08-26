@@ -11,12 +11,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.RespuestaDocumento;
 
 @RestController
 @RequestMapping("/api/v1/admin/usuarios")
@@ -39,6 +43,14 @@ public class AdminUserController {
         Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         return ResponseEntity.ok(adminUserService.getAllUsers(pageable));
+    }
+
+    @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF")
+    @GetMapping("/exportar")
+    @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportar(@RequestParam FormatoReporte formato, Authentication authentication) {
+        DocumentoGenerado documento = adminUserService.exportar(formato, authentication.getName());
+        return RespuestaDocumento.de(documento);
     }
 
     @Operation(summary = "Obtener usuario por ID")

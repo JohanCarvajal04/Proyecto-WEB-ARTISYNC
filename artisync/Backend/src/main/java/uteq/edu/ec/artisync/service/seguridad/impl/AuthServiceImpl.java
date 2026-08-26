@@ -87,7 +87,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    @Auditable(accion = "USUARIO_AUTOREGISTRO", modulo = ModuloAuditoria.SEGURIDAD,
+    @Auditable(accion = "Usuario registrado desde el panel de crear cuenta", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#resultado.idUsuario",
             correoActor = "#request.correo",
             detalle = "{rol: #request.rol}")

@@ -5,18 +5,19 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
 import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.RespuestaDocumento;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -59,16 +60,13 @@ public class AuditoriaControlador {
         return ResponseEntity.ok(auditoriaServicio.listarAccionesDisponibles());
     }
 
-    @Operation(summary = "Exportar a CSV los eventos que coinciden con el filtro (tope 50 000 filas)")
-    @GetMapping("/csv")
+    @Operation(summary = "Exportar los eventos que coinciden con el filtro en CSV, XLSX o PDF "
+            + "(cada formato tiene su propio tope de filas)")
+    @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportarCsv(FiltroAuditoria filtro) {
-        byte[] csv = auditoriaServicio.exportarCsv(filtro);
-        String nombreArchivo = "auditoria_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".csv";
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivo + "\"")
-                .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
-                .body(csv);
+    public ResponseEntity<byte[]> exportar(FiltroAuditoria filtro, @RequestParam FormatoReporte formato,
+                                            Authentication authentication) {
+        DocumentoGenerado documento = auditoriaServicio.exportar(filtro, formato, authentication.getName());
+        return RespuestaDocumento.de(documento);
     }
 }

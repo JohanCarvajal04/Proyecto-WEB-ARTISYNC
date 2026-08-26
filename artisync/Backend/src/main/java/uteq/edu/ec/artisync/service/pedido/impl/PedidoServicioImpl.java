@@ -28,8 +28,14 @@ import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,6 +53,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private final ContratoRepository contratoRepository;
     private final NotificacionService notificacionService;
     private final ChatService chatService;
+    private final IServicioExportacion servicioExportacion;
 
     @Override
     @Transactional
@@ -244,6 +251,48 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .stream()
                 .map(this::mapToResumido)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante) {
+        return exportarResumen(listarMisPedidos(idCliente), "Mis pedidos", "Pedidos como cliente",
+                formato, correoSolicitante);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportarMisComisiones(Long idCreador, FormatoReporte formato, String correoSolicitante) {
+        return exportarResumen(listarMisComisiones(idCreador), "Mis comisiones", "Pedidos como creador",
+                formato, correoSolicitante);
+    }
+
+    private DocumentoGenerado exportarResumen(List<RespuestaPedidoResumido> filas, String titulo, String subtitulo,
+                                               FormatoReporte formato, String correoSolicitante) {
+        if (filas.size() > formato.topeFilas()) {
+            throw new ExcepcionReglaNegocio(
+                    "El listado tiene " + filas.size() + " pedidos, más de los " + formato.topeFilas()
+                            + " que admite una exportación en " + formato + ".");
+        }
+
+        ModeloReporte<RespuestaPedidoResumido> modelo = ModeloReporte.<RespuestaPedidoResumido>builder()
+                .titulo(titulo)
+                .subtitulo(subtitulo)
+                .filtrosAplicados(Map.of())
+                .columnas(List.of(
+                        ColumnaReporte.entero("Id. pedido", RespuestaPedidoResumido::getIdPedido),
+                        ColumnaReporte.texto("Servicio", RespuestaPedidoResumido::getTituloServicio),
+                        ColumnaReporte.texto("Etapa", RespuestaPedidoResumido::getEtapaActual),
+                        ColumnaReporte.moneda("Precio pactado", RespuestaPedidoResumido::getPrecioPactado),
+                        ColumnaReporte.fechaHora("Inicio", RespuestaPedidoResumido::getFechaInicio),
+                        ColumnaReporte.fechaHora("Entrega estimada", RespuestaPedidoResumido::getFechaEntregaEstimada),
+                        ColumnaReporte.texto("Creador", RespuestaPedidoResumido::getNombreCreador),
+                        ColumnaReporte.texto("Cliente", RespuestaPedidoResumido::getNombreCliente)))
+                .filas(filas)
+                .generadoPor(correoSolicitante)
+                .build();
+
+        return servicioExportacion.exportar(modelo, formato);
     }
 
     @Override

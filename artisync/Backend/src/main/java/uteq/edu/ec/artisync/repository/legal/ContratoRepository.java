@@ -7,7 +7,7 @@ import uteq.edu.ec.artisync.entity.legal.Contrato;
 import java.util.Optional;
 
 @Repository
-public interface ContratoRepository extends JpaRepository<Contrato, Long> {
+public interface ContratoRepository extends JpaRepository<Contrato, Long>, ContratoRepositoryCustom {
 
     Optional<Contrato> findByPedidoIdPedido(Long idPedido);
 }

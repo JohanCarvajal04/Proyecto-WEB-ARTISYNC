@@ -6,6 +6,8 @@ import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 public interface AdminUserService {
@@ -17,5 +19,6 @@ public interface AdminUserService {
     UserResponse assignRoles(Long id, AssignRolesRequest request);
     RespuestaMensaje revokeUserSessions(Long id);
     void deleteUser(Long id);
+    DocumentoGenerado exportar(FormatoReporte formato, String correoSolicitante);
 }
 
