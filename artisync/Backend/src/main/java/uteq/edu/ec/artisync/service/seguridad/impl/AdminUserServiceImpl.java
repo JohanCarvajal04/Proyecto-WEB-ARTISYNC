@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ContextoAuditoria;
 import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -36,10 +38,12 @@ import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
 import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.specification.seguridad.UsuarioSpecification;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -70,8 +74,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     // consultas por fila) elemento a elemento. El Pageable/Sort de la peticion
     // se conserva intacto -- se sigue resolviendo con findAll(pageable), no se
     // reemplaza por una rutina con orden fijo.
-    public PagedResponse<UserResponse> getAllUsers(Pageable pageable) {
-        Page<Usuario> usuariosPage = usuarioRepository.findAll(pageable);
+    public PagedResponse<UserResponse> getAllUsers(FiltroUsuario filtro, Pageable pageable) {
+        Specification<Usuario> spec = UsuarioSpecification.conFiltros(
+                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());
+        Page<Usuario> usuariosPage = usuarioRepository.findAll(spec, pageable);
         return PagedResponseBuilder.buildAndMapList(usuariosPage, usuarioMapper::toUserResponseList);
     }
 
@@ -264,21 +270,25 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional(readOnly = true)
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato}")
-    public DocumentoGenerado exportar(FormatoReporte formato, String correoSolicitante) {
-        long total = usuarioRepository.count();
+    public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante) {
+        Specification<Usuario> spec = UsuarioSpecification.conFiltros(
+                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());
+
+        long total = usuarioRepository.count(spec);
         if (total > formato.topeFilas()) {
             throw new ExcepcionReglaNegocio(
-                    "El sistema tiene " + total + " usuarios, más de los " + formato.topeFilas()
+                    "El listado filtrado tiene " + total + " usuarios, más de los " + formato.topeFilas()
                             + " que admite una exportación en " + formato + ".");
         }
 
         Page<Usuario> pagina = usuarioRepository.findAll(
-                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, "idUsuario")));
+                spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, "idUsuario")));
         List<UserResponse> filas = usuarioMapper.toUserResponseList(pagina.getContent());
 
         ModeloReporte<UserResponse> modelo = ModeloReporte.<UserResponse>builder()
                 .titulo("Usuarios")
                 .subtitulo("Listado administrativo de usuarios")
+                .filtrosAplicados(filtrosLegibles(filtro))
                 .columnas(List.of(
                         ColumnaReporte.entero("Id", UserResponse::getIdUsuario),
                         ColumnaReporte.texto("Nombres", UserResponse::getNombres),
@@ -293,6 +303,20 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .build();
 
         return servicioExportacion.exportar(modelo, formato);
+    }
+
+    private Map<String, String> filtrosLegibles(FiltroUsuario filtro) {
+        Map<String, String> filtros = new LinkedHashMap<>();
+        if (filtro.getBusqueda() != null && !filtro.getBusqueda().isBlank()) {
+            filtros.put("Búsqueda", filtro.getBusqueda());
+        }
+        if (filtro.getRol() != null && !filtro.getRol().isBlank()) {
+            filtros.put("Rol", filtro.getRol());
+        }
+        if (filtro.getEstadoCuenta() != null) {
+            filtros.put("Estado", filtro.getEstadoCuenta() ? "Activo" : "Suspendido");
+        }
+        return filtros;
     }
 
     @Override

@@ -49,7 +49,7 @@ public class SecurityConfig {
                     .maxAgeInSeconds(31536000)
                 )
                 .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;")
+                    .policyDirectives("default-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;")
                 )
                 .referrerPolicy(referrer -> referrer
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
@@ -67,7 +67,9 @@ public class SecurityConfig {
                                  "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/**",
                                  "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/v1/paises", "/api/v1/paises/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
-                .requestMatchers("/ws/**", "/actuator/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/metrics/**", "/actuator/info").hasRole("ADMIN")
                 .requestMatchers("/api/webhooks/paypal").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/flujos/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

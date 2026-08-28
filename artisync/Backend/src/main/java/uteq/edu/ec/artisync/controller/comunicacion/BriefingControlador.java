@@ -94,8 +94,10 @@ public class BriefingControlador {
     @Operation(summary = "Ver briefing enviado a un pedido")
     @GetMapping("/api/v1/pedidos/{idPedido}/briefing")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaBriefing> obtenerBriefing(@PathVariable Long idPedido) {
-        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido));
+    public ResponseEntity<RespuestaBriefing> obtenerBriefing(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido, userDetails.getIdUsuario()));
     }
 
     @Operation(summary = "Responder briefing (CLIENTE) — respuestas inmutables")

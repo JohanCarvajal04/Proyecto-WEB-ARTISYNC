@@ -76,7 +76,10 @@ export class ComisionesComponent implements OnInit {
 
   exportar(formato: FormatoReporte): void {
     this.exportando.set(true);
-    this.pedidoService.exportarMisComisiones(formato).subscribe({
+    // 1.4: exporta exactamente lo que ve el creador (comisionesFiltradas), no
+    // el total sin filtrar.
+    const idsPedido = this.comisionesFiltradas().map(c => c.idPedido);
+    this.pedidoService.exportarMisComisiones(formato, idsPedido).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
         descargarRespuesta(respuesta, `comisiones.${formato.toLowerCase()}`);

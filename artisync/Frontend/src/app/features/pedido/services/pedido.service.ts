@@ -47,9 +47,19 @@ export class PedidoService {
     });
   }
 
-  exportarMisComisiones(formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+  /**
+   * 1.4 (INFORME-REVISION-COMPLETA.md): `idsPedido` son los ids ya filtrados
+   * en pantalla (comisionesFiltradas()) — Angular serializa el array como
+   * claves repetidas (`idsPedido=1&idsPedido=2`), que Spring bindea a
+   * `List<Long>` de forma nativa. Sin ids (o vacío), exporta todo.
+   */
+  exportarMisComisiones(formato: FormatoReporte, idsPedido?: number[]): Observable<HttpResponse<Blob>> {
+    const params: Record<string, string | number[]> = { formato };
+    if (idsPedido && idsPedido.length) {
+      params['idsPedido'] = idsPedido;
+    }
     return this.http.get(`${this.API}/mis-comisiones/exportar`, {
-      ...sinErrorGlobal(), params: { formato }, responseType: 'blob', observe: 'response'
+      ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });
   }
 

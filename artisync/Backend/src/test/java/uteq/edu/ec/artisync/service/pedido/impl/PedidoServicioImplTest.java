@@ -42,6 +42,10 @@ import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -75,6 +79,7 @@ class PedidoServicioImplTest {
     @Mock private ContratoRepository contratoRepository;
     @Mock private NotificacionService notificacionService;
     @Mock private ChatService chatService;
+    @Mock private IServicioExportacion servicioExportacion;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -145,7 +150,6 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
         given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(any())).willReturn(List.of());
-        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
 
         RespuestaPedido respuesta = pedidoServicio.crearPedido(1L, peticion);
 
@@ -192,7 +196,6 @@ class PedidoServicioImplTest {
         given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
         given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
         PeticionActualizarTerminosPedido peticion =
                 PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
 
@@ -209,7 +212,6 @@ class PedidoServicioImplTest {
         given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
         given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
         var nuevaFecha = java.time.LocalDateTime.now().plusDays(10);
         PeticionActualizarTerminosPedido peticion =
                 PeticionActualizarTerminosPedido.builder().fechaEntregaEstimada(nuevaFecha).build();
@@ -242,7 +244,6 @@ class PedidoServicioImplTest {
     void obtenerPedidoPorId_clientePuedeVer() {
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
 
         assertThat(pedidoServicio.obtenerPedidoPorId(10L, 1L)).isNotNull();
     }
@@ -252,7 +253,6 @@ class PedidoServicioImplTest {
     void obtenerPedidoPorId_creadorPuedeVer() {
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
 
         assertThat(pedidoServicio.obtenerPedidoPorId(10L, 2L)).isNotNull();
     }
@@ -263,9 +263,34 @@ class PedidoServicioImplTest {
         autenticarComo("admin@test.com", "ROLE_ADMIN");
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
 
         assertThat(pedidoServicio.obtenerPedidoPorId(10L, 999L)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("1.2: obtenerPedidoPorId deriva etapaActual del último elemento del historial, sin consulta aparte")
+    void obtenerPedidoPorId_etapaActualDelHistorial() {
+        HistorialEstadoPedido h1 = HistorialEstadoPedido.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        EtapaFlujo etapaRevision = EtapaFlujo.builder().idEtapa(2L).nombreEtapa("Revisión").build();
+        HistorialEstadoPedido h2 = HistorialEstadoPedido.builder().idHistorialEstado(2L).pedido(pedido).etapa(etapaRevision).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of(h1, h2));
+
+        RespuestaPedido respuesta = pedidoServicio.obtenerPedidoPorId(10L, 1L);
+
+        assertThat(respuesta.getEtapaActual()).isEqualTo("Revisión");
+        verify(historialRepository, never()).findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any());
+    }
+
+    @Test
+    @DisplayName("1.2: obtenerPedidoPorId devuelve \"Sin estado\" cuando el pedido no tiene historial")
+    void obtenerPedidoPorId_sinHistorial_etapaActualSinEstado() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+
+        RespuestaPedido respuesta = pedidoServicio.obtenerPedidoPorId(10L, 1L);
+
+        assertThat(respuesta.getEtapaActual()).isEqualTo("Sin estado");
     }
 
     @Test
@@ -306,6 +331,59 @@ class PedidoServicioImplTest {
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
 
         assertThat(pedidoServicio.listarMisComisiones(2L)).hasSize(1);
+    }
+
+    // ---------- exportarMisComisiones (1.4) ----------
+
+    @Test
+    @DisplayName("1.4: exportarMisComisiones sin idsPedido exporta todas las comisiones del creador")
+    void exportarMisComisiones_sinIds_exportaTodas() {
+        Pedido pedidoOtro = Pedido.builder().idPedido(11L).usuarioCliente(cliente).servicio(servicio)
+                .flujo(flujo).precioPactado(new BigDecimal("30.00")).build();
+        given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido, pedidoOtro));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
+        given(servicioExportacion.exportar(any(), any()))
+                .willReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+
+        pedidoServicio.exportarMisComisiones(2L, null, FormatoReporte.CSV, "creador@test.dev");
+
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        assertThat(captor.getValue().getFilas()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("1.4: exportarMisComisiones con idsPedido exporta exactamente lo filtrado en pantalla")
+    void exportarMisComisiones_conIds_exportaSoloEsosPedidos() {
+        Pedido pedidoOtro = Pedido.builder().idPedido(11L).usuarioCliente(cliente).servicio(servicio)
+                .flujo(flujo).precioPactado(new BigDecimal("30.00")).build();
+        given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido, pedidoOtro));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
+        given(servicioExportacion.exportar(any(), any()))
+                .willReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+
+        pedidoServicio.exportarMisComisiones(2L, List.of(10L), FormatoReporte.CSV, "creador@test.dev");
+
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        List<RespuestaPedidoResumido> filas = captor.getValue().getFilas();
+        assertThat(filas).hasSize(1);
+        assertThat(filas.get(0).getIdPedido()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("1.4: un id ajeno en idsPedido no filtra dentro de las comisiones del creador (no es IDOR)")
+    void exportarMisComisiones_idAjeno_noAparece() {
+        given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
+        given(servicioExportacion.exportar(any(), any()))
+                .willReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+
+        pedidoServicio.exportarMisComisiones(2L, List.of(999L), FormatoReporte.CSV, "creador@test.dev");
+
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        assertThat(captor.getValue().getFilas()).isEmpty();
     }
 
     // ---------- avanzarEtapa ----------
@@ -384,10 +462,10 @@ class PedidoServicioImplTest {
     @DisplayName("obtenerHistorial devuelve el historial ordenado cuando el pedido existe")
     void obtenerHistorial_devuelveLista() {
         HistorialEstadoPedido h = HistorialEstadoPedido.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
-        given(pedidoRepository.existsById(10L)).willReturn(true);
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of(h));
 
-        List<RespuestaHistorialEstado> resultado = pedidoServicio.obtenerHistorial(10L);
+        List<RespuestaHistorialEstado> resultado = pedidoServicio.obtenerHistorial(10L, 1L);
 
         assertThat(resultado).hasSize(1);
     }
@@ -395,10 +473,29 @@ class PedidoServicioImplTest {
     @Test
     @DisplayName("obtenerHistorial lanza recurso no encontrado si el pedido no existe")
     void obtenerHistorial_pedidoInexistente() {
-        given(pedidoRepository.existsById(10L)).willReturn(false);
+        given(pedidoRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pedidoServicio.obtenerHistorial(10L))
+        assertThatThrownBy(() -> pedidoServicio.obtenerHistorial(10L, 1L))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerHistorial rechaza a un usuario ajeno sin rol admin")
+    void obtenerHistorial_rechazaAjeno() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+
+        assertThatThrownBy(() -> pedidoServicio.obtenerHistorial(10L, 999L))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("obtenerHistorial permite a un ADMIN autenticado consultar pedidos ajenos")
+    void obtenerHistorial_adminPuedeVer() {
+        autenticarComo("admin@test.com", "ROLE_ADMIN");
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+
+        assertThat(pedidoServicio.obtenerHistorial(10L, 999L)).isNotNull();
     }
 
     // ---------- obtenerSeguimiento ----------
@@ -414,7 +511,7 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config1, config2));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of(h));
 
-        RespuestaSeguimientoPedido resultado = pedidoServicio.obtenerSeguimiento(10L);
+        RespuestaSeguimientoPedido resultado = pedidoServicio.obtenerSeguimiento(10L, 1L);
 
         assertThat(resultado.getEtapaActual()).isEqualTo("Inicio");
         assertThat(resultado.getTotalEtapas()).isEqualTo(2);
@@ -428,7 +525,7 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of());
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
 
-        RespuestaSeguimientoPedido resultado = pedidoServicio.obtenerSeguimiento(10L);
+        RespuestaSeguimientoPedido resultado = pedidoServicio.obtenerSeguimiento(10L, 1L);
 
         assertThat(resultado.getEtapaActual()).isEqualTo("Sin estado");
         assertThat(resultado.getPorcentajeProgreso()).isEqualTo(0.0);
@@ -439,8 +536,28 @@ class PedidoServicioImplTest {
     void obtenerSeguimiento_pedidoInexistente() {
         given(pedidoRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pedidoServicio.obtenerSeguimiento(10L))
+        assertThatThrownBy(() -> pedidoServicio.obtenerSeguimiento(10L, 1L))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerSeguimiento rechaza a un usuario ajeno sin rol admin")
+    void obtenerSeguimiento_rechazaAjeno() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+
+        assertThatThrownBy(() -> pedidoServicio.obtenerSeguimiento(10L, 999L))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("obtenerSeguimiento permite a un ADMIN autenticado consultar pedidos ajenos")
+    void obtenerSeguimiento_adminPuedeVer() {
+        autenticarComo("admin@test.com", "ROLE_ADMIN");
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of());
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+
+        assertThat(pedidoServicio.obtenerSeguimiento(10L, 999L)).isNotNull();
     }
 
     private void autenticarComo(String correo, String... authorities) {

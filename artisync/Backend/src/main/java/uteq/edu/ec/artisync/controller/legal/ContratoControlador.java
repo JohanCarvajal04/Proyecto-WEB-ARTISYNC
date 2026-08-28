@@ -22,9 +22,11 @@ public class ContratoControlador {
 
     @PostMapping("/pedido/{idPedido}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaContrato> generarContrato(@PathVariable Long idPedido) {
+    public ResponseEntity<RespuestaContrato> generarContrato(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(contratoServicio.generarContrato(idPedido));
+                .body(contratoServicio.generarContrato(idPedido, userDetails.getIdUsuario()));
     }
 
     @PostMapping("/{id}/firmar")
@@ -37,26 +39,34 @@ public class ContratoControlador {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaContrato> obtenerContrato(@PathVariable Long id) {
-        return ResponseEntity.ok(contratoServicio.obtenerContrato(id));
+    public ResponseEntity<RespuestaContrato> obtenerContrato(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(contratoServicio.obtenerContrato(id, userDetails.getIdUsuario()));
     }
 
     @GetMapping("/pedido/{idPedido}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaContrato> obtenerContratoPorPedido(@PathVariable Long idPedido) {
-        return ResponseEntity.ok(contratoServicio.obtenerContratoPorPedido(idPedido));
+    public ResponseEntity<RespuestaContrato> obtenerContratoPorPedido(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(contratoServicio.obtenerContratoPorPedido(idPedido, userDetails.getIdUsuario()));
     }
 
     @GetMapping("/{id}/estado-firma")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaEstadoFirma> obtenerEstadoFirma(@PathVariable Long id) {
-        return ResponseEntity.ok(contratoServicio.obtenerEstadoFirma(id));
+    public ResponseEntity<RespuestaEstadoFirma> obtenerEstadoFirma(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(contratoServicio.obtenerEstadoFirma(id, userDetails.getIdUsuario()));
     }
 
     @GetMapping("/{id}/pdf")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
-        byte[] pdf = contratoServicio.generarPdf(id);
+    public ResponseEntity<byte[]> descargarPdf(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        byte[] pdf = contratoServicio.generarPdf(id, userDetails.getIdUsuario());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);

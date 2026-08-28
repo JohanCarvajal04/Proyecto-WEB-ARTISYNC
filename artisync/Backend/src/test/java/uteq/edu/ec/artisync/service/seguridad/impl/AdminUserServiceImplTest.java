@@ -13,9 +13,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.AdminUpdateUserRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.AssignRolesRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
@@ -104,10 +106,10 @@ class AdminUserServiceImplTest {
         PageRequest pageRequest = PageRequest.of(0, 10);
         Page<Usuario> page = new PageImpl<>(List.of(usuario));
 
-        when(usuarioRepository.findAll(pageRequest)).thenReturn(page);
+        when(usuarioRepository.findAll(any(Specification.class), eq(pageRequest))).thenReturn(page);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
 
-        PagedResponse<UserResponse> result = adminUserService.getAllUsers(pageRequest);
+        PagedResponse<UserResponse> result = adminUserService.getAllUsers(new FiltroUsuario(), pageRequest);
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());

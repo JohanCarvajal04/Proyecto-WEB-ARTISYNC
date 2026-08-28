@@ -63,6 +63,7 @@ devuelto y tablas afectadas— está en
 | `fn_crear_rol.sql` | Validaciones cruzadas (Fase 3 concurrencia) | lectura fantasma |
 | `fn_guardar_pais.sql` | Validaciones cruzadas (Fase 3 concurrencia) | lectura fantasma |
 | `sp_purgar_datos_seguridad.sql` | Actualizaciones masivas (Fase 4 mantenimiento) | crecimiento sin límite |
+| `sp_purgar_notificaciones.sql` | Actualizaciones masivas (mantenimiento, H-08) | crecimiento sin límite |
 
 Las siete primeras filas son las rutinas originales de la Tercera Entrega (módulos
 catálogo/pedido/legal/social). Las siete siguientes son la ampliación descrita en
@@ -103,6 +104,15 @@ transacción Spring ya abierta. A diferencia de las `FUNCTION`, no queda cubiert
 `ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS` de `seed_privilegios.sh`: lleva su
 propio `GRANT EXECUTE ON PROCEDURE` guardado al final del archivo, mismo patrón que
 `sp_registrar_decision_verificacion` (el único otro `PROCEDURE` del proyecto).
+
+`sp_purgar_notificaciones` (H-08, auditoría de estado 2026-08-26) sigue el mismo patrón para
+`notificaciones_sistema`: es la única de las tres tablas de alto volumen candidatas (junto a
+`auditoria_eventos` y `mensajes`) que se puede purgar sin riesgo — `auditoria_eventos` está
+protegida por triggers de inmutabilidad (REQ-NF-013) y `mensajes` arrastra adjuntos con blobs en
+storage externo que quedarían huérfanos. Ver la cabecera del archivo y
+[`docs/basedatos/POLITICA-RETENCION.md`](../../docs/basedatos/POLITICA-RETENCION.md) para el
+detalle completo. Se invoca desde `NotificacionesPurgaScheduler` con el mismo mecanismo
+(`Propagation.NOT_SUPPORTED`, `GRANT EXECUTE ON PROCEDURE` propio).
 
 Aparte del catálogo de `db/procs/`, el módulo de verificación asistida por IA ya tenía, desde antes
 de esta ampliación, un par de rutinas conectadas end-to-end:

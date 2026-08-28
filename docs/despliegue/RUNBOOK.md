@@ -23,8 +23,11 @@ correcto por las dependencias declaradas (`depends_on` + `healthcheck`) en
 3. `frontend` arranca al final, sirviendo el build de producción de Angular vía nginx.
 
 Verificación post-arranque: `curl https://<dominio>/actuator/health` (o `http://localhost:4200`
-en local) debe responder `{"status":"UP", ...}` con todos los componentes (`db`, `redis`) en
-`UP`.
+en local) debe responder `{"status":"UP"}`. Desde H-05, `/actuator/health` sin autenticar solo
+devuelve el estado agregado (sin el detalle por componente, `show-details=when-authorized`); para
+ver el desglose de `db`/`redis` hace falta un token de un usuario ADMIN
+(`curl -H "Authorization: Bearer <token-admin>" https://<dominio>/actuator/health`), o revisar
+los logs de arranque del `backend` (Spring Boot registra el resultado de cada `HealthIndicator`).
 
 ## 2. Apagado ordenado
 
@@ -59,7 +62,9 @@ docker compose -f artisync/docker-compose.yml down -v
 2. Actualizar la variable correspondiente en `.env`/secretos del proveedor.
 3. Reiniciar `backend` (el pool de conexiones de Spring/HikariCP reconecta con las nuevas
    credenciales al arrancar).
-4. Confirmar con `/actuator/health` que el componente `db` sigue en `UP`.
+4. Confirmar con `/actuator/health` que el estado agregado sigue en `UP`; para ver el componente
+   `db` específicamente hace falta autenticar la petición como ADMIN (ver nota de H-05 en la
+   sección 1) o revisar los logs de arranque del `backend`.
 
 ## 4. Rotación de contenedores por actualizaciones de seguridad
 

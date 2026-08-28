@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -36,9 +37,10 @@ class AdminUserControllerTest {
     @Test
     void getAllUsers_ShouldReturnOk() {
         PagedResponse<UserResponse> pagedResponse = new PagedResponse<>(List.of(), 0, 10, 0, 0, true);
-        when(adminUserService.getAllUsers(any(Pageable.class))).thenReturn(pagedResponse);
+        when(adminUserService.getAllUsers(any(FiltroUsuario.class), any(Pageable.class))).thenReturn(pagedResponse);
 
-        ResponseEntity<PagedResponse<UserResponse>> result = adminUserController.getAllUsers(0, 10, "idUsuario", "asc");
+        ResponseEntity<PagedResponse<UserResponse>> result =
+                adminUserController.getAllUsers(new FiltroUsuario(), 0, 10, "idUsuario", "asc");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(0, result.getBody().getContent().size());

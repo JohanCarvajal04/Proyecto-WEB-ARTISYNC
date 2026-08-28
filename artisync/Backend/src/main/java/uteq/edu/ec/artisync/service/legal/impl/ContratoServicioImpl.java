@@ -2,7 +2,9 @@ package uteq.edu.ec.artisync.service.legal.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -21,6 +23,7 @@ import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,13 +42,24 @@ public class ContratoServicioImpl implements IContratoServicio {
     private final IPdfGeneracionServicio pdfGeneracionServicio;
     private final ChatService chatService;
 
+    // Propagación REQUIRES_NEW deliberada: BriefingServiceImpl.responderBriefing
+    // invoca este método dentro de su propia transacción y trata el fallo como
+    // best-effort (ver comentario ahí). Con la propagación REQUIRED por defecto,
+    // una ExcepcionReglaNegocio aquí (p. ej. "ya existe un contrato") marca la
+    // transacción compartida como rollbackOnly y el catch del llamador no puede
+    // revertir esa marca: al confirmar se lanza UnexpectedRollbackException y se
+    // pierden también las respuestas del briefing ya guardadas. REQUIRES_NEW
+    // aísla esta operación en su propia transacción física, igual que
+    // AuditoriaServicioImpl.registrar. No revertir sin resolver ese acoplamiento.
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Auditable(accion = "CONTRATO_GENERAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "contratos", idEntidad = "#resultado.idContrato")
-    public RespuestaContrato generarContrato(Long idPedido) {
+    public RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+        // H-02: evita que cualquier autenticado genere un contrato sobre un pedido ajeno.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         // Verificar que no exista ya un contrato para este pedido
         if (contratoRepository.findByPedidoIdPedido(idPedido).isPresent()) {
@@ -97,7 +111,8 @@ public class ContratoServicioImpl implements IContratoServicio {
             contrato.setHashFirmaCliente(hash);
             log.info("Contrato {} firmado por cliente (usuario {})", idContrato, idUsuario);
         } else {
-            throw new ExcepcionReglaNegocio("No eres parte de este contrato");
+            // H-02: 403, no 422 — coherente con el resto del proyecto (ManejadorGlobalExcepciones).
+            throw new AccessDeniedException("No eres parte de este contrato");
         }
 
         contratoRepository.save(contrato);
@@ -113,25 +128,31 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaContrato obtenerContrato(Long idContrato) {
+    public RespuestaContrato obtenerContrato(Long idContrato, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+        // H-02: evita el acceso a contratos ajenos (IDOR).
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
         return mapToRespuesta(contrato);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaContrato obtenerContratoPorPedido(Long idPedido) {
+    public RespuestaContrato obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido con ID: " + idPedido));
+        // H-02: evita el acceso a contratos ajenos (IDOR).
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
         return mapToRespuesta(contrato);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato) {
+    public RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+        // H-02: evita el acceso a contratos ajenos (IDOR).
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
         boolean firmaCreador = contrato.getHashFirmaCreador() != null;
         boolean firmaCliente = contrato.getHashFirmaCliente() != null;
@@ -159,11 +180,13 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] generarPdf(Long idContrato) {
+    public byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante) {
         long start = System.currentTimeMillis();
 
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+        // H-02: evita descargar el PDF de un contrato ajeno (IDOR).
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
         String html = renderizarContratoCompleto(contrato);
         byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);

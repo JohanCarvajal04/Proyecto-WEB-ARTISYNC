@@ -30,7 +30,14 @@ public interface IPedidoServicio {
      */
     DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante);
 
-    DocumentoGenerado exportarMisComisiones(Long idCreador, FormatoReporte formato, String correoSolicitante);
+    /**
+     * 1.4 (INFORME-REVISION-COMPLETA.md): {@code idsPedido} nulo o vacío exporta
+     * todas las comisiones (compatibilidad); si llega con valores, se exportan
+     * solo esos pedidos — el frontend manda ahí los ids ya visibles tras
+     * aplicar sus filtros de pantalla (estado/etapa/búsqueda), así se garantiza
+     * "se exporta lo que se ve" sin duplicar esa lógica de filtrado en Java.
+     */
+    DocumentoGenerado exportarMisComisiones(Long idCreador, List<Long> idsPedido, FormatoReporte formato, String correoSolicitante);
 
     RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion);
 
@@ -41,7 +48,7 @@ public interface IPedidoServicio {
      */
     RespuestaPedido actualizarTerminos(Long idPedido, Long idUsuario, PeticionActualizarTerminosPedido peticion);
 
-    List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido);
+    List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante);
 
-    RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido);
+    RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante);
 }

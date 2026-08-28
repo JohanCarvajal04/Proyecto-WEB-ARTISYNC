@@ -1,15 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { UserResponse, PaisResponse } from '../../../shared/models/user.model';
 import {
   CreateUserRequest, AdminUpdateUserRequest,
-  AssignRolesRequest, ChangeEstadoRequest
+  AssignRolesRequest, ChangeEstadoRequest, FiltroUsuario
 } from '../models/admin.model';
 import { PagedResponse, MessageResponse } from '../../../shared/models/common.model';
 import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
 import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
+import { paramsDesdeFiltro } from '../../../shared/utils/params-desde-filtro';
 
 @Injectable({
   providedIn: 'root'
@@ -18,8 +19,8 @@ export class AdminUserService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/v1/admin/usuarios`;
 
-  getUsers(page = 0, size = 10, sortBy = 'idUsuario', direction = 'asc'): Observable<PagedResponse<UserResponse>> {
-    const params = new HttpParams()
+  getUsers(filtro: FiltroUsuario, page = 0, size = 10, sortBy = 'idUsuario', direction = 'asc'): Observable<PagedResponse<UserResponse>> {
+    const params = paramsDesdeFiltro(filtro)
       .set('page', page.toString())
       .set('size', size.toString())
       .set('sortBy', sortBy)
@@ -60,9 +61,10 @@ export class AdminUserService {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/${id}/sesiones`);
   }
 
-  exportar(formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+  exportar(filtro: FiltroUsuario, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+    const params = paramsDesdeFiltro(filtro).set('formato', formato);
     return this.http.get(`${this.apiUrl}/exportar`, {
-      ...sinErrorGlobal(), params: { formato }, responseType: 'blob', observe: 'response'
+      ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });
   }
 

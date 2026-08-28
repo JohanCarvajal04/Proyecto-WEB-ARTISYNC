@@ -830,6 +830,22 @@ activa→inactiva.
 | `idx_tokens_recuperacion_hash` | `tokens_recuperacion (hash_token)` | Evita que el `FOR UPDATE` de `fn_restablecer_contrasena` (#11) degrade a *seq scan* |
 | `idx_usuarios_id_pais` | `usuarios (id_pais)` | `existsByPaisIdPais` |
 
+### Objetos de esquema de apoyo (V21__indices_fk_alto_trafico.sql)
+
+Índices de clave foránea ausentes desde V1 en las tres tablas de mayor tráfico del sistema
+(H-07 de la auditoría de estado del 2026-08-26), siguiendo el mismo patrón de V17.
+
+| Objeto | Tabla | Propósito |
+|---|---|---|
+| `idx_pedidos_id_usuario_cliente` | `pedidos (id_usuario_cliente)` | `PedidoRepository.findByUsuarioClienteIdUsuario` ("mis pedidos" del cliente) |
+| `idx_pedidos_id_servicio` | `pedidos (id_servicio)` | `findByServicioPerfilIdPerfil`, `findByServicioPerfilUsuarioIdUsuario` ("mis pedidos" del creador) |
+| `idx_pedidos_id_flujo` | `pedidos (id_flujo)` | FK sin caller de repositorio conocido; evita *seq scan* al modificar `flujos_trabajo` |
+| `idx_mensajes_sala_fecha` | `mensajes (id_sala, fecha_hora_envio)` | `MensajeRepository.findBySalaIdSalaOrderByFechaHoraEnvioAsc` — resuelve `WHERE` y `ORDER BY` de una pasada |
+| `idx_mensajes_id_remitente` | `mensajes (id_remitente)` | FK sin índice |
+| `idx_notificaciones_usuario_fecha` | `notificaciones_sistema (id_usuario, fecha_emision DESC)` | `findByUsuarioIdUsuarioOrderByFechaEmisionDesc` (listado paginado) |
+| `idx_notificaciones_no_leidas` | `notificaciones_sistema (id_usuario) WHERE esta_leida = false` | `countByUsuarioIdUsuarioAndEstaLeidaFalse`, `marcarTodasLeidas` — parcial porque la mayoría de filas acaban leídas |
+| `idx_notificaciones_id_tipo` | `notificaciones_sistema (id_tipo_notificacion)` | FK sin índice |
+
 ---
 
 ## 16. Fase 2 de rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8)
@@ -1095,3 +1111,44 @@ abrió una transacción antes de invocarlo.
 `ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS` en `seed_privilegios.sh`), un
 `PROCEDURE` requiere su propio `GRANT EXECUTE ON PROCEDURE` explícito — mismo patrón que
 `sp_registrar_decision_verificacion` (§14b), el único otro `PROCEDURE` del proyecto.
+
+---
+
+## 19. Política de retención de notificaciones (H-08, auditoría de estado 2026-08-26)
+
+Una rutina más, siguiendo exactamente el mismo patrón de la sección 18: `notificaciones_sistema`
+crecía sin ningún proceso de purga. Es la única de las tres tablas de alto volumen de escritura
+candidatas que se puede purgar sin riesgo — ver
+[`docs/basedatos/POLITICA-RETENCION.md`](POLITICA-RETENCION.md) para por qué `auditoria_eventos` y
+`mensajes` quedan explícitamente fuera de alcance.
+
+| # | Rutina | Categoría funcional | Anomalía que cierra | Tipo | Volatilidad | Escribe |
+|---|---|---|---|---|---|---|
+| 27 | `sp_purgar_notificaciones` | Actualizaciones masivas (mantenimiento) | Crecimiento sin límite (H-08) | `PROCEDURE` | `VOLATILE` | Sí |
+
+### 19a. `sp_purgar_notificaciones`
+
+**Archivo:** [`db/procs/sp_purgar_notificaciones.sql`](../../db/procs/sp_purgar_notificaciones.sql)
+
+Mismo mecanismo que `sp_purgar_datos_seguridad` (§18a): `PROCEDURE` con `COMMIT` real por lote
+(`FOR UPDATE SKIP LOCKED`, `ORDER BY id_notificacion`), sin bloque `EXCEPTION` (PostgreSQL prohíbe
+`COMMIT` con un `SAVEPOINT` implícito abierto). Purga las notificaciones **ya leídas** con más de
+`p_dias_retencion` días de antigüedad. Las no leídas **nunca** se tocan, sin importar su
+antigüedad: el usuario todavía no las vio.
+
+| # | Nombre | Modo | Tipo | Por defecto | Significado |
+|---|---|---|---|---|---|
+| 1 | `p_tamano_lote` | IN | `INTEGER` | `1000` | Filas por lote antes de cada `COMMIT` |
+| 2 | `p_dias_retencion` | IN | `INTEGER` | `90` | Días desde `fecha_emision` tras los que una notificación leída se purga |
+
+**Retorno:** ninguno (`PROCEDURE`).
+
+**Tablas implicadas:** `notificaciones_sistema` (`DELETE` de leídas con más de `p_dias_retencion`
+días). Sin FKs entrantes ni triggers — segura de purgar sin efectos colaterales.
+
+**Invocación:** `NotificacionesPurgaScheduler` (`@Scheduled(cron = "0 0 4 * * *")`), vía
+`JdbcTemplate` bajo `@Transactional(propagation = Propagation.NOT_SUPPORTED)`, mismo motivo que
+§18a.
+
+**Privilegios:** `GRANT EXECUTE ON PROCEDURE` propio, guardado tras la existencia del rol
+`artisync_app` — mismo patrón que §18a.

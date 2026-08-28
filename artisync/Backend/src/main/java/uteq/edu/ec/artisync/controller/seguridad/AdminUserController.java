@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -35,21 +36,23 @@ public class AdminUserController {
     @GetMapping
     @PreAuthorize("hasAuthority('USUARIO_VER') or hasRole('ADMIN')")
     public ResponseEntity<PagedResponse<UserResponse>> getAllUsers(
+            FiltroUsuario filtro,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "idUsuario") String sortBy,
             @RequestParam(defaultValue = "asc") String direction) {
-        
+
         Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        return ResponseEntity.ok(adminUserService.getAllUsers(pageable));
+        return ResponseEntity.ok(adminUserService.getAllUsers(filtro, pageable));
     }
 
     @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(@RequestParam FormatoReporte formato, Authentication authentication) {
-        DocumentoGenerado documento = adminUserService.exportar(formato, authentication.getName());
+    public ResponseEntity<byte[]> exportar(FiltroUsuario filtro, @RequestParam FormatoReporte formato,
+                                            Authentication authentication) {
+        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, authentication.getName());
         return RespuestaDocumento.de(documento);
     }
 

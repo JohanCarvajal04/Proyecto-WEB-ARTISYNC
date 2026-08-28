@@ -1,11 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Pagina, normalizarPagina } from '../../../shared/models/pagina.model';
 import { EventoAuditoria, EventoAuditoriaResumen, FiltroAuditoria } from '../models/auditoria.model';
 import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
 import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
+import { paramsDesdeFiltro } from '../../../shared/utils/params-desde-filtro';
 
 /**
  * Bitácora inmutable de eventos del sistema (REQ-NF-013). Solo lectura: no
@@ -19,7 +20,7 @@ export class AuditoriaService {
   private readonly API = `${environment.apiUrl}/v1/admin/auditoria`;
 
   listar(filtro: FiltroAuditoria, page = 0, size = 20): Observable<Pagina<EventoAuditoriaResumen>> {
-    const params = this.aParams(filtro).set('page', page).set('size', size);
+    const params = paramsDesdeFiltro(filtro).set('page', page).set('size', size);
     return this.http.get(this.API, { params })
       .pipe(map(crudo => normalizarPagina<EventoAuditoriaResumen>(crudo)));
   }
@@ -42,19 +43,9 @@ export class AuditoriaService {
    * header Content-Disposition en descargarRespuesta().
    */
   exportar(filtro: FiltroAuditoria, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
-    const params = this.aParams(filtro).set('formato', formato);
+    const params = paramsDesdeFiltro(filtro).set('formato', formato);
     return this.http.get(`${this.API}/exportar`, {
       ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });
-  }
-
-  private aParams(filtro: FiltroAuditoria): HttpParams {
-    let params = new HttpParams();
-    for (const [clave, valor] of Object.entries(filtro)) {
-      if (valor !== undefined && valor !== null && valor !== '') {
-        params = params.set(clave, String(valor));
-      }
-    }
-    return params;
   }
 }

@@ -83,9 +83,10 @@ public class PedidoControlador {
     public ResponseEntity<byte[]> exportarMisComisiones(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam FormatoReporte formato,
+            @RequestParam(required = false) List<Long> idsPedido,
             Authentication authentication) {
         DocumentoGenerado documento = pedidoServicio.exportarMisComisiones(
-                userDetails.getIdUsuario(), formato, authentication.getName());
+                userDetails.getIdUsuario(), idsPedido, formato, authentication.getName());
         return RespuestaDocumento.de(documento);
     }
 
@@ -109,14 +110,18 @@ public class PedidoControlador {
 
     @GetMapping("/{id}/historial")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<RespuestaHistorialEstado>> obtenerHistorial(@PathVariable Long id) {
-        return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id));
+    public ResponseEntity<List<RespuestaHistorialEstado>> obtenerHistorial(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id, userDetails.getIdUsuario()));
     }
 
     @GetMapping("/{id}/seguimiento")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaSeguimientoPedido> obtenerSeguimiento(@PathVariable Long id) {
-        return ResponseEntity.ok(pedidoServicio.obtenerSeguimiento(id));
+    public ResponseEntity<RespuestaSeguimientoPedido> obtenerSeguimiento(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.obtenerSeguimiento(id, userDetails.getIdUsuario()));
     }
 
     // ── Inmutabilidad del Historial (RNF-13) ─────────────────────────────────

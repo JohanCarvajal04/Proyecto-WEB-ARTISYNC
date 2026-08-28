@@ -1,11 +1,11 @@
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminUserService } from '../../services/admin-user.service';
 import { RolePermissionService } from '../../services/role-permission.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { UserResponse } from '../../../../shared/models/user.model';
-import { CreateUserRequest, AdminUpdateUserRequest } from '../../models/admin.model';
+import { CreateUserRequest, AdminUpdateUserRequest, FiltroUsuario } from '../../models/admin.model';
 import { getRoleDisplay, getRoleLabel, normalizeRoleName, RoleDisplay } from '../../../../core/constants/role-display';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -38,10 +38,30 @@ export class UsersComponent implements OnInit {
   readonly isActionLoading = signal<boolean>(false);
   readonly exportando = signal<boolean>(false);
 
-  // Filtros
+  // Borrador de filtros: lo que el usuario está escribiendo/eligiendo en
+  // pantalla. No se manda al backend hasta que pulsa "Filtrar" — así el
+  // listado no se recarga a media escritura.
   searchTerm = '';
   selectedRoleFilter = 'ALL';
   selectedStatusFilter = 'ALL';
+
+  /**
+   * Filtros efectivamente aplicados. Se separa del borrador porque paginar y
+   * exportar deben usar lo que la tabla está mostrando, no lo que el usuario
+   * dejó a medio escribir sin pulsar "Filtrar".
+   */
+  private readonly filtroAplicado = signal<FiltroUsuario>({});
+
+  /**
+   * Distingue "no hay usuarios" de "ningún usuario coincide con el filtro",
+   * para no invitar a "ajustar los filtros" cuando no hay ninguno puesto.
+   * Solo lee la señal `filtroAplicado` (los campos del borrador son planos y
+   * no notificarían a un computed en una app zoneless).
+   */
+  readonly hayFiltrosAplicados = computed(() => {
+    const f = this.filtroAplicado();
+    return f.busqueda !== undefined || f.rol !== undefined || f.estadoCuenta !== undefined;
+  });
 
   // Modales
   readonly isFormModalOpen = signal<boolean>(false);
@@ -56,9 +76,32 @@ export class UsersComponent implements OnInit {
     this.loadRolesFiltro();
   }
 
+  /** Espejo de FiltroUsuario.java: 'ALL' es el sentinel de "sin filtro" en los <select>. */
+  private filtroDesdeBorrador(): FiltroUsuario {
+    return {
+      busqueda: this.searchTerm.trim() || undefined,
+      rol: this.selectedRoleFilter !== 'ALL' ? this.selectedRoleFilter : undefined,
+      estadoCuenta: this.selectedStatusFilter === 'ALL' ? undefined : this.selectedStatusFilter === 'ACTIVO'
+    };
+  }
+
+  /** Aplica el borrador y vuelve a la primera página (el filtro cambia el total). */
+  aplicarFiltros(): void {
+    this.filtroAplicado.set(this.filtroDesdeBorrador());
+    this.currentPage.set(0);
+    this.loadUsers();
+  }
+
+  limpiarFiltros(): void {
+    this.searchTerm = '';
+    this.selectedRoleFilter = 'ALL';
+    this.selectedStatusFilter = 'ALL';
+    this.aplicarFiltros();
+  }
+
   exportar(formato: FormatoReporte): void {
     this.exportando.set(true);
-    this.adminUserService.exportar(formato).subscribe({
+    this.adminUserService.exportar(this.filtroAplicado(), formato).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
         descargarRespuesta(respuesta, `usuarios.${formato.toLowerCase()}`);
@@ -82,7 +125,7 @@ export class UsersComponent implements OnInit {
 
   loadUsers(): void {
     this.isLoading.set(true);
-    this.adminUserService.getUsers(this.currentPage(), this.pageSize()).subscribe({
+    this.adminUserService.getUsers(this.filtroAplicado(), this.currentPage(), this.pageSize()).subscribe({
       next: (res) => {
         this.users.set(res.content);
         this.totalElements.set(res.totalElements);
@@ -93,34 +136,6 @@ export class UsersComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
-  }
-
-  filteredUsers = computed(() => {
-    let list = this.users();
-    if (this.searchTerm.trim()) {
-      const term = this.searchTerm.toLowerCase();
-      list = list.filter(u => 
-        u.nombres.toLowerCase().includes(term) || 
-        u.apellidos.toLowerCase().includes(term) || 
-        u.correo.toLowerCase().includes(term)
-      );
-    }
-    if (this.selectedRoleFilter !== 'ALL') {
-      // Comparación exacta sobre el nombre normalizado. Con `includes` el filtro
-      // "ADMINISTRADOR" no casaba con el rol real `ROLE_ADMIN` y devolvía vacío,
-      // y a la inversa "ADMIN" habría arrastrado a cualquier rol que lo contenga.
-      const buscado = normalizeRoleName(this.selectedRoleFilter);
-      list = list.filter(u => u.roles.some(r => normalizeRoleName(r) === buscado));
-    }
-    if (this.selectedStatusFilter !== 'ALL') {
-      const active = this.selectedStatusFilter === 'ACTIVO';
-      list = list.filter(u => u.estadoCuenta === active);
-    }
-    return list;
-  });
-
-  onSearchChange(): void {
-    // El computed filteredUsers se actualiza automáticamente por binding al array o si usamos signals
   }
 
   changePage(newPage: number): void {

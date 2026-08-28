@@ -2,9 +2,6 @@ package uteq.edu.ec.artisync.service.pedido.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -20,6 +17,7 @@ import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
 import uteq.edu.ec.artisync.service.pedido.ITicketRevisionServicio;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -85,33 +83,13 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
     public List<RespuestaTicketRevision> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
-        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);
+        // OBS-08 / H-02: evita el acceso indebido (IDOR) a tickets de un pedido ajeno.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         return ticketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc(idPedido)
                 .stream()
                 .map(this::mapToRespuesta)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * OBS-08: evita el acceso indebido (IDOR) a tickets de un pedido ajeno — solo el cliente
-     * dueño, el creador del servicio pedido o un ADMIN pueden listarlos.
-     */
-    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
-        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
-        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
-
-        if (esCliente || esCreador) {
-            return;
-        }
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean esAdmin = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!esAdmin) {
-            throw new AccessDeniedException("No tienes permisos para consultar los tickets de este pedido");
-        }
     }
 
     @Override

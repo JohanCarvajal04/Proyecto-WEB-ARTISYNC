@@ -2,9 +2,6 @@ package uteq.edu.ec.artisync.service.pedido.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -33,9 +30,12 @@ import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
 import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -210,29 +210,9 @@ public class PedidoServicioImpl implements IPedidoServicio {
     public RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
-        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);
+        // OBS-08 / H-02: evita el acceso indebido (IDOR) a pedidos ajenos.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
         return mapToRespuesta(pedido);
-    }
-
-    /**
-     * OBS-08: evita el acceso indebido (IDOR) a pedidos ajenos — solo el cliente dueño,
-     * el creador del servicio pedido o un ADMIN pueden consultarlo.
-     */
-    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
-        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
-        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
-
-        if (esCliente || esCreador) {
-            return;
-        }
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean esAdmin = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!esAdmin) {
-            throw new AccessDeniedException("No tienes permisos para consultar este pedido");
-        }
     }
 
     @Override
@@ -262,8 +242,19 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public DocumentoGenerado exportarMisComisiones(Long idCreador, FormatoReporte formato, String correoSolicitante) {
-        return exportarResumen(listarMisComisiones(idCreador), "Mis comisiones", "Pedidos como creador",
+    public DocumentoGenerado exportarMisComisiones(Long idCreador, List<Long> idsPedido, FormatoReporte formato,
+                                                     String correoSolicitante) {
+        List<RespuestaPedidoResumido> comisiones = listarMisComisiones(idCreador);
+        if (idsPedido != null && !idsPedido.isEmpty()) {
+            // 1.4: filtra sobre el propio listado del creador, así que un id
+            // ajeno enviado por el cliente simplemente no matchea — no es una
+            // vía de IDOR, solo se restringe el subconjunto ya autorizado.
+            Set<Long> idsSolicitados = new HashSet<>(idsPedido);
+            comisiones = comisiones.stream()
+                    .filter(c -> idsSolicitados.contains(c.getIdPedido()))
+                    .collect(Collectors.toList());
+        }
+        return exportarResumen(comisiones, "Mis comisiones", "Pedidos como creador",
                 formato, correoSolicitante);
     }
 
@@ -350,10 +341,11 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido) {
-        if (!pedidoRepository.existsById(idPedido)) {
-            throw new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido);
-        }
+    public List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
+        // Evita que cualquier autenticado lea el historial de un pedido ajeno.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         return historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido)
                 .stream()
@@ -363,9 +355,11 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido) {
+    public RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+        // Evita que cualquier autenticado lea el seguimiento de un pedido ajeno.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         List<FlujoEtapaConfig> etapasConfig = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());
@@ -434,7 +428,9 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .nombreCliente(pedido.getUsuarioCliente().getNombres() + " " + pedido.getUsuarioCliente().getApellidos())
                 .idCreador(creador.getIdUsuario())
                 .nombreCreador(creador.getNombres() + " " + creador.getApellidos())
-                .etapaActual(obtenerEtapaActual(pedido.getIdPedido()))
+                // 1.2: dato ya presente en `historial` (ordenado ASC), evita repetir
+                // la consulta que obtenerEtapaActual(idPedido) haría por separado.
+                .etapaActual(historial.isEmpty() ? "Sin estado" : historial.get(historial.size() - 1).getNombreEtapa())
                 .precioPactado(pedido.getPrecioPactado())
                 .fechaInicio(pedido.getFechaInicio())
                 .fechaEntregaEstimada(pedido.getFechaEntregaEstimada())
