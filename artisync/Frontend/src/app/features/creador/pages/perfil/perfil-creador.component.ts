@@ -32,7 +32,8 @@ export class PerfilCreadorComponent implements OnInit {
 
   form: FormGroup = this.fb.group({
     biografia: ['', [Validators.maxLength(500)]],
-    urlRedSocial: ['', [Validators.maxLength(255)]]
+    urlRedSocial: ['', [Validators.maxLength(255)]],
+    tituloProfesional: ['', [Validators.maxLength(150)]]
   });
 
   nombreCompleto = computed(() => {
@@ -60,7 +61,8 @@ export class PerfilCreadorComponent implements OnInit {
         if (perfil) {
           this.form.patchValue({
             biografia: perfil.biografia || '',
-            urlRedSocial: perfil.urlRedSocial || ''
+            urlRedSocial: perfil.urlRedSocial || '',
+            tituloProfesional: perfil.tituloProfesional || ''
           });
         }
         this.isLoading.set(false);
@@ -81,7 +83,8 @@ export class PerfilCreadorComponent implements OnInit {
     const val = this.form.getRawValue();
     const datos = {
       biografia: val.biografia || null,
-      urlRedSocial: val.urlRedSocial || null
+      urlRedSocial: val.urlRedSocial || null,
+      tituloProfesional: val.tituloProfesional || null
     };
 
     this.guardando.set(true);

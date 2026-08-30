@@ -1,5 +1,6 @@
 package uteq.edu.ec.artisync.controller.perfil;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,6 +46,12 @@ public class PerfilCreadorControlador {
     @GetMapping
     public ResponseEntity<List<RespuestaPerfil> > listarPerfiles() {
         return ResponseEntity.ok(perfilServicio.listarPerfiles());
+    }
+
+    @Operation(summary = "Directorio público de creadores con cuenta activa")
+    @GetMapping("/activos")
+    public ResponseEntity<List<RespuestaPerfil>> listarPerfilesActivos() {
+        return ResponseEntity.ok(perfilServicio.listarPerfilesActivos());
     }
 
     @PutMapping("/{id}")

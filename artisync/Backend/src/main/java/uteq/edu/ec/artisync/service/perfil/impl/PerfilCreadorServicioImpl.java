@@ -14,6 +14,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.perfil.IPerfilCreadorServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
 
     private final PerfilCreadorRepository perfilRepository;
     private final UsuarioRepository usuarioRepository;
+    private final IVerificacionServicio verificacionServicio;
 
     @Override
     @Transactional
@@ -46,6 +48,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
                 .usuario(usuario)
                 .biografia(peticion.biografia())
                 .urlRedSocial(peticion.urlRedSocial())
+                .tituloProfesional(peticion.tituloProfesional())
                 .build();
 
         PerfilCreador guardado = perfilRepository.save(perfil);
@@ -77,6 +80,14 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<RespuestaPerfil> listarPerfilesActivos() {
+        return perfilRepository.findByUsuarioEstadoCuentaTrue().stream()
+                .map(this::mapearARespuesta)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion,
                                             String correoSolicitante, boolean esAdmin) {
@@ -99,6 +110,9 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
         if (peticion.urlRedSocial() != null) {
             perfil.setUrlRedSocial(peticion.urlRedSocial());
         }
+        if (peticion.tituloProfesional() != null) {
+            perfil.setTituloProfesional(peticion.tituloProfesional());
+        }
 
         PerfilCreador actualizado = perfilRepository.save(perfil);
         return mapearARespuesta(actualizado);
@@ -120,13 +134,19 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
     }
 
     private RespuestaPerfil mapearARespuesta(PerfilCreador perfil) {
+        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
         return RespuestaPerfil.builder()
                 .idPerfil(perfil.getIdPerfil())
-                .idUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null)
+                .idUsuario(idUsuario)
                 .nombresUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getNombres() : null)
                 .apellidosUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getApellidos() : null)
                 .biografia(perfil.getBiografia())
                 .urlRedSocial(perfil.getUrlRedSocial())
+                .tituloProfesional(perfil.getTituloProfesional())
+                // Antes el frontend pintaba "Identidad verificada" fijo para
+                // cualquier creador; ahora refleja el estado real (mismo criterio
+                // que gatea publicar servicios y crear pedidos).
+                .identidadVerificada(idUsuario != null && verificacionServicio.estaIdentidadVerificada(idUsuario))
                 .build();
     }
 }
