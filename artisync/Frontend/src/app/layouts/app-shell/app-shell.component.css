@@ -1,0 +1,48 @@
+/*
+ * El ancho del sidebar en escritorio se alterna por hover o por el botón de
+ * fijar (ver AppShellComponent.sidebarExpandido). Se implementa aquí como CSS
+ * liso, ligado a #menu-lateral y a la clase .is-expanded (nombre normal, sin
+ * corchetes ni prefijos), y NO con utilidades Tailwind de valor arbitrario
+ * dentro de una expresión ternaria de Angular.
+ *
+ * Motivo verificado en el CSS de producción: cuando `w-[240px]`, `w-[72px]`
+ * o una variante con prefijo como `md:opacity-0` aparecen solo dentro de
+ * `[class]="cond ? '...' : '...'"` en vez de como texto estático en la
+ * plantilla, el escáner de contenido de Tailwind v4 no las detecta y no
+ * genera la utilidad — el ancho y la opacidad se quedaban en su valor base
+ * sin ningún error de compilación que lo delatara. Los mismos nombres,
+ * escritos como clase estática estándar (`[class.nombre]="cond"`), sí se
+ * detectan; ver `[class.translate-x-0]` en la misma plantilla. El especificador
+ * por ID le gana a las utilidades Tailwind (una sola clase) sin necesidad de
+ * `!important`.
+ */
+@media (min-width: 768px) {
+  /* Colapsado (estado por defecto, heredado del móvil): 72px, icono visible,
+     logo completo oculto (la clase Tailwind estática `hidden` en el logo ya
+     cubre este caso a todos los tamaños) y etiquetas invisibles. Solo hace
+     falta sobreescribir el estado hover/expandido. */
+  #menu-lateral {
+    width: 72px;
+  }
+  #menu-lateral:hover,
+  #menu-lateral.is-expanded {
+    width: 240px;
+  }
+
+  #menu-lateral:hover .logo-icono,
+  #menu-lateral.is-expanded .logo-icono {
+    display: none;
+  }
+  #menu-lateral:hover .logo-completo,
+  #menu-lateral.is-expanded .logo-completo {
+    display: block;
+  }
+
+  #menu-lateral .etiqueta-nav {
+    opacity: 0;
+  }
+  #menu-lateral:hover .etiqueta-nav,
+  #menu-lateral.is-expanded .etiqueta-nav {
+    opacity: 1;
+  }
+}

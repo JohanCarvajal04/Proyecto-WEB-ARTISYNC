@@ -12,6 +12,7 @@ import {
   RespuestaSubcategoria
 } from '../../models/catalogo.model';
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
+import { CATALOGO_BASE_PATH } from '../../catalogo.config';
 
 const TAMANO_PAGINA = 12;
 
@@ -26,6 +27,9 @@ export class ExplorarComponent implements OnInit {
   private catalogoService = inject(CatalogoPublicoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
+  readonly base = inject(CATALOGO_BASE_PATH);
 
   readonly pagina = signal<Pagina<RespuestaServicioResumido>>(paginaVacia());
   readonly categorias = signal<RespuestaCategoria[]>([]);

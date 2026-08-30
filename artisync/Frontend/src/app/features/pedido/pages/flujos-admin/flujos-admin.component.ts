@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { FlujoTrabajoService } from '../../services/flujo-trabajo.service';
@@ -16,15 +16,29 @@ import {
   templateUrl: './flujos-admin.component.html'
 })
 export class FlujosAdminComponent implements OnInit {
-  flujos: RespuestaFlujoTrabajo[] = [];
-  loading = true;
-  error = '';
+  /**
+   * Este componente vivía enteramente con propiedades planas: en una app
+   * zoneless (provideZonelessChangeDetection) una respuesta HTTP que llega
+   * dentro de un `.subscribe()` no notifica al planificador de cambios por
+   * sí misma -- solo lo hacen la escritura de un signal, markForCheck(), o
+   * un evento de plantilla (click, ngModelChange...). Todo lo que se asigna
+   * únicamente desde un callback asíncrono pasa a signal; los objetos de
+   * formulario ligados a [(ngModel)] (`form`, `nuevaEtapa`, `datosFlujo`,
+   * `etapaNueva`) se quedan como propiedades planas a propósito: los
+   * modifica siempre un evento de plantilla (tecleo, click), que el
+   * planificador zoneless SÍ recoge sin ayuda -- convertirlos en signal
+   * obligaría a mutar el valor en sitio en el binding de `[(ngModel)]`
+   * (`form().campo = $event`), justo el patrón que hay que evitar.
+   */
+  readonly flujos = signal<RespuestaFlujoTrabajo[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
 
   // Alta de flujo: aquí las etapas sí viajan en el payload, porque
   // `crearFlujoTrabajo` las persiste.
-  showForm = false;
+  readonly showForm = signal(false);
   form: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
-  saving = false;
+  readonly saving = signal(false);
   nuevaEtapa: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
 
   /**
@@ -35,11 +49,14 @@ export class FlujosAdminComponent implements OnInit {
    * lista en el formulario descartaba los cambios sin avisar. Las etapas se
    * gestionan una a una contra `/etapas`, que es lo que define la guía M4 §4.1.
    */
-  gestionando: RespuestaFlujoTrabajo | null = null;
+  readonly gestionando = signal<RespuestaFlujoTrabajo | null>(null);
   datosFlujo = { nombreFlujo: '', descripcionFlujo: '' };
-  guardandoDatos = false;
+  readonly guardandoDatos = signal(false);
   etapaNueva: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
-  etapaEnCurso: number | null = null;
+  readonly etapaEnCurso = signal<number | null>(null);
+
+  readonly etapasOrdenadas = computed<RespuestaEtapaConfig[]>(() =>
+    [...(this.gestionando()?.etapas ?? [])].sort((a, b) => a.numeroOrden - b.numeroOrden));
 
   constructor(private flujoService: FlujoTrabajoService) {}
 
@@ -48,10 +65,10 @@ export class FlujosAdminComponent implements OnInit {
   }
 
   cargarFlujos(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.flujoService.listarFlujos().subscribe({
-      next: (data) => { this.flujos = data; this.loading = false; },
-      error: (err) => { this.error = err.error?.message || 'Error al cargar flujos'; this.loading = false; }
+      next: (data) => { this.flujos.set(data); this.loading.set(false); },
+      error: (err) => { this.error.set(err.error?.message || 'Error al cargar flujos'); this.loading.set(false); }
     });
   }
 
@@ -60,11 +77,11 @@ export class FlujosAdminComponent implements OnInit {
   openCreate(): void {
     this.form = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
     this.nuevaEtapa = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
-    this.showForm = true;
+    this.showForm.set(true);
   }
 
   cancelForm(): void {
-    this.showForm = false;
+    this.showForm.set(false);
   }
 
   addEtapa(): void {
@@ -80,22 +97,22 @@ export class FlujosAdminComponent implements OnInit {
 
   onSubmit(): void {
     if (!this.form.nombreFlujo || this.form.etapas.length === 0) {
-      this.error = 'Nombre y al menos una etapa son requeridos';
+      this.error.set('Nombre y al menos una etapa son requeridos');
       return;
     }
 
-    this.saving = true;
-    this.error = '';
+    this.saving.set(true);
+    this.error.set('');
 
     this.flujoService.crearFlujo(this.form).subscribe({
       next: () => {
-        this.saving = false;
-        this.showForm = false;
+        this.saving.set(false);
+        this.showForm.set(false);
         this.cargarFlujos();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al guardar flujo';
-        this.saving = false;
+        this.error.set(err.error?.message || 'Error al guardar flujo');
+        this.saving.set(false);
       }
     });
   }
@@ -103,29 +120,25 @@ export class FlujosAdminComponent implements OnInit {
   // ── Gestión de un flujo existente ─────────────────────────────────────────
 
   openEdit(flujo: RespuestaFlujoTrabajo): void {
-    this.gestionando = flujo;
+    this.gestionando.set(flujo);
     this.datosFlujo = {
       nombreFlujo: flujo.nombreFlujo,
       descripcionFlujo: flujo.descripcionFlujo
     };
     this.etapaNueva = { nombreEtapa: '', numeroOrden: flujo.etapas.length + 1, esEtapaFinal: false };
-    this.error = '';
+    this.error.set('');
   }
 
   cerrarGestion(): void {
-    this.gestionando = null;
-  }
-
-  get etapasOrdenadas(): RespuestaEtapaConfig[] {
-    return [...(this.gestionando?.etapas ?? [])].sort((a, b) => a.numeroOrden - b.numeroOrden);
+    this.gestionando.set(null);
   }
 
   guardarDatosFlujo(): void {
-    const flujo = this.gestionando;
+    const flujo = this.gestionando();
     if (!flujo || !this.datosFlujo.nombreFlujo.trim()) return;
 
-    this.guardandoDatos = true;
-    this.error = '';
+    this.guardandoDatos.set(true);
+    this.error.set('');
 
     // Se mandan las etapas actuales por compatibilidad del DTO; el backend las
     // ignora en esta operación.
@@ -135,73 +148,73 @@ export class FlujosAdminComponent implements OnInit {
       etapas: []
     }).subscribe({
       next: (actualizado) => {
-        this.guardandoDatos = false;
+        this.guardandoDatos.set(false);
         this.refrescar(actualizado);
       },
       error: (err) => {
-        this.error = err.error?.message || 'No se pudieron guardar los datos del flujo';
-        this.guardandoDatos = false;
+        this.error.set(err.error?.message || 'No se pudieron guardar los datos del flujo');
+        this.guardandoDatos.set(false);
       }
     });
   }
 
   agregarEtapaAlFlujo(): void {
-    const flujo = this.gestionando;
+    const flujo = this.gestionando();
     const nombre = this.etapaNueva.nombreEtapa.trim();
     if (!flujo || !nombre) return;
 
-    this.etapaEnCurso = -1;
-    this.error = '';
+    this.etapaEnCurso.set(-1);
+    this.error.set('');
 
     this.flujoService.agregarEtapa(flujo.idFlujo, {
       nombreEtapa: nombre,
-      numeroOrden: this.etapasOrdenadas.length + 1,
+      numeroOrden: this.etapasOrdenadas().length + 1,
       esEtapaFinal: this.etapaNueva.esEtapaFinal
     }).subscribe({
       next: (actualizado) => {
-        this.etapaEnCurso = null;
+        this.etapaEnCurso.set(null);
         this.etapaNueva = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
         this.refrescar(actualizado);
       },
       error: (err) => {
-        this.etapaEnCurso = null;
-        this.error = err.error?.message || 'No se pudo añadir la etapa';
+        this.etapaEnCurso.set(null);
+        this.error.set(err.error?.message || 'No se pudo añadir la etapa');
       }
     });
   }
 
   alternarEtapaFinal(etapa: RespuestaEtapaConfig): void {
-    const flujo = this.gestionando;
-    if (!flujo || this.etapaEnCurso !== null) return;
+    const flujo = this.gestionando();
+    if (!flujo || this.etapaEnCurso() !== null) return;
 
-    this.etapaEnCurso = etapa.idFlujoEtapa;
+    this.etapaEnCurso.set(etapa.idFlujoEtapa);
     this.flujoService.actualizarEtapa(flujo.idFlujo, etapa.idFlujoEtapa, {
       nombreEtapa: etapa.nombreEtapa,
       numeroOrden: etapa.numeroOrden,
       esEtapaFinal: !etapa.esEtapaFinal
     }).subscribe({
       next: (actualizado) => {
-        this.etapaEnCurso = null;
+        this.etapaEnCurso.set(null);
         this.refrescar(actualizado);
       },
       error: (err) => {
-        this.etapaEnCurso = null;
-        this.error = err.error?.message || 'No se pudo actualizar la etapa';
+        this.etapaEnCurso.set(null);
+        this.error.set(err.error?.message || 'No se pudo actualizar la etapa');
       }
     });
   }
 
   /** Reordena intercambiando `numeroOrden` con la etapa vecina. */
   moverEtapa(indice: number, direccion: -1 | 1): void {
-    const flujo = this.gestionando;
-    const etapas = this.etapasOrdenadas;
+    const flujo = this.gestionando();
+    const etapas = this.etapasOrdenadas();
     const destino = indice + direccion;
-    if (!flujo || destino < 0 || destino >= etapas.length || this.etapaEnCurso !== null) return;
+    if (!flujo || destino < 0 || destino >= etapas.length || this.etapaEnCurso() !== null) return;
 
     const actual = etapas[indice];
     const vecina = etapas[destino];
 
-    this.etapaEnCurso = actual.idFlujoEtapa;
+    this.etapaEnCurso.set(actual.idFlujoEtapa);
     forkJoin([
       this.flujoService.actualizarEtapa(flujo.idFlujo, actual.idFlujoEtapa, {
         nombreEtapa: actual.nombreEtapa,
@@ -215,12 +228,12 @@ export class FlujosAdminComponent implements OnInit {
       })
     ]).subscribe({
       next: ([, ultimo]) => {
-        this.etapaEnCurso = null;
+        this.etapaEnCurso.set(null);
         this.refrescar(ultimo);
       },
       error: (err) => {
-        this.etapaEnCurso = null;
-        this.error = err.error?.message || 'No se pudo reordenar la etapa';
+        this.etapaEnCurso.set(null);
+        this.error.set(err.error?.message || 'No se pudo reordenar la etapa');
         // El primer PUT pudo haber pasado: se recarga para no dejar la vista mintiendo.
         this.cargarFlujos();
       }
@@ -228,14 +241,14 @@ export class FlujosAdminComponent implements OnInit {
   }
 
   eliminarEtapaDelFlujo(etapa: RespuestaEtapaConfig): void {
-    const flujo = this.gestionando;
+    const flujo = this.gestionando();
     if (!flujo) return;
     if (!confirm(`¿Eliminar la etapa «${etapa.nombreEtapa}» de este flujo?`)) return;
 
-    this.etapaEnCurso = etapa.idFlujoEtapa;
+    this.etapaEnCurso.set(etapa.idFlujoEtapa);
     this.flujoService.eliminarEtapa(flujo.idFlujo, etapa.idFlujoEtapa).subscribe({
       next: () => {
-        this.etapaEnCurso = null;
+        this.etapaEnCurso.set(null);
         // El DELETE no devuelve el flujo, así que se relee.
         this.flujoService.obtenerFlujo(flujo.idFlujo).subscribe({
           next: (actualizado) => this.refrescar(actualizado),
@@ -243,15 +256,15 @@ export class FlujosAdminComponent implements OnInit {
         });
       },
       error: (err) => {
-        this.etapaEnCurso = null;
-        this.error = err.error?.message || 'No se pudo eliminar la etapa';
+        this.etapaEnCurso.set(null);
+        this.error.set(err.error?.message || 'No se pudo eliminar la etapa');
       }
     });
   }
 
   /** Sustituye el flujo en la lista y en el panel con la versión del servidor. */
   private refrescar(actualizado: RespuestaFlujoTrabajo): void {
-    this.flujos = this.flujos.map(f => f.idFlujo === actualizado.idFlujo ? actualizado : f);
-    this.gestionando = actualizado;
+    this.flujos.update(lista => lista.map(f => f.idFlujo === actualizado.idFlujo ? actualizado : f));
+    this.gestionando.set(actualizado);
   }
 }

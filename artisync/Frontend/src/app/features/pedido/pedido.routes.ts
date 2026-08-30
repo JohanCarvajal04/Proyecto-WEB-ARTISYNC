@@ -5,21 +5,16 @@ import { PAGE_PERMISSIONS } from '../../core/config/nav.config';
 /**
  * Guardadas por permiso, no por nombre de rol: un rol nuevo al que se le
  * conceda PEDIDO_CREAR o PEDIDO_GESTIONAR entra sin tener que tocar el router.
- * `modo` no es autorización, solo le dice al componente qué listado pintar.
  */
 export const PEDIDO_ROUTES: Routes = [
-  {
-    path: 'mis-pedidos',
-    loadComponent: () => import('./pages/pedidos-lista/pedidos-lista.component').then(m => m.PedidosListaComponent),
-    canActivate: [authGuard],
-    data: { permissions: PAGE_PERMISSIONS.pedidosCliente, modo: 'cliente' }
-  },
-  {
-    path: 'mis-comisiones',
-    loadComponent: () => import('./pages/pedidos-lista/pedidos-lista.component').then(m => m.PedidosListaComponent),
-    canActivate: [authGuard],
-    data: { permissions: PAGE_PERMISSIONS.comisiones, modo: 'creador' }
-  },
+  // PedidosListaComponent duplicaba, con un mismo componente conmutado por
+  // `modo`, a MisPedidosDashboardComponent (panel cliente) y a
+  // ComisionesComponent (panel creador) -- dos listas de pedidos paralelas
+  // que llamaban al mismo endpoint pero nunca se devolvían la una a la otra.
+  // Se retiró; estas dos rutas quedan como redirect por compatibilidad de
+  // enlaces existentes. Cada destino ya lleva su propio guard de permisos.
+  { path: 'mis-pedidos', redirectTo: '/dashboard/mis-pedidos', pathMatch: 'full' },
+  { path: 'mis-comisiones', redirectTo: '/creador/comisiones', pathMatch: 'full' },
   {
     path: 'crear',
     loadComponent: () => import('./pages/pedido-crear/pedido-crear.component').then(m => m.PedidoCrearComponent),
@@ -37,5 +32,5 @@ export const PEDIDO_ROUTES: Routes = [
     loadComponent: () => import('./pages/pedido-detalle/pedido-detalle.component').then(m => m.PedidoDetalleComponent),
     canActivate: [authGuard]
   },
-  { path: '', redirectTo: 'mis-pedidos', pathMatch: 'full' }
+  { path: '', redirectTo: '/dashboard/mis-pedidos', pathMatch: 'full' }
 ];

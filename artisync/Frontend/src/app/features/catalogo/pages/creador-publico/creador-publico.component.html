@@ -1,7 +1,7 @@
 <div class="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-6 animate-[fadeIn_0.4s_ease-out]">
 
   <!-- Botón Volver -->
-  <a routerLink="/dashboard/explorar" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-purple-600 transition-colors self-start bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
+  <a [routerLink]="[base]" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-purple-600 transition-colors self-start bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
@@ -110,7 +110,7 @@
               </a>
             } @else {
               <!-- Botón Editar perfil si es mi propio perfil -->
-              <a routerLink="/dashboard/creador/perfil"
+              <a routerLink="/creador/perfil"
                 class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-6 py-2.5 rounded-2xl text-sm font-bold shadow-sm transition-all inline-flex items-center gap-2">
                 <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -240,7 +240,7 @@
             <p class="text-xs text-slate-500">Galería pública de obras finalizadas.</p>
           </div>
           @if (esPropioPerfil()) {
-            <a routerLink="/dashboard/creador/portafolio" class="bg-[#5B3E7A] hover:bg-[#4A2E65] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-sm">
+            <a routerLink="/creador/portafolio" class="bg-[#5B3E7A] hover:bg-[#4A2E65] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-sm">
               + Subir obra
             </a>
           }
@@ -283,7 +283,7 @@
             <p class="text-xs text-slate-500">Catálogo con precios base, categorías y etiquetas.</p>
           </div>
           @if (esPropioPerfil()) {
-            <a routerLink="/dashboard/creador/servicios/nuevo" class="bg-[#5B3E7A] hover:bg-[#4A2E65] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-sm">
+            <a routerLink="/creador/servicios/nuevo" class="bg-[#5B3E7A] hover:bg-[#4A2E65] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-sm">
               + Nuevo servicio
             </a>
           }
@@ -310,7 +310,7 @@
                     <span class="text-[10px] text-slate-400 block">Desde</span>
                     <span class="font-headline font-extrabold text-base text-slate-900">{{ formatPrice(s.precioBase) }}</span>
                   </div>
-                  <a [routerLink]="['/dashboard/explorar/servicio', s.idServicio]"
+                  <a [routerLink]="[base, 'servicio', s.idServicio]"
                     class="bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold px-4 py-2 rounded-full transition-all">
                     Ver servicio
                   </a>
@@ -513,7 +513,7 @@
                 <span class="text-xs text-slate-500 font-medium">Publicó 3 obras nuevas</span>
               </div>
             </div>
-            <a [routerLink]="['/dashboard/explorar/creador', 2]" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2 rounded-full transition-all">Ver perfil</a>
+            <a [routerLink]="[base, 'creador', 2]" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2 rounded-full transition-all">Ver perfil</a>
           </div>
 
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex items-center justify-between">
@@ -527,7 +527,7 @@
                 <span class="text-xs text-slate-500 font-medium">Nuevo servicio: Motion 2D</span>
               </div>
             </div>
-            <a [routerLink]="['/dashboard/explorar/creador', 3]" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2 rounded-full transition-all">Ver perfil</a>
+            <a [routerLink]="[base, 'creador', 3]" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2 rounded-full transition-all">Ver perfil</a>
           </div>
 
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex items-center justify-between">
@@ -541,7 +541,7 @@
                 <span class="text-xs text-slate-500 font-medium">Abrió un sorteo de comisión</span>
               </div>
             </div>
-            <a [routerLink]="['/dashboard/explorar/creador', 4]" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2 rounded-full transition-all">Ver perfil</a>
+            <a [routerLink]="[base, 'creador', 4]" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-5 py-2 rounded-full transition-all">Ver perfil</a>
           </div>
         </div>
       </div>

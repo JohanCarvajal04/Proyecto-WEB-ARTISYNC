@@ -32,8 +32,15 @@ export class PedidoCrearComponent implements OnInit {
   readonly servicio = signal<RespuestaServicio | null>(null);
   readonly cargandoServicio = signal<boolean>(false);
 
-  loading = false;
-  error = '';
+  /**
+   * Antes eran propiedades planas: en una app zoneless
+   * (provideZonelessChangeDetection) una respuesta HTTP no notifica al
+   * planificador de cambios por sí misma. La rama de éxito navegaba fuera y
+   * disimulaba el problema, pero un error de creación de pedido podía no
+   * llegar a pintarse nunca en pantalla.
+   */
+  readonly loading = signal(false);
+  readonly error = signal('');
 
   ngOnInit(): void {
     const idServicio = Number(this.route.snapshot.queryParamMap.get('idServicio'));
@@ -53,7 +60,7 @@ export class PedidoCrearComponent implements OnInit {
         this.cargandoServicio.set(false);
       },
       error: () => {
-        this.error = 'No se pudo cargar el servicio seleccionado.';
+        this.error.set('No se pudo cargar el servicio seleccionado.');
         this.cargandoServicio.set(false);
       }
     });
@@ -61,21 +68,21 @@ export class PedidoCrearComponent implements OnInit {
 
   onSubmit(): void {
     if (!this.pedido.idServicio) {
-      this.error = 'Elige un servicio en el catálogo antes de continuar.';
+      this.error.set('Elige un servicio en el catálogo antes de continuar.');
       return;
     }
 
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     this.pedidoService.crearPedido(this.pedido).subscribe({
       next: (res) => {
-        this.loading = false;
+        this.loading.set(false);
         this.router.navigate(['/pedido', res.idPedido]);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al crear el pedido';
-        this.loading = false;
+        this.error.set(err.error?.message || 'Error al crear el pedido');
+        this.loading.set(false);
       }
     });
   }

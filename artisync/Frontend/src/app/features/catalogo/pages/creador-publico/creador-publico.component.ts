@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
 import { CatalogoPublicoService } from '../../services/catalogo-publico.service';
 import { RespuestaPerfil, RespuestaServicioResumido } from '../../models/catalogo.model';
@@ -10,6 +10,9 @@ import { SorteoPublicoService } from '../../../social/services/sorteo-publico.se
 import { RespuestaResena, RespuestaSorteo } from '../../../social/models/social.model';
 import { SeguidorService, RespuestaCreadorSeguidoNovedad, RespuestaSeguidorInfo } from '../../../social/services/seguidor.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { CATALOGO_BASE_PATH } from '../../catalogo.config';
+import { AuthService } from '../../../seguridad/services/auth.service';
+import { exigirSesion } from '../../../../core/utils/exigir-sesion';
 
 export type Pestana = 'portafolio' | 'servicios' | 'comisiones' | 'sorteos' | 'comunidad' | 'creadores_seguidos';
 
@@ -27,7 +30,12 @@ export class CreadorPublicoComponent implements OnInit {
   private sorteoService = inject(SorteoPublicoService);
   private seguidorService = inject(SeguidorService);
   private toast = inject(ToastService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
+  readonly base = inject(CATALOGO_BASE_PATH);
 
   readonly perfil = signal<RespuestaPerfil | null>(null);
   readonly servicios = signal<RespuestaServicioResumido[]>([]);
@@ -70,7 +78,12 @@ export class CreadorPublicoComponent implements OnInit {
       sorteos: this.sorteoService.listarPorCreador(idPerfil).pipe(catchError(() => of([] as RespuestaSorteo[]))),
       estadoSeguimiento: this.seguidorService.obtenerEstado(idPerfil).pipe(catchError(() => of({ esSeguidor: false, totalSeguidores: 0, esPropioPerfil: false }))),
       seguidores: this.seguidorService.listarSeguidores(idPerfil).pipe(catchError(() => of([] as RespuestaSeguidorInfo[]))),
-      novedadesSiguiendo: this.seguidorService.listarNovedadesSiguiendo().pipe(catchError(() => of([] as RespuestaCreadorSeguidoNovedad[])))
+      // Endpoint autenticado (@PreAuthorize("isAuthenticated()")): un visitante
+      // sin sesión no tiene "creadores seguidos" que consultar, y llamarlo de
+      // todas formas solo generaría un 401 sin sentido en cada visita.
+      novedadesSiguiendo: this.authService.isLoggedIn()
+        ? this.seguidorService.listarNovedadesSiguiendo().pipe(catchError(() => of([] as RespuestaCreadorSeguidoNovedad[])))
+        : of([] as RespuestaCreadorSeguidoNovedad[])
     }).subscribe({
       next: ({ perfil, servicios, portafolio, resenas, promedio, sorteos, estadoSeguimiento, seguidores, novedadesSiguiendo }) => {
         this.perfil.set(perfil);
@@ -78,8 +91,11 @@ export class CreadorPublicoComponent implements OnInit {
         this.portafolio.set(portafolio);
         this.resenas.set(resenas);
 
+        // Sin reseñas propias no hay calificación que mostrar. Antes caía a un
+        // 4.9 fijo — en una página pública eso es una calificación falsa a la
+        // vista de cualquiera, no un dato de maqueta inofensivo.
         const valor = Number(promedio['promedio'] ?? 0);
-        this.promedio.set(valor > 0 ? valor : 4.9);
+        this.promedio.set(valor > 0 ? valor : null);
         this.sorteos.set(sorteos);
 
         this.esSeguidor.set(estadoSeguimiento.esSeguidor);
@@ -115,6 +131,9 @@ export class CreadorPublicoComponent implements OnInit {
   toggleSeguir(): void {
     const p = this.perfil();
     if (!p || this.esPropioPerfil() || this.procesandoSeguir()) return;
+
+    const returnUrl = `${this.base}/creador/${p.idPerfil}`;
+    if (!exigirSesion(this.authService, this.router, returnUrl, 'seguir')) return;
 
     this.procesandoSeguir.set(true);
 
