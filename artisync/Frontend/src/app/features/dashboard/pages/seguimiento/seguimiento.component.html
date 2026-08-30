@@ -137,5 +137,12 @@
         </div>
       }
     </div>
+
+    <!-- Reseña (M7): solo tras aprobar la entrega, misma condición que
+         pedido-detalle.component.html. Antes esta pantalla (el enlace
+         principal "Seguimiento" de Mis Pedidos) no ofrecía forma de dejarla. -->
+    @if (entregaAprobada() && idPedido()) {
+      <app-resena-form [idPedido]="idPedido()!" />
+    }
   }
 </div>
