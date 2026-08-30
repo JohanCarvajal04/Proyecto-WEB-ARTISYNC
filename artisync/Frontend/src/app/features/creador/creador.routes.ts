@@ -1,5 +1,20 @@
 import { Routes } from '@angular/router';
+import { authGuard } from '../../core/guards/auth.guard';
+import { PAGE_PERMISSIONS } from '../../core/config/nav.config';
 
+/**
+ * Igual criterio que ADMINISTRACION_ROUTES: cada ruta hija se guarda con
+ * `authGuard` + `data.permissions` cuando NAV_CATALOG le asocia un permiso
+ * propio (servicios, comisiones, sorteos, portafolio). El resto de páginas
+ * del panel (overview, briefings, notificaciones, reseñas, seguidores,
+ * certificados, perfil) no tienen permiso individual en PAGE_PERMISSIONS
+ * porque están abiertas a cualquiera que ya haya entrado a /creador — el
+ * único guard que les aplica es el del padre en app.routes.ts
+ * (CREADOR_PANEL_PERMISSIONS). Antes solo el padre se guardaba, así que un
+ * creador con un único permiso del panel (p. ej. SORTEO_CREAR) podía navegar
+ * por URL a /creador/servicios/nuevo o /creador/comisiones sin tener
+ * SERVICIO_CREAR ni PEDIDO_GESTIONAR.
+ */
 export const CREADOR_ROUTES: Routes = [
   { path: '', redirectTo: 'overview', pathMatch: 'full' },
   {
@@ -8,22 +23,32 @@ export const CREADOR_ROUTES: Routes = [
   },
   {
     path: 'servicios',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.servicios },
     loadComponent: () => import('./pages/servicios/mis-servicios.component').then(m => m.MisServiciosComponent)
   },
   {
     path: 'servicios/nuevo',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.servicios },
     loadComponent: () => import('./pages/servicio-form/servicio-form.component').then(m => m.ServicioFormComponent)
   },
   {
     path: 'servicios/:id/editar',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.servicios },
     loadComponent: () => import('./pages/servicio-form/servicio-form.component').then(m => m.ServicioFormComponent)
   },
   {
     path: 'comisiones',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.comisiones },
     loadComponent: () => import('./pages/comisiones/comisiones.component').then(m => m.ComisionesComponent)
   },
   {
     path: 'comisiones/:id',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.comisiones },
     loadComponent: () => import('./pages/comision-detalle/comision-detalle.component').then(m => m.ComisionDetalleComponent)
   },
   {
@@ -31,7 +56,13 @@ export const CREADOR_ROUTES: Routes = [
     loadComponent: () => import('./pages/resenas/resenas.component').then(m => m.ResenasComponent)
   },
   {
+    path: 'seguidores',
+    loadComponent: () => import('./pages/seguidores/seguidores.component').then(m => m.SeguidoresComponent)
+  },
+  {
     path: 'sorteos',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.sorteos },
     loadComponent: () => import('./pages/sorteos/sorteos.component').then(m => m.SorteosComponent)
   },
   {
@@ -46,6 +77,8 @@ export const CREADOR_ROUTES: Routes = [
   },
   {
     path: 'portafolio',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.portafolioPropio },
     loadComponent: () => import('./pages/portafolio/portafolio-creador.component').then(m => m.PortafolioCreadorComponent)
   },
   {

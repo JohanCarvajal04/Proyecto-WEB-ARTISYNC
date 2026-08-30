@@ -4,13 +4,16 @@ import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 type FiltroEstado = 'todos' | 'activos' | 'completados';
 
 @Component({
   selector: 'app-mis-pedidos-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, BotonExportarComponent],
   templateUrl: './mis-pedidos-dashboard.component.html'
 })
 export class MisPedidosDashboardComponent implements OnInit {
@@ -53,8 +56,29 @@ export class MisPedidosDashboardComponent implements OnInit {
     this.filtroEstado() !== 'todos' || this.filtroEtapa() !== '' || this.busqueda() !== ''
   );
 
+  readonly exportando = signal(false);
+
   ngOnInit(): void {
     this.loadPedidos();
+  }
+
+  /**
+   * Exportación "propia" de mis pedidos, misma capacidad que ya tiene la
+   * página equivalente del creador (ComisionesComponent) — el backend ya la
+   * servía (PedidoService.exportarMisPedidos), solo faltaba en esta pantalla.
+   */
+  exportar(formato: FormatoReporte): void {
+    this.exportando.set(true);
+    this.pedidoService.exportarMisPedidos(formato).subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarRespuesta(respuesta, `mis-pedidos.${formato.toLowerCase()}`);
+      },
+      error: async (err) => {
+        this.exportando.set(false);
+        this.error.set(await mensajeErrorBlob(err, 'No se pudo exportar tus pedidos'));
+      }
+    });
   }
 
   loadPedidos(): void {
