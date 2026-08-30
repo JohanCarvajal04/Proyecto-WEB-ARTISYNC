@@ -89,11 +89,12 @@
               <th class="px-6 py-4">Entidad</th>
               <th class="px-6 py-4">Resultado</th>
               <th class="px-6 py-4 text-right">IP</th>
+              <th class="px-6 py-4 text-right">Detalle</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             @for (e of pagina().contenido; track e.idEventoAuditoria) {
-              <tr class="hover:bg-slate-50/50 transition-colors cursor-pointer" (click)="verDetalle(e)">
+              <tr class="hover:bg-slate-50/50 transition-colors">
                 <td class="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{{ formatFecha(e.fechaEvento) }}</td>
                 <td class="px-6 py-4 font-medium text-slate-800">{{ e.correoActor }}</td>
                 <td class="px-6 py-4">
@@ -109,10 +110,16 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right font-mono text-xs text-slate-400">{{ e.direccionIp || '—' }}</td>
+                <td class="px-6 py-4 text-right">
+                  <button type="button" (click)="verDetalle(e)" aria-label="Ver detalle del evento"
+                    class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
+                    Ver
+                  </button>
+                </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+                <td colspan="8" class="px-6 py-12 text-center text-slate-500">
                   <p>No hay eventos que coincidan con el filtro.</p>
                 </td>
               </tr>

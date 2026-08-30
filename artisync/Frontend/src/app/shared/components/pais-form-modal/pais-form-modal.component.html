@@ -6,8 +6,9 @@
       <h3 class="font-headline text-xl font-bold text-primary">
         {{ mode === 'create' ? 'Nuevo País' : 'Editar País' }}
       </h3>
-      <button 
+      <button
         type="button"
+        aria-label="Cerrar"
         class="text-on-surface-variant hover:text-primary p-1"
         (click)="closeModal.emit()"
         [disabled]="isLoading">
