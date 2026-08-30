@@ -99,7 +99,7 @@
           <tbody class="divide-y divide-slate-100">
             @for (item of verificacionesRecientes(); track item.idCertificado) {
               <tr class="hover:bg-slate-50/50 transition-colors">
-                <td class="px-6 py-4 font-medium text-slate-800">{{ item.nombreCreador }}</td>
+                <td class="px-6 py-4 font-medium text-slate-800">{{ item.nombreUsuario }}</td>
                 <td class="px-6 py-4">{{ item.tipoDocumento }}</td>
                 <td class="px-6 py-4">
                   @if (item.veredictoIa) {

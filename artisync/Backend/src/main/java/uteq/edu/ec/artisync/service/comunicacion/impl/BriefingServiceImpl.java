@@ -196,7 +196,12 @@ public class BriefingServiceImpl implements BriefingService {
 
         log.info("Briefing del pedido {} completado por el cliente {}", idPedido, idCliente);
 
-        // TODO: Llamar a contratoService.generarContrato(idPedido) cuando M5 esté listo (RF-17)
+        // RF-17 no se resolvió generando el contrato automáticamente aquí: cliente
+        // y creador todavía negocian precio/fecha por chat después del briefing
+        // (ver "Negociar términos" en PedidoDetalleComponent), y el contrato se
+        // genera recién cuando ese acuerdo cierra, con el botón "Generar contrato"
+        // del chat (ChatPedidoComponent.generarContrato -> POST /contratos/pedido/
+        // {idPedido}). Generarlo aquí saltaría esa negociación.
 
         return mapEnviadoToResponse(enviado);
     }

@@ -3,6 +3,10 @@ import { RouterLink } from '@angular/router';
 import { ModeracionService } from '../../services/moderacion.service';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { VerificacionCola, Portafolio, Categoria } from '../../models/moderacion.model';
+import { UserService } from '../../../perfil/services/user.service';
+import { UserResponse } from '../../../../shared/models/user.model';
+import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-mod-overview',
@@ -13,17 +17,19 @@ import { VerificacionCola, Portafolio, Categoria } from '../../models/moderacion
 export class ModOverviewComponent implements OnInit {
   private modService = inject(ModeracionService);
   private authService = inject(AuthService);
+  private userService = inject(UserService);
+  private toast = inject(ToastService);
 
   readonly verificaciones = signal<VerificacionCola[]>([]);
   readonly portafolios = signal<Portafolio[]>([]);
   readonly categorias = signal<Categoria[]>([]);
   readonly isLoading = signal<boolean>(true);
+  readonly perfil = signal<UserResponse | null>(null);
 
   userName = computed(() => {
     const user = this.authService.currentUser();
     const email = user?.email || user?.sub || 'Moderador';
-    const prefix = email.split('@')[0];
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    return nombreUsuario(this.perfil(), email, 'Moderador');
   });
 
   pendientes = computed(() =>
@@ -53,14 +59,19 @@ export class ModOverviewComponent implements OnInit {
   loadData(): void {
     this.isLoading.set(true);
 
+    this.userService.getCurrentUser().subscribe({
+      next: (perfil) => this.perfil.set(perfil),
+      error: () => {}
+    });
+
     this.modService.listarColaVerificaciones(undefined, 50, 0).subscribe({
       next: (data) => this.verificaciones.set(data),
-      error: () => {}
+      error: () => this.toast.error('No se pudo cargar la cola de verificaciones')
     });
 
     this.modService.listarPortafolios().subscribe({
       next: (data) => this.portafolios.set(data),
-      error: () => {}
+      error: () => this.toast.error('No se pudieron cargar los portafolios recientes')
     });
 
     this.modService.listarCategorias().subscribe({
@@ -68,7 +79,10 @@ export class ModOverviewComponent implements OnInit {
         this.categorias.set(data);
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: () => {
+        this.toast.error('No se pudieron cargar las categorías');
+        this.isLoading.set(false);
+      }
     });
   }
 

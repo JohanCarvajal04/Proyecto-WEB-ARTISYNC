@@ -7,7 +7,7 @@ import { PAGE_PERMISSIONS } from '../../core/config/nav.config';
  * `authGuard` + `data.permissions` cuando NAV_CATALOG le asocia un permiso
  * propio (servicios, comisiones, sorteos, portafolio). El resto de páginas
  * del panel (overview, briefings, notificaciones, reseñas, seguidores,
- * certificados, perfil) no tienen permiso individual en PAGE_PERMISSIONS
+ * perfil) no tienen permiso individual en PAGE_PERMISSIONS
  * porque están abiertas a cualquiera que ya haya entrado a /creador — el
  * único guard que les aplica es el del padre en app.routes.ts
  * (CREADOR_PANEL_PERMISSIONS). Antes solo el padre se guardaba, así que un
@@ -80,10 +80,6 @@ export const CREADOR_ROUTES: Routes = [
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.portafolioPropio },
     loadComponent: () => import('./pages/portafolio/portafolio-creador.component').then(m => m.PortafolioCreadorComponent)
-  },
-  {
-    path: 'certificados',
-    loadComponent: () => import('./pages/certificados/certificados.component').then(m => m.CertificadosComponent)
   },
   {
     path: 'perfil',

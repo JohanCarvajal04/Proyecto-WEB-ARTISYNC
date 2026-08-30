@@ -289,7 +289,6 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Seguidores', icon: 'group', route: 'seguidores', panel: 'creador' },
   { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'creador', permissions: PAGE_PERMISSIONS.sorteos },
   { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio },
-  { label: 'Certificados IA', icon: 'verified', route: 'certificados', panel: 'creador' },
   // "Mi Perfil" (perfil de negocio: biografía, red social, verificación) y
   // "Mi Cuenta" (roles/permisos vigentes, contraseña, 2FA) son cosas
   // distintas: la primera es de dominio de creador, la segunda es la misma

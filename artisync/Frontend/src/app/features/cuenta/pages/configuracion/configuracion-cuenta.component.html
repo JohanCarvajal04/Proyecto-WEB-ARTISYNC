@@ -15,14 +15,16 @@
     <div class="h-24 bg-gradient-to-r from-[#1E0F38] via-[#3B1D6E] to-[#7B39B2]"></div>
     <div class="px-6 md:px-8 pb-6 -mt-10">
       <div class="flex flex-col sm:flex-row sm:items-end gap-4">
-        <div class="ring-4 ring-white rounded-full bg-white relative group cursor-pointer inline-block" (click)="fileInput.click()">
-          <app-avatar [name]="userName()" [imageUrl]="userProfile()?.urlFotoPerfil" size="lg"></app-avatar>
-          <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+        <div class="flex flex-col items-center gap-1.5 shrink-0">
+          <div class="ring-4 ring-white rounded-full bg-white"
+            [class.cursor-pointer]="userProfile()?.urlFotoPerfil"
+            (click)="ampliarFoto()">
+            <app-avatar [name]="userName()" [imageUrl]="userProfile()?.urlFotoPerfil" size="lg"></app-avatar>
           </div>
+          <button type="button" (click)="fileInput.click()" [disabled]="isSubmitting()"
+            class="text-[11px] font-semibold text-purple-600 hover:text-purple-700 disabled:opacity-60 transition-colors">
+            {{ isSubmitting() ? 'Subiendo...' : 'Cambiar foto' }}
+          </button>
           <input type="file" #fileInput class="hidden" accept="image/*" (change)="onFileSelected($event)">
         </div>
         <div class="flex-1 min-w-0 sm:pb-1">
@@ -174,4 +176,19 @@
       <p class="text-xs text-slate-400 mt-0.5">Salir de tu cuenta en este dispositivo</p>
     </div>
   </button>
+
+  <!-- Foto de perfil ampliada -->
+  @if (fotoAmpliada() && userProfile()?.urlFotoPerfil) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-fadeIn"
+      (click)="fotoAmpliada.set(false)">
+      <button type="button" (click)="fotoAmpliada.set(false)" aria-label="Cerrar"
+        class="absolute top-5 right-5 text-white/80 hover:text-white transition-colors">
+        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <img [src]="userProfile()?.urlFotoPerfil" [alt]="userName()" (click)="$event.stopPropagation()"
+        class="max-w-full max-h-full rounded-2xl shadow-2xl object-contain">
+    </div>
+  }
 </div>

@@ -14,9 +14,11 @@ import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 
 import java.security.Principal;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +73,11 @@ public class UserController {
      * Sirve la foto de perfil públicamente (sin autenticación). La referencia
      * puede contener subdirectorios (e.g., "perfiles/uuid.jpg"), por eso se
      * captura con ** y se extrae manualmente del path.
+     *
+     * <p>Solo referencias bajo el prefijo "perfiles/" son válidas aquí: sin este
+     * filtro, cualquiera podría pedir "verificacion/..." o "entregables/..." y
+     * leer documentos privados (cédulas, títulos, entregables) sin autenticarse,
+     * saltándose los @PreAuthorize de sus propios controladores.
      */
     @Operation(summary = "Servir la foto de perfil de un usuario (público)")
     @GetMapping("/foto/**")
@@ -78,6 +85,9 @@ public class UserController {
         String fullPath = request.getRequestURI();
         String prefix = "/api/v1/usuarios/foto/";
         String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());
+        if (!referencia.startsWith(PrefijoAlmacenamiento.PERFILES + "/")) {
+            throw new ExcepcionRecursoNoEncontrado("Documento no disponible: " + referencia);
+        }
         byte[] contenido = almacenamientoDocumentos.leer(referencia);
         String contentType = ExtensionesArchivo.contentTypeDe(referencia);
         return ResponseEntity.ok()

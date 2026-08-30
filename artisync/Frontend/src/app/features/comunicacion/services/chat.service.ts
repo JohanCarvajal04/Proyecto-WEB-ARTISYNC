@@ -5,12 +5,13 @@ import SockJS from 'sockjs-client';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { RespuestaMensajeChat, PeticionEnviarMensaje, RespuestaSalaChat } from '../models/comunicacion.model';
 import { AuthService } from '../../seguridad/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
-  private apiUrl = '/api/v1/pedidos';
+  private apiUrl = `${environment.apiUrl}/v1/pedidos`;
   private authService = inject(AuthService);
   private stompClient: Client;
   private currentSubscription?: StompSubscription;

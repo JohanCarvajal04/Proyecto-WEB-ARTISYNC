@@ -25,6 +25,7 @@ import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -119,6 +120,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public RespuestaMensaje revokeAllMySessions(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -129,9 +131,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
+        PoliticaArchivo.PERFIL.validar(file);
+
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-                
+
         if (usuario.getUrlFotoPerfil() != null) {
             try {
                 almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());

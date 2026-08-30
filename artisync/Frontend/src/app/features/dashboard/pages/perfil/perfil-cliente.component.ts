@@ -8,6 +8,7 @@ import { UserService } from '../../../perfil/services/user.service';
 import { PaisService } from '../../../../shared/services/pais.service';
 import { PaisResponse, UserResponse } from '../../../../shared/models/user.model';
 import { ToastService } from '../../../../core/services/toast.service';
+import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 
 @Component({
   selector: 'app-perfil-cliente',
@@ -45,16 +46,7 @@ export class PerfilClienteComponent implements OnInit {
     this.usuario()?.correo || this.authService.currentUser()?.email || this.authService.currentUser()?.sub || '—'
   );
 
-  userName = computed(() => {
-    const u = this.usuario();
-    if (u && (u.nombres || u.apellidos)) {
-      return `${u.nombres || ''} ${u.apellidos || ''}`.trim();
-    }
-    const email = this.userEmail();
-    const prefix = email.split('@')[0];
-    if (!prefix || prefix === '—') return 'Usuario';
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  });
+  userName = computed(() => nombreUsuario(this.usuario(), this.userEmail()));
 
   userRole = computed(() => this.authService.primaryRole() || 'CLIENTE');
 

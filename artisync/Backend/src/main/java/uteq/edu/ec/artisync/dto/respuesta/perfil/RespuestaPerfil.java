@@ -10,6 +10,7 @@ public record RespuestaPerfil(
         String apellidosUsuario,
         String biografia,
         String urlRedSocial,
+        String urlFotoPerfil,
         // La entidad PerfilCreador ya tenía esta columna (titulo_profesional);
         // solo faltaba exponerla en la respuesta y permitir editarla.
         String tituloProfesional,

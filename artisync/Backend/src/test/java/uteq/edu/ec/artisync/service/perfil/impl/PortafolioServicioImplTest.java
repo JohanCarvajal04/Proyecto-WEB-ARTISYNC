@@ -7,6 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
@@ -17,6 +19,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +36,8 @@ class PortafolioServicioImplTest {
 
     @Mock private PortafolioRepository portafolioRepository;
     @Mock private PerfilCreadorRepository perfilRepository;
+    @Mock private StringRedisTemplate redisTemplate;
+    @Mock private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
     private PortafolioServicioImpl portafolioServicio;
@@ -156,19 +162,36 @@ class PortafolioServicioImplTest {
     @DisplayName("incrementarVisitas suma una visita al total acumulado")
     void incrementarVisitas_suma() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(true);
 
-        portafolioServicio.incrementarVisitas(10L);
+        portafolioServicio.incrementarVisitas(10L, 1L);
 
         assertThat(portafolio.getTotalVisitasAcumuladas()).isEqualTo(1);
         verify(portafolioRepository).save(portafolio);
     }
 
     @Test
+    @DisplayName("incrementarVisitas no repite una visita ya contada del mismo usuario en la ventana de dedup")
+    void incrementarVisitas_deduplicaPorUsuario() {
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(false);
+
+        portafolioServicio.incrementarVisitas(10L, 1L);
+
+        assertThat(portafolio.getTotalVisitasAcumuladas()).isEqualTo(0);
+        verify(portafolioRepository, never()).findById(any());
+        verify(portafolioRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("incrementarVisitas lanza recurso no encontrado si no existe")
     void incrementarVisitas_inexistente() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(true);
 
-        assertThatThrownBy(() -> portafolioServicio.incrementarVisitas(10L))
+        assertThatThrownBy(() -> portafolioServicio.incrementarVisitas(10L, 1L))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
     }
 

@@ -12,6 +12,6 @@ public interface IPortafolioServicio {
     RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil);
     List<RespuestaPortafolio> listarPortafolios();
     RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion);
-    void incrementarVisitas(Long idPortafolio);
+    void incrementarVisitas(Long idPortafolio, Long idUsuario);
     void eliminarPortafolio(Long idPortafolio);
 }

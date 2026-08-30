@@ -15,6 +15,7 @@ import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.perfil.IPerfilCreadorServicio;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -142,6 +143,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
                 .apellidosUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getApellidos() : null)
                 .biografia(perfil.getBiografia())
                 .urlRedSocial(perfil.getUrlRedSocial())
+                .urlFotoPerfil(perfil.getUsuario() != null ? UrlFotoPerfil.construir(perfil.getUsuario().getUrlFotoPerfil()) : null)
                 .tituloProfesional(perfil.getTituloProfesional())
                 // Antes el frontend pintaba "Identidad verificada" fijo para
                 // cualquier creador; ahora refleja el estado real (mismo criterio
