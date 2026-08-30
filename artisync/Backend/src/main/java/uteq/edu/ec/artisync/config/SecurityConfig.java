@@ -66,7 +66,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/v1/catalogo/**", "/api/v1/categorias/**",
                                  "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/**",
                                  "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/v1/portafolio-items/**",
-                                 "/api/v1/perfiles/**", "/api/v1/paises", "/api/v1/paises/**").permitAll()
+                                 "/api/v1/perfiles/**", "/api/v1/paises", "/api/v1/paises/**",
+                                 "/api/v1/usuarios/foto/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
                 .requestMatchers("/ws/**", "/actuator/**").permitAll()
                 .requestMatchers("/api/webhooks/paypal").permitAll()

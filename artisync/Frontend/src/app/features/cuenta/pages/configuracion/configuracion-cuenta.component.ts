@@ -89,4 +89,23 @@ export class ConfiguracionCuentaComponent implements OnInit {
   logout(): void {
     this.authService.logout();
   }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isSubmitting.set(true);
+      this.userService.uploadProfilePicture(file).subscribe({
+        next: (profile) => {
+          this.userProfile.set(profile);
+          this.toastService.success('Foto de perfil actualizada correctamente');
+          this.isSubmitting.set(false);
+        },
+        error: () => {
+          this.toastService.error('Error al subir la foto de perfil');
+          this.isSubmitting.set(false);
+        }
+      });
+    }
+  }
 }

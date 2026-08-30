@@ -88,7 +88,14 @@ public class UsuarioMapper {
                 .roles(roles)
                 .permisos(permisos)
                 .dosFactoresHabilitado(dosFactoresHabilitado)
-                .urlFotoPerfil(usuario.getUrlFotoPerfil())
+                .urlFotoPerfil(construirUrlFoto(usuario.getUrlFotoPerfil()))
                 .build();
+    }
+
+    private String construirUrlFoto(String referencia) {
+        if (referencia == null || referencia.isBlank()) {
+            return null;
+        }
+        return "/api/v1/usuarios/foto/" + referencia;
     }
 }

@@ -4,7 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
@@ -12,8 +15,11 @@ import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
 
 import java.security.Principal;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
@@ -23,6 +29,7 @@ import java.security.Principal;
 public class UserController {
 
     private final UserService userService;
+    private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Operation(summary = "Obtener el perfil completo del usuario autenticado actual")
     @GetMapping("/me")
@@ -55,9 +62,28 @@ public class UserController {
     }
 
     @Operation(summary = "Subir o actualizar la foto de perfil del usuario actual")
-    @PostMapping(value = "/me/foto", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/me/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> uploadProfilePicture(Principal principal, @RequestParam("foto") org.springframework.web.multipart.MultipartFile foto) {
         return ResponseEntity.ok(userService.uploadProfilePicture(principal.getName(), foto));
+    }
+
+    /**
+     * Sirve la foto de perfil públicamente (sin autenticación). La referencia
+     * puede contener subdirectorios (e.g., "perfiles/uuid.jpg"), por eso se
+     * captura con ** y se extrae manualmente del path.
+     */
+    @Operation(summary = "Servir la foto de perfil de un usuario (público)")
+    @GetMapping("/foto/**")
+    public ResponseEntity<byte[]> servirFotoPerfil(HttpServletRequest request) {
+        String fullPath = request.getRequestURI();
+        String prefix = "/api/v1/usuarios/foto/";
+        String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());
+        byte[] contenido = almacenamientoDocumentos.leer(referencia);
+        String contentType = ExtensionesArchivo.contentTypeDe(referencia);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=" + TimeUnit.DAYS.toSeconds(7))
+                .body(contenido);
     }
 }
 

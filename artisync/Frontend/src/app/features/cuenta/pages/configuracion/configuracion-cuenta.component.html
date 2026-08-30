@@ -15,8 +15,15 @@
     <div class="h-24 bg-gradient-to-r from-[#1E0F38] via-[#3B1D6E] to-[#7B39B2]"></div>
     <div class="px-6 md:px-8 pb-6 -mt-10">
       <div class="flex flex-col sm:flex-row sm:items-end gap-4">
-        <div class="ring-4 ring-white rounded-full bg-white">
-          <app-avatar [name]="userName()" size="lg"></app-avatar>
+        <div class="ring-4 ring-white rounded-full bg-white relative group cursor-pointer inline-block" (click)="fileInput.click()">
+          <app-avatar [name]="userName()" [imageUrl]="userProfile()?.urlFotoPerfil" size="lg"></app-avatar>
+          <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <input type="file" #fileInput class="hidden" accept="image/*" (change)="onFileSelected($event)">
         </div>
         <div class="flex-1 min-w-0 sm:pb-1">
           <h2 class="font-headline text-xl font-bold text-slate-800">{{ userName() }}</h2>
