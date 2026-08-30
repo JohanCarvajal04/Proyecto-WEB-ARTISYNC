@@ -19,9 +19,7 @@ import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresReposit
 import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 
 import java.nio.charset.StandardCharsets;
@@ -40,7 +38,6 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
     private final UsuarioRolRepository usuarioRolRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
     private final CertificadoIaRepository certificadoIaRepository;
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
@@ -56,12 +53,11 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
         boolean esCreador = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
                 .anyMatch(ur -> "CREADOR".equalsIgnoreCase(ur.getRol().getNombreRol()));
-        if (esCreador) {
-            PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
-                    .orElse(null);
-            if (perfil == null || !certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(perfil.getIdPerfil(), "APROBADO")) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Debes verificar tu identidad antes de activar la autenticación de dos factores");
-            }
+        // V21: la verificación ya no cuelga de perfiles_creadores, cuelga
+        // directo del usuario — no hace falta resolver el perfil para esto.
+        if (esCreador && !certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
+                usuario.getIdUsuario(), "IDENTIDAD", "APROBADO")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Debes verificar tu identidad antes de activar la autenticación de dos factores");
         }
 
         GoogleAuthenticatorKey key = gAuth.createCredentials();

@@ -9,13 +9,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
 import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
@@ -40,8 +38,6 @@ class TwoFactorServiceImplTest {
     @Mock
     private UsuarioRolRepository usuarioRolRepository;
     @Mock
-    private PerfilCreadorRepository perfilCreadorRepository;
-    @Mock
     private CertificadoIaRepository certificadoIaRepository;
 
     @InjectMocks
@@ -64,9 +60,7 @@ class TwoFactorServiceImplTest {
         UsuarioRol ur = UsuarioRol.builder().rol(rolCreador).build();
         when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(ur));
         
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(usuario).build();
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfil));
-        when(certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(10L, "APROBADO")).thenReturn(false);
+        when(certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(1L, "IDENTIDAD", "APROBADO")).thenReturn(false);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> twoFactorService.setup2Fa("creador@example.com"));
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
