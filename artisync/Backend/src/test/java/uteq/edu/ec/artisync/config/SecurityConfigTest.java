@@ -78,4 +78,27 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/v1/contratos/1"))
                 .andExpect(status().isUnauthorized());
     }
+
+    /**
+     * Página pública de servicios (catálogo abierto): la ficha de un creador
+     * consulta GET /api/v1/perfiles/{id} sin sesión. No se afirma 200 porque el
+     * id puede no existir en la base de este test — lo que importa es que la
+     * cadena de filtros no la corte con 401/403 antes de llegar al controlador.
+     */
+    @Test
+    void obtenerPerfilPorId_esPublico() throws Exception {
+        int status = mockMvc.perform(get("/api/v1/perfiles/1")).andReturn().getResponse().getStatus();
+        org.assertj.core.api.Assertions.assertThat(status).isNotIn(401, 403);
+    }
+
+    /**
+     * /api/v1/perfiles/usuario/{id} expondría la correspondencia usuario->perfil
+     * y queda deliberadamente fuera del permitAll de un solo segmento
+     * ("/api/v1/perfiles/*"): debe seguir exigiendo sesión.
+     */
+    @Test
+    void obtenerPerfilPorUsuario_requiereAutenticacion() throws Exception {
+        mockMvc.perform(get("/api/v1/perfiles/usuario/1"))
+                .andExpect(status().isUnauthorized());
+    }
 }

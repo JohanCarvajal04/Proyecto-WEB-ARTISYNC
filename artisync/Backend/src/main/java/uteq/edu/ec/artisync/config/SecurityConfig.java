@@ -66,6 +66,18 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/v1/catalogo/**", "/api/v1/categorias/**",
                                  "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/**",
                                  "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/v1/paises", "/api/v1/paises/**").permitAll()
+                // Ficha pública del creador (M3 - página pública de servicios).
+                // Un solo segmento ("/*", no "/**") a propósito: deja fuera
+                // /api/v1/perfiles/usuario/{idUsuario} (expondría la
+                // correspondencia usuario->perfil) y /api/v1/perfiles (listado
+                // completo). RespuestaPerfil solo lleva id, nombres, biografía y
+                // red social, sin datos sensibles.
+                .requestMatchers(HttpMethod.GET, "/api/v1/perfiles/*").permitAll()
+                // Contador de visitas del portafolio: sin lógica de autorización
+                // (PortafolioServicio#incrementarVisitas), así que abrirlo a
+                // visitantes anónimos no cede nada que un usuario autenticado
+                // cualquiera no pudiera hacer ya.
+                .requestMatchers(HttpMethod.POST, "/api/v1/portafolios/*/visita").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
