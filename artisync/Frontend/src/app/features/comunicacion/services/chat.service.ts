@@ -1,8 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, filter, take } from 'rxjs';
 import { RespuestaMensajeChat, PeticionEnviarMensaje, RespuestaSalaChat } from '../models/comunicacion.model';
 import { AuthService } from '../../seguridad/services/auth.service';
 
@@ -44,6 +44,20 @@ export class ChatService {
     this.stompClient.onWebSocketClose = () => {
       this.connectionStateSubject.next(false);
     };
+
+    // El token de acceso rota (refresh silencioso, o cambia de usuario tras
+    // logout/login). Sin esto, una conexión STOMP ya activa seguiría usando
+    // el `connectHeaders` fijado en el connect() original para siempre: el
+    // servidor no vuelve a leerlos tras el CONNECT inicial.
+    effect(() => {
+      this.authService.accessToken();
+      this.reconectarSiActivo();
+    });
+  }
+
+  private reconectarSiActivo(): void {
+    if (!this.stompClient.active) return;
+    this.stompClient.deactivate().then(() => this.connect());
   }
 
   public connect(): void {
@@ -124,12 +138,14 @@ export class ChatService {
     if (this.stompClient.connected) {
       suscribirse();
     } else {
-      const sub = this.isConnected$.subscribe(conectado => {
-        if (conectado) {
-          suscribirse();
-          sub.unsubscribe();
-        }
-      });
+      // filter+take(1) en vez de un unsubscribe() manual dentro del propio
+      // callback: si la conexión nunca llega (sin red, backend caído, token
+      // inválido) el unsubscribe() de la versión anterior no se ejecutaba
+      // jamás -- isConnected$ es un BehaviorSubject de un servicio root, así
+      // que la suscripción quedaba viva para siempre, y cada reconexión
+      // (reconnectDelay: 5000) volvía a intentar suscribirse al topic a
+      // través de ella.
+      this.isConnected$.pipe(filter(Boolean), take(1)).subscribe(() => suscribirse());
       this.connect();
     }
   }

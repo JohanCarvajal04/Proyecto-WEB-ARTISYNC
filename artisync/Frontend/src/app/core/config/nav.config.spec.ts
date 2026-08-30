@@ -264,4 +264,14 @@ describe('coherencia del catálogo', () => {
     const conPermiso = NAV_CATALOG.filter(i => i.panel === 'cuenta' && i.permissions?.length);
     expect(conPermiso).toEqual([]);
   });
+
+  it('findNavLabel resuelve por último segmento una ruta montada fuera de su panel', () => {
+    // /pedido/mis-pedidos no coincide con navItemPath('mis-pedidos', 'cliente')
+    // (que sería /dashboard/mis-pedidos): el ítem del catálogo pertenece al
+    // panel 'cliente' pero la pantalla vive físicamente bajo /pedido. Mover
+    // esa rama al cascarón único (app.routes.ts) no cambia su URL, así que
+    // este respaldo por segmento final debe seguir funcionando igual.
+    expect(findNavLabel('/pedido/mis-pedidos')).toBe('Mis Pedidos');
+    expect(findNavLabel('/legal/contrato/42')).toBeNull();
+  });
 });

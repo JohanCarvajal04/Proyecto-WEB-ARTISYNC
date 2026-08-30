@@ -33,6 +33,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
+      // Un 401 sin sesión activa no es una expiración: es un visitante anónimo
+      // topándose con un endpoint protegido (p. ej. el catálogo público
+      // consultando "creadores seguidos"). Sin esta guarda, cada carga del
+      // catálogo sin sesión disparaba un POST /auth/refresh inútil y el toast
+      // "Tu sesión ha expirado", que es falso — nunca hubo sesión que expirara.
+      if (error.status === 401 && !auth.isLoggedIn()) {
+        return throwError(() => error);
+      }
+
       switch (error.status) {
         case 401:
           // Intentar refrescar token o cerrar sesión

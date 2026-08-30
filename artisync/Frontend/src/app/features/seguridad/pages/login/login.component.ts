@@ -24,6 +24,9 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly showPassword = signal<boolean>(false);
 
+  /** Se propaga al enlace "Crear cuenta" para no perder el destino (p. ej. llegando desde /acceso-requerido). */
+  readonly returnUrl = this.route.snapshot.queryParams['returnUrl'] ?? null;
+
   form: FormGroup = this.fb.group({
     correo: ['', [Validators.required]],
     contrasena: ['', [Validators.required]]

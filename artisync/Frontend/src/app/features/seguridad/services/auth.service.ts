@@ -299,9 +299,15 @@ export class AuthService {
       return;
     }
     if (response.accessToken) {
-      this._accessToken.set(response.accessToken);
       try {
+        // _accessToken se fija DENTRO del try, junto a _currentUser: antes se
+        // fijaba antes del decode, así que un JWT malformado dejaba
+        // accessToken con valor y currentUser en null -- isLoggedIn()
+        // (que solo mira currentUser) reportaba `false`, pero authInterceptor
+        // seguía adjuntando ese token a cada petición porque lee
+        // accessToken() directamente. Sesión a medias, sin salida limpia.
         const decoded = jwtDecode<DecodedToken>(response.accessToken);
+        this._accessToken.set(response.accessToken);
         this._currentUser.set(decoded);
         const permisos = decoded.permisos ?? response.permisos ?? [];
         if (permisos.length > 0) {
@@ -312,6 +318,7 @@ export class AuthService {
         }
       } catch (e) {
         console.error('Error decoding JWT', e);
+        this.clearSession();
       }
     }
   }
