@@ -53,5 +53,11 @@ public class UserController {
     public ResponseEntity<RespuestaMensaje> revokeAllMySessions(Principal principal) {
         return ResponseEntity.ok(userService.revokeAllMySessions(principal.getName()));
     }
+
+    @Operation(summary = "Subir o actualizar la foto de perfil del usuario actual")
+    @PostMapping(value = "/me/foto", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> uploadProfilePicture(Principal principal, @RequestParam("foto") org.springframework.web.multipart.MultipartFile foto) {
+        return ResponseEntity.ok(userService.uploadProfilePicture(principal.getName(), foto));
+    }
 }
 

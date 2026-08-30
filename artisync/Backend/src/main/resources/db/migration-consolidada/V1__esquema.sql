@@ -95,6 +95,7 @@ CREATE TABLE usuarios (
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     estado_cuenta BOOLEAN DEFAULT TRUE,
     fecha_nacimiento DATE,
+    url_foto_perfil VARCHAR(255),
     actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

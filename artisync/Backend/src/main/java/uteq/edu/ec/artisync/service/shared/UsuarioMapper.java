@@ -88,6 +88,7 @@ public class UsuarioMapper {
                 .roles(roles)
                 .permisos(permisos)
                 .dosFactoresHabilitado(dosFactoresHabilitado)
+                .urlFotoPerfil(usuario.getUrlFotoPerfil())
                 .build();
     }
 }

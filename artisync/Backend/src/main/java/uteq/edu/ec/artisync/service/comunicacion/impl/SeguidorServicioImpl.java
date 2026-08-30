@@ -118,7 +118,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
                             .idUsuario(p.getUsuario().getIdUsuario())
                             .nombreCreador(nombre)
                             .handle(handle)
-                            .urlFotoPerfil(p.getUrlPortada())
+                            .urlFotoPerfil(p.getUsuario().getUrlFotoPerfil())
                             .tituloProfesional(p.getTituloProfesional())
                             .resumenNovedad("Actividad reciente en su catálogo y publicaciones")
                             .tipoNovedad("GENERAL")

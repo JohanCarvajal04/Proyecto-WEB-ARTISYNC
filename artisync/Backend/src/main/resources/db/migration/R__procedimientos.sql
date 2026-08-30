@@ -1453,9 +1453,9 @@ BEGIN
     SELECT 
         pc.id_perfil,
         u.id_usuario,
-        u.nombres_usuario,
-        u.apellidos_usuario,
-        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
+        u.nombres,
+        u.apellidos,
+        COALESCE('@' || LOWER(REPLACE(u.nombres, ' ', '')), '@creador')::VARCHAR AS handle,
         u.url_foto_perfil,
         pc.titulo_profesional,
         'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
