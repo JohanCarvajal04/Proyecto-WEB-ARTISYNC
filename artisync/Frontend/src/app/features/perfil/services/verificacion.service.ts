@@ -8,7 +8,7 @@ export type TipoDocumentoVerificacion = 'IDENTIDAD' | 'CERTIFICADO';
 /** Espejo de RespuestaVerificacion (record de Java). */
 export interface RespuestaVerificacion {
   idCertificado: number;
-  idPerfil: number | null;
+  idUsuario: number | null;
   tipoDocumento: string;
   nombreEstadoVerificacion: string;
   veredictoIa: string | null;

@@ -21,7 +21,7 @@ export class VerificacionesComponent implements OnInit {
   readonly selectedItem = signal<VerificacionDetalle | null>(null);
   readonly isDetailLoading = signal<boolean>(false);
   readonly documentUrl = signal<string | null>(null);
-  /** Certificados previos del mismo perfil, como contexto para la decisión. */
+  /** Certificados previos del mismo usuario, como contexto para la decisión. */
   readonly historialPerfil = signal<CertificadoIa[]>([]);
 
   // Filtro
@@ -64,7 +64,7 @@ export class VerificacionesComponent implements OnInit {
       next: (detail) => {
         this.selectedItem.set(detail);
         this.loadDocument(id);
-        this.loadHistorial(detail.idPerfil);
+        this.loadHistorial(detail.idUsuario);
         this.isDetailLoading.set(false);
       },
       error: () => {
@@ -83,12 +83,12 @@ export class VerificacionesComponent implements OnInit {
   }
 
   /**
-   * Certificados previos del mismo perfil. Es contexto, no bloquea la revisión:
-   * un perfil sin historial responde vacío y no debe ensuciar la vista.
+   * Certificados previos del mismo usuario. Es contexto, no bloquea la revisión:
+   * un usuario sin historial responde vacío y no debe ensuciar la vista.
    */
-  loadHistorial(idPerfil: number | null): void {
-    if (idPerfil === null) return;
-    this.modService.listarCertificadosDePerfil(idPerfil).subscribe({
+  loadHistorial(idUsuario: number | null): void {
+    if (idUsuario === null) return;
+    this.modService.listarCertificadosDeUsuario(idUsuario).subscribe({
       next: (certificados) => this.historialPerfil.set(certificados),
       error: () => this.historialPerfil.set([])
     });

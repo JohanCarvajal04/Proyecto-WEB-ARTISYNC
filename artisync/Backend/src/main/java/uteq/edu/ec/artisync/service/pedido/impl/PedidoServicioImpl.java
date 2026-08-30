@@ -28,6 +28,7 @@ import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -54,6 +55,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private final NotificacionService notificacionService;
     private final ChatService chatService;
     private final IServicioExportacion servicioExportacion;
+    private final IVerificacionServicio verificacionServicio;
 
     @Override
     @Transactional
@@ -63,6 +65,11 @@ public class PedidoServicioImpl implements IPedidoServicio {
     public RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion) {
         Usuario cliente = usuarioRepository.findById(idCliente)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario cliente no encontrado"));
+
+        if (!verificacionServicio.estaIdentidadVerificada(idCliente)) {
+            throw new ExcepcionReglaNegocio(
+                    "Debes verificar tu identidad antes de crear un pedido. Sube tu documento de identidad desde tu perfil.");
+        }
 
         Servicio servicio = servicioRepository.findById(peticion.getIdServicio())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado"));

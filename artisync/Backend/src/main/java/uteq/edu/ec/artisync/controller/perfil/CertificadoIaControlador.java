@@ -50,10 +50,10 @@ public class CertificadoIaControlador {
         return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));
     }
 
-    @GetMapping("/perfil/{idPerfil}")
+    @GetMapping("/usuario/{idUsuario}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<RespuestaCertificadoIa> > listarCertificadosPorPerfil(@PathVariable Long idPerfil) {
-        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorPerfil(idPerfil));
+    public ResponseEntity<List<RespuestaCertificadoIa> > listarCertificadosPorUsuario(@PathVariable Long idUsuario) {
+        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorUsuario(idUsuario));
     }
 
     @GetMapping
