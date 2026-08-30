@@ -24,4 +24,9 @@ REQ-NF-001  # (Must) Redireccion HTTPS y rechazo de TLS < 1.2. El metodo de veri
 
 REQ-NF-009  # (Must) Disponibilidad y reinicio automatico ante fallos. La politica `restart: unless-stopped` y los healthcheck estan declarados en los cinco servicios de artisync/docker-compose.yml, pero no existe una demostracion archivada de caida y recuperacion. Elevarlo a `verificado` sin esa evidencia seria inflar el estado. Cierre: provocar la caida de un contenedor, registrar la recuperacion automatica y archivar la salida en docs/mediciones/.
 
-REQ-F-010  # (Should) Comentarios en items de portafolio. Existen la entidad ComentarioPortafolio y su repositorio, pero no hay servicio ni controlador: la funcionalidad no esta construida. Se deja deliberadamente fuera de v1.0.0 por prioridad frente a los Must del cierre, y se declara en el capitulo de trabajo futuro del documento academico. Cierre: implementar la rodaja vertical (servicio + controlador + pruebas), igual que se hizo con REQ-F-009.
+# REQ-F-010 (Should) ya no esta aqui: la rodaja vertical (ComentarioPortafolioService/Impl,
+# ComentarioPortafolioControlador y AdminComentarioControlador) quedo implementada y probada
+# manualmente end-to-end (borrado logico vía estado_moderacion='Eliminado', consultable por
+# el administrador). Un Should con estado 'implementado' ya cumple su minimo sin excepcion.
+# Sigue pendiente escribir la prueba automatizada (unitaria/IT) — ver columna
+# prueba_automatizada de matriz.csv — para poder subirlo a 'verificado'.

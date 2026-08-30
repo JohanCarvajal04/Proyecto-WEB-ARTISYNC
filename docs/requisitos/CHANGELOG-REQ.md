@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [v1.0.1] - 2026-08-29 — REQ-F-010 implementado
+
+### Changed
+
+| Requisito | Antes | Ahora | Motivo |
+| --- | --- | --- | --- |
+| REQ-F-010 | pendiente | implementado | Se construyó la rodaja vertical completa: `ComentarioPortafolioService`/`Impl`, `ComentarioPortafolioControlador` (crear/listar/contar/eliminar) y `AdminComentarioControlador` (listar/ocultar/reactivar/purgar). El borrado por el autor o el dueño del portafolio es lógico (`estado_moderacion = 'Eliminado'`), no visible en la vista pública pero consultable por el administrador vía `GET /api/v1/admin/comentarios`, tal como exige el enunciado. Verificado manualmente end-to-end en navegador; falta la prueba automatizada (unitaria/IT) para subirlo a `verificado`. |
+
+### Removed
+
+- La excepción de REQ-F-010 en `docs/trazabilidad/excepciones-estado.txt`: un Should en estado `implementado` ya cumple su mínimo sin necesidad de excepción declarada.
+
 ## [v1.0.0] - 2026-08-21 — Reconciliación SRS ↔ matriz
 
 Ningún requisito cambió de enunciado, prioridad ni alcance: esta entrada registra
