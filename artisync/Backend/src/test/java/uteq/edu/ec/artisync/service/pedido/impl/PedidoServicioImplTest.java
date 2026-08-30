@@ -42,6 +42,7 @@ import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -50,10 +51,13 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Pruebas unitarias de {@link PedidoServicioImpl} complementarias a
@@ -75,6 +79,7 @@ class PedidoServicioImplTest {
     @Mock private ContratoRepository contratoRepository;
     @Mock private NotificacionService notificacionService;
     @Mock private ChatService chatService;
+    @Mock private IVerificacionServicio verificacionServicio;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -102,6 +107,10 @@ class PedidoServicioImplTest {
                 .flujo(flujo).precioPactado(new BigDecimal("20.00")).build();
         etapaInicial = EtapaFlujo.builder().idEtapa(1L).nombreEtapa("Inicio").build();
         etapaSiguiente = EtapaFlujo.builder().idEtapa(2L).nombreEtapa("Revision").build();
+
+        // Por defecto el cliente ya tiene su identidad verificada: la mayoría
+        // de estos tests no ejercitan el gating de REQ-F-006 ampliado.
+        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
     }
 
     @AfterEach
@@ -162,6 +171,18 @@ class PedidoServicioImplTest {
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, PeticionCrearPedido.builder().idServicio(1L).build()))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("crearPedido rechaza si el cliente no tiene la identidad verificada")
+    void crearPedido_identidadNoVerificada_lanzaExcepcionReglaNegocio() {
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+
+        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, PeticionCrearPedido.builder().idServicio(1L).build()))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("verificar tu identidad");
+        verifyNoInteractions(servicioRepository);
     }
 
     // ---------- actualizarTerminos ----------
