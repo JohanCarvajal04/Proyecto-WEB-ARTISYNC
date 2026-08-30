@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject, computed, signal } from '@angular
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, interval, of, startWith, switchMap, catchError } from 'rxjs';
 import { AuthService } from '../../features/seguridad/services/auth.service';
-import { NavItem } from '../../core/config/nav.config';
+import { NavItem, navItemLinkCommands } from '../../core/config/nav.config';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { NotificacionService } from '../../features/comunicacion/services/notificacion.service';
 
@@ -53,6 +53,11 @@ export class ClientDashboardLayoutComponent implements OnInit, OnDestroy {
   navItems = computed<NavItem[]>(() => this.authService.visibleNavItems());
 
   navBasePath = computed(() => this.authService.panelBasePath());
+
+  /** Ver `navItemLinkCommands`: evita que una `item.route` con "/" se rompa en el routerLink. */
+  linkCommands(item: NavItem): string[] {
+    return navItemLinkCommands(item, this.navBasePath());
+  }
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen.update(v => !v);

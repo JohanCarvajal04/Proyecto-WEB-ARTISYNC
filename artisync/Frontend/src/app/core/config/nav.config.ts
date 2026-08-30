@@ -92,7 +92,10 @@ export const PAGE_PERMISSIONS = {
   // tienen también CREADOR y CLIENTE (ver ADMIN_PANEL_PERMISSIONS más abajo),
   // así que abriría esta pantalla admin a cualquiera con un contrato propio.
   reportesFinanzas: ['TRANSACCION_VER'],
-  reportesContratos: ['TRANSACCION_VER']
+  reportesContratos: ['TRANSACCION_VER'],
+  // Supervisión de pagos en escrow. PAGO_AUDITAR estaba asignado a
+  // AUDITOR_FINANCIERO desde el seed inicial sin ninguna pantalla que lo usara.
+  pagosGarantia: ['PAGO_AUDITAR']
 } as const satisfies Record<string, readonly string[]>;
 
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
@@ -114,6 +117,21 @@ export const PANEL_BASE_PATH: Record<PanelId, string> = {
  */
 export function navItemPath(item: NavItem, basePathDelPanel: string): string {
   return `${item.basePath ?? basePathDelPanel}/${item.route}`;
+}
+
+/**
+ * Commands de `[routerLink]` para un ítem del menú.
+ *
+ * `item.route` puede tener varios segmentos (p. ej. "explorar/creadores").
+ * Pasar ese string tal cual como UN elemento del array de `routerLink` no lo
+ * divide en segmentos: Angular lo trata como un único segmento literal y la
+ * barra interna queda url-encodeada (`%2F`), así que el enlace apunta a una
+ * ruta que no existe y el clic no navega a ningún sitio. Separar aquí por
+ * "/" antes de devolver el array es lo que hace que cada segmento se navegue
+ * de verdad.
+ */
+export function navItemLinkCommands(item: NavItem, basePathDelPanel: string): string[] {
+  return [item.basePath ?? basePathDelPanel, ...item.route.split('/')];
 }
 
 /**
@@ -236,6 +254,10 @@ export function resolvePanel(roles: readonly string[], permisos: readonly string
 export const NAV_CATALOG: readonly NavItem[] = [
   // ─── Panel de administración ───
   { label: 'Gestión de Usuarios', icon: 'group', route: 'users', panel: 'admin', permissions: PAGE_PERMISSIONS.users },
+  // Antes de "Panel de Moderación" a propósito: es la única pantalla que ve
+  // AUDITOR_FINANCIERO antes de este punto en la lista, así que de otro modo
+  // su página de aterrizaje sería "Gestión de Países" (más abajo).
+  { label: 'Pagos y Garantías', icon: 'account_balance', route: 'pagos-garantia', panel: 'admin', permissions: PAGE_PERMISSIONS.pagosGarantia },
   { label: 'Panel de Moderación', icon: 'dashboard', route: 'mod-overview', panel: 'admin', permissions: PAGE_PERMISSIONS.panelModeracion },
   { label: 'Verificaciones', icon: 'verified', route: 'verificaciones', panel: 'admin', permissions: PAGE_PERMISSIONS.verificaciones },
   { label: 'Portafolios', icon: 'palette', route: 'mod-portafolios', panel: 'admin', permissions: PAGE_PERMISSIONS.portafoliosModeracion },
@@ -264,6 +286,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Briefings', icon: 'assignment', route: 'briefings', panel: 'creador' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'creador' },
   { label: 'Reseñas', icon: 'rate_review', route: 'resenas', panel: 'creador' },
+  { label: 'Seguidores', icon: 'group', route: 'seguidores', panel: 'creador' },
   { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'creador', permissions: PAGE_PERMISSIONS.sorteos },
   { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio },
   { label: 'Certificados IA', icon: 'verified', route: 'certificados', panel: 'creador' },
@@ -277,6 +300,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // ─── Panel de cliente ───
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'cliente' },
   { label: 'Explorar', icon: 'storefront', route: 'explorar', panel: 'cliente' },
+  { label: 'Creadores', icon: 'group', route: 'explorar/creadores', panel: 'cliente' },
   { label: 'Mis Pedidos', icon: 'shopping_bag', route: 'mis-pedidos', panel: 'cliente' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'cliente' },
   { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'cliente' },

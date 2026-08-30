@@ -43,7 +43,7 @@
         <nav class="flex flex-col gap-2">
           @for (item of navItems(); track item.label) {
             <a
-              [routerLink]="[item.basePath ?? navBasePath(), item.route]"
+              [routerLink]="linkCommands(item)"
               routerLinkActive="active-client-nav"
               #rla="routerLinkActive"
               (click)="isMobileMenuOpen.set(false)"
