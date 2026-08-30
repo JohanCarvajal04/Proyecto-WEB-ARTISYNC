@@ -4,13 +4,16 @@ import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 type FiltroEstado = 'todos' | 'activos' | 'completados';
 
 @Component({
   selector: 'app-mis-pedidos-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, BotonExportarComponent],
   templateUrl: './mis-pedidos-dashboard.component.html'
 })
 export class MisPedidosDashboardComponent implements OnInit {
@@ -20,6 +23,7 @@ export class MisPedidosDashboardComponent implements OnInit {
   readonly pedidos = signal<RespuestaPedidoResumido[]>([]);
   readonly isLoading = signal<boolean>(true);
   readonly error = signal<string>('');
+  readonly exportando = signal<boolean>(false);
 
   readonly filtroEstado = signal<FiltroEstado>('todos');
   readonly filtroEtapa = signal<string>('');
@@ -73,6 +77,26 @@ export class MisPedidosDashboardComponent implements OnInit {
       error: (err) => {
         this.error.set(err.error?.message || 'Error al cargar tus pedidos');
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  /** Mismo criterio de rol que loadPedidos(): exporta lo que la pantalla está mostrando. */
+  exportar(formato: FormatoReporte): void {
+    this.exportando.set(true);
+    const role = this.authService.primaryRole();
+    const req$ = role === 'CREADOR'
+      ? this.pedidoService.exportarMisComisiones(formato)
+      : this.pedidoService.exportarMisPedidos(formato);
+
+    req$.subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarRespuesta(respuesta, `${role === 'CREADOR' ? 'comisiones' : 'pedidos'}.${formato.toLowerCase()}`);
+      },
+      error: async (err) => {
+        this.exportando.set(false);
+        this.error.set(await mensajeErrorBlob(err, 'No se pudo exportar el listado'));
       }
     });
   }
