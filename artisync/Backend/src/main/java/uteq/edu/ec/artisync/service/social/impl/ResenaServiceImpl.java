@@ -80,6 +80,53 @@ public class ResenaServiceImpl implements ResenaService {
 
     @Override
     @Transactional(readOnly = true)
+    public RespuestaResena obtenerMiResena(Long idPedido, Long idCliente) {
+        return resenaServicioRepository.findByPedidoIdPedido(idPedido)
+                .filter(resena -> resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente))
+                .map(this::mapToResponse)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = "RESENA_EDITAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{calificacionEstrellas: #peticion.calificacionEstrellas}")
+    public RespuestaResena actualizarResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
+        ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Este pedido no tiene una reseña"));
+
+        if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo el cliente que dejó la reseña puede editarla");
+        }
+
+        resena.setCalificacionEstrellas(peticion.getCalificacionEstrellas());
+        resena.setTextoResena(peticion.getTextoResena());
+        resena = resenaServicioRepository.save(resena);
+        log.info("Reseña del pedido {} editada por cliente {}", idPedido, idCliente);
+        return mapToResponse(resena);
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = "RESENA_ELIMINAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "pedidos", idEntidad = "#idPedido")
+    public void eliminarResena(Long idPedido, Long idCliente) {
+        ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Este pedido no tiene una reseña"));
+
+        if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo el cliente que dejó la reseña puede eliminarla");
+        }
+
+        resenaServicioRepository.delete(resena);
+        log.info("Reseña del pedido {} eliminada por cliente {}", idPedido, idCliente);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RespuestaResena> listarResenasPorCreador(Long idPerfilCreador) {
         return resenaServicioRepository.findByCreadorIdPerfil(idPerfilCreador)
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
