@@ -224,19 +224,47 @@
                     <img [src]="item.urlArchivo" [alt]="item.tituloObra" loading="lazy" />
                   }
                 </div>
-                <figcaption class="pf-obra__info">
-                  <p class="pf-obra__titulo">{{ item.tituloObra }}</p>
-                  @if (item.descripcionObra) {
-                    <p class="pf-obra__desc">{{ item.descripcionObra }}</p>
-                  }
-                  <span class="cr-hint">{{ formatDate(item.fechaSubida) }}</span>
-                </figcaption>
-                <button type="button" class="cr-btn cr-btn--danger cr-btn--sm"
-                        [disabled]="eliminando() === item.idItemPortafolio"
-                        (click)="eliminarObra(item)">
-                  @if (eliminando() === item.idItemPortafolio) { <span class="cr-spinner cr-spinner--sm"></span> }
-                  Eliminar
-                </button>
+                @if (idItemEditando() === item.idItemPortafolio) {
+                  <div class="pf-obra__info">
+                    <input type="text" class="cr-input" maxlength="150"
+                           [(ngModel)]="tituloEdicion" placeholder="Título de la obra" />
+                    <textarea class="cr-input" rows="2" maxlength="500"
+                              [(ngModel)]="descripcionEdicion" placeholder="Descripción (opcional)"></textarea>
+                  </div>
+                  <div class="pf-obra__acciones">
+                    <button type="button" class="cr-btn cr-btn--primary cr-btn--sm"
+                            [disabled]="guardandoEdicion() || !tituloEdicion.trim()"
+                            (click)="guardarEdicionObra(item)">
+                      @if (guardandoEdicion()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                      Guardar
+                    </button>
+                    <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm"
+                            [disabled]="guardandoEdicion()"
+                            (click)="cancelarEdicionObra()">
+                      Cancelar
+                    </button>
+                  </div>
+                } @else {
+                  <figcaption class="pf-obra__info">
+                    <p class="pf-obra__titulo">{{ item.tituloObra }}</p>
+                    @if (item.descripcionObra) {
+                      <p class="pf-obra__desc">{{ item.descripcionObra }}</p>
+                    }
+                    <span class="cr-hint">{{ formatDate(item.fechaSubida) }}</span>
+                  </figcaption>
+                  <div class="pf-obra__acciones">
+                    <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm"
+                            (click)="editarObra(item)">
+                      Editar
+                    </button>
+                    <button type="button" class="cr-btn cr-btn--danger cr-btn--sm"
+                            [disabled]="eliminando() === item.idItemPortafolio"
+                            (click)="eliminarObra(item)">
+                      @if (eliminando() === item.idItemPortafolio) { <span class="cr-spinner cr-spinner--sm"></span> }
+                      Eliminar
+                    </button>
+                  </div>
+                }
               </figure>
             }
           </div>
