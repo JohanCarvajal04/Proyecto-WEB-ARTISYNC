@@ -2,8 +2,8 @@
 
 export interface VerificacionCola {
   idCertificado: number;
-  idPerfil: number;
-  nombreCreador: string;
+  idUsuario: number;
+  nombreUsuario: string;
   tipoDocumento: string;
   nombreEstado: string;
   veredictoIa: string | null;
@@ -13,7 +13,7 @@ export interface VerificacionCola {
 
 export interface VerificacionDetalle {
   idCertificado: number;
-  idPerfil: number;
+  idUsuario: number;
   tipoDocumento: string;
   nombreEstadoVerificacion: string;
   veredictoIa: string | null;
@@ -36,7 +36,7 @@ export interface DecisionVerificacion {
 
 export interface CertificadoIa {
   idCertificado: number;
-  idPerfil: number;
+  idUsuario: number;
   idEstadoVerificacion: number;
   nombreEstadoVerificacion: string;
   urlDocumentoS3: string;
@@ -88,6 +88,19 @@ export interface Portafolio {
   totalVisitasAcumuladas: number;
   esPublico: boolean;
   opcionesPersonalizacion: Record<string, string> | null;
+}
+
+// ─── Comentarios (COMENTARIO_MODERAR) ───
+
+/** RespuestaComentario del backend: comentarios sobre ítems de portafolio. */
+export interface Comentario {
+  idComentario: number;
+  idItemPortafolio: number;
+  idUsuarioAutor: number;
+  nombreAutor: string;
+  textoComentario: string;
+  estadoModeracion: string;
+  fechaPublicacion: string;
 }
 
 // ─── Categorías (CATEGORIA_GESTIONAR) ───

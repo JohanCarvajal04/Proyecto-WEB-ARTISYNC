@@ -1,0 +1,76 @@
+<div class="flex flex-col gap-5">
+
+  @if (puedeComentar) {
+    <div class="flex flex-col gap-2">
+      <textarea rows="3" [attr.maxlength]="maxTexto" [value]="texto()" (input)="onTexto($event)"
+        placeholder="Escribe un comentario sobre esta obra..."
+        class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all resize-none"></textarea>
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] text-slate-300 font-mono">{{ texto().length }} / {{ maxTexto }}</span>
+        <button type="button" (click)="publicar()" [disabled]="!texto().trim() || enviando()"
+          class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-5 py-2 rounded-full text-xs transition-all shadow-sm hover:shadow-md flex items-center gap-2">
+          @if (enviando()) {
+            <span class="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></span>
+            Publicando...
+          } @else {
+            Comentar
+          }
+        </button>
+      </div>
+      @if (error()) {
+        <p class="text-xs text-rose-600">{{ error() }}</p>
+      }
+    </div>
+  } @else {
+    <p class="text-xs text-slate-400 bg-slate-50 rounded-xl px-4 py-3">Inicia sesión para dejar un comentario.</p>
+  }
+
+  <div class="flex flex-col gap-4">
+    @if (cargando()) {
+      <div class="flex justify-center py-6">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500"></div>
+      </div>
+    } @else if (pagina().contenido.length === 0) {
+      <p class="text-sm text-slate-400 text-center py-6">Aún no hay comentarios en esta obra.</p>
+    } @else {
+      @for (comentario of pagina().contenido; track comentario.idComentario) {
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center text-xs font-bold shrink-0">
+            {{ (comentario.nombreAutor || '?').charAt(0).toUpperCase() }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-baseline gap-2">
+                <span class="text-sm font-semibold text-slate-800">{{ comentario.nombreAutor }}</span>
+                <span class="text-[10px] text-slate-300 font-mono">{{ formatFecha(comentario.fechaPublicacion) }}</span>
+              </div>
+              @if (puedeEliminar(comentario)) {
+                <button type="button" (click)="eliminar(comentario)" [disabled]="eliminandoId() === comentario.idComentario"
+                  class="text-[10px] font-semibold text-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50">
+                  Eliminar
+                </button>
+              }
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed mt-0.5 whitespace-pre-line">{{ comentario.textoComentario }}</p>
+          </div>
+        </div>
+      }
+    }
+
+    @if (pagina().totalPaginas > 1) {
+      <div class="flex items-center justify-center gap-3 pt-2 border-t border-slate-100">
+        <button type="button" (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          Anterior
+        </button>
+        <span class="text-[10px] text-slate-400 font-mono">
+          Página {{ pagina().numero + 1 }} de {{ pagina().totalPaginas }}
+        </span>
+        <button type="button" (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          Siguiente
+        </button>
+      </div>
+    }
+  </div>
+</div>

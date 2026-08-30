@@ -16,6 +16,12 @@ public interface IPortafolioItemServicio {
 
     RespuestaPortafolioItem obtenerItem(Long idItem, Long idUsuario);
 
+    /**
+     * Edita el título y la descripción de una obra. El archivo no cambia: para
+     * reemplazarlo hay que eliminar la obra y subir una nueva.
+     */
+    RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion);
+
     ArchivoItem descargarArchivo(Long idItem, Long idUsuario);
 
     void eliminarItem(Long idItem, Long idUsuario);

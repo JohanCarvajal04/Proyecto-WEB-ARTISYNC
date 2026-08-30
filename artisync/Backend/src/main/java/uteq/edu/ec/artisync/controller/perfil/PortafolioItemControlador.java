@@ -79,6 +79,15 @@ public class PortafolioItemControlador {
                 .body(archivo.contenido());
     }
 
+    @PutMapping("/items/{idItem}")
+    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    public ResponseEntity<RespuestaPortafolioItem> actualizarItem(
+            @PathVariable Long idItem,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionCrearPortafolioItem datos) {
+        return ResponseEntity.ok(itemServicio.actualizarItem(idItem, userDetails.getIdUsuario(), datos));
+    }
+
     @DeleteMapping("/items/{idItem}")
     @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarItem(

@@ -112,6 +112,20 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional
+    public RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion) {
+        PortafolioItem item = buscarItem(idItem);
+        exigirPropietario(item.getPortafolio(), idUsuario);
+
+        item.setTituloObra(peticion.tituloObra());
+        item.setDescripcionObra(peticion.descripcionObra());
+        item = itemRepository.save(item);
+
+        log.info("Obra {} actualizada en el portafolio {}", idItem, item.getPortafolio().getIdPortafolio());
+        return mapear(item);
+    }
+
+    @Override
+    @Transactional
     public void eliminarItem(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);
