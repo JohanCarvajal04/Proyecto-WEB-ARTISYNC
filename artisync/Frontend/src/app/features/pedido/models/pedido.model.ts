@@ -89,13 +89,28 @@ export interface PeticionAvanzarEtapa {
 }
 
 /**
- * Ajuste de precio y/o fecha negociado por chat antes de firmar el contrato.
- * Al menos uno de los dos debe venir; el backend rechaza el resto de casos
- * (ver PedidoServicioImpl#actualizarTerminos).
+ * Propuesta de precio y/o fecha final, negociada por chat antes de firmar el
+ * contrato. Al menos uno de los dos debe venir; el backend rechaza el resto
+ * de casos (ver PedidoServicioImpl#proponerTerminos). El cambio no se aplica
+ * al pedido hasta que la contraparte del proponente la acepta.
  */
-export interface PeticionActualizarTerminosPedido {
-  precioPactado?: number | null;
-  fechaEntregaEstimada?: string | null;
+export interface PeticionCrearPropuestaTerminos {
+  precioPropuesto?: number | null;
+  fechaEntregaPropuesta?: string | null;
+}
+
+export type EstadoPropuestaTerminos = 'PENDIENTE' | 'ACEPTADA' | 'RECHAZADA' | 'CANCELADA';
+
+export interface RespuestaPropuestaTerminos {
+  idPropuesta: number;
+  idPedido: number;
+  idUsuarioPropuso: number;
+  nombrePropuso: string;
+  precioPropuesto: number | null;
+  fechaEntregaPropuesta: string | null;
+  estado: EstadoPropuestaTerminos;
+  fechaCreacion: string;
+  fechaResolucion: string | null;
 }
 
 // ── Tickets de Revisión ──

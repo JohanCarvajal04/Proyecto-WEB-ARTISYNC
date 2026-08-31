@@ -4,7 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { interval, Subscription, switchMap, of, catchError } from 'rxjs';
 import { PedidoService } from '../../services/pedido.service';
 import { TicketRevisionService } from '../../services/ticket-revision.service';
-import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision, PeticionActualizarTerminosPedido } from '../../models/pedido.model';
+import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision } from '../../models/pedido.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { EntregableService } from '../../../legal/services/entregable.service';
 import { ContratoService } from '../../../legal/services/contrato.service';
@@ -27,12 +27,6 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
   contrato: RespuestaContrato | null = null;
   loading = true;
   error = '';
-
-  // Negociar términos (precio / fecha) antes de firmar el contrato
-  nuevoPrecio: number | null = null;
-  nuevaFechaEntrega = '';
-  actualizandoTerminos = false;
-  mensajeTerminos = '';
 
   /**
    * La reseña solo se habilita tras la aprobación del entregable, que es la
@@ -139,68 +133,6 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * El contrato renderiza precio/fecha en vivo desde el pedido, así que
-   * cambiarlos deja de ser seguro apenas alguien firmó: quien ya firmó vería
-   * en silencio un contenido distinto del que aceptó. El backend aplica la
-   * misma regla (ver PedidoServicioImpl#actualizarTerminos); esto solo evita
-   * mostrar un formulario que el servidor va a rechazar.
-   */
-  get puedeNegociarTerminos(): boolean {
-    return !this.contrato || (!this.contrato.hashFirmaCreador && !this.contrato.hashFirmaCliente);
-  }
-
-  /**
-   * `min` del input datetime-local: evita que el selector nativo ofrezca
-   * siquiera una fecha pasada. El backend igual la rechaza con @Future
-   * (PeticionActualizarTerminosPedido) si alguien la fuerza por fuera del UI.
-   */
-  get minFechaEntrega(): string {
-    const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
-    return ahora.toISOString().slice(0, 16);
-  }
-
-  actualizarTerminos(): void {
-    if (this.actualizandoTerminos) return;
-
-    const peticion: PeticionActualizarTerminosPedido = {};
-    if (this.nuevoPrecio != null) peticion.precioPactado = this.nuevoPrecio;
-    if (this.nuevaFechaEntrega) peticion.fechaEntregaEstimada = this.nuevaFechaEntrega;
-
-    if (peticion.precioPactado == null && !peticion.fechaEntregaEstimada) {
-      this.mensajeTerminos = 'Indica un nuevo precio o una nueva fecha de entrega.';
-      return;
-    }
-
-    this.actualizandoTerminos = true;
-    this.mensajeTerminos = '';
-
-    this.pedidoService.actualizarTerminos(this.pedidoId, peticion).subscribe({
-      next: (pedido) => {
-        this.pedido = pedido;
-        this.nuevoPrecio = null;
-        this.nuevaFechaEntrega = '';
-        this.actualizandoTerminos = false;
-        this.mensajeTerminos = 'Términos actualizados.';
-        this.cdr.markForCheck();
-        setTimeout(() => { this.mensajeTerminos = ''; this.cdr.markForCheck(); }, 4000);
-      },
-      error: (err) => {
-        // El backend responde ProblemDetail (RFC 7807): el mensaje va en
-        // `detail`, y una falla de @Valid (p. ej. @Future en la fecha) además
-        // trae `fieldErrors` con el detalle por campo — nunca hay un
-        // `message` de nivel superior, así que leerlo siempre caía al
-        // genérico de abajo, incluso cuando el backend sí explicaba el motivo.
-        const erroresPorCampo = err.error?.fieldErrors;
-        this.mensajeTerminos = (erroresPorCampo && Object.values(erroresPorCampo).join(', '))
-          || err.error?.detail
-          || 'No se pudieron actualizar los términos';
-        this.actualizandoTerminos = false;
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
   avanzarEtapa(): void {
     if (this.avanzando) return;
     this.avanzando = true;
@@ -215,7 +147,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         // El backend responde ProblemDetail (RFC 7807): el mensaje va en
-        // `detail`, no en `message` (ver el mismo ajuste en actualizarTerminos).
+        // `detail`, no en `message`.
         this.error = err.error?.detail || 'No se pudo avanzar la etapa';
         this.avanzando = false;
       }

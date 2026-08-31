@@ -450,6 +450,29 @@ CREATE TABLE tickets_revision (
     estado_ticket VARCHAR(50) DEFAULT 'Abierto'
 );
 
+-- Origen V27 (db/migration): propuestas de cambio de precio/fecha de entrega
+-- con consentimiento mutuo. El cambio solo se aplica al pedido cuando la
+-- CONTRAPARTE del proponente acepta (PedidoServicioImpl#aceptarPropuestaTerminos),
+-- y esa misma aceptacion genera el contrato si aun no existia.
+CREATE TABLE propuestas_terminos_pedido (
+    id_propuesta BIGSERIAL PRIMARY KEY,
+    id_pedido BIGINT NOT NULL REFERENCES pedidos(id_pedido) ON DELETE CASCADE,
+    id_usuario_propuso BIGINT NOT NULL REFERENCES usuarios(id_usuario),
+    precio_propuesto DECIMAL(10,2),
+    fecha_entrega_propuesta TIMESTAMP,
+    estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_resolucion TIMESTAMP
+);
+
+-- Defensa en profundidad: dos propuestas pendientes simultaneas para el mismo
+-- pedido no deben poder coexistir aunque ambas partes propongan a la vez.
+CREATE UNIQUE INDEX ux_propuestas_terminos_pedido_pendiente
+    ON propuestas_terminos_pedido(id_pedido)
+    WHERE estado = 'PENDIENTE';
+
+CREATE INDEX idx_propuestas_terminos_pedido ON propuestas_terminos_pedido(id_pedido);
+
 
 -- ==============================================================================
 -- MÓDULO 5: LEGAL, ENTREGABLES Y FINANZAS (ESCROW)

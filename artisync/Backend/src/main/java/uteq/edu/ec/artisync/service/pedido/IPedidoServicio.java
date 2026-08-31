@@ -1,11 +1,12 @@
 package uteq.edu.ec.artisync.service.pedido;
 
-import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaHistorialEstado;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -42,11 +43,28 @@ public interface IPedidoServicio {
     RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion);
 
     /**
-     * Ajusta precio y/o fecha de entrega mientras se negocia por chat, antes
-     * de que el contrato tenga alguna firma. Puede llamarlo el cliente o el
-     * creador del pedido.
+     * Propone un precio y/o fecha de entrega final, negociados por chat,
+     * antes de que el contrato tenga alguna firma. Puede llamarlo el cliente
+     * o el creador del pedido. El cambio no se aplica al pedido hasta que la
+     * contraparte lo acepte con {@link #aceptarPropuestaTerminos}.
      */
-    RespuestaPedido actualizarTerminos(Long idPedido, Long idUsuario, PeticionActualizarTerminosPedido peticion);
+    RespuestaPropuestaTerminos proponerTerminos(Long idPedido, Long idUsuario, PeticionCrearPropuestaTerminos peticion);
+
+    /**
+     * Solo la contraparte del proponente puede aceptar. Aplica los valores
+     * propuestos al pedido y, si el pedido aún no tiene contrato, lo genera
+     * ya con esos valores como términos finales.
+     */
+    RespuestaPedido aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
+
+    /** Solo la contraparte del proponente puede rechazar. No modifica el pedido. */
+    RespuestaPropuestaTerminos rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
+
+    /** Solo el propio proponente puede cancelar su propuesta pendiente. */
+    RespuestaPropuestaTerminos cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
+
+    /** Lanza ExcepcionRecursoNoEncontrado si no hay ninguna propuesta pendiente. */
+    RespuestaPropuestaTerminos obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante);
 
     List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante);
 

@@ -12,12 +12,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaHistorialEstado;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
@@ -28,12 +30,15 @@ import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.pedido.PropuestaTerminosPedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
+import uteq.edu.ec.artisync.repository.pedido.PropuestaTerminosPedidoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
@@ -83,10 +88,12 @@ class PedidoServicioImplTest {
     @Mock private EtapaFlujoRepository etapaFlujoRepository;
     @Mock private ContratoRepository contratoRepository;
     @Mock private EntregableFinalRepository entregableFinalRepository;
+    @Mock private PropuestaTerminosPedidoRepository propuestaTerminosPedidoRepository;
     @Mock private NotificacionService notificacionService;
     @Mock private ChatService chatService;
     @Mock private IServicioExportacion servicioExportacion;
     @Mock private IVerificacionServicio verificacionServicio;
+    @Mock private IContratoServicio contratoServicio;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -191,73 +198,153 @@ class PedidoServicioImplTest {
         verifyNoInteractions(servicioRepository);
     }
 
-    // ---------- actualizarTerminos ----------
+    // ---------- proponerTerminos / aceptarPropuestaTerminos / rechazarPropuestaTerminos ----------
 
     @Test
-    @DisplayName("actualizarTerminos rechaza si no llega ningun campo")
-    void actualizarTerminos_rechazaPeticionVacia() {
-        assertThatThrownBy(() -> pedidoServicio.actualizarTerminos(
-                10L, 1L, PeticionActualizarTerminosPedido.builder().build()))
+    @DisplayName("proponerTerminos rechaza si no llega ningun campo")
+    void proponerTerminos_rechazaPeticionVacia() {
+        assertThatThrownBy(() -> pedidoServicio.proponerTerminos(
+                10L, 1L, PeticionCrearPropuestaTerminos.builder().build()))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
     @Test
-    @DisplayName("actualizarTerminos rechaza a un usuario que no es cliente ni creador del pedido")
-    void actualizarTerminos_rechazaUsuarioAjeno() {
+    @DisplayName("proponerTerminos rechaza a un usuario que no es cliente ni creador del pedido")
+    void proponerTerminos_rechazaUsuarioAjeno() {
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
-        PeticionActualizarTerminosPedido peticion =
-                PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
+        PeticionCrearPropuestaTerminos peticion =
+                PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
 
-        assertThatThrownBy(() -> pedidoServicio.actualizarTerminos(10L, 999L, peticion))
+        assertThatThrownBy(() -> pedidoServicio.proponerTerminos(10L, 999L, peticion))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
     @Test
-    @DisplayName("actualizarTerminos permite al cliente cambiar el precio y notifica al creador")
-    void actualizarTerminos_clientePuedeCambiarPrecio() {
+    @DisplayName("proponerTerminos rechaza si ya existe una propuesta pendiente")
+    void proponerTerminos_rechazaSiYaHayPropuestaPendiente() {
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
         given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
-        given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
-        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        PeticionActualizarTerminosPedido peticion =
-                PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
+        given(propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(10L, PropuestaTerminosPedido.PENDIENTE))
+                .willReturn(Optional.of(PropuestaTerminosPedido.builder().idPropuesta(1L).build()));
+        PeticionCrearPropuestaTerminos peticion =
+                PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
 
-        RespuestaPedido respuesta = pedidoServicio.actualizarTerminos(10L, 1L, peticion);
+        assertThatThrownBy(() -> pedidoServicio.proponerTerminos(10L, 1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
 
-        assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("35.00");
+        verify(propuestaTerminosPedidoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("proponerTerminos guarda la propuesta y notifica al creador cuando propone el cliente")
+    void proponerTerminos_clientePuedeProponerYNotificaCreador() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
+        given(propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(10L, PropuestaTerminosPedido.PENDIENTE))
+                .willReturn(Optional.empty());
+        given(propuestaTerminosPedidoRepository.save(any(PropuestaTerminosPedido.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+        PeticionCrearPropuestaTerminos peticion =
+                PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
+
+        RespuestaPropuestaTerminos respuesta = pedidoServicio.proponerTerminos(10L, 1L, peticion);
+
+        assertThat(respuesta.getPrecioPropuesto()).isEqualByComparingTo("35.00");
+        assertThat(respuesta.getEstado()).isEqualTo(PropuestaTerminosPedido.PENDIENTE);
         verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(creador), anyString(), anyString());
     }
 
     @Test
-    @DisplayName("actualizarTerminos permite al creador cambiar la fecha de entrega")
-    void actualizarTerminos_creadorPuedeCambiarFecha() {
+    @DisplayName("proponerTerminos rechaza si el contrato ya tiene alguna firma")
+    void proponerTerminos_rechazaConContratoFirmado() {
+        Contrato contrato = Contrato.builder().idContrato(5L).pedido(pedido).hashFirmaCliente("hash").build();
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.of(contrato));
+        PeticionCrearPropuestaTerminos peticion =
+                PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
+
+        assertThatThrownBy(() -> pedidoServicio.proponerTerminos(10L, 1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+
+        verify(propuestaTerminosPedidoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("aceptarPropuestaTerminos aplica el cambio y genera el contrato si aun no existia")
+    void aceptarPropuestaTerminos_aplicaCambioYGeneraContrato() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
         given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.empty());
         given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
+        given(propuestaTerminosPedidoRepository.save(any(PropuestaTerminosPedido.class)))
+                .willAnswer(inv -> inv.getArgument(0));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
-        var nuevaFecha = java.time.LocalDateTime.now().plusDays(10);
-        PeticionActualizarTerminosPedido peticion =
-                PeticionActualizarTerminosPedido.builder().fechaEntregaEstimada(nuevaFecha).build();
+        given(contratoServicio.generarContrato(10L, 2L)).willReturn(RespuestaContrato.builder().idContrato(99L).build());
 
-        RespuestaPedido respuesta = pedidoServicio.actualizarTerminos(10L, 2L, peticion);
+        // El creador (idUsuario=2) acepta la propuesta creada por el cliente (idUsuario=1).
+        RespuestaPedido respuesta = pedidoServicio.aceptarPropuestaTerminos(10L, 7L, 2L);
 
-        assertThat(respuesta.getFechaEntregaEstimada()).isEqualTo(nuevaFecha);
+        assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("35.00");
+        assertThat(propuesta.getEstado()).isEqualTo(PropuestaTerminosPedido.ACEPTADA);
+        verify(contratoServicio).generarContrato(10L, 2L);
         verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
     }
 
     @Test
-    @DisplayName("actualizarTerminos rechaza si el contrato ya tiene alguna firma")
-    void actualizarTerminos_rechazaConContratoFirmado() {
-        Contrato contrato = Contrato.builder().idContrato(5L).pedido(pedido).hashFirmaCliente("hash").build();
+    @DisplayName("aceptarPropuestaTerminos no regenera el contrato si ya existia")
+    void aceptarPropuestaTerminos_noRegeneraContratoExistente() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        Contrato contratoExistente = Contrato.builder().idContrato(3L).pedido(pedido).build();
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
-        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.of(contrato));
-        PeticionActualizarTerminosPedido peticion =
-                PeticionActualizarTerminosPedido.builder().precioPactado(new BigDecimal("35.00")).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+        given(contratoRepository.findByPedidoIdPedido(10L)).willReturn(Optional.of(contratoExistente));
+        given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
+        given(propuestaTerminosPedidoRepository.save(any(PropuestaTerminosPedido.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
 
-        assertThatThrownBy(() -> pedidoServicio.actualizarTerminos(10L, 1L, peticion))
+        pedidoServicio.aceptarPropuestaTerminos(10L, 7L, 2L);
+
+        verify(contratoServicio, never()).generarContrato(any(), any());
+    }
+
+    @Test
+    @DisplayName("aceptarPropuestaTerminos rechaza la auto-aceptacion")
+    void aceptarPropuestaTerminos_rechazaAutoAceptacion() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.aceptarPropuestaTerminos(10L, 7L, 1L))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
 
         verify(pedidoRepository, never()).save(any());
+        verifyNoInteractions(contratoServicio);
+    }
+
+    @Test
+    @DisplayName("rechazarPropuestaTerminos marca la propuesta rechazada sin tocar el pedido")
+    void rechazarPropuestaTerminos_marcaRechazadaSinTocarPedido() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+        given(propuestaTerminosPedidoRepository.save(any(PropuestaTerminosPedido.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        RespuestaPropuestaTerminos respuesta = pedidoServicio.rechazarPropuestaTerminos(10L, 7L, 2L);
+
+        assertThat(respuesta.getEstado()).isEqualTo(PropuestaTerminosPedido.RECHAZADA);
+        verify(pedidoRepository, never()).save(any());
+        verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
     }
 
     // ---------- obtenerPedidoPorId (IDOR, OBS-08) ----------

@@ -18,6 +18,11 @@ export class ContratoVistaComponent implements OnInit {
   firmando = false;
   error = '';
   successMsg = '';
+  /** El contrato ya no se autogenera al visitar esta página: se genera solo
+   * al aceptar la primera propuesta de términos finales (ver
+   * ChatPedidoComponent#aceptarPropuesta). Este flag distingue ese estado
+   * (sin contrato aún, nada raro) de un error real de carga. */
+  sinTerminosAcordados = false;
 
   // Público: el template lo usa para el enlace "Volver al pedido", igual que
   // pago-checkout y entregable-vista (pantallas hermanas del mismo detalle).
@@ -47,6 +52,7 @@ export class ContratoVistaComponent implements OnInit {
   cargarContrato(): void {
     this.loading = true;
     this.error = '';
+    this.sinTerminosAcordados = false;
 
     const obs$ = this.modo === 'pedido'
       ? this.contratoService.obtenerContratoPorPedido(this.idPedido)
@@ -65,28 +71,14 @@ export class ContratoVistaComponent implements OnInit {
         this.cdr.markForCheck();
       },
       error: (err) => {
+        // 404 en modo 'pedido' = aún no se acordaron términos finales (el
+        // contrato solo se genera al aceptar una propuesta de términos, ver
+        // ChatPedidoComponent#aceptarPropuesta) — no es un error de carga.
         if (this.modo === 'pedido' && err.status === 404) {
-          this.generarContrato();
+          this.sinTerminosAcordados = true;
         } else {
           this.error = err.error?.message || 'Error al cargar el contrato';
-          this.loading = false;
-          this.cdr.markForCheck();
         }
-      }
-    });
-  }
-
-  generarContrato(): void {
-    this.contratoService.generarContrato(this.idPedido).subscribe({
-      next: (contrato) => {
-        this.contrato = contrato;
-        this.idContrato = contrato.idContrato;
-        this.loading = false;
-        this.cargarEstadoFirma();
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Error al generar el contrato';
         this.loading = false;
         this.cdr.markForCheck();
       }
