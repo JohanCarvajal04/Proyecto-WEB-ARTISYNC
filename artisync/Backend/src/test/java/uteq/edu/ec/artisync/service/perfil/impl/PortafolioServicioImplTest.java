@@ -14,6 +14,8 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
@@ -42,12 +44,16 @@ class PortafolioServicioImplTest {
     @InjectMocks
     private PortafolioServicioImpl portafolioServicio;
 
+    private static final Long ID_USUARIO_DUENIO = 5L;
+    private static final Long ID_USUARIO_AJENO = 99L;
+
     private PerfilCreador perfil;
     private Portafolio portafolio;
 
     @BeforeEach
     void setUp() {
-        perfil = PerfilCreador.builder().idPerfil(1L).build();
+        Usuario duenio = Usuario.builder().idUsuario(ID_USUARIO_DUENIO).build();
+        perfil = PerfilCreador.builder().idPerfil(1L).usuario(duenio).build();
         portafolio = Portafolio.builder().idPortafolio(10L).perfil(perfil).esPublico(true)
                 .totalVisitasAcumuladas(0).build();
     }
@@ -60,7 +66,7 @@ class PortafolioServicioImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(portafolioRepository.save(any(Portafolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion);
+        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isTrue();
         assertThat(respuesta.opcionesPersonalizacion()).containsEntry("primary", "#0d6efd");
@@ -75,7 +81,7 @@ class PortafolioServicioImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(portafolioRepository.save(any(Portafolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion);
+        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isFalse();
         assertThat(respuesta.opcionesPersonalizacion()).isEqualTo(opciones);
@@ -87,7 +93,7 @@ class PortafolioServicioImplTest {
         PeticionCrearPortafolio peticion = new PeticionCrearPortafolio(1L, null, null);
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.of(portafolio));
 
-        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion))
+        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO))
                 .isInstanceOf(ExcepcionRecursoDuplicado.class);
     }
 
@@ -98,8 +104,21 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
         given(perfilRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion))
+        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("crearPortafolio rechaza si el usuario logueado no es el dueño del perfil (IDOR)")
+    void crearPortafolio_usuarioAjeno_lanzaExcepcion() {
+        PeticionCrearPortafolio peticion = new PeticionCrearPortafolio(1L, null, null);
+        given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
+        given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
+
+        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_AJENO))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+
+        verify(portafolioRepository, never()).save(any());
     }
 
     @Test
@@ -143,7 +162,7 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
         given(portafolioRepository.save(any(Portafolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        RespuestaPortafolio respuesta = portafolioServicio.actualizarPortafolio(10L, peticion);
+        RespuestaPortafolio respuesta = portafolioServicio.actualizarPortafolio(10L, peticion, ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isFalse();
         assertThat(respuesta.opcionesPersonalizacion()).containsEntry("bg", "#000");
@@ -154,8 +173,20 @@ class PortafolioServicioImplTest {
     void actualizarPortafolio_inexistente() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(10L, new PeticionActualizarPortafolio(null, null)))
+        assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(10L, new PeticionActualizarPortafolio(null, null), ID_USUARIO_DUENIO))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("actualizarPortafolio rechaza si el usuario logueado no es el dueño (IDOR, H-01)")
+    void actualizarPortafolio_usuarioAjeno_lanzaExcepcion() {
+        given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
+
+        assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(
+                10L, new PeticionActualizarPortafolio(true, null), ID_USUARIO_AJENO))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+
+        verify(portafolioRepository, never()).save(any());
     }
 
     @Test

@@ -25,8 +25,10 @@ public class PortafolioControlador {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
-    public ResponseEntity<RespuestaPortafolio> crearPortafolio(@Valid @RequestBody PeticionCrearPortafolio peticion) {
-        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion);
+    public ResponseEntity<RespuestaPortafolio> crearPortafolio(
+            @Valid @RequestBody PeticionCrearPortafolio peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion, userDetails.getIdUsuario());
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
@@ -49,8 +51,9 @@ public class PortafolioControlador {
     @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
     public ResponseEntity<RespuestaPortafolio> actualizarPortafolio(
             @PathVariable Long id,
-            @Valid @RequestBody PeticionActualizarPortafolio peticion) {
-        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion));
+            @Valid @RequestBody PeticionActualizarPortafolio peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion, userDetails.getIdUsuario()));
     }
 
     @PostMapping("/{id}/visita")

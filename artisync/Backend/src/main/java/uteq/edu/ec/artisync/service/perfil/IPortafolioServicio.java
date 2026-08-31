@@ -7,11 +7,11 @@ import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
 import java.util.List;
 
 public interface IPortafolioServicio {
-    RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion);
+    RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion, Long idUsuarioLogueado);
     RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio);
     RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil);
     List<RespuestaPortafolio> listarPortafolios();
-    RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion);
+    RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion, Long idUsuarioLogueado);
     void incrementarVisitas(Long idPortafolio, Long idUsuario);
     void eliminarPortafolio(Long idPortafolio);
 }

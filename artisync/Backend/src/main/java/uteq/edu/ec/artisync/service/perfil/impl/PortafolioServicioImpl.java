@@ -15,6 +15,7 @@ import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortafolioServicio;
@@ -37,13 +38,17 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
-    public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion) {
+    public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion, Long idUsuarioLogueado) {
         if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {
             throw new ExcepcionRecursoDuplicado("El perfil de creador ya cuenta con un portafolio registrado.");
         }
 
         PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + peticion.idPerfil()));
+
+        if (!perfil.getUsuario().getIdUsuario().equals(idUsuarioLogueado)) {
+            throw new ExcepcionReglaNegocio("No tiene permisos para crear un portafolio para este perfil.");
+        }
 
         Portafolio portafolio = Portafolio.builder()
                 .perfil(perfil)
@@ -91,9 +96,14 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = ModuloAuditoria.PORTAFOLIO,
             entidad = "portafolios", idEntidad = "#idPortafolio",
             detalle = "{esPublico: #peticion.esPublico}")
-    public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion) {
+    public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion, Long idUsuarioLogueado) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
+
+        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();
+        if (!idDuenio.equals(idUsuarioLogueado)) {
+            throw new ExcepcionReglaNegocio("No tiene permisos para modificar este portafolio.");
+        }
 
         if (peticion.esPublico() != null) {
             portafolio.setEsPublico(peticion.esPublico());
