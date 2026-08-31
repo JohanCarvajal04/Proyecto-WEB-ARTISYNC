@@ -64,8 +64,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/registro", "/api/v1/auth/login", "/api/v1/auth/2fa/verify",
                                  "/api/v1/auth/refresh", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/v1/catalogo/**", "/api/v1/categorias/**",
-                                 "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/**",
-                                 "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/v1/portafolio-items/**",
+                                 "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/{id}",
+                                 "/api/v1/creadores/**", "/api/v1/portafolios/{id}", "/api/v1/portafolios/perfil/{id}",
                                  "/api/v1/paises", "/api/v1/paises/**", "/api/v1/usuarios/foto/**").permitAll()
                 // Ficha pública del creador (M3 - página pública de servicios).
                 // Un solo segmento ("/*", no "/**") a propósito: deja fuera
@@ -84,7 +84,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/metrics/**", "/actuator/info").hasRole("ADMIN")
                 .requestMatchers("/api/webhooks/paypal").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/flujos/**").permitAll()
+                .requestMatchers("/api/v1/flujos/**").hasAnyRole("ADMIN", "CREADOR")
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )
