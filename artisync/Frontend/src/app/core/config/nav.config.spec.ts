@@ -49,9 +49,21 @@ PERMISOS_SEED['ADMIN'] = [
  */
 function menuDe(rol: string, permisos: string[]): NavItem[] {
   const panel = resolvePanel([rol], permisos);
-  return NAV_CATALOG.filter(i =>
+  const propios = NAV_CATALOG.filter(i =>
     i.panel === panel && (!i.permissions?.length || i.permissions.some(p => permisos.includes(p)))
   );
+  const crossPanel = NAV_CATALOG
+    .filter(i =>
+      i.panel !== panel &&
+      i.crossPanel === true &&
+      i.permissions?.length &&
+      i.permissions.some(p => permisos.includes(p))
+    )
+    .map(i => ({
+      ...i,
+      basePath: i.basePath ?? PANEL_BASE_PATH[i.panel]
+    }));
+  return [...propios, ...crossPanel];
 }
 
 const menuDeRolDelSeed = (rol: string) => menuDe(rol, PERMISOS_SEED[rol]);
@@ -188,10 +200,16 @@ describe('menú visible según permisos', () => {
     expect(conPermiso.map(i => i.route)).toEqual(['paises']);
   });
 
-  it('no mezcla ítems de paneles distintos', () => {
+  it('no mezcla ítems de paneles distintos, salvo los marcados como crossPanel', () => {
     for (const rol of Object.keys(PERMISOS_SEED)) {
-      const paneles = new Set(menuDeRolDelSeed(rol).map(i => i.panel));
-      expect(paneles.size, `el menú de ${rol} mezcla paneles`).toBeLessThanOrEqual(1);
+      const panelBase = resolvePanel([rol], PERMISOS_SEED[rol]);
+      const items = menuDeRolDelSeed(rol);
+      
+      for (const item of items) {
+        if (item.panel !== panelBase) {
+          expect(item.crossPanel, `el ítem ${item.route} del panel ${item.panel} apareció en ${panelBase} sin ser crossPanel`).toBe(true);
+        }
+      }
     }
   });
 
@@ -214,6 +232,26 @@ describe('menú visible según permisos', () => {
       .find(i => i.route === 'configuracion');
     expect(miCuentaSupervisor).toBeDefined();
     expect(miCuentaSupervisor?.basePath).toBe('/cuenta');
+  });
+
+  it('un CREADOR con CATEGORIA_GESTIONAR ve Categorías en su menú', () => {
+    const rutas = menuDe('CREADOR', ['CATEGORIA_GESTIONAR']).map(i => i.route);
+    expect(rutas).toContain('mod-categorias');
+  });
+
+  it('un CLIENTE con USUARIO_VER ve Gestión de Usuarios en su menú', () => {
+    const rutas = menuDe('CLIENTE', ['USUARIO_VER']).map(i => i.route);
+    expect(rutas).toContain('users');
+  });
+
+  it('los ítems cross-panel apuntan al basePath del panel original', () => {
+    // Un CLIENTE con USUARIO_VER debe ver 'users', que originalmente es de admin
+    const items = menuDe('CLIENTE', ['USUARIO_VER']);
+    const users = items.find(i => i.route === 'users')!;
+    
+    expect(users).toBeDefined();
+    // Debe haber heredado el basePath del panel admin, que es /admin
+    expect(users.basePath).toBe('/admin');
   });
 });
 

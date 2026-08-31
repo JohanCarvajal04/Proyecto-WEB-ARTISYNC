@@ -26,4 +26,8 @@ public class FlujoTrabajo {
 
     @Column(name = "descripcion_flujo", columnDefinition = "TEXT")
     private String descripcionFlujo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creador", nullable = false)
+    private uteq.edu.ec.artisync.entity.seguridad.Usuario creador;
 }

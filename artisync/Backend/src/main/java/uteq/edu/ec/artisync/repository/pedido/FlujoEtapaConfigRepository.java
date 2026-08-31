@@ -15,5 +15,7 @@ public interface FlujoEtapaConfigRepository extends JpaRepository<FlujoEtapaConf
 
     boolean existsByFlujoIdFlujoAndEtapaIdEtapa(Long idFlujo, Long idEtapa);
 
+    boolean existsByFlujoIdFlujoAndNumeroOrden(Long idFlujo, Integer numeroOrden);
+
     void deleteByFlujoIdFlujo(Long idFlujo);
 }

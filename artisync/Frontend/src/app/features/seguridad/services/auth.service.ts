@@ -79,13 +79,28 @@ export class AuthService {
   readonly visibleNavItems = computed<NavItem[]>(() => {
     const panel = this.activePanel();
     const permisos = this._userPermissions();
-    return NAV_CATALOG.filter(item =>
+    
+    // Fase 1: ítems propios del panel activo
+    const propios = NAV_CATALOG.filter(item =>
       item.panel === panel &&
-      // "Cualquiera de": basta un permiso de la pantalla para verla. Con un
-      // único permiso por ítem, un rol con PAIS_CREAR/EDITAR/ELIMINAR pero sin
-      // PAIS_VER no veía Países pese a poder gestionarlos.
       (!item.permissions?.length || item.permissions.some(p => permisos.includes(p)))
     );
+
+    // Fase 2: ítems de otros paneles marcados como crossPanel, para los cuales
+    // el usuario tiene permiso. Se les asocia el basePath de su panel original.
+    const crossPanel = NAV_CATALOG
+      .filter(item =>
+        item.panel !== panel &&
+        item.crossPanel === true &&
+        item.permissions?.length &&
+        item.permissions.some(p => permisos.includes(p))
+      )
+      .map(item => ({
+        ...item,
+        basePath: item.basePath ?? PANEL_BASE_PATH[item.panel]
+      }));
+
+    return [...propios, ...crossPanel];
   });
 
   /**

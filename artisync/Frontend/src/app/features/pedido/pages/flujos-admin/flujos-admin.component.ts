@@ -1,6 +1,5 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
 import { FlujoTrabajoService } from '../../services/flujo-trabajo.service';
 import {
   RespuestaFlujoTrabajo,
@@ -68,7 +67,7 @@ export class FlujosAdminComponent implements OnInit {
     this.loading.set(true);
     this.flujoService.listarFlujos().subscribe({
       next: (data) => { this.flujos.set(data); this.loading.set(false); },
-      error: (err) => { this.error.set(err.error?.message || 'Error al cargar flujos'); this.loading.set(false); }
+      error: (err) => { this.error.set(err.error?.detail || 'Error al cargar flujos'); this.loading.set(false); }
     });
   }
 
@@ -85,8 +84,21 @@ export class FlujosAdminComponent implements OnInit {
   }
 
   addEtapa(): void {
-    if (!this.nuevaEtapa.nombreEtapa.trim()) return;
-    this.form.etapas.push({ ...this.nuevaEtapa, nombreEtapa: this.nuevaEtapa.nombreEtapa.trim() });
+    const nombre = this.nuevaEtapa.nombreEtapa.trim();
+    if (!nombre) return;
+
+    // El backend rechaza nombres repetidos al guardar (choca con el UNIQUE de
+    // flujo_etapas_config), pero avisar aquí evita el viaje al servidor y dice
+    // exactamente cuál se repitió, no un error genérico tras guardar todo el flujo.
+    const yaExiste = this.form.etapas.some(
+      e => e.nombreEtapa.trim().toLowerCase() === nombre.toLowerCase());
+    if (yaExiste) {
+      this.error.set(`Ya agregaste una etapa llamada «${nombre}». Cada etapa debe tener un nombre distinto.`);
+      return;
+    }
+
+    this.error.set('');
+    this.form.etapas.push({ ...this.nuevaEtapa, nombreEtapa: nombre });
     this.nuevaEtapa = { nombreEtapa: '', numeroOrden: this.form.etapas.length + 1, esEtapaFinal: false };
   }
 
@@ -111,7 +123,7 @@ export class FlujosAdminComponent implements OnInit {
         this.cargarFlujos();
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al guardar flujo');
+        this.error.set(err.error?.detail || 'Error al guardar flujo');
         this.saving.set(false);
       }
     });
@@ -152,7 +164,7 @@ export class FlujosAdminComponent implements OnInit {
         this.refrescar(actualizado);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudieron guardar los datos del flujo');
+        this.error.set(err.error?.detail || 'No se pudieron guardar los datos del flujo');
         this.guardandoDatos.set(false);
       }
     });
@@ -162,6 +174,14 @@ export class FlujosAdminComponent implements OnInit {
     const flujo = this.gestionando();
     const nombre = this.etapaNueva.nombreEtapa.trim();
     if (!flujo || !nombre) return;
+
+    // El backend también lo rechaza (existsByFlujoIdFlujoAndEtapaIdEtapa),
+    // pero avisar aquí evita el viaje al servidor.
+    const yaExiste = flujo.etapas.some(e => e.nombreEtapa.trim().toLowerCase() === nombre.toLowerCase());
+    if (yaExiste) {
+      this.error.set(`Este flujo ya tiene una etapa llamada «${nombre}».`);
+      return;
+    }
 
     this.etapaEnCurso.set(-1);
     this.error.set('');
@@ -178,7 +198,7 @@ export class FlujosAdminComponent implements OnInit {
       },
       error: (err) => {
         this.etapaEnCurso.set(null);
-        this.error.set(err.error?.message || 'No se pudo añadir la etapa');
+        this.error.set(err.error?.detail || 'No se pudo añadir la etapa');
       }
     });
   }
@@ -199,7 +219,7 @@ export class FlujosAdminComponent implements OnInit {
       },
       error: (err) => {
         this.etapaEnCurso.set(null);
-        this.error.set(err.error?.message || 'No se pudo actualizar la etapa');
+        this.error.set(err.error?.detail || 'No se pudo actualizar la etapa');
       }
     });
   }
@@ -214,28 +234,22 @@ export class FlujosAdminComponent implements OnInit {
     const actual = etapas[indice];
     const vecina = etapas[destino];
 
+    // Una sola petición atómica en vez de dos PUT en paralelo: con dos
+    // peticiones había una ventana donde el backend veía a ambas etapas con
+    // el mismo numeroOrden a la vez, lo que una validación de colisión de
+    // orden rechazaría como si fuera un choque real.
     this.etapaEnCurso.set(actual.idFlujoEtapa);
-    forkJoin([
-      this.flujoService.actualizarEtapa(flujo.idFlujo, actual.idFlujoEtapa, {
-        nombreEtapa: actual.nombreEtapa,
-        numeroOrden: vecina.numeroOrden,
-        esEtapaFinal: actual.esEtapaFinal
-      }),
-      this.flujoService.actualizarEtapa(flujo.idFlujo, vecina.idFlujoEtapa, {
-        nombreEtapa: vecina.nombreEtapa,
-        numeroOrden: actual.numeroOrden,
-        esEtapaFinal: vecina.esEtapaFinal
-      })
-    ]).subscribe({
-      next: ([, ultimo]) => {
+    this.flujoService.intercambiarOrdenEtapas(flujo.idFlujo, {
+      idFlujoEtapaA: actual.idFlujoEtapa,
+      idFlujoEtapaB: vecina.idFlujoEtapa
+    }).subscribe({
+      next: (actualizado) => {
         this.etapaEnCurso.set(null);
-        this.refrescar(ultimo);
+        this.refrescar(actualizado);
       },
       error: (err) => {
         this.etapaEnCurso.set(null);
-        this.error.set(err.error?.message || 'No se pudo reordenar la etapa');
-        // El primer PUT pudo haber pasado: se recarga para no dejar la vista mintiendo.
-        this.cargarFlujos();
+        this.error.set(err.error?.detail || 'No se pudo reordenar la etapa');
       }
     });
   }
@@ -257,7 +271,7 @@ export class FlujosAdminComponent implements OnInit {
       },
       error: (err) => {
         this.etapaEnCurso.set(null);
-        this.error.set(err.error?.message || 'No se pudo eliminar la etapa');
+        this.error.set(err.error?.detail || 'No se pudo eliminar la etapa');
       }
     });
   }

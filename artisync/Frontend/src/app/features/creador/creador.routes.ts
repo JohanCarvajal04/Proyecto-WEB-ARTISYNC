@@ -81,6 +81,14 @@ export const CREADOR_ROUTES: Routes = [
     data: { permissions: PAGE_PERMISSIONS.portafolioPropio },
     loadComponent: () => import('./pages/portafolio/portafolio-creador.component').then(m => m.PortafolioCreadorComponent)
   },
+  // El backend (FlujoTrabajoControlador) ya filtra todo por el creador
+  // logueado (ver comentario en nav.config.ts junto a esta misma entrada).
+  {
+    path: 'flujos',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.flujos },
+    loadComponent: () => import('../pedido/pages/flujos-admin/flujos-admin.component').then(m => m.FlujosAdminComponent)
+  },
   {
     path: 'perfil',
     loadComponent: () => import('./pages/perfil/perfil-creador.component').then(m => m.PerfilCreadorComponent)

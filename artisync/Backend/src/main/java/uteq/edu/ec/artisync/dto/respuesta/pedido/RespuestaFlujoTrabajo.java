@@ -17,4 +17,7 @@ public class RespuestaFlujoTrabajo {
     private String nombreFlujo;
     private String descripcionFlujo;
     private List<RespuestaEtapaConfig> etapas;
+    /** Dueño del flujo. Relevante cuando quien lista tiene FLUJO_MODERAR y ve flujos de varios creadores. */
+    private Long idUsuarioCreador;
+    private String nombreCreador;
 }

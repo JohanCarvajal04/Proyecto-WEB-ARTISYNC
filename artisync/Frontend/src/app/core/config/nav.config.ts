@@ -47,6 +47,12 @@ export interface NavItem {
    * una sola, no una copia por panel.
    */
   basePath?: string;
+  /**
+   * Si es true, este ítem puede aparecer en el menú de paneles distintos al
+   * suyo cuando el usuario tiene el permiso requerido. El enlace usará
+   * PANEL_BASE_PATH[item.panel] como basePath para apuntar a la ruta real.
+   */
+  crossPanel?: boolean;
 }
 
 /**
@@ -72,7 +78,9 @@ export const PAGE_PERMISSIONS = {
   comentariosModeracion: ['COMENTARIO_MODERAR'],
   categorias: ['CATEGORIA_GESTIONAR'],
   infracciones: ['INFRACCION_GESTIONAR'],
-  flujos: ['FLUJO_GESTIONAR'],
+  // FLUJO_GESTIONAR: gestiona los flujos propios. FLUJO_MODERAR: ve/gestiona
+  // los de todos los creadores (p. ej. el selector de flujo en Categorías).
+  flujos: ['FLUJO_GESTIONAR', 'FLUJO_MODERAR'],
   // "Mis Servicios" es el CRUD propio del creador; SERVICIO_MODERAR pertenece a
   // la moderación del catálogo, que es otra pantalla y otro panel.
   servicios: ['SERVICIO_CREAR'],
@@ -169,7 +177,7 @@ export const ADMIN_PANEL_PERMISSIONS: readonly string[] = [
   'PORTAFOLIO_MODERAR', 'CERTIFICADO_REVISAR', 'CATEGORIA_GESTIONAR', 'SERVICIO_MODERAR',
   'MENSAJE_MODERAR', 'COMENTARIO_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER',
   'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
-  'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR',
+  'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR', 'FLUJO_MODERAR',
   'AUDITORIA_VER', 'AUDITORIA_EXPORTAR',
   'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR'
 ];
@@ -253,27 +261,27 @@ export function resolvePanel(roles: readonly string[], permisos: readonly string
  */
 export const NAV_CATALOG: readonly NavItem[] = [
   // ─── Panel de administración ───
-  { label: 'Gestión de Usuarios', icon: 'group', route: 'users', panel: 'admin', permissions: PAGE_PERMISSIONS.users },
+  { label: 'Gestión de Usuarios', icon: 'group', route: 'users', panel: 'admin', permissions: PAGE_PERMISSIONS.users, crossPanel: true },
   // Antes de "Panel de Moderación" a propósito: es la única pantalla que ve
   // AUDITOR_FINANCIERO antes de este punto en la lista, así que de otro modo
   // su página de aterrizaje sería "Gestión de Países" (más abajo).
-  { label: 'Pagos y Garantías', icon: 'account_balance', route: 'pagos-garantia', panel: 'admin', permissions: PAGE_PERMISSIONS.pagosGarantia },
-  { label: 'Panel de Moderación', icon: 'dashboard', route: 'mod-overview', panel: 'admin', permissions: PAGE_PERMISSIONS.panelModeracion },
-  { label: 'Verificaciones', icon: 'verified', route: 'verificaciones', panel: 'admin', permissions: PAGE_PERMISSIONS.verificaciones },
-  { label: 'Portafolios', icon: 'palette', route: 'mod-portafolios', panel: 'admin', permissions: PAGE_PERMISSIONS.portafoliosModeracion },
-  { label: 'Comentarios', icon: 'chat', route: 'mod-comentarios', panel: 'admin', permissions: PAGE_PERMISSIONS.comentariosModeracion },
+  { label: 'Pagos y Garantías', icon: 'account_balance', route: 'pagos-garantia', panel: 'admin', permissions: PAGE_PERMISSIONS.pagosGarantia, crossPanel: true },
+  { label: 'Panel de Moderación', icon: 'dashboard', route: 'mod-overview', panel: 'admin', permissions: PAGE_PERMISSIONS.panelModeracion, crossPanel: true },
+  { label: 'Verificaciones', icon: 'verified', route: 'verificaciones', panel: 'admin', permissions: PAGE_PERMISSIONS.verificaciones, crossPanel: true },
+  { label: 'Portafolios', icon: 'palette', route: 'mod-portafolios', panel: 'admin', permissions: PAGE_PERMISSIONS.portafoliosModeracion, crossPanel: true },
+  { label: 'Comentarios', icon: 'chat', route: 'mod-comentarios', panel: 'admin', permissions: PAGE_PERMISSIONS.comentariosModeracion, crossPanel: true },
   // Antes este ítem no declaraba permiso pero su ruta ya exigía
   // CATEGORIA_GESTIONAR: se veía en el menú y llevaba a /no-autorizado.
-  { label: 'Categorías', icon: 'category', route: 'mod-categorias', panel: 'admin', permissions: PAGE_PERMISSIONS.categorias },
-  { label: 'Gestión de Países', icon: 'public', route: 'paises', panel: 'admin', permissions: PAGE_PERMISSIONS.paises },
-  { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', panel: 'admin', permissions: PAGE_PERMISSIONS.rolesPermisos },
-  { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones },
-  { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'admin', permissions: PAGE_PERMISSIONS.flujos },
+  { label: 'Categorías', icon: 'category', route: 'mod-categorias', panel: 'admin', permissions: PAGE_PERMISSIONS.categorias, crossPanel: true },
+  { label: 'Gestión de Países', icon: 'public', route: 'paises', panel: 'admin', permissions: PAGE_PERMISSIONS.paises, crossPanel: true },
+  { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', panel: 'admin', permissions: PAGE_PERMISSIONS.rolesPermisos, crossPanel: true },
+  { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones, crossPanel: true },
+  { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'admin', permissions: PAGE_PERMISSIONS.flujos, crossPanel: true },
   // 'receipt_long' ya tiene rama SVG en dashboard-layout.component.html
   // (compartida con 'account_balance'): no hace falta tocar el layout.
-  { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria },
-  { label: 'Reporte financiero', icon: 'account_balance', route: 'reportes-finanzas', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesFinanzas },
-  { label: 'Reporte de contratos', icon: 'description', route: 'reportes-contratos', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesContratos },
+  { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria, crossPanel: true },
+  { label: 'Reporte financiero', icon: 'account_balance', route: 'reportes-finanzas', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesFinanzas, crossPanel: true },
+  { label: 'Reporte de contratos', icon: 'description', route: 'reportes-contratos', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesContratos, crossPanel: true },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
   // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
   // misma página que ven creador y cliente — ver NavItem.basePath.
@@ -281,14 +289,21 @@ export const NAV_CATALOG: readonly NavItem[] = [
 
   // ─── Panel de creador ───
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'creador' },
-  { label: 'Mis Servicios', icon: 'storefront', route: 'servicios', panel: 'creador', permissions: PAGE_PERMISSIONS.servicios },
-  { label: 'Comisiones', icon: 'shopping_bag', route: 'comisiones', panel: 'creador', permissions: PAGE_PERMISSIONS.comisiones },
+  { label: 'Mis Servicios', icon: 'storefront', route: 'servicios', panel: 'creador', permissions: PAGE_PERMISSIONS.servicios, crossPanel: true },
+  { label: 'Comisiones', icon: 'shopping_bag', route: 'comisiones', panel: 'creador', permissions: PAGE_PERMISSIONS.comisiones, crossPanel: true },
   { label: 'Briefings', icon: 'assignment', route: 'briefings', panel: 'creador' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'creador' },
   { label: 'Reseñas', icon: 'rate_review', route: 'resenas', panel: 'creador' },
   { label: 'Seguidores', icon: 'group', route: 'seguidores', panel: 'creador' },
-  { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'creador', permissions: PAGE_PERMISSIONS.sorteos },
-  { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio },
+  { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'creador', permissions: PAGE_PERMISSIONS.sorteos, crossPanel: true },
+  // Desde V25 (flujos_por_creador) cada FlujoTrabajo es propiedad de un
+  // creador (filtrado por su propio id_usuario en el backend, que exige
+  // hasRole('CREADOR') sin mirar este permiso). Antes solo existía la entrada
+  // de panel:'admin' de más arriba — invisible para un CREADOR aunque se le
+  // asignara FLUJO_GESTIONAR, porque el sidebar filtra por panel activo antes
+  // de mirar permisos.
+  { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'creador', permissions: PAGE_PERMISSIONS.flujos, crossPanel: true },
+  { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio, crossPanel: true },
   // "Mi Perfil" (perfil de negocio: biografía, red social, verificación) y
   // "Mi Cuenta" (roles/permisos vigentes, contraseña, 2FA) son cosas
   // distintas: la primera es de dominio de creador, la segunda es la misma

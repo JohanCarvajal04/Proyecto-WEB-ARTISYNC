@@ -6,6 +6,9 @@ export interface RespuestaFlujoTrabajo {
   nombreFlujo: string;
   descripcionFlujo: string;
   etapas: RespuestaEtapaConfig[];
+  /** Dueño del flujo. Relevante con FLUJO_MODERAR: la lista incluye flujos de varios creadores. */
+  idUsuarioCreador: number;
+  nombreCreador: string;
 }
 
 export interface RespuestaEtapaConfig {
@@ -26,6 +29,12 @@ export interface PeticionEtapaConfig {
   nombreEtapa: string;
   numeroOrden: number;
   esEtapaFinal: boolean;
+}
+
+/** Swap atómico de numeroOrden entre dos etapas — lo usa "mover etapa arriba/abajo". */
+export interface PeticionSwapEtapas {
+  idFlujoEtapaA: number;
+  idFlujoEtapaB: number;
 }
 
 // ── Pedidos ──
