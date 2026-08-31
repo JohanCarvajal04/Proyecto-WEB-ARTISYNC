@@ -11,5 +11,7 @@ public interface ServicioEtiquetaRepository extends JpaRepository<ServicioEtique
 
     List<ServicioEtiqueta> findByServicioIdServicio(Long idServicio);
 
+    List<ServicioEtiqueta> findByServicioIdServicioIn(List<Long> idsServicio);
+
     void deleteByServicioIdServicio(Long idServicio);
 }

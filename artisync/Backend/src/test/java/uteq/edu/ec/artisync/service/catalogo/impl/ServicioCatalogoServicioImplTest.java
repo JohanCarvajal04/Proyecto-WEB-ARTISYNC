@@ -403,7 +403,7 @@ class ServicioCatalogoServicioImplTest {
     void buscarCatalogoServicios_ordenaPorPrecioAsc() {
         Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
-        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
         Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
                 null, null, null, null, null, null, "precioAsc", 0, 10);
@@ -416,7 +416,7 @@ class ServicioCatalogoServicioImplTest {
     void buscarCatalogoServicios_ordenPorDefecto() {
         Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
-        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
         Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
                 1L, 1L, BigDecimal.ONE, BigDecimal.TEN, List.of(5L), "ilustracion", null, 0, 10);

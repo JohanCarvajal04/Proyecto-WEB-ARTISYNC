@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -28,7 +29,10 @@ import uteq.edu.ec.artisync.specification.catalogo.ServicioSpecification;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -211,7 +215,26 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Servicio> paginaServicios = servicioRepository.findAll(spec, pageable);
 
-        return paginaServicios.map(this::mapearAServicioResumido);
+        List<Long> idsServicios = paginaServicios.getContent().stream()
+                .map(Servicio::getIdServicio)
+                .collect(Collectors.toList());
+
+        Map<Long, List<RespuestaEtiqueta>> etiquetasPorServicio = new HashMap<>();
+        if (!idsServicios.isEmpty()) {
+            List<ServicioEtiqueta> todasEtiquetas = servicioEtiquetaRepository.findByServicioIdServicioIn(idsServicios);
+            etiquetasPorServicio = todasEtiquetas.stream()
+                    .collect(Collectors.groupingBy(
+                            se -> se.getServicio().getIdServicio(),
+                            Collectors.mapping(se -> RespuestaEtiqueta.builder()
+                                    .idEtiqueta(se.getEtiqueta().getIdEtiqueta())
+                                    .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())
+                                    .actualizadoEn(se.getEtiqueta().getActualizadoEn())
+                                    .build(), Collectors.toList())
+                    ));
+        }
+
+        final Map<Long, List<RespuestaEtiqueta>> etiquetasFinales = etiquetasPorServicio;
+        return paginaServicios.map(s -> mapearAServicioResumido(s, etiquetasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));
     }
 
     @Override
@@ -365,7 +388,10 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                         .actualizadoEn(se.getEtiqueta().getActualizadoEn())
                         .build())
                 .collect(Collectors.toList());
+        return mapearAServicioResumido(servicio, etiquetas);
+    }
 
+    private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio, List<RespuestaEtiqueta> etiquetas) {
         String nombreCreador = "Creador";
         if (servicio.getPerfil().getUsuario() != null) {
             nombreCreador = servicio.getPerfil().getUsuario().getNombres() + " " + servicio.getPerfil().getUsuario().getApellidos();
