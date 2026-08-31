@@ -5,8 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record PeticionCrearCertificadoIa(
-        @NotNull(message = "El ID del perfil es obligatorio")
-        Long idPerfil,
+        @NotNull(message = "El ID del usuario es obligatorio")
+        Long idUsuario,
 
         @NotNull(message = "El ID del estado de verificación es obligatorio")
         Long idEstadoVerificacion,

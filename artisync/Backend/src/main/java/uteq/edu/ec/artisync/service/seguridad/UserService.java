@@ -13,5 +13,6 @@ public interface UserService {
     RespuestaMensaje changePassword(String correo, ChangePasswordRequest request);
     RespuestaMensaje deleteOwnAccount(String correo);
     RespuestaMensaje revokeAllMySessions(String correo);
+    UserResponse uploadProfilePicture(String correo, org.springframework.web.multipart.MultipartFile file);
 }
 

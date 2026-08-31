@@ -17,6 +17,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +25,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -37,6 +40,7 @@ class PerfilCreadorServicioImplTest {
 
     @Mock private PerfilCreadorRepository perfilRepository;
     @Mock private UsuarioRepository usuarioRepository;
+    @Mock private IVerificacionServicio verificacionServicio;
 
     @InjectMocks
     private PerfilCreadorServicioImpl perfilCreadorServicio;
@@ -48,12 +52,16 @@ class PerfilCreadorServicioImplTest {
     void setUp() {
         usuario = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").build();
         perfil = PerfilCreador.builder().idPerfil(10L).usuario(usuario).biografia("bio").urlRedSocial("http://x.com").build();
+        // lenient: no todos los tests llegan a mapearARespuesta (algunos cortan
+        // antes con una excepción), y Mockito strict-stubs marcaría el resto
+        // como "unnecessary stubbing" si no fuera lenient.
+        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(false);
     }
 
     @Test
     @DisplayName("crearPerfil guarda cuando el usuario no tiene perfil todavia")
     void crearPerfil_guarda() {
-        PeticionCrearPerfil peticion = new PeticionCrearPerfil(1L, "bio", "http://x.com");
+        PeticionCrearPerfil peticion = new PeticionCrearPerfil(1L, "bio", "http://x.com", null);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(usuario));
         given(perfilRepository.save(any(PerfilCreador.class))).willAnswer(inv -> inv.getArgument(0));
@@ -67,7 +75,7 @@ class PerfilCreadorServicioImplTest {
     @Test
     @DisplayName("crearPerfil rechaza si el usuario ya tiene perfil")
     void crearPerfil_rechazaDuplicado() {
-        PeticionCrearPerfil peticion = new PeticionCrearPerfil(1L, "bio", null);
+        PeticionCrearPerfil peticion = new PeticionCrearPerfil(1L, "bio", null, null);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> perfilCreadorServicio.crearPerfil(peticion, ADMIN, true))
@@ -77,7 +85,7 @@ class PerfilCreadorServicioImplTest {
     @Test
     @DisplayName("crearPerfil lanza recurso no encontrado si el usuario no existe")
     void crearPerfil_usuarioInexistente() {
-        PeticionCrearPerfil peticion = new PeticionCrearPerfil(1L, "bio", null);
+        PeticionCrearPerfil peticion = new PeticionCrearPerfil(1L, "bio", null, null);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
         given(usuarioRepository.findById(1L)).willReturn(Optional.empty());
 
@@ -90,7 +98,7 @@ class PerfilCreadorServicioImplTest {
     void crearPerfil_noAdminNoPuedeCrearAnombreDeOtro() {
         // El cuerpo apunta al usuario 99, pero quien pide es Ana (id 1): el perfil
         // debe crearse para Ana. Antes se creaba para el 99.
-        PeticionCrearPerfil peticion = new PeticionCrearPerfil(99L, "bio", null);
+        PeticionCrearPerfil peticion = new PeticionCrearPerfil(99L, "bio", null, null);
         given(usuarioRepository.findByCorreo(CORREO_ANA)).willReturn(Optional.of(usuario));
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(usuario));
@@ -119,6 +127,40 @@ class PerfilCreadorServicioImplTest {
     }
 
     @Test
+    @DisplayName("obtenerPerfilPorId refleja el estado real de verificación de identidad del usuario")
+    void obtenerPerfilPorId_reflejaIdentidadVerificada() {
+        given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
+        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(true);
+
+        RespuestaPerfil respuesta = perfilCreadorServicio.obtenerPerfilPorId(10L);
+
+        assertThat(respuesta.identidadVerificada()).isTrue();
+    }
+
+    @Test
+    @DisplayName("obtenerPerfilPorId no marca identidad verificada si no la tiene aprobada")
+    void obtenerPerfilPorId_sinIdentidadVerificada() {
+        given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
+        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+
+        RespuestaPerfil respuesta = perfilCreadorServicio.obtenerPerfilPorId(10L);
+
+        assertThat(respuesta.identidadVerificada()).isFalse();
+    }
+
+    @Test
+    @DisplayName("actualizarPerfil cambia el titulo profesional cuando se indica")
+    void actualizarPerfil_cambiaTituloProfesional() {
+        PeticionActualizarPerfil peticion = new PeticionActualizarPerfil(null, null, "Ilustradora & Directora de Arte");
+        given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
+        given(perfilRepository.save(any(PerfilCreador.class))).willAnswer(inv -> inv.getArgument(0));
+
+        RespuestaPerfil respuesta = perfilCreadorServicio.actualizarPerfil(10L, peticion, ADMIN, true);
+
+        assertThat(respuesta.tituloProfesional()).isEqualTo("Ilustradora & Directora de Arte");
+    }
+
+    @Test
     @DisplayName("obtenerPerfilPorUsuario lanza recurso no encontrado si no existe")
     void obtenerPerfilPorUsuario_inexistente() {
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
@@ -138,7 +180,7 @@ class PerfilCreadorServicioImplTest {
     @Test
     @DisplayName("actualizarPerfil cambia biografia y red social cuando se indican")
     void actualizarPerfil_cambiaDatos() {
-        PeticionActualizarPerfil peticion = new PeticionActualizarPerfil("nueva bio", "http://y.com");
+        PeticionActualizarPerfil peticion = new PeticionActualizarPerfil("nueva bio", "http://y.com", null);
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
         given(perfilRepository.save(any(PerfilCreador.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -154,7 +196,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> perfilCreadorServicio.actualizarPerfil(
-                10L, new PeticionActualizarPerfil(null, null), ADMIN, true))
+                10L, new PeticionActualizarPerfil(null, null, null), ADMIN, true))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
     }
 
@@ -167,7 +209,7 @@ class PerfilCreadorServicioImplTest {
         given(usuarioRepository.findByCorreo(CORREO_LUIS)).willReturn(Optional.of(otro));
 
         assertThatThrownBy(() -> perfilCreadorServicio.actualizarPerfil(
-                10L, new PeticionActualizarPerfil("secuestrada", "http://malo.com"), CORREO_LUIS, false))
+                10L, new PeticionActualizarPerfil("secuestrada", "http://malo.com", null), CORREO_LUIS, false))
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(perfilRepository, never()).save(any(PerfilCreador.class));
@@ -181,7 +223,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.save(any(PerfilCreador.class))).willAnswer(inv -> inv.getArgument(0));
 
         RespuestaPerfil respuesta = perfilCreadorServicio.actualizarPerfil(
-                10L, new PeticionActualizarPerfil("mi nueva bio", null), CORREO_ANA, false);
+                10L, new PeticionActualizarPerfil("mi nueva bio", null, null), CORREO_ANA, false);
 
         assertThat(respuesta.biografia()).isEqualTo("mi nueva bio");
     }

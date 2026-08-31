@@ -42,7 +42,7 @@
                 class="w-full text-left p-4 rounded-xl border border-slate-100 hover:border-purple-200 hover:shadow-sm transition-all focus:outline-none">
                 
                 <div class="flex justify-between items-start mb-2">
-                  <span class="font-semibold text-slate-800">{{ item.nombreCreador }}</span>
+                  <span class="font-semibold text-slate-800">{{ item.nombreUsuario }}</span>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase" [class]="getEstadoBadge(item.nombreEstado)">
                     {{ item.nombreEstado }}
                   </span>
@@ -180,10 +180,10 @@
                 <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Historial del perfil
+                Historial del usuario
               </h4>
               <p class="text-xs text-slate-400 mb-4">
-                {{ historialPerfil().length }} documento(s) previo(s) de este mismo perfil.
+                {{ historialPerfil().length }} documento(s) previo(s) de este mismo usuario.
               </p>
 
               <div class="flex flex-col divide-y divide-slate-100">

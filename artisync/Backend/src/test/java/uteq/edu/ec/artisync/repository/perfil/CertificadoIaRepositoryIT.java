@@ -34,7 +34,7 @@ class CertificadoIaRepositoryIT {
             "INSERT INTO usuarios (id_usuario, nombres, apellidos, correo, contrasena_hash, estado_cuenta) " +
                     "VALUES (9001, 'Ana', 'Creadora', 'ana.cola@test.dev', 'x', true)",
             "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9001, 9001)",
-            "INSERT INTO certificados_ia (id_certificado, id_perfil, id_estado_verificacion, url_documento_s3, tipo_documento) " +
+            "INSERT INTO certificados_ia (id_certificado, id_usuario, id_estado_verificacion, url_documento_s3, tipo_documento) " +
                     "SELECT 9001, 9001, id_estado_verificacion, 'ref.jpg', 'IDENTIDAD' " +
                     "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
     })
@@ -43,7 +43,7 @@ class CertificadoIaRepositoryIT {
 
         assertThat(cola).anySatisfy(fila -> {
             assertThat(fila.getIdCertificado()).isEqualTo(9001L);
-            assertThat(fila.getNombreCreador()).isEqualTo("Ana Creadora");
+            assertThat(fila.getNombreUsuario()).isEqualTo("Ana Creadora");
             assertThat(fila.getNombreEstado()).isEqualTo("PENDIENTE");
         });
     }
@@ -54,7 +54,7 @@ class CertificadoIaRepositoryIT {
                     "VALUES (9002, 'Beto', 'Moderador', 'beto.mod@test.dev', 'x', true), " +
                     "(9003, 'Cati', 'Creadora', 'cati.creadora@test.dev', 'x', true)",
             "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9003, 9003)",
-            "INSERT INTO certificados_ia (id_certificado, id_perfil, id_estado_verificacion, url_documento_s3, tipo_documento) " +
+            "INSERT INTO certificados_ia (id_certificado, id_usuario, id_estado_verificacion, url_documento_s3, tipo_documento) " +
                     "SELECT 9002, 9003, id_estado_verificacion, 'ref.jpg', 'IDENTIDAD' " +
                     "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
     })
@@ -76,7 +76,7 @@ class CertificadoIaRepositoryIT {
                     "VALUES (9004, 'Beto', 'Moderador', 'beto.mod2@test.dev', 'x', true), " +
                     "(9005, 'Dani', 'Creadora', 'dani.creadora@test.dev', 'x', true)",
             "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9005, 9005)",
-            "INSERT INTO certificados_ia (id_certificado, id_perfil, id_estado_verificacion, url_documento_s3, tipo_documento) " +
+            "INSERT INTO certificados_ia (id_certificado, id_usuario, id_estado_verificacion, url_documento_s3, tipo_documento) " +
                     "SELECT 9004, 9005, id_estado_verificacion, 'ref.jpg', 'IDENTIDAD' " +
                     "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
     })
@@ -96,7 +96,7 @@ class CertificadoIaRepositoryIT {
                     "VALUES (9006, 'Beto', 'Moderador', 'beto.mod3@test.dev', 'x', true), " +
                     "(9007, 'Eva', 'Creadora', 'eva.creadora@test.dev', 'x', true)",
             "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9007, 9007)",
-            "INSERT INTO certificados_ia (id_certificado, id_perfil, id_estado_verificacion, url_documento_s3, tipo_documento) " +
+            "INSERT INTO certificados_ia (id_certificado, id_usuario, id_estado_verificacion, url_documento_s3, tipo_documento) " +
                     "SELECT 9006, 9007, id_estado_verificacion, 'ref.jpg', 'IDENTIDAD' " +
                     "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
     })

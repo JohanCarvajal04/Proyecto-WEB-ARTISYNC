@@ -57,6 +57,11 @@ export class CatalogoPublicoService {
     return this.http.get<RespuestaPerfil>(`${this.API}/perfiles/${idPerfil}`);
   }
 
+  /** GET /api/v1/perfiles/activos — directorio público de creadores activos. */
+  listarCreadoresActivos(): Observable<RespuestaPerfil[]> {
+    return this.http.get<RespuestaPerfil[]>(`${this.API}/perfiles/activos`);
+  }
+
   listarCategorias(): Observable<RespuestaCategoria[]> {
     return this.http.get<RespuestaCategoria[]>(`${this.API}/categorias`);
   }

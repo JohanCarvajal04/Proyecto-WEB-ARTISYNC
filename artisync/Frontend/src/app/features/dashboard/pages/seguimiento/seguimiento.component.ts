@@ -1,11 +1,14 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import {
   RespuestaSeguimientoPedido,
   RespuestaEtapaConfig,
   RespuestaHistorialEstado
 } from '../../../pedido/models/pedido.model';
+import { EntregableService } from '../../../legal/services/entregable.service';
+import { ResenaFormComponent } from '../../../social/components/resena-form/resena-form.component';
 
 export type EstadoEtapa = 'completada' | 'actual' | 'pendiente';
 
@@ -18,17 +21,29 @@ export interface EtapaTimeline {
 @Component({
   selector: 'app-seguimiento',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ResenaFormComponent],
   templateUrl: './seguimiento.component.html'
 })
 export class SeguimientoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private pedidoService = inject(PedidoService);
+  private entregableService = inject(EntregableService);
 
   readonly seguimiento = signal<RespuestaSeguimientoPedido | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly error = signal<string>('');
   readonly idPedido = signal<number | null>(null);
+
+  /**
+   * Esta era la página que el cliente veía por defecto al hacer clic en
+   * "Seguimiento" desde Mis Pedidos (el enlace principal de la tabla), pero
+   * el formulario de reseña solo vivía en pedido-detalle (/pedido/:id),
+   * alcanzable únicamente desde el enlace secundario "Ver detalle completo".
+   * Un cliente que solo usara el flujo de seguimiento nunca encontraba dónde
+   * dejar su reseña. Misma condición que pedido-detalle.component.ts
+   * (RF-09): la reseña se habilita tras aprobar el entregable.
+   */
+  readonly entregaAprobada = signal<boolean>(false);
 
   etapas = computed<EtapaTimeline[]>(() => {
     const data = this.seguimiento();
@@ -68,6 +83,11 @@ export class SeguimientoComponent implements OnInit {
     }
     this.idPedido.set(id);
     this.loadSeguimiento(id);
+
+    // 404 aquí solo significa que aún no hay entregable para este pedido.
+    this.entregableService.obtenerEntregable(id)
+      .pipe(catchError(() => of(null)))
+      .subscribe(entregable => this.entregaAprobada.set(entregable?.estaLiberado === true));
   }
 
   loadSeguimiento(id: number): void {

@@ -27,10 +27,15 @@ public class CertificadoIa {
     @Column(name = "id_certificado")
     private Long idCertificado;
 
-    @NotNull(message = "El perfil del creador es obligatorio")
+    // V21: generalizado de PerfilCreador a Usuario — cualquier usuario (Cliente
+    // o Creador) puede solicitar una verificación de identidad, no solo quien
+    // ya tiene un perfil de creador. Para certificados de tipo CERTIFICADO
+    // (profesional, inherentemente de creador), el perfil se deriva con un
+    // JOIN contra perfiles_creadores.id_usuario cuando haga falta.
+    @NotNull(message = "El usuario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_perfil", nullable = false)
-    private PerfilCreador perfil;
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private Usuario usuario;
 
     @NotNull(message = "El estado de verificacion es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)

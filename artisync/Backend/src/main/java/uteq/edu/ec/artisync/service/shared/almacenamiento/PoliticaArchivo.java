@@ -38,6 +38,13 @@ public record PoliticaArchivo(Set<String> tiposPermitidos, long maxBytes, String
     public static final PoliticaArchivo ENTREGABLE = new PoliticaArchivo(
             union(union(IMAGENES, VIDEOS), DOCUMENTOS), 100 * MB, "imagen, video o documento");
 
+    /**
+     * Foto de perfil: solo imagen, y a propósito sin SVG (IMAGENES no lo incluye):
+     * se sirve inline desde un endpoint público, así que un SVG con script
+     * embebido sería XSS almacenado.
+     */
+    public static final PoliticaArchivo PERFIL = new PoliticaArchivo(IMAGENES, 5 * MB, "imagen");
+
     private static Set<String> union(Set<String> a, Set<String> b) {
         return java.util.stream.Stream.concat(a.stream(), b.stream())
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());

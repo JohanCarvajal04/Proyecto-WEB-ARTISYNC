@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { PeticionCrearResena, RespuestaResena } from '../models/social.model';
 
@@ -17,5 +17,20 @@ export class ResenaClienteService {
 
   crearResena(idPedido: number, peticion: PeticionCrearResena): Observable<RespuestaResena> {
     return this.http.post<RespuestaResena>(`${this.API}/${idPedido}/resena`, peticion);
+  }
+
+  /** Devuelve la reseña del pedido si ya existe, o null (404 → sin reseña aún). */
+  obtenerMiResena(idPedido: number): Observable<RespuestaResena | null> {
+    return this.http.get<RespuestaResena>(`${this.API}/${idPedido}/resena`).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  actualizarResena(idPedido: number, peticion: PeticionCrearResena): Observable<RespuestaResena> {
+    return this.http.put<RespuestaResena>(`${this.API}/${idPedido}/resena`, peticion);
+  }
+
+  eliminarResena(idPedido: number): Observable<void> {
+    return this.http.delete<void>(`${this.API}/${idPedido}/resena`);
   }
 }

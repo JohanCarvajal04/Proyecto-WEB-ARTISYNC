@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 @Builder
 public record RespuestaColaVerificacion(
         Long idCertificado,
-        Long idPerfil,
-        String nombreCreador,
+        Long idUsuario,
+        String nombreUsuario,
         String tipoDocumento,
         String nombreEstado,
         String veredictoIa,

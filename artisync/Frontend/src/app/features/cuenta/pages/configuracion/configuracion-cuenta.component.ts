@@ -1,11 +1,12 @@
-import { Component, inject, computed, signal, OnInit } from '@angular/core';
+import { Component, inject, computed, signal, ElementRef, ViewChild, AfterViewInit, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { UserService } from '../../../perfil/services/user.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { UserResponse } from '../../../../shared/models/user.model';
+import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 
 /**
  * Configuración de la cuenta: identidad, roles/permisos vigentes y accesos de
@@ -25,26 +26,26 @@ import { UserResponse } from '../../../../shared/models/user.model';
   imports: [CommonModule, AvatarComponent],
   templateUrl: './configuracion-cuenta.component.html'
 })
-export class ConfiguracionCuentaComponent implements OnInit {
+export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private toastService = inject(ToastService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  /** Referencia al input oculto: el ítem "Cambiar foto de perfil" del menú de usuario llega aquí con ?accion=cambiar-foto y lo abre solo. */
+  @ViewChild('fileInput') private fileInputRef?: ElementRef<HTMLInputElement>;
 
   readonly isLoading = signal<boolean>(true);
   readonly isSubmitting = signal<boolean>(false);
   readonly userProfile = signal<UserResponse | null>(null);
+  readonly fotoAmpliada = signal<boolean>(false);
 
   userEmail = computed(() =>
     this.authService.currentUser()?.email || this.authService.currentUser()?.sub || '—'
   );
 
-  userName = computed(() => {
-    const email = this.userEmail();
-    const prefix = email.split('@')[0];
-    if (!prefix || prefix === '—') return 'Usuario';
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  });
+  userName = computed(() => nombreUsuario(this.userProfile(), this.userEmail()));
 
   roles = computed(() => this.authService.userRoles().map(r => r.replace('ROLE_', '')));
 
@@ -62,6 +63,14 @@ export class ConfiguracionCuentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+  }
+
+  ngAfterViewInit(): void {
+    if (this.route.snapshot.queryParamMap.get('accion') === 'cambiar-foto') {
+      // setTimeout: dejar que termine este ciclo de detección de cambios antes
+      // de abrir el selector nativo, para no interferir con el renderizado inicial.
+      setTimeout(() => this.fileInputRef?.nativeElement.click());
+    }
   }
 
   loadProfile(): void {
@@ -88,5 +97,30 @@ export class ConfiguracionCuentaComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  ampliarFoto(): void {
+    if (this.userProfile()?.urlFotoPerfil) {
+      this.fotoAmpliada.set(true);
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isSubmitting.set(true);
+      this.userService.uploadProfilePicture(file).subscribe({
+        next: (profile) => {
+          this.userProfile.set(profile);
+          this.toastService.success('Foto de perfil actualizada correctamente');
+          this.isSubmitting.set(false);
+        },
+        error: () => {
+          this.toastService.error('Error al subir la foto de perfil');
+          this.isSubmitting.set(false);
+        }
+      });
+    }
   }
 }

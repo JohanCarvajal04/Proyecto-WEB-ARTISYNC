@@ -20,6 +20,9 @@ public interface IPerfilCreadorServicio {
     RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario);
     List<RespuestaPerfil> listarPerfiles();
 
+    /** Directorio público de creadores con cuenta activa (no suspendida). */
+    List<RespuestaPerfil> listarPerfilesActivos();
+
     /**
      * Actualiza un perfil. Salvo que el solicitante sea ADMIN, debe ser el
      * propietario del perfil: el rol CREADOR por sí solo no autoriza a editar el

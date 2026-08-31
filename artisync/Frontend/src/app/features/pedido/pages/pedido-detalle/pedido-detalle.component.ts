@@ -12,6 +12,7 @@ import { RespuestaContrato } from '../../../legal/models/legal.model';
 import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedido/chat-pedido.component';
 import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
 import { ResenaFormComponent } from '../../../social/components/resena-form/resena-form.component';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-pedido-detalle',
@@ -59,7 +60,8 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     private contratoService: ContratoService,
     public authService: AuthService,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -105,14 +107,18 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       next: (seg) => {
         this.seguimiento = seg;
         this.cdr.markForCheck();
-      }
+      },
+      // El polling de más abajo lo reintenta cada 5s, pero si la primera carga
+      // falla el usuario no debe quedarse sin ninguna pista de por qué no ve nada.
+      error: () => this.toast.error('No se pudo cargar el seguimiento del pedido')
     });
 
     this.ticketService.listarTickets(this.pedidoId).subscribe({
       next: (tickets) => {
         this.tickets = tickets;
         this.cdr.markForCheck();
-      }
+      },
+      error: () => this.toast.error('No se pudieron cargar los tickets de revisión')
     });
 
     // Un 404 aquí solo significa que aún no hay entregable para este pedido.

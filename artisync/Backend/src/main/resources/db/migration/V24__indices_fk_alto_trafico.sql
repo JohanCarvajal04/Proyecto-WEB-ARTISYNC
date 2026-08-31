@@ -1,6 +1,11 @@
 -- =============================================================================
--- V21: indices de clave foranea ausentes en las tablas de mayor trafico
+-- V24: indices de clave foranea ausentes en las tablas de mayor trafico
 -- (H-07 de la auditoria de estado del 2026-08-26)
+--
+-- Renumerado de V21 a V24 al fusionar main (2026-08-30): main aporto en
+-- paralelo V21__verificacion_identidad_por_usuario, V22__add_url_foto_perfil
+-- y V23__check_puntaje_confianza_ia. Sin colision de indices con V21 de main
+-- (crea idx_certificados_ia_usuario, tabla no tocada aqui).
 -- =============================================================================
 -- PostgreSQL NO crea indice automatico para una FK (a diferencia de MySQL).
 -- pedidos, mensajes y notificaciones_sistema se crearon en V1 sin ningun

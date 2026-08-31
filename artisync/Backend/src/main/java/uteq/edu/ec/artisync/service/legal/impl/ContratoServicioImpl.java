@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -42,17 +41,8 @@ public class ContratoServicioImpl implements IContratoServicio {
     private final IPdfGeneracionServicio pdfGeneracionServicio;
     private final ChatService chatService;
 
-    // Propagación REQUIRES_NEW deliberada: BriefingServiceImpl.responderBriefing
-    // invoca este método dentro de su propia transacción y trata el fallo como
-    // best-effort (ver comentario ahí). Con la propagación REQUIRED por defecto,
-    // una ExcepcionReglaNegocio aquí (p. ej. "ya existe un contrato") marca la
-    // transacción compartida como rollbackOnly y el catch del llamador no puede
-    // revertir esa marca: al confirmar se lanza UnexpectedRollbackException y se
-    // pierden también las respuestas del briefing ya guardadas. REQUIRES_NEW
-    // aísla esta operación en su propia transacción física, igual que
-    // AuditoriaServicioImpl.registrar. No revertir sin resolver ese acoplamiento.
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     @Auditable(accion = "CONTRATO_GENERAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "contratos", idEntidad = "#resultado.idContrato")
     public RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante) {

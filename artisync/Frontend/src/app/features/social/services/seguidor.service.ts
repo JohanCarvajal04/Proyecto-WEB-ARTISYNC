@@ -12,6 +12,7 @@ export interface RespuestaEstadoSeguimiento {
 export interface RespuestaSeguidorInfo {
   idUsuarioSeguidor: number;
   nombreSeguidor: string;
+  fechaSeguimiento?: string;
 }
 
 export interface RespuestaCreadorSeguidoNovedad {

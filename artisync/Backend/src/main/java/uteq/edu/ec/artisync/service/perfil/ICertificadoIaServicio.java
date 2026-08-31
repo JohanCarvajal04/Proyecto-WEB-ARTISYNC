@@ -8,7 +8,7 @@ import java.util.List;
 public interface ICertificadoIaServicio {
     RespuestaCertificadoIa emitirCertificado(PeticionCrearCertificadoIa peticion);
     RespuestaCertificadoIa obtenerCertificadoPorId(Long idCertificado);
-    List<RespuestaCertificadoIa> listarCertificadosPorPerfil(Long idPerfil);
+    List<RespuestaCertificadoIa> listarCertificadosPorUsuario(Long idUsuario);
     List<RespuestaCertificadoIa> listarTodosLosCertificados();
     void eliminarCertificado(Long idCertificado);
 }

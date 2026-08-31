@@ -9,6 +9,7 @@ import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
 import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
 
 import java.util.HashSet;
 import java.util.List;
@@ -88,6 +89,7 @@ public class UsuarioMapper {
                 .roles(roles)
                 .permisos(permisos)
                 .dosFactoresHabilitado(dosFactoresHabilitado)
+                .urlFotoPerfil(UrlFotoPerfil.construir(usuario.getUrlFotoPerfil()))
                 .build();
     }
 }

@@ -148,6 +148,96 @@ class ResenaServiceImplTest {
     }
 
     // =========================================================================
+    // obtenerMiResena / actualizarResena / eliminarResena
+    // =========================================================================
+
+    @Test
+    @DisplayName("obtenerMiResena — retorna null si el pedido no tiene reseña")
+    void obtenerMiResena_sinResena_retornaNull() {
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.empty());
+
+        RespuestaResena resultado = resenaService.obtenerMiResena(50L, 1L);
+
+        assertThat(resultado).isNull();
+    }
+
+    @Test
+    @DisplayName("obtenerMiResena — retorna null si la reseña es de otro cliente")
+    void obtenerMiResena_deOtroCliente_retornaNull() {
+        ResenaServicio resena = ResenaServicio.builder()
+                .idResena(1L).pedido(pedido).calificacionEstrellas(5).build();
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
+
+        RespuestaResena resultado = resenaService.obtenerMiResena(50L, 999L);
+
+        assertThat(resultado).isNull();
+    }
+
+    @Test
+    @DisplayName("obtenerMiResena — retorna la reseña del cliente dueño del pedido")
+    void obtenerMiResena_esMiResena_retornaResena() {
+        ResenaServicio resena = ResenaServicio.builder()
+                .idResena(1L).pedido(pedido).calificacionEstrellas(5)
+                .textoResena("Genial").fechaResena(LocalDateTime.now()).build();
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
+
+        RespuestaResena resultado = resenaService.obtenerMiResena(50L, 1L);
+
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.getCalificacionEstrellas()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("actualizarResena — edita calificación y texto si es el dueño")
+    void actualizarResena_esDueno_editaCorrectamente() {
+        ResenaServicio resena = ResenaServicio.builder()
+                .idResena(1L).pedido(pedido).calificacionEstrellas(3).textoResena("Ok").build();
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
+        given(resenaServicioRepository.save(any(ResenaServicio.class))).willAnswer(inv -> inv.getArgument(0));
+
+        RespuestaResena resultado = resenaService.actualizarResena(50L,
+                new PeticionCrearResena(5, "Mejoró mucho"), 1L);
+
+        assertThat(resultado.getCalificacionEstrellas()).isEqualTo(5);
+        assertThat(resultado.getTextoResena()).isEqualTo("Mejoró mucho");
+    }
+
+    @Test
+    @DisplayName("actualizarResena — lanza FORBIDDEN si no es el dueño")
+    void actualizarResena_noEsDueno_lanzaForbidden() {
+        ResenaServicio resena = ResenaServicio.builder()
+                .idResena(1L).pedido(pedido).calificacionEstrellas(3).build();
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
+
+        assertThatThrownBy(() -> resenaService.actualizarResena(50L,
+                new PeticionCrearResena(5, "Intento ajeno"), 999L))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    @DisplayName("eliminarResena — elimina si es el dueño")
+    void eliminarResena_esDueno_eliminaCorrectamente() {
+        ResenaServicio resena = ResenaServicio.builder()
+                .idResena(1L).pedido(pedido).calificacionEstrellas(3).build();
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
+
+        resenaService.eliminarResena(50L, 1L);
+
+        verify(resenaServicioRepository).delete(resena);
+    }
+
+    @Test
+    @DisplayName("eliminarResena — lanza FORBIDDEN si no es el dueño")
+    void eliminarResena_noEsDueno_lanzaForbidden() {
+        ResenaServicio resena = ResenaServicio.builder()
+                .idResena(1L).pedido(pedido).calificacionEstrellas(3).build();
+        given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
+
+        assertThatThrownBy(() -> resenaService.eliminarResena(50L, 999L))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    // =========================================================================
     // calcularPromedioPorCreador
     // =========================================================================
 

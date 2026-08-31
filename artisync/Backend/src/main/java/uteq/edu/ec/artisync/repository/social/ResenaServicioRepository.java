@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.social.ResenaServicio;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repositorio de reseñas de servicios.
@@ -17,6 +18,9 @@ public interface ResenaServicioRepository extends JpaRepository<ResenaServicio, 
 
     /** Verifica si un pedido ya tiene reseña (constraint UNIQUE en BD). */
     boolean existsByPedidoIdPedido(Long idPedido);
+
+    /** Obtiene la reseña de un pedido (relación 1:1), si existe. */
+    Optional<ResenaServicio> findByPedidoIdPedido(Long idPedido);
 
     /**
      * Lista las reseñas de todos los pedidos de un creador específico.

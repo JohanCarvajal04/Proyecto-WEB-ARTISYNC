@@ -40,6 +40,36 @@ public class ResenaControlador {
                 .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));
     }
 
+    @Operation(summary = "Obtener mi reseña de un pedido, si existe (CLIENTE)")
+    @GetMapping("/api/v1/pedidos/{idPedido}/resena")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaResena> obtenerMiResena(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        RespuestaResena resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());
+        return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();
+    }
+
+    @Operation(summary = "Editar mi reseña de un pedido (CLIENTE)")
+    @PutMapping("/api/v1/pedidos/{idPedido}/resena")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaResena> actualizarResena(
+            @PathVariable Long idPedido,
+            @Valid @RequestBody PeticionCrearResena peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));
+    }
+
+    @Operation(summary = "Eliminar mi reseña de un pedido (CLIENTE)")
+    @DeleteMapping("/api/v1/pedidos/{idPedido}/resena")
+    @PreAuthorize("isAuthenticated()")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarResena(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        resenaService.eliminarResena(idPedido, userDetails.getIdUsuario());
+    }
+
     @Operation(summary = "Listar reseñas de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas")
     public ResponseEntity<List<RespuestaResena>> listarResenas(@PathVariable Long idPerfil) {

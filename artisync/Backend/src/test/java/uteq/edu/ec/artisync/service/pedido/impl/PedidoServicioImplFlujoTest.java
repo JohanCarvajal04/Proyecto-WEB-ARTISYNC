@@ -57,6 +57,7 @@ class PedidoServicioImplFlujoTest {
     @Mock private HistorialEstadoPedidoRepository historialRepository;
     @Mock private uteq.edu.ec.artisync.repository.pedido.EtapaFlujoRepository etapaFlujoRepository;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
+    @Mock private uteq.edu.ec.artisync.service.perfil.IVerificacionServicio verificacionServicio;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -105,6 +106,7 @@ class PedidoServicioImplFlujoTest {
                 .thenAnswer(inv -> inv.getArgument(0));
         lenient().when(historialRepository.save(any(HistorialEstadoPedido.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
     }
 
     /** Configura etapas para el flujo indicado, que es lo que exige crearPedido. */

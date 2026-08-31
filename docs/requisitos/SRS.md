@@ -152,7 +152,7 @@ Cada requisito seguido de: **Rationale**, **Prioridad (MoSCoW)**, **Criterio de 
 
 - Prioridad: Should
 - Verificación: Test
-- Estado: pendiente
+- Estado: implementado (pendiente escribir la prueba automatizada para subir a verificado; ver matriz.csv)
 
 ### Módulo Catálogo Dinámico de Servicios
 
@@ -312,7 +312,7 @@ Ver archivo completo en `docs/trazabilidad/matriz.csv`. Estructura de columnas: 
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Renombrado de IDs     | `RF-NN` → `REQ-F-0NN`, `RNF-NN` → `REQ-NF-0NN`, sin alterar el contenido semántico, para conformidad con ISO/IEC/IEEE 29148.                                               |
 | Adición de atributos  | Se agregó `rationale`, `estado` (pendiente/implementado/verificado) y `método de verificación` explícito a cada requisito, ausentes en la tabla original de la Entrega 1A. |
-| Resolución de brechas | REQ-F-009, 014, 015, 016, 023 (módulos social, comunicación, WebSockets) implementados y marcados como `verificado` para v1.0.0. **REQ-F-010 no**: sigue en `pendiente`, con la excepción declarada en `docs/trazabilidad/excepciones-estado.txt`. |
+| Resolución de brechas | REQ-F-009, 014, 015, 016, 023 (módulos social, comunicación, WebSockets) implementados y marcados como `verificado` para v1.0.0. REQ-F-010 (comentarios de portafolio) pasó de `pendiente` a `implementado`: se construyó la rodaja vertical completa (servicio, controlador y moderación admin) con borrado lógico, ya sin necesidad de excepción por ser Should. Queda pendiente su prueba automatizada para subirlo a `verificado`. |
 | Resolución de brechas | REQ-NF-004, 007, 008, 011 resueltos con el frontend Angular 22 finalizado y la integración de Azure Blob Storage.                                                          |
 | Módulo de Auditoría   | REQ-NF-013 implementado formalmente mediante la migración V12, funciones PL/pgSQL, y aspecto AOP (`@Auditable`).                                                           |
 

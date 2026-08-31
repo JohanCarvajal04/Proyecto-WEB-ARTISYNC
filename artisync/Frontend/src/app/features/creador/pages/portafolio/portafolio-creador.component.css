@@ -190,3 +190,12 @@
 .pf-obra .cr-btn {
   align-self: flex-start;
 }
+
+.pf-obra__acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pf-obra__acciones .cr-btn {
+  align-self: auto;
+}

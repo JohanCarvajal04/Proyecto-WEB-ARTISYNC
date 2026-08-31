@@ -18,7 +18,6 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
-import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.util.ArrayList;
@@ -43,7 +42,6 @@ public class BriefingServiceImpl implements BriefingService {
     private final BriefingRespuestaRepository respuestaRepo;
     private final PerfilCreadorRepository     perfilRepo;
     private final PedidoRepository            pedidoRepo;
-    private final IContratoServicio           contratoServicio;
 
     // =========================================================================
     // Gestión de plantillas (CREADOR)
@@ -202,29 +200,12 @@ public class BriefingServiceImpl implements BriefingService {
 
         log.info("Briefing del pedido {} completado por el cliente {}", idPedido, idCliente);
 
-        // RF-17: autogenerar el contrato al completar el briefing. Best-effort:
-        // el briefing ya quedó guardado arriba, así que un fallo aquí (sin
-        // plantilla sembrada, contrato ya generado manualmente, etc.) no debe
-        // hacer rollback de las respuestas ni de "completado=true" — queda
-        // registrado y el contrato se puede generar manualmente después
-        // (POST /api/v1/contratos/pedido/{idPedido}).
-        // IMPORTANTE: este aislamiento solo funciona porque
-        // ContratoServicioImpl.generarContrato usa Propagation.REQUIRES_NEW.
-        // Con la propagación por defecto, un fallo aquí marca la transacción
-        // compartida como rollbackOnly y el catch de abajo no puede evitar un
-        // UnexpectedRollbackException al confirmar — perdiendo también las
-        // respuestas del briefing. No cambiar uno sin el otro.
-        try {
-            contratoServicio.generarContrato(idPedido, idCliente);
-            log.info("Contrato autogenerado para el pedido {} tras completar el briefing (RF-17)", idPedido);
-        } catch (ExcepcionReglaNegocio e) {
-            // Caso normal: ya existía un contrato para este pedido (generado
-            // manualmente o por una respuesta previa). No es un fallo.
-            log.info("No se autogeneró contrato para el pedido {}: {}", idPedido, e.getMessage());
-        } catch (Exception e) {
-            log.error("Fallo inesperado al autogenerar el contrato para el pedido {} tras el briefing: {}",
-                    idPedido, e.getMessage(), e);
-        }
+        // RF-17 no se resolvió generando el contrato automáticamente aquí: cliente
+        // y creador todavía negocian precio/fecha por chat después del briefing
+        // (ver "Negociar términos" en PedidoDetalleComponent), y el contrato se
+        // genera recién cuando ese acuerdo cierra, con el botón "Generar contrato"
+        // del chat (ChatPedidoComponent.generarContrato -> POST /contratos/pedido/
+        // {idPedido}). Generarlo aquí saltaría esa negociación.
 
         return mapEnviadoToResponse(enviado);
     }

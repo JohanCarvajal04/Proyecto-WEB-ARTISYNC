@@ -1,13 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   VerificacionCola, VerificacionDetalle, DecisionVerificacion,
   CertificadoIa, Portafolio, Categoria, CrearCategoria, ActualizarCategoria,
-  Subcategoria, CrearSubcategoria, Etiqueta
+  Subcategoria, CrearSubcategoria, Etiqueta, Comentario
 } from '../models/moderacion.model';
 import { MessageResponse } from '../../../shared/models/common.model';
+import { Pagina, normalizarPagina } from '../../../shared/models/pagina.model';
 import { PortafolioItem } from '../../perfil/models/portafolio.model';
 
 @Injectable({
@@ -53,11 +54,12 @@ export class ModeracionService {
   }
 
   /**
-   * Historial de certificados de un perfil. Da contexto al moderador antes de
-   * decidir: si ese perfil ya tuvo rechazos previos, importa saberlo.
+   * Historial de certificados de un usuario (Cliente o Creador). Da contexto
+   * al moderador antes de decidir: si ese usuario ya tuvo rechazos previos,
+   * importa saberlo.
    */
-  listarCertificadosDePerfil(idPerfil: number): Observable<CertificadoIa[]> {
-    return this.http.get<CertificadoIa[]>(`${environment.apiUrl}/v1/certificados/perfil/${idPerfil}`);
+  listarCertificadosDeUsuario(idUsuario: number): Observable<CertificadoIa[]> {
+    return this.http.get<CertificadoIa[]>(`${environment.apiUrl}/v1/certificados/usuario/${idUsuario}`);
   }
 
   // ─── Portafolios (solo lectura) ───
@@ -85,6 +87,27 @@ export class ModeracionService {
    */
   eliminarPortafolio(id: number): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/portafolios/${id}`);
+  }
+
+  // ─── Comentarios (COMENTARIO_MODERAR) ───
+
+  listarComentarios(page = 0, size = 20): Observable<Pagina<Comentario>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get(`${environment.apiUrl}/v1/admin/comentarios`, { params })
+      .pipe(map(crudo => normalizarPagina<Comentario>(crudo)));
+  }
+
+  ocultarComentario(idComentario: number): Observable<Comentario> {
+    return this.http.patch<Comentario>(`${environment.apiUrl}/v1/admin/comentarios/${idComentario}/ocultar`, {});
+  }
+
+  reactivarComentario(idComentario: number): Observable<Comentario> {
+    return this.http.patch<Comentario>(`${environment.apiUrl}/v1/admin/comentarios/${idComentario}/reactivar`, {});
+  }
+
+  /** Borrado definitivo, reservado a ADMIN en el backend. */
+  eliminarComentario(idComentario: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/v1/admin/comentarios/${idComentario}`);
   }
 
   // ─── Categorías ───

@@ -9,13 +9,13 @@ import { PerfilCreadorService } from '../../services/perfil-creador.service';
 import { RespuestaPerfil } from '../../models/creador.model';
 import { SolicitudVerificacionComponent } from '../../../perfil/components/solicitud-verificacion/solicitud-verificacion.component';
 import { mensajeError } from '../../utils/formato';
+import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 
 @Component({
   selector: 'app-perfil-creador',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, AvatarComponent, SolicitudVerificacionComponent],
-  templateUrl: './perfil-creador.component.html',
-  styleUrl: './perfil-creador.component.css'
+  templateUrl: './perfil-creador.component.html'
 })
 export class PerfilCreadorComponent implements OnInit {
 
@@ -32,15 +32,17 @@ export class PerfilCreadorComponent implements OnInit {
 
   form: FormGroup = this.fb.group({
     biografia: ['', [Validators.maxLength(500)]],
-    urlRedSocial: ['', [Validators.maxLength(255)]]
+    urlRedSocial: ['', [Validators.maxLength(255)]],
+    tituloProfesional: ['', [Validators.maxLength(150)]]
   });
 
   nombreCompleto = computed(() => {
     const p = this.perfil();
-    if (p) return `${p.nombresUsuario} ${p.apellidosUsuario}`.trim();
-    const correo = this.authService.currentUser()?.email || this.authService.currentUser()?.sub || 'Creador';
-    const prefijo = correo.split('@')[0];
-    return prefijo.charAt(0).toUpperCase() + prefijo.slice(1);
+    return nombreUsuario(
+      p ? { nombres: p.nombresUsuario, apellidos: p.apellidosUsuario } : null,
+      this.correo(),
+      'Creador'
+    );
   });
 
   correo = computed(() =>
@@ -48,6 +50,16 @@ export class PerfilCreadorComponent implements OnInit {
   );
 
   roles = computed(() => this.authService.userRoles().map(r => r.replace('ROLE_', '')));
+
+  totalPermisos = computed(() => this.authService.userPermissions().length);
+
+  sesionExpira = computed(() => {
+    const exp = this.authService.currentUser()?.exp;
+    if (!exp) return null;
+    return new Date(exp * 1000).toLocaleString('es-EC', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+  });
 
   biografiaLength = computed(() => (this.form.get('biografia')?.value || '').length);
 
@@ -60,7 +72,8 @@ export class PerfilCreadorComponent implements OnInit {
         if (perfil) {
           this.form.patchValue({
             biografia: perfil.biografia || '',
-            urlRedSocial: perfil.urlRedSocial || ''
+            urlRedSocial: perfil.urlRedSocial || '',
+            tituloProfesional: perfil.tituloProfesional || ''
           });
         }
         this.isLoading.set(false);
@@ -81,7 +94,8 @@ export class PerfilCreadorComponent implements OnInit {
     const val = this.form.getRawValue();
     const datos = {
       biografia: val.biografia || null,
-      urlRedSocial: val.urlRedSocial || null
+      urlRedSocial: val.urlRedSocial || null,
+      tituloProfesional: val.tituloProfesional || null
     };
 
     this.guardando.set(true);

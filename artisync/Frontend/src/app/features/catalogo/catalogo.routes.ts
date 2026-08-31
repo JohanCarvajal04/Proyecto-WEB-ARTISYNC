@@ -10,6 +10,10 @@ export const CATALOGO_ROUTES: Routes = [
     loadComponent: () => import('./pages/explorar/explorar.component').then(m => m.ExplorarComponent)
   },
   {
+    path: 'creadores',
+    loadComponent: () => import('./pages/creadores/creadores.component').then(m => m.CreadoresComponent)
+  },
+  {
     path: 'servicio/:id',
     loadComponent: () => import('./pages/servicio-detalle/servicio-detalle.component').then(m => m.ServicioDetalleComponent)
   },

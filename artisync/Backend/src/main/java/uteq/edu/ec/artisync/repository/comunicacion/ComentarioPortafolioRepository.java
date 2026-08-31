@@ -12,5 +12,10 @@ public interface ComentarioPortafolioRepository extends JpaRepository<Comentario
     Page<ComentarioPortafolio> findByItemPortafolioIdItemPortafolioAndEstadoModeracion(
             Long idItem, String estadoModeracion, Pageable pageable);
 
-    long countByItemPortafolioIdItemPortafolio(Long idItem);
+    /**
+     * Conteo público (badge de la obra): solo cuenta los activos. Contar todos
+     * sin filtrar inflaba el número con comentarios ocultos por moderación o
+     * borrados lógicamente por su autor, que no aparecen en el listado público.
+     */
+    long countByItemPortafolioIdItemPortafolioAndEstadoModeracion(Long idItem, String estadoModeracion);
 }

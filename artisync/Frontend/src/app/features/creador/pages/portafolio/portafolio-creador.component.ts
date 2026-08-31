@@ -50,6 +50,8 @@ export class PortafolioCreadorComponent implements OnInit {
   readonly eliminando = signal<number | null>(null);
   readonly archivoSeleccionado = signal<File | null>(null);
   readonly errorArchivo = signal<string>('');
+  readonly idItemEditando = signal<number | null>(null);
+  readonly guardandoEdicion = signal<boolean>(false);
 
   @ViewChild('inputArchivo') inputArchivo?: ElementRef<HTMLInputElement>;
 
@@ -240,6 +242,43 @@ export class PortafolioCreadorComponent implements OnInit {
     if (this.inputArchivo?.nativeElement) {
       this.inputArchivo.nativeElement.value = '';
     }
+  }
+
+  // ── Edición de metadatos de una obra ──────────────────────────────────────
+
+  tituloEdicion = '';
+  descripcionEdicion = '';
+
+  editarObra(item: PortafolioItem): void {
+    this.idItemEditando.set(item.idItemPortafolio);
+    this.tituloEdicion = item.tituloObra;
+    this.descripcionEdicion = item.descripcionObra ?? '';
+  }
+
+  cancelarEdicionObra(): void {
+    this.idItemEditando.set(null);
+  }
+
+  guardarEdicionObra(item: PortafolioItem): void {
+    if (!this.tituloEdicion.trim()) return;
+
+    this.guardandoEdicion.set(true);
+    this.portafolioService.actualizarItem(item.idItemPortafolio, {
+      tituloObra: this.tituloEdicion.trim(),
+      descripcionObra: this.descripcionEdicion.trim() || undefined
+    }).subscribe({
+      next: (actualizado) => {
+        this.items.update((actuales) =>
+          actuales.map((i) => i.idItemPortafolio === actualizado.idItemPortafolio ? actualizado : i));
+        this.guardandoEdicion.set(false);
+        this.idItemEditando.set(null);
+        this.toast.success('Obra actualizada');
+      },
+      error: (err) => {
+        this.guardandoEdicion.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo actualizar la obra'));
+      }
+    });
   }
 
   eliminarObra(item: PortafolioItem): void {

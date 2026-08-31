@@ -65,7 +65,8 @@ public class SecurityConfig {
                                  "/api/v1/auth/refresh", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/v1/catalogo/**", "/api/v1/categorias/**",
                                  "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/**",
-                                 "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/v1/paises", "/api/v1/paises/**").permitAll()
+                                 "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/v1/portafolio-items/**",
+                                 "/api/v1/paises", "/api/v1/paises/**", "/api/v1/usuarios/foto/**").permitAll()
                 // Ficha pública del creador (M3 - página pública de servicios).
                 // Un solo segmento ("/*", no "/**") a propósito: deja fuera
                 // /api/v1/perfiles/usuario/{idUsuario} (expondría la

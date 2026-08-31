@@ -13,6 +13,7 @@ import {
 } from '../../models/catalogo.model';
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
 import { CATALOGO_BASE_PATH } from '../../catalogo.config';
+import { ToastService } from '../../../../core/services/toast.service';
 
 const TAMANO_PAGINA = 12;
 
@@ -27,6 +28,7 @@ export class ExplorarComponent implements OnInit {
   private catalogoService = inject(CatalogoPublicoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
 
   /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
   readonly base = inject(CATALOGO_BASE_PATH);
@@ -74,11 +76,11 @@ export class ExplorarComponent implements OnInit {
   ngOnInit(): void {
     this.catalogoService.listarCategorias().subscribe({
       next: (cats) => this.categorias.set(cats.filter(c => c.estadoActiva)),
-      error: () => {}
+      error: () => this.toast.warning('No se pudieron cargar las categorías para filtrar')
     });
     this.catalogoService.listarEtiquetas().subscribe({
       next: (etqs) => this.etiquetas.set(etqs),
-      error: () => {}
+      error: () => this.toast.warning('No se pudieron cargar las etiquetas para filtrar')
     });
 
     this.busqueda$.pipe(debounceTime(350), distinctUntilChanged()).subscribe(texto => {

@@ -32,4 +32,10 @@ export class UserService {
   revokeAllMySessions(): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/me/sesiones`);
   }
+
+  uploadProfilePicture(file: File): Observable<UserResponse> {
+    const formData = new FormData();
+    formData.append('foto', file);
+    return this.http.post<UserResponse>(`${this.apiUrl}/me/foto`, formData);
+  }
 }

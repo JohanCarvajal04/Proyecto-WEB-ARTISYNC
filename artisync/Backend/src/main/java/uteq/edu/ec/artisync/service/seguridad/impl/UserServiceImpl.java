@@ -24,6 +24,10 @@ import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -36,6 +40,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UsuarioMapper usuarioMapper;
     private final SessionRevocationService sessionRevocationService;
+    private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Override
     @Transactional(readOnly = true)
@@ -115,11 +120,35 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public RespuestaMensaje revokeAllMySessions(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
         return new RespuestaMensaje("Todas las sesiones activas han sido cerradas.");
+    }
+
+    @Override
+    @Transactional
+    public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
+        PoliticaArchivo.PERFIL.validar(file);
+
+        Usuario usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        if (usuario.getUrlFotoPerfil() != null) {
+            try {
+                almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());
+            } catch (Exception e) {
+                // Ignore failure to delete old picture
+            }
+        }
+        
+        String nuevaReferencia = almacenamientoDocumentos.guardar(file, PrefijoAlmacenamiento.PERFILES);
+        usuario.setUrlFotoPerfil(nuevaReferencia);
+        usuarioRepository.save(usuario);
+        
+        return usuarioMapper.toUserResponse(usuario);
     }
 }
 

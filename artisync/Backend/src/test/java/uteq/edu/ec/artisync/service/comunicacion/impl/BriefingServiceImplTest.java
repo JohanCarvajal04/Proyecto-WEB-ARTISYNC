@@ -19,14 +19,12 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -43,7 +41,6 @@ class BriefingServiceImplTest {
     @Mock private BriefingRespuestaRepository respuestaRepo;
     @Mock private PerfilCreadorRepository     perfilRepo;
     @Mock private PedidoRepository            pedidoRepo;
-    @Mock private IContratoServicio           contratoServicio;
 
     @InjectMocks
     private BriefingServiceImpl briefingService;
@@ -237,78 +234,4 @@ class BriefingServiceImplTest {
                 .hasMessageContaining("Ya se envió");
     }
 
-    // =========================================================================
-    // responderBriefing — RF-17 (autogeneración de contrato, H-03)
-    // =========================================================================
-
-    private BriefingEnviado enviadoCompletable() {
-        BriefingPlantilla plantilla = BriefingPlantilla.builder()
-                .idBriefingPlantilla(1L)
-                .perfilCreador(perfilCreador)
-                .nombrePlantilla("Briefing Logo")
-                .preguntas(new ArrayList<>())
-                .build();
-        return BriefingEnviado.builder()
-                .idBriefingEnviado(20L)
-                .pedido(pedido) // cliente idUsuario=2
-                .plantilla(plantilla)
-                .completado(false)
-                .build();
-    }
-
-    @Test
-    @DisplayName("RF-17: responderBriefing autogenera el contrato al completarse")
-    void responderBriefing_completado_generaContrato() {
-        BriefingEnviado enviado = enviadoCompletable();
-        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
-        when(enviadoRepo.save(any(BriefingEnviado.class))).thenReturn(enviado);
-        when(respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(20L)).thenReturn(List.of());
-
-        PeticionResponderBriefing peticion = PeticionResponderBriefing.builder().respuestas(List.of()).build();
-
-        briefingService.responderBriefing(10L, peticion, 2L);
-
-        verify(contratoServicio).generarContrato(10L, 2L);
-        assertThat(enviado.getCompletado()).isTrue();
-    }
-
-    @Test
-    @DisplayName("RF-17: si el contrato ya existe, responderBriefing igual completa el briefing")
-    void responderBriefing_contratoYaExiste_noPropagaError() {
-        BriefingEnviado enviado = enviadoCompletable();
-        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
-        when(enviadoRepo.save(any(BriefingEnviado.class))).thenReturn(enviado);
-        when(respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(20L)).thenReturn(List.of());
-        when(contratoServicio.generarContrato(10L, 2L))
-                .thenThrow(new ExcepcionReglaNegocio("Ya existe un contrato para este pedido"));
-
-        PeticionResponderBriefing peticion = PeticionResponderBriefing.builder().respuestas(List.of()).build();
-
-        RespuestaBriefing respuesta = assertDoesNotThrow(
-                () -> briefingService.responderBriefing(10L, peticion, 2L));
-
-        assertThat(respuesta).isNotNull();
-        assertThat(enviado.getCompletado()).isTrue();
-        verify(enviadoRepo).save(enviado);
-    }
-
-    @Test
-    @DisplayName("RF-17: un fallo inesperado al generar el contrato no revierte el briefing")
-    void responderBriefing_fallaGenerarContrato_noPropagaError() {
-        BriefingEnviado enviado = enviadoCompletable();
-        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
-        when(enviadoRepo.save(any(BriefingEnviado.class))).thenReturn(enviado);
-        when(respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(20L)).thenReturn(List.of());
-        when(contratoServicio.generarContrato(10L, 2L))
-                .thenThrow(new RuntimeException("no hay plantillas de contrato disponibles"));
-
-        PeticionResponderBriefing peticion = PeticionResponderBriefing.builder().respuestas(List.of()).build();
-
-        RespuestaBriefing respuesta = assertDoesNotThrow(
-                () -> briefingService.responderBriefing(10L, peticion, 2L));
-
-        assertThat(respuesta).isNotNull();
-        assertThat(enviado.getCompletado()).isTrue();
-        verify(enviadoRepo).save(enviado);
-    }
 }

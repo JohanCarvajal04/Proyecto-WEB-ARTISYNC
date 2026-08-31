@@ -23,6 +23,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.*;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.catalogo.IServicioCatalogoServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.specification.catalogo.ServicioSpecification;
 
 import java.math.BigDecimal;
@@ -41,6 +42,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private final ServicioAtributoRepository servicioAtributoRepository;
     private final EtiquetaRepository etiquetaRepository;
     private final ServicioEtiquetaRepository servicioEtiquetaRepository;
+    private final IVerificacionServicio verificacionServicio;
 
     @Override
     @Transactional
@@ -57,6 +59,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil creador no encontrado con ID: " + idPerfilCreador));
 
         validarPropiedadOAdmin(perfil);
+        validarIdentidadVerificada(perfil);
 
         Subcategoria subcategoria = subcategoriaRepository.findById(peticion.getIdSubcategoria())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + peticion.getIdSubcategoria()));
@@ -114,6 +117,9 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             servicio.setTipoItem(peticion.getTipoItem());
         }
         if (peticion.getEstadoPublicacion() != null && !peticion.getEstadoPublicacion().isBlank()) {
+            if ("ACTIVO".equals(peticion.getEstadoPublicacion())) {
+                validarIdentidadVerificada(servicio.getPerfil());
+            }
             servicio.setEstadoPublicacion(peticion.getEstadoPublicacion());
         }
         servicio.setUrlMiniatura(peticion.getUrlMiniatura());
@@ -391,6 +397,20 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .valorAsignado(sa.getValorAsignado())
                 .actualizadoEn(sa.getActualizadoEn())
                 .build();
+    }
+
+    /**
+     * Un servicio nace y se reactiva siempre en estado ACTIVO (no hay borrador
+     * intermedio aquí), así que este es el único punto de la aplicación donde
+     * "crear/publicar un servicio" ocurre de verdad. Exigir identidad
+     * verificada aquí es exigirla para publicar, tal como pide el requisito.
+     */
+    private void validarIdentidadVerificada(PerfilCreador perfil) {
+        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
+        if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {
+            throw new ExcepcionReglaNegocio(
+                    "Debes verificar tu identidad antes de publicar un servicio. Sube tu documento de identidad desde tu perfil.");
+        }
     }
 
     private void validarPropiedadOAdmin(PerfilCreador perfil) {

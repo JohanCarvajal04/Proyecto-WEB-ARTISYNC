@@ -43,8 +43,8 @@ class CertificadoIaControladorTest {
     }
 
     @Test
-    void listarCertificadosPorPerfil_exigeRevisorOAdmin() throws NoSuchMethodException {
-        Method metodo = CertificadoIaControlador.class.getMethod("listarCertificadosPorPerfil", Long.class);
+    void listarCertificadosPorUsuario_exigeRevisorOAdmin() throws NoSuchMethodException {
+        Method metodo = CertificadoIaControlador.class.getMethod("listarCertificadosPorUsuario", Long.class);
         var preAuthorize = metodo.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
 
         assertThat(preAuthorize).isNotNull();

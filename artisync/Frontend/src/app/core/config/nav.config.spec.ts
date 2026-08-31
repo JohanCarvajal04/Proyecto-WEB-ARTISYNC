@@ -150,6 +150,13 @@ describe('menú visible según permisos', () => {
     expect(menuDeRolDelSeed('CLIENTE')[0].route).toBe('overview');
   });
 
+  it('AUDITOR_FINANCIERO aterriza en Pagos y Garantías, no en Gestión de Países', () => {
+    // Antes de agregar 'pagos-garantia' (PAGO_AUDITAR), este rol no tenía
+    // ningún ítem anterior a 'paises' en NAV_CATALOG, así que homeRoute() lo
+    // mandaba a Gestión de Países pese a no gestionar países.
+    expect(menuDeRolDelSeed('AUDITOR_FINANCIERO')[0].route).toBe('pagos-garantia');
+  });
+
   it('muestra Gestión de Países con CUALQUIERA de los cuatro permisos del módulo', () => {
     // Un rol con los tres permisos de escritura pero sin PAIS_VER gestionaba
     // países y aun así no veía la opción en el menú.
