@@ -469,6 +469,28 @@ class PedidoServicioImplTest {
     }
 
     @Test
+    @DisplayName("avanzarEtapa rechaza en vez de retroceder si la etapa actual ya no esta en la configuracion del flujo")
+    void avanzarEtapa_etapaActualYaNoEnConfig_rechazaEnVezDeRetroceder() {
+        // Reproduce el escenario del bug: alguien borró la FlujoEtapaConfig de
+        // la etapa en la que el pedido está detenido. Antes, obtenerOrdenActual
+        // caía a orden=0 y avanzarEtapa tomaba la primera etapa del flujo como
+        // "siguiente" — el pedido retrocedía en silencio de la etapa 2 a la 1.
+        PeticionAvanzarEtapa peticion = PeticionAvanzarEtapa.builder().build();
+        HistorialEstadoPedido ultimo = HistorialEstadoPedido.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaSiguiente).build();
+        // La config del flujo ya no incluye "etapaSiguiente" (fue eliminada).
+        FlujoEtapaConfig soloEtapaInicial = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.of(ultimo));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(soloEtapaInicial));
+
+        assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("ya no forma parte del flujo");
+        org.mockito.Mockito.verify(historialRepository, never()).save(any(HistorialEstadoPedido.class));
+    }
+
+    @Test
     @DisplayName("avanzarEtapa lanza recurso no encontrado si el pedido no existe")
     void avanzarEtapa_pedidoInexistente() {
         given(pedidoRepository.findById(10L)).willReturn(Optional.empty());

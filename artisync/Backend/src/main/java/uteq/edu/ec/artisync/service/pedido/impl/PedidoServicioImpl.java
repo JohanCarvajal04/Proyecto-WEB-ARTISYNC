@@ -36,6 +36,7 @@ import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -315,8 +316,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)
                 .orElseThrow(() -> new ExcepcionReglaNegocio("Pedido sin estado inicial"));
 
-        // Obtener el orden actual de la etapa
-        Integer ordenActual = obtenerOrdenActual(pedido, ultimoEstado);
+        // Obtener el orden actual de la etapa. Si ya no está en la
+        // configuración del flujo (p. ej. se borró la etapa), no hay un
+        // "siguiente" seguro que calcular — tratarlo como orden 0 avanzaría
+        // el pedido a la primera etapa en vez de fallar.
+        Integer ordenActual = buscarOrdenActual(pedido, ultimoEstado)
+                .orElseThrow(() -> new ExcepcionReglaNegocio(
+                        "La etapa actual del pedido ('" + ultimoEstado.getEtapa().getNombreEtapa()
+                                + "') ya no forma parte del flujo de trabajo configurado. Contacta a soporte."));
 
         // Obtener siguiente etapa del flujo configurado
         List<FlujoEtapaConfig> siguientes = flujoEtapaConfigRepository
@@ -380,7 +387,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
         String etapaActualNombre = "Sin estado";
         if (ultimoEstado != null) {
             etapaActualNombre = ultimoEstado.getEtapa().getNombreEtapa();
-            etapaActualOrden = obtenerOrdenActual(pedido, ultimoEstado);
+            Optional<Integer> orden = buscarOrdenActual(pedido, ultimoEstado);
+            if (orden.isEmpty()) {
+                // Vista de solo lectura: no se puede fallar, pero sí avisar.
+                // Ver buscarOrdenActual — el pedido quedó con una etapa que ya
+                // no está en la configuración del flujo.
+                log.warn("Pedido {} tiene como etapa actual '{}', que ya no está en la configuración del flujo {}",
+                        idPedido, etapaActualNombre, pedido.getFlujo().getIdFlujo());
+            }
+            etapaActualOrden = orden.orElse(0);
         }
 
         int totalEtapas = etapasConfig.size();
@@ -401,15 +416,21 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
-    private Integer obtenerOrdenActual(Pedido pedido, HistorialEstadoPedido ultimoEstado) {
+    /**
+     * Vacío cuando la etapa del último historial ya no está en la
+     * configuración del flujo (p. ej. alguien la borró mientras el pedido
+     * estaba detenido ahí). Nunca debe tratarse como "orden 0": eso haría
+     * que avanzarEtapa tome la primera etapa del flujo como "siguiente" y el
+     * pedido retroceda en silencio.
+     */
+    private Optional<Integer> buscarOrdenActual(Pedido pedido, HistorialEstadoPedido ultimoEstado) {
         List<FlujoEtapaConfig> configs = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());
 
         return configs.stream()
                 .filter(c -> c.getEtapa().getIdEtapa().equals(ultimoEstado.getEtapa().getIdEtapa()))
                 .findFirst()
-                .map(FlujoEtapaConfig::getNumeroOrden)
-                .orElse(0);
+                .map(FlujoEtapaConfig::getNumeroOrden);
     }
 
     private String obtenerEtapaActual(Long idPedido) {
