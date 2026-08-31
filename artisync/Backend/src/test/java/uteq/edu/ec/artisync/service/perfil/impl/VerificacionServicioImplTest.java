@@ -159,6 +159,43 @@ class VerificacionServicioImplTest {
 
         assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(12L));
         verify(certificadoIaRepository, never()).save(any());
+        // No reintentable (constructor de 2 argumentos): un solo intento, sin reintento.
+        verify(iaService, times(1)).verificarIdentidad(any(), any());
+    }
+
+    @Test
+    void analizarConIa_fallaTransitoria_reintentaUnaVezYTienExito() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(14L).usuario(usuario).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(14L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
+        when(iaService.verificarIdentidad(any(), any()))
+                .thenThrow(new ExcepcionServicioIaNoDisponible("429", null, true))
+                .thenReturn(IaVerificacionResponse.builder()
+                        .aprobado(true).confianza(new BigDecimal("0.9")).build());
+        when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RespuestaVerificacion respuesta = servicio.analizarConIa(14L);
+
+        assertThat(respuesta.veredictoIa()).isEqualTo("SUGIERE_APROBAR");
+        verify(iaService, times(2)).verificarIdentidad(any(), any());
+    }
+
+    @Test
+    void analizarConIa_fallaNoTransitoria_noReintenta() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(15L).usuario(usuario).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(15L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
+        when(iaService.verificarIdentidad(any(), any()))
+                .thenThrow(new ExcepcionServicioIaNoDisponible("401", null, false));
+
+        assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(15L));
+        verify(iaService, times(1)).verificarIdentidad(any(), any());
     }
 
     @Test

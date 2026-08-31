@@ -154,6 +154,7 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
     private String ejecutarLlamada(Map<String, Object> requestBody) {
         String url = config.getBaseUrl() + "/chat/completions";
         try {
+            log.info("[NVIDIA] Enviando solicitud a {} [payload={} bytes]", url, estimarTamanoPayload(requestBody));
             String responseBody = restClient.post()
                     .uri(url)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -164,23 +165,37 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
             JsonNode raiz = objectMapper.readTree(responseBody);
             return raiz.path("choices").path(0).path("message").path("content").asString("");
         } catch (HttpClientErrorException.Unauthorized e) {
+            log.warn("[NVIDIA] 401 Unauthorized. Body de respuesta: {}", e.getResponseBodyAsString());
             throw new ExcepcionServicioIaNoDisponible("NVIDIA rechazó la API key configurada (401).", e);
         } catch (HttpClientErrorException.TooManyRequests e) {
-            throw new ExcepcionServicioIaNoDisponible("Se alcanzó el límite de solicitudes de NVIDIA (429).", e);
+            log.warn("[NVIDIA] 429 Too Many Requests. Body de respuesta: {}", e.getResponseBodyAsString());
+            throw new ExcepcionServicioIaNoDisponible("Se alcanzó el límite de solicitudes de NVIDIA (429).", e, true);
         } catch (HttpClientErrorException e) {
+            log.warn("[NVIDIA] {} de cliente. Body de respuesta: {}", e.getStatusCode().value(), e.getResponseBodyAsString());
             if (e.getStatusCode().value() == 413) {
                 throw new ExcepcionServicioIaNoDisponible("El documento supera el límite de NVIDIA (413).", e);
             }
             throw new ExcepcionServicioIaNoDisponible(
                     "NVIDIA rechazó la solicitud (" + e.getStatusCode().value() + ").", e);
         } catch (HttpServerErrorException e) {
+            log.warn("[NVIDIA] Error de servidor {}. Body de respuesta: {}", e.getStatusCode().value(), e.getResponseBodyAsString());
             throw new ExcepcionServicioIaNoDisponible("NVIDIA respondió con un error de servidor.", e);
         } catch (ResourceAccessException e) {
-            throw new ExcepcionServicioIaNoDisponible("Tiempo de espera agotado al contactar a NVIDIA.", e);
+            log.warn("[NVIDIA] Tiempo de espera agotado: {}", e.getMessage());
+            throw new ExcepcionServicioIaNoDisponible("Tiempo de espera agotado al contactar a NVIDIA.", e, true);
         } catch (ExcepcionServicioIaNoDisponible e) {
             throw e;
         } catch (Exception e) {
             throw new ExcepcionServicioIaNoDisponible("Error inesperado al comunicarse con NVIDIA NIM.", e);
+        }
+    }
+
+    /** Tamaño aproximado del cuerpo JSON, solo para diagnóstico — no exacto al byte. */
+    private int estimarTamanoPayload(Map<String, Object> requestBody) {
+        try {
+            return objectMapper.writeValueAsBytes(requestBody).length;
+        } catch (Exception e) {
+            return -1;
         }
     }
 

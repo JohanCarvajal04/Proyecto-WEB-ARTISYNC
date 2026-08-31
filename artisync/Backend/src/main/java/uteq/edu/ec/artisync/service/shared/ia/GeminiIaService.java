@@ -146,6 +146,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
         String url = String.format("%s/models/%s:generateContent?key=%s",
                 config.getBaseUrl(), config.getModel(), config.getApiKey());
         try {
+            log.info("[GEMINI] Enviando solicitud [payload={} bytes]", estimarTamanoPayload(requestBody));
             String responseBody = restClient.post()
                     .uri(url)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -155,20 +156,34 @@ public class GeminiIaService extends AbstractIaService implements IaService {
             JsonNode raiz = objectMapper.readTree(responseBody);
             return raiz.path("candidates").path(0).path("content").path("parts").path(0).path("text").asString("");
         } catch (HttpClientErrorException.Unauthorized e) {
+            log.warn("[GEMINI] 401 Unauthorized. Body de respuesta: {}", e.getResponseBodyAsString());
             throw new ExcepcionServicioIaNoDisponible("Gemini rechazó la API key configurada (401).", e);
         } catch (HttpClientErrorException.TooManyRequests e) {
-            throw new ExcepcionServicioIaNoDisponible("Se alcanzó el límite de solicitudes de Gemini (429).", e);
+            log.warn("[GEMINI] 429 Too Many Requests. Body de respuesta: {}", e.getResponseBodyAsString());
+            throw new ExcepcionServicioIaNoDisponible("Se alcanzó el límite de solicitudes de Gemini (429).", e, true);
         } catch (HttpClientErrorException e) {
+            log.warn("[GEMINI] {} de cliente. Body de respuesta: {}", e.getStatusCode().value(), e.getResponseBodyAsString());
             throw new ExcepcionServicioIaNoDisponible(
                     "Gemini rechazó la solicitud (" + e.getStatusCode().value() + ").", e);
         } catch (HttpServerErrorException e) {
+            log.warn("[GEMINI] Error de servidor {}. Body de respuesta: {}", e.getStatusCode().value(), e.getResponseBodyAsString());
             throw new ExcepcionServicioIaNoDisponible("Gemini respondió con un error de servidor.", e);
         } catch (ResourceAccessException e) {
-            throw new ExcepcionServicioIaNoDisponible("Tiempo de espera agotado al contactar a Gemini.", e);
+            log.warn("[GEMINI] Tiempo de espera agotado: {}", e.getMessage());
+            throw new ExcepcionServicioIaNoDisponible("Tiempo de espera agotado al contactar a Gemini.", e, true);
         } catch (ExcepcionServicioIaNoDisponible e) {
             throw e;
         } catch (Exception e) {
             throw new ExcepcionServicioIaNoDisponible("Error inesperado al comunicarse con Gemini.", e);
+        }
+    }
+
+    /** Tamaño aproximado del cuerpo JSON, solo para diagnóstico — no exacto al byte. */
+    private int estimarTamanoPayload(Map<String, Object> requestBody) {
+        try {
+            return objectMapper.writeValueAsBytes(requestBody).length;
+        } catch (Exception e) {
+            return -1;
         }
     }
 

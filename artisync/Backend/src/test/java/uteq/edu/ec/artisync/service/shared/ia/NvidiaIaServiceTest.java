@@ -79,6 +79,42 @@ class NvidiaIaServiceTest {
     }
 
     @Test
+    void verificarIdentidad_nvidiaResponde401_noEsReintentable() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+
+        ExcepcionServicioIaNoDisponible error = org.junit.jupiter.api.Assertions.assertThrows(
+                ExcepcionServicioIaNoDisponible.class,
+                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+
+        assertThat(error.isReintentable()).isFalse();
+    }
+
+    @Test
+    void verificarIdentidad_nvidiaResponde429_esReintentable() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+        ExcepcionServicioIaNoDisponible error = org.junit.jupiter.api.Assertions.assertThrows(
+                ExcepcionServicioIaNoDisponible.class,
+                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+
+        assertThat(error.isReintentable()).isTrue();
+    }
+
+    @Test
+    void verificarIdentidad_nvidiaResponde413_noEsReintentable() {
+        servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
+                .andRespond(withStatus(HttpStatus.PAYLOAD_TOO_LARGE));
+
+        ExcepcionServicioIaNoDisponible error = org.junit.jupiter.api.Assertions.assertThrows(
+                ExcepcionServicioIaNoDisponible.class,
+                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+
+        assertThat(error.isReintentable()).isFalse();
+    }
+
+    @Test
     void verificarIdentidad_campoNuloEnJson_noProduceLaCadenaNull() throws Exception {
         String contenidoIa = "{\"es_documento_valido\": true, \"nombre_detectado\": null, \"confianza\": 0.8}";
         String respuestaNvidia = new ObjectMapper().writeValueAsString(

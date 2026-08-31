@@ -18,6 +18,7 @@ import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
@@ -136,10 +137,9 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
         byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());
         byte[] comprimido = preprocesador.comprimirParaIa(original);
+        log.info("Documento {} comprimido a {} bytes para envío a IA", idCertificado, comprimido.length);
 
-        IaVerificacionResponse dictamen = "CERTIFICADO".equals(certificado.getTipoDocumento())
-                ? iaService.analizarCertificado(comprimido, "image/jpeg")
-                : iaService.verificarIdentidad(comprimido, "image/jpeg");
+        IaVerificacionResponse dictamen = analizarConReintento(certificado, comprimido);
 
         certificado.setVeredictoIa(dictamen.isAprobado() ? "SUGIERE_APROBAR" : "SUGIERE_RECHAZAR");
         certificado.setPuntajeConfianzaIa(dictamen.getConfianza());
@@ -180,6 +180,36 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
                 idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);
         return mapearARespuesta(certificado);
+    }
+
+    /**
+     * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
+     * ver ExcepcionServicioIaNoDisponible#isReintentable). 401/413 fallarían
+     * exactamente igual en el segundo intento y solo duplicarían la espera
+     * del moderador, así que se propagan de inmediato.
+     */
+    private IaVerificacionResponse analizarConReintento(CertificadoIa certificado, byte[] comprimido) {
+        boolean esCertificado = "CERTIFICADO".equals(certificado.getTipoDocumento());
+        try {
+            return esCertificado
+                    ? iaService.analizarCertificado(comprimido, "image/jpeg")
+                    : iaService.verificarIdentidad(comprimido, "image/jpeg");
+        } catch (ExcepcionServicioIaNoDisponible e) {
+            if (!e.isReintentable()) {
+                throw e;
+            }
+            log.warn("Fallo transitorio al analizar verificación {}, reintentando en 2s: {}",
+                    certificado.getIdCertificado(), e.getMessage());
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw e;
+            }
+            return esCertificado
+                    ? iaService.analizarCertificado(comprimido, "image/jpeg")
+                    : iaService.verificarIdentidad(comprimido, "image/jpeg");
+        }
     }
 
     private CertificadoIa buscarPorId(Long idCertificado) {
