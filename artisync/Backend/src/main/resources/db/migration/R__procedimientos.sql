@@ -1454,9 +1454,9 @@ BEGIN
     SELECT 
         pc.id_perfil,
         u.id_usuario,
-        u.nombres,
-        u.apellidos,
-        COALESCE('@' || LOWER(REPLACE(u.nombres, ' ', '')), '@creador')::VARCHAR AS handle,
+        u.nombres_usuario,
+        u.apellidos_usuario,
+        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
         u.url_foto_perfil,
         pc.titulo_profesional,
         'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
@@ -2458,26 +2458,10 @@ BEGIN
 
     -- Alta perezosa del perfil de creador (mismo criterio que
     -- AdminUserServiceImpl.actualizarRoles ya aplicaba), tambien idempotente.
-    -- El portafolio se crea junto al perfil (o para un perfil preexistente
-    -- que aun no tuviera uno) para que un usuario CREADOR nunca quede sin
-    -- portafolio, sea que el rol se otorgue al crearlo desde el admin
-    -- (fn_crear_usuario_admin) o al reasignarle roles despues.
     IF EXISTS (SELECT 1 FROM unnest(p_nombres_rol) AS n(nombre) WHERE UPPER(n.nombre) = 'CREADOR') THEN
         INSERT INTO perfiles_creadores (id_usuario, biografia)
         SELECT p_id_usuario, 'Hola! Soy un creador en ARTISYNC.'
          WHERE NOT EXISTS (SELECT 1 FROM perfiles_creadores WHERE id_usuario = p_id_usuario);
-
-        INSERT INTO portafolios (id_perfil, opciones_personalizacion)
-        SELECT pc.id_perfil, jsonb_build_object(
-            'primary', '#0d6efd',
-            'secondary', '#6c757d',
-            'bg', '#f8f9fa',
-            'text', '#212529',
-            'surface', '#ffffff'
-        )
-          FROM perfiles_creadores pc
-         WHERE pc.id_usuario = p_id_usuario
-           AND NOT EXISTS (SELECT 1 FROM portafolios WHERE id_perfil = pc.id_perfil);
     END IF;
 
     RETURN v_total;
