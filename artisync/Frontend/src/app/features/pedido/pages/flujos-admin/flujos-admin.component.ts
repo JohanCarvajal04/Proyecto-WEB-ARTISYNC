@@ -38,7 +38,7 @@ export class FlujosAdminComponent implements OnInit {
   readonly showForm = signal(false);
   form: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
   readonly saving = signal(false);
-  nuevaEtapa: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
+  nuevaEtapa: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
 
   /**
    * Edición de un flujo existente.
@@ -51,7 +51,7 @@ export class FlujosAdminComponent implements OnInit {
   readonly gestionando = signal<RespuestaFlujoTrabajo | null>(null);
   datosFlujo = { nombreFlujo: '', descripcionFlujo: '' };
   readonly guardandoDatos = signal(false);
-  etapaNueva: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
+  etapaNueva: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
   readonly etapaEnCurso = signal<number | null>(null);
 
   readonly etapasOrdenadas = computed<RespuestaEtapaConfig[]>(() =>
@@ -75,7 +75,7 @@ export class FlujosAdminComponent implements OnInit {
 
   openCreate(): void {
     this.form = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
-    this.nuevaEtapa = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
+    this.nuevaEtapa = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
     this.showForm.set(true);
   }
 
@@ -99,7 +99,7 @@ export class FlujosAdminComponent implements OnInit {
 
     this.error.set('');
     this.form.etapas.push({ ...this.nuevaEtapa, nombreEtapa: nombre });
-    this.nuevaEtapa = { nombreEtapa: '', numeroOrden: this.form.etapas.length + 1, esEtapaFinal: false };
+    this.nuevaEtapa = { nombreEtapa: '', numeroOrden: this.form.etapas.length + 1, esEtapaFinal: false, requiereEntregable: false };
   }
 
   removeEtapa(index: number): void {
@@ -137,7 +137,7 @@ export class FlujosAdminComponent implements OnInit {
       nombreFlujo: flujo.nombreFlujo,
       descripcionFlujo: flujo.descripcionFlujo
     };
-    this.etapaNueva = { nombreEtapa: '', numeroOrden: flujo.etapas.length + 1, esEtapaFinal: false };
+    this.etapaNueva = { nombreEtapa: '', numeroOrden: flujo.etapas.length + 1, esEtapaFinal: false, requiereEntregable: false };
     this.error.set('');
   }
 
@@ -189,11 +189,12 @@ export class FlujosAdminComponent implements OnInit {
     this.flujoService.agregarEtapa(flujo.idFlujo, {
       nombreEtapa: nombre,
       numeroOrden: this.etapasOrdenadas().length + 1,
-      esEtapaFinal: this.etapaNueva.esEtapaFinal
+      esEtapaFinal: this.etapaNueva.esEtapaFinal,
+      requiereEntregable: this.etapaNueva.requiereEntregable
     }).subscribe({
       next: (actualizado) => {
         this.etapaEnCurso.set(null);
-        this.etapaNueva = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false };
+        this.etapaNueva = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
         this.refrescar(actualizado);
       },
       error: (err) => {
@@ -211,7 +212,31 @@ export class FlujosAdminComponent implements OnInit {
     this.flujoService.actualizarEtapa(flujo.idFlujo, etapa.idFlujoEtapa, {
       nombreEtapa: etapa.nombreEtapa,
       numeroOrden: etapa.numeroOrden,
-      esEtapaFinal: !etapa.esEtapaFinal
+      esEtapaFinal: !etapa.esEtapaFinal,
+      requiereEntregable: etapa.requiereEntregable
+    }).subscribe({
+      next: (actualizado) => {
+        this.etapaEnCurso.set(null);
+        this.refrescar(actualizado);
+      },
+      error: (err) => {
+        this.etapaEnCurso.set(null);
+        this.error.set(err.error?.message || 'No se pudo actualizar la etapa');
+      }
+    });
+  }
+
+  /** El creador no podrá avanzar el pedido de esta etapa sin subir antes un entregable. */
+  alternarRequiereEntregable(etapa: RespuestaEtapaConfig): void {
+    const flujo = this.gestionando();
+    if (!flujo || this.etapaEnCurso() !== null) return;
+
+    this.etapaEnCurso.set(etapa.idFlujoEtapa);
+    this.flujoService.actualizarEtapa(flujo.idFlujo, etapa.idFlujoEtapa, {
+      nombreEtapa: etapa.nombreEtapa,
+      numeroOrden: etapa.numeroOrden,
+      esEtapaFinal: etapa.esEtapaFinal,
+      requiereEntregable: !etapa.requiereEntregable
     }).subscribe({
       next: (actualizado) => {
         this.etapaEnCurso.set(null);

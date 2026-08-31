@@ -81,7 +81,16 @@ export class PedidoCrearComponent implements OnInit {
         this.router.navigate(['/pedido', res.idPedido]);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al crear el pedido');
+        // ProblemDetail (RFC 7807): el mensaje va en `detail`, y una falla de
+        // @Valid (p. ej. @Future en la fecha) además trae `fieldErrors` — no
+        // hay un `message` de nivel superior, así que leerlo siempre caía al
+        // genérico de abajo aunque el backend explicara el motivo real.
+        const erroresPorCampo = err.error?.fieldErrors;
+        this.error.set(
+          (erroresPorCampo && Object.values(erroresPorCampo).join(', '))
+          || err.error?.detail
+          || 'Error al crear el pedido'
+        );
         this.loading.set(false);
       }
     });
@@ -89,5 +98,15 @@ export class PedidoCrearComponent implements OnInit {
 
   formatPrice(precio: number): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio);
+  }
+
+  /**
+   * `min` del input datetime-local: evita que el selector nativo ofrezca
+   * siquiera una fecha pasada. El backend igual la rechaza con @Future
+   * (PeticionCrearPedido) si alguien la fuerza por fuera del UI.
+   */
+  get minFechaEntrega(): string {
+    const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return ahora.toISOString().slice(0, 16);
   }
 }

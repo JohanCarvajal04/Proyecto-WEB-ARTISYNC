@@ -25,7 +25,6 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
-import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
 
 import java.math.BigDecimal;
@@ -44,7 +43,6 @@ class ContratoServicioImplTest {
     @Mock private PedidoRepository pedidoRepository;
     @Mock private PlantillaContratoRepository plantillaContratoRepository;
     @Mock private IPdfGeneracionServicio pdfGeneracionServicio;
-    @Mock private ChatService chatService;
 
     @InjectMocks
     private ContratoServicioImpl contratoServicio;

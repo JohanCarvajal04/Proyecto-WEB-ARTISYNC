@@ -7,9 +7,10 @@ import {
   RespuestaPedidoResumido,
   RespuestaHistorialEstado,
   RespuestaSeguimientoPedido,
+  RespuestaPropuestaTerminos,
   PeticionCrearPedido,
   PeticionAvanzarEtapa,
-  PeticionActualizarTerminosPedido
+  PeticionCrearPropuestaTerminos
 } from '../models/pedido.model';
 import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
 import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
@@ -68,8 +69,27 @@ export class PedidoService {
   }
 
   /** Negociación pre-firma: solo funciona mientras el contrato no tenga ninguna firma. */
-  actualizarTerminos(id: number, peticion: PeticionActualizarTerminosPedido): Observable<RespuestaPedido> {
-    return this.http.patch<RespuestaPedido>(`${this.API}/${id}/terminos`, peticion);
+  proponerTerminos(id: number, peticion: PeticionCrearPropuestaTerminos): Observable<RespuestaPropuestaTerminos> {
+    return this.http.post<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos`, peticion);
+  }
+
+  /** 404 mientras no haya ninguna propuesta pendiente: estado normal. */
+  obtenerPropuestaPendiente(id: number): Observable<RespuestaPropuestaTerminos> {
+    return this.http.get<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos/pendiente`, sinErrorGlobal());
+  }
+
+  /** Solo la contraparte del proponente puede aceptar; aplica el cambio y devuelve el pedido actualizado. */
+  aceptarPropuestaTerminos(id: number, idPropuesta: number): Observable<RespuestaPedido> {
+    return this.http.put<RespuestaPedido>(`${this.API}/${id}/propuestas-terminos/${idPropuesta}/aceptar`, {});
+  }
+
+  rechazarPropuestaTerminos(id: number, idPropuesta: number): Observable<RespuestaPropuestaTerminos> {
+    return this.http.put<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos/${idPropuesta}/rechazar`, {});
+  }
+
+  /** Solo el propio proponente puede cancelar su propuesta pendiente. */
+  cancelarPropuestaTerminos(id: number, idPropuesta: number): Observable<RespuestaPropuestaTerminos> {
+    return this.http.put<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos/${idPropuesta}/cancelar`, {});
   }
 
   obtenerHistorial(id: number): Observable<RespuestaHistorialEstado[]> {

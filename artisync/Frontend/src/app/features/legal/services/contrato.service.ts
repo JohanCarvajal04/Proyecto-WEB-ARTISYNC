@@ -12,10 +12,6 @@ export class ContratoService {
 
   constructor(private http: HttpClient) {}
 
-  generarContrato(idPedido: number): Observable<RespuestaContrato> {
-    return this.http.post<RespuestaContrato>(`${this.API}/pedido/${idPedido}`, {});
-  }
-
   obtenerContrato(id: number): Observable<RespuestaContrato> {
     return this.http.get<RespuestaContrato>(`${this.API}/${id}`);
   }

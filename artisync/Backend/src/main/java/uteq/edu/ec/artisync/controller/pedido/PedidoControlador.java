@@ -8,13 +8,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionActualizarTerminosPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaHistorialEstado;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
@@ -99,13 +100,49 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));
     }
 
-    @PatchMapping("/{id}/terminos")
+    @PostMapping("/{id}/propuestas-terminos")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaPedido> actualizarTerminos(
+    public ResponseEntity<RespuestaPropuestaTerminos> proponerTerminos(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody PeticionActualizarTerminosPedido peticion) {
-        return ResponseEntity.ok(pedidoServicio.actualizarTerminos(id, userDetails.getIdUsuario(), peticion));
+            @Valid @RequestBody PeticionCrearPropuestaTerminos peticion) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(pedidoServicio.proponerTerminos(id, userDetails.getIdUsuario(), peticion));
+    }
+
+    @GetMapping("/{id}/propuestas-terminos/pendiente")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaPropuestaTerminos> obtenerPropuestaPendiente(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.obtenerPropuestaPendiente(id, userDetails.getIdUsuario()));
+    }
+
+    @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/aceptar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaPedido> aceptarPropuestaTerminos(
+            @PathVariable Long id,
+            @PathVariable Long idPropuesta,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.aceptarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
+    }
+
+    @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/rechazar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaPropuestaTerminos> rechazarPropuestaTerminos(
+            @PathVariable Long id,
+            @PathVariable Long idPropuesta,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.rechazarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
+    }
+
+    @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/cancelar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaPropuestaTerminos> cancelarPropuestaTerminos(
+            @PathVariable Long id,
+            @PathVariable Long idPropuesta,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(pedidoServicio.cancelarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
     @GetMapping("/{id}/historial")

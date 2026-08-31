@@ -101,46 +101,6 @@
         </div>
       </div>
 
-      <!-- Negociar términos (M4/M6): antes de firmar, cliente y creador pueden
-           ajustar precio/fecha a lo que acuerden por chat. Se oculta apenas
-           el contrato tiene alguna firma. -->
-      @if ((esCliente || esCreador) && puedeNegociarTerminos) {
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div class="px-6 py-5 border-b border-slate-100">
-            <h2 class="font-headline text-lg font-bold text-[#0F2027]">Negociar Términos</h2>
-            <p class="text-xs text-slate-400 mt-0.5">
-              Ajusta el precio o la fecha de entrega mientras conversan por el chat. Se bloquea en cuanto alguien firme el contrato.
-            </p>
-          </div>
-          <div class="p-6 flex flex-col sm:flex-row gap-4 items-end">
-            <div class="flex flex-col gap-1.5 flex-1 w-full">
-              <label for="nuevoPrecio" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nuevo precio (USD)</label>
-              <input id="nuevoPrecio" type="number" min="0.01" step="0.01" [(ngModel)]="nuevoPrecio"
-                [placeholder]="formatPrice(pedido.precioPactado)"
-                class="w-full bg-slate-50 text-slate-800 placeholder-slate-400 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all" />
-            </div>
-            <div class="flex flex-col gap-1.5 flex-1 w-full">
-              <label for="nuevaFecha" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nueva fecha de entrega</label>
-              <input id="nuevaFecha" type="datetime-local" [(ngModel)]="nuevaFechaEntrega"
-                class="w-full bg-slate-50 text-slate-800 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all" />
-            </div>
-            <button (click)="actualizarTerminos()" [disabled]="actualizandoTerminos"
-              class="shrink-0 bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg whitespace-nowrap">
-              @if (actualizandoTerminos) {
-                Guardando...
-              } @else {
-                Actualizar
-              }
-            </button>
-          </div>
-          @if (mensajeTerminos) {
-            <p class="px-6 pb-5 text-xs font-semibold" [class]="mensajeTerminos.includes('actualizados') ? 'text-emerald-600' : 'text-rose-600'">
-              {{ mensajeTerminos }}
-            </p>
-          }
-        </section>
-      }
-
       <!-- Seguimiento -->
       @if (seguimiento) {
         <section class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
@@ -202,9 +162,20 @@
             <p class="text-xs text-slate-400 mt-0.5">Registra el paso a la siguiente etapa del flujo</p>
           </div>
           <div class="p-6 flex flex-col gap-4">
+            @if (seguimiento?.bloqueadoPorEntregable) {
+              <div class="flex items-start gap-2.5 bg-amber-50 text-amber-700 text-sm rounded-xl px-4 py-3">
+                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>
+                  Esta etapa exige subir el entregable antes de continuar.
+                  <a [routerLink]="['/legal/entregable', pedidoId]" class="font-semibold underline hover:no-underline">Sube el entregable</a> para poder avanzar.
+                </span>
+              </div>
+            }
             <textarea rows="3" placeholder="Observación (opcional)..." [(ngModel)]="observacion"
               class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all resize-y"></textarea>
-            <button (click)="avanzarEtapa()" [disabled]="avanzando"
+            <button (click)="avanzarEtapa()" [disabled]="avanzando || seguimiento?.bloqueadoPorEntregable"
               class="self-start bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
               @if (avanzando) {
                 <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
@@ -401,5 +372,5 @@
          de arriba a propósito — su animate-[fadeIn] anima `transform`, y
          mientras corre convierte a ese contenedor en el "viewport" del hijo
          fixed en vez del navegador, rompiendo el posicionamiento flotante. -->
-    <app-chat-pedido [idPedido]="pedidoId" />
+    <app-chat-pedido [idPedido]="pedidoId" (pedidoActualizado)="pedido = $event" />
   }
