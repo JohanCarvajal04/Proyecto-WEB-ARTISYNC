@@ -182,6 +182,20 @@ public class ContratoServicioImpl implements IContratoServicio {
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     /**
+     * Codificación usada para el escape de placeholders (ver más abajo): con
+     * ella, HtmlUtils.htmlEscape solo convierte los caracteres realmente
+     * peligrosos para HTML (&lt; &gt; &amp; " ') y deja el resto —incluidas
+     * las tildes y la ñ— como texto UTF-8 literal en vez de entidades HTML
+     * nombradas (&aacute;, &ntilde;...). openhtmltopdf parsea el documento
+     * como XML estricto, que solo reconoce las 5 entidades predefinidas por
+     * XML; sin este parámetro, HtmlUtils.htmlEscape(String) usa por defecto
+     * ISO-8859-1 y emite esas entidades nombradas para cualquier caracter no
+     * ASCII, y el parser rechazaba TODO contrato cuyo texto tuviera una tilde
+     * con "The entity ... was referenced, but not declared." (SAXParseException).
+     */
+    private static final String CODIFICACION_ESCAPE = "UTF-8";
+
+    /**
      * Hallazgo SEC-01 (auditoria de seguridad): cada valor que entra aqui desde
      * datos de usuario (nombres, descripcion del servicio) se escapa con
      * HtmlUtils.htmlEscape antes de sustituirse en la plantilla. Antes se
@@ -198,19 +212,23 @@ public class ContratoServicioImpl implements IContratoServicio {
 
         String html = plantilla.getCuerpoHtmlPlantilla();
         html = html.replace("{{nombre_creador}}",
-                HtmlUtils.htmlEscape(creador.getNombres() + " " + creador.getApellidos()));
+                HtmlUtils.htmlEscape(creador.getNombres() + " " + creador.getApellidos(), CODIFICACION_ESCAPE));
         html = html.replace("{{nombre_cliente}}",
-                HtmlUtils.htmlEscape(cliente.getNombres() + " " + cliente.getApellidos()));
+                HtmlUtils.htmlEscape(cliente.getNombres() + " " + cliente.getApellidos(), CODIFICACION_ESCAPE));
         html = html.replace("{{descripcion_servicio}}",
-                HtmlUtils.htmlEscape(pedido.getServicio().getDescripcionDetallada()));
+                HtmlUtils.htmlEscape(pedido.getServicio().getDescripcionDetallada(), CODIFICACION_ESCAPE));
         // precio_pactado, limite_revisiones, fecha_entrega y fecha_actual no son
         // controlables por el usuario (numeros/fechas calculados en servidor), pero
         // se escapan igual por uniformidad con el resto de placeholders.
-        html = html.replace("{{precio_pactado}}", HtmlUtils.htmlEscape(pedido.getPrecioPactado().toString()));
-        html = html.replace("{{limite_revisiones}}", HtmlUtils.htmlEscape(String.valueOf(contrato.getLimiteRevisiones())));
+        html = html.replace("{{precio_pactado}}",
+                HtmlUtils.htmlEscape(pedido.getPrecioPactado().toString(), CODIFICACION_ESCAPE));
+        html = html.replace("{{limite_revisiones}}",
+                HtmlUtils.htmlEscape(String.valueOf(contrato.getLimiteRevisiones()), CODIFICACION_ESCAPE));
         html = html.replace("{{fecha_entrega}}", HtmlUtils.htmlEscape(
-                pedido.getFechaEntregaEstimada() != null ? pedido.getFechaEntregaEstimada().toString() : "Por definir"));
-        html = html.replace("{{fecha_actual}}", HtmlUtils.htmlEscape(LocalDate.now().toString()));
+                pedido.getFechaEntregaEstimada() != null ? pedido.getFechaEntregaEstimada().toString() : "Por definir",
+                CODIFICACION_ESCAPE));
+        html = html.replace("{{fecha_actual}}",
+                HtmlUtils.htmlEscape(LocalDate.now().toString(), CODIFICACION_ESCAPE));
 
         return html;
     }
@@ -222,7 +240,10 @@ public class ContratoServicioImpl implements IContratoServicio {
         // HtmlUtils.htmlEscape: son hex SHA-256 calculados en servidor por
         // generarHashFirma(), no texto libre de usuario.
         StringBuilder footer = new StringBuilder();
-        footer.append("<hr><div style='font-size:10px; color:#666;'>");
+        // openhtmltopdf usa un parser XML estricto (XHTML): un <hr> sin cerrar
+        // rompe el render con SAXParseException, que el catch genérico de
+        // PdfGeneracionServicioImpl reenvía como 500 sin detalle.
+        footer.append("<hr/><div style='font-size:10px; color:#666;'>");
         if (contrato.getHashFirmaCreador() != null) {
             footer.append("<p>Firma Creador (SHA-256): ").append(contrato.getHashFirmaCreador()).append("</p>");
         }
