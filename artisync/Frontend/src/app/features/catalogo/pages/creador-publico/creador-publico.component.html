@@ -27,7 +27,8 @@
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
       
       <!-- Banner/Portada -->
-      <div class="relative h-64 md:h-72 w-full bg-gradient-to-r from-[#0F2027] via-[#0F9B8E] to-[#2C5364] flex items-end justify-between p-6">
+      <div class="relative h-64 md:h-72 w-full flex items-end justify-between p-6"
+        [style.background]="p.urlPortada ? null : estiloBanner()">
         
         <!-- Elementos decorativos destellos -->
         <div class="absolute top-6 right-20 text-white/20 text-xl font-headline font-light">✦</div>

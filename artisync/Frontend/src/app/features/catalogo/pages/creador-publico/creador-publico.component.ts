@@ -5,7 +5,7 @@ import { forkJoin, of, catchError, map } from 'rxjs';
 import { CatalogoPublicoService } from '../../services/catalogo-publico.service';
 import { RespuestaPerfil, RespuestaServicioResumido } from '../../models/catalogo.model';
 import { PortafolioService } from '../../../perfil/services/portafolio.service';
-import { Portafolio, PortafolioItem } from '../../../perfil/models/portafolio.model';
+import { Portafolio, PortafolioItem, COLORES_POR_DEFECTO } from '../../../perfil/models/portafolio.model';
 import { ResenaService } from '../../../creador/services/resena.service';
 import { SorteoPublicoService } from '../../../social/services/sorteo-publico.service';
 import { RespuestaResena, RespuestaSorteo, RespuestaComentario, RespuestaEstadoLike } from '../../../social/models/social.model';
@@ -342,6 +342,22 @@ export class CreadorPublicoComponent implements OnInit {
    * aún no lo haya definido.
    */
   tituloProfesional = computed(() => this.perfil()?.tituloProfesional || '');
+
+  /**
+   * Paleta de personalización del creador (ver Mi Perfil > Personalización y
+   * visibilidad), con respaldo a la paleta por defecto cuando el portafolio
+   * no existe o no tiene personalización guardada.
+   */
+  colores = computed(() => ({
+    ...COLORES_POR_DEFECTO,
+    ...(this.portafolio()?.opcionesPersonalizacion || {})
+  }));
+
+  /** Gradiente del banner, derivado de la paleta del creador. */
+  estiloBanner = computed(() => {
+    const c = this.colores();
+    return `linear-gradient(to right, ${c.secondary}, ${c.primary}, ${c.secondary})`;
+  });
 
   biografiaText = computed(() => {
     const p = this.perfil();

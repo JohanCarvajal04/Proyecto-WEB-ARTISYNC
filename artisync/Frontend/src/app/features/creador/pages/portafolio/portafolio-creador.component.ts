@@ -1,11 +1,11 @@
 import { Component, ElementRef, inject, signal, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
 import { PortafolioService } from '../../../perfil/services/portafolio.service';
 import {
   Portafolio,
-  OpcionesPersonalizacion,
   PortafolioItem,
   TIPOS_OBRA_ACEPTADOS,
   MAX_BYTES_OBRA
@@ -14,18 +14,10 @@ import { CreadorContextoService } from '../../services/creador-contexto.service'
 import { PerfilRequeridoComponent } from '../../components/perfil-requerido.component';
 import { formatDate, mensajeError } from '../../utils/formato';
 
-const COLORES_POR_DEFECTO: OpcionesPersonalizacion = {
-  primary: '#0F9B8E',
-  secondary: '#203A43',
-  bg: '#EFF2F7',
-  text: '#1E293B',
-  surface: '#FFFFFF'
-};
-
 @Component({
   selector: 'app-portafolio-creador',
   standalone: true,
-  imports: [FormsModule, PerfilRequeridoComponent],
+  imports: [FormsModule, RouterLink, PerfilRequeridoComponent],
   templateUrl: './portafolio-creador.component.html',
   styleUrl: './portafolio-creador.component.css'
 })
@@ -37,7 +29,6 @@ export class PortafolioCreadorComponent implements OnInit {
 
   readonly portafolio = signal<Portafolio | null>(null);
   readonly isLoading = signal<boolean>(true);
-  readonly guardando = signal<boolean>(false);
   readonly creando = signal<boolean>(false);
   readonly error = signal<string>('');
 
@@ -57,17 +48,6 @@ export class PortafolioCreadorComponent implements OnInit {
 
   tituloObra = '';
   descripcionObra = '';
-
-  esPublico = false;
-  colores: OpcionesPersonalizacion = { ...COLORES_POR_DEFECTO };
-
-  readonly camposColor: { clave: keyof OpcionesPersonalizacion; etiqueta: string; ayuda: string }[] = [
-    { clave: 'primary', etiqueta: 'Color primario', ayuda: 'Botones y acentos' },
-    { clave: 'secondary', etiqueta: 'Color secundario', ayuda: 'Cabeceras y detalles' },
-    { clave: 'bg', etiqueta: 'Fondo', ayuda: 'Lienzo de la página' },
-    { clave: 'surface', etiqueta: 'Superficie', ayuda: 'Tarjetas y bloques' },
-    { clave: 'text', etiqueta: 'Texto', ayuda: 'Color principal de lectura' }
-  ];
 
   ngOnInit(): void {
     this.contexto.obtenerPerfil().subscribe({
@@ -104,16 +84,16 @@ export class PortafolioCreadorComponent implements OnInit {
     const anterior = this.portafolio();
     this.portafolio.set(portafolio);
     if (portafolio) {
-      this.esPublico = portafolio.esPublico;
-      this.colores = { ...COLORES_POR_DEFECTO, ...(portafolio.opcionesPersonalizacion || {}) };
-      // Solo al aparecer el portafolio o al cambiar de uno a otro; guardar los
-      // colores no debe provocar una recarga de la galería.
+      // Solo al aparecer el portafolio o al cambiar de uno a otro; el resto de
+      // datos del portafolio (colores, visibilidad) no deben provocar una
+      // recarga de la galería.
       if (anterior?.idPortafolio !== portafolio.idPortafolio) {
         this.cargarItems(portafolio.idPortafolio);
       }
     }
   }
 
+  /** Crea el portafolio con la paleta por defecto; los colores y la visibilidad se ajustan luego desde Mi Perfil. */
   crear(): void {
     const perfil = this.contexto.perfil();
     if (!perfil) return;
@@ -121,8 +101,7 @@ export class PortafolioCreadorComponent implements OnInit {
     this.creando.set(true);
     this.portafolioService.crear({
       idPerfil: perfil.idPerfil,
-      esPublico: true,
-      opcionesPersonalizacion: this.colores
+      esPublico: true
     }).subscribe({
       next: (portafolio) => {
         this.aplicar(portafolio);
@@ -134,31 +113,6 @@ export class PortafolioCreadorComponent implements OnInit {
         this.toast.error(mensajeError(err, 'No se pudo crear el portafolio'));
       }
     });
-  }
-
-  guardar(): void {
-    const portafolio = this.portafolio();
-    if (!portafolio) return;
-
-    this.guardando.set(true);
-    this.portafolioService.actualizar(portafolio.idPortafolio, {
-      esPublico: this.esPublico,
-      opcionesPersonalizacion: this.colores
-    }).subscribe({
-      next: (actualizado) => {
-        this.aplicar(actualizado);
-        this.guardando.set(false);
-        this.toast.success('Portafolio actualizado');
-      },
-      error: (err) => {
-        this.guardando.set(false);
-        this.toast.error(mensajeError(err, 'No se pudo guardar el portafolio'));
-      }
-    });
-  }
-
-  restaurarColores(): void {
-    this.colores = { ...COLORES_POR_DEFECTO };
   }
 
   // ── Obras del portafolio ───────────────────────────────────────────────────
