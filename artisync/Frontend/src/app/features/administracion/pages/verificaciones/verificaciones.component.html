@@ -56,7 +56,7 @@
                   <div class="text-xs">
                     <span class="text-slate-400 block mb-0.5">Veredicto IA</span>
                     @if (item.veredictoIa) {
-                      <span class="font-medium" [class.text-emerald-600]="item.veredictoIa === 'AUTENTICO'" [class.text-rose-600]="item.veredictoIa !== 'AUTENTICO'">
+                      <span class="font-medium" [class.text-emerald-600]="item.veredictoIa === 'SUGIERE_APROBAR'" [class.text-rose-600]="item.veredictoIa !== 'SUGIERE_APROBAR'">
                         {{ item.veredictoIa }}
                       </span>
                     } @else {
@@ -142,7 +142,7 @@
               <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="bg-white p-3 rounded-lg border border-indigo-50">
                   <span class="block text-xs text-slate-500 mb-1">Veredicto</span>
-                  <span class="font-bold text-lg" [class.text-emerald-600]="detail.veredictoIa === 'AUTENTICO'" [class.text-rose-600]="detail.veredictoIa !== 'AUTENTICO'">
+                  <span class="font-bold text-lg" [class.text-emerald-600]="detail.veredictoIa === 'SUGIERE_APROBAR'" [class.text-rose-600]="detail.veredictoIa !== 'SUGIERE_APROBAR'">
                     {{ detail.veredictoIa }}
                   </span>
                 </div>
@@ -161,8 +161,19 @@
 
               @if (detail.datosExtraidosIa) {
                 <div class="mt-4 bg-white p-4 rounded-lg border border-indigo-50">
-                  <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Datos Extraídos (JSON)</span>
-                  <pre class="text-xs text-slate-600 bg-slate-50 p-2 rounded overflow-x-auto">{{ detail.datosExtraidosIa }}</pre>
+                  <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Datos Extraídos</span>
+                  @if (datosExtraidosParseados(); as datos) {
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      @for (dato of datos; track dato.label) {
+                        <div class="flex flex-col">
+                          <dt class="text-xs text-slate-400">{{ dato.label }}</dt>
+                          <dd class="text-slate-700 font-medium">{{ dato.valor }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  } @else {
+                    <pre class="text-xs text-slate-600 bg-slate-50 p-2 rounded overflow-x-auto">{{ detail.datosExtraidosIa }}</pre>
+                  }
                 </div>
               }
             } @else {

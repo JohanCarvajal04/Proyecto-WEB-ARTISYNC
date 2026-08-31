@@ -103,7 +103,7 @@
                 <td class="px-6 py-4">{{ item.tipoDocumento }}</td>
                 <td class="px-6 py-4">
                   @if (item.veredictoIa) {
-                    <span class="font-medium" [class.text-emerald-600]="item.veredictoIa === 'AUTENTICO'" [class.text-rose-600]="item.veredictoIa !== 'AUTENTICO'">
+                    <span class="font-medium" [class.text-emerald-600]="item.veredictoIa === 'SUGIERE_APROBAR'" [class.text-rose-600]="item.veredictoIa !== 'SUGIERE_APROBAR'">
                       {{ item.veredictoIa }}
                     </span>
                   } @else {

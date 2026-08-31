@@ -14,6 +14,17 @@ export class VerificacionesComponent implements OnInit {
   private modService = inject(ModeracionService);
   private toastService = inject(ToastService);
 
+  /** Cubre exactamente los campos que VerificacionServicioImpl.serializarDatosExtraidos puede emitir. */
+  private static readonly LABELS_DATOS_IA: Record<string, string> = {
+    nombreDetectado: 'Nombre detectado',
+    tipoDocumentoDetectado: 'Tipo de documento',
+    fechaNacimiento: 'Fecha de nacimiento',
+    paisEmision: 'País de emisión',
+    institucionEmisora: 'Institución emisora',
+    campoEstudio: 'Campo de estudio',
+    fechaEmision: 'Fecha de emisión'
+  };
+
   readonly items = signal<VerificacionCola[]>([]);
   readonly isLoading = signal<boolean>(false);
   
@@ -116,10 +127,10 @@ export class VerificacionesComponent implements OnInit {
         this.isDetailLoading.set(false);
         this.loadCola(); // Refrescar lista principal
       },
-      error: () => {
-        this.toastService.error('Error en el análisis IA');
-        this.isDetailLoading.set(false);
-      }
+      // El error.interceptor global ya muestra el detalle específico del
+      // backend (motivo real: 401/413/429/timeout de la IA). Un toast propio
+      // aquí solo duplicaba el aviso con un mensaje genérico que lo eclipsaba.
+      error: () => this.isDetailLoading.set(false)
     });
   }
 
@@ -166,6 +177,26 @@ export class VerificacionesComponent implements OnInit {
     if (score >= 0.5) return 'text-amber-600';
     return 'text-rose-600';
   }
+
+  /**
+   * `datosExtraidosIa` llega como JSON serializado (String). Antes se
+   * mostraba crudo en un <pre>, ilegible para el moderador. Si el parseo
+   * falla (dato corrupto o formato inesperado), null hace que la plantilla
+   * caiga de vuelta al <pre> con el JSON crudo — nunca se pierde el dato.
+   */
+  readonly datosExtraidosParseados = computed(() => {
+    const detail = this.selectedItem();
+    if (!detail?.datosExtraidosIa) return null;
+    try {
+      const datos = JSON.parse(detail.datosExtraidosIa) as Record<string, string>;
+      return Object.entries(datos).map(([clave, valor]) => ({
+        label: VerificacionesComponent.LABELS_DATOS_IA[clave] ?? clave,
+        valor
+      }));
+    } catch {
+      return null;
+    }
+  });
 
   getEstadoBadge(estado: string): string {
     if (!estado) return 'bg-slate-100 text-slate-600';
