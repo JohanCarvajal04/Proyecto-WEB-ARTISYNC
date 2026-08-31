@@ -719,6 +719,7 @@ AS $$
 DECLARE
     v_id_usuario BIGINT;
     v_id_rol     BIGINT;
+    v_id_perfil  BIGINT;
     v_nombre_rol VARCHAR(50) := UPPER(p_nombre_rol);
 BEGIN
     IF p_correo IS NULL OR p_contrasena_hash IS NULL OR p_fecha_nacimiento IS NULL THEN
@@ -757,7 +758,17 @@ BEGIN
 
     IF v_nombre_rol = 'CREADOR' THEN
         INSERT INTO perfiles_creadores (id_usuario, biografia)
-        VALUES (v_id_usuario, 'Hola! Soy un creador en ARTISYNC.');
+        VALUES (v_id_usuario, 'Hola! Soy un creador en ARTISYNC.')
+        RETURNING id_perfil INTO v_id_perfil;
+
+        INSERT INTO portafolios (id_perfil, opciones_personalizacion)
+        VALUES (v_id_perfil, jsonb_build_object(
+            'primary', '#0d6efd',
+            'secondary', '#6c757d',
+            'bg', '#f8f9fa',
+            'text', '#212529',
+            'surface', '#ffffff'
+        ));
     END IF;
 
     RETURN v_id_usuario;
@@ -765,7 +776,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_registrar_usuario(VARCHAR, VARCHAR, VARCHAR, VARCHAR, DATE, VARCHAR)
-    IS 'REQ-F-001 - Insercion multi-tabla: registra usuario + usuario_roles + perfil de creador opcional, validando correo unico, mayoria de edad y rol permitido.';
+    IS 'REQ-F-001 - Insercion multi-tabla: registra usuario + usuario_roles + perfil de creador opcional + portafolio inicial, validando correo unico, mayoria de edad y rol permitido.';
 
 
 -- ---------------------------------------------------------------------------
