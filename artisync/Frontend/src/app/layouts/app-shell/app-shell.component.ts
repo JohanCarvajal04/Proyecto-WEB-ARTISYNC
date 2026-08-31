@@ -1,11 +1,15 @@
-import { Component, OnDestroy, OnInit, inject, computed, signal, effect } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject, computed, signal, effect } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Subscription, interval, of, startWith, switchMap, catchError } from 'rxjs';
 import { AuthService } from '../../features/seguridad/services/auth.service';
-import { NavItem } from '../../core/config/nav.config';
-import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { NavItem, navItemLinkCommands } from '../../core/config/nav.config';
 import { NavIconComponent } from '../../shared/components/nav-icon/nav-icon.component';
 import { NotificacionService } from '../../features/comunicacion/services/notificacion.service';
+import { UserMenuComponent } from '../../shared/components/user-menu/user-menu.component';
+import { UserService } from '../../features/perfil/services/user.service';
+import { UserResponse } from '../../shared/models/user.model';
+import { nombreUsuario } from '../../shared/utils/nombre-usuario';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SHELL_COPY } from './app-shell.config';
 
 /** Cada cuánto se refresca el contador de la campana. */
@@ -30,7 +34,7 @@ const CLAVE_SIDEBAR = 'artisync.sidebar.expandido';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, AvatarComponent, NavIconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NavIconComponent, UserMenuComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
   host: { '(document:keydown.escape)': 'isMobileMenuOpen.set(false)' }
@@ -38,6 +42,8 @@ const CLAVE_SIDEBAR = 'artisync.sidebar.expandido';
 export class AppShellComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly notificacionService = inject(NotificacionService);
+  private readonly userService = inject(UserService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Cajón lateral en móvil (<768px). Independiente del fijado de escritorio:
    *  en móvil el ancho siempre es w-64 y lo que se alterna es el translate. */
@@ -54,6 +60,10 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   private conteoSub?: Subscription;
 
+  /** Datos reales del perfil, para el nombre y la foto de la cabecera: el JWT
+   *  decodificado (AuthService.currentUser) trae solo email/sub. */
+  readonly perfil = signal<UserResponse | null>(null);
+
   constructor() {
     effect(() => localStorage.setItem(CLAVE_SIDEBAR, this.sidebarExpandido() ? '1' : '0'));
     // Con el cajón móvil abierto, el documento de detrás seguía haciendo scroll.
@@ -68,6 +78,14 @@ export class AppShellComponent implements OnInit, OnDestroy {
       // durante toda la sesión.
       switchMap(() => this.notificacionService.contarNoLeidas().pipe(catchError(() => of(null))))
     ).subscribe();
+
+    // Solo para mostrar el nombre y la foto reales en la cabecera.
+    this.userService.getCurrentUser().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (perfil) => this.perfil.set(perfil),
+      error: () => {}
+    });
   }
 
   ngOnDestroy(): void {
@@ -82,16 +100,17 @@ export class AppShellComponent implements OnInit, OnDestroy {
    *  emergencia para cuando el JWT no trae ni `email` ni `sub`, no debería
    *  aparentar ser una cuenta real. */
   userEmail = computed(() => this.authService.currentUser()?.email || this.authService.currentUser()?.sub || 'Mi cuenta');
-  userName = computed(() => {
-    const email = this.userEmail();
-    const prefix = email.split('@')[0];
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  });
+  userName = computed(() => nombreUsuario(this.perfil(), this.userEmail(), 'Mi cuenta'));
   userRole = computed(() => this.authService.primaryRole() || this.copy().rolPorDefecto);
 
   /** Ítems del panel activo, ya filtrados por permiso (AuthService aplica la
    *  misma regla para los cuatro paneles). */
   navItems = computed<NavItem[]>(() => this.authService.visibleNavItems());
+
+  /** Ver `navItemLinkCommands`: evita que una `item.route` con "/" se rompa en el routerLink. */
+  linkCommands(item: NavItem): string[] {
+    return navItemLinkCommands(item, this.navBasePath());
+  }
 
   toggleSidebar(): void {
     this.sidebarExpandido.update(v => !v);

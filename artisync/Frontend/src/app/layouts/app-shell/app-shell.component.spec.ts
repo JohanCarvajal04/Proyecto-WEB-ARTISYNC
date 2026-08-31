@@ -6,6 +6,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AppShellComponent } from './app-shell.component';
 import { AuthService } from '../../features/seguridad/services/auth.service';
 import { NotificacionService } from '../../features/comunicacion/services/notificacion.service';
+import { UserService } from '../../features/perfil/services/user.service';
 import { PanelId, PANEL_BASE_PATH, NAV_CATALOG } from '../../core/config/nav.config';
 
 /** Doble de AuthService con solo lo que el shell consulta. */
@@ -24,13 +25,20 @@ function notificacionFalso() {
   return { noLeidas: signal(0), contarNoLeidas: vi.fn(() => of(0)) };
 }
 
+/** Doble de UserService: sin backend real en estas pruebas, el shell solo
+ *  necesita que el observable resuelva (o falle) sin bloquear. */
+function userServiceFalso() {
+  return { getCurrentUser: vi.fn(() => of({ nombres: 'Ana', apellidos: 'Creadora' })) };
+}
+
 function crear(panel: PanelId = 'creador', notificacion = notificacionFalso()) {
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
       provideRouter([]),
       { provide: AuthService, useValue: authFalso(panel) },
-      { provide: NotificacionService, useValue: notificacion }
+      { provide: NotificacionService, useValue: notificacion },
+      { provide: UserService, useValue: userServiceFalso() }
     ]
   });
   const fixture = TestBed.createComponent(AppShellComponent);

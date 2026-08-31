@@ -43,7 +43,7 @@
         <nav class="flex flex-col gap-2">
           @for (item of navItems(); track item.label) {
             <a
-              [routerLink]="[item.basePath ?? navBasePath(), item.route]"
+              [routerLink]="linkCommands(item)"
               routerLinkActive=""
               #rla="routerLinkActive"
               (click)="isMobileMenuOpen.set(false)"
@@ -138,14 +138,14 @@
           }
         </a>
 
-        <!-- User Profile Pill -->
-        <div class="bg-white rounded-full px-3 py-1.5 flex items-center gap-2.5 shadow-sm">
-          <app-avatar [name]="userName()" size="sm"></app-avatar>
-          <div class="text-left leading-tight pr-1">
-            <p class="text-xs font-bold text-slate-800">{{ userName() }}</p>
-            <p class="text-[10px] font-medium text-shell-role uppercase tracking-wider">{{ userRole() }}</p>
-          </div>
-        </div>
+        <!-- Menú de usuario -->
+        <app-user-menu
+          [userName]="userName()"
+          [userRole]="userRole()"
+          [imageUrl]="perfil()?.urlFotoPerfil"
+          roleClass="text-shell-role"
+          (logout)="logout()">
+        </app-user-menu>
       </div>
     </header>
 
