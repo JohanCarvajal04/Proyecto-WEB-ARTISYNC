@@ -150,6 +150,16 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     return !this.contrato || (!this.contrato.hashFirmaCreador && !this.contrato.hashFirmaCliente);
   }
 
+  /**
+   * `min` del input datetime-local: evita que el selector nativo ofrezca
+   * siquiera una fecha pasada. El backend igual la rechaza con @Future
+   * (PeticionActualizarTerminosPedido) si alguien la fuerza por fuera del UI.
+   */
+  get minFechaEntrega(): string {
+    const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return ahora.toISOString().slice(0, 16);
+  }
+
   actualizarTerminos(): void {
     if (this.actualizandoTerminos) return;
 
@@ -176,7 +186,15 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         setTimeout(() => { this.mensajeTerminos = ''; this.cdr.markForCheck(); }, 4000);
       },
       error: (err) => {
-        this.mensajeTerminos = err.error?.message || 'No se pudieron actualizar los términos';
+        // El backend responde ProblemDetail (RFC 7807): el mensaje va en
+        // `detail`, y una falla de @Valid (p. ej. @Future en la fecha) además
+        // trae `fieldErrors` con el detalle por campo — nunca hay un
+        // `message` de nivel superior, así que leerlo siempre caía al
+        // genérico de abajo, incluso cuando el backend sí explicaba el motivo.
+        const erroresPorCampo = err.error?.fieldErrors;
+        this.mensajeTerminos = (erroresPorCampo && Object.values(erroresPorCampo).join(', '))
+          || err.error?.detail
+          || 'No se pudieron actualizar los términos';
         this.actualizandoTerminos = false;
         this.cdr.markForCheck();
       }
@@ -196,7 +214,9 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (err) => {
-        this.error = err.error?.message || 'No se pudo avanzar la etapa';
+        // El backend responde ProblemDetail (RFC 7807): el mensaje va en
+        // `detail`, no en `message` (ver el mismo ajuste en actualizarTerminos).
+        this.error = err.error?.detail || 'No se pudo avanzar la etapa';
         this.avanzando = false;
       }
     });

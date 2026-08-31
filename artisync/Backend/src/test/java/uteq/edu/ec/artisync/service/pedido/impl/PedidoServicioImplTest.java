@@ -31,6 +31,7 @@ import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
@@ -81,6 +82,7 @@ class PedidoServicioImplTest {
     @Mock private HistorialEstadoPedidoRepository historialRepository;
     @Mock private EtapaFlujoRepository etapaFlujoRepository;
     @Mock private ContratoRepository contratoRepository;
+    @Mock private EntregableFinalRepository entregableFinalRepository;
     @Mock private NotificacionService notificacionService;
     @Mock private ChatService chatService;
     @Mock private IServicioExportacion servicioExportacion;
@@ -428,6 +430,49 @@ class PedidoServicioImplTest {
 
         assertThat(respuesta).isNotNull();
         org.mockito.Mockito.verify(historialRepository).save(any(HistorialEstadoPedido.class));
+    }
+
+    @Test
+    @DisplayName("avanzarEtapa rechaza si la etapa actual exige entregable y el pedido no tiene ninguno subido")
+    void avanzarEtapa_rechazaSinEntregableRequerido() {
+        PeticionAvanzarEtapa peticion = PeticionAvanzarEtapa.builder().build();
+        HistorialEstadoPedido ultimo = HistorialEstadoPedido.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        FlujoEtapaConfig configInicial = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial)
+                .numeroOrden(1).requiereEntregable(true).build();
+        FlujoEtapaConfig configSiguiente = FlujoEtapaConfig.builder().idFlujoEtapa(2L).flujo(flujo).etapa(etapaSiguiente).numeroOrden(2).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.of(ultimo));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(configInicial, configSiguiente));
+        given(entregableFinalRepository.existsByPedidoIdPedido(10L)).willReturn(false);
+
+        assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("entregable");
+        verify(historialRepository, never()).save(any(HistorialEstadoPedido.class));
+    }
+
+    @Test
+    @DisplayName("avanzarEtapa permite avanzar si la etapa exige entregable pero ya se subio uno")
+    void avanzarEtapa_permiteConEntregableSubido() {
+        PeticionAvanzarEtapa peticion = PeticionAvanzarEtapa.builder().build();
+        HistorialEstadoPedido ultimo = HistorialEstadoPedido.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        FlujoEtapaConfig configInicial = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial)
+                .numeroOrden(1).requiereEntregable(true).build();
+        FlujoEtapaConfig configSiguiente = FlujoEtapaConfig.builder().idFlujoEtapa(2L).flujo(flujo).etapa(etapaSiguiente).numeroOrden(2).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.of(ultimo));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(configInicial, configSiguiente));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoAndNumeroOrdenGreaterThanOrderByNumeroOrdenAsc(1L, 1))
+                .willReturn(List.of(configSiguiente));
+        given(entregableFinalRepository.existsByPedidoIdPedido(10L)).willReturn(true);
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+
+        RespuestaPedido respuesta = pedidoServicio.avanzarEtapa(10L, 2L, peticion);
+
+        assertThat(respuesta).isNotNull();
+        verify(historialRepository).save(any(HistorialEstadoPedido.class));
     }
 
     @Test

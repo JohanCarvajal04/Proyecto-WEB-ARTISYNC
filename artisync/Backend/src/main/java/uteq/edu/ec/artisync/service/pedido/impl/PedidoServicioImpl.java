@@ -20,6 +20,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.*;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
@@ -52,6 +53,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private final HistorialEstadoPedidoRepository historialRepository;
     private final EtapaFlujoRepository etapaFlujoRepository;
     private final ContratoRepository contratoRepository;
+    private final EntregableFinalRepository entregableFinalRepository;
     private final NotificacionService notificacionService;
     private final ChatService chatService;
     private final IServicioExportacion servicioExportacion;
@@ -315,8 +317,19 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)
                 .orElseThrow(() -> new ExcepcionReglaNegocio("Pedido sin estado inicial"));
 
-        // Obtener el orden actual de la etapa
-        Integer ordenActual = obtenerOrdenActual(pedido, ultimoEstado);
+        // Obtener configuracion de la etapa actual (orden + si exige entregable)
+        FlujoEtapaConfig configActual = obtenerConfigActual(pedido, ultimoEstado);
+        Integer ordenActual = configActual != null ? configActual.getNumeroOrden() : 0;
+
+        // La etapa que se abandona puede exigir que ya exista un entregable
+        // subido para el pedido (p. ej. "En Producción" antes de pasar a
+        // revisión del cliente); sin él, el creador no puede avanzar.
+        if (configActual != null && Boolean.TRUE.equals(configActual.getRequiereEntregable())
+                && !entregableFinalRepository.existsByPedidoIdPedido(idPedido)) {
+            throw new ExcepcionReglaNegocio(
+                    "Debes subir el entregable antes de avanzar de la etapa '"
+                            + configActual.getEtapa().getNombreEtapa() + "'");
+        }
 
         // Obtener siguiente etapa del flujo configurado
         List<FlujoEtapaConfig> siguientes = flujoEtapaConfigRepository
@@ -378,9 +391,18 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
         Integer etapaActualOrden = 0;
         String etapaActualNombre = "Sin estado";
+        boolean bloqueadoPorEntregable = false;
         if (ultimoEstado != null) {
             etapaActualNombre = ultimoEstado.getEtapa().getNombreEtapa();
-            etapaActualOrden = obtenerOrdenActual(pedido, ultimoEstado);
+            FlujoEtapaConfig configActual = etapasConfig.stream()
+                    .filter(c -> c.getEtapa().getIdEtapa().equals(ultimoEstado.getEtapa().getIdEtapa()))
+                    .findFirst()
+                    .orElse(null);
+            if (configActual != null) {
+                etapaActualOrden = configActual.getNumeroOrden();
+                bloqueadoPorEntregable = Boolean.TRUE.equals(configActual.getRequiereEntregable())
+                        && !entregableFinalRepository.existsByPedidoIdPedido(idPedido);
+            }
         }
 
         int totalEtapas = etapasConfig.size();
@@ -394,6 +416,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .totalEtapas(totalEtapas)
                 .porcentajeProgreso(porcentaje)
                 .fechaUltimaActualizacion(ultimoEstado != null ? ultimoEstado.getFechaTransicion() : null)
+                .bloqueadoPorEntregable(bloqueadoPorEntregable)
                 .etapasDelFlujo(etapasConfig.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))
                 .historial(historial.stream().map(this::mapHistorial).collect(Collectors.toList()))
                 .build();
@@ -402,14 +425,17 @@ public class PedidoServicioImpl implements IPedidoServicio {
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     private Integer obtenerOrdenActual(Pedido pedido, HistorialEstadoPedido ultimoEstado) {
-        List<FlujoEtapaConfig> configs = flujoEtapaConfigRepository
-                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());
+        FlujoEtapaConfig config = obtenerConfigActual(pedido, ultimoEstado);
+        return config != null ? config.getNumeroOrden() : 0;
+    }
 
-        return configs.stream()
+    private FlujoEtapaConfig obtenerConfigActual(Pedido pedido, HistorialEstadoPedido ultimoEstado) {
+        return flujoEtapaConfigRepository
+                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo())
+                .stream()
                 .filter(c -> c.getEtapa().getIdEtapa().equals(ultimoEstado.getEtapa().getIdEtapa()))
                 .findFirst()
-                .map(FlujoEtapaConfig::getNumeroOrden)
-                .orElse(0);
+                .orElse(null);
     }
 
     private String obtenerEtapaActual(Long idPedido) {
@@ -477,6 +503,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .nombreEtapa(config.getEtapa().getNombreEtapa())
                 .numeroOrden(config.getNumeroOrden())
                 .esEtapaFinal(config.getEsEtapaFinal())
+                .requiereEntregable(config.getRequiereEntregable())
                 .build();
     }
 }

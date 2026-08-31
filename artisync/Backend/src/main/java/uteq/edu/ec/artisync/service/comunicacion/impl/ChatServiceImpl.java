@@ -10,22 +10,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
 import uteq.edu.ec.artisync.entity.legal.Mensaje;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
 import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
 import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +37,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private static final int MAX_INFRACCIONES = 3;
-    private static final int PERIODO_DIAS     = 30;
-
     private final SalaChatRepository      salaChatRepo;
     private final MensajeRepository       mensajeRepo;
     private final UsuarioRepository       usuarioRepo;
-    private final InfraccionRepository    infraccionRepo;
+    private final InfraccionService       infraccionService;
     private final MensajeFilterService    mensajeFilterService;
     private final NotificacionService     notificacionService;
     private final SimpMessagingTemplate   messagingTemplate;
@@ -105,9 +100,13 @@ public class ChatServiceImpl implements ChatService {
             throw new ExcepcionReglaNegocio("Esta sala ha sido cerrada");
         }
 
-        // RF-15: Filtrar datos de contacto antes de persistir el mensaje
+        // RF-15: Filtrar datos de contacto antes de persistir el mensaje.
+        // infraccionService.registrarInfraccion corre en su propia transaccion
+        // (REQUIRES_NEW): queda confirmada en el motor aunque esta llamada
+        // termine lanzando la excepcion de abajo, que hace rollback de la
+        // transaccion de enviarMensaje pero no de la de la infraccion.
         if (mensajeFilterService.contieneContacto(cuerpoMensaje)) {
-            registrarInfraccionInterna(idRemitente, sala.getPedido(), cuerpoMensaje);
+            infraccionService.registrarInfraccion(idRemitente, sala.getPedido().getIdPedido(), cuerpoMensaje);
             throw new ExcepcionReglaNegocio(
                     "Tu mensaje no fue entregado porque contiene datos de contacto. Infracción registrada.");
         }
@@ -186,41 +185,6 @@ public class ChatServiceImpl implements ChatService {
                 .salaActiva(sala.getSalaActiva())
                 .fechaApertura(sala.getFechaApertura())
                 .build();
-    }
-
-    // -------------------------------------------------------------------------
-    // Infracciones (RF-15) — lógica interna de Chat
-    // -------------------------------------------------------------------------
-
-    private void registrarInfraccionInterna(Long idRemitente, Pedido pedido, String cuerpoMensaje) {
-        Usuario usuario = usuarioRepo.findById(idRemitente)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idRemitente));
-
-        String patron = mensajeFilterService.detectarPatron(cuerpoMensaje);
-
-        InfraccionMensaje infraccion = InfraccionMensaje.builder()
-                .usuario(usuario)
-                .pedido(pedido)
-                .mensajeOriginal(cuerpoMensaje)
-                .patronDetectado(patron)
-                .build();
-        infraccionRepo.save(infraccion);
-
-        long count = infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(
-                idRemitente, LocalDateTime.now().minusDays(PERIODO_DIAS));
-
-        log.warn("Infracción RF-15 registrada para usuario {}. Patrón: {}. Total en 30 días: {}",
-                idRemitente, patron, count);
-
-        if (count >= MAX_INFRACCIONES) {
-            usuario.setEstadoCuenta(false);
-            usuarioRepo.save(usuario);
-            LocalDateTime hastaFecha = LocalDateTime.now().plusDays(15);
-            String mensaje = "Tu cuenta está suspendida hasta " + hastaFecha.toLocalDate()
-                    + " por superar el límite de infracciones de datos de contacto.";
-            notificacionService.notificar(usuario, "CUENTA_SUSPENDIDA", mensaje);
-            log.warn("Cuenta del usuario {} suspendida hasta {}", usuario.getCorreo(), hastaFecha.toLocalDate());
-        }
     }
 
     /**

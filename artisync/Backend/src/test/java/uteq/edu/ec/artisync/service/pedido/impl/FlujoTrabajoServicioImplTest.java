@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -167,6 +168,25 @@ class FlujoTrabajoServicioImplTest {
 
         assertThat(flujoTrabajoServicio.agregarEtapa(1L, peticion)).isNotNull();
         verify(flujoEtapaConfigRepository).save(any(FlujoEtapaConfig.class));
+    }
+
+    @Test
+    @DisplayName("agregarEtapa propaga requiereEntregable a la configuracion guardada")
+    void agregarEtapa_propagaRequiereEntregable() {
+        EtapaFlujo etapa = EtapaFlujo.builder().idEtapa(1L).nombreEtapa("Entrega de trabajo").build();
+        PeticionEtapaConfig peticion = PeticionEtapaConfig.builder()
+                .nombreEtapa("Entrega de trabajo").numeroOrden(1).requiereEntregable(true).build();
+
+        given(flujoTrabajoRepository.findById(1L)).willReturn(Optional.of(flujo));
+        given(etapaFlujoRepository.findByNombreEtapa("Entrega de trabajo")).willReturn(Optional.of(etapa));
+        given(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(1L, 1L)).willReturn(false);
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of());
+
+        flujoTrabajoServicio.agregarEtapa(1L, peticion);
+
+        ArgumentCaptor<FlujoEtapaConfig> captor = ArgumentCaptor.forClass(FlujoEtapaConfig.class);
+        verify(flujoEtapaConfigRepository).save(captor.capture());
+        assertThat(captor.getValue().getRequiereEntregable()).isTrue();
     }
 
     @Test

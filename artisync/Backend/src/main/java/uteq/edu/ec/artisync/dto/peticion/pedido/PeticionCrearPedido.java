@@ -1,5 +1,6 @@
 package uteq.edu.ec.artisync.dto.peticion.pedido;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,5 +21,6 @@ public class PeticionCrearPedido {
 
     private BigDecimal precioOfrecido;
 
+    @Future(message = "La fecha de entrega debe ser una fecha futura")
     private LocalDateTime fechaEntregaEstimada;
 }

@@ -16,4 +16,5 @@ public class RespuestaEtapaConfig {
     private String nombreEtapa;
     private Integer numeroOrden;
     private Boolean esEtapaFinal;
+    private Boolean requiereEntregable;
 }

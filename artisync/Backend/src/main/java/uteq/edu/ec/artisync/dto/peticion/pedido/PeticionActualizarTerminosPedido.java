@@ -1,6 +1,7 @@
 package uteq.edu.ec.artisync.dto.peticion.pedido;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Future;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,5 +25,6 @@ public class PeticionActualizarTerminosPedido {
     @DecimalMin(value = "0.01", message = "El precio pactado debe ser mayor a 0")
     private BigDecimal precioPactado;
 
+    @Future(message = "La fecha de entrega debe ser una fecha futura")
     private LocalDateTime fechaEntregaEstimada;
 }

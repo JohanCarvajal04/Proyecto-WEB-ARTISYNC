@@ -23,4 +23,6 @@ public class RespuestaSeguimientoPedido {
     private LocalDateTime fechaUltimaActualizacion;
     private List<RespuestaEtapaConfig> etapasDelFlujo;
     private List<RespuestaHistorialEstado> historial;
+    /** La etapa actual exige entregable (etapasDelFlujo) y el pedido todavia no tiene uno subido. */
+    private boolean bloqueadoPorEntregable;
 }

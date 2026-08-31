@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ContextoAuditoria;
@@ -43,11 +44,19 @@ public class InfraccionServiceImpl implements InfraccionService {
     private final ObjectMapper            objectMapper;
 
     @Override
-    @Transactional
+    // REQUIRES_NEW: quien llama a este metodo (ej. ChatServiceImpl.enviarMensaje)
+    // suele lanzar una excepcion de regla de negocio inmediatamente despues,
+    // dentro de su propia transaccion @Transactional -- con la propagacion
+    // por defecto (REQUIRED) esa excepcion marca rollback-only y deshace este
+    // INSERT y la suspension junto con todo lo demas de la transaccion del
+    // llamador. Una transaccion propia hace que la infraccion quede
+    // confirmada en el motor aunque el llamador aborte la suya despues.
+    //
     // Jamás #mensaje en el detalle: el texto ya vive en
     // infracciones_mensaje.mensaje_original con su propio control de acceso;
     // duplicarlo en una bitácora que ni el ADMIN puede borrar empeoraría la
     // posición de privacidad. Solo se registra su longitud y el patrón.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Auditable(accion = "INFRACCION_REGISTRAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "pedidos", idEntidad = "#idPedido")
     public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
@@ -93,9 +102,8 @@ public class InfraccionServiceImpl implements InfraccionService {
     @Override
     @Transactional(readOnly = true)
     public Page<RespuestaInfraccion> historialPorUsuario(Long idUsuario, Pageable pageable) {
-        return infraccionRepo.findAll(pageable)
-                .map(this::mapToResponse)
-                .map(r -> r.getIdUsuario().equals(idUsuario) ? r : null);
+        return infraccionRepo.findByUsuarioIdUsuario(idUsuario, pageable)
+                .map(this::mapToResponse);
     }
 
     @Override

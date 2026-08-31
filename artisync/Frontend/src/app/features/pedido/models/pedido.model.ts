@@ -14,6 +14,7 @@ export interface RespuestaEtapaConfig {
   nombreEtapa: string;
   numeroOrden: number;
   esEtapaFinal: boolean;
+  requiereEntregable: boolean;
 }
 
 export interface PeticionCrearFlujoTrabajo {
@@ -26,6 +27,7 @@ export interface PeticionEtapaConfig {
   nombreEtapa: string;
   numeroOrden: number;
   esEtapaFinal: boolean;
+  requiereEntregable: boolean;
 }
 
 // ── Pedidos ──
@@ -66,6 +68,7 @@ export interface RespuestaSeguimientoPedido {
   fechaUltimaActualizacion: string;
   etapasDelFlujo: RespuestaEtapaConfig[];
   historial: RespuestaHistorialEstado[];
+  bloqueadoPorEntregable: boolean;
 }
 
 export interface RespuestaHistorialEstado {

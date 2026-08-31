@@ -10,7 +10,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Mensaje;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
@@ -19,10 +18,10 @@ import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
 import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
 import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
@@ -44,7 +43,7 @@ class ChatServiceImplTest {
     @Mock private SalaChatRepository    salaChatRepo;
     @Mock private MensajeRepository     mensajeRepo;
     @Mock private UsuarioRepository     usuarioRepo;
-    @Mock private InfraccionRepository  infraccionRepo;
+    @Mock private InfraccionService     infraccionService;
     @Mock private MensajeFilterService  mensajeFilterService;
     @Mock private NotificacionService   notificacionService;
     @Mock private SimpMessagingTemplate messagingTemplate;
@@ -229,39 +228,31 @@ class ChatServiceImplTest {
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(mensajeFilterService.contieneContacto(mensajeConTelefono)).thenReturn(true);
-        when(mensajeFilterService.detectarPatron(mensajeConTelefono)).thenReturn("TELEFONO");
-        when(usuarioRepo.findById(1L)).thenReturn(Optional.of(remitente));
-        when(infraccionRepo.save(any(InfraccionMensaje.class))).thenReturn(InfraccionMensaje.builder().build());
-        when(infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(eq(1L), any())).thenReturn(1L);
 
         assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, mensajeConTelefono))
                 .isInstanceOf(ExcepcionReglaNegocio.class)
                 .hasMessageContaining("datos de contacto");
 
-        verify(infraccionRepo).save(any(InfraccionMensaje.class));
+        // El registro de la infraccion se delega a InfraccionService, que corre
+        // en su propia transaccion (REQUIRES_NEW) para que quede confirmada
+        // aunque este metodo termine lanzando la excepcion de arriba.
+        verify(infraccionService).registrarInfraccion(1L, 10L, mensajeConTelefono);
         verify(mensajeRepo, never()).save(any());
     }
 
     @Test
-    @DisplayName("RF-15: 3 infracciones en 30 días → cuenta suspendida")
-    void enviarMensaje_tresInfracciones_suspendeCuenta() {
+    @DisplayName("RF-15: si InfraccionService lanza, el mensaje igual se rechaza (no se guarda ni se notifica al destinatario)")
+    void enviarMensaje_conContacto_noPropagaMensajeAunqueFalleRegistroInfraccion() {
         String mensajeConEmail = "Escríbeme a test@ejemplo.com";
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(mensajeFilterService.contieneContacto(mensajeConEmail)).thenReturn(true);
-        when(mensajeFilterService.detectarPatron(mensajeConEmail)).thenReturn("EMAIL");
-        when(usuarioRepo.findById(1L)).thenReturn(Optional.of(remitente));
-        when(infraccionRepo.save(any(InfraccionMensaje.class))).thenReturn(InfraccionMensaje.builder().build());
-        // Simular que ya tiene 3 infracciones (umbral alcanzado)
-        when(infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(eq(1L), any())).thenReturn(3L);
-        when(usuarioRepo.save(any(Usuario.class))).thenReturn(remitente);
 
         assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, mensajeConEmail))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
 
-        // Cuenta desactivada y notificación enviada
-        assertThat(remitente.getEstadoCuenta()).isFalse();
-        verify(notificacionService).notificar(eq(remitente), eq("CUENTA_SUSPENDIDA"), anyString());
+        verify(mensajeRepo, never()).save(any());
+        verify(notificacionService, never()).notificar(any(), eq("MENSAJE_RECIBIDO"), anyString());
     }
 
     @Test

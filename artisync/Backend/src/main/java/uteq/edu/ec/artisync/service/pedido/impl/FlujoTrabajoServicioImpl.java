@@ -55,6 +55,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
                         .etapa(etapa)
                         .numeroOrden(etapaReq.getNumeroOrden())
                         .esEtapaFinal(etapaReq.isEsEtapaFinal())
+                        .requiereEntregable(etapaReq.isRequiereEntregable())
                         .build();
 
                 flujoEtapaConfigRepository.save(config);
@@ -113,6 +114,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
                 .etapa(etapa)
                 .numeroOrden(peticion.getNumeroOrden())
                 .esEtapaFinal(peticion.isEsEtapaFinal())
+                .requiereEntregable(peticion.isRequiereEntregable())
                 .build();
 
         flujoEtapaConfigRepository.save(config);
@@ -136,6 +138,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
         config.setNumeroOrden(peticion.getNumeroOrden());
         config.setEsEtapaFinal(peticion.isEsEtapaFinal());
+        config.setRequiereEntregable(peticion.isRequiereEntregable());
 
         flujoEtapaConfigRepository.save(config);
         log.info("Etapa {} actualizada en flujo {}", idFlujoEtapa, idFlujo);
@@ -188,6 +191,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
                 .nombreEtapa(config.getEtapa().getNombreEtapa())
                 .numeroOrden(config.getNumeroOrden())
                 .esEtapaFinal(config.getEsEtapaFinal())
+                .requiereEntregable(config.getRequiereEntregable())
                 .build();
     }
 }

@@ -386,7 +386,8 @@ CREATE TABLE flujo_etapas_config (
     id_flujo BIGINT NOT NULL REFERENCES flujos_trabajo(id_flujo) ON DELETE CASCADE,
     id_etapa BIGINT NOT NULL REFERENCES etapas_flujo(id_etapa) ON DELETE CASCADE,
     numero_orden INT NOT NULL,
-    es_etapa_final BOOLEAN DEFAULT FALSE
+    es_etapa_final BOOLEAN DEFAULT FALSE,
+    requiere_entregable BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- codigo_pedido (REQ-F-018) rescatado de R__procedimientos.sql. Nullable: se
