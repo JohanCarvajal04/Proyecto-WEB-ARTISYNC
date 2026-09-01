@@ -168,14 +168,17 @@ redacción:
   están en `secciones/00-portada-resumen.tex` (18-08-2026).
 - ~~DOI de Zenodo y tag `v1.0.0`~~ — resuelto: el tag `v1.0.0` existe en
   GitHub y Zenodo generó el DOI `10.5281/zenodo.21978572` para esa
-  versión; ya declarado en portada y en el Capítulo 13. **Persiste un
-  hallazgo nuevo**: el tag `v1.0.0` local del repositorio apunta a un
-  commit (`5b61f86`) distinto del tag `v1.0.0` en GitHub (`d07656b`, el
-  que Zenodo archivó) — dos tags iguales creados por separado por
-  distintos integrantes. El documento declara `d07656b` (el que
-  corresponde al DOI real) y señala la discrepancia en el Capítulo 13;
-  el equipo debe unificar los tags en el repositorio antes del cierre
-  para que no quede ambigüedad a nivel de `git`.
+  versión; ya declarado en portada y en el Capítulo 13.
+- ~~Discrepancia del tag `v1.0.0` local~~ — resuelto (01-09-2026): el tag
+  `v1.0.0` local apuntaba a un commit (`5b61f86`) distinto del tag
+  `v1.0.0` en GitHub/Zenodo (`d07656b`), por haberse recreado localmente
+  sin sincronizar. Se corrigió realineando el tag local con el remoto
+  (`git tag -d v1.0.0 && git fetch origin tag v1.0.0`), sin tocar nada ya
+  publicado en GitHub ni en Zenodo (el DOI es inmutable). Registrado en
+  `docs/observaciones/OBSERVACIONES.md` (OBS-AUTO-12). El trabajo posterior
+  a `d07656b` (refactor de permisos, endurecimiento de seguridad) se
+  etiquetó por separado como `v1.1.0`, sin alterar el cierre de la Entrega
+  Final.
 - ~~Agradecimientos~~ — resuelto: sección completada en
   `secciones/13-declaraciones.tex` (18-08-2026).
 - El DOI del dataset de mediciones (Zenodo, separado del software) sigue
