@@ -135,7 +135,7 @@
       <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex flex-col gap-5 lg:sticky lg:top-6">
         <div class="flex flex-col gap-1">
           <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Precio base</span>
-          <span class="font-mono font-bold text-3xl text-[#0F2027]">{{ formatPrice(s.precioBase) }}</span>
+          <span class="font-mono font-bold text-3xl text-[#0F2027]">{{ s.precioBase | moneda }}</span>
         </div>
 
         <div class="flex flex-col gap-3 text-sm">
@@ -148,7 +148,7 @@
           @if (s.cargoRevisionAdicional !== null) {
             <div class="flex items-center justify-between gap-3">
               <span class="text-slate-400">Revisión adicional</span>
-              <span class="font-semibold text-slate-700 font-mono">{{ formatPrice(s.cargoRevisionAdicional) }}</span>
+              <span class="font-semibold text-slate-700 font-mono">{{ s.cargoRevisionAdicional | moneda }}</span>
             </div>
           }
           <div class="flex items-center justify-between gap-3">

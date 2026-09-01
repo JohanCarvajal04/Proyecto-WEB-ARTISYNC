@@ -5,11 +5,12 @@ import { PedidoService } from '../../services/pedido.service';
 import { PeticionCrearPedido } from '../../models/pedido.model';
 import { CatalogoPublicoService } from '../../../catalogo/services/catalogo-publico.service';
 import { RespuestaServicio } from '../../../catalogo/models/catalogo.model';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-pedido-crear',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, MonedaPipe],
   templateUrl: './pedido-crear.component.html'
 })
 export class PedidoCrearComponent implements OnInit {
@@ -103,9 +104,6 @@ export class PedidoCrearComponent implements OnInit {
     });
   }
 
-  formatPrice(precio: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio);
-  }
 
   /**
    * `min` del input datetime-local: evita que el selector nativo ofrezca

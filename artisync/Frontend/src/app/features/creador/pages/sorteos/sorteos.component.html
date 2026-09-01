@@ -238,7 +238,7 @@
             <div class="cr-field">
               <label class="cr-label" for="fechaInicio">Inicio <span>*</span></label>
               <input id="fechaInicio" type="datetime-local" class="cr-input" formControlName="fechaInicio"
-                [class.is-invalid]="invalido('fechaInicio')" />
+                [min]="minFechaInicio" [class.is-invalid]="invalido('fechaInicio')" />
               @if (sorteoEnEdicion()) { <span class="cr-hint">No se puede modificar.</span> }
             </div>
             <div class="cr-field">
@@ -247,6 +247,9 @@
                 [class.is-invalid]="invalido('fechaCierre')" />
             </div>
           </div>
+          @if (form.errors?.['rangoInvalido'] && (form.get('fechaInicio')?.touched || form.get('fechaCierre')?.touched)) {
+            <span class="cr-error">La fecha de cierre debe ser posterior a la de inicio.</span>
+          }
 
           @if (!sorteoEnEdicion()) {
             <label class="cr-check">

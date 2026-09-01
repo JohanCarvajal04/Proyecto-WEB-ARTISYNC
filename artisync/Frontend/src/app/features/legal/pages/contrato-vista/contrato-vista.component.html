@@ -155,7 +155,7 @@
       <!-- Acciones -->
       <div class="flex flex-wrap items-center gap-3">
         @if (!yaFirme) {
-          <button (click)="firmarContrato()" [disabled]="firmando"
+          <button (click)="pedirConfirmacionFirma()" [disabled]="firmando"
             class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
             @if (firmando) {
               <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
@@ -223,4 +223,14 @@
         </div>
       </section>
     }
+
+    <app-confirm-dialog
+      [isOpen]="mostrarConfirmacionFirma"
+      title="Firmar contrato"
+      message="Vas a firmar este contrato. Es un documento legal vinculante y la firma no se puede deshacer. ¿Continuar?"
+      confirmText="Firmar"
+      cancelText="Cancelar"
+      (onConfirm)="firmarContrato()"
+      (onCancel)="cancelarFirma()">
+    </app-confirm-dialog>
   </div>

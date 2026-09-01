@@ -135,7 +135,7 @@
                   <p class="text-[11px] text-slate-400 mt-0.5">#{{ pedido.idPedido }}</p>
                 </td>
                 <td class="py-4 px-6 text-slate-500">{{ pedido.nombreCreador }}</td>
-                <td class="py-4 px-6 font-mono font-semibold text-slate-700">{{ formatPrice(pedido.precioPactado) }}</td>
+                <td class="py-4 px-6 font-mono font-semibold text-slate-700">{{ pedido.precioPactado | moneda }}</td>
                 <td class="py-4 px-6">
                   <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" [class]="getBadgeClasses(pedido.etapaActual)">
                     {{ pedido.etapaActual || 'Sin estado' }}

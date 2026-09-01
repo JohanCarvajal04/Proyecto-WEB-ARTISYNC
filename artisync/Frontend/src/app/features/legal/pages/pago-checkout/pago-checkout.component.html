@@ -84,7 +84,7 @@
           </div>
           <div>
             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monto Retenido</p>
-            <p class="text-xl font-bold text-teal-600 font-mono mt-1">{{ formatPrice(pagoActual.montoRetenido) }}</p>
+            <p class="text-xl font-bold text-teal-600 font-mono mt-1">{{ pagoActual.montoRetenido | moneda }}</p>
           </div>
           @if (pagoActual.idOrdenPaypal) {
             <div class="min-w-0">

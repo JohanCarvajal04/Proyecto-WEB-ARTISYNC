@@ -84,7 +84,7 @@
           </div>
           <div class="min-w-0">
             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio pactado</p>
-            <p class="text-sm font-semibold text-slate-800 font-mono">{{ formatPrice(pedido.precioPactado) }}</p>
+            <p class="text-sm font-semibold text-slate-800 font-mono">{{ pedido.precioPactado | moneda }}</p>
           </div>
         </div>
 
@@ -327,7 +327,7 @@
                     <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    <span>Cargo adicional: <span class="font-mono font-bold">{{ formatPrice(ticket.costoAdicionalGenerado) }}</span></span>
+                    <span>Cargo adicional: <span class="font-mono font-bold">{{ ticket.costoAdicionalGenerado | moneda }}</span></span>
                     @if (ticket.urlPagoAdicional) {
                       <a [href]="ticket.urlPagoAdicional" target="_blank" rel="noopener"
                         class="ml-auto bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-1.5 rounded-full transition-colors">

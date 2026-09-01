@@ -10,11 +10,12 @@ import { RespuestaResena } from '../../../social/models/social.model';
 import { CATALOGO_BASE_PATH } from '../../catalogo.config';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { exigirSesion } from '../../../../core/utils/exigir-sesion';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-servicio-detalle',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './servicio-detalle.component.html'
 })
 export class ServicioDetalleComponent implements OnInit {
@@ -83,9 +84,6 @@ export class ServicioDetalleComponent implements OnInit {
     return Array.from({ length: 5 }, (_, i) => i < calificacion);
   }
 
-  formatPrice(precio: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio);
-  }
 
   formatDate(fecha: string): string {
     if (!fecha) return '—';

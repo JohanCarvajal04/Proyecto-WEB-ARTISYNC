@@ -4,11 +4,12 @@ import { PagoGarantiaService } from '../../services/pago-garantia.service';
 import { FiltroPagoGarantia, PagoGarantia, PagoGarantiaDetalle, ResumenEscrow } from '../../models/pago-garantia.model';
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
 import { ToastService } from '../../../../core/services/toast.service';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-pagos-garantia',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, MonedaPipe],
   templateUrl: './pagos-garantia.component.html'
 })
 export class PagosGarantiaComponent implements OnInit {
@@ -89,9 +90,6 @@ export class PagosGarantiaComponent implements OnInit {
     this.detalle.set(null);
   }
 
-  formatMonto(monto: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monto || 0);
-  }
 
   formatFecha(fecha: string | null): string {
     if (!fecha) return '—';
