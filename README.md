@@ -3,7 +3,7 @@
 [![CI](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml/badge.svg)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21978572.svg)](https://doi.org/10.5281/zenodo.21978572)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.0.0)
+[![Version](https://img.shields.io/badge/version-v1.1.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.1.0)
 
 Proyecto Fin de Curso (PFC) — Aplicaciones Web, Quinto nivel.
 Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computación y Diseño Digital · Carrera de Ingeniería de Software.
@@ -132,7 +132,8 @@ El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/) y [Keep a Cha
 | `v0.7.0` | Entrega 1B — módulo de autenticación y acceso a datos |
 | `v0.7.1` | Cierre de la aplicación de observaciones de las Entregas 1A y 1B |
 | `v0.9.0-rc` | Tercera Entrega — *release candidate* |
-| `v1.0.0` | Entrega Final — primera versión estable de producción |
+| `v1.0.0` | Entrega Final — primera versión estable de producción (commit `d07656b`, archivado con DOI en Zenodo) |
+| `v1.1.0` | Trabajo posterior al cierre académico: refactor de autorización por permisos (backend/frontend) y endurecimiento de seguridad — no forma parte de la Entrega Final evaluada |
 
 ## Equipo y contribuciones
 
