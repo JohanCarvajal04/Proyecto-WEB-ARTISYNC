@@ -3,11 +3,18 @@ package uteq.edu.ec.artisync.service.legal.impl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,12 +38,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * aserción es sobre el INVARIANTE de negocio -- "el escrow se libera una sola
  * vez" -- no sobre el orden de ejecucion, que es no determinista.
  *
- * @SpringBootTest (no @DataJpaTest): aprobarEntrega depende de ChatService y
- * NotificacionService ademas de los repositorios JPA, asi que hace falta el
- * contexto completo. Sin @Transactional en la clase: cada hilo necesita su
- * propia transaccion real tomada del pool para que el bloqueo pesimista
- * sirva de algo (una unica transaccion de prueba compartida serializaria
- * todo por si sola y ocultaria el bug).
+ * @DataJpaTest, igual que el resto de *IT de este proyecto (no @SpringBootTest):
+ * aprobarEntrega depende de ChatService/NotificacionService/AlmacenamientoDocumentos
+ * además de los repositorios JPA, pero ninguno de los tres participa en la
+ * sección crítica que se está probando (el lock), así que se sustituyen por
+ * mocks vía @TestConfiguration en vez de levantar el contexto completo de
+ * Spring -- que además arrastra EmailService y su dependencia de
+ * app.frontend.url, ajena a este flujo. Sin @Transactional en la clase: cada
+ * hilo necesita su propia transacción real tomada del pool para que el
+ * bloqueo pesimista sirva de algo (una única transacción de prueba compartida
+ * serializaría todo por sí sola y ocultaría el bug).
  *
  * Requiere Postgres real (el bloqueo de fila es comportamiento del motor, no
  * reproducible de forma fiable contra H2). Ejecutar con:
@@ -44,9 +55,29 @@ import static org.assertj.core.api.Assertions.assertThat;
  * (requiere docker compose -f artisync/docker-compose.yml up -d postgres)
  */
 @Tag("integracion")
-@SpringBootTest
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("postgres-it")
+@Import({EntregableServicioImpl.class, AprobarEntregaConcurrenciaIT.Colaboradores.class})
 class AprobarEntregaConcurrenciaIT {
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class Colaboradores {
+        @Bean
+        ChatService chatService() {
+            return Mockito.mock(ChatService.class);
+        }
+
+        @Bean
+        NotificacionService notificacionService() {
+            return Mockito.mock(NotificacionService.class);
+        }
+
+        @Bean
+        AlmacenamientoDocumentos almacenamientoDocumentos() {
+            return Mockito.mock(AlmacenamientoDocumentos.class);
+        }
+    }
 
     private static final long ID_CLIENTE = 9201L;
     private static final long ID_CREADOR = 9202L;
@@ -93,8 +124,8 @@ class AprobarEntregaConcurrenciaIT {
                 Long.class, idPerfil, idSubcategoria);
 
         idFlujo = jdbcTemplate.queryForObject(
-                "INSERT INTO flujos_trabajo (nombre_flujo) VALUES (?) RETURNING id_flujo",
-                Long.class, "Flujo concurrencia escrow " + System.nanoTime());
+                "INSERT INTO flujos_trabajo (nombre_flujo, id_usuario_creador) VALUES (?, ?) RETURNING id_flujo",
+                Long.class, "Flujo concurrencia escrow " + System.nanoTime(), ID_CREADOR);
         idEtapa = jdbcTemplate.queryForObject(
                 "INSERT INTO etapas_flujo (nombre_etapa) VALUES (?) RETURNING id_etapa",
                 Long.class, "Etapa concurrencia escrow " + System.nanoTime());
