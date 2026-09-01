@@ -1,6 +1,5 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { PaisService } from '../../../../shared/services/pais.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../seguridad/services/auth.service';
@@ -12,7 +11,7 @@ import { PaisFormModalComponent } from '../../../../shared/components/pais-form-
 @Component({
   selector: 'app-paises',
   standalone: true,
-  imports: [FormsModule, CommonModule, ConfirmDialogComponent, PaisFormModalComponent],
+  imports: [FormsModule, ConfirmDialogComponent, PaisFormModalComponent],
   templateUrl: './paises.component.html'
 })
 export class PaisesComponent implements OnInit {
@@ -45,8 +44,9 @@ export class PaisesComponent implements OnInit {
         this.paises.set(res);
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo cargar el listado de países');
       }
     });
   }
@@ -83,8 +83,9 @@ export class PaisesComponent implements OnInit {
         this.toastService.success('País creado exitosamente');
         this.loadPaises();
       },
-      error: () => {
+      error: (err) => {
         this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo crear el país');
       }
     });
   }
@@ -101,8 +102,9 @@ export class PaisesComponent implements OnInit {
         this.toastService.success('País actualizado exitosamente');
         this.loadPaises();
       },
-      error: () => {
+      error: (err) => {
         this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo actualizar el país');
       }
     });
   }
@@ -121,10 +123,14 @@ export class PaisesComponent implements OnInit {
       next: () => {
         this.isActionLoading.set(false);
         this.isConfirmOpen.set(false);
-        this.toastService.success('País desactivado/eliminado exitosamente');
+        const accionStr = pais.estado ? 'desactivado' : 'reactivado';
+        this.toastService.success(`País ${accionStr} exitosamente`);
         this.loadPaises();
       },
-      error: () => this.isActionLoading.set(false)
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo cambiar el estado del país');
+      }
     });
   }
 }

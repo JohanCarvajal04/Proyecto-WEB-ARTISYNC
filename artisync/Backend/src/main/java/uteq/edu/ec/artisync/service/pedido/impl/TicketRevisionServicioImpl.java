@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearTicketRevision;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaTicketRevision;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
@@ -18,6 +20,7 @@ import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
 import uteq.edu.ec.artisync.service.pedido.ITicketRevisionServicio;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +37,9 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "TICKET_CREAR", modulo = ModuloAuditoria.PEDIDOS,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{idMotivo: #peticion.idMotivo}")
     public RespuestaTicketRevision crearTicketRevision(Long idPedido, Long idCliente,
                                                         PeticionCrearTicketRevision peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
@@ -80,7 +86,8 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
     public List<RespuestaTicketRevision> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
-        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);
+        // OBS-08 / H-02: evita el acceso indebido (IDOR) a tickets de un pedido ajeno.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         return ticketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc(idPedido)
                 .stream()
@@ -88,37 +95,24 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * OBS-08: evita el acceso indebido (IDOR) a tickets de un pedido ajeno — solo el cliente
-     * dueño, el creador del servicio pedido o un ADMIN pueden listarlos.
-     */
-    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
-        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
-        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
-
-        if (esCliente || esCreador) {
-            return;
-        }
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean esAdmin = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!esAdmin) {
-            throw new AccessDeniedException("No tienes permisos para consultar los tickets de este pedido");
-        }
-    }
-
     @Override
     @Transactional
+    @Auditable(accion = "TICKET_CAMBIAR_ESTADO", modulo = ModuloAuditoria.PEDIDOS,
+            entidad = "tickets_revision", idEntidad = "#idTicket",
+            detalle = "{nuevoEstado: #nuevoEstado}")
     public RespuestaTicketRevision cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado) {
         TicketRevision ticket = ticketRevisionRepository.findById(idTicket)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Ticket de revision no encontrado"));
 
-        // Verificar que el usuario es el creador del servicio del pedido
+        // El creador del servicio siempre puede resolver sus propios tickets.
+        // Además, el controlador autoriza aquí a SOPORTE (TICKET_RESOLVER) y a
+        // quien tenga PEDIDO_GESTIONAR/ADMIN -- este chequeo exigía SIEMPRE
+        // ser el creador, así que soporte/admin recibía 422 pese a que el
+        // @PreAuthorize les daba paso: la funcionalidad de soporte estaba
+        // rota en la práctica.
         Long idCreadorServicio = ticket.getPedido().getServicio().getPerfil().getUsuario().getIdUsuario();
-        if (!idCreadorServicio.equals(idCreador)) {
-            throw new ExcepcionReglaNegocio("Solo el creador del servicio puede cambiar el estado del ticket");
+        if (!idCreadorServicio.equals(idCreador) && !tienePermisoDeSoporteOAdmin()) {
+            throw new AccessDeniedException("No tienes permisos para cambiar el estado de este ticket");
         }
 
         ticket.setEstadoTicket(nuevoEstado);
@@ -126,6 +120,16 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
         log.info("Ticket {} cambio a estado '{}'", idTicket, nuevoEstado);
         return mapToRespuesta(ticket);
+    }
+
+    /** Mismos roles que el @PreAuthorize del endpoint, aparte del creador del servicio. */
+    private boolean tienePermisoDeSoporteOAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_ADMIN")
+                        || a.getAuthority().equals("TICKET_RESOLVER")
+                        || a.getAuthority().equals("PEDIDO_GESTIONAR"));
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────

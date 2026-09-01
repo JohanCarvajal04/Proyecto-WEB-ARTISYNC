@@ -27,8 +27,11 @@ public interface BriefingService {
     /** Envía un briefing al cliente de un pedido. Solo el Creador del servicio puede hacerlo. */
     RespuestaBriefing enviarBriefing(Long idPedido, PeticionEnviarBriefing peticion, Long idCreador);
 
-    /** Obtiene el briefing enviado a un pedido (con estado de respuestas). */
-    RespuestaBriefing obtenerBriefing(Long idPedido);
+    /**
+     * Obtiene el briefing enviado a un pedido (con estado de respuestas).
+     * Solo el cliente/creador del pedido o un ADMIN pueden consultarlo.
+     */
+    RespuestaBriefing obtenerBriefing(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * El Cliente responde el briefing. Inmutable: lanza ExcepcionReglaNegocio si ya fue completado.

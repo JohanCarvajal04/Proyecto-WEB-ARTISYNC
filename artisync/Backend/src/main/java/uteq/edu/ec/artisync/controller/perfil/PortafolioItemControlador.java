@@ -32,7 +32,7 @@ public class PortafolioItemControlador {
     private final IPortafolioItemServicio itemServicio;
 
     @PostMapping(value = "/{idPortafolio}/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPortafolioItem> subirItem(
             @PathVariable Long idPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -79,8 +79,17 @@ public class PortafolioItemControlador {
                 .body(archivo.contenido());
     }
 
+    @PutMapping("/items/{idItem}")
+    @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
+    public ResponseEntity<RespuestaPortafolioItem> actualizarItem(
+            @PathVariable Long idItem,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionCrearPortafolioItem datos) {
+        return ResponseEntity.ok(itemServicio.actualizarItem(idItem, userDetails.getIdUsuario(), datos));
+    }
+
     @DeleteMapping("/items/{idItem}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {

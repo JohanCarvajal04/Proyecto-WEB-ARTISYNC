@@ -3,26 +3,31 @@ import { RouterLink } from '@angular/router';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
+import { UserService } from '../../../perfil/services/user.service';
+import { UserResponse } from '../../../../shared/models/user.model';
+import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './overview.component.html'
 })
 export class OverviewComponent implements OnInit {
   private pedidoService = inject(PedidoService);
   private authService = inject(AuthService);
+  private userService = inject(UserService);
 
   readonly pedidos = signal<RespuestaPedidoResumido[]>([]);
   readonly isLoading = signal<boolean>(true);
   readonly error = signal<string>('');
+  readonly perfil = signal<UserResponse | null>(null);
 
   userName = computed(() => {
     const user = this.authService.currentUser();
     const email = user?.email || user?.sub || 'Usuario';
-    const prefix = email.split('@')[0];
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    return nombreUsuario(this.perfil(), email);
   });
 
   pedidosActivos = computed(() => {
@@ -52,6 +57,10 @@ export class OverviewComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPedidos();
+    this.userService.getCurrentUser().subscribe({
+      next: (perfil) => this.perfil.set(perfil),
+      error: () => {}
+    });
   }
 
   loadPedidos(): void {
@@ -74,9 +83,6 @@ export class OverviewComponent implements OnInit {
     });
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
 
   formatDate(date: string): string {
     if (!date) return '—';

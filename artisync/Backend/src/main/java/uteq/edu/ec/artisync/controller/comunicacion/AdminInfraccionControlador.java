@@ -14,9 +14,10 @@ import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 
 /**
  * Controlador de administración de infracciones y suspensiones.
- * RF-15: Solo ADMIN puede consultar historial y revertir suspensiones.
+ * RF-15: exige el permiso INFRACCION_GESTIONAR (V10__permisos_navegacion.sql),
+ * que en el seed solo tiene ADMIN pero es asignable a cualquier rol.
  */
-@Tag(name = "Admin — Infracciones", description = "Gestión de infracciones y suspensiones de cuenta (solo ADMIN)")
+@Tag(name = "Admin — Infracciones", description = "Gestión de infracciones y suspensiones de cuenta (INFRACCION_GESTIONAR)")
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
@@ -26,14 +27,14 @@ public class AdminInfraccionControlador {
 
     @Operation(summary = "Listar todas las infracciones del sistema")
     @GetMapping("/infracciones")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<Page<RespuestaInfraccion>> listarInfracciones(Pageable pageable) {
         return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));
     }
 
     @Operation(summary = "Historial de infracciones de un usuario específico")
     @GetMapping("/infracciones/usuario/{idUsuario}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<Page<RespuestaInfraccion>> historialPorUsuario(
             @PathVariable Long idUsuario,
             Pageable pageable) {
@@ -42,7 +43,7 @@ public class AdminInfraccionControlador {
 
     @Operation(summary = "Revertir suspensión de un usuario")
     @DeleteMapping("/suspensiones/{idUsuario}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> revertirSuspension(@PathVariable Long idUsuario) {
         return ResponseEntity.ok(infraccionService.revertirSuspension(idUsuario));
     }

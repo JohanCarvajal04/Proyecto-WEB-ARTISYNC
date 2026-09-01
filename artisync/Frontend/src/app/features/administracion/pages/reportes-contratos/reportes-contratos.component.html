@@ -1,0 +1,112 @@
+<div class="flex flex-col gap-6">
+
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-[#1E0F38] font-headline">Reporte de contratos</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        Contratos formalizados: servicio, partes, precio pactado y estado de firma.
+      </p>
+    </div>
+
+    <app-boton-exportar permiso="REPORTE_CONTRATO_EXPORTAR" [cargando]="exportando()"
+      (exportar)="exportar($event)" />
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <input type="number" placeholder="Id. perfil del creador"
+        [ngModel]="filtro().idPerfilCreador" (ngModelChange)="actualizarFiltro('idPerfilCreador', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <input type="datetime-local" placeholder="Desde"
+        [ngModel]="filtro().desde" (ngModelChange)="actualizarFiltro('desde', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <input type="datetime-local" placeholder="Hasta"
+        [ngModel]="filtro().hasta" (ngModelChange)="actualizarFiltro('hasta', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <select [ngModel]="filtro().soloFirmados" (ngModelChange)="actualizarFiltro('soloFirmados', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300">
+        <option [ngValue]="undefined">Cualquier estado de firma</option>
+        <option [ngValue]="true">Solo firmados</option>
+        <option [ngValue]="false">Solo pendientes</option>
+      </select>
+
+      <div class="flex gap-2">
+        <button type="button" (click)="aplicarFiltros()"
+          class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-[#7B39B2] hover:opacity-90 transition-opacity">
+          Filtrar
+        </button>
+        <button type="button" (click)="limpiarFiltros()"
+          class="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors">
+          Limpiar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-4">Formalizado</th>
+              <th class="px-6 py-4">Servicio</th>
+              <th class="px-6 py-4">Cliente</th>
+              <th class="px-6 py-4">Creador</th>
+              <th class="px-6 py-4 text-right">Precio</th>
+              <th class="px-6 py-4">Firma</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (c of pagina().contenido; track c.idContrato) {
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{{ c.fechaFormalizacion | date: 'short' }}</td>
+                <td class="px-6 py-4 font-medium text-slate-800">{{ c.servicio }}</td>
+                <td class="px-6 py-4">{{ c.cliente }}</td>
+                <td class="px-6 py-4">{{ c.creador }}</td>
+                <td class="px-6 py-4 text-right font-mono">{{ c.precioPactado | number: '1.2-2' }}</td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
+                    [class]="c.firmadoCliente && c.firmadoCreador ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                    {{ c.firmadoCliente && c.firmadoCreador ? 'Completa' : 'Pendiente' }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                  <p>No hay contratos que coincidan con el filtro.</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pagina().totalPaginas > 1) {
+        <div class="flex items-center justify-center gap-3 py-4 border-t border-slate-100">
+          <button type="button" (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Anterior
+          </button>
+          <span class="text-xs text-slate-400 font-mono">
+            Página {{ pagina().numero + 1 }} de {{ pagina().totalPaginas }} · {{ pagina().totalElementos }} registro(s)
+          </span>
+          <button type="button" (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Siguiente
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

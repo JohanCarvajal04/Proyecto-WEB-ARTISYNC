@@ -77,6 +77,17 @@ classDiagram
       - hashToken : String
       - fechaGeneracion : LocalDateTime
     }
+    class EventoAuditoria {
+      - idEvento : Long
+      - entidad : String
+      - accion : String
+      - idRegistro : Long
+      - datosAntiguos : String
+      - datosNuevos : String
+      - usuarioResponsable : String
+      - ipOrigen : String
+      - fechaEvento : LocalDateTime
+    }
   }
 
   namespace perfil {
@@ -99,7 +110,7 @@ classDiagram
     }
     class CertificadoIa {
       - idCertificado : Long
-      - urlDocumentoS3 : String
+      - urlDocumentoAzure : String
       - puntajeConfianzaIa : BigDecimal
       - fechaAnalisis : LocalDateTime
     }
@@ -466,10 +477,10 @@ package "perfil" {
     - nombreEstado : String
   }
   class CertificadoIa {
-    - idCertificado : Long
-    - urlDocumentoS3 : String
-    - puntajeConfianzaIa : BigDecimal
-    - fechaAnalisis : LocalDateTime
+    + Long idCertificado
+    + String urlDocumentoAzure
+    + BigDecimal puntajeConfianzaIa
+    + LocalDateTime fechaAnalisis
   }
   class Portafolio {
     - idPortafolio : Long

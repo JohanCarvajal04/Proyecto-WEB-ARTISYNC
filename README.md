@@ -1,16 +1,17 @@
 # Artisync — Plataforma web de comisiones y venta de contenido digital
 
 [![CI](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml/badge.svg)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21730559.svg)](https://doi.org/10.5281/zenodo.21730559)
+[![DOI software](https://zenodo.org/badge/DOI/10.5281/zenodo.21978572.svg)](https://doi.org/10.5281/zenodo.21978572)
+[![DOI dataset](https://zenodo.org/badge/DOI/10.5281/zenodo.22236251.svg)](https://doi.org/10.5281/zenodo.22236251)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.0.0)
+[![Version](https://img.shields.io/badge/version-v1.1.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.1.0)
 
 Proyecto Fin de Curso (PFC) — Aplicaciones Web, Quinto nivel.
 Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computación y Diseño Digital · Carrera de Ingeniería de Software.
 
 Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta **Creadores** con **Clientes** y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón *escrow* vía PayPal, y funciones sociales.
 
-> **DOI persistente.** El archivo Zenodo del tag `v0.9.0-rc` está publicado con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559), declarado también en `CITATION.cff`. Pendiente: generar el registro de Zenodo correspondiente al tag `v1.0.0` (requiere crear el Release de GitHub sobre el tag para que Zenodo lo detecte) y declararlo en la portada del documento académico final.
+> **DOI persistente.** El archivo Zenodo del tag `v1.0.0` está publicado con el DOI [`10.5281/zenodo.21978572`](https://doi.org/10.5281/zenodo.21978572), declarado también en `CITATION.cff` y en la portada del documento académico final (`docs/informe-final/secciones/00-portada-resumen.tex`). La versión anterior, `v0.9.0-rc`, quedó archivada con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559). El dataset de mediciones (`docs/mediciones/`) está depositado por separado, con licencia CC BY 4.0, en el DOI [`10.5281/zenodo.22236251`](https://doi.org/10.5281/zenodo.22236251), siguiendo el principio de citación independiente de software y datos (Bloque D.3 de la guía).
 
 ---
 
@@ -61,6 +62,38 @@ La aplicación se conecta a PostgreSQL con la cuenta `artisync_app`, de **privil
 | `make bench` | Prueba de carga k6 contra el endpoint de catálogo |
 | `make audit` | Auditoría estática de SQL dinámico |
 | `make clean` | Detiene los servicios, borra volúmenes y limpia el build |
+
+---
+
+## Compilar el documento académico
+
+El informe final (`docs/informe-final/Informe-Final-v1.0.0.pdf`) y el SRS
+(`docs/requisitos/SRS-v1.0.0.pdf`) se generan a partir de fuente LaTeX/Markdown
+versionada — **no** hace falta instalar una distribución LaTeX en tu máquina,
+basta con Docker.
+
+```bash
+# Informe académico final (LaTeX -> PDF), desde docs/informe-final/main.tex
+make docs
+
+# SRS (Markdown -> PDF vía pandoc/latex), desde docs/requisitos/SRS.md
+make srs
+```
+
+`make docs` requiere `pdflatex`/`bibtex` disponibles en el PATH (TeX Live o
+MiKTeX) **o**, si prefieres no instalar nada localmente, compílalo en un
+contenedor efímero con la imagen `texlive/texlive:latest`:
+
+```bash
+docker run --rm -v "$(pwd)/docs/informe-final:/repo" -w /repo texlive/texlive:latest \
+  bash -c "pdflatex -interaction=nonstopmode main.tex && bibtex main && \
+           pdflatex -interaction=nonstopmode main.tex && \
+           pdflatex -interaction=nonstopmode main.tex"
+cp docs/informe-final/main.pdf docs/informe-final/Informe-Final-v1.0.0.pdf
+```
+
+`make srs` ya usa Docker por defecto (imagen `pandoc/latex:3.1`, configurable
+con `PANDOC_IMAGE`); exporta `PANDOC_LOCAL=1` si prefieres un `pandoc` local.
 
 ---
 
@@ -132,7 +165,8 @@ El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/) y [Keep a Cha
 | `v0.7.0` | Entrega 1B — módulo de autenticación y acceso a datos |
 | `v0.7.1` | Cierre de la aplicación de observaciones de las Entregas 1A y 1B |
 | `v0.9.0-rc` | Tercera Entrega — *release candidate* |
-| `v1.0.0` | Entrega Final — primera versión estable de producción |
+| `v1.0.0` | Entrega Final — primera versión estable de producción (commit `d07656b`, archivado con DOI en Zenodo) |
+| `v1.1.0` | Trabajo posterior al cierre académico: refactor de autorización por permisos (backend/frontend) y endurecimiento de seguridad — no forma parte de la Entrega Final evaluada |
 
 ## Equipo y contribuciones
 

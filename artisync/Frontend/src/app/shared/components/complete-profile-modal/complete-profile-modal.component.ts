@@ -1,25 +1,15 @@
 import { Component, EventEmitter, Input, Output, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PaisResponse, UserResponse } from '../../models/user.model';
 import { PaisService } from '../../services/pais.service';
 import { UserService } from '../../../features/perfil/services/user.service';
 import { ToastService } from '../../../core/services/toast.service';
-
-export interface CalendarDay {
-  date: Date;
-  dateString: string;
-  dayNumber: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  isSelected: boolean;
-  isDisabled: boolean;
-}
+import { CalendarDay } from '../../models/calendar-day.model';
 
 @Component({
   selector: 'app-complete-profile-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './complete-profile-modal.component.html'
 })
 export class CompleteProfileModalComponent implements OnInit {
@@ -177,7 +167,7 @@ export class CompleteProfileModalComponent implements OnInit {
   }
 
   private loadPaises(): void {
-    this.paisService.getPaises().subscribe({
+    this.paisService.getPaisesActivos().subscribe({
       next: (data) => this.paises.set(data),
       error: () => this.toastService.error('Error al cargar la lista de países')
     });
@@ -195,6 +185,19 @@ export class CompleteProfileModalComponent implements OnInit {
     
     if (selectedDate > today) {
       this.toastService.error('La fecha de nacimiento no puede ser futura');
+      return;
+    }
+
+    // Mismo requisito de mayoría de edad que register.component.ts
+    // (ageValidator) y user-form-modal.component.ts: aquí faltaba, así que
+    // el backend era el único que la exigía, sin aviso previo en la UI.
+    let edad = today.getFullYear() - selectedDate.getFullYear();
+    const mes = today.getMonth() - selectedDate.getMonth();
+    if (mes < 0 || (mes === 0 && today.getDate() < selectedDate.getDate())) {
+      edad--;
+    }
+    if (edad < 18) {
+      this.toastService.error('Debes ser mayor de 18 años para completar tu perfil');
       return;
     }
 

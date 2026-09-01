@@ -17,6 +17,22 @@ public interface ResenaService {
      */
     RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente);
 
+    /**
+     * Obtiene la reseña que el cliente dejó para un pedido, si existe.
+     * Devuelve null cuando el pedido todavía no tiene reseña.
+     */
+    RespuestaResena obtenerMiResena(Long idPedido, Long idCliente);
+
+    /**
+     * Edita la reseña de un pedido. Solo el cliente que la creó puede modificarla.
+     */
+    RespuestaResena actualizarResena(Long idPedido, PeticionCrearResena peticion, Long idCliente);
+
+    /**
+     * Elimina la reseña de un pedido. Solo el cliente que la creó puede eliminarla.
+     */
+    void eliminarResena(Long idPedido, Long idCliente);
+
     /** Lista todas las reseñas de los servicios de un creador (público). */
     List<RespuestaResena> listarResenasPorCreador(Long idPerfilCreador);
 

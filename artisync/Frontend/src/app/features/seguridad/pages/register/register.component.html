@@ -162,7 +162,7 @@
       <div class="login-links">
         <p class="login-links__text">
           ¿Ya tienes una cuenta?
-          <a routerLink="/auth/login" class="login-links__anchor">Iniciar sesión</a>
+          <a routerLink="/auth/login" [queryParams]="returnUrl ? { returnUrl } : {}" class="login-links__anchor">Iniciar sesión</a>
         </p>
       </div>
     </div>

@@ -58,3 +58,10 @@ export interface UpdateRoleRequest {
 export interface PaisRequest {
   nombrePais: string;
 }
+
+/** Filtros de GET /api/v1/admin/usuarios y su exportación (espejo de FiltroUsuario.java). */
+export interface FiltroUsuario {
+  busqueda?: string;
+  rol?: string;
+  estadoCuenta?: boolean;
+}

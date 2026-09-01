@@ -63,14 +63,17 @@
       <div class="cr-stat">
         <div class="cr-stat__top">
           <p class="cr-stat__label">Visibilidad</p>
-          <span [class]="esPublico ? 'cr-stat__icon cr-stat__icon--ok' : 'cr-stat__icon cr-stat__icon--warn'">
+          <span [class]="portafolio()!.esPublico ? 'cr-stat__icon cr-stat__icon--ok' : 'cr-stat__icon cr-stat__icon--warn'">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z" />
             </svg>
           </span>
         </div>
-        <p class="cr-stat__value">{{ esPublico ? 'Público' : 'Privado' }}</p>
-        <p class="cr-stat__meta">{{ esPublico ? 'visible para cualquiera' : 'solo tú puedes verlo' }}</p>
+        <p class="cr-stat__value">{{ portafolio()!.esPublico ? 'Público' : 'Privado' }}</p>
+        <p class="cr-stat__meta">
+          {{ portafolio()!.esPublico ? 'visible para cualquiera' : 'solo tú puedes verlo' }} ·
+          <a routerLink="/creador/perfil" class="cr-link">cambiar en Mi Perfil</a>
+        </p>
       </div>
 
       <div class="cr-stat">
@@ -84,76 +87,6 @@
         </div>
         <p class="cr-stat__value pf-fecha">{{ formatDate(portafolio()!.fechaCreacion) }}</p>
         <p class="cr-stat__meta">portafolio #{{ portafolio()!.idPortafolio }}</p>
-      </div>
-    </div>
-
-    <div class="cr-grid cr-grid--sidebar">
-
-      <!-- Personalización -->
-      <div class="cr-card">
-        <div class="cr-card__head">
-          <div>
-            <h2 class="cr-card__title">Apariencia</h2>
-            <p class="cr-card__hint">Paleta con la que se renderiza tu portafolio público</p>
-          </div>
-          <button type="button" class="cr-link" (click)="restaurarColores()">Restaurar por defecto</button>
-        </div>
-
-        <div class="cr-card__body cr-form">
-          <label class="cr-check">
-            <input type="checkbox" name="esPublico" [(ngModel)]="esPublico" />
-            <span>
-              <strong>Portafolio público</strong><br />
-              <small class="cr-faint">Si lo desactivas, deja de aparecer para clientes y visitantes.</small>
-            </span>
-          </label>
-
-          <div class="pf-colores">
-            @for (campo of camposColor; track campo.clave) {
-              <div class="pf-color">
-                <input type="color" [name]="campo.clave" [(ngModel)]="colores[campo.clave]" [attr.aria-label]="campo.etiqueta" />
-                <div>
-                  <span class="cr-label">{{ campo.etiqueta }}</span>
-                  <span class="cr-hint">{{ campo.ayuda }} · {{ colores[campo.clave] }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-
-        <div class="cr-card__foot">
-          <button type="button" class="cr-btn cr-btn--primary" [disabled]="guardando()" (click)="guardar()">
-            @if (guardando()) { <span class="cr-spinner cr-spinner--sm"></span> }
-            Guardar cambios
-          </button>
-        </div>
-      </div>
-
-      <!-- Vista previa -->
-      <div class="cr-card">
-        <div class="cr-card__head">
-          <div>
-            <h2 class="cr-card__title">Vista previa</h2>
-            <p class="cr-card__hint">Cómo se verá con la paleta elegida</p>
-          </div>
-        </div>
-        <div class="cr-card__body">
-          <div class="pf-preview" [style.background]="colores.bg">
-            <div class="pf-preview__bar" [style.background]="colores.secondary"></div>
-            <div class="pf-preview__card" [style.background]="colores.surface">
-              <p class="pf-preview__title" [style.color]="colores.text">Tu nombre de creador</p>
-              <p class="pf-preview__text" [style.color]="colores.text">
-                Una línea de biografía describiendo tu estilo y especialidad.
-              </p>
-              <span class="pf-preview__btn" [style.background]="colores.primary">Contratar</span>
-            </div>
-            <div class="pf-preview__grid">
-              <span [style.background]="colores.surface"></span>
-              <span [style.background]="colores.surface"></span>
-              <span [style.background]="colores.surface"></span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -224,19 +157,47 @@
                     <img [src]="item.urlArchivo" [alt]="item.tituloObra" loading="lazy" />
                   }
                 </div>
-                <figcaption class="pf-obra__info">
-                  <p class="pf-obra__titulo">{{ item.tituloObra }}</p>
-                  @if (item.descripcionObra) {
-                    <p class="pf-obra__desc">{{ item.descripcionObra }}</p>
-                  }
-                  <span class="cr-hint">{{ formatDate(item.fechaSubida) }}</span>
-                </figcaption>
-                <button type="button" class="cr-btn cr-btn--danger cr-btn--sm"
-                        [disabled]="eliminando() === item.idItemPortafolio"
-                        (click)="eliminarObra(item)">
-                  @if (eliminando() === item.idItemPortafolio) { <span class="cr-spinner cr-spinner--sm"></span> }
-                  Eliminar
-                </button>
+                @if (idItemEditando() === item.idItemPortafolio) {
+                  <div class="pf-obra__info">
+                    <input type="text" class="cr-input" maxlength="150"
+                           [(ngModel)]="tituloEdicion" placeholder="Título de la obra" />
+                    <textarea class="cr-input" rows="2" maxlength="500"
+                              [(ngModel)]="descripcionEdicion" placeholder="Descripción (opcional)"></textarea>
+                  </div>
+                  <div class="pf-obra__acciones">
+                    <button type="button" class="cr-btn cr-btn--primary cr-btn--sm"
+                            [disabled]="guardandoEdicion() || !tituloEdicion.trim()"
+                            (click)="guardarEdicionObra(item)">
+                      @if (guardandoEdicion()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                      Guardar
+                    </button>
+                    <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm"
+                            [disabled]="guardandoEdicion()"
+                            (click)="cancelarEdicionObra()">
+                      Cancelar
+                    </button>
+                  </div>
+                } @else {
+                  <figcaption class="pf-obra__info">
+                    <p class="pf-obra__titulo">{{ item.tituloObra }}</p>
+                    @if (item.descripcionObra) {
+                      <p class="pf-obra__desc">{{ item.descripcionObra }}</p>
+                    }
+                    <span class="cr-hint">{{ formatDate(item.fechaSubida) }}</span>
+                  </figcaption>
+                  <div class="pf-obra__acciones">
+                    <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm"
+                            (click)="editarObra(item)">
+                      Editar
+                    </button>
+                    <button type="button" class="cr-btn cr-btn--danger cr-btn--sm"
+                            [disabled]="eliminando() === item.idItemPortafolio"
+                            (click)="eliminarObra(item)">
+                      @if (eliminando() === item.idItemPortafolio) { <span class="cr-spinner cr-spinner--sm"></span> }
+                      Eliminar
+                    </button>
+                  </div>
+                }
               </figure>
             }
           </div>

@@ -11,9 +11,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
@@ -36,9 +38,10 @@ class AdminUserControllerTest {
     @Test
     void getAllUsers_ShouldReturnOk() {
         PagedResponse<UserResponse> pagedResponse = new PagedResponse<>(List.of(), 0, 10, 0, 0, true);
-        when(adminUserService.getAllUsers(any(Pageable.class))).thenReturn(pagedResponse);
+        when(adminUserService.getAllUsers(any(FiltroUsuario.class), any(Pageable.class))).thenReturn(pagedResponse);
 
-        ResponseEntity<PagedResponse<UserResponse>> result = adminUserController.getAllUsers(0, 10, "idUsuario", "asc");
+        ResponseEntity<PagedResponse<UserResponse>> result =
+                adminUserController.getAllUsers(new FiltroUsuario(), 0, 10, "idUsuario", "asc");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(0, result.getBody().getContent().size());
@@ -59,9 +62,10 @@ class AdminUserControllerTest {
     void changeEstado_ShouldReturnOk() {
         ChangeEstadoRequest request = new ChangeEstadoRequest();
         UserResponse userResponse = UserResponse.builder().estadoCuenta(false).build();
-        when(adminUserService.changeEstado(eq(1L), any(ChangeEstadoRequest.class))).thenReturn(userResponse);
+        CustomUserDetails admin = new CustomUserDetails(99L, "admin@test.dev", "x", true, true, true, true, List.of());
+        when(adminUserService.changeEstado(eq(1L), any(ChangeEstadoRequest.class), eq(99L))).thenReturn(userResponse);
 
-        ResponseEntity<UserResponse> result = adminUserController.changeEstado(1L, request);
+        ResponseEntity<UserResponse> result = adminUserController.changeEstado(1L, request, admin);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(false, result.getBody().getEstadoCuenta());
@@ -69,9 +73,10 @@ class AdminUserControllerTest {
 
     @Test
     void deleteUser_ShouldReturnNoContent() {
-        org.mockito.Mockito.doNothing().when(adminUserService).deleteUser(1L);
+        CustomUserDetails admin = new CustomUserDetails(99L, "admin@test.dev", "x", true, true, true, true, List.of());
+        org.mockito.Mockito.doNothing().when(adminUserService).deleteUser(1L, 99L);
 
-        ResponseEntity<Void> result = adminUserController.deleteUser(1L);
+        ResponseEntity<Void> result = adminUserController.deleteUser(1L, admin);
 
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
     }

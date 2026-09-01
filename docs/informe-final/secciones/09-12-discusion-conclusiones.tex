@@ -1,0 +1,227 @@
+% 09-12-discusion-conclusiones.tex — Fuente: docs/informe-final/09-12-discusion-conclusiones.md
+
+\chapter{Discusión}
+\label{cap:discusion}
+
+\section{Respuesta a las preguntas de investigación}
+
+\textbf{RQ1 --- ¿Cumple el sistema los umbrales de rendimiento, seguridad,
+usabilidad, cobertura y calidad web declarados?} Parcialmente. De los
+cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), cuatro
+cumplen sus umbrales por completo (rendimiento, seguridad
+manual+automatizada, usabilidad, calidad web en ambos perfiles). El
+bloque de cobertura cumple en líneas (72.0\,\% $\geq$70\,\%) pero
+\textbf{no en ramas} (62.5\,\% $<$70\,\%) --- una respuesta honesta a RQ1
+no puede ser ``sí'' sin matiz. El sistema cumple la gran mayoría de sus
+propiedades de calidad declaradas con evidencia reproducible, con una
+brecha cuantificada y no oculta en cobertura de ramas.
+
+\textbf{RQ2 --- ¿Es la estrategia híbrida de acceso a datos implementable
+y verificable dentro de las restricciones del proyecto?} Sí, parcialmente
+y con matices declarados. Se conectaron 7 procedimientos/funciones
+end-to-end al código en ejecución (por encima del mínimo de 6 exigido por
+la guía), sin concatenación de SQL dinámico detectada por análisis
+estático ni por auditoría manual (Capítulo~\ref{cap:evaluacion-resultados}~\S8.2).
+Sin embargo, las 6 rutinas originales de la Tercera Entrega siguen sin
+conectar (Capítulo~\ref{cap:diseno-arquitectura}, ADR-006), y existe una
+nuance de conformidad literal sobre el mecanismo de invocación
+(\texttt{@Query(nativeQuery=true)} parametrizado en vez de
+\texttt{@Procedure}/\texttt{@NamedStoredProcedureQuery} estrictos,
+Capítulo~\ref{cap:implementacion}~\S7.4) que el equipo debe resolver antes
+del cierre.
+
+\textbf{RQ3 --- ¿Produce el proceso de ingeniería de requisitos aplicado
+un corpus verificable y trazable?} Sí, con una brecha de conformidad
+sintáctica declarada. El 100\,\% de los 37 requisitos tiene trazabilidad
+completa hacia código y pruebas (\texttt{matriz.csv}, validado en CI), y
+el 89.2\,\% está implementado o verificado. Nueve de las quince
+características de calidad INCOSE~v4 se cumplen plenamente, pero el
+corpus no sigue el patrón sintáctico formal de
+ISO/IEC/IEEE~29148:2018 (característica C9), y dos requisitos violan
+singularidad (C5) --- hallazgos concretos, no una declaración genérica de
+``cumple parcialmente'' (Capítulo~\ref{cap:ingenieria-requisitos}~\S4.3).
+
+\textbf{RQ4 --- ¿Qué amenazas a la validez afectan la generalización de
+los resultados?} Ver Capítulo~\ref{cap:validez} para el análisis completo
+por categoría; en resumen, la amenaza más relevante es de validez interna
+en la comparación caché frío/caliente (diseño experimental que no aísla
+la variable de interés) y de validez externa en el muestreo por
+conveniencia del bloque de usabilidad.
+
+\section{Comparación con trabajos relacionados}
+
+Dado que el Capítulo~\ref{cap:trabajos-relacionados} declara honestamente
+la ausencia de una revisión sistemática de literatura completa, esta
+comparación se limita a lo que el capítulo sí pudo establecer: ninguna de
+las referencias contextuales citadas ---incluidas las plataformas
+multilaterales~\cite{HAGIU2015}, los protocolos de \emph{escrow}
+verificable~\cite{ASGAONKAR2019} y los estudios de microservicios en
+producción~\cite{WANG2021}--- combina patrón \emph{escrow}, verificación
+de identidad asistida por IA y estrategia híbrida de acceso a datos
+evaluada empíricamente en un mismo sistema (\S3.3). Una comparación
+cuantitativa rigurosa (tabla comparativa de $\geq$8 filas con métricas
+equivalentes) requiere primero completar la revisión de literatura
+pendiente --- no se fabrica aquí una comparación que la evidencia
+disponible no sostiene.
+
+\section{Hallazgos inesperados}
+
+El hallazgo más relevante no anticipado al inicio del proyecto fue el
+propio del bloque de rendimiento (\S8.1): el escenario ``frío'' resultó
+con mejor latencia que el ``caliente'', revelando un defecto de diseño del
+script de carga (no del sistema evaluado) que invalida la comparación tal
+como está construida. Detectarlo y documentarlo con honestidad, en vez de
+descartarlo o presentarlo como validado, es en sí mismo parte del aporte
+metodológico de este trabajo.
+
+\section{Implicaciones prácticas}
+
+Para equipos que evalúen adoptar una estrategia híbrida de acceso a datos
+similar: la evidencia de este proyecto sugiere que conectar procedimientos
+almacenados end-to-end (no solo declararlos en SQL) consume un esfuerzo
+de verificación no trivial --la brecha entre ``el archivo \texttt{.sql}
+existe'' y ``el código Java realmente lo invoca'' fue precisamente el
+hallazgo que motivó la ampliación de \texttt{ADR-006} documentada en el
+Capítulo~\ref{cap:diseno-arquitectura}-- y que declarar la nuance de
+conformidad del mecanismo de invocación
+(Capítulo~\ref{cap:implementacion}~\S7.4) antes de una auditoría externa
+evita sorpresas en la evaluación.
+
+\chapter{Amenazas a la validez}
+\label{cap:validez}
+
+\section{Validez de constructo}
+
+¿Miden los instrumentos elegidos lo que pretenden medir? El instrumento
+SUS mide usabilidad percibida, no usabilidad objetiva (tiempo de tarea,
+tasa de error) --- el proyecto no midió usabilidad objetiva como
+complemento, por lo que la conclusión de ``usabilidad aceptable'' se
+apoya en un único constructo subjetivo. \textbf{Mitigación aplicada:} se
+usó el instrumento SUS sin modificar (10 ítems originales de
+Brooke~\cite{BROOKE1996}), evitando la amenaza de validez de constructo
+que introduciría una versión ad-hoc del cuestionario.
+
+\section{Validez interna}
+
+La comparación caché frío/caliente del bloque de rendimiento (\S8.1,
+\S9.1) tiene una amenaza de validez interna real y ya documentada: el
+diseño del script de carga no varía los parámetros de consulta entre
+iteraciones, por lo que la variable independiente (estado del caché) no
+se manipula de forma efectiva durante la mayoría de las 1500 iteraciones
+por corrida. \textbf{Mitigación aplicada:} declarar la limitación
+explícitamente en vez de presentar la comparación como válida
+(\texttt{docs/mediciones/perf/REPORTE-PERF.md}); \textbf{mitigación
+pendiente:} rediseñar el script para variar parámetros de forma
+controlada y forzar \emph{cache misses} reales y medibles.
+
+\section{Validez externa}
+
+El bloque de usabilidad usa una muestra de conveniencia (N=16, red de
+contactos del equipo, ver Capítulo~\ref{cap:materiales-metodos}~\S5.4), no
+una muestra aleatoria de la población objetivo real (creadores y clientes
+de economía creativa). Siguiendo la orientación de Baltes y
+Ralph~\cite{BALTES2022} sobre reporte de muestreo en ingeniería de
+software empírica, esta limitación se declara explícitamente en vez de
+generalizar el resultado SUS a ``los usuarios de Artisync'' sin matiz: el
+resultado (76.88, categoría~B de Bangor~\cite{BANGOR2009}) es válido para
+la muestra evaluada, con generalización externa limitada a un perfil
+demográfico similar (adultos con experiencia web media-alta, dispositivos
+variados).
+
+\section{Validez de conclusión}
+
+Las conclusiones de los bloques de rendimiento y cobertura se apoyan en
+estadística descriptiva (media, DT, IC~95\,\%) sin test inferencial,
+porque no se identificaron comparaciones de dos condiciones
+estadísticamente válidas para probar dentro del alcance actual (la única
+candidata, caché frío/caliente, está invalidada por la amenaza de validez
+interna de \S10.2). Esto es consistente con la recomendación de preferir
+IC~95\,\% sobre valores p como reporte primario
+(Capítulo~\ref{cap:materiales-metodos}~\S5.6), siguiendo el protocolo
+estadístico de Arcuri y Briand~\cite{ARCURI2011} para ingeniería de
+software, pero implica que ninguna afirmación de ``diferencia
+significativa'' se sostiene en este documento --- y en efecto, ninguna se
+hace.
+
+\chapter{Trabajo futuro}
+\label{cap:trabajo-futuro}
+
+\begin{enumerate}
+  \item \textbf{Conectar las 6 rutinas SQL originales de la Tercera
+    Entrega} (\texttt{fn\_catalogo\_filtrado},
+    \texttt{fn\_calificacion\_promedio\_creador},
+    \texttt{fn\_reporte\_comisiones\_creador},
+    \texttt{fn\_cerrar\_pedidos\_vencidos},
+    \texttt{fn\_liberar\_fondos\_escrow},
+    \texttt{fn\_generar\_codigo\_pedido}) al código Java en ejecución,
+    cerrando la deuda técnica admitida en \texttt{ADR-006}. Quedó fuera
+    del alcance de la ampliación del 16 de agosto porque esa ampliación
+    priorizó sumar rutinas nuevas del módulo de seguridad, no reparar las
+    existentes.
+  \item \textbf{Rediseñar el script de carga k6} para forzar \emph{cache
+    misses} reales y medibles por iteración, habilitando un test
+    inferencial (Wilcoxon) con tamaño de efecto (\emph{Cliff's delta})
+    válido sobre la comparación caché frío/caliente~\cite{ARCURI2011} ---
+    hoy inválida por la amenaza de validez interna documentada en
+    \S10.2.
+  \item \textbf{Elevar la cobertura de ramas de JaCoCo} del 62.5\,\%
+    actual al umbral de 70\,\% exigido, con desglose por módulo
+    (dominio/servicio/controlador) en vez del agregado global actual, y
+    activar \texttt{jacoco:check} en \texttt{pom.xml} para que el build
+    falle bajo el umbral en vez de solo reportarlo.
+  \item \textbf{Ejecutar una revisión de literatura reducida} (2--3 bases
+    de datos, 10--15 términos clave) para completar el
+    Capítulo~\ref{cap:trabajos-relacionados} con la tabla comparativa de
+    $\geq$8 filas que la guía exige y que este documento declaró
+    honestamente como pendiente.
+  \item \textbf{Resolver la nuance de conformidad de invocación de
+    procedimientos} (Capítulo~\ref{cap:implementacion}~\S7.4): decidir
+    entre reescribir las 7 funciones nuevas como \texttt{PROCEDURE} para
+    usar \texttt{@Procedure} en sentido estricto, adoptar
+    \texttt{@NamedStoredProcedureQuery}, o documentar formalmente por qué
+    \texttt{@Query(nativeQuery=true)} parametrizado satisface el
+    requisito.
+\end{enumerate}
+
+\chapter{Conclusiones}
+\label{cap:conclusiones}
+
+Este trabajo diseñó, implementó y evaluó empíricamente Artisync, una
+plataforma web de intermediación entre creadores de contenido digital y
+clientes, con una estrategia híbrida de acceso a datos y verificación de
+identidad asistida por inteligencia artificial. Respondiendo brevemente a
+las preguntas de investigación planteadas en el
+Capítulo~\ref{cap:introduccion}: el sistema cumple la mayoría de sus
+umbrales de calidad declarados con evidencia empírica reproducible (RQ1),
+con una brecha cuantificada en cobertura de ramas; la estrategia híbrida
+de acceso a datos es implementable y verificable dentro de las
+restricciones de un proyecto académico de 17 semanas, con 7
+procedimientos conectados end-to-end y una nuance de conformidad
+declarada sobre el mecanismo de invocación (RQ2); el proceso de
+ingeniería de requisitos produjo un corpus 100\,\% trazable hacia código
+y pruebas, con brechas concretas de conformidad sintáctica INCOSE~v4
+(RQ3); y las amenazas a la validez más relevantes ---diseño del
+experimento de caché y muestreo de usabilidad por conveniencia--- están
+documentadas y mitigadas en la medida de lo posible dentro del alcance
+del proyecto (RQ4).
+
+Las cinco contribuciones enumeradas en el
+Capítulo~\ref{cap:introduccion}~\S1.4 se sostienen con evidencia concreta
+de los Capítulos~\ref{cap:diseno-arquitectura} a
+\ref{cap:evaluacion-resultados}: el sistema software completo y
+desplegable (Capítulos~\ref{cap:diseno-arquitectura}--\ref{cap:implementacion}),
+la estrategia híbrida de acceso a datos verificada end-to-end
+(Capítulo~\ref{cap:implementacion}~\S7.4), el corpus de ingeniería de
+requisitos trazable (Capítulo~\ref{cap:ingenieria-requisitos}), el
+paquete de evidencia empírica reproducible
+(Capítulo~\ref{cap:evaluacion-resultados}, con procedencia declarada en
+\texttt{docs/mediciones/DATA-PROVENANCE.md}), y los siete ADR
+(Capítulo~\ref{cap:diseno-arquitectura}~\S6.2).
+
+El valor distintivo de este documento, más allá de reportar únicamente
+resultados favorables, es la disciplina de declarar honestamente cada
+brecha encontrada durante su propia redacción --desde la cobertura de
+ramas por debajo del umbral hasta la nuance de conformidad de invocación
+de procedimientos-- siguiendo el mismo estándar de auditoría verificable
+que produjo \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md} y
+que este documento hereda explícitamente.

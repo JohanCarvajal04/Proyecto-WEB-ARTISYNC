@@ -2,8 +2,8 @@
 
 export interface VerificacionCola {
   idCertificado: number;
-  idPerfil: number;
-  nombreCreador: string;
+  idUsuario: number;
+  nombreUsuario: string;
   tipoDocumento: string;
   nombreEstado: string;
   veredictoIa: string | null;
@@ -13,7 +13,7 @@ export interface VerificacionCola {
 
 export interface VerificacionDetalle {
   idCertificado: number;
-  idPerfil: number;
+  idUsuario: number;
   tipoDocumento: string;
   nombreEstadoVerificacion: string;
   veredictoIa: string | null;
@@ -36,7 +36,7 @@ export interface DecisionVerificacion {
 
 export interface CertificadoIa {
   idCertificado: number;
-  idPerfil: number;
+  idUsuario: number;
   idEstadoVerificacion: number;
   nombreEstadoVerificacion: string;
   urlDocumentoS3: string;
@@ -80,14 +80,21 @@ export interface Infraccion {
 }
 
 // ─── Portafolios (PORTAFOLIO_MODERAR) — solo lectura ───
+// El tipo `Portafolio` vive en `features/perfil/models/portafolio.model.ts`
+// (dueño original de la entidad); aquí solo se reexporta para no duplicarlo.
+export type { Portafolio } from '../../perfil/models/portafolio.model';
 
-export interface Portafolio {
-  idPortafolio: number;
-  idPerfil: number;
-  fechaCreacion: string;
-  totalVisitasAcumuladas: number;
-  esPublico: boolean;
-  opcionesPersonalizacion: Record<string, string> | null;
+// ─── Comentarios (COMENTARIO_MODERAR) ───
+
+/** RespuestaComentario del backend: comentarios sobre ítems de portafolio. */
+export interface Comentario {
+  idComentario: number;
+  idItemPortafolio: number;
+  idUsuarioAutor: number;
+  nombreAutor: string;
+  textoComentario: string;
+  estadoModeracion: string;
+  fechaPublicacion: string;
 }
 
 // ─── Categorías (CATEGORIA_GESTIONAR) ───
@@ -117,16 +124,4 @@ export interface ActualizarCategoria {
   nombreCategoria: string;
   estadoActiva?: boolean;
   idFlujo?: number | null;
-}
-
-// ─── Servicios del catálogo (SERVICIO_MODERAR) — solo lectura ───
-
-export interface ServicioResumido {
-  idServicio: number;
-  nombreServicio: string;
-  descripcion: string;
-  precioBase: number;
-  estadoPublicacion: string;
-  idCategoria: number;
-  nombreCategoria: string;
 }

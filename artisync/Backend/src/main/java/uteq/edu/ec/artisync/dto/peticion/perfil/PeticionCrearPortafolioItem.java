@@ -12,6 +12,7 @@ public record PeticionCrearPortafolioItem(
         @Size(max = 150, message = "El titulo de la obra no puede superar los 150 caracteres")
         String tituloObra,
 
+        @Size(max = 5000, message = "La descripción de la obra no puede superar los 5000 caracteres")
         String descripcionObra
 ) {
 }

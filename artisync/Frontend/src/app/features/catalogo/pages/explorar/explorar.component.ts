@@ -12,13 +12,16 @@ import {
   RespuestaSubcategoria
 } from '../../models/catalogo.model';
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
+import { CATALOGO_BASE_PATH } from '../../catalogo.config';
+import { ToastService } from '../../../../core/services/toast.service';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 const TAMANO_PAGINA = 12;
 
 @Component({
   selector: 'app-explorar',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './explorar.component.html'
 })
 export class ExplorarComponent implements OnInit {
@@ -26,6 +29,10 @@ export class ExplorarComponent implements OnInit {
   private catalogoService = inject(CatalogoPublicoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toast = inject(ToastService);
+
+  /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
+  readonly base = inject(CATALOGO_BASE_PATH);
 
   readonly pagina = signal<Pagina<RespuestaServicioResumido>>(paginaVacia());
   readonly categorias = signal<RespuestaCategoria[]>([]);
@@ -70,11 +77,11 @@ export class ExplorarComponent implements OnInit {
   ngOnInit(): void {
     this.catalogoService.listarCategorias().subscribe({
       next: (cats) => this.categorias.set(cats.filter(c => c.estadoActiva)),
-      error: () => {}
+      error: () => this.toast.warning('No se pudieron cargar las categorías para filtrar')
     });
     this.catalogoService.listarEtiquetas().subscribe({
       next: (etqs) => this.etiquetas.set(etqs),
-      error: () => {}
+      error: () => this.toast.warning('No se pudieron cargar las etiquetas para filtrar')
     });
 
     this.busqueda$.pipe(debounceTime(350), distinctUntilChanged()).subscribe(texto => {
@@ -182,7 +189,4 @@ export class ExplorarComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  formatPrice(precio: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio);
-  }
 }

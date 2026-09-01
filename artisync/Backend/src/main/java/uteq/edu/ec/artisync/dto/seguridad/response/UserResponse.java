@@ -27,4 +27,5 @@ public class UserResponse {
     private List<String> roles;
     private List<String> permisos;
     private boolean dosFactoresHabilitado;
+    private String urlFotoPerfil;
 }

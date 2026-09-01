@@ -28,7 +28,6 @@ import uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
-import uteq.edu.ec.artisync.entity.seguridad.TokenRecuperacion;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
 import uteq.edu.ec.artisync.repository.seguridad.*;
@@ -55,8 +54,6 @@ class AuthServiceImplTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private UsuarioRolRepository usuarioRolRepository;
-    @Mock
-    private TokenRecuperacionRepository tokenRecuperacionRepository;
     @Mock
     private SesionUsuarioRepository sesionUsuarioRepository;
     @Mock
@@ -509,27 +506,31 @@ class AuthServiceImplTest {
 
     // ── forgotPassword ───────────────────────────────────────────────────────
 
+    // Fase 3 concurrencia: forgotPassword delega en fn_solicitar_recuperacion
+    // (usuarioRepository.solicitarRecuperacion), que invalida tokens previos e
+    // inserta el nuevo atomicamente (A5), devolviendo JSONB {idUsuario,nombres}
+    // o NULL si la cuenta no existe/esta inactiva (respuesta indistinguible).
     @Test
     void forgotPassword_ShouldSendEmail_WhenUsuarioExiste() {
         ForgotPasswordRequest request = ForgotPasswordRequest.builder().correo("juan@example.com").build();
-        when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.solicitarRecuperacion(eq("juan@example.com"), anyString()))
+                .thenReturn("{\"idUsuario\":1,\"nombres\":\"Juan\"}");
 
         RespuestaMensaje respuesta = authService.forgotPassword(request);
 
         assertNotNull(respuesta);
-        verify(tokenRecuperacionRepository).save(any(TokenRecuperacion.class));
+        verify(usuarioRepository).solicitarRecuperacion(eq("juan@example.com"), anyString());
         verify(emailService).enviarCorreoRecuperacion(eq("juan@example.com"), eq("Juan"), anyString());
     }
 
     @Test
     void forgotPassword_ShouldRespondSameMessage_WhenUsuarioNoExiste() {
         ForgotPasswordRequest request = ForgotPasswordRequest.builder().correo("fantasma@example.com").build();
-        when(usuarioRepository.findByCorreo("fantasma@example.com")).thenReturn(Optional.empty());
+        when(usuarioRepository.solicitarRecuperacion(eq("fantasma@example.com"), anyString())).thenReturn(null);
 
         RespuestaMensaje respuesta = authService.forgotPassword(request);
 
         assertNotNull(respuesta);
-        verifyNoInteractions(tokenRecuperacionRepository);
         verifyNoInteractions(emailService);
     }
 

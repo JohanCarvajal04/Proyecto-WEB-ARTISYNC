@@ -22,7 +22,7 @@ public class TicketRevisionControlador {
     private final ITicketRevisionServicio ticketRevisionServicio;
 
     @PostMapping("/pedidos/{idPedido}/tickets-revision")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    @PreAuthorize("hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaTicketRevision> crearTicket(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -40,7 +40,7 @@ public class TicketRevisionControlador {
     }
 
     @PutMapping("/tickets-revision/{idTicket}/estado")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaTicketRevision> cambiarEstado(
             @PathVariable Long idTicket,
             @AuthenticationPrincipal CustomUserDetails userDetails,

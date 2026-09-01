@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
@@ -37,6 +39,9 @@ public class ResenaServiceImpl implements ResenaService {
 
     @Override
     @Transactional
+    @Auditable(accion = "RESENA_CREAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{calificacionEstrellas: #peticion.calificacionEstrellas}")
     public RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado: " + idPedido));
@@ -71,6 +76,53 @@ public class ResenaServiceImpl implements ResenaService {
         resena = resenaServicioRepository.save(resena);
         log.info("Reseña creada para pedido {} por cliente {}", idPedido, idCliente);
         return mapToResponse(resena);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaResena obtenerMiResena(Long idPedido, Long idCliente) {
+        return resenaServicioRepository.findByPedidoIdPedido(idPedido)
+                .filter(resena -> resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente))
+                .map(this::mapToResponse)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = "RESENA_EDITAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{calificacionEstrellas: #peticion.calificacionEstrellas}")
+    public RespuestaResena actualizarResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
+        ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Este pedido no tiene una reseña"));
+
+        if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo el cliente que dejó la reseña puede editarla");
+        }
+
+        resena.setCalificacionEstrellas(peticion.getCalificacionEstrellas());
+        resena.setTextoResena(peticion.getTextoResena());
+        resena = resenaServicioRepository.save(resena);
+        log.info("Reseña del pedido {} editada por cliente {}", idPedido, idCliente);
+        return mapToResponse(resena);
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = "RESENA_ELIMINAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "pedidos", idEntidad = "#idPedido")
+    public void eliminarResena(Long idPedido, Long idCliente) {
+        ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Este pedido no tiene una reseña"));
+
+        if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo el cliente que dejó la reseña puede eliminarla");
+        }
+
+        resenaServicioRepository.delete(resena);
+        log.info("Reseña del pedido {} eliminada por cliente {}", idPedido, idCliente);
     }
 
     @Override

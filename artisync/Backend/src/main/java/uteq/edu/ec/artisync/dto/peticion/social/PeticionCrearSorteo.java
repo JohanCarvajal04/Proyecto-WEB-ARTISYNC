@@ -20,6 +20,7 @@ public class PeticionCrearSorteo {
     private String tituloSorteo;
 
     @NotBlank(message = "La descripción de los premios es obligatoria")
+    @Size(max = 5000, message = "La descripción de los premios no puede superar los 5000 caracteres")
     private String descripcionPremios;
 
     @NotNull(message = "La cantidad de ganadores es obligatoria")

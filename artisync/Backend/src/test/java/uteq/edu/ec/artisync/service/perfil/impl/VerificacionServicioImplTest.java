@@ -13,7 +13,6 @@ import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
@@ -21,8 +20,8 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.VerificacionColaProyeccion;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
 import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
@@ -40,7 +39,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class VerificacionServicioImplTest {
 
-    @Mock private PerfilCreadorRepository perfilCreadorRepository;
+    @Mock private UsuarioRepository usuarioRepository;
     @Mock private EstadoVerificacionRepository estadoVerificacionRepository;
     @Mock private CertificadoIaRepository certificadoIaRepository;
     @Mock private AlmacenamientoDocumentos almacenamiento;
@@ -52,15 +51,14 @@ class VerificacionServicioImplTest {
     // ObjectMapper real de Jackson 3 (Tarea 16) que no tiene sentido mockear.
     private VerificacionServicioImpl servicio;
 
-    private PerfilCreador perfil;
+    private Usuario usuario;
     private EstadoVerificacion pendiente;
 
     @BeforeEach
     void setUp() {
-        Usuario usuario = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Creadora").build();
-        perfil = PerfilCreador.builder().idPerfil(5L).usuario(usuario).build();
+        usuario = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Creadora").build();
         pendiente = EstadoVerificacion.builder().idEstadoVerificacion(1L).nombreEstado("PENDIENTE").build();
-        servicio = new VerificacionServicioImpl(perfilCreadorRepository, estadoVerificacionRepository,
+        servicio = new VerificacionServicioImpl(usuarioRepository, estadoVerificacionRepository,
                 certificadoIaRepository, almacenamiento, preprocesador, iaService,
                 new tools.jackson.databind.ObjectMapper(), entityManager);
     }
@@ -68,7 +66,7 @@ class VerificacionServicioImplTest {
     @Test
     void subir_creaSolicitudPendiente_yNuncaLlamaALaIa() {
         MockMultipartFile documento = new MockMultipartFile("documento", "cedula.jpg", "image/jpeg", "contenido".getBytes());
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfil));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(estadoVerificacionRepository.findByNombreEstado("PENDIENTE")).thenReturn(Optional.of(pendiente));
         when(almacenamiento.guardar(documento)).thenReturn("uuid-generado.jpg");
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -82,9 +80,9 @@ class VerificacionServicioImplTest {
     }
 
     @Test
-    void subir_usuarioSinPerfilDeCreador_lanza404() {
+    void subir_usuarioInexistente_lanza404() {
         MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).thenReturn(Optional.empty());
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ExcepcionRecursoNoEncontrado.class,
                 () -> servicio.subir(99L, TipoDocumentoVerificacion.IDENTIDAD, documento));
@@ -94,7 +92,7 @@ class VerificacionServicioImplTest {
     @Test
     void subir_seedDeEstadosAusente_lanza422EnVezDeCrearEstadoAlVuelo() {
         MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfil));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(estadoVerificacionRepository.findByNombreEstado("PENDIENTE")).thenReturn(Optional.empty());
 
         assertThrows(ExcepcionReglaNegocio.class,
@@ -103,10 +101,10 @@ class VerificacionServicioImplTest {
     }
 
     @Test
-    void subir_yaExisteVerificacionPendienteParaElPerfil_lanzaExcepcionReglaNegocio_yNoTocaArchivosNiGuarda() {
+    void subir_yaExisteVerificacionPendienteParaElUsuario_lanzaExcepcionReglaNegocio_yNoTocaArchivosNiGuarda() {
         MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
-        when(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfil));
-        when(certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(5L, "PENDIENTE"))
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(certificadoIaRepository.existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(1L, "PENDIENTE"))
                 .thenReturn(true);
 
         assertThrows(ExcepcionReglaNegocio.class,
@@ -120,7 +118,7 @@ class VerificacionServicioImplTest {
     @Test
     void analizarConIa_dictamenAprobado_persisteVeredictoPeroNoElEstado() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(10L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(10L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(10L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes-originales".getBytes());
@@ -140,7 +138,7 @@ class VerificacionServicioImplTest {
     @Test
     void analizarConIa_documentoYaEliminado_lanzaExcepcionReglaNegocio() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(11L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(11L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(true).build();
         when(certificadoIaRepository.findById(11L)).thenReturn(Optional.of(certificado));
 
@@ -151,7 +149,7 @@ class VerificacionServicioImplTest {
     @Test
     void analizarConIa_iaFalla_noPersisteNada() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(12L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(12L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(12L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
@@ -161,12 +159,49 @@ class VerificacionServicioImplTest {
 
         assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(12L));
         verify(certificadoIaRepository, never()).save(any());
+        // No reintentable (constructor de 2 argumentos): un solo intento, sin reintento.
+        verify(iaService, times(1)).verificarIdentidad(any(), any());
+    }
+
+    @Test
+    void analizarConIa_fallaTransitoria_reintentaUnaVezYTienExito() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(14L).usuario(usuario).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(14L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
+        when(iaService.verificarIdentidad(any(), any()))
+                .thenThrow(new ExcepcionServicioIaNoDisponible("429", null, true))
+                .thenReturn(IaVerificacionResponse.builder()
+                        .aprobado(true).confianza(new BigDecimal("0.9")).build());
+        when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        RespuestaVerificacion respuesta = servicio.analizarConIa(14L);
+
+        assertThat(respuesta.veredictoIa()).isEqualTo("SUGIERE_APROBAR");
+        verify(iaService, times(2)).verificarIdentidad(any(), any());
+    }
+
+    @Test
+    void analizarConIa_fallaNoTransitoria_noReintenta() {
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(15L).usuario(usuario).estadoVerificacion(pendiente)
+                .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
+        when(certificadoIaRepository.findById(15L)).thenReturn(Optional.of(certificado));
+        when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
+        when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
+        when(iaService.verificarIdentidad(any(), any()))
+                .thenThrow(new ExcepcionServicioIaNoDisponible("401", null, false));
+
+        assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(15L));
+        verify(iaService, times(1)).verificarIdentidad(any(), any());
     }
 
     @Test
     void analizarConIa_tipoCertificado_llamaAlMetodoDeCertificadoNoDeIdentidad() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(13L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(13L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("CERTIFICADO").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(13L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
@@ -185,7 +220,7 @@ class VerificacionServicioImplTest {
     void registrarDecision_escribeEstadoModeradorYBorraElDocumento() {
         EstadoVerificacion aprobado = EstadoVerificacion.builder().idEstadoVerificacion(2L).nombreEstado("APROBADO").build();
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(20L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(20L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(20L)).thenReturn(Optional.of(certificado));
         when(estadoVerificacionRepository.findById(2L)).thenReturn(Optional.of(aprobado));
@@ -210,7 +245,7 @@ class VerificacionServicioImplTest {
         EstadoVerificacion requiereAclaracion = EstadoVerificacion.builder()
                 .idEstadoVerificacion(4L).nombreEstado("REQUIERE_ACLARACION").build();
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(22L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(22L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(false).build();
         when(certificadoIaRepository.findById(22L)).thenReturn(Optional.of(certificado));
         when(estadoVerificacionRepository.findById(4L)).thenReturn(Optional.of(requiereAclaracion));
@@ -241,7 +276,7 @@ class VerificacionServicioImplTest {
     @Test
     void registrarDecision_estadoInexistente_lanza404_yNoLlamaAlProcedimiento() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(21L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(21L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(21L)).thenReturn(Optional.of(certificado));
         when(estadoVerificacionRepository.findById(777L)).thenReturn(Optional.empty());
@@ -256,20 +291,20 @@ class VerificacionServicioImplTest {
         VerificacionColaProyeccion fila = mock(VerificacionColaProyeccion.class);
         when(fila.getIdCertificado()).thenReturn(30L);
         when(fila.getNombreEstado()).thenReturn("PENDIENTE");
-        when(fila.getNombreCreador()).thenReturn("Ana Creadora");
+        when(fila.getNombreUsuario()).thenReturn("Ana Creadora");
         when(certificadoIaRepository.listarCola("PENDIENTE", 20, 0)).thenReturn(List.of(fila));
 
         List<RespuestaColaVerificacion> resultado = servicio.listarCola("PENDIENTE", 20, 0);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).idCertificado()).isEqualTo(30L);
-        assertThat(resultado.get(0).nombreCreador()).isEqualTo("Ana Creadora");
+        assertThat(resultado.get(0).nombreUsuario()).isEqualTo("Ana Creadora");
     }
 
     @Test
     void obtenerPorId_revisor_puedeVerCualquierVerificacion() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(31L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(31L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(31L)).thenReturn(Optional.of(certificado));
 
@@ -281,11 +316,11 @@ class VerificacionServicioImplTest {
     @Test
     void obtenerPorId_dueno_puedeVerLaSuya() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(32L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(32L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(32L)).thenReturn(Optional.of(certificado));
 
-        RespuestaVerificacion respuesta = servicio.obtenerPorId(32L, 1L, false); // perfil.usuario.idUsuario == 1L
+        RespuestaVerificacion respuesta = servicio.obtenerPorId(32L, 1L, false); // usuario.idUsuario == 1L
 
         assertThat(respuesta.idCertificado()).isEqualTo(32L);
     }
@@ -293,7 +328,7 @@ class VerificacionServicioImplTest {
     @Test
     void obtenerPorId_usuarioAjenoSinPermisoDeRevisor_esRechazado() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(33L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(33L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(33L)).thenReturn(Optional.of(certificado));
 
@@ -303,7 +338,7 @@ class VerificacionServicioImplTest {
     @Test
     void obtenerDocumento_delegaEnElAlmacenamiento() {
         CertificadoIa certificado = CertificadoIa.builder()
-                .idCertificado(34L).perfil(perfil).estadoVerificacion(pendiente)
+                .idCertificado(34L).usuario(usuario).estadoVerificacion(pendiente)
                 .urlDocumentoS3("ref-34.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(34L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref-34.jpg")).thenReturn("contenido".getBytes());

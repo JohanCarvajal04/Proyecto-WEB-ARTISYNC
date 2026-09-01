@@ -3,6 +3,8 @@ package uteq.edu.ec.artisync.service.catalogo.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearEtiqueta;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaEtiqueta;
 import uteq.edu.ec.artisync.entity.catalogo.Etiqueta;
@@ -39,6 +41,9 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "ETIQUETA_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "etiquetas", idEntidad = "#resultado.idEtiqueta",
+            detalle = "{nombreEtiqueta: #peticion.nombreEtiqueta}")
     public RespuestaEtiqueta crearEtiqueta(PeticionCrearEtiqueta peticion) {
         if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {
             throw new ExcepcionReglaNegocio("Ya existe la etiqueta: " + peticion.getNombreEtiqueta());
@@ -52,6 +57,8 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "ETIQUETA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "etiquetas", idEntidad = "#idEtiqueta")
     public void eliminarEtiqueta(Long idEtiqueta) {
         if (!etiquetaRepository.existsById(idEtiqueta)) {
             throw new ExcepcionRecursoNoEncontrado("Etiqueta no encontrada con ID: " + idEtiqueta);

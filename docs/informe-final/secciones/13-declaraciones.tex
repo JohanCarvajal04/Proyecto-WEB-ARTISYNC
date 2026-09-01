@@ -1,0 +1,127 @@
+% 13-declaraciones.tex — Fuente: docs/informe-final/13-declaraciones-referencias.md
+% (sección "Declaraciones obligatorias" únicamente; la bibliografía se
+% generó a partir de referencias.bib y se imprime automáticamente en
+% main.tex con \bibliography{referencias}, ver también el Capítulo de
+% Anexos para las tablas de clasificación de referencias.)
+
+\chapter{Declaraciones obligatorias}
+\label{cap:declaraciones}
+
+\section{Disponibilidad de código}
+
+Repositorio público:
+\url{https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC}. Etiqueta
+de esta entrega: \texttt{v1.0.0}, commit \texttt{d07656b} (el commit
+archivado por el release de GitHub y por el DOI de Zenodo).
+El tag \texttt{v1.0.0} de la copia local del repositorio llegó a apuntar,
+por un tiempo, a un commit distinto (\texttt{5b61f86}), creado por
+separado; se verificó y corrigió el 01-09-2026 realineando el tag local
+con el de GitHub/Zenodo (\texttt{git fetch origin tag v1.0.0}), sin
+alterar ningún artefacto ya publicado. El trabajo posterior a
+\texttt{d07656b} (refactor de permisos y endurecimiento de seguridad) se
+etiquetó aparte como \texttt{v1.1.0}, fuera del alcance de esta Entrega
+Final. Ver \texttt{docs/observaciones/OBSERVACIONES.md}, OBS-AUTO-12.
+DOI Zenodo del software:
+\texttt{10.5281/zenodo.21978572} (archivo de \texttt{v1.0.0}; la versión
+anterior, \texttt{v0.9.0-rc}, quedó archivada aparte en
+\texttt{10.5281/zenodo.21730559}).
+
+\section{Disponibilidad de datos}
+
+Depósito Zenodo separado del software para el dataset de
+mediciones (\texttt{docs/mediciones/}): DOI
+\texttt{10.5281/zenodo.22236251}, licencia Creative Commons
+Attribution 4.0 International (CC~BY~4.0), siguiendo el principio de
+citación independiente de software y datos. Contiene los datos crudos
+de rendimiento (k6), seguridad (OWASP, ZAP, análisis estático),
+usabilidad (SUS), cobertura (JaCoCo) y calidad web (Lighthouse), junto
+con \texttt{DATA-DICTIONARY.md} y \texttt{DATA-PROVENANCE.md}. Los
+mismos datos crudos siguen disponibles en el repositorio bajo
+\texttt{docs/mediciones/}, referenciados en la matriz de trazabilidad.
+
+\section{Disponibilidad de materiales}
+
+\begin{itemize}
+  \item Colección Postman (26 peticiones):
+    \texttt{Pruebas.postman\_collection.json}.
+  \item Script de carga k6: \texttt{k6/catalogo-load.js}.
+  \item Configuración Lighthouse:
+    \texttt{artisync/Frontend/lighthouserc.mobile.json},
+    \texttt{lighthouserc.desktop.json}.
+  \item Scripts de análisis SUS: \texttt{docs/mediciones/sus/analisis-sus.py},
+    \texttt{graficar-sus.py}.
+  \item Protocolo SUS y plantilla de consentimiento:
+    \texttt{docs/mediciones/sus/instrucciones-formulario.md},
+    \texttt{docs/etica/consentimientos/plantilla.md}.
+\end{itemize}
+
+\section{Declaración ética}
+
+Ver \texttt{docs/etica/ETHICS.md} para el detalle completo: resguardo de
+consentimientos informados fuera del repositorio público, participación
+voluntaria sin compensación, anonimización por código de participante
+(\texttt{P01}--\texttt{P16}), sin grabación de audio/video.
+
+\section{Contribuciones de autores (taxonomía CRediT)}
+
+Ver la matriz completa de los catorce roles CRediT en
+\texttt{CONTRIBUTORS.md}, con asignación definitiva para v1.0.0. Bone
+Arroyo, Niurca Scarleth, colabora con el equipo por ser compañera de
+curso en la materia de Administración de Bases de Datos, en la que este
+mismo proyecto también se utiliza como caso de estudio; su aporte se
+concentra en la capa de base de datos (procedimientos almacenados y
+funciones SQL) y tareas de backend relacionadas. Esta colaboración
+cruzada fue comunicada al docente-director durante las sesiones de
+clase. Resumen:
+los cuatro integrantes (Bone Arroyo N., Carvajal Loor J., Figueroa
+Morales B., Rios Cuyabazo J.) comparten Conceptualización, Metodología,
+Software, Validación, Investigación, Recursos, Redacción (borrador y
+revisión) y Administración del proyecto; Análisis formal se concentra en
+Figueroa B. y Rios J.; Curación de datos en Rios J.; Visualización en
+Bone N. y Carvajal J.; Supervisión corresponde al docente-director del
+PFC, Dr. Gleiston Cicerón Guerrero Ulloa; y Adquisición de fondos se
+declara explícitamente sin asignar, pues el proyecto se desarrolló con
+recursos propios del equipo y niveles gratuitos/académicos de
+proveedores cloud, sin financiamiento externo que gestionar.
+
+\section{Declaración de conflictos de interés}
+
+Ver \texttt{docs/etica/ETHICS.md}: el equipo declara ausencia de
+conflictos de interés.
+
+\section{Declaración de financiamiento}
+
+Ver \texttt{docs/etica/ETHICS.md}: sin financiamiento externo;
+desarrollado con recursos propios del equipo y niveles gratuitos/académicos
+de proveedores cloud.
+
+\section{Declaración de uso de asistentes de inteligencia artificial}
+
+Ver \texttt{docs/etica/ai-disclosure.md}. El archivo existe con la
+estructura que exige la guía (herramienta, versión, fase, propósito,
+alcance de lo generado, revisión posterior del equipo), pero a la fecha
+de esta versión del documento está \textbf{sin completar}: no afirma
+ningún uso concreto porque el historial de commits del repositorio no
+atribuye autoría a ninguna herramienta de IA, y confirmar qué se usó, en
+qué fase y con qué revisión posterior es una decisión del equipo que
+debe tomarse con datos reales antes del cierre, no inferirse desde el
+código. Una declaración de uso de IA sin completar debe leerse como uso
+\emph{no declarado}, no como ausencia de uso confirmada.
+
+\section{Agradecimientos}
+
+Agradecemos sinceramente a todas las personas e instituciones que han hecho
+posible el desarrollo de este proyecto. Esta experiencia ha sido invaluable para
+nuestro crecimiento tanto profesional como personal, brindándonos la oportunidad
+de profundizar nuestros conocimientos prácticos y aprender más sobre el
+desarrollo de software, las arquitecturas escalables y el diseño centrado en el
+usuario.
+
+Queremos extender un profundo agradecimiento a todos los usuarios que, de forma
+anónima y desinteresada, participaron en nuestras pruebas de usabilidad
+(evaluación SUS). Su tiempo, disposición y valiosa retroalimentación colectiva
+fueron fundamentales para iterar y mejorar significativamente la experiencia de
+la plataforma Artisync.
+
+Finalmente, agradecemos a nuestros docentes y a la institución por la formación,
+guía y apoyo constante a lo largo de todo este proceso de aprendizaje.

@@ -1,0 +1,419 @@
+% referencias.bib — Artisync, Documento académico final (v1.0.0)
+%
+% Estilo de citas: IEEE (numérico, orden de aparición). Compilar con
+% \bibliographystyle{ieeetr} (o IEEEtran si se usa la clase homónima).
+%
+% Cada entrada fue verificada por el equipo contra su fuente primaria el
+% 17-08-2026 (ver docs/informe-final/README.md, sección "Estado de la
+% bibliografía", para el detalle metodológico de la verificación y la
+% clasificación de impacto). Las entradas quedan agrupadas por bloque
+% temático únicamente para facilitar el mantenimiento de este archivo;
+% el orden real de aparición en el PDF lo decide \bibliographystyle{ieeetr}
+% según la primera cita de cada una en el texto.
+
+% ============================================================
+% Estándares y RFC (fuente primaria inequívoca)
+% ============================================================
+
+@techreport{ISO29148,
+  title       = {{ISO/IEC/IEEE 29148:2018}: Systems and software engineering --- Life cycle processes --- Requirements engineering},
+  institution = {International Organization for Standardization / IEC / IEEE},
+  year        = {2018},
+  url         = {https://www.iso.org/standard/72089.html}
+}
+
+@techreport{ISO25010,
+  title       = {{ISO/IEC 25010:2011}: Systems and software engineering --- Systems and software Quality Requirements and Evaluation (SQuaRE) --- System and software quality models},
+  institution = {International Organization for Standardization},
+  year        = {2011},
+  url         = {https://www.iso.org/standard/35733.html}
+}
+
+@techreport{JWT2015,
+  author      = {Jones, Michael and Bradley, John and Sakimura, Nat},
+  title       = {{JSON} Web Token ({JWT})},
+  institution = {Internet Engineering Task Force},
+  type        = {RFC},
+  number      = {7519},
+  year        = {2015},
+  month       = may,
+  doi         = {10.17487/RFC7519},
+  url         = {https://www.rfc-editor.org/rfc/rfc7519}
+}
+
+@misc{OWASP2021,
+  author       = {{OWASP Foundation}},
+  title        = {{OWASP} Top 10:2021 --- The Ten Most Critical Web Application Security Risks},
+  year         = {2021},
+  url          = {https://owasp.org/Top10/}
+}
+
+@misc{OWASPSQLI,
+  author       = {{OWASP Foundation}},
+  title        = {{SQL} Injection Prevention Cheat Sheet},
+  howpublished = {OWASP Cheat Sheet Series},
+  url          = {https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html}
+}
+
+% ============================================================
+% Ingeniería de requisitos y casos de uso
+% ============================================================
+
+@book{POHL2010,
+  author    = {Pohl, Klaus},
+  title     = {Requirements Engineering: Fundamentals, Principles, and Techniques},
+  publisher = {Springer},
+  address   = {Heidelberg},
+  year      = {2010},
+  isbn      = {978-3-642-12577-5},
+  pages     = {813}
+}
+
+@book{WIEGERS2013,
+  author    = {Wiegers, Karl and Beatty, Joy},
+  title     = {Software Requirements},
+  edition   = {3rd},
+  publisher = {Microsoft Press},
+  address   = {Redmond, WA},
+  year      = {2013},
+  isbn      = {978-0-7356-7966-5}
+}
+
+@techreport{INCOSE2023,
+  author      = {{International Council on Systems Engineering (INCOSE)}},
+  title       = {Guide to Writing Requirements},
+  institution = {INCOSE},
+  type        = {INCOSE Technical Product},
+  number      = {INCOSE-TP-2010-006-04},
+  edition     = {4},
+  year        = {2023},
+  month       = jul,
+  isbn        = {978-1-937070-5-4}
+}
+
+@book{COCKBURN2000,
+  author    = {Cockburn, Alistair},
+  title     = {Writing Effective Use Cases},
+  publisher = {Addison-Wesley},
+  year      = {2000},
+  isbn      = {978-0-201-70225-5}
+}
+
+% ============================================================
+% Arquitectura de software
+% ============================================================
+
+@misc{BROWN2018,
+  author       = {Brown, Simon},
+  title        = {The {C4} Model for Software Architecture},
+  howpublished = {InfoQ},
+  year         = {2018},
+  month        = jun,
+  url          = {https://www.infoq.com/articles/C4-architecture-model/},
+  note         = {Ver también \url{https://c4model.com}}
+}
+
+@phdthesis{FIELDING2000,
+  author = {Fielding, Roy Thomas},
+  title  = {Architectural Styles and the Design of Network-based Software Architectures},
+  school = {University of California, Irvine},
+  year   = {2000},
+  url    = {https://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm}
+}
+
+@misc{NYGARD2011,
+  author       = {Nygard, Michael},
+  title        = {Documenting Architecture Decisions},
+  howpublished = {Cognitect Blog},
+  year         = {2011},
+  month        = nov,
+  url          = {https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions}
+}
+
+% ============================================================
+% Usabilidad (SUS)
+% ============================================================
+
+@incollection{BROOKE1996,
+  author    = {Brooke, John},
+  title     = {{SUS}: A ``quick and dirty'' usability scale},
+  booktitle = {Usability Evaluation in Industry},
+  editor    = {Jordan, Patrick W. and Thomas, Bruce and Weerdmeester, Bernard A. and McClelland, Ian L.},
+  publisher = {Taylor \& Francis},
+  address   = {London},
+  year      = {1996},
+  pages     = {189--194}
+}
+
+@article{BANGOR2009,
+  author  = {Bangor, Aaron and Kortum, Philip and Miller, James},
+  title   = {Determining what individual {SUS} scores mean: Adding an adjective rating scale},
+  journal = {Journal of Usability Studies},
+  volume  = {4},
+  number  = {3},
+  pages   = {114--123},
+  year    = {2009}
+}
+
+% ============================================================
+% Metodología de investigación / ingeniería de software empírica
+% ============================================================
+
+@techreport{KITCHENHAM2007,
+  author      = {Kitchenham, Barbara and Charters, Stuart},
+  title       = {Guidelines for Performing Systematic Literature Reviews in Software Engineering},
+  institution = {EBSE (Keele University / University of Durham)},
+  type        = {EBSE Technical Report},
+  number      = {EBSE-2007-01},
+  year        = {2007}
+}
+
+@article{PRISMA2021,
+  author  = {Page, Matthew J. and McKenzie, Joanne E. and Bossuyt, Patrick M. and Boutron, Isabelle and Hoffmann, Tammy C. and Mulrow, Cynthia D. and Shamseer, Larissa and Tetzlaff, Jennifer M. and Akl, Elie A. and Brennan, Sue E. and Chou, Roger and Glanville, Julie and Grimshaw, Jeremy M. and Hr{\'o}bjartsson, Asbj{\o}rn and Lalu, Manoj M. and Li, Tianjing and Loder, Elizabeth W. and Mayo-Wilson, Evan and McDonald, Steve and McGuinness, Luke A. and Stewart, Lesley A. and Thomas, James and Tricco, Andrea C. and Welch, Vivian A. and Whiting, Penny and Moher, David},
+  title   = {The {PRISMA} 2020 statement: an updated guideline for reporting systematic reviews},
+  journal = {BMJ},
+  volume  = {372},
+  pages   = {n71},
+  year    = {2021},
+  doi     = {10.1136/bmj.n71}
+}
+
+@article{RALPH2021,
+  author  = {Ralph, Paul and {bin Ali}, Nauman and Baltes, Sebastian and Bianculli, Domenico and Diaz, Jessica and Dittrich, Yvonne and Ernst, Neil and Felderer, Michael and Feldt, Robert and Filieri, Antonio and de Fran{\c{c}}a, Breno Bernard Nicolau and Furia, Carlo Alberto and Gay, Greg and Gold, Nicolas and Graziotin, Daniel and He, Pinjia and Hoda, Rashina and Juristo, Natalia and Kitchenham, Barbara and Lenarduzzi, Valentina and Mart{\'i}nez, Jorge and Melegati, Jorge and Mendez, Daniel and Menzies, Tim and Molleri, Jefferson and Pfahl, Dietmar and Robbes, Romain and Russo, Daniel and Saarim{\"a}ki, Nyyti and Sarro, Federica and Siegmund, Janet and Spinellis, Diomidis and Staron, Miroslaw and Stol, Klaas-Jan and Storey, Margaret-Anne and Taibi, Davide and Tamburri, Damian and Torchiano, Marco and Treude, Christoph and Turhan, Burak and Vegas, Sira and Wang, Xiaofeng},
+  title   = {Empirical Standards for Software Engineering Research},
+  journal = {ACM SIGSOFT Software Engineering Notes},
+  volume  = {46},
+  number  = {1},
+  pages   = {19},
+  year    = {2021},
+  doi     = {10.1145/3437479.3437483},
+  note    = {Versión extendida en \url{https://arxiv.org/abs/2010.03525}}
+}
+
+@article{PEFFERS2007,
+  author  = {Peffers, Ken and Tuunanen, Tuure and Rothenberger, Marcus A. and Chatterjee, Samir},
+  title   = {A Design Science Research Methodology for Information Systems Research},
+  journal = {Journal of Management Information Systems},
+  volume  = {24},
+  number  = {3},
+  pages   = {45--77},
+  year    = {2007},
+  doi     = {10.2753/MIS0742-1222240302}
+}
+
+@article{HEVNER2004,
+  author  = {Hevner, Alan R. and March, Salvatore T. and Park, Jinsoo and Ram, Sudha},
+  title   = {Design Science in Information Systems Research},
+  journal = {MIS Quarterly},
+  volume  = {28},
+  number  = {1},
+  pages   = {75--105},
+  year    = {2004}
+}
+
+@article{RUNESON2009,
+  author  = {Runeson, Per and H{\"o}st, Martin},
+  title   = {Guidelines for conducting and reporting case study research in software engineering},
+  journal = {Empirical Software Engineering},
+  volume  = {14},
+  number  = {2},
+  pages   = {131--164},
+  year    = {2009},
+  doi     = {10.1007/s10664-008-9102-8}
+}
+
+@book{WOHLIN2012,
+  author    = {Wohlin, Claes and Runeson, Per and H{\"o}st, Martin and Ohlsson, Magnus C. and Regnell, Bj{\"o}rn and Wessl{\'e}n, Anders},
+  title     = {Experimentation in Software Engineering},
+  publisher = {Springer},
+  year      = {2012},
+  doi       = {10.1007/978-3-642-29044-2}
+}
+
+@article{BALTES2022,
+  author  = {Baltes, Sebastian and Ralph, Paul},
+  title   = {Sampling in software engineering research: a critical review and guidelines},
+  journal = {Empirical Software Engineering},
+  volume  = {27},
+  number  = {4},
+  pages   = {94},
+  year    = {2022},
+  doi     = {10.1007/s10664-021-10072-8}
+}
+
+@incollection{BASILI1994,
+  author    = {Basili, Victor R. and Caldiera, Gianluigi and Rombach, H. Dieter},
+  title     = {The Goal Question Metric Approach},
+  booktitle = {Encyclopedia of Software Engineering},
+  volume    = {1},
+  pages     = {528--532},
+  publisher = {John Wiley \& Sons},
+  year      = {1994}
+}
+
+@article{WILKINSON2016,
+  author  = {Wilkinson, Mark D. and Dumontier, Michel and Aalbersberg, IJsbrand Jan and Appleton, Gabrielle and Axton, Myles and Baak, Arie and Blomberg, Niklas and Boiten, Jan-Willem and da Silva Santos, Luiz Bonino and Bourne, Philip E. and others},
+  title   = {The {FAIR} Guiding Principles for scientific data management and stewardship},
+  journal = {Scientific Data},
+  volume  = {3},
+  pages   = {160018},
+  year    = {2016},
+  doi     = {10.1038/sdata.2016.18}
+}
+
+% ============================================================
+% Cobertura de pruebas y validez estadística (nuevas, alto impacto)
+% ============================================================
+
+@article{ZHU1997,
+  author    = {Zhu, Hong and Hall, Patrick A. V. and May, John H. R.},
+  title     = {Software Unit Test Coverage and Adequacy},
+  journal   = {ACM Computing Surveys},
+  volume    = {29},
+  number    = {4},
+  pages     = {366--427},
+  year      = {1997},
+  doi       = {10.1145/267580.267590}
+}
+
+@inproceedings{INOZEMTSEVA2014,
+  author    = {Inozemtseva, Laura and Holmes, Reid},
+  title     = {Coverage is not strongly correlated with test suite effectiveness},
+  booktitle = {Proceedings of the 36th International Conference on Software Engineering (ICSE)},
+  pages     = {435--445},
+  year      = {2014},
+  doi       = {10.1145/2568225.2568271}
+}
+
+@inproceedings{ARCURI2011,
+  author    = {Arcuri, Andrea and Briand, Lionel},
+  title     = {A Practical Guide for Using Statistical Tests to Assess Randomized Algorithms in Software Engineering},
+  booktitle = {Proceedings of the 33rd International Conference on Software Engineering (ICSE)},
+  pages     = {1--10},
+  year      = {2011},
+  doi       = {10.1145/1985793.1985795}
+}
+
+% ============================================================
+% Inyección SQL / acceso a datos (nuevas, alto impacto)
+% ============================================================
+
+@inproceedings{HALFOND2005,
+  author    = {Halfond, William G. J. and Orso, Alessandro},
+  title     = {{AMNESIA}: Analysis and Monitoring for {NE}utralizing {SQL}-Injection {A}ttacks},
+  booktitle = {Proceedings of the 20th IEEE/ACM International Conference on Automated Software Engineering (ASE)},
+  pages     = {174--183},
+  year      = {2005},
+  doi       = {10.1145/1101908.1101935}
+}
+
+@inproceedings{GOULD2004,
+  author    = {Gould, Carl and Su, Zhendong and Devanbu, Premkumar},
+  title     = {Static Checking of Dynamically Generated Queries in Database Applications},
+  booktitle = {Proceedings of the 26th International Conference on Software Engineering (ICSE)},
+  pages     = {645--654},
+  year      = {2004},
+  doi       = {10.1109/ICSE.2004.1317486}
+}
+
+% ============================================================
+% Arquitectura de microservicios (nueva, alto impacto)
+% ============================================================
+
+@article{WANG2021,
+  author  = {Wang, Yingying and Kadiyala, Harshavardhan and Rubin, Julia},
+  title   = {Promises and challenges of microservices: an exploratory study},
+  journal = {Empirical Software Engineering},
+  volume  = {26},
+  pages   = {63},
+  year    = {2021},
+  doi     = {10.1007/s10664-020-09910-y}
+}
+
+% ============================================================
+% Economía de plataformas y mercados de dos lados (nuevas, alto impacto)
+% ============================================================
+
+@article{HAGIU2015,
+  author  = {Hagiu, Andrei and Wright, Julian},
+  title   = {Multi-sided platforms},
+  journal = {International Journal of Industrial Organization},
+  volume  = {43},
+  pages   = {162--174},
+  year    = {2015},
+  doi     = {10.1016/j.ijindorg.2015.03.003}
+}
+
+% ============================================================
+% Pagos en garantía (escrow) --- contextual, no clasificada "alto impacto"
+% por la rúbrica (venue de blockchain, no listado en Scopus/JCR Q1--Q2 ni
+% en ICSE/FSE/ASE/MSR/EASE/ESEM). Ver README, tabla de clasificación.
+% ============================================================
+
+@inproceedings{ASGAONKAR2019,
+  author    = {Asgaonkar, Aditya and Krishnamachari, Bhaskar},
+  title     = {Solving the Buyer and Seller's Dilemma: A Dual-Deposit Escrow Smart Contract for Provably Cheat-Proof Delivery and Payment for a Digital Good without a Trusted Mediator},
+  booktitle = {2019 IEEE International Conference on Blockchain and Cryptocurrency (ICBC)},
+  pages     = {262--267},
+  year      = {2019},
+  doi       = {10.1109/BLOC.2019.8751482}
+}
+
+% ============================================================
+% Contexto de dominio: economía creativa, freelancing, e-commerce
+% (verificadas contra fuente primaria; clasificación de impacto en README)
+% ============================================================
+
+@article{PERES2024,
+  author  = {Peres, Renana and Schreier, Martin and Schweidel, David A. and Sorescu, Alina},
+  title   = {The creator economy: An introduction and a call for scholarly research},
+  journal = {International Journal of Research in Marketing},
+  volume  = {41},
+  number  = {3},
+  pages   = {403--410},
+  year    = {2024},
+  doi     = {10.1016/j.ijresmar.2024.03.001}
+}
+
+@article{GUSSEK2023,
+  author  = {Gussek, Lisa and Grabbe, Alex and Wiesche, Manuel},
+  title   = {Challenges of {IT} freelancers on digital labor platforms: A topic model approach},
+  journal = {Electronic Markets},
+  volume  = {33},
+  number  = {1},
+  pages   = {55},
+  year    = {2023},
+  doi     = {10.1007/s12525-023-00675-y}
+}
+
+@article{WULFERT2022,
+  author  = {Wulfert, Torben and Sch{\"u}tte, Reinhard},
+  title   = {Retailer's Dual Role in Digital Marketplaces: Reference Architectures for Retail Information Systems},
+  journal = {SN Computer Science},
+  volume  = {3},
+  number  = {3},
+  pages   = {206},
+  year    = {2022},
+  doi     = {10.1007/s42979-022-01098-w}
+}
+
+@article{MONSALVE2023,
+  author  = {Monsalve-Obreque, Paulina and Vargas-Villarroel, Paulina and Hormaz{\'a}bal-Astorga, Yenny and Hochstetter-Diez, Jorge and Bustos-G{\'o}mez, Jos{\'e} and Di{\'e}guez-Rebolledo, Marlene},
+  title   = {Proposal to Improve the {E-C}ommerce Platform Development Process with an Exploratory Case Study in Chile},
+  journal = {Applied Sciences},
+  volume  = {13},
+  number  = {14},
+  pages   = {8362},
+  year    = {2023},
+  doi     = {10.3390/app13148362}
+}
+
+@article{COELLO2023,
+  author  = {Coello Quezada, Sandy and Pe{\~n}afiel Chele, Oscar and Yanza Montalv{\'a}n, {\'A}ngel},
+  title   = {Aplicaci{\'o}n web e-commerce {B2C} para la ferreter{\'i}a ``El Descanso'' mediante tecnolog{\'i}as de desarrollo front-end y back-end},
+  journal = {Investigaci{\'o}n, Tecnolog{\'i}a e Innovaci{\'o}n},
+  volume  = {15},
+  number  = {19},
+  year    = {2023},
+  note    = {Universidad de Guayaquil}
+}

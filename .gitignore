@@ -14,6 +14,15 @@
 !**/.env.example
 
 # ---------------------------------------------------------------------------
+# Volcados de base de datos: nunca se versionan. Pueden contener datos de
+# usuarios y, si caen dentro de db/procs/, sync-procs.sh los concatenaria
+# enteros a la migracion repetible de Flyway (ver db/procs/README.md).
+# ---------------------------------------------------------------------------
+*.dump
+*dump*.sql
+db/dumps/
+
+# ---------------------------------------------------------------------------
 # Java / Maven
 # ---------------------------------------------------------------------------
 target/
@@ -44,6 +53,30 @@ node_modules/
 Thumbs.db
 
 # ---------------------------------------------------------------------------
+# LaTeX: artefactos auxiliares de compilar docs/informe-final/main.tex
+# (el .pdf generado por `make docs` SI se versiona; solo se ignoran los
+# archivos intermedios que pdflatex/bibtex regeneran en cada corrida)
+# ---------------------------------------------------------------------------
+docs/informe-final/*.aux
+docs/informe-final/*.bbl
+docs/informe-final/*.blg
+docs/informe-final/*.toc
+docs/informe-final/*.lof
+docs/informe-final/*.lot
+docs/informe-final/*.out
+docs/informe-final/*.glo
+docs/informe-final/*.gls
+docs/informe-final/*.glg
+docs/informe-final/*.acn
+docs/informe-final/*.acr
+docs/informe-final/*.alg
+docs/informe-final/*.ist
+docs/informe-final/*.fls
+docs/informe-final/*.fdb_latexmk
+docs/informe-final/*.synctex.gz
+docs/informe-final/secciones/*.aux
+
+# ---------------------------------------------------------------------------
 # Claude Code (config/estado local del asistente, no se versiona)
 # ---------------------------------------------------------------------------
 .claude/
@@ -63,3 +96,6 @@ docs/observaciones/DESIGN-IS-2026-08-07/
 docs/Guia_implementacion/frontend/
 docs/superpowers/
 
+
+# Copia temporal que genera `make srs` (se borra al terminar el target)
+docs/requisitos/.srs-build.md

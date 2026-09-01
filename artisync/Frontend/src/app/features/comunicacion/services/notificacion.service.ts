@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { MessageResponse } from '../../../shared/models/common.model';
 import { Pagina, normalizarPagina } from '../../../shared/models/pagina.model';
 import { ConteoNoLeidas, RespuestaNotificacion } from '../models/comunicacion.model';
+import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
 
 @Injectable({ providedIn: 'root' })
 export class NotificacionService {
@@ -35,8 +36,14 @@ export class NotificacionService {
       .pipe(tap(() => this.noLeidas.set(0)));
   }
 
+  /**
+   * Sondeo de la campana: se ejecuta cada minuto en segundo plano, sin que el
+   * usuario haya pedido nada. Va con `sinErrorGlobal()` para que un fallo
+   * suyo no genere avisos: repetido cada 60 s sería ruido constante, y el
+   * badge simplemente conserva el último valor conocido.
+   */
   contarNoLeidas(): Observable<number> {
-    return this.http.get<ConteoNoLeidas>(`${this.API}/no-leidas/count`).pipe(
+    return this.http.get<ConteoNoLeidas>(`${this.API}/no-leidas/count`, sinErrorGlobal()).pipe(
       map(res => res?.noLeidas ?? 0),
       tap(n => this.noLeidas.set(n))
     );

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -12,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.*;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.*;
 import uteq.edu.ec.artisync.entity.catalogo.*;
@@ -21,11 +24,15 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.*;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.catalogo.IServicioCatalogoServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.specification.catalogo.ServicioSpecification;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,10 +46,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private final ServicioAtributoRepository servicioAtributoRepository;
     private final EtiquetaRepository etiquetaRepository;
     private final ServicioEtiquetaRepository servicioEtiquetaRepository;
+    private final IVerificacionServicio verificacionServicio;
 
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#resultado.idServicio",
+            detalle = "{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}")
     public RespuestaServicio crearServicio(Long idPerfilCreador, PeticionCrearServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -52,6 +63,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil creador no encontrado con ID: " + idPerfilCreador));
 
         validarPropiedadOAdmin(perfil);
+        validarIdentidadVerificada(perfil);
 
         Subcategoria subcategoria = subcategoriaRepository.findById(peticion.getIdSubcategoria())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + peticion.getIdSubcategoria()));
@@ -79,6 +91,9 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#idServicio",
+            detalle = "{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}")
     public RespuestaServicio actualizarServicio(Long idServicio, PeticionActualizarServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -106,6 +121,9 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             servicio.setTipoItem(peticion.getTipoItem());
         }
         if (peticion.getEstadoPublicacion() != null && !peticion.getEstadoPublicacion().isBlank()) {
+            if ("ACTIVO".equals(peticion.getEstadoPublicacion())) {
+                validarIdentidadVerificada(servicio.getPerfil());
+            }
             servicio.setEstadoPublicacion(peticion.getEstadoPublicacion());
         }
         servicio.setUrlMiniatura(peticion.getUrlMiniatura());
@@ -137,6 +155,8 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#idServicio")
     public void eliminarServicio(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
@@ -195,7 +215,26 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Servicio> paginaServicios = servicioRepository.findAll(spec, pageable);
 
-        return paginaServicios.map(this::mapearAServicioResumido);
+        List<Long> idsServicios = paginaServicios.getContent().stream()
+                .map(Servicio::getIdServicio)
+                .collect(Collectors.toList());
+
+        Map<Long, List<RespuestaEtiqueta>> etiquetasPorServicio = new HashMap<>();
+        if (!idsServicios.isEmpty()) {
+            List<ServicioEtiqueta> todasEtiquetas = servicioEtiquetaRepository.findByServicioIdServicioIn(idsServicios);
+            etiquetasPorServicio = todasEtiquetas.stream()
+                    .collect(Collectors.groupingBy(
+                            se -> se.getServicio().getIdServicio(),
+                            Collectors.mapping(se -> RespuestaEtiqueta.builder()
+                                    .idEtiqueta(se.getEtiqueta().getIdEtiqueta())
+                                    .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())
+                                    .actualizadoEn(se.getEtiqueta().getActualizadoEn())
+                                    .build(), Collectors.toList())
+                    ));
+        }
+
+        final Map<Long, List<RespuestaEtiqueta>> etiquetasFinales = etiquetasPorServicio;
+        return paginaServicios.map(s -> mapearAServicioResumido(s, etiquetasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));
     }
 
     @Override
@@ -349,7 +388,10 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                         .actualizadoEn(se.getEtiqueta().getActualizadoEn())
                         .build())
                 .collect(Collectors.toList());
+        return mapearAServicioResumido(servicio, etiquetas);
+    }
 
+    private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio, List<RespuestaEtiqueta> etiquetas) {
         String nombreCreador = "Creador";
         if (servicio.getPerfil().getUsuario() != null) {
             nombreCreador = servicio.getPerfil().getUsuario().getNombres() + " " + servicio.getPerfil().getUsuario().getApellidos();
@@ -381,6 +423,20 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .valorAsignado(sa.getValorAsignado())
                 .actualizadoEn(sa.getActualizadoEn())
                 .build();
+    }
+
+    /**
+     * Un servicio nace y se reactiva siempre en estado ACTIVO (no hay borrador
+     * intermedio aquí), así que este es el único punto de la aplicación donde
+     * "crear/publicar un servicio" ocurre de verdad. Exigir identidad
+     * verificada aquí es exigirla para publicar, tal como pide el requisito.
+     */
+    private void validarIdentidadVerificada(PerfilCreador perfil) {
+        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
+        if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {
+            throw new ExcepcionReglaNegocio(
+                    "Debes verificar tu identidad antes de publicar un servicio. Sube tu documento de identidad desde tu perfil.");
+        }
     }
 
     private void validarPropiedadOAdmin(PerfilCreador perfil) {

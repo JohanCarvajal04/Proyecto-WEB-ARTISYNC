@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${titulo}">Reporte</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 18mm 14mm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1E0F38;
+            font-size: 9pt;
+        }
+        .encabezado {
+            display: table;
+            width: 100%;
+            margin-bottom: 10mm;
+            border-bottom: 2px solid #7B39B2;
+            padding-bottom: 4mm;
+        }
+        .encabezado-logo, .encabezado-titulo {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .encabezado-logo {
+            width: 40mm;
+        }
+        .encabezado-logo img {
+            height: 12mm;
+        }
+        h1 {
+            font-size: 15pt;
+            margin: 0 0 2mm 0;
+            color: #1E0F38;
+        }
+        .subtitulo {
+            font-size: 9pt;
+            color: #555;
+            margin: 0;
+        }
+        .filtros {
+            font-size: 8pt;
+            color: #555;
+            margin: 2mm 0 6mm 0;
+        }
+        .filtros span {
+            margin-right: 6mm;
+        }
+        table.datos {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.datos th {
+            background-color: #7B39B2;
+            color: #fff;
+            text-align: left;
+            padding: 2mm;
+            font-size: 8.5pt;
+        }
+        table.datos td {
+            border-bottom: 1px solid #e5e5e5;
+            padding: 1.8mm 2mm;
+            font-size: 8.5pt;
+        }
+        table.datos tr:nth-child(even) td {
+            background-color: #f8f5fb;
+        }
+        table.totales {
+            width: 50%;
+            margin-top: 6mm;
+            border-collapse: collapse;
+        }
+        table.totales td {
+            padding: 1.5mm 2mm;
+            font-size: 9pt;
+            font-weight: bold;
+            border-top: 1px solid #7B39B2;
+        }
+        .pie {
+            margin-top: 8mm;
+            font-size: 7.5pt;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="encabezado">
+        <div class="encabezado-logo" th:if="${logoDataUri}">
+            <img th:src="${logoDataUri}" alt="ArtiSync"/>
+        </div>
+        <div class="encabezado-titulo">
+            <h1 th:text="${titulo}">Título del reporte</h1>
+            <p class="subtitulo" th:if="${subtitulo}" th:text="${subtitulo}">Subtítulo</p>
+        </div>
+    </div>
+
+    <div class="filtros" th:if="${not #maps.isEmpty(filtrosAplicados)}">
+        <span th:each="entrada : ${filtrosAplicados}">
+            <strong th:text="${entrada.key} + ': '">Filtro:</strong>
+            <span th:text="${entrada.value}">valor</span>
+        </span>
+    </div>
+
+    <table class="datos">
+        <thead>
+            <tr>
+                <th th:each="encabezado : ${encabezados}" th:text="${encabezado}">Columna</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="fila : ${filas}">
+                <td th:each="valor : ${fila}" th:text="${valor}">valor</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="totales" th:if="${not #lists.isEmpty(totales)}">
+        <tr th:each="total : ${totales}">
+            <td th:text="${total.etiqueta}">Etiqueta</td>
+            <td th:text="${total.valorTexto}">Valor</td>
+        </tr>
+    </table>
+
+    <p class="pie">
+        Generado por <span th:text="${generadoPor}">usuario</span>
+        el <span th:text="${generadoEn}">fecha</span>
+        — <span th:text="${filas.size()}">0</span> filas.
+    </p>
+</body>
+</html>

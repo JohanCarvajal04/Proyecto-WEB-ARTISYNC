@@ -5,7 +5,8 @@ import { environment } from '../../../../environments/environment';
 import {
   RespuestaFlujoTrabajo,
   PeticionCrearFlujoTrabajo,
-  PeticionEtapaConfig
+  PeticionEtapaConfig,
+  PeticionSwapEtapas
 } from '../models/pedido.model';
 
 @Injectable({ providedIn: 'root' })
@@ -37,6 +38,16 @@ export class FlujoTrabajoService {
 
   actualizarEtapa(idFlujo: number, idEtapa: number, peticion: PeticionEtapaConfig): Observable<RespuestaFlujoTrabajo> {
     return this.http.put<RespuestaFlujoTrabajo>(`${this.API}/${idFlujo}/etapas/${idEtapa}`, peticion);
+  }
+
+  /**
+   * Swap atómico en una sola petición: dos PUT en paralelo (uno por etapa)
+   * dejaban una ventana donde el backend podía ver a ambas etapas con el
+   * mismo numeroOrden a la vez, y una validación de colisión de orden
+   * rechazaría un reordenamiento legítimo.
+   */
+  intercambiarOrdenEtapas(idFlujo: number, peticion: PeticionSwapEtapas): Observable<RespuestaFlujoTrabajo> {
+    return this.http.put<RespuestaFlujoTrabajo>(`${this.API}/${idFlujo}/etapas/reordenar`, peticion);
   }
 
   eliminarEtapa(idFlujo: number, idEtapa: number): Observable<any> {

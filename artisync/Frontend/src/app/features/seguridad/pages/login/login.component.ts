@@ -24,6 +24,9 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly showPassword = signal<boolean>(false);
 
+  /** Se propaga al enlace "Crear cuenta" para no perder el destino (p. ej. llegando desde /acceso-requerido). */
+  readonly returnUrl = this.route.snapshot.queryParams['returnUrl'] ?? null;
+
   form: FormGroup = this.fb.group({
     correo: ['', [Validators.required]],
     contrasena: ['', [Validators.required]]
@@ -63,14 +66,35 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        if (err?.status === 429) {
-          // El backend responde con ProblemDetail (RFC 7807): el mensaje va en
-          // "detail", no en "mensaje" (§2.2 / OBS-AUTO-06 — antes el filtro de
-          // rate limit escribía un JSON ad-hoc {"mensaje": ...}).
-          const msg = err.error?.detail || 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta nuevamente.';
-          this.toastService.warning(msg);
-        } else {
-          this.toastService.error('Usuario o contraseña incorrectos');
+
+        // Antes cualquier error no-429 (incluida una BD caida o una funcion de
+        // Postgres inexistente, 500/0) se mostraba como "Usuario o contraseña
+        // incorrectos" — un fallo de infraestructura parecia un problema de
+        // credenciales y hacia perder horas de depuracion. Se distingue por
+        // status; el 401 se mantiene deliberadamente generico (no revela si
+        // el correo existe, para no facilitar enumeracion de cuentas) — no
+        // "mejorar" ese mensaje con detalle del backend.
+        switch (err?.status) {
+          case 429: {
+            // El backend responde con ProblemDetail (RFC 7807): el mensaje va en
+            // "detail", no en "mensaje" (§2.2 / OBS-AUTO-06 — antes el filtro de
+            // rate limit escribía un JSON ad-hoc {"mensaje": ...}).
+            const msg = err.error?.detail || 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta nuevamente.';
+            this.toastService.warning(msg);
+            break;
+          }
+          case 401:
+            this.toastService.error('Usuario o contraseña incorrectos');
+            break;
+          case 0:
+            this.toastService.error('No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.');
+            break;
+          default:
+            if (err?.status >= 500) {
+              this.toastService.error('El servidor no está disponible en este momento. Intenta nuevamente más tarde.');
+            } else {
+              this.toastService.error(err?.error?.detail ?? `No se pudo iniciar sesión (código ${err?.status}).`);
+            }
         }
       }
     });

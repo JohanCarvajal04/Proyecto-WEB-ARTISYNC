@@ -36,4 +36,8 @@ public class FlujoEtapaConfig {
     @Builder.Default
     @Column(name = "es_etapa_final", nullable = false)
     private Boolean esEtapaFinal = false;
+
+    @Builder.Default
+    @Column(name = "requiere_entregable", nullable = false)
+    private Boolean requiereEntregable = false;
 }

@@ -1,0 +1,167 @@
+% main.tex — Artisync: Plataforma web de intermediación entre creadores de
+% contenido digital y clientes con estrategia híbrida de acceso a datos,
+% verificación asistida por IA y evaluación empírica multidimensional
+%
+% Proyecto de Fin de Curso (PFC) — UTEQ, Facultad de Ciencias de la
+% Computación y Diseño Digital, Ingeniería de Software.
+%
+% Compilación (ver README.md de esta carpeta para el detalle):
+%   latexmk -pdf -bibtex main.tex
+% o manualmente:
+%   pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
+%
+% Estilo de citas: IEEE numérico (\bibliographystyle{ieeetr}), referencias
+% en referencias.bib. No requiere la clase IEEEtran (se decidió reporte
+% académico de una columna, ver README.md, "¿Por qué no IEEEtran?").
+
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ---------- Idioma y codificación ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noindentfirst]{babel}
+\usepackage{lmodern}
+
+% ---------- Página y espaciado ----------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ---------- Justificación: evita que rutas de archivo largas en \texttt{}
+% (sin puntos de guion natural) se salgan del margen derecho ----------
+\usepackage{microtype}
+\sloppy
+\emergencystretch=3em
+\tolerance=2000
+\usepackage[htt]{hyphenat}
+
+% ---------- Tablas, figuras, código ----------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+
+% ---------- Matemáticas y símbolos ----------
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% ---------- Citas IEEE + hipervínculos ----------
+\usepackage{cite}
+\usepackage[hidelinks,breaklinks]{hyperref}
+\usepackage{url}
+\Urlmuskip=0mu plus 1mu
+
+% ---------- Encabezados ----------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\fancyhead[LO]{\nouppercase{\rightmark}}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\headheight}{14.5pt}
+
+% ---------- Títulos de capítulo ----------
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]{\normalfont\huge\bfseries}{\thechapter.}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{0pt}{30pt}
+
+% ---------- Acrónimos ----------
+\usepackage[acronym,nomain]{glossaries}
+\makeglossaries
+
+\newacronym{adr}{ADR}{Architecture Decision Record}
+\newacronym{api}{API}{Application Programming Interface}
+\newacronym{ci}{CI}{Continuous Integration}
+\newacronym{crud}{CRUD}{Create, Read, Update, Delete}
+\newacronym{dsr}{DSR}{Design Science Research}
+\newacronym{gqm}{GQM}{Goal-Question-Metric}
+\newacronym{ic}{IC}{Intervalo de Confianza}
+\newacronym{imrad}{IMRaD}{Introduction, Methods, Results and Discussion}
+\newacronym{jpa}{JPA}{Jakarta Persistence API}
+\newacronym{jwt}{JWT}{JSON Web Token}
+\newacronym{moscow}{MoSCoW}{Must, Should, Could, Won't}
+\newacronym{orm}{ORM}{Object-Relational Mapping}
+\newacronym{owasp}{OWASP}{Open Web Application Security Project}
+\newacronym{pfc}{PFC}{Proyecto de Fin de Curso}
+\newacronym{pitr}{PITR}{Point-In-Time Recovery}
+\newacronym{rbac}{RBAC}{Role-Based Access Control}
+\newacronym{rpo}{RPO}{Recovery Point Objective}
+\newacronym{rto}{RTO}{Recovery Time Objective}
+\newacronym{srs}{SRS}{Software Requirements Specification}
+\newacronym{sp}{SP}{Stored Procedure (Procedimiento Almacenado)}
+\newacronym{sus}{SUS}{System Usability Scale}
+\newacronym{totp}{TOTP}{Time-based One-Time Password}
+\newacronym{wal}{WAL}{Write-Ahead Log}
+
+% ---------- Macro de honestidad: marca visualmente los puntos que el
+% equipo todavía debe resolver, en vez de ocultarlos o inventarlos ----------
+\newcommand{\pendiente}[1]{%
+  \textbf{\textcolor{purple}{[PENDIENTE ---~#1]}}%
+}
+
+% ---------- Entorno para bloques de listados con numeración propia ----------
+\lstdefinestyle{codebase}{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue!60!black}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  tabsize=2
+}
+\lstset{style=codebase}
+
+\graphicspath{{../diagramas/}{../mediciones/}{../mediciones/sus/}}
+
+\title{Artisync: Plataforma web de intermediación entre creadores de
+contenido digital y clientes con estrategia híbrida de acceso a datos,
+verificación asistida por IA y evaluación empírica multidimensional}
+\author{Bone Arroyo, Niurca Scarleth \and Carvajal Loor, Johan Stalin \and
+Figueroa Morales, Bryan Javier \and Rios Cuyabazo, Jhon Kevin}
+\date{17 de agosto de 2026}
+
+\begin{document}
+
+\pagenumbering{roman}
+\input{secciones/00-portada-resumen}
+
+\newpage
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+\printglossary[type=\acronymtype,title={Lista de siglas y acrónimos}]
+
+\newpage
+\pagenumbering{arabic}
+
+\input{secciones/01-introduccion}
+\input{secciones/02-marco-teorico}
+\input{secciones/03-trabajos-relacionados}
+\input{secciones/04-ingenieria-requisitos}
+\input{secciones/05-materiales-metodos}
+\input{secciones/06-diseno-arquitectura}
+\input{secciones/07-implementacion}
+\input{secciones/08-evaluacion-resultados}
+\input{secciones/09-12-discusion-conclusiones}
+\input{secciones/13-declaraciones}
+
+\bibliographystyle{ieeetr}
+\bibliography{referencias}
+
+\appendix
+\input{secciones/anexos}
+
+\end{document}

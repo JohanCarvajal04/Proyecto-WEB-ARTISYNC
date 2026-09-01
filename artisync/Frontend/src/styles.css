@@ -78,6 +78,44 @@
 
   --font-headline: "Manrope", sans-serif;
   --font-body: "Inter", sans-serif;
+
+  /* Cascarón de la aplicación (AppShellComponent): header + sidebar de toda
+     ruta autenticada. Estos valores son la paleta del panel cliente/creador/
+     cuenta; el panel de administración los sobreescribe en [data-panel='admin']
+     más abajo. Viven aquí y no en un Record<PanelId, ...> de TypeScript porque
+     son valores de presentación — mantener una copia en TS obligaría a editar
+     dos ficheros para cambiar un color y permitiría que divergieran. */
+  --color-shell-surface: #EFF2F7;
+  --color-shell-nav-idle: rgb(153 246 228 / 0.8);   /* teal-200/80 */
+  --color-shell-nav-active: #1e293b;                /* slate-800 */
+  --color-shell-logout: rgb(94 234 212 / 0.7);      /* teal-300/70 */
+  --color-shell-focus: rgb(45 212 191 / 0.4);       /* teal-400/40 */
+  --color-shell-bell: #0f766e;                      /* teal-700 */
+  --color-shell-badge: #f43f5e;                     /* rose-500 */
+  --color-shell-role: #0d9488;                      /* teal-600 */
+}
+
+/* El fondo del sidebar no es un token de color: en el panel cliente es un
+   degradado de tres paradas y en el de admin un sólido. Se unifica como
+   background-image en ambos casos —el sólido, como degradado de dos paradas
+   idénticas— para que exista UNA sola propiedad y no una rama @if panel en la
+   plantilla del shell. */
+:root {
+  --shell-sidebar-image: linear-gradient(to bottom, #0F2027, #203A43, #2C5364);
+  --shell-sidebar-image-h: linear-gradient(to right, #0F2027, #203A43, #2C5364);
+}
+
+[data-panel='admin'] {
+  --color-shell-surface: #EAEFF9;
+  --color-shell-nav-idle: #ddd6fe;                  /* purple-200 */
+  --color-shell-nav-active: #2e1065;                /* purple-950 */
+  --color-shell-logout: #d8b4fe;                    /* purple-300 */
+  --color-shell-focus: rgb(192 132 252 / 0.4);      /* purple-400/40 */
+  --color-shell-bell: #7e22ce;                      /* purple-700 */
+  --color-shell-badge: #ec4899;                     /* pink-500 */
+  --color-shell-role: #94a3b8;                      /* slate-400 */
+  --shell-sidebar-image: linear-gradient(to bottom, #2D1B4E, #2D1B4E);
+  --shell-sidebar-image-h: linear-gradient(to right, #2D1B4E, #2D1B4E);
 }
 
 body {

@@ -33,7 +33,16 @@ export class AvatarComponent {
   containerClasses = computed(() => {
     switch (this.size()) {
       case 'sm': return 'w-8 h-8 text-xs';
-      case 'lg': return 'w-12 h-12 text-base';
+      // Los tres usos de 'lg' son tarjetas de identidad con banner (Mi Cuenta,
+      // Mi Perfil de cliente y de creador): el avatar se solapa sobre el
+      // banner con un margen negativo en el contenedor, y con items-end el
+      // bloque de nombre/correo queda a la misma altura que el avatar. A 48px
+      // (el tamaño anterior) el avatar y el texto tenían la misma altura, así
+      // que el nombre quedaba tan metido en el banner como el propio avatar,
+      // ilegible en su mitad superior. Un avatar más alto que el bloque de
+      // texto es lo que hace que, alineados por abajo, solo el avatar
+      // sobresalga hacia el banner y el nombre quede dentro del área blanca.
+      case 'lg': return 'w-20 h-20 text-2xl';
       case 'md':
       default: return 'w-10 h-10 text-sm';
     }

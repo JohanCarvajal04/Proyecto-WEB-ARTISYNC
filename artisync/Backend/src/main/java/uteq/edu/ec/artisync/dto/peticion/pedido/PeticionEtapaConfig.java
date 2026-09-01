@@ -20,4 +20,6 @@ public class PeticionEtapaConfig {
     private Integer numeroOrden;
 
     private boolean esEtapaFinal;
+
+    private boolean requiereEntregable;
 }

@@ -1,27 +1,37 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../seguridad/services/auth.service';
-import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
+import { ProfileHeaderComponent } from '../../../../shared/components/profile-header/profile-header.component';
 import { CreadorContextoService } from '../../services/creador-contexto.service';
 import { PerfilCreadorService } from '../../services/perfil-creador.service';
+import { PortafolioService } from '../../../perfil/services/portafolio.service';
 import { RespuestaPerfil } from '../../models/creador.model';
+import {
+  Portafolio,
+  OpcionesPersonalizacion,
+  COLORES_POR_DEFECTO,
+  CAMPOS_COLOR_PORTAFOLIO
+} from '../../../perfil/models/portafolio.model';
 import { SolicitudVerificacionComponent } from '../../../perfil/components/solicitud-verificacion/solicitud-verificacion.component';
 import { mensajeError } from '../../utils/formato';
+import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 
 @Component({
   selector: 'app-perfil-creador',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, AvatarComponent, SolicitudVerificacionComponent],
-  templateUrl: './perfil-creador.component.html',
-  styleUrl: './perfil-creador.component.css'
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, ProfileHeaderComponent, SolicitudVerificacionComponent],
+  templateUrl: './perfil-creador.component.html'
 })
 export class PerfilCreadorComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private perfilService = inject(PerfilCreadorService);
   private contexto = inject(CreadorContextoService);
+  private portafolioService = inject(PortafolioService);
   private toast = inject(ToastService);
   authService = inject(AuthService);
 
@@ -30,24 +40,34 @@ export class PerfilCreadorComponent implements OnInit {
   readonly guardando = signal<boolean>(false);
   readonly error = signal<string>('');
 
+  // Personalización del portafolio (colores + visibilidad). Antes vivía
+  // exclusivamente en la página de Portafolio; se traslada aquí porque es
+  // configuración de "cómo me presento", no de gestión de obras.
+  readonly portafolio = signal<Portafolio | null>(null);
+  readonly cargandoPortafolio = signal<boolean>(true);
+  readonly guardandoPersonalizacion = signal<boolean>(false);
+  esPublico = false;
+  colores: OpcionesPersonalizacion = { ...COLORES_POR_DEFECTO };
+  readonly camposColor = CAMPOS_COLOR_PORTAFOLIO;
+
   form: FormGroup = this.fb.group({
     biografia: ['', [Validators.maxLength(500)]],
-    urlRedSocial: ['', [Validators.maxLength(255)]]
+    urlRedSocial: ['', [Validators.maxLength(255)]],
+    tituloProfesional: ['', [Validators.maxLength(150)]]
   });
 
   nombreCompleto = computed(() => {
     const p = this.perfil();
-    if (p) return `${p.nombresUsuario} ${p.apellidosUsuario}`.trim();
-    const correo = this.authService.currentUser()?.email || this.authService.currentUser()?.sub || 'Creador';
-    const prefijo = correo.split('@')[0];
-    return prefijo.charAt(0).toUpperCase() + prefijo.slice(1);
+    return nombreUsuario(
+      p ? { nombres: p.nombresUsuario, apellidos: p.apellidosUsuario } : null,
+      this.correo(),
+      'Creador'
+    );
   });
 
   correo = computed(() =>
     this.authService.currentUser()?.email || this.authService.currentUser()?.sub || '—'
   );
-
-  roles = computed(() => this.authService.userRoles().map(r => r.replace('ROLE_', '')));
 
   biografiaLength = computed(() => (this.form.get('biografia')?.value || '').length);
 
@@ -60,16 +80,67 @@ export class PerfilCreadorComponent implements OnInit {
         if (perfil) {
           this.form.patchValue({
             biografia: perfil.biografia || '',
-            urlRedSocial: perfil.urlRedSocial || ''
+            urlRedSocial: perfil.urlRedSocial || '',
+            tituloProfesional: perfil.tituloProfesional || ''
           });
+          this.cargarPortafolio(perfil.idPerfil);
+        } else {
+          this.cargandoPortafolio.set(false);
         }
         this.isLoading.set(false);
       },
       error: (err) => {
         this.error.set(mensajeError(err, 'No se pudo cargar tu perfil'));
         this.isLoading.set(false);
+        this.cargandoPortafolio.set(false);
       }
     });
+  }
+
+  private cargarPortafolio(idPerfil: number): void {
+    this.cargandoPortafolio.set(true);
+    this.portafolioService.obtenerPorPerfil(idPerfil).pipe(
+      catchError((err) => {
+        // 404 = el creador todavía no ha abierto su portafolio.
+        if (err?.status === 404) return of(null);
+        throw err;
+      })
+    ).subscribe({
+      next: (portafolio) => {
+        this.portafolio.set(portafolio);
+        if (portafolio) {
+          this.esPublico = portafolio.esPublico;
+          this.colores = { ...COLORES_POR_DEFECTO, ...(portafolio.opcionesPersonalizacion || {}) };
+        }
+        this.cargandoPortafolio.set(false);
+      },
+      error: () => this.cargandoPortafolio.set(false)
+    });
+  }
+
+  guardarPersonalizacion(): void {
+    const portafolio = this.portafolio();
+    if (!portafolio) return;
+
+    this.guardandoPersonalizacion.set(true);
+    this.portafolioService.actualizar(portafolio.idPortafolio, {
+      esPublico: this.esPublico,
+      opcionesPersonalizacion: this.colores
+    }).subscribe({
+      next: (actualizado) => {
+        this.portafolio.set(actualizado);
+        this.guardandoPersonalizacion.set(false);
+        this.toast.success('Personalización actualizada');
+      },
+      error: (err) => {
+        this.guardandoPersonalizacion.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo guardar la personalización'));
+      }
+    });
+  }
+
+  restaurarColores(): void {
+    this.colores = { ...COLORES_POR_DEFECTO };
   }
 
   guardar(): void {
@@ -81,7 +152,8 @@ export class PerfilCreadorComponent implements OnInit {
     const val = this.form.getRawValue();
     const datos = {
       biografia: val.biografia || null,
-      urlRedSocial: val.urlRedSocial || null
+      urlRedSocial: val.urlRedSocial || null,
+      tituloProfesional: val.tituloProfesional || null
     };
 
     this.guardando.set(true);
@@ -106,10 +178,41 @@ export class PerfilCreadorComponent implements OnInit {
         next: (perfil) => this.trasGuardar(perfil, 'Perfil de creador creado'),
         error: (err) => {
           this.guardando.set(false);
-          this.toast.error(mensajeError(err, 'No se pudo crear el perfil'));
+          if (err?.status === 409) {
+            // El backend dice que ya existe un perfil para este usuario, pero
+            // el `perfil` local seguía en null: la caché compartida de
+            // CreadorContextoService (usada por el resto del panel) quedó
+            // desactualizada respecto al backend, típicamente porque una
+            // creación anterior sí llegó a completarse en el servidor sin que
+            // este componente recibiera la respuesta (red, reintento tras un
+            // refresh de token, etc.). En vez de dejar al usuario atascado en
+            // un formulario de "Crear perfil" que siempre va a fallar, se
+            // fuerza una recarga y se pasa al modo edición con los datos reales.
+            this.recuperarPerfilExistente();
+          } else {
+            this.toast.error(mensajeError(err, 'No se pudo crear el perfil'));
+          }
         }
       });
     }
+  }
+
+  /** Descarta la caché de perfil y vuelve a cargarlo tras un 409 al crear. */
+  private recuperarPerfilExistente(): void {
+    this.contexto.invalidar();
+    this.contexto.obtenerPerfil().subscribe({
+      next: (perfil) => {
+        if (!perfil) return;
+        this.perfil.set(perfil);
+        this.form.patchValue({
+          biografia: perfil.biografia || '',
+          urlRedSocial: perfil.urlRedSocial || '',
+          tituloProfesional: perfil.tituloProfesional || ''
+        });
+        this.cargarPortafolio(perfil.idPerfil);
+        this.toast.success('Ya tenías un perfil creado: se cargó aquí para que puedas editarlo.');
+      }
+    });
   }
 
   private trasGuardar(perfil: RespuestaPerfil, mensaje: string): void {
@@ -119,9 +222,8 @@ export class PerfilCreadorComponent implements OnInit {
     this.contexto.invalidar(perfil);
     this.guardando.set(false);
     this.toast.success(mensaje);
-  }
-
-  logout(): void {
-    this.authService.logout();
+    if (this.portafolio() === null) {
+      this.cargarPortafolio(perfil.idPerfil);
+    }
   }
 }

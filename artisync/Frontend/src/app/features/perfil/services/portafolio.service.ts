@@ -60,6 +60,11 @@ export class PortafolioService {
     return this.http.post<PortafolioItem>(`${this.apiUrl}/${idPortafolio}/items`, formData);
   }
 
+  /** Edita título y descripción de una obra ya subida. El archivo no cambia. */
+  actualizarItem(idItem: number, datos: PeticionCrearPortafolioItem): Observable<PortafolioItem> {
+    return this.http.put<PortafolioItem>(`${this.apiUrl}/items/${idItem}`, datos);
+  }
+
   eliminarItem(idItem: number): Observable<{ mensaje: string }> {
     return this.http.delete<{ mensaje: string }>(`${this.apiUrl}/items/${idItem}`);
   }

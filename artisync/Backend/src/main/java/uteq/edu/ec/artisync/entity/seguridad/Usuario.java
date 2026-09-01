@@ -54,4 +54,7 @@ public class Usuario {
 
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
+
+    @Column(name = "url_foto_perfil")
+    private String urlFotoPerfil;
 }

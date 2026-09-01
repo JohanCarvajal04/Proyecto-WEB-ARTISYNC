@@ -1,0 +1,234 @@
+% 04-ingenieria-requisitos.tex — Fuente: docs/informe-final/04-ingenieria-requisitos.md
+
+\chapter{Ingeniería de requisitos}
+\label{cap:ingenieria-requisitos}
+
+Este capítulo es propio y no se fusiona con el Capítulo~\ref{cap:diseno-arquitectura}
+(Diseño). Documenta el proceso completo de ingeniería de requisitos que
+llevó a la especificación vigente en \texttt{v1.0.0}, siguiendo la
+disciplina de ISO/IEC/IEEE~29148:2018~\cite{ISO29148} y el marco de
+Pohl~\cite{POHL2010} (\S2.1).
+
+\section{Contexto y stakeholders}
+
+Siguiendo la técnica de \emph{stakeholder onion} de Alexander (capas
+concéntricas de cercanía al sistema):
+
+\begin{table}[H]
+\centering
+\caption{Interesados por capa de cercanía al sistema}
+\label{tab:stakeholders}
+\begin{tabular}{@{}p{2.6cm}p{5.2cm}p{6.2cm}@{}}
+\toprule
+\textbf{Capa} & \textbf{Interesados} & \textbf{Interés principal} \\
+\midrule
+Núcleo (equipo operador) & Los cuatro integrantes del equipo de desarrollo &
+  Entregar un sistema funcional, evaluable y mantenible dentro del plazo
+  académico \\
+Usuarios directos & Creador de contenido, Cliente registrado, Administrador
+  (roles definidos en \texttt{docs/requisitos/SRS.md}~\S2.3) &
+  Contratar/ofrecer servicios con garantías de pago, comunicación y
+  verificación de identidad \\
+Usuarios indirectos & Visitante anónimo (explora el catálogo sin
+  registrarse) & Evaluar la plataforma antes de registrarse \\
+Patrocinador / regulador académico & Docente-director del PFC & Verificar
+  que el sistema cumple los criterios de la rúbrica de cada entrega \\
+Proveedores externos & PayPal (pagos), servicio de IA de verificación,
+  proveedor de almacenamiento de objetos (Azure Blob / local) &
+  Disponibilidad y estabilidad de la integración \\
+Competencia / referencia de mercado & Plataformas genéricas de freelance y
+  redes sociales usadas hoy de forma fragmentada
+  (Capítulo~\ref{cap:introduccion}) & No son stakeholders directos, pero
+  delimitan el estándar de usabilidad y seguridad esperado \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Técnicas de elicitación aplicadas}
+
+Las técnicas de elicitación aplicadas se documentan en
+\texttt{docs/requisitos/elicitacion/README.md}, que declara tanto las que
+se usaron como las que no, junto con la evidencia conservada de cada una.
+
+Se aplicaron dos técnicas con evidencia archivada. La primera, el
+\textbf{análisis de documentos}: el corpus original de requisitos
+(\texttt{docs/requisitos/historico/entrega-1a.pdf}, semana del 4 de junio
+de 2026, referenciado en \texttt{docs/requisitos/SRS.md}~\S1.4) es la
+fuente de la que derivan los
+37 requisitos vigentes. La segunda, el \textbf{prototipado de baja
+fidelidad}: seis wireframes archivados en
+\texttt{docs/diagramas/wireframes/} fijaron el alcance de las pantallas
+principales antes de implementarlas. Se aplicó además la
+\textbf{discusión interna del equipo} sobre el dominio de la economía
+creativa, de la que no se conservaron actas ni notas de sesión.
+
+\textbf{Limitación metodológica declarada:} no hubo entrevistas
+semi-estructuradas, observación de usuarios, cuestionarios ni workshops
+con stakeholders externos. El corpus se elicitó \emph{sin usuarios
+finales reales}: refleja la comprensión del dominio que tiene el propio
+equipo y la comparación con plataformas del sector, no necesidades
+declaradas por Creadores o Clientes. Deliberadamente no se reconstruyeron
+notas ni guiones a posteriori para rellenar el expediente: fabricar esa
+evidencia después del hecho invalidaría justamente lo que la trazabilidad
+pretende acreditar.
+
+Esta limitación tiene dos consecuencias que se recogen en el
+Capítulo~\ref{cap:validez}. Por un lado, un \emph{sesgo de constructo}:
+el estudio SUS con 16 participantes mide la usabilidad del sistema
+construido, no la pertinencia de los requisitos que lo originaron. Por
+otro, la tasa de estabilidad de requisitos del 100\,\% (\S7.4 del SRS) es
+coherente con un corpus que nunca se renegoció con un cliente externo, y
+por eso no debe leerse como un mérito de la especificación.
+
+\section{Requisitos funcionales y no funcionales: categorización y priorización}
+
+El corpus completo está en \texttt{docs/requisitos/SRS.md} (37
+requisitos: 23 funcionales \texttt{REQ-F-001}--\texttt{REQ-F-023}, 14 no
+funcionales \texttt{REQ-NF-001}--\texttt{REQ-NF-014}), priorizado con
+\gls{moscow}:
+
+\begin{table}[H]
+\centering
+\caption{Distribución de requisitos por prioridad MoSCoW}
+\label{tab:moscow}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Prioridad} & \textbf{Cantidad} & \textbf{\%} \\
+\midrule
+Must  & 29 & 78.4\,\% \\
+Should &  7 & 18.9\,\% \\
+Could &  1 &  2.7\,\% \\
+Won't &  0 &  0\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Nota de conformidad C9 (INCOSE~v4), declarada sin maquillaje:} los
+37 requisitos están redactados en prosa descriptiva estructurada
+(\emph{rationale}, prioridad, criterio de aceptación, verificación,
+estado), \textbf{no} en el patrón sintáctico formal \emph{[condición]
+[sujeto] shall [acción] [objeto] [restricción]} que exige explícitamente
+ISO/IEC/IEEE~29148:2018 y las 42 reglas de
+INCOSE~v4~\cite{ISO29148,INCOSE2023}.
+\texttt{docs/checklists/incose-checklist.md} documenta este hallazgo (C9,
+no cumplida) como el de mayor esfuerzo pendiente entre los 15 criterios
+evaluados --- reescribir el corpus completo al patrón formal, no un
+ajuste puntual.
+
+\section{Modelado de casos de uso y de historias de usuario}
+
+\begin{itemize}
+  \item \textbf{Historias de usuario} (formato Connextra, criterios
+    INVEST, \emph{acceptance criteria} en Gherkin):
+    \texttt{docs/requisitos/historias/} (HU-01 a HU-23), cada una trazada
+    a al menos un \texttt{REQ-F-NNN} y a una prueba automatizada de
+    aceptación.
+  \item \textbf{Casos de uso} (plantilla de Cockburn~\cite{COCKBURN2000},
+    niveles 1--4): \texttt{docs/requisitos/casos-de-uso/} (CU-01 a
+    CU-23), cada uno trazado a un flujo y a al menos una prueba de
+    integración.
+  \item \textbf{Diagrama de casos de uso UML de alto nivel:}
+    Se realizó un análisis estructurado de los casos de uso para representar
+    el comportamiento funcional del sistema frente a sus distintos perfiles.
+    A nivel general, se definió un modelo que ilustra la interacción de los
+    principales actores (Administrador, Creador, Cliente, Moderador, Soporte
+    y Auditor) con los siete grandes subsistemas o macro-procesos de Artisync.
+    Adicionalmente, el análisis se desglosó en catorce diagramas de casos de
+    uso de alto nivel (dos por cada módulo), los cuales detallan operaciones
+    críticas como la autenticación 2FA, la validación de portafolios mediante
+    Inteligencia Artificial, la retención de fondos en el sistema Escrow y
+    la moderación comunitaria. Todos los modelos, construidos bajo sintaxis
+    UML/Mermaid, se encuentran anexados y documentados en el archivo
+    \texttt{docs/informe-final/diagramas\_casos\_de\_uso.md}.
+\end{itemize}
+
+\section{Validación de requisitos}
+
+El procedimiento de validación aplicado combina dos mecanismos
+verificables en el repositorio:
+
+\begin{enumerate}
+  \item \textbf{Prueba automatizada de aceptación:} cada requisito
+    \emph{Must}/\emph{Should} tiene un campo \emph{Verificación} explícito
+    en el SRS (Test/análisis/demostración) y una prueba automatizada
+    referenciada en \texttt{docs/trazabilidad/matriz.csv} (columna
+    \texttt{prueba\_automatizada}).
+  \item \textbf{Estado verificado en la matriz de trazabilidad:} un
+    requisito se marca \texttt{verificado} solo cuando su prueba
+    automatizada está en verde contra el código en ejecución, no por
+    declaración del equipo --- la re-auditoría de
+    \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md} confirmó
+    esta disciplina detectando y corrigiendo el único caso donde el
+    estado no coincidía con la evidencia real
+    (\texttt{REQ-F-006}/\texttt{007}, ver
+    \texttt{docs/checklists/incose-checklist.md}, hallazgo C8).
+\end{enumerate}
+
+\textbf{Resultado de la validación final (2026-08-17, contra \texttt{matriz.csv}):}
+
+\begin{table}[H]
+\centering
+\caption{Estado de validación de los 37 requisitos}
+\label{tab:validacion-req}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Estado} & \textbf{Requisitos} & \textbf{\%} \\
+\midrule
+Verificado                          & 25 & 67.6\,\% \\
+Implementado (no verificado aún)    &  8 & 21.6\,\% \\
+Pendiente                           &  4 & 10.8\,\% \\
+\bottomrule
+\end{tabular}
+\vspace{0.3em}
+
+{\footnotesize Los 4 requisitos \emph{Pendiente}: \texttt{REQ-F-009},
+\texttt{REQ-F-010}, \texttt{REQ-NF-005}, \texttt{REQ-NF-006}.}
+\end{table}
+
+Los 29 requisitos \emph{Must} están en estado implementado o verificado
+(ninguno pendiente); los 4 \emph{Pendiente} corresponden a requisitos
+\emph{Should}/\emph{Could} --- funciones sociales (seguidores,
+comentarios) y una medición de latencia WebSocket no ejecutada
+formalmente, ambos justificables como trabajo futuro
+(Capítulo~\ref{cap:trabajo-futuro}) sin bloquear el cierre de los
+requisitos obligatorios.
+
+\section{Gestión del cambio de requisitos}
+
+\texttt{docs/requisitos/CHANGELOG-REQ.md} registra 2 versiones
+(\texttt{v0.3.0} $\to$ \texttt{v0.9.0-rc}: renombrado de identificadores
+\texttt{RF-NN}$\to$\texttt{REQ-F-0NN}, sin cambio semántico). \textbf{Tasa
+de estabilidad declarada con salvedad} (ver
+\texttt{docs/checklists/incose-checklist.md}, métricas de calidad):
+nominalmente 100\,\% (0 modificaciones semánticas registradas), pero
+\texttt{matriz.csv} refleja cambios de estado reales (ej.
+\texttt{REQ-F-023} pasó de \texttt{pendiente} a \texttt{verificado}) sin
+la entrada correspondiente en el changelog --- la tasa de 100\,\%
+probablemente sobreestima la estabilidad real por subregistro, no por
+ausencia genuina de cambios. Corregir este subregistro es una acción de
+bajo esfuerzo pendiente para el cierre.
+
+\section{Métricas de calidad de requisitos}
+
+Ver el detalle completo, con evidencia citada característica por
+característica, en \texttt{docs/checklists/incose-checklist.md}. Resumen:
+
+\begin{itemize}
+  \item \textbf{Número total de requisitos:} 37 (23 funcionales, 14 no
+    funcionales).
+  \item \textbf{Distribución por tipo:} funcionales 62.2\,\% (23/37), no
+    funcionales 37.8\,\% (14/37).
+  \item \textbf{Distribución por prioridad MoSCoW:} ver
+    Tabla~\ref{tab:moscow}.
+  \item \textbf{Porcentaje verificado:} 67.6\,\% (25/37); implementado o
+    verificado (no pendiente): 89.2\,\% (33/37).
+  \item \textbf{Cobertura de trazabilidad hacia código y pruebas:}
+    100\,\% de los 37 requisitos tiene fila en \texttt{matriz.csv} con
+    módulo de código y prueba automatizada referenciados (columnas
+    \texttt{modulo\_codigo}, \texttt{prueba\_automatizada}), confirmado
+    por \texttt{scripts/validate-traceability.sh} en CI.
+  \item \textbf{Características INCOSE v4 cumplidas:} 9 de 15 (C1, C2,
+    C4, C6, C7, C11, C12, C13, C14); 5 parciales con evidencia concreta
+    (C3, C8, C10, C15, C2 parcial); 2 no cumplidas (C5, C9) --- ver
+    detalle y plan de acción en el checklist referenciado.
+\end{itemize}

@@ -4,6 +4,7 @@
 
 ## CU-23: Organizar y cerrar un sorteo
 **Trazabilidad:** REQ-F-023 / HU-23
+**Prueba de integración:** `SorteoServiceImplTest`
 
 **1. Actor principal y objetivo:** Creador — organizar un sorteo entre sus seguidores; Sistema — seleccionar los ganadores automáticamente al cierre.
 

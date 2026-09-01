@@ -23,7 +23,7 @@ public class EntregableControlador {
     private final IEntregableServicio entregableServicio;
 
     @PostMapping(value = "/{idPedido}/entregable", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaEntregable> subirEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -44,7 +44,7 @@ public class EntregableControlador {
     }
 
     @PostMapping("/{idPedido}/aprobar")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> aprobarEntrega(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -53,7 +53,7 @@ public class EntregableControlador {
     }
 
     @GetMapping("/{idPedido}/entregable/descargar")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> descargarVersionLimpia(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {

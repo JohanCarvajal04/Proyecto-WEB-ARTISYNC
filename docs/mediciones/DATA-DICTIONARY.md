@@ -12,9 +12,9 @@
 | lh_accessibility | Score Lighthouse Accessibility (mobile / desktop, 3 corridas c/u) | int | puntos (0-100) | `lighthouse/lhci-20260817-*-{mobile,desktop}-run{1,2,3}.json` | ≥ 90 | 93 (ambos perfiles, las 3 corridas) |
 | lh_best_practices | Score Lighthouse Best Practices (mobile / desktop, 3 corridas c/u) | int | puntos (0-100) | `lighthouse/lhci-20260817-*-{mobile,desktop}-run{1,2,3}.json` | ≥ 90 | 96 (ambos perfiles, las 3 corridas) |
 | lh_seo | Score Lighthouse SEO (mobile / desktop, 3 corridas c/u) | int | puntos (0-100) | `lighthouse/lhci-20260817-*-{mobile,desktop}-run{1,2,3}.json` | ≥ 90 | 100 (ambos perfiles, las 3 corridas) |
-| jacoco_lines_pct | Cobertura de líneas | float | % | `jacoco/report.xml` | ≥ 70 | **72.0** (antes 23.0 el 2026-07-30, ver `jacoco/REPORTE-JACOCO.md`) |
-| jacoco_branches_pct | Cobertura de ramas | float | % | `jacoco/report.xml` | ≥ 70 | **62.5** (antes 13.8) |
-| jacoco_complexity_pct | Cobertura de complejidad ciclomática | float | % | `jacoco/report.xml` | — (no exigido por la guía) | **56.5** (antes 16.8) |
+| jacoco_lines_pct | Cobertura de líneas | float | % | `jacoco/report.xml` | ≥ 70 | **72.0** (Medición v1.0.0. Histórico Entrega 3: 23.0, ver `jacoco/REPORTE-JACOCO.md`) |
+| jacoco_branches_pct | Cobertura de ramas | float | % | `jacoco/report.xml` | ≥ 70 | **62.5** (Medición v1.0.0. Histórico Entrega 3: 13.8) |
+| jacoco_complexity_pct | Cobertura de complejidad ciclomática | float | % | `jacoco/report.xml` | — (no exigido por la guía) | **56.5** (Medición v1.0.0. Histórico Entrega 3: 16.8) |
 | owasp_a01_status | Resultado control A01 (control de acceso) | string (pass/fail) | — | `sec/owasp/a01-control-acceso.txt` | pass | pass |
 | owasp_a02_status | Resultado control A02 (TLS) | string (pass/fail) | — | `sec/owasp/a02-tls.txt` | pass | pass |
 | owasp_a03_status | Resultado control A03 (inyección) | string (pass/fail) | — | `sec/owasp/a03-inyeccion.txt` | pass | pass |
@@ -23,6 +23,14 @@
 | owasp_a09_status | Resultado control A09 (logging/monitoreo) | string (pass/fail) | — | `sec/owasp/a09-logging.txt` | pass | pass |
 | zap_baseline_result | Resultado agregado del escaneo OWASP ZAP baseline | string | FAIL-NEW/WARN-NEW/PASS | `sec/zap/` | 0 FAIL-NEW | 0 FAIL-NEW · 8 WARN-NEW · 59 PASS (ver `sec/REPORTE-SEC.md`) |
 | static_analysis_sql_findings | Hallazgos de inyección SQL (SpotBugs + find-sec-bugs) | int | conteo | `sec/static-analysis/` | 0 | 0 |
+
+## Depósito Zenodo del dataset
+
+Este dataset (todo el contenido de `docs/mediciones/`) está depositado por separado
+del software en Zenodo, con DOI propio y licencia Creative Commons Attribution 4.0
+International (CC BY 4.0): **[`10.5281/zenodo.22236251`](https://doi.org/10.5281/zenodo.22236251)**
+(publicado 01-09-2026, siguiendo el principio de citación independiente de software y
+datos, Bloque D.3 de la guía de la Entrega Final).
 
 ## Procedencia de Datos
 

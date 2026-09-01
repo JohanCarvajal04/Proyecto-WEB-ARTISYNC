@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.1.0] - 2026-09-01
+Versión posterior al cierre académico de la Entrega Final (`v1.0.0`, commit `d07656b`,
+archivado en Zenodo). Consolida el trabajo real de las dos semanas siguientes; no
+sustituye ni altera el artefacto evaluado como Entrega Final.
+
+### Security
+- Refactor de autorización backend: reemplazo de `hasAnyRole` por permisos explícitos
+  (`hasAuthority`) en ~20 endpoints (`RolePermissionController` y otros).
+- Refactor del sistema de permisos del frontend: navegación derivada dinámicamente de
+  `NAV_CATALOG` en vez de listas de permisos por panel codificadas a mano, cerrando
+  rutas de escalamiento de privilegios entre paneles.
+- Ajustes en 2FA y `SecurityConfig`; restricción de endpoints públicos de catálogo a
+  rutas con ID explícito; exigencia de verificación de identidad para publicar
+  servicios o crear pedidos.
+
+### Added
+- Flujos de trabajo por creador, permiso `FLUJO_MODERAR`, validación de duplicados y
+  reordenamiento atómico.
+- Directorio público de creadores, seguimiento de creadores, reseñas y calificación
+  promedio, comentarios y likes en obras de portafolio con moderación.
+- Auditoría de pagos en garantía (escrow); exportación de reportes en pedidos.
+- Reintentos de fallos transitorios en los proveedores de IA (Gemini/NVIDIA) y mejora
+  de logs de diagnóstico; visualización legible de datos extraídos por IA en el panel
+  de moderación.
+
+### Changed
+- Optimización N+1 al cargar etiquetas en el listado paginado de servicios.
+- Actualización de procedimientos almacenados (`R__procedimientos.sql`) y trazabilidad
+  de requisitos.
+
+### Fixed
+- Corrección de precios de pedidos modificados sin consentimiento; corrección de
+  infracciones y validación del flujo de trabajo.
+- Guards del panel creador y exportación en "Mis Pedidos" del cliente; bug de rutas
+  multi-segmento en el sidebar.
+- No retroceder un pedido cuando su etapa actual fue eliminada del flujo.
+
 ## [v1.0.0] - 2026-08-17
 ### Added
 - Análisis estático SpotBugs + find-sec-bugs sobre concatenación SQL, y escaneo OWASP ZAP baseline
@@ -18,15 +55,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/despliegue/` (`DEPLOYMENT.md`, `RUNBOOK.md`, `BACKUP.md`).
 - Checklists FAIR, INCOSE, PRISMA 2020 y Ralph 2021.
 - Servicio `azurite` (perfil `azure`) en `docker-compose.yml` para emular Azure Blob Storage.
+- `AlmacenamientoRouter`: decide por prefijo si un archivo va a Azure Blob Storage o al volumen local, con
+  suite de pruebas propia (`AlmacenamientoRouterTest`, `AlmacenamientoCableadoTest`).
+- Despliegue en Render: `render.yaml` (Blueprint con `artisync-backend` como Private Service en red interna,
+  `artisync-frontend` como Web Service público y `artisync-redis`), `Dockerfile.render`, `nginx.render.conf`
+  y `docker-entrypoint-render.sh`.
 
 ### Changed
 - Cobertura (JaCoCo) y mediciones SUS actualizadas.
 - Evidencia OWASP reorganizada en `docs/mediciones/sec/owasp/` + `DATA-PROVENANCE.md`.
 - Checklists y matriz de trazabilidad sincronizados con el estado real del código.
 - Colección Postman ampliada de 10 a 26 peticiones (casos 400/401/403/404).
+- `ChatControlador` y creación de sala de chat (`ContratoServicioImpl`, `EntregableServicioImpl`) con
+  ajustes finales y cobertura de pruebas nueva (`ContratoServicioImplSalaChatTest`).
 
 ### Fixed
 - Marcadores de merge sin resolver en `artisync/.env.example`.
+- Subida de documentos de verificación: ahora pasa el prefijo `VERIFICACION` al guardar, para que el
+  router de almacenamiento los envíe al volumen local en vez de a Azure.
 
 ## [v0.9.0-rc] - 2026-07-30
 ### Added

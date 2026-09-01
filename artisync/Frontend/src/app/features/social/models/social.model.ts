@@ -18,3 +18,29 @@ export interface PeticionCrearResena {
 /** Estados que publica el backend en `estadoSorteo`. */
 export const SORTEO_ACTIVO = 'Activo';
 export const SORTEO_FINALIZADO = 'Finalizado';
+
+// ─── Comentarios de portafolio ─────────────────────────────
+
+/** POST /api/v1/portafolio-items/{idItemPortafolio}/comentarios */
+export interface PeticionCrearComentario {
+  textoComentario: string;
+}
+
+export interface RespuestaComentario {
+  idComentario: number;
+  idItemPortafolio: number;
+  idUsuarioAutor: number;
+  nombreAutor: string;
+  textoComentario: string;
+  estadoModeracion: string;
+  fechaPublicacion: string;
+}
+
+// ─── Likes de portafolio ─────────────────────────────
+
+/** Respuesta de POST/DELETE/GET /api/v1/portafolio-items/{id}/likes */
+export interface RespuestaEstadoLike {
+  idItemPortafolio: number;
+  totalLikes: number;
+  meGusta: boolean;
+}

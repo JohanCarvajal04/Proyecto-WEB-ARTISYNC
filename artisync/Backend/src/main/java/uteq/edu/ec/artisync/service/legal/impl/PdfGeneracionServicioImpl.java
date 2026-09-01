@@ -1,5 +1,6 @@
 package uteq.edu.ec.artisync.service.legal.impl;
 
+import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,32 @@ public class PdfGeneracionServicioImpl implements IPdfGeneracionServicio {
             com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder =
                     new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
             builder.useFastMode();
+            // Hallazgo SEC-01 (auditoria de seguridad): sin esto, cualquier URI que
+            // aparezca en el HTML (una <img src>, un @import de CSS...) dispara una
+            // peticion HTTP/lectura de archivo hecha por ESTE SERVIDOR al renderizar
+            // el PDF. Como generarContratoHtml() interpola descripcion_servicio y
+            // nombres de usuario dentro del HTML, un cliente podia escribir
+            // <img src="http://169.254.169.254/..."> en la descripcion de su servicio
+            // y usar el PDF del contrato como SSRF, o file:// para leer archivos
+            // locales del servidor. La plantilla sembrada (V13__seed_plantilla_contrato.sql)
+            // es HTML+CSS inline puro sin un solo recurso externo, asi que bloquear
+            // TODA carga externa (predicado constante `false`) no rompe nada legitimo;
+            // si algun dia una plantilla necesita imagenes, sera una decision explicita,
+            // no un descuido.
+            //
+            // Unica excepcion, anadida para el logo del motor de reportes
+            // (service/shared/reporte): se permite el esquema `data:` porque un
+            // data: URI no hace peticion de red ni lee un archivo — el navegador/
+            // renderizador decodifica el Base64 inline, no resuelve nada externo.
+            // El logo se lee del classpath en Java (ClassPathResource) y se inyecta
+            // ya codificado; NO se permite `classpath:` aqui, porque los reportes
+            // tienen celdas con datos de usuario y un `classpath:` abierto dejaria
+            // leer `classpath:/application.properties` (credenciales de BD) desde
+            // el HTML de una celda. `data:` no tiene ese riesgo: no hay URI que
+            // resolver, solo bytes ya presentes en el propio HTML.
+            builder.useExternalResourceAccessControl(
+                    (uri, type) -> uri != null && uri.startsWith("data:"),
+                    ExternalResourceControlPriority.RUN_BEFORE_RESOLVING_URI);
             builder.withHtmlContent(html, "/");
             builder.toStream(os);
             builder.run();

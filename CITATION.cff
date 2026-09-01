@@ -1,21 +1,69 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
+type: software
 title: "Proyecto WEB-ARTISYNC"
+abstract: >-
+  Artisync centraliza la comercialización de servicios y productos digitales
+  de profesionales creativos (ilustradores, músicos, diseñadores,
+  desarrolladores). Conecta a Creadores con Clientes y gestiona perfiles,
+  catálogo dinámico, mensajería, contratos con firma electrónica, flujo de
+  pedidos, pagos con patrón escrow vía PayPal, y funciones sociales.
+  Proyecto Fin de Curso — Aplicaciones Web, Quinto nivel. Universidad
+  Técnica Estatal de Quevedo, Facultad de Ciencias de la Computación y
+  Diseño Digital, Carrera de Ingeniería de Software.
 authors:
   - family-names: "Bone Arroyo"
     given-names: "Niurca Scarleth"
+    affiliation: "Universidad Técnica Estatal de Quevedo"
+    orcid: "https://orcid.org/0009-0002-2219-2800"
   - family-names: "Carvajal Loor"
     given-names: "Johan Stalin"
+    affiliation: "Universidad Técnica Estatal de Quevedo"
+    orcid: "https://orcid.org/0009-0008-9229-382X"
   - family-names: "Figueroa Morales"
     given-names: "Bryan Javier"
+    affiliation: "Universidad Técnica Estatal de Quevedo"
+    orcid: "https://orcid.org/0009-0009-6357-4996"
   - family-names: "Rios Cuyabazo"
     given-names: "Jhon Kevin"
-version: "v1.0.0"
-date-released: "2026-08-17"
+    affiliation: "Universidad Técnica Estatal de Quevedo"
+    orcid: "https://orcid.org/0009-0003-7446-9450"
+version: "1.1.0"
+date-released: "2026-09-01"
 license: "MIT"
 repository-code: "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
-doi: "10.5281/zenodo.21730559"
+url: "https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
+doi: "10.5281/zenodo.21978572"
 keywords:
   - web
   - artisync
-  - pfc
+  - marketplace de servicios creativos
+  - escrow
+  - Spring Boot
+  - Angular
+  - PFC
+preferred-citation:
+  type: thesis
+  title: "Artisync — Plataforma web de comisiones y venta de contenido digital para creadores"
+  authors:
+    - family-names: "Bone Arroyo"
+      given-names: "Niurca Scarleth"
+      affiliation: "Universidad Técnica Estatal de Quevedo"
+      orcid: "https://orcid.org/0009-0002-2219-2800"
+    - family-names: "Carvajal Loor"
+      given-names: "Johan Stalin"
+      affiliation: "Universidad Técnica Estatal de Quevedo"
+      orcid: "https://orcid.org/0009-0008-9229-382X"
+    - family-names: "Figueroa Morales"
+      given-names: "Bryan Javier"
+      affiliation: "Universidad Técnica Estatal de Quevedo"
+      orcid: "https://orcid.org/0009-0009-6357-4996"
+    - family-names: "Rios Cuyabazo"
+      given-names: "Jhon Kevin"
+      affiliation: "Universidad Técnica Estatal de Quevedo"
+      orcid: "https://orcid.org/0009-0003-7446-9450"
+  institution:
+    name: "Universidad Técnica Estatal de Quevedo"
+  year: 2026
+  version: "1.0.0"
+  notes: "Proyecto Fin de Curso, Facultad de Ciencias de la Computación y Diseño Digital, Carrera de Ingeniería de Software. Documento académico: docs/informe-final/Informe-Final-v1.0.0.pdf"

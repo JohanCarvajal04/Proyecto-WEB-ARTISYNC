@@ -11,7 +11,9 @@ import {
 } from '../models/auth.model';
 import { MessageResponse } from '../../../shared/models/common.model';
 import { UserResponse } from '../../../shared/models/user.model';
-import { NAV_CONFIG } from '../../../core/config/nav.config';
+import {
+  NavItem, PanelId, PANEL_BASE_PATH, resolvePanel, navItemPath, computeVisibleNavItems
+} from '../../../core/config/nav.config';
 
 @Injectable({
   providedIn: 'root'
@@ -37,6 +39,12 @@ export class AuthService {
 
   readonly isLoggedIn = computed(() => this._currentUser() !== null);
   readonly userRoles = computed(() => this._currentUser()?.roles ?? (this._currentUser()?.rol ? [this._currentUser()?.rol!] : []));
+  /**
+   * Rol principal, SOLO para mostrarlo en la interfaz (cabecera, badges). No
+   * debe usarse para decidir accesos: la jerarquía es una lista fija de nombres
+   * y para un rol nuevo devuelve `roles[0]`, que no significa nada. Para eso
+   * están `activePanel`, `visibleNavItems` y `hasPermission`.
+   */
   readonly primaryRole = computed(() => {
     const roles = this.userRoles();
     if (roles.includes('ROLE_ADMIN') || roles.includes('ADMINISTRADOR') || roles.includes('ADMIN')) return 'ADMINISTRADOR';
@@ -49,16 +57,43 @@ export class AuthService {
   });
 
   /**
-   * Ruta de aterrizaje tras autenticarse: la primera entrada del menú del rol.
-   * Se deriva de NAV_CONFIG para que añadir un panel nuevo (p. ej. el de creador)
-   * no obligue a tocar también el redirect de login.
+   * Panel del usuario: lo fija su rol si es uno conocido, y solo se infiere de
+   * los permisos para roles personalizados. Ver `resolvePanel`.
+   *
+   * Deducirlo únicamente de los permisos hacía que editar los permisos de un
+   * rol lo cambiara de panel — un MODERADOR sin permisos administrativos
+   * aparecía en el panel de cliente.
+   */
+  readonly activePanel = computed<PanelId>(() =>
+    resolvePanel(this.userRoles(), this._userPermissions())
+  );
+
+  /** Prefijo de ruta del panel activo (`/admin`, `/creador`, `/dashboard`). */
+  readonly panelBasePath = computed(() => PANEL_BASE_PATH[this.activePanel()]);
+
+  /**
+   * Ítems de menú visibles: los del panel activo, filtrados por permiso, más
+   * los cross-panel para los que también se cumple la puerta de su panel.
+   * Vive en nav.config.ts y no aquí para que el spec pudiera ejercitar la
+   * lógica real en vez de una copia — la copia anterior se había quedado sin
+   * la comprobación de la puerta de panel sin que ningún test lo notara.
+   */
+  readonly visibleNavItems = computed<NavItem[]>(() =>
+    computeVisibleNavItems(this.activePanel(), this._userPermissions())
+  );
+
+  /**
+   * Ruta de aterrizaje tras autenticarse: la primera entrada visible del panel.
+   * Si el rol no tiene ningún permiso que abra una página, se manda a
+   * /no-autorizado en lugar de dejarlo en un panel vacío.
    */
   readonly homeRoute = computed(() => {
-    const role = this.primaryRole();
-    const config = role ? NAV_CONFIG[role] : null;
-    if (!config) return '/dashboard/overview';
-    const primeraRuta = config.items[0]?.route;
-    return primeraRuta ? `${config.basePath}/${primeraRuta}` : config.basePath;
+    const primera = this.visibleNavItems()[0];
+    // navItemPath respeta basePath: concatenar panelBasePath() a secas generaba
+    // /admin/configuracion, que no existe, y el usuario acababa en el wildcard
+    // -> /auth/login. Importa porque homeRoute() es además el destino de
+    // rescate de toda denegación del authGuard.
+    return primera ? navItemPath(primera, this.panelBasePath()) : '/no-autorizado';
   });
 
   /**
@@ -132,7 +167,7 @@ export class AuthService {
   }
 
   fetchUserPermissions(): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiUrl}/permissions/me`).pipe(
+    return this.http.get<string[]>(`${environment.apiUrl}/v1/permissions/me`).pipe(
       tap(permisos => {
         this._userPermissions.set(permisos);
         localStorage.setItem('userPermissions', JSON.stringify(permisos));
@@ -149,7 +184,7 @@ export class AuthService {
     // withCredentials: obligatorio para que el navegador acepte el Set-Cookie
     // del ticket pre-auth de 2FA (preAuth2fa) y el de refreshToken cuando el
     // login es exitoso — §2.1 (OBS-AUTO-05).
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/login`, credentials, { withCredentials: true }).pipe(
+    return this.http.post<TokenResponse>(`${environment.apiUrl}/v1/auth/login`, credentials, { withCredentials: true }).pipe(
       tap(response => this.handleAuthentication(response)),
       finalize(() => this._isLoading.set(false))
     );
@@ -157,7 +192,7 @@ export class AuthService {
 
   register(data: RegisterRequest): Observable<UserResponse> {
     this._isLoading.set(true);
-    return this.http.post<UserResponse>(`${environment.apiUrl}/auth/registro`, data).pipe(
+    return this.http.post<UserResponse>(`${environment.apiUrl}/v1/auth/registro`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
@@ -166,7 +201,7 @@ export class AuthService {
     this._isLoading.set(true);
     // withCredentials: envía la cookie preAuth2fa (que prueba que la contraseña
     // ya se validó en /auth/login) y recibe el Set-Cookie de refreshToken.
-    return this.http.post<TokenResponse>(`${environment.apiUrl}/auth/2fa/verify`, data, { withCredentials: true }).pipe(
+    return this.http.post<TokenResponse>(`${environment.apiUrl}/v1/auth/2fa/verify`, data, { withCredentials: true }).pipe(
       tap(response => this.handleAuthentication(response)),
       finalize(() => this._isLoading.set(false))
     );
@@ -174,35 +209,35 @@ export class AuthService {
 
   forgotPassword(data: ForgotPasswordRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.post<MessageResponse>(`${environment.apiUrl}/auth/forgot-password`, data).pipe(
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/forgot-password`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.post<MessageResponse>(`${environment.apiUrl}/auth/reset-password`, data).pipe(
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/reset-password`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   setup2fa(): Observable<TwoFactorSetupResponse> {
     this._isLoading.set(true);
-    return this.http.post<TwoFactorSetupResponse>(`${environment.apiUrl}/2fa/setup`, {}).pipe(
+    return this.http.post<TwoFactorSetupResponse>(`${environment.apiUrl}/v1/2fa/setup`, {}).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   confirm2fa(data: TwoFactorConfirmRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.post<MessageResponse>(`${environment.apiUrl}/2fa/confirm`, data).pipe(
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/2fa/confirm`, data).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
 
   disable2fa(data: TwoFactorConfirmRequest): Observable<MessageResponse> {
     this._isLoading.set(true);
-    return this.http.delete<MessageResponse>(`${environment.apiUrl}/2fa/disable`, { body: data }).pipe(
+    return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/2fa/disable`, { body: data }).pipe(
       finalize(() => this._isLoading.set(false))
     );
   }
@@ -228,7 +263,7 @@ export class AuthService {
     }
 
     this.refreshEnVuelo = this.http
-      .post<TokenResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true })
+      .post<TokenResponse>(`${environment.apiUrl}/v1/auth/refresh`, {}, { withCredentials: true })
       .pipe(
         tap(response => this.handleAuthentication(response)),
         catchError(err => {
@@ -246,7 +281,7 @@ export class AuthService {
   }
 
   logout(): void {
-    this.http.post<MessageResponse>(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true }).subscribe({
+    this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/logout`, {}, { withCredentials: true }).subscribe({
       next: () => this.clearSessionAndRedirect(),
       error: () => this.clearSessionAndRedirect()
     });
@@ -258,9 +293,15 @@ export class AuthService {
       return;
     }
     if (response.accessToken) {
-      this._accessToken.set(response.accessToken);
       try {
+        // _accessToken se fija DENTRO del try, junto a _currentUser: antes se
+        // fijaba antes del decode, así que un JWT malformado dejaba
+        // accessToken con valor y currentUser en null -- isLoggedIn()
+        // (que solo mira currentUser) reportaba `false`, pero authInterceptor
+        // seguía adjuntando ese token a cada petición porque lee
+        // accessToken() directamente. Sesión a medias, sin salida limpia.
         const decoded = jwtDecode<DecodedToken>(response.accessToken);
+        this._accessToken.set(response.accessToken);
         this._currentUser.set(decoded);
         const permisos = decoded.permisos ?? response.permisos ?? [];
         if (permisos.length > 0) {
@@ -271,6 +312,7 @@ export class AuthService {
         }
       } catch (e) {
         console.error('Error decoding JWT', e);
+        this.clearSession();
       }
     }
   }

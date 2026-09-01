@@ -11,7 +11,7 @@
 ## 3. Introducción
 **[Diapositiva: ¿Qué es ArtiSync?]**
 "Para entrar en contexto, ¿qué es ArtiSync? Es una plataforma web de marketplace creativo. Su objetivo principal es conectar a artistas digitales con clientes que buscan servicios creativos personalizados. 
-A nivel tecnológico, es robusta: utilizamos Spring Boot 3.2 en el backend, Angular 17 en el frontend, y PostgreSQL 16 para nuestra base de datos. Todo esto gestionado mediante 7 módulos principales que van desde la seguridad y gestión de perfiles, hasta la logística de pedidos, chat y pasarelas de pago (Escrow)."
+A nivel tecnológico, es robusta: utilizamos Spring Boot 4.1.0 en el backend, Angular 22 en el frontend, y PostgreSQL 16 para nuestra base de datos. Todo esto gestionado mediante 7 módulos principales que van desde la seguridad y gestión de perfiles, hasta la logística de pedidos, chat y pasarelas de pago (Escrow)."
 
 **[Diapositiva: Objetivos del Análisis]**
 "El objetivo central de nuestro análisis es diseñar e implementar un modelo de seguridad robusto directamente en el motor de base de datos. 

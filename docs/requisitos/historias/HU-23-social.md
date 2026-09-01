@@ -4,6 +4,7 @@
 
 ## HU-23 — Organizar un sorteo entre seguidores
 **Trazabilidad:** REQ-F-023
+**Prueba de aceptación:** `SorteoServiceImplTest`
 
 **As a** Creador,
 **I want** organizar un sorteo entre mis seguidores con premio, fecha de cierre y número de ganadores,

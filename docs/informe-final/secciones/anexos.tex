@@ -1,0 +1,194 @@
+% anexos.tex — Fuente: docs/informe-final/13-declaraciones-referencias.md
+% (sección "Anexos"), más el nuevo Anexo J con la clasificación de
+% impacto de la bibliografía (ver README.md de esta carpeta).
+
+\chapter{Tabla de observaciones acumuladas}
+\label{anexo:a}
+
+Este anexo recoge el estado consolidado de las observaciones acumuladas a lo
+largo de las cuatro entregas del PFC, exigido por el Bloque~0 de la guía. La
+fuente de verdad es \texttt{docs/observaciones/OBSERVACIONES.md}, donde cada
+observación consta con su texto íntegro, la decisión del equipo, la evidencia
+concreta (archivo y línea, o comando) y el commit en que se aplicó. Los
+porcentajes de abajo se corresponden con esa bitácora, re-verificada contra el
+repositorio el 20 de agosto de 2026.
+
+\begin{table}[H]
+\centering
+\caption{Resolución de observaciones por entrega de origen}
+\label{tab:observaciones-por-entrega}
+\small
+\begin{tabular}{@{}p{3.6cm}ccccc@{}}
+\toprule
+\textbf{Origen} & \textbf{Total} & \textbf{Resueltas} & \textbf{Parciales} &
+\textbf{Pendientes} & \textbf{\% resuelto} \\
+\midrule
+Entrega 1A (09-06-2026)      & 5  & 4  & 0 & 1 & 80,0\,\% \\
+Entrega 1B (29-06-2026)      & 7  & 7  & 0 & 0 & 100,0\,\% \\
+Tercera Entrega              & 4  & 3  & 0 & 1 & 75,0\,\% \\
+Auto-detectadas (rev. téc.)  & 11 & 9  & 2 & 0 & 81,8\,\% \\
+\midrule
+\textbf{Total}               & \textbf{27} & \textbf{23} & \textbf{2} &
+\textbf{2} & \textbf{85,2\,\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{Razones de las no resueltas}
+
+Cuatro observaciones siguen sin resolución completa, y ninguna se presenta
+como cerrada sin serlo:
+
+\begin{itemize}
+  \item \textbf{OBS-05} (wireframe genérico, Entrega 1A). La imagen
+    \texttt{Pantalla\_principal.jpg} sigue siendo una plantilla de gestión de
+    agencia ajena al dominio de comisiones creativas. Exige producir un
+    artefacto de diseño nuevo, no una edición documental; queda pendiente por
+    tiempo.
+  \item \textbf{OBS-14} (access-token en cookie \texttt{HttpOnly}, Tercera
+    Entrega). \emph{Pendiente justificada}: el cambio toca el módulo de
+    autenticación, respaldado por 522 pruebas, a muy poca distancia del cierre,
+    y el riesgo de regresión en el inicio de sesión supera la mejora marginal.
+    Las mitigaciones vigentes ---HSTS, \texttt{SameSite}, expiración corta del
+    access-token y revocación por \texttt{jti} en Redis--- acotan la
+    exposición. La mitad de la observación (activar \texttt{Secure}) se
+    resuelve sin tocar código, mediante la variable de entorno
+    \texttt{APP\_COOKIE\_SECURE} en producción.
+  \item \textbf{OBS-AUTO-10} (\texttt{docs/etica/ai-disclosure.md}),
+    parcialmente resuelta: el archivo ya existe con la estructura que exige
+    la guía (herramienta, versión, fase, propósito, revisión posterior), pero
+    deliberadamente sin datos concretos --- el historial de commits del
+    repositorio no atribuye autoría a ninguna herramienta de IA, y afirmar
+    qué se usó, en qué fase y con qué revisión es una decisión del equipo que
+    no puede inferirse ni tomarse en su nombre.
+  \item \textbf{OBS-AUTO-02} (procedimientos almacenados), parcialmente
+    resuelta: 7 de 13 rutinas están conectadas end-to-end al código Java. Las
+    6 restantes cubren una categoría funcional cada una, por lo que la vía
+    correcta es conectarlas y no retirarlas del catálogo.
+\end{itemize}
+
+Conviene señalar el sentido de la revisión del 20 de agosto: tres
+observaciones que la versión anterior de la bitácora daba por pendientes o
+parciales estaban resueltas de hecho y solo mal registradas (OBS-09, OBS-11 y
+OBS-15), mientras que la misma revisión destapó dos brechas no registradas
+hasta entonces ---OBS-AUTO-10, la ausencia de \texttt{ai-disclosure.md}
+(hoy resuelta parcialmente, ver arriba), y OBS-AUTO-11, el mecanismo de
+invocación de las rutinas SQL que el Capítulo~\ref{cap:implementacion} ya
+señalaba---. El denominador subió por tanto de 25 a 27 observaciones. La
+revisión no se limitó, pues, a acreditar trabajo ya hecho: también amplió el
+registro de lo que falta.
+
+\chapter{Checklist Ralph et al. 2021}
+\label{anexo:b}
+
+Ver \texttt{docs/checklists/ralph-2021-checklist.md}~\cite{RALPH2021}.
+
+\chapter{Checklist FAIR}
+\label{anexo:c}
+
+Ver \texttt{docs/checklists/fair-checklist.md}~\cite{WILKINSON2016}.
+
+\chapter{Checklist INCOSE v4}
+\label{anexo:d}
+
+Ver \texttt{docs/checklists/incose-checklist.md}~\cite{INCOSE2023}.
+
+\chapter{Checklist PRISMA 2020}
+\label{anexo:e}
+
+Ver \texttt{docs/checklists/prisma-2020-checklist.md}~\cite{PRISMA2021}
+(resuelto como ``No Aplica'', justificado --- ver
+Capítulo~\ref{cap:trabajos-relacionados}~\S3.1).
+
+\chapter{Matriz de trazabilidad completa}
+\label{anexo:f}
+
+Ver \texttt{docs/trazabilidad/matriz.csv}.
+
+\chapter{Protocolo SUS completo (10 preguntas + escala)}
+\label{anexo:g}
+
+Ver \texttt{docs/mediciones/sus/instrucciones-formulario.md}~\cite{BROOKE1996}.
+
+\chapter{Capturas de ejecución del pipeline CI}
+\label{anexo:h}
+
+El equipo debe adjuntar capturas de pantalla de 3 ejecuciones
+consecutivas exitosas del workflow \texttt{.github/workflows/ci.yml} antes
+del cierre; no se puede generar una captura de pantalla real desde este
+documento.
+
+\chapter{Cadena de búsqueda completa del Capítulo 3}
+\label{anexo:i}
+
+Depende de ejecutar la revisión de literatura reducida
+recomendada en el Capítulo~\ref{cap:trabajos-relacionados}~\S3.1. Las
+búsquedas puntuales ejecutadas para verificar y ampliar la bibliografía de
+esta versión (Anexo~\ref{anexo:j}) no siguen una cadena de búsqueda
+reproducible sobre bases de datos bibliográficas y no sustituyen este
+anexo.
+
+\chapter{Clasificación de impacto de la bibliografía}
+\label{anexo:j}
+
+Este anexo es nuevo en esta versión del documento. Clasifica cada
+referencia de \texttt{referencias.bib} según el criterio de la guía de la
+Entrega Final (``alto impacto'' = indexada Scopus/JCR Q1--Q2, \emph{o}
+publicada en las actas de ICSE, FSE, ASE, MSR, EASE o ESEM), con la fuente
+de la clasificación. Ninguna referencia se clasificó como ``alto impacto''
+sin verificar su venue/journal contra una fuente externa (ver
+\texttt{README.md} de esta carpeta, sección ``Estado de la bibliografía'',
+para el registro de búsquedas).
+
+\begin{table}[H]
+\centering
+\caption{Clasificación de impacto por referencia}
+\label{tab:clasificacion-biblio}
+\small
+\begin{tabular}{@{}p{2.6cm}p{6.4cm}p{1.8cm}p{2.8cm}@{}}
+\toprule
+\textbf{Clave} & \textbf{Venue} & \textbf{Alto impacto} & \textbf{Motivo} \\
+\midrule
+HALFOND2005    & ASE 2005                          & Sí & Venue listado \\
+GOULD2004      & ICSE 2004                         & Sí & Venue listado \\
+INOZEMTSEVA2014 & ICSE 2014                        & Sí & Venue listado \\
+ARCURI2011     & ICSE 2011                         & Sí & Venue listado \\
+WANG2021       & Empirical Software Engineering 26 & Sí & JCR Q1 (SE) \\
+RUNESON2009    & Empirical Software Engineering 14(2) & Sí & JCR Q1 (SE) \\
+BALTES2022     & Empirical Software Engineering 27(4) & Sí & JCR Q1 (SE) \\
+ZHU1997        & ACM Computing Surveys 29(4)       & Sí & JCR Q1 \\
+PRISMA2021     & BMJ 372                           & Sí & JCR Q1 \\
+WILKINSON2016  & Scientific Data 3                 & Sí & JCR Q1 \\
+HEVNER2004     & MIS Quarterly 28(1)                & Sí & JCR Q1 (SI) \\
+PEFFERS2007    & J. of Management Information Systems 24(3) & Sí & JCR Q1/Q2 (SI) \\
+HAGIU2015      & Int. J. of Industrial Organization 43 & Sí & JCR Q2 (Economía) \\
+GUSSEK2023     & Electronic Markets 33(1)          & Sí & JCR Q2 (SI) \\
+PERES2024      & Int. J. of Research in Marketing 41(3) & Sí & JCR Q1 (Marketing) \\
+MONSALVE2023   & Applied Sciences (MDPI) 13(14)    & Sí & JCR Q2 \\
+KITCHENHAM2007 & EBSE Technical Report             & No & Informe técnico, no journal/conferencia \\
+RALPH2021      & ACM SIGSOFT Software Eng. Notes 46(1) & No & Boletín, no journal JCR \\
+BASILI1994     & Encyclopedia of Software Engineering & No & Entrada de enciclopedia \\
+BROOKE1996     & Usability Evaluation in Industry (cap. de libro) & No & Capítulo de libro \\
+BANGOR2009     & Journal of Usability Studies 4(3) & No & No indexada JCR \\
+WOHLIN2012     & Libro (Springer)                  & No & Libro, no journal/conferencia \\
+WULFERT2022    & SN Computer Science 3(3)          & No & Sin ranking JCR consolidado a la fecha \\
+COELLO2023     & Investigación, Tecnología e Innovación 15(19) & No & Revista regional, no indexada Scopus/JCR \\
+ASGAONKAR2019  & IEEE ICBC 2019                    & No & Venue de blockchain, no listado en la rúbrica \\
+POHL2010, WIEGERS2013, INCOSE2023, COCKBURN2000, BROWN2018, FIELDING2000, NYGARD2011 & Libros/guías/blog/disertación & No & Fuente primaria técnica, no journal/conferencia \\
+ISO29148, ISO25010, JWT2015, OWASP2021, OWASPSQLI & Estándares/RFC & N/A & Categoría aparte (normativa), no cuenta en el conteo de 30/20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Totales:} 37 referencias en \texttt{referencias.bib}; 32
+corresponden a literatura académica/técnica citable como parte del
+mínimo de 30 (excluye los 5 estándares/RFC, contados aparte); de esas 32,
+\textbf{16 se clasifican como ``alto impacto''} según el criterio
+estricto de la guía --- por debajo del mínimo de 20 exigido.
+\textbf{Esta brecha se declara honestamente}, igual que el resto del
+documento: no se reclasificaron referencias de forma optimista para
+alcanzar el número, y no se añadieron referencias de relevancia dudosa
+solo para acercarse al umbral (ver README.md, ``Por qué nos detuvimos en
+16''). Cerrar la brecha requiere la revisión de literatura reducida
+recomendada en el Capítulo~\ref{cap:trabajos-relacionados}~\S3.1 y en el
+Anexo~\ref{anexo:i}.

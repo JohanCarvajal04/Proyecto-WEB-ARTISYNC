@@ -17,19 +17,32 @@
 #   5. El 100% de los requisitos Must declarados en docs/requisitos/SRS.md
 #      (patron **REQ-F-NNN** / **REQ-NF-NNN**) aparecen en la matriz.
 #
-# Advertencias (no bloquean el script, pero se listan):
-#   - estado fuera del enum {pendiente, implementado, verificado} que declara A.3.3.
+# Verificaciones anadidas para el criterio D0R de la Entrega Final:
+#   6. Todo requisito Must esta en estado 'verificado'. Se admite la excepcion si
+#      el id figura en docs/trazabilidad/excepciones-estado.txt con su motivo: asi
+#      la deuda queda explicita y auditable en vez de invisible.
+#   7. Todo Must en estado 'verificado' tiene prueba_automatizada no vacia.
+#      Sin prueba no hay verificacion: solo implementacion.
+#   8. estado dentro del enum {pendiente, implementado, verificado} (antes era
+#      solo una advertencia).
+#   9. El estado de cada requisito coincide entre SRS.md y la matriz. La matriz
+#      es la fuente de verdad del estado; el SRS lo es del enunciado, la
+#      prioridad y el criterio de aceptacion.
+#  10. Ningun requisito Should queda en 'pendiente' (D0R admite solo
+#      'implementado' o 'verificado'), salvo excepcion declarada.
 #
 # Uso:
-#   scripts/validate-traceability.sh [ruta/a/matriz.csv] [ruta/a/SRS.md]
-# Por defecto usa docs/trazabilidad/matriz.csv y docs/requisitos/SRS.md relativos
-# a la raiz del repositorio (detectada con git rev-parse).
+#   scripts/validate-traceability.sh [ruta/a/matriz.csv] [ruta/a/SRS.md] [ruta/a/excepciones-estado.txt]
+# Por defecto usa docs/trazabilidad/matriz.csv, docs/requisitos/SRS.md y
+# docs/trazabilidad/excepciones-estado.txt relativos a la raiz del repositorio
+# (detectada con git rev-parse).
 
 set -uo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 MATRIZ="${1:-"$REPO_ROOT/docs/trazabilidad/matriz.csv"}"
 SRS="${2:-"$REPO_ROOT/docs/requisitos/SRS.md"}"
+EXCEPCIONES="${3:-"$REPO_ROOT/docs/trazabilidad/excepciones-estado.txt"}"
 
 EXPECTED_HEADER="id_requisito,tipo,prioridad_moscow,historia_usuario,caso_de_uso,modulo_codigo,endpoint_api,prueba_automatizada,tipo_acceso,evidencia_empirica,estado"
 
@@ -52,6 +65,37 @@ if [[ ! -f "$MATRIZ" ]]; then
 fi
 
 echo "== Validando $MATRIZ =="
+
+# --- Excepciones declaradas a la regla "Must => verificado" -------------
+declare -A must_exceptions
+if [[ -f "$EXCEPCIONES" ]]; then
+    while IFS= read -r linea || [[ -n "$linea" ]]; do
+        linea="${linea%%#*}"                       # descarta el motivo tras '#'
+        linea="${linea//[[:space:]]/}"             # y cualquier espacio
+        [[ -z "$linea" ]] && continue
+        must_exceptions[$linea]=1
+    done < "$EXCEPCIONES"
+    echo "  Excepciones Must declaradas: ${#must_exceptions[@]} (ver $(basename "$EXCEPCIONES"))"
+fi
+
+# --- Estados declarados en el SRS, para contrastarlos con la matriz -----
+declare -A srs_estado
+if [[ -f "$SRS" ]]; then
+    while IFS='=' read -r req_id req_estado; do
+        [[ -z "$req_id" ]] && continue
+        srs_estado[$req_id]="$req_estado"
+    done < <(awk '
+        match($0, /\*\*REQ-(F|NF)-[0-9][0-9][0-9]\*\*/) {
+            cur = substr($0, RSTART + 2, RLENGTH - 4)
+        }
+        cur != "" && match($0, /Estado:[[:space:]]*[a-zA-Z]+/) {
+            tok = substr($0, RSTART, RLENGTH)
+            sub(/Estado:[[:space:]]*/, "", tok)
+            print cur "=" tok
+            cur = ""
+        }
+    ' "$SRS")
+fi
 
 # --- 1. Cabecera exacta -------------------------------------------------
 actual_header="$(head -n1 "$MATRIZ" | tr -d '\r')"
@@ -90,16 +134,44 @@ while IFS=, read -r id_requisito tipo prioridad historia caso modulo endpoint pr
         fail "Fila $row_num ($id_requisito): prioridad_moscow '$prioridad' invalida (Must/Should/Could/Won't)."
     fi
 
-    # estado (advertencia, no bloqueante: el proyecto usa 'parcial' ademas del
-    # enum de la guia; se reporta para que el equipo decida formalizarlo o corregirlo)
+    # 8. estado dentro del enum de A.3.3 (bloqueante desde la Entrega Final)
     if [[ "$estado" != "pendiente" && "$estado" != "implementado" && "$estado" != "verificado" ]]; then
-        warn "Fila $row_num ($id_requisito): estado '$estado' fuera del enum {pendiente, implementado, verificado} de A.3.3."
+        fail "Fila $row_num ($id_requisito): estado '$estado' fuera del enum {pendiente, implementado, verificado} de A.3.3."
+    fi
+
+    # 9. El estado no puede divergir entre el SRS y la matriz
+    srs_val="${srs_estado[$id_requisito]:-}"
+    if [[ -n "$srs_val" && "$srs_val" != "$estado" ]]; then
+        fail "Fila $row_num ($id_requisito): estado '$estado' en la matriz pero '$srs_val' en SRS.md. La matriz es la fuente de verdad del estado: sincroniza el SRS."
     fi
 
     # Correspondencia obligatoria para requisitos Must
     if [[ "$prioridad" == "Must" ]]; then
         if [[ -z "$historia" && -z "$caso" && -z "$prueba" && -z "$evidencia" ]]; then
             fail "Fila $row_num ($id_requisito, Must): sin correspondencia en historia_usuario, caso_de_uso, prueba_automatizada ni evidencia_empirica."
+        fi
+
+        # 6. Must => verificado, salvo excepcion declarada con su motivo
+        if [[ "$estado" != "verificado" ]]; then
+            if [[ -z "${must_exceptions[$id_requisito]:-}" ]]; then
+                fail "Fila $row_num ($id_requisito, Must): estado '$estado'. El criterio D0R exige 'verificado'; si aun no es posible, declara el motivo en $(basename "$EXCEPCIONES")."
+            else
+                echo "  [NOTA]  $id_requisito (Must, '$estado'): no verificado, con excepcion declarada."
+            fi
+        else
+            # 7. No hay verificacion sin prueba automatizada que la sostenga
+            if [[ -z "$prueba" ]]; then
+                fail "Fila $row_num ($id_requisito, Must): estado 'verificado' con prueba_automatizada vacia. Sin prueba es 'implementado', no 'verificado'."
+            fi
+        fi
+    fi
+
+    # 10. Should => implementado o verificado (D0R), con la misma via de excepcion
+    if [[ "$prioridad" == "Should" && "$estado" == "pendiente" ]]; then
+        if [[ -z "${must_exceptions[$id_requisito]:-}" ]]; then
+            fail "Fila $row_num ($id_requisito, Should): estado 'pendiente'. El criterio D0R admite solo 'implementado' o 'verificado' para Should; si se deja fuera de la version, declara el motivo en $(basename "$EXCEPCIONES")."
+        else
+            echo "  [NOTA]  $id_requisito (Should, 'pendiente'): fuera de alcance de v1.0.0, con excepcion declarada."
         fi
     fi
 done < <(tail -n +2 "$MATRIZ" | tr -d '\r')

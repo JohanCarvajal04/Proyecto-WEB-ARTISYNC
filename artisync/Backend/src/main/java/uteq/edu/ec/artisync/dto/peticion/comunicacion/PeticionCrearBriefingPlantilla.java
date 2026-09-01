@@ -32,6 +32,7 @@ public class PeticionCrearBriefingPlantilla {
     public static class PreguntaRequest {
 
         @NotBlank(message = "El texto de la pregunta es obligatorio")
+        @Size(max = 500, message = "El texto de la pregunta no puede superar los 500 caracteres")
         private String textoPregunta;
 
         @NotNull(message = "El número de orden es obligatorio")

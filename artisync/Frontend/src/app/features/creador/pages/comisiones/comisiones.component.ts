@@ -3,13 +3,16 @@ import { RouterLink } from '@angular/router';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 import { formatPrice, formatDate, esEtapaActiva, badgeEtapa, mensajeError } from '../../utils/formato';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 type FiltroEstado = 'todos' | 'activos' | 'cerrados' | 'vencidos';
 
 @Component({
   selector: 'app-comisiones',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, BotonExportarComponent],
   templateUrl: './comisiones.component.html',
   styleUrl: './comisiones.component.css'
 })
@@ -65,8 +68,27 @@ export class ComisionesComponent implements OnInit {
 
   hayFiltros = computed(() => this.filtro() !== 'todos' || this.filtroEtapa() !== '' || this.busqueda() !== '');
 
+  readonly exportando = signal(false);
+
   ngOnInit(): void {
     this.cargar();
+  }
+
+  exportar(formato: FormatoReporte): void {
+    this.exportando.set(true);
+    // 1.4: exporta exactamente lo que ve el creador (comisionesFiltradas), no
+    // el total sin filtrar.
+    const idsPedido = this.comisionesFiltradas().map(c => c.idPedido);
+    this.pedidoService.exportarMisComisiones(formato, idsPedido).subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarRespuesta(respuesta, `comisiones.${formato.toLowerCase()}`);
+      },
+      error: async (err) => {
+        this.exportando.set(false);
+        this.error.set(await mensajeErrorBlob(err, 'No se pudo exportar tus comisiones'));
+      }
+    });
   }
 
   cargar(): void {

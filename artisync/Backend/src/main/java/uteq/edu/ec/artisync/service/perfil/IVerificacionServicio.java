@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.service.perfil;
 
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
 
@@ -25,4 +26,14 @@ public interface IVerificacionServicio {
     RespuestaVerificacion analizarConIa(Long idCertificado);
 
     RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador);
+
+    /**
+     * Gating de "publicar un servicio" (Creador) y "crear un pedido" (Cliente):
+     * ¿este usuario tiene una verificación de identidad (tipo IDENTIDAD) en
+     * estado APROBADO? Se usa desde otros módulos, no solo desde este.
+     */
+    boolean estaIdentidadVerificada(Long idUsuario);
+
+    /** Estado de identidad del propio usuario, para pintar el aviso en el frontend. */
+    RespuestaEstadoIdentidad obtenerEstadoIdentidad(Long idUsuario);
 }

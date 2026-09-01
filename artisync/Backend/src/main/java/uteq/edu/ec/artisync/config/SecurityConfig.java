@@ -49,7 +49,7 @@ public class SecurityConfig {
                     .maxAgeInSeconds(31536000)
                 )
                 .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;")
+                    .policyDirectives("default-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;")
                 )
                 .referrerPolicy(referrer -> referrer
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
@@ -61,15 +61,35 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/registro", "/api/auth/login", "/api/auth/2fa/verify",
-                                 "/api/auth/refresh", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/v1/catalogo/**", "/api/v1/categorias/**", 
-                                 "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/**", 
-                                 "/api/v1/creadores/**", "/api/v1/portafolios/**", "/api/paises", "/api/paises/**").permitAll()
+                .requestMatchers("/api/v1/auth/registro", "/api/v1/auth/login", "/api/v1/auth/2fa/verify",
+                                 "/api/v1/auth/refresh", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/catalog/**", "/api/v1/catalogo/**", "/api/v1/categorias/**",
+                                 "/api/v1/subcategorias/**", "/api/v1/etiquetas/**", "/api/v1/servicios/{id}",
+                                 "/api/v1/creadores/**", "/api/v1/portafolios/{id}", "/api/v1/portafolios/perfil/{id}",
+                                 "/api/v1/paises", "/api/v1/paises/**", "/api/v1/usuarios/foto/**").permitAll()
+                // Ficha pública del creador (M3 - página pública de servicios).
+                // Un solo segmento ("/*", no "/**") a propósito: deja fuera
+                // /api/v1/perfiles/usuario/{idUsuario} (expondría la
+                // correspondencia usuario->perfil) y /api/v1/perfiles (listado
+                // completo). RespuestaPerfil solo lleva id, nombres, biografía y
+                // red social, sin datos sensibles.
+                .requestMatchers(HttpMethod.GET, "/api/v1/perfiles/*").permitAll()
+                // Contador de visitas del portafolio: sin lógica de autorización
+                // (PortafolioServicio#incrementarVisitas), así que abrirlo a
+                // visitantes anónimos no cede nada que un usuario autenticado
+                // cualquiera no pudiera hacer ya.
+                .requestMatchers(HttpMethod.POST, "/api/v1/portafolios/*/visita").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**", "/api/docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
-                .requestMatchers("/ws/**", "/actuator/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/metrics/**", "/actuator/info").hasRole("ADMIN")
                 .requestMatchers("/api/webhooks/paypal").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/flujos/**").permitAll()
+                // Sin restricción propia: FlujoTrabajoControlador ya exige
+                // FLUJO_GESTIONAR/FLUJO_MODERAR/ADMIN método a método. Un
+                // matcher aquí con hasAnyRole("ADMIN","CREADOR") bloqueaba a
+                // MODERADOR con FLUJO_MODERAR (V31) antes de que el @PreAuthorize
+                // del método llegara a evaluarse — la puerta de URL era más
+                // estricta que la de negocio y ganaba siempre.
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )

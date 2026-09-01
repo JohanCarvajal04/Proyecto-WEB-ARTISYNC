@@ -1,0 +1,32 @@
+# Excepciones al estado minimo que exige la prioridad MoSCoW
+#
+# El criterio D0R de la guia de la Entrega Final exige:
+#   - todo requisito Must   -> estado 'verificado'
+#   - todo requisito Should -> estado 'implementado' o 'verificado'
+#   - los Could pueden quedar 'pendiente' si se justifican en trabajo futuro
+#
+# `scripts/validate-traceability.sh` lo comprueba de forma automatica y falla si
+# encuentra un requisito por debajo de su minimo que no este listado aqui.
+#
+# El proposito de este fichero es que la deuda quede EXPLICITA y auditable en
+# vez de invisible. Listar un requisito aqui no lo da por verificado: lo declara
+# como no verificado, con una razon concreta y una condicion de cierre.
+#
+# Formato: REQ-ID  # motivo por el que no alcanza su estado minimo
+#
+# Regla de uso: se admite una excepcion cuando la verificacion depende de una
+# condicion externa al codigo (un despliegue, un tercero, un instrumento de
+# medicion), o cuando el equipo decide conscientemente dejar fuera de v1.0.0 un
+# requisito no critico. Si lo unico que falta es escribir la prueba, no es una
+# excepcion: es trabajo pendiente.
+
+REQ-NF-001  # (Must) Redireccion HTTPS y rechazo de TLS < 1.2. El metodo de verificacion declarado en el SRS es analisis externo con SSL Labs, que exige un dominio publico accesible. El sistema aun no esta desplegado (Bloque A.4 / criterio P5), asi que la evidencia disponible (docs/mediciones/sec/a02-tls.txt) acredita la configuracion, no el comportamiento en produccion. Cierre: al desplegar, ejecutar el analisis y adjuntar el informe.
+
+REQ-NF-009  # (Must) Disponibilidad y reinicio automatico ante fallos. La politica `restart: unless-stopped` y los healthcheck estan declarados en los cinco servicios de artisync/docker-compose.yml, pero no existe una demostracion archivada de caida y recuperacion. Elevarlo a `verificado` sin esa evidencia seria inflar el estado. Cierre: provocar la caida de un contenedor, registrar la recuperacion automatica y archivar la salida en docs/mediciones/.
+
+# REQ-F-010 (Should) ya no esta aqui: la rodaja vertical (ComentarioPortafolioService/Impl,
+# ComentarioPortafolioControlador y AdminComentarioControlador) quedo implementada y probada
+# manualmente end-to-end (borrado logico vía estado_moderacion='Eliminado', consultable por
+# el administrador). Un Should con estado 'implementado' ya cumple su minimo sin excepcion.
+# Sigue pendiente escribir la prueba automatizada (unitaria/IT) — ver columna
+# prueba_automatizada de matriz.csv — para poder subirlo a 'verificado'.

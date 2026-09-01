@@ -7,19 +7,27 @@ import { RespuestaServicio } from '../../models/catalogo.model';
 // reutilizan en vez de duplicar los mismos dos endpoints.
 import { ResenaService } from '../../../creador/services/resena.service';
 import { RespuestaResena } from '../../../social/models/social.model';
+import { CATALOGO_BASE_PATH } from '../../catalogo.config';
+import { AuthService } from '../../../seguridad/services/auth.service';
+import { exigirSesion } from '../../../../core/utils/exigir-sesion';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-servicio-detalle',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './servicio-detalle.component.html'
 })
 export class ServicioDetalleComponent implements OnInit {
 
   private catalogoService = inject(CatalogoPublicoService);
   private resenaService = inject(ResenaService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
+  readonly base = inject(CATALOGO_BASE_PATH);
 
   readonly servicio = signal<RespuestaServicio | null>(null);
   readonly resenas = signal<RespuestaResena[]>([]);
@@ -65,6 +73,10 @@ export class ServicioDetalleComponent implements OnInit {
   solicitarServicio(): void {
     const servicio = this.servicio();
     if (!servicio) return;
+
+    const returnUrl = `/pedido/crear?idServicio=${servicio.idServicio}`;
+    if (!exigirSesion(this.authService, this.router, returnUrl, 'contratar')) return;
+
     this.router.navigate(['/pedido/crear'], { queryParams: { idServicio: servicio.idServicio } });
   }
 
@@ -72,9 +84,6 @@ export class ServicioDetalleComponent implements OnInit {
     return Array.from({ length: 5 }, (_, i) => i < calificacion);
   }
 
-  formatPrice(precio: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio);
-  }
 
   formatDate(fecha: string): string {
     if (!fecha) return '—';

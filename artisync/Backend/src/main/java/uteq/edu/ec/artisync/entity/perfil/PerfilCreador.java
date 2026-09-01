@@ -32,4 +32,12 @@ public class PerfilCreador {
     @Size(max = 255, message = "La URL de la red social no puede superar los 255 caracteres")
     @Column(name = "url_red_social", length = 255)
     private String urlRedSocial;
+
+    @Size(max = 500, message = "La URL de la portada no puede superar los 500 caracteres")
+    @Column(name = "url_portada", length = 500)
+    private String urlPortada;
+
+    @Size(max = 150, message = "El titulo profesional no puede superar los 150 caracteres")
+    @Column(name = "titulo_profesional", length = 150)
+    private String tituloProfesional;
 }

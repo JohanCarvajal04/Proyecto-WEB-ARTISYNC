@@ -105,17 +105,24 @@ export interface RespuestaPerfil {
   apellidosUsuario: string;
   biografia: string | null;
   urlRedSocial: string | null;
+  urlPortada?: string | null;
+  urlFotoPerfil?: string | null;
+  tituloProfesional?: string | null;
+  /** Verificación de identidad real (CertificadoIa tipo IDENTIDAD, estado APROBADO). */
+  identidadVerificada?: boolean;
 }
 
 export interface PeticionCrearPerfil {
   idUsuario: number;
   biografia?: string | null;
   urlRedSocial?: string | null;
+  tituloProfesional?: string | null;
 }
 
 export interface PeticionActualizarPerfil {
   biografia?: string | null;
   urlRedSocial?: string | null;
+  tituloProfesional?: string | null;
 }
 
 // ── Certificados de uso de IA ──

@@ -1,0 +1,116 @@
+<div class="flex flex-col gap-6">
+
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-[#1E0F38] font-headline">Reporte financiero</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        Comisiones por creador: bruto, comisión, neto y detalle de transacciones.
+      </p>
+    </div>
+
+    <app-boton-exportar permiso="REPORTE_FINANCIERO_EXPORTAR" [cargando]="exportando()"
+      [deshabilitado]="!filtro().idPerfil" (exportar)="exportar($event)" />
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <input type="number" placeholder="Id. perfil del creador" required
+        [ngModel]="filtro().idPerfil" (ngModelChange)="actualizarFiltro('idPerfil', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <input type="datetime-local" placeholder="Desde"
+        [ngModel]="filtro().desde" (ngModelChange)="actualizarFiltro('desde', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <input type="datetime-local" placeholder="Hasta"
+        [ngModel]="filtro().hasta" (ngModelChange)="actualizarFiltro('hasta', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <input type="number" step="0.01" placeholder="Tasa de comisión (opcional)"
+        [ngModel]="filtro().tasaComision" (ngModelChange)="actualizarFiltro('tasaComision', $event)"
+        class="px-4 py-2 bg-slate-50 text-slate-800 border border-purple-200/60 rounded-full text-sm transition-all duration-300 focus:outline-none focus:bg-white focus:border-purple-400 focus:ring-4 focus:ring-purple-500/15 shadow-sm hover:border-purple-300" />
+
+      <div class="flex gap-2">
+        <button type="button" (click)="consultar()"
+          class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-[#7B39B2] hover:opacity-90 transition-opacity">
+          Consultar
+        </button>
+        <button type="button" (click)="limpiar()"
+          class="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors">
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    @if (error()) {
+      <p class="text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-4 py-2 mt-3">{{ error() }}</p>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+    </div>
+  } @else if (reporte(); as r) {
+    <!-- Tarjetas de totales -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monto bruto</p>
+        <p class="text-2xl font-bold text-slate-800 mt-1">{{ r.montoBruto | number: '1.2-2' }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Comisión ({{ r.tasaComision }})</p>
+        <p class="text-2xl font-bold text-rose-600 mt-1">{{ r.comision | number: '1.2-2' }}</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monto neto</p>
+        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ r.montoNeto | number: '1.2-2' }}</p>
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-400">
+      {{ r.totalPedidos }} pedido(s) · {{ r.totalOperaciones }} operación(es) registrada(s)
+    </p>
+
+    <!-- Tabla de detalle -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-4">Fecha</th>
+              <th class="px-6 py-4">Id. transacción</th>
+              <th class="px-6 py-4">Id. pedido</th>
+              <th class="px-6 py-4">Servicio</th>
+              <th class="px-6 py-4">Tipo</th>
+              <th class="px-6 py-4 text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (d of r.detalle; track d.idTransaccion) {
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{{ d.fechaEjecucion | date: 'short' }}</td>
+                <td class="px-6 py-4 font-mono text-xs">{{ d.idTransaccion }}</td>
+                <td class="px-6 py-4 font-mono text-xs">{{ d.idPedido ?? '—' }}</td>
+                <td class="px-6 py-4">{{ d.servicio || '—' }}</td>
+                <td class="px-6 py-4 text-xs text-slate-400">{{ d.tipo || '—' }}</td>
+                <td class="px-6 py-4 text-right font-mono">{{ d.monto | number: '1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                  <p>Sin transacciones en el rango seleccionado.</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  } @else {
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm py-16 text-center text-slate-400">
+      <p class="text-sm">Indica el id de perfil de un creador y pulsa "Consultar" para generar el reporte.</p>
+    </div>
+  }
+</div>

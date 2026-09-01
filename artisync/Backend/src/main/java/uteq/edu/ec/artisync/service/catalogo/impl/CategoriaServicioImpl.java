@@ -3,6 +3,8 @@ package uteq.edu.ec.artisync.service.catalogo.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
@@ -15,6 +17,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
+import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
@@ -28,6 +31,7 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
     private final FlujoTrabajoRepository flujoTrabajoRepository;
+    private final ServicioRepository servicioRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -57,6 +61,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CATEGORIA_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "categorias", idEntidad = "#resultado.idCategoria",
+            detalle = "{nombreCategoria: #peticion.nombreCategoria}")
     public RespuestaCategoria crearCategoria(PeticionCrearCategoria peticion) {
         if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {
             throw new ExcepcionReglaNegocio("Ya existe una categoria con el nombre: " + peticion.getNombreCategoria());
@@ -72,6 +79,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CATEGORIA_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "categorias", idEntidad = "#idCategoria",
+            detalle = "{nombreCategoria: #peticion.nombreCategoria, estadoActiva: #peticion.estadoActiva}")
     public RespuestaCategoria actualizarCategoria(Long idCategoria, PeticionActualizarCategoria peticion) {
         Categoria cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria));
@@ -95,9 +105,19 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "CATEGORIA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "categorias", idEntidad = "#idCategoria")
     public void eliminarCategoria(Long idCategoria) {
         if (!categoriaRepository.existsById(idCategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria);
+        }
+        // subcategorias.id_categoria cascada al borrar la categoria, pero
+        // servicios.id_subcategoria NO cascada desde subcategorias: si alguna
+        // subcategoria de esta categoria tiene servicios, el DELETE fallaria
+        // a mitad de camino con una DataIntegrityViolationException cruda.
+        if (servicioRepository.existsBySubcategoriaCategoriaIdCategoria(idCategoria)) {
+            throw new ExcepcionReglaNegocio(
+                    "No se puede eliminar la categoria: tiene servicios publicados en alguna de sus subcategorias.");
         }
         categoriaRepository.deleteById(idCategoria);
     }
@@ -125,6 +145,9 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "SUBCATEGORIA_CREAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "subcategorias", idEntidad = "#resultado.idSubcategoria",
+            detalle = "{idCategoria: #peticion.idCategoria, nombreSubcategoria: #peticion.nombreSubcategoria}")
     public RespuestaSubcategoria crearSubcategoria(PeticionCrearSubcategoria peticion) {
         Categoria cat = categoriaRepository.findById(peticion.getIdCategoria())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + peticion.getIdCategoria()));
@@ -144,9 +167,15 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "SUBCATEGORIA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "subcategorias", idEntidad = "#idSubcategoria")
     public void eliminarSubcategoria(Long idSubcategoria) {
         if (!subcategoriaRepository.existsById(idSubcategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + idSubcategoria);
+        }
+        if (servicioRepository.existsBySubcategoriaIdSubcategoria(idSubcategoria)) {
+            throw new ExcepcionReglaNegocio(
+                    "No se puede eliminar la subcategoria: tiene servicios publicados.");
         }
         subcategoriaRepository.deleteById(idSubcategoria);
     }

@@ -12,7 +12,7 @@ En este nivel se abre la caja negra del sistema para mostrar los **contenedores 
 | Contenedor | Identificador Docker | Stack Tecnológico | Responsabilidad Principal |
 | :--- | :--- | :--- | :--- |
 | **Aplicación Web SPA (Frontend)** | `pfc_frontend` <br> *(Puerto 4200 / 80)* | **Angular 22**, TypeScript, HTML5/SCSS, RxJS, Nginx | Proporciona la interfaz de usuario web responsiva de página única (SPA). Permite a Clientes, Artistas y Administradores autenticarse (2FA, JWT), explorar el catálogo dinámico, contratar servicios, gestionar hitos y tickets, y participar en la comunidad social. |
-| **Servidor API REST (Backend)** | `pfc_backend` <br> *(Puerto 8080)* | **Java 25**, **Spring Boot 4.0.1**, Spring Security 6, Spring Data JPA / Hibernate, Flyway, Maven | Núcleo transaccional de la plataforma. Expone los endpoints RESTful documentados con OpenAPI/Swagger (`/api/docs`). Orquesta los 7 módulos funcionales (`seguridad`, `perfil`, `catalogo`, `pedido`, `legal`, `comunicacion`, `social`), gestiona transacciones ACID (`@Transactional`) y valida la seguridad sin estado con tokens JWT y consulta a Redis. |
+| **Servidor API REST (Backend)** | `pfc_backend` <br> *(Puerto 8080)* | **Java 21**, **Spring Boot 4.1.0**, Spring Security 6, Spring Data JPA / Hibernate, Flyway, Maven | Núcleo transaccional de la plataforma. Expone los endpoints RESTful documentados con OpenAPI/Swagger (`/api/docs`). Orquesta los 7 módulos funcionales (`seguridad`, `perfil`, `catalogo`, `pedido`, `legal`, `comunicacion`, `social`), gestiona transacciones ACID (`@Transactional`) y valida la seguridad sin estado con tokens JWT y consulta a Redis. |
 | **Base de Datos Relacional** | `pfc_postgres` <br> *(Puerto 5432)* | **PostgreSQL 16** <br> *(Volumen: `pfc_postgres_data`)* | Almacén principal persistente y transaccional del sistema. Contiene los esquemas y tablas normalizadas (`usuarios`, `roles`, `pedidos`, `flujo_trabajos`, `pago_garantias`, etc.) gestionados y versionados estrictamente por migraciones de **Flyway** (`db/migration`). |
 | **Almacén en Memoria / Caché** | `pfc_redis` <br> *(Puerto 6379)* | **Redis 7 Alpine** <br> *(Estructuras clave-valor in-memory)* | Almacén de ultra-baja latencia O(1). Mantiene la **Blacklist de tokens JWT** (`jti:<token>` con TTL según tiempo restante de expiración) y sesiones revocadas para permitir *logout* inmediato y bloqueo ante compromisos (`SessionRevocationService`). Implementa también el patrón **Cache-Aside** para el catálogo de servicios frecuentemente consultado. |
 
@@ -23,7 +23,7 @@ En este nivel se abre la caja negra del sistema para mostrar los **contenedores 
 | :--- | :--- | :--- |
 | **Servidor SMTP Transaccional** | **SMTP / TLS** (Puerto 587) <br> *Spring Boot Starter Mail (`EmailService`)* | Envío asíncrono (`@Async`) de plantillas HTML renderizadas con **Thymeleaf**: verificación de cuenta, códigos de autenticación 2FA, reseteo de contraseñas y alertas de hitos de pedidos. |
 | **Pasarela PayPal (API v2 & Webhooks)** | **HTTPS / REST JSON** <br> *(PayPal Orders v2 / `PayPalConfig`)* | Procesamiento de pagos seguros. Gestión de retención de fondos en garantía (*Escrow* en `PagoGarantia`), capturas al aprobar entregables y recepción de Webhooks asíncronos para actualizar estados transaccionales en tiempo real. |
-| **Almacenamiento Cloud / CDN** | **HTTPS / REST API** <br> *(Cloud Storage: S3 / Cloudinary)* | Almacenamiento externo escalable para imágenes multimedia de portafolio artístico, banners de perfiles, archivos adjuntos en el chat y entregables creativos de alta capacidad (`.zip`, `.psd`, `.mp4`). |
+| **Almacenamiento Cloud / CDN** | **HTTPS / REST API** <br> *(Azure Blob Storage)* | Almacenamiento externo escalable para imágenes multimedia de portafolio artístico, banners de perfiles, archivos adjuntos en el chat y entregables creativos de alta capacidad (`.zip`, `.psd`, `.mp4`). |
 
 ---
 
@@ -47,7 +47,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagra
             
             webApp = container "Aplicación Web SPA (Frontend)" "Proporciona la interfaz gráfica interactiva, responsiva y orientada a componentes para todos los perfiles de usuario." "Angular 22 / TypeScript / Nginx" "WebBrowser"
             
-            apiServer = container "Servicio API REST (Backend)" "Orquesta la lógica de negocio modular, autenticación JWT, seguridad e integración externa." "Java 25 / Spring Boot 4.0.1 / Spring Security 6" "Backend"
+            apiServer = container "Servicio API REST (Backend)" "Orquesta la lógica de negocio modular, autenticación JWT, seguridad e integración externa." "Java 21 / Spring Boot 4.1.0 / Spring Security 6" "Backend"
             
             db = container "Base de Datos Relacional" "Almacena los esquemas relacionales, datos de usuarios, pedidos, hitos y contratos migradas con Flyway." "PostgreSQL 16" "Database"
             
@@ -70,7 +70,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagra
         apiServer -> smtpSystem "Envía correos asíncronos (@Async) con plantillas Thymeleaf" "SMTP / TLS / Puerto 587"
         apiServer -> paypalSystem "Crea órdenes y gestiona depósitos de garantía Escrow" "HTTPS / REST JSON v2"
         paypalSystem -> apiServer "Envía notificaciones de pago confirmadas o disputadas" "HTTPS / Webhooks (POST)"
-        apiServer -> cloudStorageSystem "Sube y genera URLs pre-firmadas para recursos multimedia" "HTTPS / REST S3"
+        apiServer -> cloudStorageSystem "Sube y genera URLs pre-firmadas para recursos multimedia" "HTTPS / REST Azure"
     }
 
     views {
@@ -115,7 +115,7 @@ Person(admin, "Administrador de la Plataforma", "Modera catálogos, gestiona usu
 System_Boundary(artisync_boundary, "Plataforma Artisync (PFC)") {
     Container(frontend, "Aplicación Web SPA", "Angular 22, TypeScript, Nginx", "Interfaz de usuario responsiva. Gestiona flujos de navegación, autenticación, formularios, carga de archivos y visualización del portafolio.")
     
-    Container(backend, "Servidor API REST", "Java 25, Spring Boot 4.0.1, Spring Security 6, Hibernate", "Orquestador central. Lógica de negocio de los 7 módulos, validación de reglas, autenticación sin estado JWT y gestión de transacciones.")
+    Container(backend, "Servidor API REST", "Java 21, Spring Boot 4.1.0, Spring Security 6, Hibernate", "Orquestador central. Lógica de negocio de los 7 módulos, validación de reglas, autenticación sin estado JWT y gestión de transacciones.")
     
     ContainerDb(db, "Base de Datos Relacional", "PostgreSQL 16 (pfc_postgres:5432)", "Almacén de datos persistente y relacional (ACID). Contiene usuarios, roles, pedidos, contratos y migraciones de Flyway.")
     
@@ -124,7 +124,7 @@ System_Boundary(artisync_boundary, "Plataforma Artisync (PFC)") {
 
 System_Ext(smtp, "Servicio de Correo Transaccional", "SMTP TLS (Puerto 587) - Envio de correos 2FA y plantillas de recuperación.")
 System_Ext(paypal, "Pasarela de Pagos (PayPal API v2)", "HTTPS / REST JSON - Procesamiento de órdenes y retención de depósitos Escrow.")
-System_Ext(storage, "Almacenamiento Cloud / CDN", "HTTPS / REST S3 - Persistencia de archivos pesados multimedia del portafolio y entregables.")
+System_Ext(storage, "Almacenamiento Cloud / CDN", "HTTPS / REST Azure - Persistencia de archivos pesados multimedia del portafolio y entregables.")
 
 Rel(cliente, frontend, "Explora catálogo, cotiza, paga en garantía y revisa hitos", "HTTPS / Puerto 4200/443")
 Rel(artista, frontend, "Publica servicios, sube avances de pedidos y cobra", "HTTPS / Puerto 4200/443")
@@ -159,7 +159,7 @@ flowchart TB
         direction TB
         FE["🌐 Aplicación Web SPA (Frontend)<br>----------------------------------------<br>Angular 22 / TypeScript / Nginx<br>Puerto: 4200 / 80"]
         
-        BE["⚙️ Servidor API REST (Backend)<br>----------------------------------------<br>Java 25 / Spring Boot 4.0.1 / Security 6<br>Puerto: 8080 (REST JSON)"]
+        BE["⚙️ Servidor API REST (Backend)<br>----------------------------------------<br>Java 21 / Spring Boot 4.1.0 / Security 6<br>Puerto: 8080 (REST JSON)"]
         
         subgraph DataTier["Persistencia & Caché de Alta Velocidad"]
             DB[("🗄️ Base de Datos Relacional<br>-------------------------<br>PostgreSQL 16 (pfc_postgres)<br>Puerto: 5432 / Flyway")]

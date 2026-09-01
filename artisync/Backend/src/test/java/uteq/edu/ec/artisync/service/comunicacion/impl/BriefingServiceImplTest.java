@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
+import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
@@ -62,9 +63,14 @@ class BriefingServiceImplTest {
                 .usuario(usuarioCreador)
                 .build();
 
+        // ValidadorPertenenciaPedido evalúa cliente y creador sin cortocircuito,
+        // así que el pedido necesita un servicio/perfil/usuario completos aunque
+        // el caso bajo prueba solo ejercite la ruta del cliente.
+        Servicio servicioPedido = Servicio.builder().idServicio(1L).perfil(perfilCreador).build();
         pedido = Pedido.builder()
                 .idPedido(10L)
                 .usuarioCliente(Usuario.builder().idUsuario(2L).build())
+                .servicio(servicioPedido)
                 .build();
     }
 
@@ -169,8 +175,50 @@ class BriefingServiceImplTest {
     void obtenerBriefing_noExiste_lanzaExcepcion() {
         when(enviadoRepo.findByPedidoIdPedido(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> briefingService.obtenerBriefing(99L))
+        assertThatThrownBy(() -> briefingService.obtenerBriefing(99L, 2L))
                 .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerBriefing — el cliente del pedido puede consultarlo")
+    void obtenerBriefing_cliente_puedeConsultar() {
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .idBriefingEnviado(20L)
+                .pedido(pedido) // cliente idUsuario=2
+                .plantilla(BriefingPlantilla.builder().preguntas(new ArrayList<>()).build())
+                .completado(false)
+                .build();
+        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
+
+        assertThat(briefingService.obtenerBriefing(10L, 2L)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("obtenerBriefing — el creador del servicio puede consultarlo")
+    void obtenerBriefing_creador_puedeConsultar() {
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .idBriefingEnviado(20L)
+                .pedido(pedido) // servicio.perfil.usuario idUsuario=1 (usuarioCreador)
+                .plantilla(BriefingPlantilla.builder().preguntas(new ArrayList<>()).build())
+                .completado(false)
+                .build();
+        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
+
+        assertThat(briefingService.obtenerBriefing(10L, 1L)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("obtenerBriefing — usuario ajeno al pedido recibe AccessDenied")
+    void obtenerBriefing_usuarioAjeno_lanzaAccessDenied() {
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .idBriefingEnviado(20L)
+                .pedido(pedido) // cliente=2, creador=1
+                .completado(false)
+                .build();
+        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
+
+        assertThatThrownBy(() -> briefingService.obtenerBriefing(10L, 999L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test
@@ -185,4 +233,5 @@ class BriefingServiceImplTest {
                 .isInstanceOf(ExcepcionReglaNegocio.class)
                 .hasMessageContaining("Ya se envió");
     }
+
 }

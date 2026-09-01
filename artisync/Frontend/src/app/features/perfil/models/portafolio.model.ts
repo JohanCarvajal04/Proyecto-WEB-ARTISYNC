@@ -6,6 +6,24 @@ export interface OpcionesPersonalizacion {
   surface: string;
 }
 
+/** Paleta usada cuando un creador no ha personalizado su portafolio. */
+export const COLORES_POR_DEFECTO: OpcionesPersonalizacion = {
+  primary: '#0F9B8E',
+  secondary: '#203A43',
+  bg: '#EFF2F7',
+  text: '#1E293B',
+  surface: '#FFFFFF'
+};
+
+/** Campos editables de personalización, en el orden en que se muestran. */
+export const CAMPOS_COLOR_PORTAFOLIO: { clave: keyof OpcionesPersonalizacion; etiqueta: string; ayuda: string }[] = [
+  { clave: 'primary', etiqueta: 'Color primario', ayuda: 'Botones y acentos' },
+  { clave: 'secondary', etiqueta: 'Color secundario', ayuda: 'Cabeceras y detalles' },
+  { clave: 'bg', etiqueta: 'Fondo', ayuda: 'Lienzo de la página' },
+  { clave: 'surface', etiqueta: 'Superficie', ayuda: 'Tarjetas y bloques' },
+  { clave: 'text', etiqueta: 'Texto', ayuda: 'Color principal de lectura' }
+];
+
 export interface Portafolio {
   idPortafolio: number;
   idPerfil: number;

@@ -216,6 +216,32 @@ class PortafolioItemServicioImplTest {
         verify(almacenamiento, never()).leer(anyString());
     }
 
+    // ── Edición ──────────────────────────────────────────────────────────────
+
+    @Test
+    void actualizarItem_porElDuenio_cambiaTituloYDescripcion() {
+        PortafolioItem existente = item("portafolio/obra.png");
+        when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(existente));
+        when(itemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(almacenamiento.urlTemporal("portafolio/obra.png")).thenReturn(Optional.empty());
+
+        RespuestaPortafolioItem respuesta = servicio.actualizarItem(
+                ID_ITEM, ID_DUENIO, new PeticionCrearPortafolioItem("Nuevo título", "Nueva descripción"));
+
+        assertThat(respuesta.tituloObra()).isEqualTo("Nuevo título");
+        assertThat(respuesta.descripcionObra()).isEqualTo("Nueva descripción");
+    }
+
+    @Test
+    void actualizarItem_porQuienNoEsElDuenio_esRechazado() {
+        when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.png")));
+
+        assertThrows(ExcepcionReglaNegocio.class,
+                () -> servicio.actualizarItem(ID_ITEM, ID_OTRO, datos()));
+
+        verify(itemRepository, never()).save(any());
+    }
+
     // ── Eliminacion ──────────────────────────────────────────────────────────
 
     @Test

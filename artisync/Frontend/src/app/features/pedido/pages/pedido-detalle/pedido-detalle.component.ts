@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { interval, Subscription, switchMap, of, catchError } from 'rxjs';
@@ -7,20 +7,25 @@ import { TicketRevisionService } from '../../services/ticket-revision.service';
 import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision } from '../../models/pedido.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { EntregableService } from '../../../legal/services/entregable.service';
+import { ContratoService } from '../../../legal/services/contrato.service';
+import { RespuestaContrato } from '../../../legal/models/legal.model';
 import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedido/chat-pedido.component';
 import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
 import { ResenaFormComponent } from '../../../social/components/resena-form/resena-form.component';
+import { ToastService } from '../../../../core/services/toast.service';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-pedido-detalle',
   standalone: true,
-  imports: [FormsModule, RouterLink, ChatPedidoComponent, BriefingPedidoComponent, ResenaFormComponent],
+  imports: [FormsModule, RouterLink, ChatPedidoComponent, BriefingPedidoComponent, ResenaFormComponent, MonedaPipe],
   templateUrl: './pedido-detalle.component.html'
 })
 export class PedidoDetalleComponent implements OnInit, OnDestroy {
   pedido: RespuestaPedido | null = null;
   seguimiento: RespuestaSeguimientoPedido | null = null;
   tickets: RespuestaTicketRevision[] = [];
+  contrato: RespuestaContrato | null = null;
   loading = true;
   error = '';
 
@@ -47,8 +52,11 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     private pedidoService: PedidoService,
     private ticketService: TicketRevisionService,
     private entregableService: EntregableService,
+    private contratoService: ContratoService,
     public authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -62,6 +70,12 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       switchMap(() => this.pedidoService.obtenerSeguimiento(this.pedidoId).pipe(catchError(() => of(null))))
     ).subscribe(seg => {
       if (seg) this.seguimiento = seg;
+      // La app corre con detección de cambios zoneless: varias peticiones HTTP
+      // concurrentes en ngOnInit más este polling en segundo plano dejaban la
+      // vista pintada con datos viejos (o con el spinner) aunque el estado ya
+      // se hubiera actualizado, porque ninguna fuente rastreada por Angular
+      // disparaba el siguiente tick. markForCheck lo fuerza explícitamente.
+      this.cdr.markForCheck();
     });
   }
 
@@ -75,25 +89,49 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
       next: (pedido) => {
         this.pedido = pedido;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.error = err.error?.message || 'Error al cargar el pedido';
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
 
     this.pedidoService.obtenerSeguimiento(this.pedidoId).subscribe({
-      next: (seg) => this.seguimiento = seg
+      next: (seg) => {
+        this.seguimiento = seg;
+        this.cdr.markForCheck();
+      },
+      // El polling de más abajo lo reintenta cada 5s, pero si la primera carga
+      // falla el usuario no debe quedarse sin ninguna pista de por qué no ve nada.
+      error: () => this.toast.error('No se pudo cargar el seguimiento del pedido')
     });
 
     this.ticketService.listarTickets(this.pedidoId).subscribe({
-      next: (tickets) => this.tickets = tickets
+      next: (tickets) => {
+        this.tickets = tickets;
+        this.cdr.markForCheck();
+      },
+      error: () => this.toast.error('No se pudieron cargar los tickets de revisión')
     });
 
     // Un 404 aquí solo significa que aún no hay entregable para este pedido.
     this.entregableService.obtenerEntregable(this.pedidoId)
       .pipe(catchError(() => of(null)))
-      .subscribe(entregable => this.entregaAprobada = entregable?.estaLiberado === true);
+      .subscribe(entregable => {
+        this.entregaAprobada = entregable?.estaLiberado === true;
+        this.cdr.markForCheck();
+      });
+
+    // 404 aquí = contrato aún no generado; también es la señal de que la
+    // negociación de términos sigue abierta.
+    this.contratoService.obtenerContratoPorPedido(this.pedidoId)
+      .pipe(catchError(() => of(null)))
+      .subscribe(contrato => {
+        this.contrato = contrato;
+        this.cdr.markForCheck();
+      });
   }
 
   avanzarEtapa(): void {
@@ -109,7 +147,9 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (err) => {
-        this.error = err.error?.message || 'No se pudo avanzar la etapa';
+        // El backend responde ProblemDetail (RFC 7807): el mensaje va en
+        // `detail`, no en `message`.
+        this.error = err.error?.detail || 'No se pudo avanzar la etapa';
         this.avanzando = false;
       }
     });
@@ -117,6 +157,17 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
 
   crearTicket(): void {
     if (this.creandoTicket) return;
+
+    // El botón solo comprobaba que la cadena no estuviera vacía, así que
+    // un textarea con puros espacios pasaba igual (string no vacía) y el
+    // backend quedaba como única línea de defensa real.
+    const descripcion = this.nuevoTicket.descripcionCliente.trim();
+    if (!descripcion) {
+      this.error = 'Describe el motivo de la revisión.';
+      return;
+    }
+    this.nuevoTicket.descripcionCliente = descripcion;
+
     this.creandoTicket = true;
 
     this.ticketService.crearTicket(this.pedidoId, this.nuevoTicket).subscribe({
@@ -127,7 +178,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         this.creandoTicket = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al crear ticket';
+        this.error = err.error?.detail || 'Error al crear ticket';
         this.creandoTicket = false;
       }
     });
@@ -142,12 +193,22 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Por identidad (idCreador de ESTE pedido), no por rol global: el backend
+   * tampoco da paso libre a ADMIN en avanzarEtapa/aprobarEntrega/etc (ver
+   * PedidoServicioImpl, EntregableServicioImpl — todo por identidad, sin
+   * excepción para ADMIN), así que un rol global aquí solo lograba mostrar
+   * botones que el servidor iba a rechazar de todas formas. Además, una
+   * cuenta con ambos roles CLIENTE y CREADOR (el admin puede asignar los dos)
+   * veía secciones de "creador" en un pedido donde en realidad es el
+   * cliente, solo por tener ese rol en otro servicio suyo.
+   */
   get esCreador(): boolean {
-    return this.authService.hasAnyRole('CREADOR', 'ADMIN');
+    return this.pedido?.idCreador === this.authService.getCurrentUserId();
   }
 
   get esCliente(): boolean {
-    return this.authService.hasAnyRole('CLIENTE', 'ADMIN');
+    return this.pedido?.idCliente === this.authService.getCurrentUserId();
   }
 
   get progresoRedondeado(): number {
@@ -170,9 +231,6 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     });
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
 
   getTicketBadge(estado: string): string {
     switch (estado?.toLowerCase()) {

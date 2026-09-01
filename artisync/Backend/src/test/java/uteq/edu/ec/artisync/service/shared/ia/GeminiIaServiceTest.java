@@ -3,6 +3,7 @@ package uteq.edu.ec.artisync.service.shared.ia;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestToUriTemplate;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class GeminiIaServiceTest {
@@ -61,5 +63,27 @@ class GeminiIaServiceTest {
 
         assertThrows(ExcepcionServicioIaNoDisponible.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+    }
+
+    @Test
+    void verificarIdentidad_geminiResponde429_esReintentable() {
+        servidorSimulado.expect(method(org.springframework.http.HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+        ExcepcionServicioIaNoDisponible error = assertThrows(ExcepcionServicioIaNoDisponible.class,
+                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+
+        assertThat(error.isReintentable()).isTrue();
+    }
+
+    @Test
+    void verificarIdentidad_geminiResponde401_noEsReintentable() {
+        servidorSimulado.expect(method(org.springframework.http.HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+
+        ExcepcionServicioIaNoDisponible error = assertThrows(ExcepcionServicioIaNoDisponible.class,
+                () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
+
+        assertThat(error.isReintentable()).isFalse();
     }
 }

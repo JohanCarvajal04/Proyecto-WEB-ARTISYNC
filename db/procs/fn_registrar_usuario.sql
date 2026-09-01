@@ -6,12 +6,14 @@
 -- valida que el correo no exista, valida mayoria de edad (RNF-12, >= 18 anios),
 -- valida que el rol solicitado sea uno de los permitidos en auto-registro
 -- (CLIENTE o CREADOR), inserta la fila en usuarios, la asociacion en
--- usuario_roles y, si el rol es CREADOR, el perfil de creador inicial.
+-- usuario_roles y, si el rol es CREADOR, el perfil de creador inicial junto
+-- con su portafolio inicial.
 --
--- Por que en el motor y no en AuthServiceImpl.register: son cuatro lecturas/
+-- Por que en el motor y no en AuthServiceImpl.register: son varias lecturas/
 -- escrituras (existsByCorreo, findByNombreRol, insert usuario, insert
--- usuario_roles, insert perfil opcional) que deben ser atomicas: si el perfil
--- de creador fallara tras crear el usuario, quedaria una cuenta sin perfil.
+-- usuario_roles, insert perfil y portafolio opcionales) que deben ser atomicas:
+-- si el perfil o el portafolio de creador fallaran tras crear el usuario,
+-- quedaria una cuenta sin perfil o sin portafolio.
 -- Resolverlo en el motor evita el patron de multiples idas y vueltas y las
 -- inconsistencias parciales que un rollback incompleto en Java podria dejar.
 --
@@ -40,6 +42,7 @@ AS $$
 DECLARE
     v_id_usuario BIGINT;
     v_id_rol     BIGINT;
+    v_id_perfil  BIGINT;
     v_nombre_rol VARCHAR(50) := UPPER(p_nombre_rol);
 BEGIN
     IF p_correo IS NULL OR p_contrasena_hash IS NULL OR p_fecha_nacimiento IS NULL THEN
@@ -78,7 +81,17 @@ BEGIN
 
     IF v_nombre_rol = 'CREADOR' THEN
         INSERT INTO perfiles_creadores (id_usuario, biografia)
-        VALUES (v_id_usuario, 'Hola! Soy un creador en ARTISYNC.');
+        VALUES (v_id_usuario, 'Hola! Soy un creador en ARTISYNC.')
+        RETURNING id_perfil INTO v_id_perfil;
+
+        INSERT INTO portafolios (id_perfil, opciones_personalizacion)
+        VALUES (v_id_perfil, jsonb_build_object(
+            'primary', '#0d6efd',
+            'secondary', '#6c757d',
+            'bg', '#f8f9fa',
+            'text', '#212529',
+            'surface', '#ffffff'
+        ));
     END IF;
 
     RETURN v_id_usuario;
@@ -86,4 +99,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_registrar_usuario(VARCHAR, VARCHAR, VARCHAR, VARCHAR, DATE, VARCHAR)
-    IS 'REQ-F-001 - Insercion multi-tabla: registra usuario + usuario_roles + perfil de creador opcional, validando correo unico, mayoria de edad y rol permitido.';
+    IS 'REQ-F-001 - Insercion multi-tabla: registra usuario + usuario_roles + perfil de creador opcional + portafolio inicial, validando correo unico, mayoria de edad y rol permitido.';

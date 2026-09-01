@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/permissions")
+@RequestMapping("/api/v1/permissions")
 @Tag(name = "Consulta de Permisos", description = "Endpoints para consulta dinámica de permisos vigentes del usuario autenticado")
 @SecurityRequirement(name = "bearerAuth")
 public class PermissionController {

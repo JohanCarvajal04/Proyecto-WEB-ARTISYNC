@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CreadorContextoService } from '../../services/creador-contexto.service';
 import { SorteoService } from '../../services/sorteo.service';
@@ -51,7 +51,23 @@ export class SorteosComponent implements OnInit {
     fechaInicio: ['', [Validators.required]],
     fechaCierre: ['', [Validators.required]],
     requiereSeguidor: [false]
-  });
+  }, { validators: this.rangoFechasValidator });
+
+  /** min del input fechaInicio: bloquea fechas pasadas en el selector nativo,
+   * igual que minFechaEntrega en pedido-crear.component.ts. El backend igual
+   * las rechaza con @Future (PeticionCrearSorteo) si alguien las fuerza por
+   * fuera del UI. */
+  get minFechaInicio(): string {
+    const ahora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    return ahora.toISOString().slice(0, 16);
+  }
+
+  rangoFechasValidator(group: AbstractControl): ValidationErrors | null {
+    const inicio = group.get('fechaInicio')?.value;
+    const cierre = group.get('fechaCierre')?.value;
+    if (!inicio || !cierre) return null;
+    return new Date(cierre) > new Date(inicio) ? null : { rangoInvalido: true };
+  }
 
   activos = computed(() => this.sorteos().filter(s => (s.estadoSorteo || '').toLowerCase().includes('activ')).length);
 

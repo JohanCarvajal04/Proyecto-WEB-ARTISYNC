@@ -21,6 +21,7 @@ public class PeticionActualizarSorteo {
     @Size(max = 150, message = "El título no puede superar los 150 caracteres")
     private String tituloSorteo;
 
+    @Size(max = 5000, message = "La descripción de los premios no puede superar los 5000 caracteres")
     private String descripcionPremios;
 
     @Min(value = 1, message = "Debe haber al menos 1 ganador")

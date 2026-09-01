@@ -1,6 +1,4 @@
-<div class="min-h-screen bg-[#EFF2F7] px-6 py-8 md:px-10">
-
-  <!-- Loading -->
+<!-- Loading -->
   @if (loading) {
     <div class="flex items-center justify-center min-h-[60vh]">
       <div class="flex flex-col items-center gap-4">
@@ -28,8 +26,13 @@
   @if (!loading && pedido) {
     <div class="flex flex-col gap-6 max-w-5xl mx-auto animate-[fadeIn_0.4s_ease-out]">
 
-      <!-- Back -->
-      <a routerLink="/pedido/mis-pedidos" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-teal-600 transition-colors self-start">
+      <!-- Back: al creador lo manda a sus comisiones, no a "mis pedidos" del
+           cliente (que para él siempre está vacío). Apunta a las páginas reales
+           del panel (/dashboard, /creador) — las mismas que enlaza el menú y
+           tienen filtros y exportar — no a /pedido/mis-pedidos ni
+           /pedido/mis-comisiones, que son una vista más simple sin ninguno de
+           los dos, y con la que este enlace dejaba al usuario varado. -->
+      <a [routerLink]="esCreador ? '/creador/comisiones' : '/dashboard/mis-pedidos'" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-teal-600 transition-colors self-start">
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -81,7 +84,7 @@
           </div>
           <div class="min-w-0">
             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Precio pactado</p>
-            <p class="text-sm font-semibold text-slate-800 font-mono">{{ formatPrice(pedido.precioPactado) }}</p>
+            <p class="text-sm font-semibold text-slate-800 font-mono">{{ pedido.precioPactado | moneda }}</p>
           </div>
         </div>
 
@@ -159,9 +162,20 @@
             <p class="text-xs text-slate-400 mt-0.5">Registra el paso a la siguiente etapa del flujo</p>
           </div>
           <div class="p-6 flex flex-col gap-4">
+            @if (seguimiento?.bloqueadoPorEntregable) {
+              <div class="flex items-start gap-2.5 bg-amber-50 text-amber-700 text-sm rounded-xl px-4 py-3">
+                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>
+                  Esta etapa exige subir el entregable antes de continuar.
+                  <a [routerLink]="['/legal/entregable', pedidoId]" class="font-semibold underline hover:no-underline">Sube el entregable</a> para poder avanzar.
+                </span>
+              </div>
+            }
             <textarea rows="3" placeholder="Observación (opcional)..." [(ngModel)]="observacion"
               class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all resize-y"></textarea>
-            <button (click)="avanzarEtapa()" [disabled]="avanzando"
+            <button (click)="avanzarEtapa()" [disabled]="avanzando || seguimiento?.bloqueadoPorEntregable"
               class="self-start bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
               @if (avanzando) {
                 <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
@@ -313,7 +327,7 @@
                     <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    <span>Cargo adicional: <span class="font-mono font-bold">{{ formatPrice(ticket.costoAdicionalGenerado) }}</span></span>
+                    <span>Cargo adicional: <span class="font-mono font-bold">{{ ticket.costoAdicionalGenerado | moneda }}</span></span>
                     @if (ticket.urlPagoAdicional) {
                       <a [href]="ticket.urlPagoAdicional" target="_blank" rel="noopener"
                         class="ml-auto bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-1.5 rounded-full transition-colors">
@@ -348,13 +362,15 @@
       <!-- Briefing (M6): el cliente responde, el creador lo lee -->
       <app-briefing-pedido [idPedido]="pedidoId" [puedeResponder]="esCliente" />
 
-      <!-- Chat del pedido (M6) -->
-      <app-chat-pedido [idPedido]="pedidoId" />
-
       <!-- Reseña (M7): solo el cliente y solo tras aprobar la entrega -->
       @if (esCliente && entregaAprobada) {
         <app-resena-form [idPedido]="pedidoId" />
       }
     </div>
+
+    <!-- Chat del pedido (M6): ventana flotante, fuera del contenedor animado
+         de arriba a propósito — su animate-[fadeIn] anima `transform`, y
+         mientras corre convierte a ese contenedor en el "viewport" del hijo
+         fixed en vez del navegador, rompiendo el posicionamiento flotante. -->
+    <app-chat-pedido [idPedido]="pedidoId" (pedidoActualizado)="pedido = $event" />
   }
-</div>

@@ -30,6 +30,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.*;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -58,6 +59,7 @@ class ServicioCatalogoServicioImplTest {
     @Mock private ServicioAtributoRepository servicioAtributoRepository;
     @Mock private EtiquetaRepository etiquetaRepository;
     @Mock private ServicioEtiquetaRepository servicioEtiquetaRepository;
+    @Mock private IVerificacionServicio verificacionServicio;
 
     @InjectMocks
     private ServicioCatalogoServicioImpl servicioCatalogoServicio;
@@ -86,6 +88,12 @@ class ServicioCatalogoServicioImplTest {
                 .cargoRevisionAdicional(BigDecimal.ZERO)
                 .limiteRevisionesBase(0)
                 .build();
+
+        // Por defecto el creador ya tiene su identidad verificada: la mayoría
+        // de estos tests no ejercitan el gating de REQ-F-006 ampliado, así que
+        // no deberían fallar por él. `lenient` porque no todos los tests
+        // llegan a invocarlo (p. ej. los que fallan antes, por precio inválido).
+        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
     }
 
     @AfterEach
@@ -138,6 +146,25 @@ class ServicioCatalogoServicioImplTest {
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("crearServicio rechaza publicar si el creador no tiene la identidad verificada")
+    void crearServicio_identidadNoVerificada_lanzaExcepcionReglaNegocio() {
+        PeticionCrearServicio peticion = PeticionCrearServicio.builder()
+                .tituloServicio("Ilustracion digital")
+                .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
+                .precioBase(new BigDecimal("15.00"))
+                .idSubcategoria(1L)
+                .build();
+        given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
+        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+
+        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("verificar tu identidad");
+        verifyNoInteractions(subcategoriaRepository);
+        verify(servicioRepository, never()).save(any());
     }
 
     @Test
@@ -228,6 +255,24 @@ class ServicioCatalogoServicioImplTest {
         assertThat(respuesta).isNotNull();
         assertThat(servicio.getTituloServicio()).isEqualTo("Nuevo titulo");
         assertThat(servicio.getEstadoPublicacion()).isEqualTo("PAUSADO");
+    }
+
+    @Test
+    @DisplayName("actualizarServicio rechaza reactivar (ACTIVO) si el creador no tiene la identidad verificada")
+    void actualizarServicio_reactivarSinIdentidadVerificada_lanzaExcepcionReglaNegocio() {
+        servicio.setEstadoPublicacion("PAUSADO");
+        PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
+                .precioBase(new BigDecimal("20.00"))
+                .estadoPublicacion("ACTIVO")
+                .build();
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+
+        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("verificar tu identidad");
+        assertThat(servicio.getEstadoPublicacion()).isEqualTo("PAUSADO");
+        verify(servicioRepository, never()).save(any());
     }
 
     @Test
@@ -358,7 +403,7 @@ class ServicioCatalogoServicioImplTest {
     void buscarCatalogoServicios_ordenaPorPrecioAsc() {
         Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
-        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
         Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
                 null, null, null, null, null, null, "precioAsc", 0, 10);
@@ -371,7 +416,7 @@ class ServicioCatalogoServicioImplTest {
     void buscarCatalogoServicios_ordenPorDefecto() {
         Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
-        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
         Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
                 1L, 1L, BigDecimal.ONE, BigDecimal.TEN, List.of(5L), "ilustracion", null, 0, 10);

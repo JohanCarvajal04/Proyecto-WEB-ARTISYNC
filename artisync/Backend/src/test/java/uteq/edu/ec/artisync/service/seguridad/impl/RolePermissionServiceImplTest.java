@@ -10,7 +10,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
@@ -19,6 +23,7 @@ import uteq.edu.ec.artisync.entity.seguridad.Permiso;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.repository.seguridad.PermisoRepository;
 import uteq.edu.ec.artisync.repository.seguridad.RolRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -38,6 +43,12 @@ class RolePermissionServiceImplTest {
 
     @Mock
     private PermisoRepository permisoRepository;
+
+    @Mock
+    private UsuarioRolRepository usuarioRolRepository;
+
+    @Mock
+    private SessionRevocationService sessionRevocationService;
 
     @InjectMocks
     private RolePermissionServiceImpl service;
@@ -59,25 +70,30 @@ class RolePermissionServiceImplTest {
         return new RuntimeException(new SQLException(mensaje, sqlState));
     }
 
+    // Fase 3 concurrencia: createRole delega en fn_crear_rol (rolRepository.crearRol),
+    // que captura unique_violation en el motor en vez de una comprobacion
+    // findByNombreRol previa no atomica (A8).
     @Test
     void createRole_Success() {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", List.of());
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
-        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+        when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0])).thenReturn(10L);
+        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
 
         RolResponse res = service.createRole(req);
 
         assertNotNull(res);
         assertEquals("SUPERVISOR", res.getNombreRol());
-        verify(rolRepository).save(any(Rol.class));
+        verify(rolRepository).crearRol("SUPERVISOR", "Rol de supervisión", new String[0]);
     }
 
     @Test
     void createRole_ConflictWhenRoleExists() {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", List.of());
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolCustom));
+        when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0]))
+                .thenThrow(excepcionSql("23505", "Ya existe un rol con el nombre: SUPERVISOR"));
 
-        assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(rolRepository, never()).save(any(Rol.class));
     }
 
@@ -199,6 +215,61 @@ class RolePermissionServiceImplTest {
         verify(rolRepository).sincronizarPermisos(eq("SUPERVISOR"), eq(new String[0]));
     }
 
+    /**
+     * Los permisos viajan en el claim `permisos` del JWT: si no se revocan las
+     * sesiones, quien ya estuviera dentro seguiría con los permisos antiguos
+     * (y con el menú anterior) hasta que caducara su token.
+     */
+    @Test
+    void syncPermissions_RevocaLasSesionesDeLosUsuariosDelRol() {
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class))).thenReturn(1);
+        when(usuarioRolRepository.findIdsUsuarioByNombreRol("SUPERVISOR")).thenReturn(List.of(7L, 9L));
+
+        service.syncPermissions("supervisor", List.of("USUARIO_VER"));
+
+        verify(sessionRevocationService).revocarSesionesUsuario(7L);
+        verify(sessionRevocationService).revocarSesionesUsuario(9L);
+    }
+
+    /**
+     * El panel preselecciona el primer rol (ADMIN), así que sin esta exclusión
+     * el administrador se cerraba la sesión a sí mismo al guardar: 401 en la
+     * siguiente petición, refresh fallido y la UI diciendo que no tenía
+     * permisos.
+     */
+    @Test
+    void syncPermissions_NoRevocaLaSesionDelAdministradorQueHaceElCambio() {
+        when(rolRepository.sincronizarPermisos(eq("ADMIN"), any(String[].class))).thenReturn(1);
+        when(usuarioRolRepository.findIdsUsuarioByNombreRol("ADMIN")).thenReturn(List.of(1L, 42L));
+
+        autenticarComoUsuario(1L);
+        try {
+            service.syncPermissions("ADMIN", List.of("USUARIO_VER"));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        verify(sessionRevocationService, never()).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).revocarSesionesUsuario(42L);
+    }
+
+    private static void autenticarComoUsuario(Long idUsuario) {
+        CustomUserDetails detalles = new CustomUserDetails(
+                idUsuario, "admin@artisync.com", "x", true, true, true, true, List.of());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(detalles, null, List.of()));
+    }
+
+    @Test
+    void syncPermissions_NoRevocaNada_CuandoElRolNoTieneUsuarios() {
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class))).thenReturn(1);
+        when(usuarioRolRepository.findIdsUsuarioByNombreRol("SUPERVISOR")).thenReturn(List.of());
+
+        service.syncPermissions("SUPERVISOR", List.of("USUARIO_VER"));
+
+        verifyNoInteractions(sessionRevocationService);
+    }
+
     @Test
     void syncPermissions_ThrowsBadRequest_WhenPermisoInexistente() {
         when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class)))
@@ -221,9 +292,8 @@ class RolePermissionServiceImplTest {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "desc", List.of("catalogo_ver"));
         rolCustom.setPermisos(new HashSet<>(Set.of(permiso)));
 
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
-        when(permisoRepository.findByNombrePermiso("CATALOGO_VER")).thenReturn(Optional.of(permiso));
-        when(rolRepository.save(any(Rol.class))).thenReturn(rolCustom);
+        when(rolRepository.crearRol("SUPERVISOR", "desc", new String[]{"CATALOGO_VER"})).thenReturn(10L);
+        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolCustom));
 
         RolResponse res = service.createRole(req);
 
@@ -232,10 +302,13 @@ class RolePermissionServiceImplTest {
 
     @Test
     void createRole_ThrowsBadRequest_WhenPermisoInicialInexistente() {
+        // fn_sincronizar_permisos_rol (invocada dentro de fn_crear_rol) lanza
+        // ERRCODE 23503 cuando un codigo de permiso es invalido.
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "desc", List.of("fantasma"));
-        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.empty());
-        when(permisoRepository.findByNombrePermiso("FANTASMA")).thenReturn(Optional.empty());
+        when(rolRepository.crearRol("SUPERVISOR", "desc", new String[]{"FANTASMA"}))
+                .thenThrow(excepcionSql("23503", "Uno o mas permisos son inexistentes para el rol SUPERVISOR"));
 
-        assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 }

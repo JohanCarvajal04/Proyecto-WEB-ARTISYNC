@@ -14,9 +14,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
@@ -49,11 +52,20 @@ class PagoServicioImplCrearOrdenTest {
     @InjectMocks
     private PagoServicioImpl pagoServicio;
 
+    private static final Long ID_CLIENTE = 100L;
+    private static final Long ID_CREADOR = 200L;
+    private static final Long ID_AJENO = 999L;
+
     private Contrato contratoFirmado;
 
     @BeforeEach
     void setUp() {
-        Pedido pedido = Pedido.builder().idPedido(1L).precioPactado(new BigDecimal("40.00")).build();
+        Usuario cliente = Usuario.builder().idUsuario(ID_CLIENTE).build();
+        Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
+        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        Servicio servicio = Servicio.builder().perfil(perfil).build();
+        Pedido pedido = Pedido.builder().idPedido(1L).precioPactado(new BigDecimal("40.00"))
+                .usuarioCliente(cliente).servicio(servicio).build();
         contratoFirmado = Contrato.builder().idContrato(5L).pedido(pedido)
                 .hashFirmaCreador("hash-c").hashFirmaCliente("hash-k").build();
 
@@ -65,8 +77,17 @@ class PagoServicioImplCrearOrdenTest {
     void crearOrden_rechazaSinContrato() {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, null))
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("crearOrdenPayPal rechaza si el usuario autenticado no es el cliente del pedido")
+    void crearOrden_rechazaClienteAjeno() {
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
+
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_AJENO, null))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
     @Test
@@ -75,7 +96,7 @@ class PagoServicioImplCrearOrdenTest {
         Contrato sinFirmar = Contrato.builder().idContrato(5L).pedido(contratoFirmado.getPedido()).build();
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(sinFirmar));
 
-        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, null))
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
@@ -86,7 +107,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.of(pagoRetenido));
 
-        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, null))
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
@@ -103,7 +124,7 @@ class PagoServicioImplCrearOrdenTest {
         conRespuestasPayPal("""
                 {"id":"ORDER-999","links":[{"rel":"approve","href":"https://paypal.com/approve/999"}]}""");
 
-        RespuestaPago respuesta = pagoServicio.crearOrdenPayPal(1L, null);
+        RespuestaPago respuesta = pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null);
 
         assertThat(respuesta.getIdOrdenPaypal()).isEqualTo("ORDER-999");
         assertThat(respuesta.getApprovalUrl()).isEqualTo("https://paypal.com/approve/999");
@@ -119,7 +140,7 @@ class PagoServicioImplCrearOrdenTest {
         conRespuestasPayPal("""
                 {"id":"ORDER-999","links":[]}""");
 
-        RespuestaPago respuesta = pagoServicio.crearOrdenPayPal(1L, new BigDecimal("99.00"));
+        RespuestaPago respuesta = pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, new BigDecimal("99.00"));
 
         assertThat(respuesta.getMontoRetenido()).isEqualByComparingTo("99.00");
         assertThat(respuesta.getApprovalUrl()).isEmpty();
@@ -133,23 +154,45 @@ class PagoServicioImplCrearOrdenTest {
         given(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(Map.class)))
                 .willThrow(new RuntimeException("timeout"));
 
-        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, null))
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
     // ---------- obtenerEstadoPago ----------
 
     @Test
-    @DisplayName("obtenerEstadoPago devuelve el pago existente")
-    void obtenerEstadoPago_devuelvePago() {
+    @DisplayName("obtenerEstadoPago devuelve el pago existente al cliente")
+    void obtenerEstadoPago_devuelvePagoAlCliente() {
         PagoGarantia pago = PagoGarantia.builder().idPago(1L).idOrdenPaypal("ORDER-1")
                 .montoRetenido(new BigDecimal("40.00")).estadoFondos("Retenido").build();
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.of(pago));
 
-        RespuestaPago respuesta = pagoServicio.obtenerEstadoPago(1L);
+        RespuestaPago respuesta = pagoServicio.obtenerEstadoPago(1L, ID_CLIENTE);
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("Retenido");
+    }
+
+    @Test
+    @DisplayName("obtenerEstadoPago devuelve el pago existente al creador")
+    void obtenerEstadoPago_devuelvePagoAlCreador() {
+        PagoGarantia pago = PagoGarantia.builder().idPago(1L).idOrdenPaypal("ORDER-1")
+                .montoRetenido(new BigDecimal("40.00")).estadoFondos("Retenido").build();
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
+        given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.of(pago));
+
+        RespuestaPago respuesta = pagoServicio.obtenerEstadoPago(1L, ID_CREADOR);
+
+        assertThat(respuesta.getEstadoFondos()).isEqualTo("Retenido");
+    }
+
+    @Test
+    @DisplayName("obtenerEstadoPago rechaza a un usuario que no es parte del pedido")
+    void obtenerEstadoPago_rechazaUsuarioAjeno() {
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
+
+        assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L, ID_AJENO))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
     @Test
@@ -157,7 +200,7 @@ class PagoServicioImplCrearOrdenTest {
     void obtenerEstadoPago_sinContrato() {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L))
+        assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L, ID_CLIENTE))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
     }
 
@@ -167,7 +210,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L))
+        assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L, ID_CLIENTE))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
     }
 

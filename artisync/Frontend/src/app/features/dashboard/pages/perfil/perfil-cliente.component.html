@@ -2,122 +2,28 @@
 
   <div>
     <h1 class="font-headline text-3xl font-bold text-[#0F2027]">Mi Perfil</h1>
-    <p class="text-sm text-slate-400 mt-1">Tu información de cuenta y opciones de seguridad.</p>
+    <p class="text-sm text-slate-400 mt-1">Tu identidad y tu actividad en Artisync.</p>
   </div>
 
-  <!-- Tarjeta de identidad -->
-  <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-    <div class="h-24 bg-gradient-to-r from-[#0F2027] via-[#203A43] to-[#2C5364]"></div>
-    <div class="px-6 md:px-8 pb-6 -mt-10">
-      <div class="flex flex-col sm:flex-row sm:items-end gap-4">
-        <div class="ring-4 ring-white rounded-full bg-white">
-          <app-avatar [name]="userName()" size="lg"></app-avatar>
-        </div>
-        <div class="flex-1 min-w-0 sm:pb-1">
-          <h2 class="font-headline text-xl font-bold text-slate-800">{{ userName() }}</h2>
-          <p class="text-sm text-slate-500 truncate">{{ userEmail() }}</p>
-        </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-teal-50 text-teal-700 self-start sm:self-auto sm:mb-1">
-          {{ userRole() }}
-        </span>
-      </div>
-
-      <!-- Datos de cuenta -->
-      <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
-        <div>
-          <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Roles</dt>
-          <dd class="text-sm text-slate-700 mt-1">
-            @if (roles().length) {
-              {{ roles().join(', ') }}
-            } @else {
-              —
-            }
-          </dd>
-        </div>
-        <div>
-          <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Permisos activos</dt>
-          <dd class="text-sm text-slate-700 mt-1">{{ totalPermisos() }}</dd>
-        </div>
-        <div>
-          <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sesión válida hasta</dt>
-          <dd class="text-sm text-slate-700 mt-1">{{ sesionExpira() || '—' }}</dd>
-        </div>
-      </dl>
-    </div>
-  </div>
-
-  <!-- Seguridad -->
-  <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-    <div class="px-6 py-5 border-b border-slate-100">
-      <h2 class="font-headline text-lg font-bold text-[#0F2027]">Seguridad</h2>
-      <p class="text-xs text-slate-400 mt-0.5">Protege el acceso a tu cuenta</p>
-    </div>
-
-    <div class="divide-y divide-slate-100">
-      <!-- Cambiar contraseña -->
-      <a routerLink="/profile/change-password"
-        class="flex items-center gap-4 px-6 py-5 hover:bg-slate-50/70 transition-colors group">
-        <div class="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 shrink-0 group-hover:scale-105 transition-transform">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-slate-800 text-sm">Cambiar contraseña</p>
-          <p class="text-xs text-slate-400 mt-0.5">Actualiza tu contraseña periódicamente</p>
-        </div>
-        <svg class="w-4 h-4 text-slate-300 group-hover:text-teal-600 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </a>
-
-      <!-- 2FA -->
-      <a routerLink="/profile/two-factor"
-        class="flex items-center gap-4 px-6 py-5 hover:bg-slate-50/70 transition-colors group">
-        <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 group-hover:scale-105 transition-transform">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M12 3l7 4v5c0 4.418-2.865 8.166-7 9-4.135-.834-7-4.582-7-9V7l7-4z" />
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-slate-800 text-sm">Verificación en dos pasos (2FA)</p>
-          <p class="text-xs text-slate-400 mt-0.5">Añade una capa extra de seguridad con tu app autenticadora</p>
-        </div>
-        <svg class="w-4 h-4 text-slate-300 group-hover:text-teal-600 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </a>
-    </div>
-  </div>
+  <app-profile-header
+    [nombre]="userName()"
+    [correo]="userEmail()"
+    [fotoUrl]="usuario()?.urlFotoPerfil">
+  </app-profile-header>
 
   <!-- Accesos rápidos -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <a routerLink="/dashboard/mis-pedidos"
-      class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 group">
-      <div class="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0 group-hover:scale-105 transition-transform">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
-      </div>
-      <div>
-        <p class="font-semibold text-slate-800 text-sm">Mis pedidos</p>
-        <p class="text-xs text-slate-400 mt-0.5">Revisa el estado de tus comisiones</p>
-      </div>
-    </a>
-
-    <button (click)="logout()"
-      class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 text-left group">
-      <div class="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 shrink-0 group-hover:scale-105 transition-transform">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-      </div>
-      <div>
-        <p class="font-semibold text-slate-800 text-sm">Cerrar sesión</p>
-        <p class="text-xs text-slate-400 mt-0.5">Salir de tu cuenta en este dispositivo</p>
-      </div>
-    </button>
-  </div>
+  <a routerLink="/dashboard/mis-pedidos"
+    class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 group w-full sm:w-auto">
+    <div class="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0 group-hover:scale-105 transition-transform">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+      </svg>
+    </div>
+    <div>
+      <p class="font-semibold text-slate-800 text-sm">Mis pedidos</p>
+      <p class="text-xs text-slate-400 mt-0.5">Revisa el estado de tus comisiones</p>
+    </div>
+  </a>
 
   <!-- Verificación de identidad (REQ-F-006/007) -->
   <app-solicitud-verificacion />

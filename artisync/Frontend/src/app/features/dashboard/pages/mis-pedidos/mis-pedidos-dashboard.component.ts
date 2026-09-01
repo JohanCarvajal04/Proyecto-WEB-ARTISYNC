@@ -4,13 +4,17 @@ import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 
 import { AuthService } from '../../../seguridad/services/auth.service';
+import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
+import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 type FiltroEstado = 'todos' | 'activos' | 'completados';
 
 @Component({
   selector: 'app-mis-pedidos-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, BotonExportarComponent, MonedaPipe],
   templateUrl: './mis-pedidos-dashboard.component.html'
 })
 export class MisPedidosDashboardComponent implements OnInit {
@@ -20,6 +24,7 @@ export class MisPedidosDashboardComponent implements OnInit {
   readonly pedidos = signal<RespuestaPedidoResumido[]>([]);
   readonly isLoading = signal<boolean>(true);
   readonly error = signal<string>('');
+  readonly exportando = signal<boolean>(false);
 
   readonly filtroEstado = signal<FiltroEstado>('todos');
   readonly filtroEtapa = signal<string>('');
@@ -77,6 +82,26 @@ export class MisPedidosDashboardComponent implements OnInit {
     });
   }
 
+  /** Mismo criterio de rol que loadPedidos(): exporta lo que la pantalla está mostrando. */
+  exportar(formato: FormatoReporte): void {
+    this.exportando.set(true);
+    const role = this.authService.primaryRole();
+    const req$ = role === 'CREADOR'
+      ? this.pedidoService.exportarMisComisiones(formato)
+      : this.pedidoService.exportarMisPedidos(formato);
+
+    req$.subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarRespuesta(respuesta, `${role === 'CREADOR' ? 'comisiones' : 'pedidos'}.${formato.toLowerCase()}`);
+      },
+      error: async (err) => {
+        this.exportando.set(false);
+        this.error.set(await mensajeErrorBlob(err, 'No se pudo exportar el listado'));
+      }
+    });
+  }
+
   setFiltroEstado(estado: FiltroEstado): void {
     this.filtroEstado.set(estado);
   }
@@ -101,9 +126,6 @@ export class MisPedidosDashboardComponent implements OnInit {
       && !lower.includes('cancelado') && !lower.includes('final');
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price || 0);
-  }
 
   formatDate(date: string): string {
     if (!date) return '—';

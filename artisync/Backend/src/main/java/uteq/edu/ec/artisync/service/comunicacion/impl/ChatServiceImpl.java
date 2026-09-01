@@ -8,24 +8,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
 import uteq.edu.ec.artisync.entity.legal.Mensaje;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
 import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
 import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +37,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private static final int MAX_INFRACCIONES = 3;
-    private static final int PERIODO_DIAS     = 30;
-
     private final SalaChatRepository      salaChatRepo;
     private final MensajeRepository       mensajeRepo;
     private final UsuarioRepository       usuarioRepo;
-    private final InfraccionRepository    infraccionRepo;
+    private final InfraccionService       infraccionService;
     private final MensajeFilterService    mensajeFilterService;
     private final NotificacionService     notificacionService;
     private final SimpMessagingTemplate   messagingTemplate;
@@ -91,18 +86,27 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional
-    public RespuestaMensaje enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
+    public RespuestaMensajeChat enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
+
+        // Los controladores (REST y @MessageMapping) solo exigen
+        // isAuthenticated(): sin esto, cualquier usuario logueado podía
+        // escribir en el chat de un pedido ajeno.
+        verificarParticipante(sala.getPedido(), idRemitente);
 
         if (Boolean.FALSE.equals(sala.getSalaActiva())) {
             throw new ExcepcionReglaNegocio("Esta sala ha sido cerrada");
         }
 
-        // RF-15: Filtrar datos de contacto antes de persistir el mensaje
+        // RF-15: Filtrar datos de contacto antes de persistir el mensaje.
+        // infraccionService.registrarInfraccion corre en su propia transaccion
+        // (REQUIRES_NEW): queda confirmada en el motor aunque esta llamada
+        // termine lanzando la excepcion de abajo, que hace rollback de la
+        // transaccion de enviarMensaje pero no de la de la infraccion.
         if (mensajeFilterService.contieneContacto(cuerpoMensaje)) {
-            registrarInfraccionInterna(idRemitente, sala.getPedido(), cuerpoMensaje);
+            infraccionService.registrarInfraccion(idRemitente, sala.getPedido().getIdPedido(), cuerpoMensaje);
             throw new ExcepcionReglaNegocio(
                     "Tu mensaje no fue entregado porque contiene datos de contacto. Infracción registrada.");
         }
@@ -116,38 +120,64 @@ public class ChatServiceImpl implements ChatService {
                 .build();
         mensaje = mensajeRepo.save(mensaje);
 
-        RespuestaMensaje response = mapToResponse(mensaje, remitente);
+        RespuestaMensajeChat response = mapToResponse(mensaje, remitente);
 
         // Publicar en el tópico de la sala para entrega en tiempo real
         messagingTemplate.convertAndSend("/topic/sala." + sala.getIdSala(), response);
 
+        // El WS solo llega a quien tenga esa sala abierta en ese momento; sin
+        // esto, la otra parte no se enteraba de un mensaje nuevo salvo que
+        // entrara a revisar el pedido por su cuenta.
+        Pedido pedido = sala.getPedido();
+        Usuario destinatario = idRemitente.equals(pedido.getUsuarioCliente().getIdUsuario())
+                ? pedido.getServicio().getPerfil().getUsuario()
+                : pedido.getUsuarioCliente();
+        notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO",
+                remitente.getNombres() + " te escribió en \"" + pedido.getServicio().getTituloServicio()
+                        + "\": " + resumirMensaje(cuerpoMensaje));
+
         return response;
+    }
+
+    private String resumirMensaje(String cuerpoMensaje) {
+        final int maxCaracteres = 80;
+        return cuerpoMensaje.length() > maxCaracteres
+                ? cuerpoMensaje.substring(0, maxCaracteres) + "…"
+                : cuerpoMensaje;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RespuestaMensaje> obtenerMensajes(Long idPedido, Pageable pageable) {
+    public Page<RespuestaMensajeChat> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
 
+        // El controlador solo exige isAuthenticated(): sin esto, cualquier
+        // usuario logueado podía leer el historial de un chat ajeno.
+        verificarParticipante(sala.getPedido(), idUsuario);
+
         List<Mensaje> mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());
-        List<RespuestaMensaje> dtos = mensajes.stream()
+        List<RespuestaMensajeChat> dtos = mensajes.stream()
                 .map(m -> mapToResponse(m, m.getRemitente()))
                 .toList();
 
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), dtos.size());
-        List<RespuestaMensaje> page = start > dtos.size() ? List.of() : dtos.subList(start, end);
+        List<RespuestaMensajeChat> page = start > dtos.size() ? List.of() : dtos.subList(start, end);
         return new PageImpl<>(page, pageable, dtos.size());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaSalaChat obtenerEstadoSala(Long idPedido) {
+    public RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
+
+        // El controlador solo exige isAuthenticated(): sin esto, cualquier
+        // usuario logueado podía ver el estado del chat de un pedido ajeno.
+        verificarParticipante(sala.getPedido(), idUsuario);
 
         return RespuestaSalaChat.builder()
                 .idSala(sala.getIdSala())
@@ -157,44 +187,22 @@ public class ChatServiceImpl implements ChatService {
                 .build();
     }
 
-    // -------------------------------------------------------------------------
-    // Infracciones (RF-15) — lógica interna de Chat
-    // -------------------------------------------------------------------------
-
-    private void registrarInfraccionInterna(Long idRemitente, Pedido pedido, String cuerpoMensaje) {
-        Usuario usuario = usuarioRepo.findById(idRemitente)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idRemitente));
-
-        String patron = mensajeFilterService.detectarPatron(cuerpoMensaje);
-
-        InfraccionMensaje infraccion = InfraccionMensaje.builder()
-                .usuario(usuario)
-                .pedido(pedido)
-                .mensajeOriginal(cuerpoMensaje)
-                .patronDetectado(patron)
-                .build();
-        infraccionRepo.save(infraccion);
-
-        long count = infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(
-                idRemitente, LocalDateTime.now().minusDays(PERIODO_DIAS));
-
-        log.warn("Infracción RF-15 registrada para usuario {}. Patrón: {}. Total en 30 días: {}",
-                idRemitente, patron, count);
-
-        if (count >= MAX_INFRACCIONES) {
-            usuario.setEstadoCuenta(false);
-            usuarioRepo.save(usuario);
-            LocalDateTime hastaFecha = LocalDateTime.now().plusDays(15);
-            String mensaje = "Tu cuenta está suspendida hasta " + hastaFecha.toLocalDate()
-                    + " por superar el límite de infracciones de datos de contacto.";
-            notificacionService.notificar(usuario, "CUENTA_SUSPENDIDA", mensaje);
-            log.warn("Cuenta del usuario {} suspendida hasta {}", usuario.getCorreo(), hastaFecha.toLocalDate());
+    /**
+     * Único chequeo de pertenencia al pedido, reutilizado por los tres
+     * métodos de arriba: nadie fuera del cliente o el creador del pedido
+     * puede leer, escuchar o escribir en su sala de chat.
+     */
+    private void verificarParticipante(Pedido pedido, Long idUsuario) {
+        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
+        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
+        if (!esCliente && !esCreador) {
+            throw new ExcepcionReglaNegocio("No tiene acceso al chat de este pedido");
         }
     }
 
     // -------------------------------------------------------------------------
-    private RespuestaMensaje mapToResponse(Mensaje m, Usuario remitente) {
-        return RespuestaMensaje.builder()
+    private RespuestaMensajeChat mapToResponse(Mensaje m, Usuario remitente) {
+        return RespuestaMensajeChat.builder()
                 .idMensaje(m.getIdMensaje())
                 .idSala(m.getSala().getIdSala())
                 .idRemitente(remitente.getIdUsuario())

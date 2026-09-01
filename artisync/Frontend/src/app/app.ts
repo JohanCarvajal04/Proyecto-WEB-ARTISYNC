@@ -1,6 +1,5 @@
 import { Component, inject, signal, effect } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { ToastComponent } from './shared/components/toast/toast.component';
 import { AuthService } from './features/seguridad/services/auth.service';
 import { UserService } from './features/perfil/services/user.service';
@@ -10,7 +9,7 @@ import { CompleteProfileModalComponent } from './shared/components/complete-prof
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, CommonModule, CompleteProfileModalComponent],
+  imports: [RouterOutlet, ToastComponent, CompleteProfileModalComponent],
   templateUrl: './app.html'
 })
 export class App {
@@ -30,7 +29,12 @@ export class App {
               this.showProfileCompletion.set(true);
             }
           },
-          error: () => {}
+          // Best-effort: si falla, el modal de completar perfil simplemente no
+          // aparece esta vez (se reintenta en el próximo cambio de sesión/ruta).
+          // No es un toast global porque este efecto corre en cada login de
+          // cada usuario, y una molestia de red transitoria no debería
+          // interrumpir a todo el mundo con un aviso en la pantalla raíz.
+          error: (err) => console.error('No se pudo verificar si el perfil está completo', err)
         });
       } else {
         this.showProfileCompletion.set(false);

@@ -2,14 +2,61 @@ package uteq.edu.ec.artisync.service.shared.ia;
 
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
+import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
 @Slf4j
 public abstract class AbstractIaService {
+
+    /**
+     * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
+     * ver ExcepcionServicioIaNoDisponible#isReintentable). Mismo patrón que
+     * VerificacionServicioImpl#analizarConReintento, generalizado aquí para
+     * que moderarContenido/clasificarServicio/sugerirPreguntasBriefing/
+     * analizarResena no descarten en silencio un 429 momentáneo del
+     * proveedor (revisión técnica 2026-09-01: antes caían directo al
+     * catch-all y devolvían el valor por defecto sin reintentar).
+     */
+    protected <T> T conReintentoTransitorio(Supplier<T> llamada) {
+        try {
+            return llamada.get();
+        } catch (ExcepcionServicioIaNoDisponible e) {
+            if (!e.isReintentable()) {
+                throw e;
+            }
+            log.warn("Fallo transitorio de IA, reintentando en 2s: {}", e.getMessage());
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw e;
+            }
+            return llamada.get();
+        }
+    }
+
+    /**
+     * Mitigación básica de inyección de prompt (revisión técnica
+     * 2026-09-01): los prompts de moderación/clasificación insertan texto de
+     * usuario sin sanitizar vía String.format, delimitado solo por comillas
+     * simples en la plantilla -- un texto que las cierra puede escribir
+     * instrucciones que el modelo interpreta como parte del prompt del
+     * sistema en vez de como dato a analizar. Esto no es una garantía contra
+     * inyección de prompt (ningún escapado de texto lo es del todo frente a
+     * un LLM), pero cierra la vía más directa: ya no se puede cerrar el
+     * delimitador de comillas de la plantilla, y se acota la longitud para
+     * no inflar el payload con un intento de relleno.
+     */
+    protected String sanitizarParaPrompt(String texto) {
+        if (texto == null) return "";
+        String limitado = texto.length() > 4000 ? texto.substring(0, 4000) : texto;
+        return limitado.replace("\"", "'");
+    }
 
     protected String cargarPrompt(String nombreArchivo, Object... args) {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("IA/" + nombreArchivo)) {

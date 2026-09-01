@@ -1,6 +1,6 @@
 import { Component, inject, signal, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
@@ -18,9 +18,13 @@ export class RegisterComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private toastService = inject(ToastService);
 
   readonly isLoading = signal<boolean>(false);
+
+  /** Destino a retomar tras iniciar sesión, p. ej. llegando desde /acceso-requerido. */
+  readonly returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
   readonly showPassword = signal<boolean>(false);
   readonly showConfirmPassword = signal<boolean>(false);
   maxDate: string;
@@ -94,10 +98,11 @@ export class RegisterComponent {
       next: () => {
         this.isLoading.set(false);
         this.toastService.success('¡Cuenta creada exitosamente! Por favor inicia sesión.');
-        this.router.navigate(['/auth/login']);
+        this.router.navigate(['/auth/login'], this.returnUrl ? { queryParams: { returnUrl: this.returnUrl } } : {});
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo crear la cuenta. Intenta de nuevo.');
       }
     });
   }

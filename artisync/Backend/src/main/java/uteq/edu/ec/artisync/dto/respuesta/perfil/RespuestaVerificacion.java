@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Builder
 public record RespuestaVerificacion(
         Long idCertificado,
-        Long idPerfil,
+        Long idUsuario,
         String tipoDocumento,
         String nombreEstadoVerificacion,
         String veredictoIa,

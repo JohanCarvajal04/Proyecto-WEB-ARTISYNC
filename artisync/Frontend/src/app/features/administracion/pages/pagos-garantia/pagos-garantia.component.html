@@ -1,0 +1,206 @@
+<div class="flex flex-col gap-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800">Pagos y Garantías</h1>
+    <p class="text-sm text-slate-500 mt-1">
+      Supervisión de fondos retenidos en escrow: qué está pendiente, qué está retenido y qué ya se liberó.
+    </p>
+  </div>
+
+  <!-- Tarjetas de resumen -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    @for (r of resumen(); track r.estadoFondos) {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(r.estadoFondos)">{{ r.estadoFondos }}</span>
+        <p class="text-2xl font-bold text-slate-800 mt-3">{{ r.montoTotal | moneda }}</p>
+        <p class="text-xs text-slate-400 mt-1">{{ r.cantidad }} pago(s)</p>
+      </div>
+    } @empty {
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:col-span-3 text-center text-sm text-slate-400">
+        Todavía no hay pagos en garantía registrados.
+      </div>
+    }
+  </div>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-wrap items-end gap-4">
+    <div class="flex flex-col gap-1.5">
+      <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</label>
+      <select [ngModel]="filtro().estadoFondos" (ngModelChange)="actualizarFiltro('estadoFondos', $event)"
+        class="bg-slate-50 text-slate-700 text-sm rounded-lg px-3 py-2 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all">
+        <option [ngValue]="undefined">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="Retenido">Retenido</option>
+        <option value="Liberado">Liberado</option>
+      </select>
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Desde</label>
+      <input type="date" [ngModel]="filtro().desde" (ngModelChange)="actualizarFiltro('desde', $event)"
+        class="bg-slate-50 text-slate-700 text-sm rounded-lg px-3 py-2 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all" />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Hasta</label>
+      <input type="date" [ngModel]="filtro().hasta" (ngModelChange)="actualizarFiltro('hasta', $event)"
+        class="bg-slate-50 text-slate-700 text-sm rounded-lg px-3 py-2 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all" />
+    </div>
+
+    <button type="button" (click)="aplicarFiltros()"
+      class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-all">
+      Filtrar
+    </button>
+    <button type="button" (click)="limpiarFiltros()"
+      class="text-sm font-semibold text-slate-500 hover:text-purple-600 px-3 py-2 transition-colors">
+      Limpiar
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-4">Servicio</th>
+              <th class="px-6 py-4">Cliente</th>
+              <th class="px-6 py-4">Creador</th>
+              <th class="px-6 py-4 text-right">Monto retenido</th>
+              <th class="px-6 py-4 text-center">Estado</th>
+              <th class="px-6 py-4 text-right">Formalizado</th>
+              <th class="px-6 py-4 text-right">Detalle</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (p of pagina().contenido; track p.idPago) {
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="px-6 py-4">
+                  <span class="font-medium text-slate-800">{{ p.tituloServicio }}</span>
+                  <span class="block text-xs text-slate-400 font-mono">Pedido #{{ p.idPedido }}</span>
+                </td>
+                <td class="px-6 py-4">{{ p.nombreCliente }}</td>
+                <td class="px-6 py-4">{{ p.nombreCreador }}</td>
+                <td class="px-6 py-4 text-right font-mono font-semibold text-slate-800">{{ p.montoRetenido | moneda }}</td>
+                <td class="px-6 py-4 text-center">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(p.estadoFondos)">{{ p.estadoFondos }}</span>
+                </td>
+                <td class="px-6 py-4 text-right text-slate-500 text-xs">{{ formatFecha(p.fechaFormalizacion) }}</td>
+                <td class="px-6 py-4 text-right">
+                  <button type="button" (click)="verDetalle(p)"
+                    class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
+                    Ver detalle
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+                  <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                  </svg>
+                  <p>No hay pagos en garantía que coincidan con el filtro.</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pagina().totalPaginas > 1) {
+        <div class="flex items-center justify-center gap-3 py-4 border-t border-slate-100">
+          <button type="button" (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Anterior
+          </button>
+          <span class="text-xs text-slate-400 font-mono">
+            Página {{ pagina().numero + 1 }} de {{ pagina().totalPaginas }} · {{ pagina().totalElementos }} registro(s)
+          </span>
+          <button type="button" (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Siguiente
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+<!-- Detalle del pago -->
+@if (cargandoDetalle() || detalle()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="cerrarDetalle()"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      @if (cargandoDetalle()) {
+        <div class="flex items-center justify-center py-20">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        </div>
+      } @else if (detalle(); as d) {
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">{{ d.tituloServicio }}</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Pedido #{{ d.idPedido }} · Contrato #{{ d.idContrato }}</p>
+          </div>
+          <button type="button" (click)="cerrarDetalle()"
+            class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex flex-col gap-5">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cliente</span>
+              <p class="text-slate-700">{{ d.nombreCliente }}</p>
+              <p class="text-xs text-slate-400">{{ d.correoCliente }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Creador</span>
+              <p class="text-slate-700">{{ d.nombreCreador }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monto retenido</span>
+              <p class="font-mono font-semibold text-slate-800">{{ d.montoRetenido | moneda }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</span>
+              <p><span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(d.estadoFondos)">{{ d.estadoFondos }}</span></p>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Orden PayPal</span>
+              <p class="text-slate-700 font-mono text-xs">{{ d.idOrdenPaypal || '—' }}</p>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Formalizado</span>
+              <p class="text-slate-700">{{ formatFecha(d.fechaFormalizacion) }}</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 mb-2">Historial de transacciones</h3>
+            @if (d.transacciones.length === 0) {
+              <p class="text-xs text-slate-400">Todavía no hay transacciones registradas para este pago.</p>
+            } @else {
+              <div class="flex flex-col divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+                @for (t of d.transacciones; track t.idTransaccion) {
+                  <div class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                    <span class="text-slate-600">{{ t.tipoTransaccion }}</span>
+                    <span class="font-mono font-semibold text-slate-800">{{ t.monto | moneda }}</span>
+                    <span class="text-xs text-slate-400 font-mono">{{ formatFechaHora(t.fechaEjecucion) }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

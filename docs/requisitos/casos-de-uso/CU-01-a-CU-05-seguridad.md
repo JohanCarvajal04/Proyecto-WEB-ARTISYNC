@@ -2,10 +2,18 @@
 
 Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre del actor principal y objetivo, (2) escenario principal de éxito, (3) condiciones de extensión, (4) pasos de manejo de extensión.
 
+> **Convención de trazabilidad (aplica a las seis colecciones de casos de uso).** Cada caso declara dos campos bajo su título:
+>
+> - **Trazabilidad:** el requisito del SRS y la historia de usuario que le corresponden.
+> - **Prueba de integración:** la prueba automatizada que ejercita el flujo, tomada de la columna `prueba_automatizada` de [`docs/trazabilidad/matriz.csv`](../../trazabilidad/matriz.csv). Cuando un requisito no tiene prueba, el campo lo dice explícitamente en vez de omitirse.
+>
+> **Limitación declarada:** la guía pide además que cada caso de uso se trace a un flujo de un diagrama de secuencia. Esa correspondencia no puede establecerse hoy para los 23 casos: el repositorio contiene **un solo** diagrama de secuencia, `docs/diagramas/secuencia_login_jwt.png`, que cubre el flujo de autenticación (CU-03). Los 22 casos restantes no tienen diagrama al que trazarse. Se declara como brecha conocida en lugar de enlazar a diagramas que no existen.
+
 ---
 
 ## CU-01: Registrarse en la plataforma
 **Trazabilidad:** REQ-F-001 / HU-01
+**Prueba de integración:** `AuthServiceImplTest`
 
 **1. Actor principal y objetivo:** Visitante — crear una cuenta con un rol definido (Creador o Cliente).
 
@@ -35,6 +43,7 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 
 ## CU-02: Gestionar permisos de un rol
 **Trazabilidad:** REQ-F-002 / HU-02
+**Prueba de integración:** `RolePermissionControllerTest` · `RolePermissionServiceImplTest`
 
 **1. Actor principal y objetivo:** Administrador — asignar o revocar un permiso a un rol del sistema.
 
@@ -61,6 +70,7 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 
 ## CU-03: Iniciar sesión
 **Trazabilidad:** REQ-F-003 / HU-03
+**Prueba de integración:** `JwtAuthenticationFilterTest` · `JwtServiceTest` · `AuthRateLimitFilterTest` · `AuthControllerTest`
 
 **1. Actor principal y objetivo:** Usuario registrado — obtener un token de sesión válido para acceder a rutas protegidas.
 
@@ -89,6 +99,7 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 
 ## CU-04: Recuperar contraseña olvidada
 **Trazabilidad:** REQ-F-004 / HU-04
+**Prueba de integración:** `AuthServiceImplTest#forgotPassword_ShouldSendEmail_WhenUsuarioExiste` · `AuthServiceImplTest#resetPassword_ShouldUpdatePassword_WhenTokenValido` · `AuthServiceImplTest#resetPassword_ShouldThrowBadRequest_WhenTokenExpirado`
 
 **1. Actor principal y objetivo:** Usuario registrado — restablecer su contraseña mediante un enlace enviado por correo.
 
@@ -117,6 +128,7 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 
 ## CU-05: Verificar código 2FA al iniciar sesión
 **Trazabilidad:** REQ-F-005 / HU-05
+**Prueba de integración:** `TwoFactorServiceImplTest` · `PreAuth2faTicketServiceTest`
 
 **1. Actor principal y objetivo:** Creador con identidad verificada — completar el segundo factor de autenticación para iniciar sesión.
 

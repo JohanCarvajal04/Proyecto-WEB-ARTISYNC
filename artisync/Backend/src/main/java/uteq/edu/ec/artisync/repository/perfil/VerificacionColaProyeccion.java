@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 /** Proyección de fn_listar_cola_verificacion; Spring Data mapea snake_case -> getters. */
 public interface VerificacionColaProyeccion {
     Long getIdCertificado();
-    Long getIdPerfil();
-    String getNombreCreador();
+    Long getIdUsuario();
+    String getNombreUsuario();
     String getTipoDocumento();
     String getNombreEstado();
     String getVeredictoIa();

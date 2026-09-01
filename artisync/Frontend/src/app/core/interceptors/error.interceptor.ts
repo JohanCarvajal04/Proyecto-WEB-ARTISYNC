@@ -1,6 +1,5 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { catchError, throwError, switchMap } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 import { AuthService } from '../../features/seguridad/services/auth.service';
@@ -9,7 +8,6 @@ import { OMITIR_ERROR_GLOBAL } from './http-contexto';
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
   const auth = inject(AuthService);
-  const router = inject(Router);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -35,6 +33,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
+      // Un 401 sin sesión activa no es una expiración: es un visitante anónimo
+      // topándose con un endpoint protegido (p. ej. el catálogo público
+      // consultando "creadores seguidos"). Sin esta guarda, cada carga del
+      // catálogo sin sesión disparaba un POST /auth/refresh inútil y el toast
+      // "Tu sesión ha expirado", que es falso — nunca hubo sesión que expirara.
+      if (error.status === 401 && !auth.isLoggedIn()) {
+        return throwError(() => error);
+      }
+
       switch (error.status) {
         case 401:
           // Intentar refrescar token o cerrar sesión
@@ -53,8 +60,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           );
 
         case 403:
-          toast.error('No tienes permisos para realizar esta acción.');
-          router.navigate(['/no-autorizado']);
+          // Solo se avisa; NO se navega. Antes cualquier 403 mandaba la
+          // aplicación entera a /no-autorizado, así que un widget secundario o
+          // un sondeo de fondo —el contador de notificaciones se consulta cada
+          // 60 s en ambos layouts— echaba al usuario de la pantalla en la que
+          // estaba trabajando y le hacía perder lo que tuviera a medias.
+          //
+          // Que falte un permiso para UNA acción no invalida el resto de la
+          // página. Bloquear la navegación es competencia de authGuard, que sí
+          // sabe si el usuario pidió ir a un sitio al que no puede entrar.
+          toast.error(error.error?.detail ?? 'No tienes permisos para realizar esta acción.');
           break;
 
         case 422:

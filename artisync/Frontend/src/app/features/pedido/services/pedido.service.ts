@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
@@ -7,9 +7,13 @@ import {
   RespuestaPedidoResumido,
   RespuestaHistorialEstado,
   RespuestaSeguimientoPedido,
+  RespuestaPropuestaTerminos,
   PeticionCrearPedido,
-  PeticionAvanzarEtapa
+  PeticionAvanzarEtapa,
+  PeticionCrearPropuestaTerminos
 } from '../models/pedido.model';
+import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
+import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
 
 @Injectable({ providedIn: 'root' })
 export class PedidoService {
@@ -34,8 +38,58 @@ export class PedidoService {
     return this.http.get<RespuestaPedidoResumido[]>(`${this.API}/mis-comisiones`);
   }
 
+  /**
+   * Exportación "propia": sin permiso aparte, hereda el guard del propio
+   * listado (ver PedidoControlador.exportarMisPedidos).
+   */
+  exportarMisPedidos(formato: FormatoReporte): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.API}/mis-pedidos/exportar`, {
+      ...sinErrorGlobal(), params: { formato }, responseType: 'blob', observe: 'response'
+    });
+  }
+
+  /**
+   * 1.4 (INFORME-REVISION-COMPLETA.md): `idsPedido` son los ids ya filtrados
+   * en pantalla (comisionesFiltradas()) — Angular serializa el array como
+   * claves repetidas (`idsPedido=1&idsPedido=2`), que Spring bindea a
+   * `List<Long>` de forma nativa. Sin ids (o vacío), exporta todo.
+   */
+  exportarMisComisiones(formato: FormatoReporte, idsPedido?: number[]): Observable<HttpResponse<Blob>> {
+    const params: Record<string, string | number[]> = { formato };
+    if (idsPedido && idsPedido.length) {
+      params['idsPedido'] = idsPedido;
+    }
+    return this.http.get(`${this.API}/mis-comisiones/exportar`, {
+      ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
+    });
+  }
+
   avanzarEtapa(id: number, peticion: PeticionAvanzarEtapa): Observable<RespuestaPedido> {
     return this.http.put<RespuestaPedido>(`${this.API}/${id}/avanzar`, peticion);
+  }
+
+  /** Negociación pre-firma: solo funciona mientras el contrato no tenga ninguna firma. */
+  proponerTerminos(id: number, peticion: PeticionCrearPropuestaTerminos): Observable<RespuestaPropuestaTerminos> {
+    return this.http.post<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos`, peticion);
+  }
+
+  /** 404 mientras no haya ninguna propuesta pendiente: estado normal. */
+  obtenerPropuestaPendiente(id: number): Observable<RespuestaPropuestaTerminos> {
+    return this.http.get<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos/pendiente`, sinErrorGlobal());
+  }
+
+  /** Solo la contraparte del proponente puede aceptar; aplica el cambio y devuelve el pedido actualizado. */
+  aceptarPropuestaTerminos(id: number, idPropuesta: number): Observable<RespuestaPedido> {
+    return this.http.put<RespuestaPedido>(`${this.API}/${id}/propuestas-terminos/${idPropuesta}/aceptar`, {});
+  }
+
+  rechazarPropuestaTerminos(id: number, idPropuesta: number): Observable<RespuestaPropuestaTerminos> {
+    return this.http.put<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos/${idPropuesta}/rechazar`, {});
+  }
+
+  /** Solo el propio proponente puede cancelar su propuesta pendiente. */
+  cancelarPropuestaTerminos(id: number, idPropuesta: number): Observable<RespuestaPropuestaTerminos> {
+    return this.http.put<RespuestaPropuestaTerminos>(`${this.API}/${id}/propuestas-terminos/${idPropuesta}/cancelar`, {});
   }
 
   obtenerHistorial(id: number): Observable<RespuestaHistorialEstado[]> {

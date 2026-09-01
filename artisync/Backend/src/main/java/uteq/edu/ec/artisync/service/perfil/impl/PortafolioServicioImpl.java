@@ -1,8 +1,13 @@
 package uteq.edu.ec.artisync.service.perfil.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
@@ -10,29 +15,40 @@ import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortafolioServicio;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PortafolioServicioImpl implements IPortafolioServicio {
 
+    /** Una visita del mismo usuario al mismo portafolio solo cuenta una vez por día. */
+    private static final Duration VENTANA_DEDUP_VISITA = Duration.ofHours(24);
+
     private final PortafolioRepository portafolioRepository;
     private final PerfilCreadorRepository perfilRepository;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     @Transactional
-    public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion) {
+    public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion, Long idUsuarioLogueado) {
         if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {
             throw new ExcepcionRecursoDuplicado("El perfil de creador ya cuenta con un portafolio registrado.");
         }
 
         PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + peticion.idPerfil()));
+
+        if (!perfil.getUsuario().getIdUsuario().equals(idUsuarioLogueado)) {
+            throw new ExcepcionReglaNegocio("No tiene permisos para crear un portafolio para este perfil.");
+        }
 
         Portafolio portafolio = Portafolio.builder()
                 .perfil(perfil)
@@ -77,9 +93,17 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
-    public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion) {
+    @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "portafolios", idEntidad = "#idPortafolio",
+            detalle = "{esPublico: #peticion.esPublico}")
+    public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion, Long idUsuarioLogueado) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
+
+        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();
+        if (!idDuenio.equals(idUsuarioLogueado)) {
+            throw new ExcepcionReglaNegocio("No tiene permisos para modificar este portafolio.");
+        }
 
         if (peticion.esPublico() != null) {
             portafolio.setEsPublico(peticion.esPublico());
@@ -94,15 +118,41 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
-    public void incrementarVisitas(Long idPortafolio) {
+    public void incrementarVisitas(Long idPortafolio, Long idUsuario) {
+        if (!marcarVisitaSiEsNueva(idPortafolio, idUsuario)) {
+            return;
+        }
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
         portafolio.setTotalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas() + 1);
         portafolioRepository.save(portafolio);
     }
 
+    /**
+     * SETNX con TTL: true solo la primera vez que este usuario visita este
+     * portafolio dentro de la ventana. Antes cualquier usuario autenticado podía
+     * llamar al endpoint en bucle e inflar el contador a voluntad; con esto una
+     * cuenta solo suma una visita real por portafolio al día.
+     *
+     * Fail-open ante caída de Redis (mismo criterio que IntentosAutenticacionService):
+     * si Redis no responde, se cuenta la visita en vez de bloquear la métrica.
+     */
+    private boolean marcarVisitaSiEsNueva(Long idPortafolio, Long idUsuario) {
+        String clave = "visita-portafolio:" + idPortafolio + ":" + idUsuario;
+        try {
+            Boolean esNueva = redisTemplate.opsForValue().setIfAbsent(clave, "1", VENTANA_DEDUP_VISITA);
+            return !Boolean.FALSE.equals(esNueva);
+        } catch (DataAccessException e) {
+            log.warn("No se pudo deduplicar la visita al portafolio {} en Redis; se cuenta igual (fail-open): {}",
+                    idPortafolio, e.getMessage());
+            return true;
+        }
+    }
+
     @Override
     @Transactional
+    @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "portafolios", idEntidad = "#idPortafolio")
     public void eliminarPortafolio(Long idPortafolio) {
         if (!portafolioRepository.existsById(idPortafolio)) {
             throw new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio);

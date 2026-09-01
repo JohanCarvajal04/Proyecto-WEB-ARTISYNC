@@ -18,6 +18,7 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -152,10 +153,13 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaBriefing obtenerBriefing(Long idPedido) {
+    public RespuestaBriefing obtenerBriefing(Long idPedido, Long idUsuarioSolicitante) {
         BriefingEnviado enviado = enviadoRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe briefing para el pedido " + idPedido));
+        // Evita que cualquier autenticado lea el briefing (datos de
+        // presupuesto/proyecto) de un pedido ajeno.
+        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(enviado.getPedido(), idUsuarioSolicitante);
         return mapEnviadoToResponse(enviado);
     }
 
@@ -196,7 +200,12 @@ public class BriefingServiceImpl implements BriefingService {
 
         log.info("Briefing del pedido {} completado por el cliente {}", idPedido, idCliente);
 
-        // TODO: Llamar a contratoService.generarContrato(idPedido) cuando M5 esté listo (RF-17)
+        // RF-17 no se resolvió generando el contrato automáticamente aquí: cliente
+        // y creador todavía negocian precio/fecha por chat después del briefing
+        // (ver "Negociar términos" en PedidoDetalleComponent), y el contrato se
+        // genera recién cuando ese acuerdo cierra, con el botón "Generar contrato"
+        // del chat (ChatPedidoComponent.generarContrato -> POST /contratos/pedido/
+        // {idPedido}). Generarlo aquí saltaría esa negociación.
 
         return mapEnviadoToResponse(enviado);
     }

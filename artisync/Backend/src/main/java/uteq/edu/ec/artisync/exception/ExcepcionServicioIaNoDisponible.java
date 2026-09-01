@@ -10,7 +10,24 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 public class ExcepcionServicioIaNoDisponible extends RuntimeException {
+
+    /**
+     * Solo true para fallos transitorios (429, timeout): un segundo intento
+     * puede tener éxito. Para 401/413 el segundo intento fallaría igual y
+     * solo duplicaría la espera del moderador.
+     */
+    private final boolean reintentable;
+
     public ExcepcionServicioIaNoDisponible(String mensaje, Throwable causa) {
+        this(mensaje, causa, false);
+    }
+
+    public ExcepcionServicioIaNoDisponible(String mensaje, Throwable causa, boolean reintentable) {
         super(mensaje, causa);
+        this.reintentable = reintentable;
+    }
+
+    public boolean isReintentable() {
+        return reintentable;
     }
 }

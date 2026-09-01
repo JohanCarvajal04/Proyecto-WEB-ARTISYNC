@@ -5,6 +5,8 @@ Este documento detalla el origen y las condiciones de recolección de los datos 
 ## Trazabilidad General
 Todas las variables con valor medido provienen de los archivos crudos referenciados en la columna "Fuente" del diccionario de datos. La mayoría de estas métricas automatizadas fueron generadas el **2026-07-30** contra el commit `f05feeb` (rama `entrega-3/mediciones-bloque-c`). Ninguno de estos archivos crudos fue editado a mano después de generarse, garantizando la inmutabilidad de la evidencia.
 
+Este directorio completo, tal como existía en el commit `d07656b` (cierre de la Entrega Final v1.0.0), está depositado permanentemente en Zenodo con DOI **`10.5281/zenodo.22236251`** (licencia CC BY 4.0), separado del depósito del software (`10.5281/zenodo.21978572`). Ver `zenodo-dataset-metadata.md` para los metadatos declarados en ese depósito.
+
 ## Procedencia por Métrica
 
 ### Métricas de Usabilidad (SUS)

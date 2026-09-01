@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
@@ -51,6 +53,9 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SORTEO_CREAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "sorteos", idEntidad = "#resultado.idSorteo",
+            detalle = "{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}")
     public RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion) {
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
@@ -96,6 +101,8 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "sorteos", idEntidad = "#idSorteo")
     public RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion) {
         Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
         boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);
@@ -127,6 +134,8 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
+    @Auditable(accion = "SORTEO_ELIMINAR", modulo = ModuloAuditoria.SOCIAL,
+            entidad = "sorteos", idEntidad = "#idSorteo")
     public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {

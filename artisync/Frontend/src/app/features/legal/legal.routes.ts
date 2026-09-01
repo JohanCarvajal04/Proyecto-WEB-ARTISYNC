@@ -22,5 +22,5 @@ export const LEGAL_ROUTES: Routes = [
     loadComponent: () => import('./pages/entregable-vista/entregable-vista.component').then(m => m.EntregableVistaComponent),
     canActivate: [authGuard]
   },
-  { path: '', redirectTo: '/pedido/mis-pedidos', pathMatch: 'full' }
+  { path: '', redirectTo: '/dashboard/mis-pedidos', pathMatch: 'full' }
 ];

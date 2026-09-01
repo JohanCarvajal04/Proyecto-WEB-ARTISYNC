@@ -4,6 +4,7 @@
 
 ## CU-11: Publicar un ítem en el catálogo
 **Trazabilidad:** REQ-F-011 / HU-11
+**Prueba de integración:** `ServicioCatalogoServicioImplTest`
 
 **1. Actor principal y objetivo:** Creador — publicar un producto o servicio para que sea visible en el catálogo.
 
@@ -32,6 +33,7 @@
 
 ## CU-12: Configurar atributos personalizados
 **Trazabilidad:** REQ-F-012 / HU-12
+**Prueba de integración:** `ServicioCatalogoServicioImplTest`
 
 **1. Actor principal y objetivo:** Creador — añadir atributos personalizados a un ítem según su categoría.
 
@@ -57,6 +59,7 @@
 
 ## CU-13: Buscar servicios en el catálogo
 **Trazabilidad:** REQ-F-013 / HU-13
+**Prueba de integración:** `ServicioCatalogoServicioImplTest`
 
 **1. Actor principal y objetivo:** Cliente — encontrar servicios que cumplan criterios específicos de categoría, precio o palabras clave.
 

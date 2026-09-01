@@ -77,7 +77,7 @@ workspace "Artisync - Plataforma para Artistas y Creadores" "Diagrama C4 Nivel 3
         smtpSystem = softwareSystem "Servicio de Correo Transaccional" "Servidor SMTP / TLS 587" "External System"
         paypalSystem = softwareSystem "Pasarela PayPal API v2" "Orders v2 & Webhooks" "External System"
 
-        apiServer = container "Servidor API REST (Backend)" "Java 25 / Spring Boot 4.0.1 / Spring Security 6" "Backend" {
+        apiServer = container "Servidor API REST (Backend)" "Java 21 / Spring Boot 4.1.0 / Spring Security 6" "Backend" {
             
             securityFilter = component "Filtros de Seguridad JWT (SecurityFilterChain)" "Intercepta solicitudes HTTP, valida el token Bearer, consulta blacklist y establece el contexto de seguridad." "Spring Security / JwtAuthenticationFilter / JwtService"
             
@@ -155,7 +155,7 @@ title Diagrama de Componentes (Nivel 3) - Contenedor API REST (`pfc_backend`)
 Container(webApp, "Aplicación Web SPA", "Angular 22, TypeScript", "Envía peticiones REST y tokens Bearer JWT al backend.")
 System_Ext(paypal, "Pasarela PayPal API v2", "Envia Webhooks de estado de pago Escrow.")
 
-Container_Boundary(backend_boundary, "Contenedor: Servidor API REST (Spring Boot 4.0.1 / Java 25)") {
+Container_Boundary(backend_boundary, "Contenedor: Servidor API REST (Spring Boot 4.1.0 / Java 21)") {
     
     Component(securityFilter, "Filtro de Seguridad & JWT", "JwtAuthenticationFilter, SecurityConfig, JwtService", "Intercepta HTTP, verifica firma HMAC, comprueba expiración e interroga a Redis por Blacklist.")
     
@@ -211,7 +211,7 @@ flowchart TB
         HTTP_IN["HTTP request: GET/POST/PUT/DELETE<br>Authorization: Bearer <jwt_token>"]
     end
 
-    subgraph SpringBoot["⚙️ Contenedor Backend Spring Boot 4.0.1 (`pfc_backend:8080`)"]
+    subgraph SpringBoot["⚙️ Contenedor Backend Spring Boot 4.1.0 (`pfc_backend:8080`)"]
         
         subgraph SecurityLayer["🛡️ Capa de Seguridad (Security & Filter Chain)"]
             SEC_CFG["SecurityConfig<br>(SecurityFilterChain / CORS)"]
@@ -220,11 +220,11 @@ flowchart TB
         end
 
         subgraph WebLayer["🎯 Capa de Controladores (Spring MVC)"]
-            CTRL["Controladores REST<br>(controller.*)<br>AuthController, UserController, PagoControlador"]
+            CTRL["Controladores REST & WebSockets<br>(controller.*)<br>AuthController, UserController, PagoControlador, ChatControlador"]
         end
 
         subgraph BusinessLayer["🧠 Capa de Lógica de Negocio (@Transactional)"]
-            SVC["Servicios de Negocio<br>(service.impl.*)<br>UserServiceImpl, PagoServicioImpl, PedidoServicioImpl"]
+            SVC["Servicios de Negocio<br>(service.impl.*)<br>UserServiceImpl, PagoServicioImpl, PedidoServicioImpl, AlmacenamientoAzure, AuditoriaServicio"]
             REV_SVC["SessionRevocationService<br>(Revocación JTI con TTL)"]
             MAIL_SVC["EmailService (@Async)<br>(Plantillas Thymeleaf)"]
         end

@@ -6,18 +6,22 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
@@ -36,7 +40,7 @@ import java.util.List;
 @Slf4j
 public class VerificacionServicioImpl implements IVerificacionServicio {
 
-    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final UsuarioRepository usuarioRepository;
     private final EstadoVerificacionRepository estadoVerificacionRepository;
     private final CertificadoIaRepository certificadoIaRepository;
     private final AlmacenamientoDocumentos almacenamiento;
@@ -49,15 +53,19 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
+    // Nunca el contenido ni el nombre del documento: REQ-F-006 exige
+    // eliminarlo tras la respuesta, y guardarlo aquí lo contradiría.
+    @Auditable(accion = "VERIFICACION_SOLICITAR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
+            detalle = "{tipoDocumento: #tipo}")
     public RespuestaVerificacion subir(Long idUsuarioSolicitante, TipoDocumentoVerificacion tipo, MultipartFile documento) {
-        PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuarioSolicitante)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
-                        "Debes tener un perfil de creador para solicitar una verificación."));
+        Usuario usuario = usuarioRepository.findById(idUsuarioSolicitante)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuarioSolicitante));
 
-        if (certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(
-                perfil.getIdPerfil(), "PENDIENTE")) {
+        if (certificadoIaRepository.existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(
+                idUsuarioSolicitante, "PENDIENTE")) {
             throw new ExcepcionReglaNegocio(
-                    "Ya existe una verificación pendiente para este perfil. Espera a que sea revisada antes de subir otra.");
+                    "Ya existe una verificación pendiente para tu cuenta. Espera a que sea revisada antes de subir otra.");
         }
 
         preprocesador.validarFormato(documento);
@@ -70,7 +78,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         String referenciaAlmacenamiento = almacenamiento.guardar(documento);
 
         CertificadoIa certificado = CertificadoIa.builder()
-                .perfil(perfil)
+                .usuario(usuario)
                 .estadoVerificacion(pendiente)
                 .urlDocumentoS3(referenciaAlmacenamiento)
                 .tipoDocumento(tipo.name())
@@ -79,7 +87,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
                 .build();
 
         CertificadoIa guardado = certificadoIaRepository.save(certificado);
-        log.info("Verificación {} creada para perfil {} [tipo={}]", guardado.getIdCertificado(), perfil.getIdPerfil(), tipo);
+        log.info("Verificación {} creada para usuario {} [tipo={}]", guardado.getIdCertificado(), idUsuarioSolicitante, tipo);
         return mapearARespuesta(guardado);
     }
 
@@ -89,8 +97,8 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
                 .map(fila -> RespuestaColaVerificacion.builder()
                         .idCertificado(fila.getIdCertificado())
-                        .idPerfil(fila.getIdPerfil())
-                        .nombreCreador(fila.getNombreCreador())
+                        .idUsuario(fila.getIdUsuario())
+                        .nombreUsuario(fila.getNombreUsuario())
                         .tipoDocumento(fila.getTipoDocumento())
                         .nombreEstado(fila.getNombreEstado())
                         .veredictoIa(fila.getVeredictoIa())
@@ -104,7 +112,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     @Transactional(readOnly = true)
     public RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
         CertificadoIa certificado = buscarPorId(idCertificado);
-        boolean esDueno = certificado.getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
+        boolean esDueno = certificado.getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
         if (!esRevisor && !esDueno) {
             throw new AccessDeniedException("No tienes acceso a esta verificación.");
         }
@@ -129,10 +137,9 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
         byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());
         byte[] comprimido = preprocesador.comprimirParaIa(original);
+        log.info("Documento {} comprimido a {} bytes para envío a IA", idCertificado, comprimido.length);
 
-        IaVerificacionResponse dictamen = "CERTIFICADO".equals(certificado.getTipoDocumento())
-                ? iaService.analizarCertificado(comprimido, "image/jpeg")
-                : iaService.verificarIdentidad(comprimido, "image/jpeg");
+        IaVerificacionResponse dictamen = analizarConReintento(certificado, comprimido);
 
         certificado.setVeredictoIa(dictamen.isAprobado() ? "SUGIERE_APROBAR" : "SUGIERE_RECHAZAR");
         certificado.setPuntajeConfianzaIa(dictamen.getConfianza());
@@ -147,6 +154,9 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = "VERIFICACION_DECIDIR", modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = "certificados_ia", idEntidad = "#idCertificado",
+            detalle = "{idNuevoEstado: #idNuevoEstado}")
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
         CertificadoIa certificado = buscarPorId(idCertificado);
 
@@ -170,6 +180,36 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         log.info("Decisión registrada para verificación {}: estado={}, moderador={}",
                 idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);
         return mapearARespuesta(certificado);
+    }
+
+    /**
+     * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
+     * ver ExcepcionServicioIaNoDisponible#isReintentable). 401/413 fallarían
+     * exactamente igual en el segundo intento y solo duplicarían la espera
+     * del moderador, así que se propagan de inmediato.
+     */
+    private IaVerificacionResponse analizarConReintento(CertificadoIa certificado, byte[] comprimido) {
+        boolean esCertificado = "CERTIFICADO".equals(certificado.getTipoDocumento());
+        try {
+            return esCertificado
+                    ? iaService.analizarCertificado(comprimido, "image/jpeg")
+                    : iaService.verificarIdentidad(comprimido, "image/jpeg");
+        } catch (ExcepcionServicioIaNoDisponible e) {
+            if (!e.isReintentable()) {
+                throw e;
+            }
+            log.warn("Fallo transitorio al analizar verificación {}, reintentando en 2s: {}",
+                    certificado.getIdCertificado(), e.getMessage());
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw e;
+            }
+            return esCertificado
+                    ? iaService.analizarCertificado(comprimido, "image/jpeg")
+                    : iaService.verificarIdentidad(comprimido, "image/jpeg");
+        }
     }
 
     private CertificadoIa buscarPorId(Long idCertificado) {
@@ -206,10 +246,31 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean estaIdentidadVerificada(Long idUsuario) {
+        return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
+                idUsuario, "IDENTIDAD", "APROBADO");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaEstadoIdentidad obtenerEstadoIdentidad(Long idUsuario) {
+        boolean verificado = estaIdentidadVerificada(idUsuario);
+        String estadoActual = certificadoIaRepository
+                .findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(idUsuario, "IDENTIDAD")
+                .map(c -> c.getEstadoVerificacion().getNombreEstado())
+                .orElse(null);
+        return RespuestaEstadoIdentidad.builder()
+                .verificado(verificado)
+                .estadoActual(estadoActual)
+                .build();
+    }
+
     private RespuestaVerificacion mapearARespuesta(CertificadoIa c) {
         return RespuestaVerificacion.builder()
                 .idCertificado(c.getIdCertificado())
-                .idPerfil(c.getPerfil().getIdPerfil())
+                .idUsuario(c.getUsuario().getIdUsuario())
                 .tipoDocumento(c.getTipoDocumento())
                 .nombreEstadoVerificacion(c.getEstadoVerificacion().getNombreEstado())
                 .veredictoIa(c.getVeredictoIa())

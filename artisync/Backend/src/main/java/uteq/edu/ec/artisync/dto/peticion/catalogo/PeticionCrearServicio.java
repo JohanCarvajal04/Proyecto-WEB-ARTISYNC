@@ -40,6 +40,8 @@ public class PeticionCrearServicio {
     @DecimalMin(value = "0.00", message = "El cargo de revision adicional no puede ser negativo")
     private BigDecimal cargoRevisionAdicional;
 
+    @Min(value = 0, message = "El limite de revisiones no puede ser negativo")
+    @Max(value = 100, message = "El limite de revisiones no puede superar 100")
     private Integer limiteRevisionesBase;
 
     private List<Long> etiquetaIds;

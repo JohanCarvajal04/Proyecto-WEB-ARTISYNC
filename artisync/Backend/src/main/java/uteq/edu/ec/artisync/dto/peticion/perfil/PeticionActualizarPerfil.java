@@ -7,6 +7,9 @@ public record PeticionActualizarPerfil(
         String biografia,
 
         @Size(max = 255, message = "La URL de red social no puede superar los 255 caracteres")
-        String urlRedSocial
+        String urlRedSocial,
+
+        @Size(max = 150, message = "El título profesional no puede superar los 150 caracteres")
+        String tituloProfesional
 ) {
 }

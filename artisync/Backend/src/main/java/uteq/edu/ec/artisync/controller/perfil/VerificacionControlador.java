@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionDecisionVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -41,6 +42,14 @@ public class VerificacionControlador {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         RespuestaVerificacion respuesta = verificacionServicio.subir(userDetails.getIdUsuario(), tipo, documento);
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
+    }
+
+    @Operation(summary = "Estado de identidad del usuario autenticado (gatea publicar servicios y crear pedidos)")
+    @GetMapping("/mi-estado")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaEstadoIdentidad> obtenerMiEstadoIdentidad(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(verificacionServicio.obtenerEstadoIdentidad(userDetails.getIdUsuario()));
     }
 
     @Operation(summary = "Cola de verificaciones pendientes de revisión")

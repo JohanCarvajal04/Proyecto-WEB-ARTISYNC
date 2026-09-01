@@ -19,6 +19,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
+import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
 
 import java.util.List;
@@ -35,6 +36,7 @@ class CategoriaServicioImplTest {
     @Mock private CategoriaRepository categoriaRepository;
     @Mock private SubcategoriaRepository subcategoriaRepository;
     @Mock private FlujoTrabajoRepository flujoTrabajoRepository;
+    @Mock private ServicioRepository servicioRepository;
 
     @InjectMocks
     private CategoriaServicioImpl categoriaServicio;
@@ -156,6 +158,17 @@ class CategoriaServicioImplTest {
     }
 
     @Test
+    @DisplayName("eliminarCategoria rechaza si alguna subcategoria tiene servicios publicados")
+    void eliminarCategoria_rechazaConServiciosDependientes() {
+        given(categoriaRepository.existsById(1L)).willReturn(true);
+        given(servicioRepository.existsBySubcategoriaCategoriaIdCategoria(1L)).willReturn(true);
+
+        assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+        org.mockito.Mockito.verify(categoriaRepository, org.mockito.Mockito.never()).deleteById(any());
+    }
+
+    @Test
     @DisplayName("listarCategoriasActivas mapea las categorias activas")
     void listarCategoriasActivas_mapea() {
         given(categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()).willReturn(List.of(categoria));
@@ -261,5 +274,16 @@ class CategoriaServicioImplTest {
 
         assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(1L))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("eliminarSubcategoria rechaza si tiene servicios publicados")
+    void eliminarSubcategoria_rechazaConServiciosDependientes() {
+        given(subcategoriaRepository.existsById(1L)).willReturn(true);
+        given(servicioRepository.existsBySubcategoriaIdSubcategoria(1L)).willReturn(true);
+
+        assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+        org.mockito.Mockito.verify(subcategoriaRepository, org.mockito.Mockito.never()).deleteById(any());
     }
 }

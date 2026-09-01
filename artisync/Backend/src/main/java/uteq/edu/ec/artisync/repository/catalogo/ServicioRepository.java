@@ -12,15 +12,25 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.domain.Specification;
 
 @Repository
 public interface ServicioRepository extends JpaRepository<Servicio, Long>, JpaSpecificationExecutor<Servicio> {
+
+    @Override
+    @EntityGraph(attributePaths = {"perfil", "perfil.usuario", "subcategoria", "subcategoria.categoria"})
+    Page<Servicio> findAll(Specification<Servicio> spec, Pageable pageable);
 
     List<Servicio> findByPerfilIdPerfil(Long idPerfil);
 
     List<Servicio> findByPerfilIdPerfilAndEstadoPublicacion(Long idPerfil, String estadoPublicacion);
 
     List<Servicio> findBySubcategoriaIdSubcategoria(Long idSubcategoria);
+
+    boolean existsBySubcategoriaIdSubcategoria(Long idSubcategoria);
+
+    boolean existsBySubcategoriaCategoriaIdCategoria(Long idCategoria);
 
     @Query("SELECT s FROM Servicio s WHERE " +
            "(:subcategoriaId IS NULL OR s.subcategoria.idSubcategoria = :subcategoriaId) AND " +

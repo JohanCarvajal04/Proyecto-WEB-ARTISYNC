@@ -125,7 +125,7 @@
       <div class="login-links">
         <p class="login-links__text">
           ¿No tienes una cuenta?
-          <a routerLink="/auth/register" class="login-links__anchor">Crear cuenta</a>
+          <a routerLink="/auth/register" [queryParams]="returnUrl ? { returnUrl } : {}" class="login-links__anchor">Crear cuenta</a>
         </p>
       </div>
     </div>

@@ -1,11 +1,11 @@
 # Artisync
 
-Módulo de Autenticación JWT + Acceso a Datos con Spring Data JPA — Entrega 1B.
+Plataforma web de comisiones y venta de contenido digital — Entrega Final (v1.0.0).
 
 ## Stack
 
-Java 21 · Spring Boot 3.2 · Spring Security 6 · jjwt 0.12 · Spring Data JPA ·
-Hibernate · PostgreSQL 16 · Flyway · Redis 7 · Angular 17+ · Docker Compose.
+Java 21 · Spring Boot 4.1.0 · Spring Security 6 · jjwt 0.12 · Spring Data JPA ·
+Hibernate · PostgreSQL 16 · Flyway · Redis 7 · Angular 22 · Docker Compose.
 
 ## Instrucciones de ejecución
 
@@ -52,7 +52,7 @@ El esquema y la semilla (`artisync/db/schema.sql` + `artisync/db/seed.sql`, mont
 | Ruta                          | Contenido                                                                                               |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `Backend/src/main/java/`      | Código fuente Java organizado por capa (entity, dto, service, repository, controller, security, config) |
-| `Backend/src/main/resources/db/migration/` | Migraciones Flyway `V1__..V5__` — unica fuente de verdad del esquema (`spring.flyway.locations`) |
+| `Backend/src/main/resources/db/migration/` | Migraciones Flyway `V1__..V13__` + `R__procedimientos.sql` — unica fuente de verdad del esquema (`spring.flyway.locations`) |
 | `Backend/src/test/`           | Pruebas unitarias JUnit 5 + integración MockMvc                                                         |
 | `Frontend/src/app/`           | Módulos Angular: `core/`, `shared/`, `features/`                                                        |
 | `Frontend/src/environments/`  | `environment.ts` (dev) y `environment.prod.ts`                                                          |
@@ -61,14 +61,14 @@ El esquema y la semilla (`artisync/db/schema.sql` + `artisync/db/seed.sql`, mont
 | `docker-compose.yml`          | Servicios: backend, postgres, redis, frontend (Nginx)                                                   |
 | `.env.example`                | Variables de entorno necesarias                                                                         |
 | `docs/adr/`                   | Decisiones de arquitectura (ADRs)                                                                       |
-| `docs/diccionario_datos.md`   | Diccionario de datos de la base                                                                         |
-| `docs/evidencias/`            | Capturas de Postman, Swagger, tests, etc.                                                               |
+| `docs/mediciones/DATA-DICTIONARY.md` | Diccionario de datos de la base y mediciones                                                               |
+| `docs/mediciones/`            | Capturas de Postman, Swagger, tests, evidencias empíricas (Lighthouse, k6, SUS, ZAP, etc.)              |
 | `.github/workflows/ci.yml`    | Pipeline CI: compile, test, docker build                                                                |
 
 ## Estado de la entrega
 
-- [ ] `docker compose up` levanta los 4 servicios sin errores
-- [ ] Autenticación JWT funcional (registro, login, logout, refresh)
-- [ ] CRUD completo de la entidad principal con paginación
-- [ ] ≥5 pruebas JUnit en verde
-- [ ] Informe técnico en PDF adjuntado al SGA
+- [x] `docker compose up` levanta los 4 servicios sin errores
+- [x] Autenticación JWT funcional (registro, login, logout, refresh, 2FA)
+- [x] CRUD completo de 7 módulos funcionales
+- [x] ≥5 pruebas JUnit en verde (522 pruebas ejecutándose exitosamente)
+- [x] Informe técnico en PDF y checklist de completitud adjuntados al SGA
