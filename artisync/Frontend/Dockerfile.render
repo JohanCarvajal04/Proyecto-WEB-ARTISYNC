@@ -1,0 +1,17 @@
+# --- Etapa de build ---
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# --- Etapa de ejecucion ---
+# nginx sirve el build estatico (rapido de arrancar) en vez del servidor de
+# desarrollo de Angular, que tarda demasiado en compilar para el escaneo de
+# puerto de Render y termina siendo matado por timeout.
+FROM nginx:1.27-alpine
+COPY --from=build /app/dist/Frontend/browser /usr/share/nginx/html
+COPY nginx.render.conf.template /etc/nginx/templates/default.conf.template
+ENV PORT=8080
+EXPOSE 8080

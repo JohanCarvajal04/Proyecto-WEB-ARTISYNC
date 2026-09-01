@@ -73,12 +73,12 @@ services:
     name: artisync-frontend
     runtime: docker
     rootDir: artisync/Frontend
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.render
     dockerContext: .
     plan: free
     envVars:
-      # URL publica de artisync-backend (https://artisync-backend.onrender.com)
-      # una vez creado ese servicio: el proxy de Angular reenvia /api, /actuator
-      # y /ws hacia ahi (ver docker-entrypoint.sh).
+      # URL publica de artisync-backend (https://artisync-backend.onrender.com,
+      # SIN barra final) una vez creado ese servicio: nginx reenvia /api,
+      # /actuator y /ws hacia ahi (ver nginx.render.conf.template).
       - key: BACKEND_INTERNAL_URL
         sync: false
