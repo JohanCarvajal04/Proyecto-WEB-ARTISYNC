@@ -16,10 +16,10 @@ public interface AdminUserService {
     UserResponse getUserById(Long id);
     UserResponse createUser(CreateUserRequest request);
     UserResponse updateUser(Long id, AdminUpdateUserRequest request);
-    UserResponse changeEstado(Long id, ChangeEstadoRequest request);
-    UserResponse assignRoles(Long id, AssignRolesRequest request);
+    UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual);
+    UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual);
     RespuestaMensaje revokeUserSessions(Long id);
-    void deleteUser(Long id);
+    void deleteUser(Long id, Long idAdminActual);
     DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante);
 }
 

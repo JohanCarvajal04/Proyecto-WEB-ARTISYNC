@@ -17,6 +17,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
+import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
@@ -30,6 +31,7 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     private final CategoriaRepository categoriaRepository;
     private final SubcategoriaRepository subcategoriaRepository;
     private final FlujoTrabajoRepository flujoTrabajoRepository;
+    private final ServicioRepository servicioRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,6 +111,14 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
         if (!categoriaRepository.existsById(idCategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria);
         }
+        // subcategorias.id_categoria cascada al borrar la categoria, pero
+        // servicios.id_subcategoria NO cascada desde subcategorias: si alguna
+        // subcategoria de esta categoria tiene servicios, el DELETE fallaria
+        // a mitad de camino con una DataIntegrityViolationException cruda.
+        if (servicioRepository.existsBySubcategoriaCategoriaIdCategoria(idCategoria)) {
+            throw new ExcepcionReglaNegocio(
+                    "No se puede eliminar la categoria: tiene servicios publicados en alguna de sus subcategorias.");
+        }
         categoriaRepository.deleteById(idCategoria);
     }
 
@@ -162,6 +172,10 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     public void eliminarSubcategoria(Long idSubcategoria) {
         if (!subcategoriaRepository.existsById(idSubcategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + idSubcategoria);
+        }
+        if (servicioRepository.existsBySubcategoriaIdSubcategoria(idSubcategoria)) {
+            throw new ExcepcionReglaNegocio(
+                    "No se puede eliminar la subcategoria: tiene servicios publicados.");
         }
         subcategoriaRepository.deleteById(idSubcategoria);
     }

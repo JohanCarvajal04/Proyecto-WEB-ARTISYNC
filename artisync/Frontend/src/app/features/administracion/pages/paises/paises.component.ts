@@ -44,8 +44,9 @@ export class PaisesComponent implements OnInit {
         this.paises.set(res);
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo cargar el listado de países');
       }
     });
   }
@@ -82,8 +83,9 @@ export class PaisesComponent implements OnInit {
         this.toastService.success('País creado exitosamente');
         this.loadPaises();
       },
-      error: () => {
+      error: (err) => {
         this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo crear el país');
       }
     });
   }
@@ -100,8 +102,9 @@ export class PaisesComponent implements OnInit {
         this.toastService.success('País actualizado exitosamente');
         this.loadPaises();
       },
-      error: () => {
+      error: (err) => {
         this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo actualizar el país');
       }
     });
   }
@@ -124,7 +127,10 @@ export class PaisesComponent implements OnInit {
         this.toastService.success(`País ${accionStr} exitosamente`);
         this.loadPaises();
       },
-      error: () => this.isActionLoading.set(false)
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo cambiar el estado del país');
+      }
     });
   }
 }

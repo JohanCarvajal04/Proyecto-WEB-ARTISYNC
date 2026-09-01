@@ -248,6 +248,24 @@ export class RolesPermissionsComponent implements OnInit {
     const rol = this.selectedRole();
     if (!rol || !this.canEdit()) return;
 
+    // Si el rol editado es uno de los propios y la nueva lista le quita algún
+    // permiso que el usuario tiene hoy, avisar antes de guardar: hasta ahora
+    // esto se aplicaba sin ningún aviso y podía dejar al admin sin poder
+    // volver a gestionar roles en el acto (refrescarPermisosPropiosSiAplica
+    // recarga sus permisos justo después de guardar).
+    const esRolPropio = this.authService.userRoles()
+      .some(r => r.replace(/^ROLE_/, '').toUpperCase() === rol.nombreRol.toUpperCase());
+    if (esRolPropio) {
+      const permisosPropiosActuales = new Set(this.authService.userPermissions());
+      const nuevos = this.assignedPermissions();
+      const perderiaAlguno = [...permisosPropiosActuales].some(p => !nuevos.has(p));
+      if (perderiaAlguno && !confirm(
+          'Estás editando uno de tus propios roles y vas a quitarte al menos un permiso que tienes ahora. ' +
+          'Esto puede dejarte sin acceso a partes de esta sección de inmediato. ¿Continuar?')) {
+        return;
+      }
+    }
+
     this.isSaving.set(true);
     const codes = Array.from(this.assignedPermissions());
 

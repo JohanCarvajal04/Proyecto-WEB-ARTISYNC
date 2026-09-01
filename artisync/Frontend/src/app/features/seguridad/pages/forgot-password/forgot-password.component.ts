@@ -39,8 +39,9 @@ export class ForgotPasswordComponent {
         this.emailSent.set(true);
         this.toastService.success('Instrucciones enviadas a tu correo');
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo enviar el correo. Intenta de nuevo.');
       }
     });
   }

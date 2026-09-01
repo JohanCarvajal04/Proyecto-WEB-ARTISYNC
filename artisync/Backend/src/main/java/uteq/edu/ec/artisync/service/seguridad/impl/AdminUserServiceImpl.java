@@ -207,7 +207,11 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_CAMBIAR_ESTADO", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{estadoCuenta: #request.estadoCuenta}")
-    public UserResponse changeEstado(Long id, ChangeEstadoRequest request) {
+    public UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual) {
+        if (id.equals(idAdminActual) && !request.getEstadoCuenta()) {
+            throw new ExcepcionReglaNegocio("No puedes desactivar tu propia cuenta.");
+        }
+
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -234,7 +238,11 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_ASIGNAR_ROLES", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{roles: #request.roles}")
-    public UserResponse assignRoles(Long id, AssignRolesRequest request) {
+    public UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual) {
+        if (id.equals(idAdminActual)) {
+            throw new ExcepcionReglaNegocio("No puedes cambiar tus propios roles. Pide a otro administrador que lo haga.");
+        }
+
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
@@ -256,7 +264,11 @@ public class AdminUserServiceImpl implements AdminUserService {
     // describa lo que realmente ocurre en la base de datos.
     @Auditable(accion = "USUARIO_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
-    public void deleteUser(Long id) {
+    public void deleteUser(Long id, Long idAdminActual) {
+        if (id.equals(idAdminActual)) {
+            throw new ExcepcionReglaNegocio("No puedes eliminar tu propia cuenta.");
+        }
+
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
         // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
         // atomicamente; ya no hace falta cargar la entidad completa. El

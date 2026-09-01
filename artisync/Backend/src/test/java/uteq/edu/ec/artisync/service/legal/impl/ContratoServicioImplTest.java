@@ -155,7 +155,7 @@ class ContratoServicioImplTest {
     @DisplayName("firmarContrato registra la firma del creador")
     void firmarContrato_firmaCreador() {
         Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla).limiteRevisiones(2).build();
-        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
         given(contratoRepository.save(any(Contrato.class))).willReturn(contrato);
 
         RespuestaContrato respuesta = contratoServicio.firmarContrato(10L, ID_CREADOR);
@@ -169,7 +169,7 @@ class ContratoServicioImplTest {
     @DisplayName("firmarContrato registra la firma del cliente")
     void firmarContrato_firmaCliente() {
         Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla).limiteRevisiones(2).build();
-        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
         given(contratoRepository.save(any(Contrato.class))).willReturn(contrato);
 
         RespuestaContrato respuesta = contratoServicio.firmarContrato(10L, ID_CLIENTE);
@@ -182,7 +182,7 @@ class ContratoServicioImplTest {
     void firmarContrato_ambasFirmas() {
         Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
                 .limiteRevisiones(2).hashFirmaCreador("hash-creador").build();
-        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
         given(contratoRepository.save(any(Contrato.class))).willReturn(contrato);
 
         RespuestaContrato respuesta = contratoServicio.firmarContrato(10L, ID_CLIENTE);
@@ -195,7 +195,7 @@ class ContratoServicioImplTest {
     void firmarContrato_rechazaDobleFirmaCreador() {
         Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
                 .limiteRevisiones(2).hashFirmaCreador("hash-existente").build();
-        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_CREADOR))
                 .isInstanceOf(ExcepcionReglaNegocio.class)
@@ -207,7 +207,7 @@ class ContratoServicioImplTest {
     void firmarContrato_rechazaDobleFirmaCliente() {
         Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
                 .limiteRevisiones(2).hashFirmaCliente("hash-existente").build();
-        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_CLIENTE))
                 .isInstanceOf(ExcepcionReglaNegocio.class)
@@ -218,7 +218,7 @@ class ContratoServicioImplTest {
     @DisplayName("H-02: firmarContrato rechaza (403) a un usuario que no es parte del contrato")
     void firmarContrato_rechazaAjeno() {
         Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla).limiteRevisiones(2).build();
-        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_AJENO))
                 .isInstanceOf(AccessDeniedException.class)
@@ -228,7 +228,7 @@ class ContratoServicioImplTest {
     @Test
     @DisplayName("firmarContrato lanza recurso no encontrado si el contrato no existe")
     void firmarContrato_contratoInexistente() {
-        given(contratoRepository.findById(10L)).willReturn(Optional.empty());
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_CREADOR))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);

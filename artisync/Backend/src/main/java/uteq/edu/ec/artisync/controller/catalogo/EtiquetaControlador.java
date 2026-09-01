@@ -36,6 +36,9 @@ public class EtiquetaControlador {
         return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));
     }
 
+    // Mismo criterio que CategoriaControlador: MODERADOR administra el
+    // catálogo completo (categorías, subcategorías y etiquetas) vía el
+    // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarEtiqueta(@PathVariable Long id) {

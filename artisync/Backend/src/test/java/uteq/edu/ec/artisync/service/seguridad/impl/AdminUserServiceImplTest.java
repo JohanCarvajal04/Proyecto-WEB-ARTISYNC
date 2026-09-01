@@ -155,7 +155,7 @@ class AdminUserServiceImplTest {
             return null;
         }).when(entityManager).refresh(usuario);
 
-        UserResponse result = adminUserService.changeEstado(1L, request);
+        UserResponse result = adminUserService.changeEstado(1L, request, 999L);
 
         assertNotNull(result);
         verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
@@ -173,7 +173,7 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(inactivo));
         when(usuarioMapper.toUserResponse(inactivo)).thenReturn(userResponse);
 
-        adminUserService.changeEstado(1L, request);
+        adminUserService.changeEstado(1L, request, 999L);
 
         // La decision de revocar (o no) ahora vive dentro de fn_cambiar_estado_cuenta;
         // el servicio siempre delega, sin ramificar en Java.
@@ -187,8 +187,18 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> adminUserService.changeEstado(99L, request));
+                () -> adminUserService.changeEstado(99L, request, 999L));
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void changeEstado_ShouldThrowReglaNegocio_WhenAdminSeDesactivaASiMismo() {
+        ChangeEstadoRequest request = new ChangeEstadoRequest();
+        request.setEstadoCuenta(false);
+
+        assertThrows(uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio.class,
+                () -> adminUserService.changeEstado(1L, request, 1L));
+        verify(usuarioRepository, never()).findById(any());
     }
 
     // ── createUser ───────────────────────────────────────────────────────────
@@ -409,7 +419,7 @@ class AdminUserServiceImplTest {
         when(usuarioRolRepository.sincronizarRoles(1L, new String[]{"CREADOR"})).thenReturn(1);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
-        UserResponse result = adminUserService.assignRoles(1L, request);
+        UserResponse result = adminUserService.assignRoles(1L, request, 999L);
 
         assertNotNull(result);
         verify(usuarioRolRepository).sincronizarRoles(1L, new String[]{"CREADOR"});
@@ -421,7 +431,16 @@ class AdminUserServiceImplTest {
         AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("CLIENTE")).build();
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> adminUserService.assignRoles(99L, request));
+        assertThrows(ResponseStatusException.class, () -> adminUserService.assignRoles(99L, request, 999L));
+    }
+
+    @Test
+    void assignRoles_ShouldThrowReglaNegocio_WhenAdminSeCambiaSusPropiosRoles() {
+        AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("CLIENTE")).build();
+
+        assertThrows(uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio.class,
+                () -> adminUserService.assignRoles(1L, request, 1L));
+        verify(usuarioRepository, never()).findById(any());
     }
 
     @Test
@@ -430,7 +449,7 @@ class AdminUserServiceImplTest {
         // comprueba existencia por su cuenta; delega la desactivacion +
         // revocacion atomica (y la validacion de existencia, via P0002) en
         // fn_cambiar_estado_cuenta.
-        adminUserService.deleteUser(1L);
+        adminUserService.deleteUser(1L, 999L);
 
         verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
         verify(usuarioRepository, never()).save(any());
@@ -441,7 +460,14 @@ class AdminUserServiceImplTest {
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: 99"))
                 .when(sessionRevocationService).cambiarEstadoCuenta(99L, false);
 
-        assertThrows(ResponseStatusException.class, () -> adminUserService.deleteUser(99L));
+        assertThrows(ResponseStatusException.class, () -> adminUserService.deleteUser(99L, 999L));
+    }
+
+    @Test
+    void deleteUser_ShouldThrowReglaNegocio_WhenAdminSeEliminaASiMismo() {
+        assertThrows(uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio.class,
+                () -> adminUserService.deleteUser(1L, 1L));
+        verify(sessionRevocationService, never()).cambiarEstadoCuenta(any(), org.mockito.ArgumentMatchers.anyBoolean());
     }
 
     @Test
