@@ -1,6 +1,7 @@
 # ADR-006: Estrategia híbrida de acceso a datos (ORM + procedimientos almacenados)
 
-**Estado:** Aceptado — ampliado el 16 de agosto de 2026 (ver [Ampliación](#ampliación))
+**Estado:** Aceptado — ampliado el 16 de agosto de 2026 (ver [Ampliación](#ampliación)); cinco
+rutinas originales retiradas del catálogo el 01-09-2026 (ver [Rutinas retiradas](#rutinas-retiradas))
 **Fecha:** Tercera Entrega, 24 de julio de 2026
 
 ## Contexto
@@ -89,16 +90,36 @@ Quedan documentados como trabajo futuro, sin código ni SQL asociado todavía: `
 (validación de límite de revisiones del contrato en `TicketRevisionServicioImpl`), la resolución de
 flujo y avance de etapa de `PedidoServicioImpl` (`crearPedido`/`avanzarEtapa`), el reporte de
 auditoría de transacciones por creador, y el listado de reseñas por creador
-(`ResenaServicioRepository.findByCreadorIdPerfil`, que además duplica en JPQL lo que
-`fn_calificacion_promedio_creador` ya calcula).
+(`ResenaServicioRepository.findByCreadorIdPerfil`, que además duplica en JPQL lo que calculaba
+`fn_calificacion_promedio_creador`, hoy retirada — ver más abajo).
 
-### Consecuencia adicional
+### Rutinas retiradas
 
-Las seis rutinas originales de la Tercera Entrega permanecen sin conectar al código Java: esta
-ampliación no las reconecta, por estar fuera del alcance solicitado (sumar rutinas nuevas, no reparar
-las existentes). Reconectarlas queda pendiente como una brecha aparte, ya no de C1/C6 (la ampliación
-suma rutinas realmente en uso) sino de deuda técnica: seis archivos `.sql` y su documentación
-describen un comportamiento que el backend en ejecución no reproduce.
+**Actualización 01-09-2026.** De las seis rutinas originales de la Tercera Entrega, una
+(`fn_reporte_comisiones_creador`) se conectó end-to-end el 26-08-2026, vía `@Query(nativeQuery=true)`
+en `TransaccionPagoRepository.java:26`. Las otras cinco nunca tuvieron un consumidor real desde
+código Java y se retiraron del catálogo (`db/procs/`, `docs/basedatos/CATALOGO-SP.md`) en lugar de
+mantenerlas indefinidamente como documentación de un comportamiento que el backend en ejecución no
+reproducía:
+
+- **`fn_catalogo_filtrado`** — el listado del catálogo público sigue resolviéndose por la
+  `Specification` dinámica de Java (`specification/catalogo/ServicioSpecification.java`), que ya
+  cumple el mismo propósito y no tiene el conflicto de SQL dinámico que sí tendría una función
+  equivalente para `sortBy` arbitrario (ver la nota sobre `fn_listar_usuarios_admin` en
+  `CATALOGO-SP.md`).
+- **`fn_calificacion_promedio_creador`** — la calificación media de un creador sigue
+  resolviéndose por la consulta JPQL con `AVG` de
+  `ResenaServicioRepository.calcularPromedioByCreadorIdPerfil`, que ya cumple el mismo propósito.
+- **`fn_cerrar_pedidos_vencidos`**, **`fn_liberar_fondos_escrow`**, **`fn_generar_codigo_pedido`**
+  — ninguna de estas tres operaciones (cierre automático de pedidos vencidos, liberación de fondos
+  en garantía, asignación de código público de pedido) está implementada todavía por ninguna vía,
+  ni ORM ni procedimiento almacenado. Es trabajo futuro declarado del dominio, no una brecha oculta
+  ni una regresión: las columnas/secuencias de soporte (`pedidos.codigo_pedido`,
+  `seq_codigo_pedido`) quedan en el esquema para cuando se implemente.
+
+Documentación completa de cada retiro, con la evidencia de `grep` que confirma la ausencia de
+consumidor, en [`docs/basedatos/CATALOGO-SP.md`](../basedatos/CATALOGO-SP.md), secciones 1, 2, 4, 5
+y 6.
 
 ## Mecanismo de invocación: `@Query(nativeQuery=true)` frente a `@Procedure` (OBS-AUTO-11)
 

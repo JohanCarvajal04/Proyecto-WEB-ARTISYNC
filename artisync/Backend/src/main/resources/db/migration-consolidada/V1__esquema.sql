@@ -299,8 +299,10 @@ CREATE TRIGGER trg_servicios_actualizado_en
     FOR EACH ROW
     EXECUTE FUNCTION set_actualizado_en();
 
--- Rescatados de R__procedimientos.sql: fn_reporte_comisiones_creador y
--- fn_catalogo_filtrado navegan servicios por perfil y por subcategoría+estado.
+-- Rescatado de R__procedimientos.sql: fn_reporte_comisiones_creador navega
+-- servicios por perfil y por subcategoría+estado (fn_catalogo_filtrado se
+-- retiró del catálogo por no tener consumidor real, ver ADR-006; los índices
+-- siguen siendo útiles para las consultas ORM equivalentes).
 CREATE INDEX idx_servicios_perfil
     ON servicios (id_perfil);
 CREATE INDEX idx_servicios_subcategoria_estado
@@ -406,7 +408,7 @@ CREATE TABLE pedidos (
 );
 
 COMMENT ON COLUMN pedidos.codigo_pedido
-    IS 'REQ-F-018 - Codigo publico ART-AAAA-NNNNNN. Lo asigna fn_generar_codigo_pedido.';
+    IS 'REQ-F-018 - Codigo publico ART-AAAA-NNNNNN. fn_generar_codigo_pedido se retiro del catalogo por no tener consumidor real (ver ADR-006); la columna y seq_codigo_pedido quedan preparadas para cuando se implemente la asignacion.';
 
 -- Correlativo del código público. Independiente de id_pedido para que el código
 -- no revele el volumen real de pedidos de la plataforma.
@@ -417,9 +419,10 @@ CREATE SEQUENCE seq_codigo_pedido
     CACHE 1;
 
 COMMENT ON SEQUENCE seq_codigo_pedido
-    IS 'Correlativo de fn_generar_codigo_pedido. Ver db/procs/fn_generar_codigo_pedido.sql.';
+    IS 'Correlativo para el codigo publico de pedidos (REQ-F-018). fn_generar_codigo_pedido, que la consumia, se retiro del catalogo por no tener consumidor real (ver ADR-006).';
 
--- fn_cerrar_pedidos_vencidos filtra por fecha de entrega (rescatado de R__).
+-- Soporta filtrar por fecha de entrega. fn_cerrar_pedidos_vencidos, que lo
+-- hacia, se retiro del catalogo por no tener consumidor real (ver ADR-006).
 CREATE INDEX idx_pedidos_fecha_entrega_estimada
     ON pedidos (fecha_entrega_estimada)
     WHERE fecha_entrega_estimada IS NOT NULL;
@@ -432,7 +435,8 @@ CREATE TABLE historial_estados_pedido (
     observacion TEXT
 );
 
--- Rescatado de R__: fn_cerrar_pedidos_vencidos recorre el historial por pedido.
+-- Soporta recorrer el historial por pedido (uso equivalente al que tenia
+-- fn_cerrar_pedidos_vencidos, retirado del catalogo, ver ADR-006).
 CREATE INDEX idx_historial_pedido_fecha
     ON historial_estados_pedido (id_pedido, fecha_transicion DESC);
 

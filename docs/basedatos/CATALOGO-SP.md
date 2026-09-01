@@ -10,8 +10,13 @@ por el apartado **A.2.1** de la Guía de la Entrega Final.
 
 ## Resumen
 
-El sistema declara **veintiséis rutinas** en `db/procs/` — las seis originales de la Tercera
-Entrega, una por cada categoría funcional del apartado A.2.2; siete de la ampliación del 16 de
+El sistema declara **veintiuna rutinas activas** en `db/procs/`. De las seis originales de la
+Tercera Entrega (una por categoría funcional del apartado A.2.2), **cinco se retiraron del
+catálogo** el 01-09-2026 por no tener nunca un consumidor real desde código Java (`fn_catalogo_filtrado`,
+`fn_calificacion_promedio_creador`, `fn_cerrar_pedidos_vencidos`, `fn_liberar_fondos_escrow`,
+`fn_generar_codigo_pedido` — ver [ADR-006, sección "Rutinas retiradas"](../adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas)
+para la justificación de cada una); la sexta, `fn_reporte_comisiones_creador`, sí está conectada
+end-to-end desde el 26-08-2026. A esa rutina se suman: siete de la ampliación del 16 de
 agosto de 2026 (ver [ADR-006, sección Ampliación](../adr/adr-006-estrategia-acceso-datos.md#ampliación)),
 con prioridad en el módulo de seguridad; cuatro de la **Fase 1 de concurrencia** del 22 de agosto de
 2026 (ver [`PLAN-CONCURRENCIA-SP.md`](PLAN-CONCURRENCIA-SP.md), sección 15 de este catálogo),
@@ -22,18 +27,18 @@ que elimina el N+1 de la ruta de autenticación; siete de la **Fase 3 de concurr
 actualización perdida y lectura fantasma en los flujos de 2FA, recuperación de contraseña,
 cambio de contraseña, alta de usuarios/roles y países); y una de la **Fase 4 de mantenimiento**
 (sección 18) — el único `PROCEDURE` de todo `db/procs/` — que purga por lotes lo que las tres
-fases anteriores dejaban crecer sin límite. Todas las rutinas posteriores a las seis originales
+fases anteriores dejaban crecer sin límite. Todas las rutinas activas posteriores a la original
 se verificaron conectadas end-to-end (repositorio Spring Data + servicio Java que las invoca), no
 solo declaradas en SQL.
 
 | # | Rutina | Categoría funcional | Requisito | Tipo | Volatilidad | Escribe |
 |---|---|---|---|---|---|---|
-| 1 | `fn_catalogo_filtrado` | Consultas multi-tabla | REQ-F-013 | `FUNCTION` | `STABLE` | No |
-| 2 | `fn_calificacion_promedio_creador` | Cálculos agregados | REQ-F-009 | `FUNCTION` | `STABLE` | No |
+| ~~1~~ | ~~`fn_catalogo_filtrado`~~ | — | REQ-F-013 | — | — | **Retirada, ver [§1](#1-fn_catalogo_filtrado-retirada)** |
+| ~~2~~ | ~~`fn_calificacion_promedio_creador`~~ | — | REQ-F-009 | — | — | **Retirada, ver [§2](#2-fn_calificacion_promedio_creador-retirada)** |
 | 3 | `fn_reporte_comisiones_creador` | Reportes | REQ-NF-013 | `FUNCTION` | `STABLE` | No |
-| 4 | `fn_cerrar_pedidos_vencidos` | Actualizaciones masivas | REQ-F-019 | `FUNCTION` | `VOLATILE` | Sí |
-| 5 | `fn_liberar_fondos_escrow` | Validaciones cruzadas | REQ-F-021 | `FUNCTION` | `VOLATILE` | Sí |
-| 6 | `fn_generar_codigo_pedido` | Generación de códigos secuenciales | REQ-F-018 | `FUNCTION` | `VOLATILE` | Sí |
+| ~~4~~ | ~~`fn_cerrar_pedidos_vencidos`~~ | — | REQ-F-019 | — | — | **Retirada, ver [§4](#4-fn_cerrar_pedidos_vencidos-retirada)** |
+| ~~5~~ | ~~`fn_liberar_fondos_escrow`~~ | — | REQ-F-021 | — | — | **Retirada, ver [§5](#5-fn_liberar_fondos_escrow-retirada)** |
+| ~~6~~ | ~~`fn_generar_codigo_pedido`~~ | — | REQ-F-018 | — | — | **Retirada, ver [§6](#6-fn_generar_codigo_pedido-retirada)** |
 | 7 | `fn_registrar_usuario` | Validaciones cruzadas + inserción multi-tabla | REQ-F-001 | `FUNCTION` | `VOLATILE` | Sí |
 | 8 | `fn_resolver_estado_login` | Consultas multi-tabla | REQ-F-002 | `FUNCTION` | `STABLE` | No |
 | 9 | `fn_sincronizar_permisos_rol` | Actualizaciones masivas | REQ-F-003 | `FUNCTION` | `VOLATILE` | Sí |
@@ -49,10 +54,10 @@ desde antes de esta ampliación: `fn_listar_cola_verificacion` (`FUNCTION`, `STA
 
 ### Nota sobre modos de parámetro y cursores
 
-Veinticinco de las veintiséis rutinas (trece anteriores + las cuatro de la Fase 1 de concurrencia +
+Veinte de las veintiuna rutinas activas (ocho anteriores + las cuatro de la Fase 1 de concurrencia +
 la de la Fase 2 de rendimiento + las siete de la Fase 3 de concurrencia) se declaran como
 **funciones** de PostgreSQL con valor de retorno escalar o `JSONB`. En consecuencia, para esas
-veinticinco:
+veinte:
 
 - **Todos los parámetros son de modo `IN`.** No hay parámetros `OUT` ni `INOUT` en ninguna rutina:
   el resultado viaja siempre por el valor de retorno.
@@ -70,101 +75,39 @@ devuelve nada y se invoca con `CALL`, nunca con `SELECT`.
 
 ### Postura de seguridad
 
-Ninguna de las veintiséis rutinas construye SQL por concatenación. No aparece `EXECUTE IMMEDIATE`,
-`sp_executesql`, `EXECUTE format(...)` ni `EXECUTE <variable>` en ningún archivo. Toda entrada
-externa llega como **parámetro formal tipado**, y los filtros opcionales se neutralizan con el
-patrón `(p_x IS NULL OR columna = p_x)` en lugar de armar el predicado por texto.
-
-El único uso del operador `||` en todo el directorio es la construcción de **texto de datos**, no de
-SQL: los comodines de un `ILIKE` sobre un parámetro ya tipado como `VARCHAR`
-(`fn_catalogo_filtrado`), la observación de auditoría (`fn_cerrar_pedidos_vencidos`) y el código de
-pedido (`fn_generar_codigo_pedido`). Esto satisface la regla transversal 7 de la guía y el
-*SQL Injection Prevention Cheat Sheet* de OWASP, que reconoce el procedimiento almacenado
-correctamente parametrizado como defensa primaria equivalente al ORM parametrizado.
+Ninguna de las veintiuna rutinas activas construye SQL por concatenación. No aparece `EXECUTE
+IMMEDIATE`, `sp_executesql`, `EXECUTE format(...)` ni `EXECUTE <variable>` en ningún archivo. Toda
+entrada externa llega como **parámetro formal tipado**, y los filtros opcionales se neutralizan con
+el patrón `(p_x IS NULL OR columna = p_x)` en lugar de armar el predicado por texto. Esto satisface
+la regla transversal 7 de la guía y el *SQL Injection Prevention Cheat Sheet* de OWASP, que reconoce
+el procedimiento almacenado correctamente parametrizado como defensa primaria equivalente al ORM
+parametrizado.
 
 ---
 
-## 1. `fn_catalogo_filtrado`
+## 1. `fn_catalogo_filtrado` (retirada)
 
-**Categoría:** consultas multi-tabla · **Requisito:** REQ-F-013 · **Archivo:** [`db/procs/fn_catalogo_filtrado.sql`](../../db/procs/fn_catalogo_filtrado.sql)
+**Categoría:** consultas multi-tabla · **Requisito:** REQ-F-013
 
-Devuelve la página del catálogo público que satisface una combinación de filtros que cruza cinco
-tablas más la agregación de reseñas del creador. Sustituye a la `Specification` dinámica de Java
-(`specification/catalogo/ServicioSpecification.java`), que construía el predicado en tiempo de
-ejecución desde la capa de servicio.
-
-El predicado se evalúa **una sola vez**: el total de coincidencias se obtiene con la función ventana
-`COUNT(*) OVER ()` sobre el mismo conjunto que se pagina, de modo que `total` y `elementos` no
-pueden divergir.
-
-### Parámetros
-
-| # | Nombre | Modo | Tipo | Por defecto | Significado |
-|---|---|---|---|---|---|
-| 1 | `p_id_categoria` | IN | `BIGINT` | `NULL` | Filtra por categoría. `NULL` desactiva el filtro |
-| 2 | `p_id_subcategoria` | IN | `BIGINT` | `NULL` | Filtra por subcategoría. `NULL` desactiva el filtro |
-| 3 | `p_precio_min` | IN | `NUMERIC(10,2)` | `NULL` | Cota inferior de `precio_base` (inclusiva) |
-| 4 | `p_precio_max` | IN | `NUMERIC(10,2)` | `NULL` | Cota superior de `precio_base` (inclusiva) |
-| 5 | `p_etiqueta` | IN | `VARCHAR(50)` | `NULL` | Nombre exacto de etiqueta; se resuelve con `EXISTS` |
-| 6 | `p_texto` | IN | `VARCHAR(150)` | `NULL` | Búsqueda `ILIKE` sobre `titulo_servicio` |
-| 7 | `p_limite` | IN | `INTEGER` | `20` | Tamaño de página. Se acota a `[1, 100]` (REQ-NF-004) |
-| 8 | `p_desplazamiento` | IN | `INTEGER` | `0` | Desplazamiento. Se acota a `>= 0` |
-
-### Retorno
-
-`JSONB` con la forma `{ total, limite, offset, elementos[] }`. Cada elemento de `elementos[]`
-contiene: `idServicio`, `titulo`, `descripcion`, `precioBase`, `urlMiniatura`, `tipoItem`,
-`idPerfil`, `idSubcategoria`, `subcategoria`, `idCategoria`, `categoria`, `calificacionMedia` y
-`etiquetas[]`. Devuelve `elementos: []` y `total: 0` cuando no hay coincidencias, nunca `NULL`.
-
-### Tablas y rutinas implicadas
-
-| Objeto | Acceso |
-|---|---|
-| `servicios` | Lectura |
-| `subcategorias` | Lectura (JOIN) |
-| `categorias` | Lectura (JOIN) |
-| `servicio_etiquetas` | Lectura (`EXISTS` y subconsulta de agregación) |
-| `etiquetas` | Lectura (JOIN) |
-| `fn_calificacion_promedio_creador` | Invocación anidada (rutina 2) |
-
-**Filtros fijos:** `estado_publicacion = 'ACTIVO'` y `categorias.estado_activa IS TRUE`.
+**Retirada del catálogo el 01-09-2026.** Nunca tuvo un consumidor real desde código Java —
+verificado con `grep -rn "fn_catalogo_filtrado" artisync/Backend/src/main/java` sin resultados. El
+listado del catálogo público sigue resolviéndose por la `Specification` dinámica de Java
+(`specification/catalogo/ServicioSpecification.java`), que ya cumplía el mismo propósito. Ver
+[ADR-006, sección "Rutinas retiradas"](../adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas)
+para la justificación completa. El archivo `db/procs/fn_catalogo_filtrado.sql` se eliminó del
+repositorio; este catálogo conserva la sección para no romper referencias externas al número.
 
 ---
 
-## 2. `fn_calificacion_promedio_creador`
+## 2. `fn_calificacion_promedio_creador` (retirada)
 
-**Categoría:** cálculos agregados · **Requisito:** REQ-F-009 · **Archivo:** [`db/procs/fn_calificacion_promedio_creador.sql`](../../db/procs/fn_calificacion_promedio_creador.sql)
+**Categoría:** cálculos agregados · **Requisito:** REQ-F-009
 
-Calcula la calificación media (1..5) de un creador agregando las reseñas de todos los pedidos
-servidos por sus servicios. Sustituye a la consulta JPQL con `AVG` y dos `JOIN` de
-`repository/social/ResenaServicioRepository.calcularPromedioByCreadorIdPerfil`.
-
-El redondeo a dos decimales se hace **en el motor**, para que todos los consumidores (API REST,
-`fn_catalogo_filtrado`, reportes) reciban exactamente el mismo valor y no se introduzcan
-discrepancias de redondeo entre capas.
-
-### Parámetros
-
-| # | Nombre | Modo | Tipo | Por defecto | Significado |
-|---|---|---|---|---|---|
-| 1 | `p_id_perfil` | IN | `BIGINT` | — | Perfil del creador. `NULL` devuelve `NULL` |
-
-### Retorno
-
-`NUMERIC(3,2)` — media redondeada a dos decimales.
-
-**`NULL` cuando el creador aún no acumula reseñas.** La ausencia de calificación es semánticamente
-distinta de una calificación de `0.0`, y el frontend las presenta de forma distinta
-("Sin valoraciones" vs. "0 estrellas").
-
-### Tablas implicadas
-
-| Objeto | Acceso |
-|---|---|
-| `resenas_servicios` | Lectura |
-| `pedidos` | Lectura (JOIN) |
-| `servicios` | Lectura (JOIN, filtro por `id_perfil`) |
+**Retirada del catálogo el 01-09-2026.** Nunca tuvo un consumidor real desde código Java. La
+calificación media de un creador sigue resolviéndose por la consulta JPQL con `AVG` de
+`repository/social/ResenaServicioRepository.calcularPromedioByCreadorIdPerfil`, que ya cumplía el
+mismo propósito. Ver [ADR-006, sección "Rutinas retiradas"](../adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas).
+El archivo `db/procs/fn_calificacion_promedio_creador.sql` se eliminó del repositorio.
 
 ---
 
@@ -215,141 +158,40 @@ ordenada por fecha descendente.
 
 ---
 
-## 4. `fn_cerrar_pedidos_vencidos`
+## 4. `fn_cerrar_pedidos_vencidos` (retirada)
 
-**Categoría:** actualizaciones masivas · **Requisito:** REQ-F-019 · **Archivo:** [`db/procs/fn_cerrar_pedidos_vencidos.sql`](../../db/procs/fn_cerrar_pedidos_vencidos.sql)
+**Categoría:** actualizaciones masivas · **Requisito:** REQ-F-019
 
-Cierra en bloque los pedidos cuya fecha de entrega estimada ya venció y que todavía no alcanzaron
-una etapa final de su flujo de trabajo.
-
-**Por qué es un `INSERT` y no un `UPDATE`:** el modelo de datos de Artisync no guarda el estado en
-la tabla `pedidos` — el estado vigente es la última fila de `historial_estados_pedido`. El cierre se
-materializa por tanto como una transición nueva hacia la etapa final configurada para el flujo del
-pedido (`flujo_etapas_config` con `es_etapa_final = TRUE` y el `numero_orden` más alto).
-
-Ejecutarlo como una sola sentencia en el motor, en lugar de iterar en Java pedido por pedido, evita
-el patrón N+1 que tenía `PedidoServicioImpl` y garantiza que todas las transiciones compartan la
-misma transacción y la misma marca de tiempo.
-
-**Idempotente:** un pedido que ya está en etapa final queda excluido por el predicado.
-
-### Parámetros
-
-| # | Nombre | Modo | Tipo | Por defecto | Significado |
-|---|---|---|---|---|---|
-| 1 | `p_dias_gracia` | IN | `INTEGER` | `0` | Días de gracia tras el vencimiento. Se acota a `>= 0` (un valor negativo cerraría pedidos aún vigentes) |
-
-### Retorno
-
-`INTEGER` — número de pedidos cerrados (`ROW_COUNT` del `INSERT`). `0` si no había ninguno vencido.
-
-### Tablas implicadas
-
-| Objeto | Acceso |
-|---|---|
-| `flujo_etapas_config` | Lectura (`DISTINCT ON` por flujo, mayor `numero_orden`) |
-| `historial_estados_pedido` | Lectura (último estado por pedido) **y escritura (`INSERT`)** |
-| `pedidos` | Lectura (JOIN, filtro por `fecha_entrega_estimada`) |
+**Retirada del catálogo el 01-09-2026.** Nunca tuvo un consumidor real desde código Java. El
+cierre de pedidos vencidos no está implementado por ninguna otra vía todavía — es trabajo futuro
+declarado, no una brecha oculta. Ver [ADR-006, sección "Rutinas retiradas"](../adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas).
+Los índices `idx_pedidos_fecha_entrega_estimada` e `idx_historial_pedido_fecha` que la rutina
+aprovechaba se conservan porque siguen siendo útiles para cualquier consulta futura por fecha de
+entrega. El archivo `db/procs/fn_cerrar_pedidos_vencidos.sql` se eliminó del repositorio.
 
 ---
 
-## 5. `fn_liberar_fondos_escrow`
+## 5. `fn_liberar_fondos_escrow` (retirada)
 
-**Categoría:** validaciones cruzadas · **Requisito:** REQ-F-021 · **Archivo:** [`db/procs/fn_liberar_fondos_escrow.sql`](../../db/procs/fn_liberar_fondos_escrow.sql)
+**Categoría:** validaciones cruzadas · **Requisito:** REQ-F-021
 
-Libera los fondos retenidos de un pedido bajo el patrón *escrow*, pero solo después de comprobar,
-dentro de la misma transacción y con el registro bloqueado, **cinco condiciones de negocio**:
-
-1. El pedido tiene contrato formalizado y pago de garantía asociado.
-2. Los fondos están en estado `'Retenido'` (no liberados ni reembolsados).
-3. El contrato está firmado por ambas partes (cliente y creador).
-4. Existe al menos un entregable final cargado para el pedido.
-5. No queda ningún ticket de revisión abierto.
-
-**Por qué en el motor y no en `PagoServicioImpl`:** las cinco lecturas y las tres escrituras deben
-ser atómicas frente a otra liberación concurrente del mismo pedido. La fila de `pagos_garantia` se
-toma con `SELECT ... FOR UPDATE OF pg`, de modo que dos llamadas simultáneas se serializan y la
-segunda observa el estado ya cambiado por la primera. Resolverlo en Java exigiría un bloqueo
-pesimista explícito y varias idas y vueltas a la base.
-
-### Parámetros
-
-| # | Nombre | Modo | Tipo | Por defecto | Significado |
-|---|---|---|---|---|---|
-| 1 | `p_id_pedido` | IN | `BIGINT` | — | Pedido cuyos fondos se liberan. **Obligatorio** |
-
-### Retorno
-
-`BOOLEAN` — `TRUE` si liberó los fondos; `FALSE` si no había nada que liberar.
-
-El contrato distingue deliberadamente **"ya estaba liberado"** (devuelve `FALSE`, idempotencia) de
-**"no se puede liberar"** (lanza excepción), para que la capa de servicio pueda tratar cada caso de
-forma distinta.
-
-### Excepciones
-
-| Condición | Mensaje | `SQLSTATE` |
-|---|---|---|
-| `p_id_pedido IS NULL` | `p_id_pedido es obligatorio` | `22004` |
-| Sin contrato con pago de garantía | `El pedido % no tiene contrato con pago de garantia asociado` | `23503` |
-| Contrato sin ambas firmas | `El contrato del pedido % no esta firmado por ambas partes` | `23514` |
-| Sin entregables finales | `El pedido % no tiene entregables finales cargados` | `23514` |
-| Tickets de revisión abiertos | `El pedido % tiene % ticket(s) de revision abiertos` | `23514` |
-
-### Tablas implicadas
-
-| Objeto | Acceso |
-|---|---|
-| `pagos_garantia` | Lectura con `FOR UPDATE` **y escritura (`UPDATE estado_fondos = 'Liberado'`)** |
-| `contratos` | Lectura (JOIN, verificación de firmas) |
-| `entregables_finales` | Lectura (conteo) **y escritura (`UPDATE esta_liberado = TRUE`)** |
-| `tickets_revision` | Lectura (conteo de estado `'Abierto'`) |
-| `transacciones_pago` | **Escritura (`INSERT` de tipo `'LIBERACION'`)** |
+**Retirada del catálogo el 01-09-2026.** Nunca tuvo un consumidor real desde código Java. La
+liberación de fondos en garantía no está implementada por ninguna otra vía todavía — es trabajo
+futuro declarado, no una brecha oculta. Ver [ADR-006, sección "Rutinas retiradas"](../adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas).
+El archivo `db/procs/fn_liberar_fondos_escrow.sql` se eliminó del repositorio.
 
 ---
 
-## 6. `fn_generar_codigo_pedido`
+## 6. `fn_generar_codigo_pedido` (retirada)
 
-**Categoría:** generación de códigos secuenciales · **Requisito:** REQ-F-018 · **Archivo:** [`db/procs/fn_generar_codigo_pedido.sql`](../../db/procs/fn_generar_codigo_pedido.sql)
+**Categoría:** generación de códigos secuenciales · **Requisito:** REQ-F-018
 
-Genera y asigna el código público de un pedido con el formato `ART-<AAAA>-<NNNNNN>`
-(p. ej. `ART-2026-000042`), donde `<AAAA>` es el año de creación del pedido y `<NNNNNN>` un
-correlativo de seis dígitos tomado de la secuencia `seq_codigo_pedido`.
-
-**Por qué una secuencia y no `MAX(codigo)+1`:** la secuencia entrega valores únicos sin bloquear la
-tabla y sin sufrir condiciones de carrera cuando dos pedidos se crean a la vez. Es la razón por la
-que esta operación no puede resolverse con un contador en Java: dos instancias del backend
-generarían el mismo número. La contrapartida aceptada es que los huecos en la secuencia son posibles
-tras un *rollback*; el código es un identificador, no un contador de pedidos, y su unicidad la
-garantiza además la restricción `UNIQUE` de la tabla.
-
-**Idempotente:** si el pedido ya tiene código asignado lo devuelve sin consumir un valor nuevo de la
-secuencia.
-
-### Parámetros
-
-| # | Nombre | Modo | Tipo | Por defecto | Significado |
-|---|---|---|---|---|---|
-| 1 | `p_id_pedido` | IN | `BIGINT` | — | Pedido al que se asigna el código. **Obligatorio** |
-
-### Retorno
-
-`VARCHAR(20)` — el código asignado, o el ya existente si la rutina se invoca dos veces.
-
-### Excepciones
-
-| Condición | Mensaje | `SQLSTATE` |
-|---|---|---|
-| `p_id_pedido IS NULL` | `p_id_pedido es obligatorio` | `22004` |
-| Pedido inexistente | `El pedido % no existe` | `23503` |
-
-### Objetos implicados
-
-| Objeto | Acceso |
-|---|---|
-| `pedidos` | Lectura con `FOR UPDATE` **y escritura (`UPDATE codigo_pedido`)** |
-| `seq_codigo_pedido` | `nextval()` — secuencia definida en `db/procs/V8__estructuras_para_procedimientos.sql` |
-| `uq_pedidos_codigo_pedido` | Restricción `UNIQUE` que respalda la unicidad del código |
+**Retirada del catálogo el 01-09-2026.** Nunca tuvo un consumidor real desde código Java — la
+columna `pedidos.codigo_pedido` y la secuencia `seq_codigo_pedido` existen en el esquema pero
+ningún flujo del backend las llena todavía (`grep -rn "codigo_pedido" artisync/Backend/src/main/java`
+sin resultados). Es trabajo futuro declarado, no una brecha oculta. Ver
+[ADR-006, sección "Rutinas retiradas"](../adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas).
+El archivo `db/procs/fn_generar_codigo_pedido.sql` se eliminó del repositorio.
 
 ---
 
@@ -639,10 +481,10 @@ no declara ninguna rutina: aporta el DDL que las rutinas anteriores necesitan.
 
 | Objeto | Tipo | Usado por |
 |---|---|---|
-| `pedidos.codigo_pedido` | Columna | `fn_generar_codigo_pedido` |
-| `uq_pedidos_codigo_pedido` | Restricción `UNIQUE` | `fn_generar_codigo_pedido` |
-| `seq_codigo_pedido` | Secuencia | `fn_generar_codigo_pedido` |
-| 4 índices de apoyo | Índices | Predicados de filtrado y JOIN de las rutinas 1, 3 y 4 |
+| `pedidos.codigo_pedido` | Columna | `fn_generar_codigo_pedido` (retirada, §6) — queda disponible para una futura implementación |
+| `uq_pedidos_codigo_pedido` | Restricción `UNIQUE` | `fn_generar_codigo_pedido` (retirada, §6) |
+| `seq_codigo_pedido` | Secuencia | `fn_generar_codigo_pedido` (retirada, §6) |
+| 4 índices de apoyo | Índices | Predicados de filtrado y JOIN de rutinas 1 y 4 (ambas retiradas) y de la rutina 3 activa |
 
 ---
 
@@ -889,7 +731,7 @@ authorities: [] }`. `NULL` si el correo no existe — `CustomUserDetailsService`
 `AdminUserServiceImpl.getAllUsers` (`GET /api/v1/admin/usuarios`) tenía el mismo síntoma de N+1 que
 la ruta de autenticación: `UsuarioMapper.toUserResponse` se invocaba una vez por fila de la página
 (~2 consultas por usuario). El plan original proponía una rutina `fn_listar_usuarios_admin` al
-estilo de `fn_catalogo_filtrado` (#1). Al implementarla se identificó un conflicto real con una
+estilo de `fn_catalogo_filtrado` (§1, retirada). Al implementarla se identificó un conflicto real con una
 funcionalidad ya existente: el endpoint acepta `sortBy` **arbitrario** sobre cualquier campo
 paginable (`?sortBy=correo&direction=desc`), resuelto hoy por `Pageable`/`Sort` de Spring Data, que
 JPA traduce de forma segura a `ORDER BY` parametrizado. Reproducir un `ORDER BY` por columna
