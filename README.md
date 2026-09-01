@@ -1,7 +1,8 @@
 # Artisync — Plataforma web de comisiones y venta de contenido digital
 
 [![CI](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml/badge.svg)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21978572.svg)](https://doi.org/10.5281/zenodo.21978572)
+[![DOI software](https://zenodo.org/badge/DOI/10.5281/zenodo.21978572.svg)](https://doi.org/10.5281/zenodo.21978572)
+[![DOI dataset](https://zenodo.org/badge/DOI/10.5281/zenodo.22236251.svg)](https://doi.org/10.5281/zenodo.22236251)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-v1.1.0-blue)](https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC/releases/tag/v1.1.0)
 
@@ -10,7 +11,7 @@ Universidad Técnica Estatal de Quevedo · Facultad de Ciencias de la Computaci�
 
 Artisync centraliza la comercialización de servicios y productos digitales de profesionales creativos (ilustradores, músicos, diseñadores, desarrolladores). Conecta **Creadores** con **Clientes** y gestiona perfiles, catálogo dinámico, mensajería, contratos con firma electrónica, flujo de pedidos, pagos con patrón *escrow* vía PayPal, y funciones sociales.
 
-> **DOI persistente.** El archivo Zenodo del tag `v1.0.0` está publicado con el DOI [`10.5281/zenodo.21978572`](https://doi.org/10.5281/zenodo.21978572), declarado también en `CITATION.cff` y en la portada del documento académico final (`docs/informe-final/secciones/00-portada-resumen.tex`). La versión anterior, `v0.9.0-rc`, quedó archivada con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559). Pendiente: depositar el dataset de mediciones en un registro Zenodo separado con DOI propio (ver Bloque D.3 de la guía).
+> **DOI persistente.** El archivo Zenodo del tag `v1.0.0` está publicado con el DOI [`10.5281/zenodo.21978572`](https://doi.org/10.5281/zenodo.21978572), declarado también en `CITATION.cff` y en la portada del documento académico final (`docs/informe-final/secciones/00-portada-resumen.tex`). La versión anterior, `v0.9.0-rc`, quedó archivada con el DOI [`10.5281/zenodo.21730559`](https://doi.org/10.5281/zenodo.21730559). El dataset de mediciones (`docs/mediciones/`) está depositado por separado, con licencia CC BY 4.0, en el DOI [`10.5281/zenodo.22236251`](https://doi.org/10.5281/zenodo.22236251), siguiendo el principio de citación independiente de software y datos (Bloque D.3 de la guía).
 
 ---
 

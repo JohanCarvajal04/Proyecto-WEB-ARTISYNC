@@ -24,6 +24,14 @@
 | zap_baseline_result | Resultado agregado del escaneo OWASP ZAP baseline | string | FAIL-NEW/WARN-NEW/PASS | `sec/zap/` | 0 FAIL-NEW | 0 FAIL-NEW · 8 WARN-NEW · 59 PASS (ver `sec/REPORTE-SEC.md`) |
 | static_analysis_sql_findings | Hallazgos de inyección SQL (SpotBugs + find-sec-bugs) | int | conteo | `sec/static-analysis/` | 0 | 0 |
 
+## Depósito Zenodo del dataset
+
+Este dataset (todo el contenido de `docs/mediciones/`) está depositado por separado
+del software en Zenodo, con DOI propio y licencia Creative Commons Attribution 4.0
+International (CC BY 4.0): **[`10.5281/zenodo.22236251`](https://doi.org/10.5281/zenodo.22236251)**
+(publicado 01-09-2026, siguiendo el principio de citación independiente de software y
+datos, Bloque D.3 de la guía de la Entrega Final).
+
 ## Procedencia de Datos
 
 > [!NOTE]

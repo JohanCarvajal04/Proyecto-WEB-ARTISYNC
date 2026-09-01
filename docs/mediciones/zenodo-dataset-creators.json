@@ -1,0 +1,38 @@
+[
+  {
+    "person_or_org": {
+      "type": "personal",
+      "family_name": "Bone Arroyo",
+      "given_name": "Niurca Scarleth",
+      "identifiers": [{ "scheme": "orcid", "identifier": "0009-0002-2219-2800" }]
+    },
+    "affiliations": [{ "name": "Universidad Técnica Estatal de Quevedo" }]
+  },
+  {
+    "person_or_org": {
+      "type": "personal",
+      "family_name": "Carvajal Loor",
+      "given_name": "Johan Stalin",
+      "identifiers": [{ "scheme": "orcid", "identifier": "0009-0008-9229-382X" }]
+    },
+    "affiliations": [{ "name": "Universidad Técnica Estatal de Quevedo" }]
+  },
+  {
+    "person_or_org": {
+      "type": "personal",
+      "family_name": "Figueroa Morales",
+      "given_name": "Bryan Javier",
+      "identifiers": [{ "scheme": "orcid", "identifier": "0009-0009-6357-4996" }]
+    },
+    "affiliations": [{ "name": "Universidad Técnica Estatal de Quevedo" }]
+  },
+  {
+    "person_or_org": {
+      "type": "personal",
+      "family_name": "Rios Cuyabazo",
+      "given_name": "Jhon Kevin",
+      "identifiers": [{ "scheme": "orcid", "identifier": "0009-0003-7446-9450" }]
+    },
+    "affiliations": [{ "name": "Universidad Técnica Estatal de Quevedo" }]
+  }
+]

@@ -23,14 +23,14 @@
 
 ## 1. Findable (Encontrable)
 
-- [ ] ¿Los datos y metadatos tienen identificadores únicos (ej. DOIs si aplica, o rutas claras)?
-  **Parcial (actualizado 21-08-2026).** El software en su conjunto tiene DOI de Zenodo propio de `v1.0.0` (`10.5281/zenodo.21978572`, declarado en `CITATION.cff`, en el README y en la portada del documento académico). **El dataset de mediciones sigue sin un DOI propio** — la guía exige un depósito Zenodo separado para datos, con licencia propia, siguiendo el principio de citación independiente de software y datos (Bloque D.3). Las rutas dentro del repositorio (`docs/mediciones/<bloque>/<archivo>`) sí son claras, estables y referenciadas de forma consistente en `DATA-DICTIONARY.md`, pero eso no sustituye un identificador persistente externo. Es la única brecha real que mantiene este ítem en "parcial": el DOI del software ya no lo es.
+- [x] ¿Los datos y metadatos tienen identificadores únicos (ej. DOIs si aplica, o rutas claras)?
+  **Sí (actualizado 01-09-2026).** El software tiene DOI de Zenodo propio de `v1.0.0` (`10.5281/zenodo.21978572`, declarado en `CITATION.cff`, en el README y en la portada del documento académico). **El dataset de mediciones ahora también tiene DOI propio**: `10.5281/zenodo.22236251`, depósito separado con licencia CC BY 4.0, declarado en el README y en `docs/informe-final/secciones/00-portada-resumen.tex` y `13-declaraciones.tex`. Las rutas dentro del repositorio (`docs/mediciones/<bloque>/<archivo>`) siguen siendo claras y estables, y ahora se complementan con el identificador persistente externo.
 
 - [x] ¿Están los datos descritos con metadatos ricos (DATA-DICTIONARY.md)?
   **Sí.** `docs/mediciones/DATA-DICTIONARY.md` documenta 17 variables con nombre, descripción, tipo, unidad, fuente (archivo crudo), umbral esperado y valor medido — cubre perf, SUS, Lighthouse, JaCoCo y los 6 controles OWASP.
 
-- [ ] ¿Están registrados o indexados en un recurso buscable?
-  **Parcial.** El repositorio en sí es público e indexado por GitHub (buscable por texto/código); el software tiene registro en Zenodo. El **dataset específico no está registrado como entidad independiente** en ningún índice (ni Zenodo propio, ni un repositorio de datos como Figshare/OSF) — solo existe como directorio dentro del repositorio de código.
+- [x] ¿Están registrados o indexados en un recurso buscable?
+  **Sí (actualizado 01-09-2026).** El repositorio en sí es público e indexado por GitHub; el software tiene registro en Zenodo (`10.5281/zenodo.21978572`); y el **dataset ahora está registrado como entidad independiente en Zenodo** (`10.5281/zenodo.22236251`), indexado y buscable de forma separada del código.
 
 ## 2. Accessible (Accesible)
 
@@ -40,8 +40,8 @@
 - [x] ¿El protocolo es abierto, gratuito y universalmente implementable?
   **Sí.** Git + HTTPS + GitHub — sin autenticación, sin costo, sin credenciales propietarias para lectura pública.
 
-- [ ] ¿Se proveen metadatos accesibles incluso si los datos ya no están disponibles?
-  **No.** `DATA-DICTIONARY.md` y `DATA-PROVENANCE.md` viven en el mismo repositorio que los datos crudos que describen — si el repositorio deja de estar disponible, ambos desaparecen juntos. No existe un registro de metadatos independiente y persistente (ej. un depósito Zenodo con metadatos que sobreviva aunque el repositorio Git se elimine). Esto está directamente ligado a la ausencia del DOI de dataset del ítem anterior.
+- [x] ¿Se proveen metadatos accesibles incluso si los datos ya no están disponibles?
+  **Sí (actualizado 01-09-2026).** El depósito Zenodo del dataset (`10.5281/zenodo.22236251`) incluye `DATA-DICTIONARY.md` y `DATA-PROVENANCE.md` dentro del paquete archivado, además de los metadatos propios de Zenodo (título, autores, descripción, licencia). Esto sobrevive aunque el repositorio Git se elimine, porque Zenodo preserva el depósito de forma permanente e independiente del repositorio de código.
 
 ## 3. Interoperable (Interoperable)
 
@@ -59,8 +59,8 @@
 - [x] ¿Están descritos de forma plural y precisa con atributos relevantes?
   **Sí.** Cada variable en `DATA-DICTIONARY.md` tiene tipo, unidad, umbral y fuente — suficiente para que un tercero entienda qué representa y cómo se generó sin leer el código.
 
-- [ ] ¿Tienen una licencia de uso clara y accesible (ej. MIT, CC-BY)?
-  **Parcial.** El repositorio completo tiene licencia MIT (`LICENSE`, raíz del repo) — cubre el **software**. La guía de la Entrega Final exige explícitamente que el **dataset** de mediciones tenga su propia licencia declarada (recomienda CC BY 4.0 o equivalente), separada de la licencia del software, como parte del depósito Zenodo del dataset (Bloque D.3). Esa licencia específica para datos **no existe** — MIT no es la licencia recomendada para datos de investigación.
+- [x] ¿Tienen una licencia de uso clara y accesible (ej. MIT, CC-BY)?
+  **Sí (actualizado 01-09-2026).** El software tiene licencia MIT (`LICENSE`, raíz del repo). El **dataset de mediciones** ahora tiene su propia licencia, declarada en el depósito Zenodo `10.5281/zenodo.22236251`: **Creative Commons Attribution 4.0 International (CC BY 4.0)**, separada de la licencia del software, como exige el Bloque D.3.
 
 - [x] ¿Se asocian con su procedencia detallada (DATA-PROVENANCE.md)?
   **Sí, con matices.** `docs/mediciones/DATA-PROVENANCE.md` existe y documenta procedencia por bloque de métrica (SUS, Lighthouse, k6, JaCoCo) con fecha de recolección y limitaciones metodológicas declaradas honestamente. Como se anota en Interoperable arriba, la cobertura de commit hash/script no es 100% para las mediciones más recientes.
@@ -74,6 +74,6 @@
 
 **Sección 0 (software, ampliación 21-08-2026): 3 de 3 cumplidos.** Los metadatos de citación del software —`CITATION.cff`, ORCID por autor y `.zenodo.json`— están completos y validados contra el esquema oficial.
 
-**Secciones 1–4 (dataset, evaluación original): 4 de 11 ítems cumplidos completamente**, 6 parciales, 1 no cumplido. El hallazgo transversal que explica la mayoría de los ítems parciales/no cumplidos es el mismo: **no existe un DOI ni licencia de dataset independiente del software** (Bloque D.3 de la guía — depósito Zenodo del dataset con DOI y licencia CC BY 4.0 propios). Resolver ese punto único destrabaría directamente Findable #1 y #3, Accessible #3, e Interoperable #3 y Reusable #2. El resto (vocabularios formales, estándares comunitarios) son mejoras de mayor esfuerzo, razonables como trabajo futuro.
+**Secciones 1–4 (dataset, actualizado 01-09-2026): 10 de 13 ítems cumplidos completamente**, 2 parciales, 1 no cumplido. El hallazgo transversal que explicaba la mayoría de los ítems parciales/no cumplidos —la ausencia de un DOI y una licencia de dataset independientes del software— se resolvió: depósito Zenodo separado `10.5281/zenodo.22236251`, licencia CC BY 4.0 (Bloque D.3 de la guía). Esto cerró directamente Findable #1 y #3, Accessible #3 y Reusable #2. Lo que queda parcial/no cumplido (vocabularios formales tipo schema.org/DCAT, referencias calificadas tipo PROV-O, conformidad con un estándar comunitario de metadatos de datos) son mejoras de mayor esfuerzo, razonables como trabajo futuro, no bloqueantes para el Bloque D.3.
 
-**Total: 7 de 14 ítems cumplidos completamente** (50 %), 6 parciales, 1 no cumplido. No se marcan ítems como cumplidos sin evidencia verificada en el repositorio.
+**Total: 13 de 16 ítems cumplidos completamente** (81 %), 2 parciales, 1 no cumplido. No se marcan ítems como cumplidos sin evidencia verificada en el repositorio.

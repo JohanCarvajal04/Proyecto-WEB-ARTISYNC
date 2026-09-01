@@ -12,6 +12,10 @@
 >
 > **La regla transversal #10 ya no se activa.** Para el estado vigente, la fuente de verdad es `docs/observaciones/OBSERVACIONES.md`; el resto de este informe se conserva como diagnóstico fechado, no como estado actual.
 
+> ## ✅ Actualización — 01 de septiembre de 2026: dos hallazgos bloqueantes más cerrados
+>
+> El tag `v1.0.0` (hallazgo bloqueante #1 de este informe) ya existe y está unificado entre la copia local y GitHub/Zenodo (`d07656b`); ver `docs/observaciones/OBSERVACIONES.md`, OBS-AUTO-12. El dataset de mediciones (Bloque D.3, fila "Depósito Zenodo del dataset... DOI separado y licencia propia") ahora tiene DOI propio: `10.5281/zenodo.22236251`, licencia CC BY 4.0, ver OBS-AUTO-13. El checklist FAIR pasó de 7/14 a 13/16 ítems cumplidos. El trabajo posterior al cierre de la Entrega Final (110 commits: refactor de permisos, seguridad) se etiquetó por separado como `v1.1.0`, sin alterar el artefacto evaluado.
+
 ## Actualización — 17 de agosto de 2026 (tras 9 commits)
 
 Desde el informe original (2026-08-16, commit `6f8c09c`) se hicieron 9 commits nuevos que cierran una parte real de las brechas de abajo. Esta sección se re-auditó desde cero contra el estado actual del repositorio (`HEAD` en `6af8595` al momento de escribir esto) — no se asume nada del informe original sin volver a verificar.
