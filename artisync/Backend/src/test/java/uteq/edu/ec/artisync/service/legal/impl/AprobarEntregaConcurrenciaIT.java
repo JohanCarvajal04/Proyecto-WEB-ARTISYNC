@@ -59,6 +59,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("postgres-it")
 @Import({EntregableServicioImpl.class, AprobarEntregaConcurrenciaIT.Colaboradores.class})
+@org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
 class AprobarEntregaConcurrenciaIT {
 
     @org.springframework.boot.test.context.TestConfiguration
