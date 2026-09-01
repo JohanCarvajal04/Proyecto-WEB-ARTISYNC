@@ -11,6 +11,17 @@ Este proyecto utiliza la taxonomía de roles de contribución [CRediT (Contribut
 | **FIGUEROA MORALES BRYAN JAVIER** | [0009-0009-6357-4996](https://orcid.org/0009-0009-6357-4996) |
 | **RIOS CUYABAZO JHON KEVIN** | [0009-0003-7446-9450](https://orcid.org/0009-0003-7446-9450) |
 
+### Nota sobre la participación de Bone Arroyo, Niurca Scarleth
+
+Niurca Scarleth Bone Arroyo colabora con el equipo por ser compañera de curso
+en la materia de **Administración de Bases de Datos**, en la que este mismo
+proyecto (Artisync) también se utiliza como caso de estudio. Su aporte se
+concentra principalmente en la capa de base de datos (procedimientos
+almacenados y funciones SQL bajo `db/procs/`) y en tareas de backend
+relacionadas. Esta colaboración cruzada entre materias fue comunicada
+verbalmente al docente-director del PFC durante las sesiones de clase; esta
+nota deja constancia escrita de esa misma explicación en el repositorio.
+
 ## Matriz de Roles (CRediT)
 
 Los 14 roles de la taxonomía CRediT, todos asignados:
