@@ -4,16 +4,7 @@ import { PaisResponse, UserResponse } from '../../models/user.model';
 import { PaisService } from '../../services/pais.service';
 import { UserService } from '../../../features/perfil/services/user.service';
 import { ToastService } from '../../../core/services/toast.service';
-
-export interface CalendarDay {
-  date: Date;
-  dateString: string;
-  dayNumber: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  isSelected: boolean;
-  isDisabled: boolean;
-}
+import { CalendarDay } from '../../models/calendar-day.model';
 
 @Component({
   selector: 'app-complete-profile-modal',

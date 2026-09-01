@@ -1,21 +1,13 @@
 package uteq.edu.ec.artisync.dto.peticion.legal;
 
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
-
-import java.time.LocalDateTime;
-
-import static org.springframework.format.annotation.DateTimeFormat.ISO;
+import lombok.EqualsAndHashCode;
+import uteq.edu.ec.artisync.dto.peticion.comun.FiltroRangoFechas;
 
 /** Filtros del reporte de contratos, ligados con @ModelAttribute (mismo estilo que FiltroReporteFinanciero). */
 @Data
-public class FiltroReporteContrato {
-
-    @DateTimeFormat(iso = ISO.DATE_TIME)
-    private LocalDateTime desde;
-
-    @DateTimeFormat(iso = ISO.DATE_TIME)
-    private LocalDateTime hasta;
+@EqualsAndHashCode(callSuper = true)
+public class FiltroReporteContrato extends FiltroRangoFechas {
 
     /** Filtra por el perfil del creador dueño del servicio contratado (servicio.perfil.idPerfil). */
     private Long idPerfilCreador;

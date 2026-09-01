@@ -1,18 +1,16 @@
 package uteq.edu.ec.artisync.dto.peticion.auditoria;
 
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
-
-import java.time.LocalDateTime;
-
-import static org.springframework.format.annotation.DateTimeFormat.ISO;
+import lombok.EqualsAndHashCode;
+import uteq.edu.ec.artisync.dto.peticion.comun.FiltroRangoFechas;
 
 /**
  * Filtros de la pantalla de auditoría, ligados con @ModelAttribute. Todos son
  * opcionales.
  */
 @Data
-public class FiltroAuditoria {
+@EqualsAndHashCode(callSuper = true)
+public class FiltroAuditoria extends FiltroRangoFechas {
 
     private String correoActor;
     private String accion;
@@ -20,10 +18,4 @@ public class FiltroAuditoria {
     private String resultado;
     private String entidad;
     private Long idEntidad;
-
-    @DateTimeFormat(iso = ISO.DATE_TIME)
-    private LocalDateTime desde;
-
-    @DateTimeFormat(iso = ISO.DATE_TIME)
-    private LocalDateTime hasta;
 }

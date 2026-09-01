@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
 import uteq.edu.ec.artisync.entity.legal.Mensaje;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
@@ -86,7 +86,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional
-    public RespuestaMensaje enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
+    public RespuestaMensajeChat enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
@@ -120,7 +120,7 @@ public class ChatServiceImpl implements ChatService {
                 .build();
         mensaje = mensajeRepo.save(mensaje);
 
-        RespuestaMensaje response = mapToResponse(mensaje, remitente);
+        RespuestaMensajeChat response = mapToResponse(mensaje, remitente);
 
         // Publicar en el tópico de la sala para entrega en tiempo real
         messagingTemplate.convertAndSend("/topic/sala." + sala.getIdSala(), response);
@@ -148,7 +148,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RespuestaMensaje> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
+    public Page<RespuestaMensajeChat> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "No existe sala de chat para el pedido " + idPedido));
@@ -158,13 +158,13 @@ public class ChatServiceImpl implements ChatService {
         verificarParticipante(sala.getPedido(), idUsuario);
 
         List<Mensaje> mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());
-        List<RespuestaMensaje> dtos = mensajes.stream()
+        List<RespuestaMensajeChat> dtos = mensajes.stream()
                 .map(m -> mapToResponse(m, m.getRemitente()))
                 .toList();
 
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), dtos.size());
-        List<RespuestaMensaje> page = start > dtos.size() ? List.of() : dtos.subList(start, end);
+        List<RespuestaMensajeChat> page = start > dtos.size() ? List.of() : dtos.subList(start, end);
         return new PageImpl<>(page, pageable, dtos.size());
     }
 
@@ -201,8 +201,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     // -------------------------------------------------------------------------
-    private RespuestaMensaje mapToResponse(Mensaje m, Usuario remitente) {
-        return RespuestaMensaje.builder()
+    private RespuestaMensajeChat mapToResponse(Mensaje m, Usuario remitente) {
+        return RespuestaMensajeChat.builder()
                 .idMensaje(m.getIdMensaje())
                 .idSala(m.getSala().getIdSala())
                 .idRemitente(remitente.getIdUsuario())

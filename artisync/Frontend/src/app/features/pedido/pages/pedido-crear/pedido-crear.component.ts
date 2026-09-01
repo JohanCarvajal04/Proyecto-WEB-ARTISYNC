@@ -72,6 +72,13 @@ export class PedidoCrearComponent implements OnInit {
       return;
     }
 
+    // El backend rechaza precioOfrecido <= 0 (@DecimalMin en
+    // PeticionCrearPedido), pero avisar aquí evita el viaje al servidor.
+    if (this.pedido.precioOfrecido != null && this.pedido.precioOfrecido <= 0) {
+      this.error.set('El precio ofrecido debe ser mayor a 0.');
+      return;
+    }
+
     this.loading.set(true);
     this.error.set('');
 

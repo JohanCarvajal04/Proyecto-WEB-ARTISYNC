@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RespuestaMensaje {
+public class RespuestaMensajeChat {
 
     private Long idMensaje;
     private Long idSala;

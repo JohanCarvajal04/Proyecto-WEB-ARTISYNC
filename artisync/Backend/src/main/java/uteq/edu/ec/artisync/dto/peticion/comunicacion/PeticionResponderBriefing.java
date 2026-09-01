@@ -3,6 +3,7 @@ package uteq.edu.ec.artisync.dto.peticion.comunicacion;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.List;
@@ -31,6 +32,7 @@ public class PeticionResponderBriefing {
         private Long idPregunta;
 
         @NotBlank(message = "La respuesta no puede estar vacía")
+        @Size(max = 5000, message = "La respuesta no puede superar los 5000 caracteres")
         private String textoRespuesta;
     }
 }

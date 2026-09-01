@@ -8,7 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Mensaje;
@@ -161,10 +161,10 @@ class ChatServiceImplTest {
         when(usuarioRepo.getReferenceById(1L)).thenReturn(remitente);
         when(mensajeRepo.save(any(Mensaje.class))).thenReturn(msg);
 
-        RespuestaMensaje respuesta = chatService.enviarMensaje(10L, 1L, "Hola, ¿cómo va el proyecto?");
+        RespuestaMensajeChat respuesta = chatService.enviarMensaje(10L, 1L, "Hola, ¿cómo va el proyecto?");
 
         assertThat(respuesta.getCuerpoMensaje()).isEqualTo("Hola, ¿cómo va el proyecto?");
-        verify(messagingTemplate).convertAndSend(eq("/topic/sala.100"), any(RespuestaMensaje.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/sala.100"), any(RespuestaMensajeChat.class));
         // El remitente (1L) es el cliente: la notificación debe ir al creador (2L), no a él mismo.
         verify(notificacionService).notificar(eq(creador), eq("MENSAJE_RECIBIDO"), anyString());
         verify(notificacionService, never()).notificar(eq(remitente), eq("MENSAJE_RECIBIDO"), anyString());

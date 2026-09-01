@@ -96,7 +96,7 @@ public class PedidoControlador {
     public ResponseEntity<RespuestaPedido> avanzarEtapa(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody PeticionAvanzarEtapa peticion) {
+            @Valid @RequestBody PeticionAvanzarEtapa peticion) {
         return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));
     }
 

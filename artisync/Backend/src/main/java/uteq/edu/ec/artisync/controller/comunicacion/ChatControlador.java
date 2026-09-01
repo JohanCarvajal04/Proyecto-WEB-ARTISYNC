@@ -14,7 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -36,7 +36,7 @@ public class ChatControlador {
     @Operation(summary = "Historial de mensajes de un pedido (paginado)")
     @GetMapping("/mensajes")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Page<RespuestaMensaje>> obtenerMensajes(
+    public ResponseEntity<Page<RespuestaMensajeChat>> obtenerMensajes(
             @PathVariable Long idPedido,
             Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -46,11 +46,11 @@ public class ChatControlador {
     @Operation(summary = "Enviar mensaje por REST (fallback sin WebSocket)")
     @PostMapping("/mensajes")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> enviarMensaje(
+    public ResponseEntity<RespuestaMensajeChat> enviarMensaje(
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RespuestaMensaje respuesta = chatService.enviarMensaje(
+        RespuestaMensajeChat respuesta = chatService.enviarMensaje(
                 idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());
         return ResponseEntity.ok(respuesta);
     }

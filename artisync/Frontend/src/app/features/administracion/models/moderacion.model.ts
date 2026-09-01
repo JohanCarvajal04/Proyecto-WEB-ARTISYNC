@@ -80,15 +80,9 @@ export interface Infraccion {
 }
 
 // ─── Portafolios (PORTAFOLIO_MODERAR) — solo lectura ───
-
-export interface Portafolio {
-  idPortafolio: number;
-  idPerfil: number;
-  fechaCreacion: string;
-  totalVisitasAcumuladas: number;
-  esPublico: boolean;
-  opcionesPersonalizacion: Record<string, string> | null;
-}
+// El tipo `Portafolio` vive en `features/perfil/models/portafolio.model.ts`
+// (dueño original de la entidad); aquí solo se reexporta para no duplicarlo.
+export type { Portafolio } from '../../perfil/models/portafolio.model';
 
 // ─── Comentarios (COMENTARIO_MODERAR) ───
 
@@ -130,16 +124,4 @@ export interface ActualizarCategoria {
   nombreCategoria: string;
   estadoActiva?: boolean;
   idFlujo?: number | null;
-}
-
-// ─── Servicios del catálogo (SERVICIO_MODERAR) — solo lectura ───
-
-export interface ServicioResumido {
-  idServicio: number;
-  nombreServicio: string;
-  descripcion: string;
-  precioBase: number;
-  estadoPublicacion: string;
-  idCategoria: number;
-  nombreCategoria: string;
 }
