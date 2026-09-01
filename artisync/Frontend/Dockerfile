@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+RUN chmod +x docker-entrypoint.sh
 EXPOSE 4200
-CMD ["npx", "ng", "serve", "--host", "0.0.0.0", "--proxy-config", "proxy.docker.conf.json", "--poll", "2000"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
 

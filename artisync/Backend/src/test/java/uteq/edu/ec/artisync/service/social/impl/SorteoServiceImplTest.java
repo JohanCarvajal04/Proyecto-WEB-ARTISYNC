@@ -309,6 +309,22 @@ class SorteoServiceImplTest {
     }
 
     @Test
+    @DisplayName("actualizarSorteo — rechaza fechaCierre anterior a la fechaInicio original, sin participantes")
+    void actualizarSorteo_fechaCierreAntesDeInicio_lanzaExcepcion() {
+        var peticion = PeticionActualizarSorteo.builder()
+                .fechaCierre(sorteoActivo.getFechaInicio().minusHours(1)) // antes de fechaInicio
+                .build();
+
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
+        given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
+
+        assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("posterior a la fecha de inicio");
+    }
+
+    @Test
     @DisplayName("actualizarSorteo — rechaza a un usuario que no es el propietario del sorteo")
     void actualizarSorteo_rechazaNoPropietario() {
         PerfilCreador otroPerfil = PerfilCreador.builder().idPerfil(20L).build();

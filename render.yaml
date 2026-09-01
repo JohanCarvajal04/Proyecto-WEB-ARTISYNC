@@ -1,0 +1,84 @@
+databases:
+  - name: artisync-db
+    databaseName: artisyncbd
+    user: artisync
+    plan: free
+
+services:
+  # Cache/blacklist de tokens (app.cache.catalogo, AuthRateLimitFilter).
+  - type: redis
+    name: artisync-redis
+    ipAllowList: [] # solo accesible desde servicios internos de este proyecto
+    plan: free
+
+  - type: web
+    name: artisync-backend
+    runtime: docker
+    rootDir: artisync/Backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      # Pega aqui la cadena de conexion de artisync-db (pestaña "Connect" del
+      # dashboard) pero con esquema jdbc:postgresql:// en vez de postgres://
+      # Ejemplo: jdbc:postgresql://<host>:5432/artisyncbd
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        fromDatabase:
+          name: artisync-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: artisync-db
+          property: password
+      # Cuenta de privilegios minimos para el datasource en tiempo de
+      # ejecucion (ver db/seed_privilegios.sh). Debe crearse manualmente en
+      # la base de datos; Render no la genera.
+      - key: DB_APP_USER
+        value: artisync_app
+      - key: DB_APP_PASSWORD
+        sync: false
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: artisync-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: artisync-redis
+          property: port
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      # URL publica de artisync-frontend (https://artisync-frontend.onrender.com)
+      # una vez creado ese servicio; se usa para enlaces de correo y retorno de PayPal.
+      - key: FRONTEND_URL
+        sync: false
+      - key: APP_COOKIE_SECURE
+        value: "true"
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+
+  - type: web
+    name: artisync-frontend
+    runtime: docker
+    rootDir: artisync/Frontend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      # URL publica de artisync-backend (https://artisync-backend.onrender.com)
+      # una vez creado ese servicio: el proxy de Angular reenvia /api, /actuator
+      # y /ws hacia ahi (ver docker-entrypoint.sh).
+      - key: BACKEND_INTERNAL_URL
+        sync: false

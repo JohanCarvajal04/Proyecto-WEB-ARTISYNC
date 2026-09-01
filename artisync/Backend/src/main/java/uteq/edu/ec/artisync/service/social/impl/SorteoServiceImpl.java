@@ -120,6 +120,16 @@ public class SorteoServiceImpl implements SorteoService {
             }
         }
 
+        // fechaInicio no es editable por este DTO, así que solo se valida contra
+        // ella (nunca se recalcula): sin este chequeo, una fechaCierre nueva
+        // anterior a la fechaInicio original dejaba el sorteo en un estado
+        // imposible — participar() rechaza tanto "aún no ha comenzado" como
+        // "el periodo de inscripción ha finalizado" para cualquier instante.
+        if (peticion.getFechaCierre() != null && peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {
+            throw new ExcepcionReglaNegocio(
+                    "La fecha de cierre debe ser posterior a la fecha de inicio del sorteo");
+        }
+
         if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());
         if (peticion.getDescripcionPremios() != null) sorteo.setDescripcionPremios(peticion.getDescripcionPremios());
         if (!tieneParticipantes && peticion.getCantidadGanadores() != null)
