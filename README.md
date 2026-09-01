@@ -65,6 +65,38 @@ La aplicación se conecta a PostgreSQL con la cuenta `artisync_app`, de **privil
 
 ---
 
+## Compilar el documento académico
+
+El informe final (`docs/informe-final/Informe-Final-v1.0.0.pdf`) y el SRS
+(`docs/requisitos/SRS-v1.0.0.pdf`) se generan a partir de fuente LaTeX/Markdown
+versionada — **no** hace falta instalar una distribución LaTeX en tu máquina,
+basta con Docker.
+
+```bash
+# Informe académico final (LaTeX -> PDF), desde docs/informe-final/main.tex
+make docs
+
+# SRS (Markdown -> PDF vía pandoc/latex), desde docs/requisitos/SRS.md
+make srs
+```
+
+`make docs` requiere `pdflatex`/`bibtex` disponibles en el PATH (TeX Live o
+MiKTeX) **o**, si prefieres no instalar nada localmente, compílalo en un
+contenedor efímero con la imagen `texlive/texlive:latest`:
+
+```bash
+docker run --rm -v "$(pwd)/docs/informe-final:/repo" -w /repo texlive/texlive:latest \
+  bash -c "pdflatex -interaction=nonstopmode main.tex && bibtex main && \
+           pdflatex -interaction=nonstopmode main.tex && \
+           pdflatex -interaction=nonstopmode main.tex"
+cp docs/informe-final/main.pdf docs/informe-final/Informe-Final-v1.0.0.pdf
+```
+
+`make srs` ya usa Docker por defecto (imagen `pandoc/latex:3.1`, configurable
+con `PANDOC_IMAGE`); exporta `PANDOC_LOCAL=1` si prefieres un `pandoc` local.
+
+---
+
 ## Pila tecnológica
 
 | Capa | Tecnología |
