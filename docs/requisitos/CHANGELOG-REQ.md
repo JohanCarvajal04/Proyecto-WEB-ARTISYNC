@@ -67,7 +67,7 @@ declarados. No afecta a la tasa de estabilidad.
 ## [v0.3.0] - 2026-06 (Entrega 1A, referencia histórica)
 
 ### Added
-- Primera especificación de requisitos (RF-01 a RF-23, RNF-01 a RNF-14) en `Entrega 1A.docx`, incluyendo roles de usuario, alcance, arquitectura C4 nivel 1-2 y modelo de datos.
+- Primera especificación de requisitos (RF-01 a RF-23, RNF-01 a RNF-14) en `docs/requisitos/historico/entrega-1a.pdf`, incluyendo roles de usuario, alcance, arquitectura C4 nivel 1-2 y modelo de datos.
 
 ---
 

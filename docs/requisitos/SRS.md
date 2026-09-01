@@ -37,7 +37,7 @@ Artisync es una plataforma web que centraliza la comercialización de servicios 
 
 ### 1.4 Referencias
 
-ISO/IEC/IEEE 29148:2018; INCOSE Guide to Writing Requirements v4; RFC 7519 (JWT); RFC 7807 (Problem Details); RFC 6238 (TOTP); ISO/IEC 25010:2011 (calidad de software); OWASP Top 10:2021; documento interno `Entrega 1A.docx` (corpus original de requisitos, semana del 4 de junio de 2026).
+ISO/IEC/IEEE 29148:2018; INCOSE Guide to Writing Requirements v4; RFC 7519 (JWT); RFC 7807 (Problem Details); RFC 6238 (TOTP); ISO/IEC 25010:2011 (calidad de software); OWASP Top 10:2021; documento interno `docs/requisitos/historico/entrega-1a.pdf` (corpus original de requisitos, semana del 4 de junio de 2026).
 
 ### 1.5 Resumen del documento
 

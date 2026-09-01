@@ -31,4 +31,4 @@ Se adopta **Java 21 + Spring Boot 4.1.0** para el backend, **Angular 22 + TypeSc
 - Curva de aprendizaje de Spring Security — mitigada con incrementos graduales por módulo.
 
 ## Referencias
-Corpus de requisitos Entrega 1A (`Entrega 1A.docx`, sección 4.3); ISO/IEC 25010:2011 (atributos de calidad considerados: eficiencia de desempeño, mantenibilidad).
+Corpus de requisitos Entrega 1A (`docs/requisitos/historico/entrega-1a.pdf`, sección 4.3); ISO/IEC 25010:2011 (atributos de calidad considerados: eficiencia de desempeño, mantenibilidad).

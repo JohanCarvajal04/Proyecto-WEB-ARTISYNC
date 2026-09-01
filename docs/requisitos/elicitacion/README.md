@@ -8,7 +8,7 @@ Esta carpeta documenta las técnicas de elicitación que produjeron el corpus de
 
 | Técnica                          | ¿Se aplicó? | Evidencia conservada                                                                                     |
 | -------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
-| Análisis de documentos           | Sí          | `Entrega 1A.docx` (raíz del repositorio), corpus original de la semana del 4 de junio de 2026. Es la fuente de la que derivan los 37 requisitos actuales, referenciada en `../SRS.md` §1.4. |
+| Análisis de documentos           | Sí          | `docs/requisitos/historico/entrega-1a.pdf` (fuente LaTeX: `entrega-1a.tex`), corpus original de la semana del 4 de junio de 2026. Es la fuente de la que derivan los 37 requisitos actuales, referenciada en `../SRS.md` §1.4. |
 | Prototipado de baja fidelidad    | Sí          | Seis wireframes en [`../../diagramas/wireframes/`](../../diagramas/wireframes/), usados para acordar el alcance de las pantallas principales antes de implementarlas. |
 | Discusión interna del equipo     | Sí          | **Sin evidencia granular conservada.** No se levantaron actas ni notas de sesión.                          |
 | Entrevistas semi-estructuradas   | No          | —                                                                                                          |
