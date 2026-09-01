@@ -313,7 +313,7 @@
                 <div class="mt-auto pt-4 flex items-center justify-between border-t border-slate-100">
                   <div>
                     <span class="text-[10px] text-slate-400 block">Desde</span>
-                    <span class="font-headline font-extrabold text-base text-slate-900">{{ formatPrice(s.precioBase) }}</span>
+                    <span class="font-headline font-extrabold text-base text-slate-900">{{ s.precioBase | moneda }}</span>
                   </div>
                   <a [routerLink]="[base, 'servicio', s.idServicio]"
                     class="bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-bold px-4 py-2 rounded-full transition-all">

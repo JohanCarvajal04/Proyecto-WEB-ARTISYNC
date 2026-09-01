@@ -6,11 +6,12 @@ import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 import { UserService } from '../../../perfil/services/user.service';
 import { UserResponse } from '../../../../shared/models/user.model';
 import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './overview.component.html'
 })
 export class OverviewComponent implements OnInit {
@@ -82,9 +83,6 @@ export class OverviewComponent implements OnInit {
     });
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
 
   formatDate(date: string): string {
     if (!date) return '—';

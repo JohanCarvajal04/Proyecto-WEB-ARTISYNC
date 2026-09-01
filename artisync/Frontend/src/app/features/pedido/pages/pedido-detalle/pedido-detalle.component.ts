@@ -13,11 +13,12 @@ import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedid
 import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
 import { ResenaFormComponent } from '../../../social/components/resena-form/resena-form.component';
 import { ToastService } from '../../../../core/services/toast.service';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-pedido-detalle',
   standalone: true,
-  imports: [FormsModule, RouterLink, ChatPedidoComponent, BriefingPedidoComponent, ResenaFormComponent],
+  imports: [FormsModule, RouterLink, ChatPedidoComponent, BriefingPedidoComponent, ResenaFormComponent, MonedaPipe],
   templateUrl: './pedido-detalle.component.html'
 })
 export class PedidoDetalleComponent implements OnInit, OnDestroy {
@@ -219,9 +220,6 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     });
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
 
   getTicketBadge(estado: string): string {
     switch (estado?.toLowerCase()) {

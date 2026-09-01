@@ -17,7 +17,7 @@
         </div>
         <div>
           <p class="font-headline font-semibold text-slate-700">Solicitud enviada</p>
-          <p class="text-xs text-slate-400">Un moderador revisará tu documento.</p>
+          <p class="text-xs text-slate-400">{{ getEstadoMensaje(r.nombreEstadoVerificacion) }}</p>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
         </div>
         <div class="flex items-center justify-between gap-3">
           <span class="text-slate-400">Estado</span>
-          <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+          <span [class]="'text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ' + getEstadoBadge(r.nombreEstadoVerificacion)">
             {{ r.nombreEstadoVerificacion }}
           </span>
         </div>

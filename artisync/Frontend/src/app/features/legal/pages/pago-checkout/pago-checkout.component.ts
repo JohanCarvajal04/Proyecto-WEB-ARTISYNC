@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, interval, of, switchMap, take, catchError } from 'rxjs';
 import { PagoService } from '../../services/pago.service';
 import { RespuestaPago } from '../../models/legal.model';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 /**
  * El pago se aprueba en PayPal, en otra pestaña, y quien actualiza el estado de
@@ -27,7 +28,7 @@ const ICONO_RELOJ = 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z';
 @Component({
   selector: 'app-pago-checkout',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './pago-checkout.component.html'
 })
 export class PagoCheckoutComponent implements OnInit, OnDestroy {
@@ -183,7 +184,4 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
 }

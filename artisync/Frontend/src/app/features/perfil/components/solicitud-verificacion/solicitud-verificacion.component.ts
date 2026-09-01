@@ -94,4 +94,22 @@ export class SolicitudVerificacionComponent {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
+
+  /** Mismo criterio que el panel admin (verificaciones.component.ts). */
+  getEstadoBadge(estado: string): string {
+    if (!estado) return 'bg-slate-100 text-slate-600';
+    const lower = estado.toLowerCase();
+    if (lower.includes('aprobad')) return 'bg-emerald-50 text-emerald-700';
+    if (lower.includes('pendiente')) return 'bg-amber-50 text-amber-700';
+    if (lower.includes('rechazad')) return 'bg-rose-50 text-rose-700';
+    return 'bg-sky-50 text-sky-700';
+  }
+
+  getEstadoMensaje(estado: string): string {
+    if (!estado) return 'Un moderador revisará tu documento.';
+    const lower = estado.toLowerCase();
+    if (lower.includes('aprobad')) return 'Tu documento fue aprobado.';
+    if (lower.includes('rechazad')) return 'Tu documento fue rechazado.';
+    return 'Un moderador revisará tu documento.';
+  }
 }

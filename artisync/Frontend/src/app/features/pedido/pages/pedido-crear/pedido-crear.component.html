@@ -42,7 +42,7 @@
             <div class="flex flex-col gap-0.5 min-w-0 flex-1">
               <span class="text-[10px] font-bold text-teal-600 uppercase tracking-wider">{{ s.nombreCategoria }}</span>
               <span class="font-headline font-semibold text-sm text-[#0F2027] truncate">{{ s.tituloServicio }}</span>
-              <span class="text-xs text-slate-400 truncate">por {{ s.nombreCreador }} · base {{ formatPrice(s.precioBase) }}</span>
+              <span class="text-xs text-slate-400 truncate">por {{ s.nombreCreador }} · base {{ s.precioBase | moneda }}</span>
             </div>
             <a [routerLink]="['/dashboard/explorar/servicio', s.idServicio]"
               class="text-xs font-semibold text-slate-400 hover:text-teal-600 transition-colors shrink-0">Cambiar</a>

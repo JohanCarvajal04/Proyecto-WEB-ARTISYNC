@@ -127,7 +127,7 @@ public class EntregableServicioImpl implements IEntregableServicio {
             throw new ExcepcionReglaNegocio("Solo el cliente puede aprobar la entrega");
         }
 
-        EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
+        EntregableFinal entregable = entregableRepository.findByPedidoIdPedidoParaActualizar(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
 
         if (entregable.getEstaLiberado()) {

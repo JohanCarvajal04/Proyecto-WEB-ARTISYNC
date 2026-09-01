@@ -148,7 +148,7 @@
             }
 
             <div class="mt-auto pt-3 flex items-center justify-between">
-              <span class="font-mono font-bold text-[#0F2027]">{{ formatPrice(servicio.precioBase) }}</span>
+              <span class="font-mono font-bold text-[#0F2027]">{{ servicio.precioBase | moneda }}</span>
               <span class="text-xs font-semibold text-teal-600 group-hover:translate-x-0.5 transition-transform">Ver →</span>
             </div>
           </div>

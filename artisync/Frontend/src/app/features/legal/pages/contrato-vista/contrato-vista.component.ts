@@ -4,11 +4,12 @@ import { ContratoService } from '../../services/contrato.service';
 import { RespuestaContrato, RespuestaEstadoFirma } from '../../models/legal.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { descargarBlob } from '../../../../shared/utils/descarga-archivo';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-contrato-vista',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ConfirmDialogComponent],
   templateUrl: './contrato-vista.component.html'
 })
 export class ContratoVistaComponent implements OnInit {
@@ -18,6 +19,8 @@ export class ContratoVistaComponent implements OnInit {
   firmando = false;
   error = '';
   successMsg = '';
+  /** Documento legal vinculante e irreversible: se confirma antes de firmar. */
+  mostrarConfirmacionFirma = false;
   /** El contrato ya no se autogenera al visitar esta página: se genera solo
    * al aceptar la primera propuesta de términos finales (ver
    * ChatPedidoComponent#aceptarPropuesta). Este flag distingue ese estado
@@ -95,7 +98,17 @@ export class ContratoVistaComponent implements OnInit {
     });
   }
 
+  pedirConfirmacionFirma(): void {
+    if (this.firmando || !this.idContrato) return;
+    this.mostrarConfirmacionFirma = true;
+  }
+
+  cancelarFirma(): void {
+    this.mostrarConfirmacionFirma = false;
+  }
+
   firmarContrato(): void {
+    this.mostrarConfirmacionFirma = false;
     if (this.firmando || !this.idContrato) return;
     this.firmando = true;
     this.error = '';

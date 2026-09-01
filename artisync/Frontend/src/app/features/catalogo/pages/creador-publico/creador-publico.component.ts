@@ -17,13 +17,14 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { CATALOGO_BASE_PATH } from '../../catalogo.config';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { exigirSesion } from '../../../../core/utils/exigir-sesion';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 export type Pestana = 'portafolio' | 'servicios' | 'comisiones' | 'sorteos' | 'comunidad' | 'creadores_seguidos';
 
 @Component({
   selector: 'app-creador-publico',
   standalone: true,
-  imports: [RouterLink, ComentariosObraComponent, DecimalPipe],
+  imports: [RouterLink, ComentariosObraComponent, DecimalPipe, MonedaPipe],
   templateUrl: './creador-publico.component.html'
 })
 export class CreadorPublicoComponent implements OnInit {
@@ -377,9 +378,6 @@ export class CreadorPublicoComponent implements OnInit {
     return Array.from({ length: 5 }, (_, i) => i < calificacion);
   }
 
-  formatPrice(precio: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio);
-  }
 
   formatDate(fecha: string): string {
     if (!fecha) return '—';

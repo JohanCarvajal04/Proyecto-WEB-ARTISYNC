@@ -9,11 +9,12 @@ import { ContratoService } from '../../../legal/services/contrato.service';
 import { RespuestaContrato } from '../../../legal/models/legal.model';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedido, RespuestaPropuestaTerminos } from '../../../pedido/models/pedido.model';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 @Component({
   selector: 'app-chat-pedido',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MonedaPipe],
   templateUrl: './chat-pedido.component.html'
 })
 export class ChatPedidoComponent implements OnInit, OnDestroy {
@@ -314,7 +315,4 @@ export class ChatPedidoComponent implements OnInit, OnDestroy {
     });
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
 }

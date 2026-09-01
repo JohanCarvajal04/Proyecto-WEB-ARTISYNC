@@ -12,7 +12,7 @@
     @for (r of resumen(); track r.estadoFondos) {
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(r.estadoFondos)">{{ r.estadoFondos }}</span>
-        <p class="text-2xl font-bold text-slate-800 mt-3">{{ formatMonto(r.montoTotal) }}</p>
+        <p class="text-2xl font-bold text-slate-800 mt-3">{{ r.montoTotal | moneda }}</p>
         <p class="text-xs text-slate-400 mt-1">{{ r.cantidad }} pago(s)</p>
       </div>
     } @empty {
@@ -86,7 +86,7 @@
                 </td>
                 <td class="px-6 py-4">{{ p.nombreCliente }}</td>
                 <td class="px-6 py-4">{{ p.nombreCreador }}</td>
-                <td class="px-6 py-4 text-right font-mono font-semibold text-slate-800">{{ formatMonto(p.montoRetenido) }}</td>
+                <td class="px-6 py-4 text-right font-mono font-semibold text-slate-800">{{ p.montoRetenido | moneda }}</td>
                 <td class="px-6 py-4 text-center">
                   <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(p.estadoFondos)">{{ p.estadoFondos }}</span>
                 </td>
@@ -167,7 +167,7 @@
             </div>
             <div>
               <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monto retenido</span>
-              <p class="font-mono font-semibold text-slate-800">{{ formatMonto(d.montoRetenido) }}</p>
+              <p class="font-mono font-semibold text-slate-800">{{ d.montoRetenido | moneda }}</p>
             </div>
             <div>
               <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</span>
@@ -192,7 +192,7 @@
                 @for (t of d.transacciones; track t.idTransaccion) {
                   <div class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                     <span class="text-slate-600">{{ t.tipoTransaccion }}</span>
-                    <span class="font-mono font-semibold text-slate-800">{{ formatMonto(t.monto) }}</span>
+                    <span class="font-mono font-semibold text-slate-800">{{ t.monto | moneda }}</span>
                     <span class="text-xs text-slate-400 font-mono">{{ formatFechaHora(t.fechaEjecucion) }}</span>
                   </div>
                 }

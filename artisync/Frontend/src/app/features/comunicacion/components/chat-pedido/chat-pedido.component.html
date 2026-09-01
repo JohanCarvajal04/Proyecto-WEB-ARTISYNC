@@ -77,7 +77,7 @@
               </span>
             </div>
             <p class="text-[11px] text-sky-700/80">
-              @if (p.precioPropuesto != null) { Precio: {{ formatPrice(p.precioPropuesto) }}. }
+              @if (p.precioPropuesto != null) { Precio: {{ p.precioPropuesto | moneda }}. }
               @if (p.fechaEntregaPropuesta) { Entrega: {{ formatHora(p.fechaEntregaPropuesta) }}. }
             </p>
             <div class="flex items-center gap-2">

@@ -7,13 +7,14 @@ import { AuthService } from '../../../seguridad/services/auth.service';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
 import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
 type FiltroEstado = 'todos' | 'activos' | 'completados';
 
 @Component({
   selector: 'app-mis-pedidos-dashboard',
   standalone: true,
-  imports: [RouterLink, BotonExportarComponent],
+  imports: [RouterLink, BotonExportarComponent, MonedaPipe],
   templateUrl: './mis-pedidos-dashboard.component.html'
 })
 export class MisPedidosDashboardComponent implements OnInit {
@@ -125,9 +126,6 @@ export class MisPedidosDashboardComponent implements OnInit {
       && !lower.includes('cancelado') && !lower.includes('final');
   }
 
-  formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price || 0);
-  }
 
   formatDate(date: string): string {
     if (!date) return '—';
