@@ -25,7 +25,7 @@ export const PEDIDO_ROUTES: Routes = [
     path: 'flujos',
     loadComponent: () => import('./pages/flujos-admin/flujos-admin.component').then(m => m.FlujosAdminComponent),
     canActivate: [authGuard],
-    data: { permissions: PAGE_PERMISSIONS.flujos }
+    data: { permissions: PAGE_PERMISSIONS.flujosCompat }
   },
   {
     path: ':id',

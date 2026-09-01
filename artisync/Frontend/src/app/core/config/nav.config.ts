@@ -78,9 +78,21 @@ export const PAGE_PERMISSIONS = {
   comentariosModeracion: ['COMENTARIO_MODERAR'],
   categorias: ['CATEGORIA_GESTIONAR'],
   infracciones: ['INFRACCION_GESTIONAR'],
-  // FLUJO_GESTIONAR: gestiona los flujos propios. FLUJO_MODERAR: ve/gestiona
-  // los de todos los creadores (p. ej. el selector de flujo en Categorías).
-  flujos: ['FLUJO_GESTIONAR', 'FLUJO_MODERAR'],
+  // Antes un único `flujos: [FLUJO_GESTIONAR, FLUJO_MODERAR]` protegía a la vez
+  // la pantalla del panel admin y la del panel creador. Al ser "cualquiera de"
+  // los dos, un creador con solo FLUJO_GESTIONAR también veía en su menú el
+  // ítem cross-panel de admin (y viceversa un moderador con FLUJO_MODERAR veía
+  // el de creador): cada permiso debe abrir solo SU pantalla.
+  // FLUJO_GESTIONAR: gestiona los flujos propios (panel creador).
+  flujosPropios: ['FLUJO_GESTIONAR'],
+  // FLUJO_MODERAR: ve/gestiona los de todos los creadores (panel admin, p. ej.
+  // el selector de flujo en Categorías).
+  flujosModeracion: ['FLUJO_MODERAR'],
+  // Montaje heredado en /pedido/flujos (no figura en NAV_CATALOG): sirve el
+  // mismo componente y el alcance real (propios vs todos) lo decide el
+  // backend en FlujoTrabajoControlador.puedeVerTodos, así que esta ruta debe
+  // admitir a los dos públicos.
+  flujosCompat: ['FLUJO_GESTIONAR', 'FLUJO_MODERAR'],
   // "Mis Servicios" es el CRUD propio del creador; SERVICIO_MODERAR pertenece a
   // la moderación del catálogo, que es otra pantalla y otro panel.
   servicios: ['SERVICIO_CREAR'],
@@ -91,13 +103,13 @@ export const PAGE_PERMISSIONS = {
   pedidoCrear: ['PEDIDO_CREAR'],
   // Bitácora de auditoría transversal (V15__modulo_auditoria.sql). Exportar
   // es un permiso aparte (AUDITORIA_EXPORTAR): no abre la pantalla por sí
-  // solo, así que no va en esta lista — ver ADMIN_PANEL_PERMISSIONS.
+  // solo, así que no va en esta lista — ver EXTRA_PANEL_PERMISSIONS más abajo.
   auditoria: ['AUDITORIA_VER'],
   // Igual criterio que auditoria: TRANSACCION_VER abre la pantalla y
   // muestra el reporte; REPORTE_*_EXPORTAR (V19__permisos_reportes.sql)
   // habilita solo el botón de exportar, no va aquí. Ambos reportes usan
   // TRANSACCION_VER (y no CONTRATO_VER) para la vista: CONTRATO_VER lo
-  // tienen también CREADOR y CLIENTE (ver ADMIN_PANEL_PERMISSIONS más abajo),
+  // tienen también CREADOR y CLIENTE (ver SHARED_NON_ADMIN_PERMISSIONS más abajo),
   // así que abriría esta pantalla admin a cualquiera con un contrato propio.
   reportesFinanzas: ['TRANSACCION_VER'],
   reportesContratos: ['TRANSACCION_VER'],
@@ -164,30 +176,6 @@ export function findNavLabel(url: string): string | null {
 }
 
 /**
- * Permisos que, en el seed, solo poseen los roles del panel de administración
- * (ADMIN, MODERADOR, SOPORTE, AUDITOR_FINANCIERO). Se han excluido a
- * conciencia los que CREADOR o CLIENTE también tienen —TICKET_REVISAR,
- * CONTRATO_VER, CONTRATO_FIRMAR, SALA_VER, MENSAJE_ENVIAR—, porque si no un
- * cliente acabaría clasificado como administrador.
- */
-export const ADMIN_PANEL_PERMISSIONS: readonly string[] = [
-  'USUARIO_VER', 'USUARIO_CREAR', 'USUARIO_EDITAR', 'USUARIO_ELIMINAR', 'USUARIO_SUSPENDER',
-  'ROL_VER', 'ROL_GESTIONAR', 'PERMISO_VER', 'ROL_ASIGNAR_PERMISO', 'SESION_REVOCAR',
-  'PAIS_VER', 'PAIS_CREAR', 'PAIS_EDITAR', 'PAIS_ELIMINAR',
-  'PORTAFOLIO_MODERAR', 'CERTIFICADO_REVISAR', 'CATEGORIA_GESTIONAR', 'SERVICIO_MODERAR',
-  'MENSAJE_MODERAR', 'COMENTARIO_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER',
-  'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
-  'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR', 'FLUJO_MODERAR',
-  'AUDITORIA_VER', 'AUDITORIA_EXPORTAR',
-  'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR'
-];
-
-/** Permisos exclusivos del rol CREADOR frente a CLIENTE. */
-export const CREADOR_PANEL_PERMISSIONS: readonly string[] = [
-  'SERVICIO_CREAR', 'PORTAFOLIO_CREAR', 'PEDIDO_GESTIONAR', 'SORTEO_CREAR'
-];
-
-/**
  * Panel al que pertenece cada rol conocido.
  *
  * El panel es una propiedad del ROL —de la función que cumple la persona—, no
@@ -249,8 +237,8 @@ export function resolvePanel(roles: readonly string[], permisos: readonly string
     return PRECEDENCIA_PANEL.find(p => panelesPorRol.includes(p)) ?? 'cliente';
   }
 
-  if (ADMIN_PANEL_PERMISSIONS.some(p => permisos.includes(p))) return 'admin';
-  if (CREADOR_PANEL_PERMISSIONS.some(p => permisos.includes(p))) return 'creador';
+  if (panelGatePermissions('admin').some(p => permisos.includes(p))) return 'admin';
+  if (panelGatePermissions('creador').some(p => permisos.includes(p))) return 'creador';
   return 'cliente';
 }
 
@@ -276,7 +264,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Gestión de Países', icon: 'public', route: 'paises', panel: 'admin', permissions: PAGE_PERMISSIONS.paises, crossPanel: true },
   { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', panel: 'admin', permissions: PAGE_PERMISSIONS.rolesPermisos, crossPanel: true },
   { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones, crossPanel: true },
-  { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'admin', permissions: PAGE_PERMISSIONS.flujos, crossPanel: true },
+  { label: 'Flujos de Trabajo (Plantillas)', icon: 'account_tree', route: 'flujos', panel: 'admin', permissions: PAGE_PERMISSIONS.flujosModeracion, crossPanel: true },
   // 'receipt_long' ya tiene rama SVG en dashboard-layout.component.html
   // (compartida con 'account_balance'): no hace falta tocar el layout.
   { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria, crossPanel: true },
@@ -302,7 +290,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // de panel:'admin' de más arriba — invisible para un CREADOR aunque se le
   // asignara FLUJO_GESTIONAR, porque el sidebar filtra por panel activo antes
   // de mirar permisos.
-  { label: 'Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'creador', permissions: PAGE_PERMISSIONS.flujos, crossPanel: true },
+  { label: 'Mis Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'creador', permissions: PAGE_PERMISSIONS.flujosPropios, crossPanel: true },
   { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio, crossPanel: true },
   // "Mi Perfil" (perfil de negocio: biografía, red social, verificación) y
   // "Mi Cuenta" (roles/permisos vigentes, contraseña, 2FA) son cosas
@@ -327,3 +315,90 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'cuenta' },
   { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'cuenta' }
 ];
+
+/**
+ * Permisos que deben abrir la puerta de un panel PERO no abren ninguna página
+ * del catálogo, así que la derivación desde NAV_CATALOG no puede encontrarlos.
+ *
+ * Solo tres formas legítimas de estar aquí:
+ *  1. Habilitan un botón dentro de una pantalla que ya se abre con otro permiso
+ *     (los cuatro *_EXPORTAR).
+ *  2. Pueblan un desplegable de otra pantalla (ROL_VER, PERMISO_VER).
+ *  3. Habilitan una acción de servidor sin pantalla propia.
+ *
+ * Un permiso que SÍ abre una pantalla NO va aquí: se declara en el ítem de
+ * NAV_CATALOG y la derivación lo recoge sola. Ese es justo el fallo que esto
+ * hace imposible: antes ADMIN_PANEL_PERMISSIONS era una copia a mano de los
+ * permisos del catálogo, y las dos listas podían divergir sin que nada lo
+ * avisara (el bug de FLUJO_MODERAR: el catálogo lo exigía, la lista de la
+ * puerta tardó dos migraciones en incluirlo).
+ */
+const EXTRA_PANEL_PERMISSIONS: Partial<Record<PanelId, readonly string[]>> = {
+  admin: [
+    'AUDITORIA_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR',
+    'ROL_VER', 'PERMISO_VER', 'SESION_REVOCAR',
+    'SERVICIO_MODERAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR'
+  ]
+};
+
+/**
+ * Permisos que CREADOR o CLIENTE también poseen en el seed. Ninguna puerta de
+ * panel (admin ni creador) debe contenerlos: si uno colara ahí, un cliente
+ * corriente con ese único permiso quedaría clasificado como admin o creador.
+ */
+export const SHARED_NON_ADMIN_PERMISSIONS: readonly string[] = [
+  'TICKET_REVISAR', 'CONTRATO_VER', 'CONTRATO_FIRMAR', 'SALA_VER', 'MENSAJE_ENVIAR'
+];
+
+/** Paneles con puerta de permisos. 'cliente' y 'cuenta' no la tienen. */
+const PANELES_CON_PUERTA: readonly PanelId[] = ['admin', 'creador'];
+
+function derivarPuerta(panel: PanelId): readonly string[] {
+  const dePaginas = NAV_CATALOG.filter(i => i.panel === panel).flatMap(i => i.permissions ?? []);
+  return Object.freeze([...new Set([...dePaginas, ...(EXTRA_PANEL_PERMISSIONS[panel] ?? [])])]);
+}
+
+/**
+ * Permisos que exige la puerta de cada panel (data.permissions de la ruta
+ * padre en app.routes.ts, y la comprobación cross-panel de
+ * AuthService.visibleNavItems).
+ *
+ * Antes eran ADMIN_PANEL_PERMISSIONS/CREADOR_PANEL_PERMISSIONS: listas
+ * escritas a mano que había que acordarse de actualizar cada vez que se
+ * tocaba un permiso en NAV_CATALOG.
+ */
+const PANEL_GATE_PERMISSIONS: Partial<Record<PanelId, readonly string[]>> =
+  Object.fromEntries(PANELES_CON_PUERTA.map(p => [p, derivarPuerta(p)]));
+
+/** Permisos que exige la puerta de `panel`. Vacío si el panel no tiene puerta. */
+export function panelGatePermissions(panel: PanelId): readonly string[] {
+  return PANEL_GATE_PERMISSIONS[panel] ?? [];
+}
+
+/**
+ * Ítems de menú visibles para un panel activo y un conjunto de permisos.
+ *
+ * Además del permiso propio del ítem, un ítem `crossPanel` debe cumplir
+ * también la puerta del panel al que pertenece: sin esto, un permiso que abre
+ * un ítem pero no la puerta de su panel (p. ej. FLUJO_GESTIONAR abre "Mis
+ * Flujos de Trabajo" del panel creador sin dar ninguno de los permisos que
+ * exige `/creador`) mostraba en el menú un enlace que la puerta del panel
+ * rechazaba antes de llegar a la ruta hija.
+ */
+export function computeVisibleNavItems(panel: PanelId, permisos: readonly string[]): NavItem[] {
+  const tienePermiso = (item: NavItem) =>
+    !item.permissions?.length || item.permissions.some(p => permisos.includes(p));
+
+  const propios = NAV_CATALOG.filter(i => i.panel === panel && tienePermiso(i));
+
+  const cruzados = NAV_CATALOG
+    .filter(i => {
+      if (i.panel === panel || i.crossPanel !== true) return false;
+      if (!i.permissions?.length || !i.permissions.some(p => permisos.includes(p))) return false;
+      const puerta = panelGatePermissions(i.panel);
+      return puerta.length === 0 || puerta.some(p => permisos.includes(p));
+    })
+    .map(i => ({ ...i, basePath: i.basePath ?? PANEL_BASE_PATH[i.panel] }));
+
+  return [...propios, ...cruzados];
+}

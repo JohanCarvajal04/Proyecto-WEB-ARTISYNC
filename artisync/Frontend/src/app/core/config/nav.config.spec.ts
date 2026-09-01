@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   NAV_CATALOG, NavItem, PanelId, resolvePanel, navItemPath, findNavLabel, PANEL_BASE_PATH,
-  ADMIN_PANEL_PERMISSIONS, CREADOR_PANEL_PERMISSIONS
+  panelGatePermissions, computeVisibleNavItems, SHARED_NON_ADMIN_PERMISSIONS, PAGE_PERMISSIONS
 } from './nav.config';
 
 /**
@@ -36,34 +36,19 @@ const PERMISOS_SEED: Record<string, string[]> = {
 };
 PERMISOS_SEED['ADMIN'] = [
   ...new Set([
-    ...ADMIN_PANEL_PERMISSIONS, ...CREADOR_PANEL_PERMISSIONS,
+    ...panelGatePermissions('admin'), ...panelGatePermissions('creador'),
     ...Object.values(PERMISOS_SEED).flat()
   ])
 ];
 
 /**
- * Réplica de AuthService.visibleNavItems. El panel se obtiene de la función
- * real `resolvePanel`, no de una copia: una copia puede seguir pasando mientras
- * el código de producción está roto, que es justo lo que ocurrió con el salto
- * de panel al editar permisos.
+ * Réplica de AuthService.visibleNavItems: delega en la función real
+ * `computeVisibleNavItems`, no en una copia — una copia puede seguir pasando
+ * mientras el código de producción está roto, que es justo lo que ocurrió con
+ * el salto de panel al editar permisos.
  */
 function menuDe(rol: string, permisos: string[]): NavItem[] {
-  const panel = resolvePanel([rol], permisos);
-  const propios = NAV_CATALOG.filter(i =>
-    i.panel === panel && (!i.permissions?.length || i.permissions.some(p => permisos.includes(p)))
-  );
-  const crossPanel = NAV_CATALOG
-    .filter(i =>
-      i.panel !== panel &&
-      i.crossPanel === true &&
-      i.permissions?.length &&
-      i.permissions.some(p => permisos.includes(p))
-    )
-    .map(i => ({
-      ...i,
-      basePath: i.basePath ?? PANEL_BASE_PATH[i.panel]
-    }));
-  return [...propios, ...crossPanel];
+  return computeVisibleNavItems(resolvePanel([rol], permisos), permisos);
 }
 
 const menuDeRolDelSeed = (rol: string) => menuDe(rol, PERMISOS_SEED[rol]);
@@ -144,11 +129,20 @@ describe('resolución del panel', () => {
   });
 
   it('no confunde a un cliente con un creador ni con un administrador', () => {
-    const compartidos = ['TICKET_REVISAR', 'CONTRATO_VER', 'CONTRATO_FIRMAR', 'SALA_VER', 'MENSAJE_ENVIAR'];
-    for (const permiso of compartidos) {
-      expect(ADMIN_PANEL_PERMISSIONS).not.toContain(permiso);
-      expect(CREADOR_PANEL_PERMISSIONS).not.toContain(permiso);
+    for (const permiso of SHARED_NON_ADMIN_PERMISSIONS) {
+      expect(panelGatePermissions('admin')).not.toContain(permiso);
+      expect(panelGatePermissions('creador')).not.toContain(permiso);
     }
+  });
+
+  it('FLUJO_GESTIONAR abre la puerta del panel al que pertenece su pantalla, no la de admin', () => {
+    // Antes 'flujos' era un único permiso compartido [FLUJO_GESTIONAR,
+    // FLUJO_MODERAR] para las pantallas de admin y de creador: un creador con
+    // solo FLUJO_GESTIONAR también veía (y podía "abrir la puerta de") el
+    // panel admin, porque el permiso vivía en las dos listas a la vez.
+    expect(panelGatePermissions('creador')).toContain('FLUJO_GESTIONAR');
+    expect(panelGatePermissions('admin')).not.toContain('FLUJO_GESTIONAR');
+    expect(resolvePanel(['SUPERVISOR'], ['FLUJO_GESTIONAR'])).toBe('creador');
   });
 });
 
@@ -270,13 +264,44 @@ describe('coherencia del catálogo', () => {
     }
   });
 
-  it('declara en ADMIN_PANEL_PERMISSIONS todos los permisos que exigen las páginas del panel admin', () => {
-    // Un rol personalizado cuyo único permiso no abriera el panel se quedaría en
-    // la puerta y jamás llegaría a la pantalla que ese permiso concede.
-    const exigidos = NAV_CATALOG.filter(i => i.panel === 'admin').flatMap(i => i.permissions ?? []);
-    for (const permiso of exigidos) {
-      expect(ADMIN_PANEL_PERMISSIONS, `${permiso} no abre el panel admin`).toContain(permiso);
+  it('la puerta de admin/creador incluye todos los permisos que exigen sus propias páginas', () => {
+    // Ya no puede fallar por desincronización: panelGatePermissions se deriva
+    // de NAV_CATALOG, así que esto es una propiedad estructural, no una copia
+    // que alguien pueda olvidar actualizar.
+    for (const panel of ['admin', 'creador'] as const) {
+      const exigidos = NAV_CATALOG.filter(i => i.panel === panel).flatMap(i => i.permissions ?? []);
+      for (const permiso of exigidos) {
+        expect(panelGatePermissions(panel), `${permiso} no abre el panel ${panel}`).toContain(permiso);
+      }
     }
+  });
+
+  it('EXTRA_PANEL_PERMISSIONS no repite ningún permiso que ya declare una página del catálogo', () => {
+    // Si un permiso de EXTRA_PANEL_PERMISSIONS coincidiera con uno de
+    // NAV_CATALOG, sería la señal de que en realidad SÍ abre una pantalla y
+    // debería vivir en el ítem, no en la lista de excepciones.
+    const dePaginas = new Set(NAV_CATALOG.filter(i => i.panel === 'admin').flatMap(i => i.permissions ?? []));
+    const soloEnPuerta = panelGatePermissions('admin').filter(p => !dePaginas.has(p));
+    expect(soloEnPuerta.sort()).toEqual([
+      'AUDITORIA_EXPORTAR', 'FONDOS_LIBERAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR',
+      'PERMISO_VER', 'REPORTE_CONTRATO_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR', 'ROL_VER',
+      'SERVICIO_MODERAR', 'SESION_REVOCAR', 'TICKET_RESOLVER', 'USUARIO_EXPORTAR'
+    ]);
+  });
+
+  it('toda entrada de PAGE_PERMISSIONS protege al menos una página de NAV_CATALOG o una ruta conocida sin menú', () => {
+    // Pantallas alcanzables solo desde un flujo (no tienen ítem propio en el
+    // menú): lista cerrada a propósito, para que una clave renombrada y no
+    // reconectada (el bug real que rompió el build) se note aquí.
+    const clave = (p: readonly string[]) => [...p].sort().join('|');
+    const enMenu = new Set(
+      NAV_CATALOG.flatMap(i => (i.permissions ? [clave(i.permissions)] : []))
+    );
+    const sinMenu = Object.entries(PAGE_PERMISSIONS)
+      .filter(([, permisos]) => !enMenu.has(clave(permisos)))
+      .map(([clave]) => clave)
+      .sort();
+    expect(sinMenu).toEqual(['flujosCompat', 'pedidoCrear', 'pedidosCliente']);
   });
 
   it('la ruta de un ítem respeta basePath en vez del prefijo de su panel', () => {

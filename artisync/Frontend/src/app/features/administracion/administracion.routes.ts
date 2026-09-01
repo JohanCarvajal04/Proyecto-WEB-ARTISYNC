@@ -82,7 +82,7 @@ export const ADMINISTRACION_ROUTES: Routes = [
   {
     path: 'flujos',
     canActivate: [authGuard],
-    data: { permissions: PAGE_PERMISSIONS.flujos },
+    data: { permissions: PAGE_PERMISSIONS.flujosModeracion },
     loadComponent: () => import('../pedido/pages/flujos-admin/flujos-admin.component').then(m => m.FlujosAdminComponent)
   },
   {

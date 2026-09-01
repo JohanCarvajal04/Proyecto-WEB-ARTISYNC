@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { guestGuard } from './core/guards/guest.guard';
 import { authGuard } from './core/guards/auth.guard';
-import { ADMIN_PANEL_PERMISSIONS, CREADOR_PANEL_PERMISSIONS } from './core/config/nav.config';
+import { panelGatePermissions } from './core/config/nav.config';
 import { CATALOGO_BASE_PATH } from './features/catalogo/catalogo.config';
 
 export const routes: Routes = [
@@ -60,7 +60,7 @@ export const routes: Routes = [
         // alguno: qué páginas ve dentro lo deciden los guards de cada ruta hija.
         path: 'admin',
         canActivate: [authGuard],
-        data: { permissions: ADMIN_PANEL_PERMISSIONS },
+        data: { permissions: panelGatePermissions('admin') },
         loadChildren: () => import('./features/administracion/administracion.routes').then(m => m.ADMINISTRACION_ROUTES)
       },
       {
@@ -73,7 +73,7 @@ export const routes: Routes = [
       {
         path: 'creador',
         canActivate: [authGuard],
-        data: { permissions: CREADOR_PANEL_PERMISSIONS },
+        data: { permissions: panelGatePermissions('creador') },
         loadChildren: () => import('./features/creador/creador.routes').then(m => m.CREADOR_ROUTES)
       },
       {

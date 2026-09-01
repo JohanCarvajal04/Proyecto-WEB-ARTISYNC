@@ -10,7 +10,7 @@ import { PAGE_PERMISSIONS } from '../../core/config/nav.config';
  * perfil) no tienen permiso individual en PAGE_PERMISSIONS
  * porque están abiertas a cualquiera que ya haya entrado a /creador — el
  * único guard que les aplica es el del padre en app.routes.ts
- * (CREADOR_PANEL_PERMISSIONS). Antes solo el padre se guardaba, así que un
+ * (panelGatePermissions('creador')). Antes solo el padre se guardaba, así que un
  * creador con un único permiso del panel (p. ej. SORTEO_CREAR) podía navegar
  * por URL a /creador/servicios/nuevo o /creador/comisiones sin tener
  * SERVICIO_CREAR ni PEDIDO_GESTIONAR.
@@ -86,7 +86,7 @@ export const CREADOR_ROUTES: Routes = [
   {
     path: 'flujos',
     canActivate: [authGuard],
-    data: { permissions: PAGE_PERMISSIONS.flujos },
+    data: { permissions: PAGE_PERMISSIONS.flujosPropios },
     loadComponent: () => import('../pedido/pages/flujos-admin/flujos-admin.component').then(m => m.FlujosAdminComponent)
   },
   {

@@ -12,7 +12,7 @@ import {
 import { MessageResponse } from '../../../shared/models/common.model';
 import { UserResponse } from '../../../shared/models/user.model';
 import {
-  NAV_CATALOG, NavItem, PanelId, PANEL_BASE_PATH, resolvePanel, navItemPath
+  NavItem, PanelId, PANEL_BASE_PATH, resolvePanel, navItemPath, computeVisibleNavItems
 } from '../../../core/config/nav.config';
 
 @Injectable({
@@ -72,36 +72,15 @@ export class AuthService {
   readonly panelBasePath = computed(() => PANEL_BASE_PATH[this.activePanel()]);
 
   /**
-   * Ítems de menú visibles: los del panel activo, filtrados por permiso.
-   * Vive aquí y no en cada layout para que ambos apliquen la misma regla — el
-   * layout de cliente no filtraba nada.
+   * Ítems de menú visibles: los del panel activo, filtrados por permiso, más
+   * los cross-panel para los que también se cumple la puerta de su panel.
+   * Vive en nav.config.ts y no aquí para que el spec pudiera ejercitar la
+   * lógica real en vez de una copia — la copia anterior se había quedado sin
+   * la comprobación de la puerta de panel sin que ningún test lo notara.
    */
-  readonly visibleNavItems = computed<NavItem[]>(() => {
-    const panel = this.activePanel();
-    const permisos = this._userPermissions();
-    
-    // Fase 1: ítems propios del panel activo
-    const propios = NAV_CATALOG.filter(item =>
-      item.panel === panel &&
-      (!item.permissions?.length || item.permissions.some(p => permisos.includes(p)))
-    );
-
-    // Fase 2: ítems de otros paneles marcados como crossPanel, para los cuales
-    // el usuario tiene permiso. Se les asocia el basePath de su panel original.
-    const crossPanel = NAV_CATALOG
-      .filter(item =>
-        item.panel !== panel &&
-        item.crossPanel === true &&
-        item.permissions?.length &&
-        item.permissions.some(p => permisos.includes(p))
-      )
-      .map(item => ({
-        ...item,
-        basePath: item.basePath ?? PANEL_BASE_PATH[item.panel]
-      }));
-
-    return [...propios, ...crossPanel];
-  });
+  readonly visibleNavItems = computed<NavItem[]>(() =>
+    computeVisibleNavItems(this.activePanel(), this._userPermissions())
+  );
 
   /**
    * Ruta de aterrizaje tras autenticarse: la primera entrada visible del panel.

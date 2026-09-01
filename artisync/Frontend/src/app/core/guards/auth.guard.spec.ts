@@ -7,7 +7,7 @@ import { describe, beforeEach, it, expect, vi } from 'vitest';
 import { authGuard } from './auth.guard';
 import { AuthService } from '../../features/seguridad/services/auth.service';
 import { ToastService } from '../services/toast.service';
-import { ADMIN_PANEL_PERMISSIONS } from '../config/nav.config';
+import { panelGatePermissions } from '../config/nav.config';
 
 /** Doble de AuthService con solo lo que el guard consulta. */
 function authFalso(overrides: Partial<Record<string, unknown>> = {}) {
@@ -69,10 +69,10 @@ describe('authGuard — denegación por permiso', () => {
     // La puerta del panel exige "cualquiera de" casi treinta permisos: además de
     // ser nomenclatura interna, enumerarlos producía un aviso ilegible.
     const auth = authFalso();
-    await ejecutar(auth, { permissions: [...ADMIN_PANEL_PERMISSIONS] }, '/admin/users');
+    await ejecutar(auth, { permissions: [...panelGatePermissions('admin')] }, '/admin/users');
 
     const mensaje = TestBed.inject(ToastService).toasts()[0]?.message ?? '';
-    for (const permiso of ADMIN_PANEL_PERMISSIONS) {
+    for (const permiso of panelGatePermissions('admin')) {
       expect(mensaje, `el aviso revela ${permiso}`).not.toContain(permiso);
     }
     expect(mensaje.length).toBeLessThan(160);

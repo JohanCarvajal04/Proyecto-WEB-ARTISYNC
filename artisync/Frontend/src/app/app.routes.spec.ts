@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Route } from '@angular/router';
 import { routes } from './app.routes';
-import { ADMIN_PANEL_PERMISSIONS, CREADOR_PANEL_PERMISSIONS } from './core/config/nav.config';
+import { panelGatePermissions } from './core/config/nav.config';
 import { guestGuard } from './core/guards/guest.guard';
 
 /** Ramas que exigen sesión y, por tanto, deben renderizarse con encabezado y menú. */
@@ -61,8 +61,8 @@ describe('árbol de rutas raíz', () => {
       .filter(c => c.data?.['permissions'])
       .map(c => [c.path, c.data!['permissions']]);
     expect(conPermisos).toEqual([
-      ['admin', ADMIN_PANEL_PERMISSIONS],
-      ['creador', CREADOR_PANEL_PERMISSIONS]
+      ['admin', panelGatePermissions('admin')],
+      ['creador', panelGatePermissions('creador')]
     ]);
   });
 
