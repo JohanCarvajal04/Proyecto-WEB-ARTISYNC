@@ -1,11 +1,14 @@
 # Blueprint de Render para el despliegue de produccion de Artisync.
-# Ver docs/despliegue/DEPLOYMENT.md para el procedimiento completo.
+# Ver docs/despliegue/RENDER.md para el procedimiento paso a paso completo.
 #
-# Topologia (equivalente a artisync/docker-compose.yml, adaptada a Render):
+# Topologia (adaptada de artisync/docker-compose.yml al plan free de Render,
+# que NO soporta Private Services — ver docs/despliegue/RENDER.md, seccion
+# "Por que backend es 'web' y no 'pserv'"):
+#
 #   Internet -> artisync-frontend (web, publico, nginx)
 #                  |-- sirve el build de Angular
-#                  `-- proxy /api/ -> artisync-backend (red interna, NO publico)
-#   artisync-backend -> artisync-redis (red interna, NO publico)
+#                  `-- proxy /api/ y /ws/ -> artisync-backend (red interna de Render)
+#   artisync-backend -> artisync-redis (red interna, Key Value de Render)
 #   artisync-backend -> Azure Database for PostgreSQL (externo, ya provisionado
 #                        fuera de Render; ver artisync/docker-compose.azure.yml
 #                        y artisync/.env.example)
@@ -19,7 +22,7 @@
 # Compose: pegar la contrasena real SIN escapar (un solo $).
 
 services:
-  - type: pserv
+  - type: web
     name: artisync-backend
     runtime: docker
     plan: free
@@ -42,17 +45,14 @@ services:
       - key: DB_PASSWORD
         sync: false
 
-      # --- Redis (Key Value privado de Render, definido abajo) ---
-      - key: REDIS_HOST
+      # --- Redis (Key Value de Render, definido abajo) ---
+      # Key Value solo expone "connectionString" via fromService (no host/port
+      # por separado) — ver spring.data.redis.url en application.properties.
+      - key: REDIS_URL
         fromService:
           name: artisync-redis
           type: keyvalue
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          name: artisync-redis
-          type: keyvalue
-          property: port
+          property: connectionString
 
       # --- JWT ---
       - key: JWT_SECRET
@@ -79,9 +79,9 @@ services:
         sync: false
 
       # --- Frontend (para links de email y retorno de PayPal) ---
-      # fromService solo expone direcciones de red interna (host/hostport), no
+      # fromService solo expone direccion de red interna (host/hostport), no
       # la URL publica *.onrender.com; se completa a mano en el dashboard una
-      # vez que artisync-frontend tenga su URL asignada (ver DEPLOYMENT.md).
+      # vez que artisync-frontend tenga su URL asignada (ver RENDER.md).
       - key: FRONTEND_URL
         sync: false
 
@@ -140,11 +140,13 @@ services:
       - key: BACKEND_INTERNAL_URL
         fromService:
           name: artisync-backend
-          type: pserv
+          type: web
           property: hostport
 
   - type: keyvalue
     name: artisync-redis
     plan: free
     region: oregon
+    # Lista vacia = sin acceso desde IPs externas; solo alcanzable desde otros
+    # servicios de Render en la misma red privada (artisync-backend).
     ipAllowList: []

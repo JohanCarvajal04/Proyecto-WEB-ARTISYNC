@@ -1,12 +1,12 @@
 # Dockerfile.render — build de produccion para el servicio web "artisync-frontend"
 # en Render (ver render.yaml). Analogo a Dockerfile.medicion (mismo build de
 # Angular en produccion + nginx) pero con nginx.render.conf, que hace proxy de
-# /api/ hacia el Private Service de backend en la red interna de Render en vez
+# /api/ y /ws/ hacia el servicio de backend en la red interna de Render en vez
 # de al servicio "backend" de docker-compose.
 #
 # No reemplaza a Dockerfile (dev, ng serve) ni a Dockerfile.medicion (mediciones
 # reproducibles Lighthouse/k6/OWASP, con nginx.conf sin cambios) — deploy real
-# en Render unicamente.
+# en Render unicamente. Ver docs/despliegue/RENDER.md.
 
 FROM node:24-alpine AS build
 WORKDIR /app

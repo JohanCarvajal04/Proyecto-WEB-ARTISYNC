@@ -96,5 +96,6 @@ mecanismo de secretos del proveedor elegido (ej. Azure Key Vault, variables de e
 6. Publicar la URL en el `README.md` (sección de arranque) y en la portada del documento
    académico final, junto con las credenciales del usuario demo.
 
-Ver también `docs/despliegue/RUNBOOK.md` (operación día a día) y `docs/despliegue/BACKUP.md`
-(estrategia de respaldo).
+Ver también `docs/despliegue/RUNBOOK.md` (operación día a día), `docs/despliegue/BACKUP.md`
+(estrategia de respaldo) y `docs/despliegue/RENDER.md` (procedimiento paso a paso concreto
+para el proveedor Render, con el Blueprint `render.yaml` ya versionado en la raíz del repo).
