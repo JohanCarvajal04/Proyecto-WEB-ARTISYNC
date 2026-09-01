@@ -47,7 +47,10 @@ export class TwoFactorSetupComponent implements OnInit {
           .then(url => this.qrDataUrl.set(url))
           .catch(err => console.error('Error generando QR', err));
       },
-      error: () => this.isLoading.set(false)
+      error: (err) => {
+        this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo iniciar la configuración de 2FA.');
+      }
     });
   }
 
@@ -66,7 +69,10 @@ export class TwoFactorSetupComponent implements OnInit {
         this.paso.set('CONFIRMADO');
         this.toastService.success('¡Autenticación de dos factores activada!');
       },
-      error: () => this.isLoading.set(false)
+      error: (err) => {
+        this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'Código incorrecto. Intenta de nuevo.');
+      }
     });
   }
 

@@ -100,8 +100,9 @@ export class RegisterComponent {
         this.toastService.success('¡Cuenta creada exitosamente! Por favor inicia sesión.');
         this.router.navigate(['/auth/login'], this.returnUrl ? { queryParams: { returnUrl: this.returnUrl } } : {});
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo crear la cuenta. Intenta de nuevo.');
       }
     });
   }

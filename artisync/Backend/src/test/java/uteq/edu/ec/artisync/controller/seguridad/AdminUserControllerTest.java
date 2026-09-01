@@ -15,6 +15,7 @@ import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangeEstadoRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
@@ -61,9 +62,10 @@ class AdminUserControllerTest {
     void changeEstado_ShouldReturnOk() {
         ChangeEstadoRequest request = new ChangeEstadoRequest();
         UserResponse userResponse = UserResponse.builder().estadoCuenta(false).build();
-        when(adminUserService.changeEstado(eq(1L), any(ChangeEstadoRequest.class))).thenReturn(userResponse);
+        CustomUserDetails admin = new CustomUserDetails(99L, "admin@test.dev", "x", true, true, true, true, List.of());
+        when(adminUserService.changeEstado(eq(1L), any(ChangeEstadoRequest.class), eq(99L))).thenReturn(userResponse);
 
-        ResponseEntity<UserResponse> result = adminUserController.changeEstado(1L, request);
+        ResponseEntity<UserResponse> result = adminUserController.changeEstado(1L, request, admin);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(false, result.getBody().getEstadoCuenta());
@@ -71,9 +73,10 @@ class AdminUserControllerTest {
 
     @Test
     void deleteUser_ShouldReturnNoContent() {
-        org.mockito.Mockito.doNothing().when(adminUserService).deleteUser(1L);
+        CustomUserDetails admin = new CustomUserDetails(99L, "admin@test.dev", "x", true, true, true, true, List.of());
+        org.mockito.Mockito.doNothing().when(adminUserService).deleteUser(1L, 99L);
 
-        ResponseEntity<Void> result = adminUserController.deleteUser(1L);
+        ResponseEntity<Void> result = adminUserController.deleteUser(1L, admin);
 
         assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
     }

@@ -5,6 +5,10 @@ import { ToastService } from '../../../core/services/toast.service';
 import { AvatarComponent } from '../avatar/avatar.component';
 import { UserResponse } from '../../models/user.model';
 
+/** Espejo de PoliticaArchivo.PERFIL (backend): solo imagen, sin SVG, 5 MB. */
+const TIPOS_FOTO_PERMITIDOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_BYTES_FOTO = 5 * 1024 * 1024;
+
 /**
  * Tarjeta de identidad de la cuenta: banner + avatar + nombre/email + resumen
  * de roles/permisos/sesión. Antes estaba duplicada línea por línea en Mi
@@ -60,6 +64,18 @@ export class IdentityCardComponent {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
+
+      if (!TIPOS_FOTO_PERMITIDOS.includes(file.type)) {
+        this.toastService.error(`Formato no soportado: ${file.type || 'desconocido'}. Se acepta JPG, PNG, WEBP o GIF.`);
+        input.value = '';
+        return;
+      }
+      if (file.size > MAX_BYTES_FOTO) {
+        this.toastService.error('La foto supera el máximo de 5 MB.');
+        input.value = '';
+        return;
+      }
+
       this.subiendoFoto.set(true);
       this.userService.uploadProfilePicture(file).subscribe({
         next: (profile) => {
@@ -67,9 +83,9 @@ export class IdentityCardComponent {
           this.toastService.success('Foto de perfil actualizada correctamente');
           this.fotoActualizada.emit(profile);
         },
-        error: () => {
+        error: (err) => {
           this.subiendoFoto.set(false);
-          this.toastService.error('Error al subir la foto de perfil');
+          this.toastService.error(err.error?.detail || 'Error al subir la foto de perfil');
         }
       });
       input.value = '';

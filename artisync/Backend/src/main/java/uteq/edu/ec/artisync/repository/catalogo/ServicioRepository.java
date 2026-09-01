@@ -28,6 +28,10 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long>, JpaSp
 
     List<Servicio> findBySubcategoriaIdSubcategoria(Long idSubcategoria);
 
+    boolean existsBySubcategoriaIdSubcategoria(Long idSubcategoria);
+
+    boolean existsBySubcategoriaCategoriaIdCategoria(Long idCategoria);
+
     @Query("SELECT s FROM Servicio s WHERE " +
            "(:subcategoriaId IS NULL OR s.subcategoria.idSubcategoria = :subcategoriaId) AND " +
            "(:minPrecio IS NULL OR s.precioBase >= :minPrecio) AND " +

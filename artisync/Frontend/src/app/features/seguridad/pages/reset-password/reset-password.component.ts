@@ -53,8 +53,9 @@ export class ResetPasswordComponent implements OnInit {
         this.toastService.success('Contraseña restablecida con éxito. Inicia sesión.');
         this.router.navigate(['/auth/login']);
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo restablecer la contraseña. El enlace puede haber expirado.');
       }
     });
   }

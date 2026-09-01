@@ -132,8 +132,9 @@ export class UsersComponent implements OnInit {
         this.totalPages.set(res.totalPages);
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo cargar el listado de usuarios');
       }
     });
   }
@@ -166,8 +167,9 @@ export class UsersComponent implements OnInit {
         this.toastService.success('Usuario creado exitosamente');
         this.loadUsers();
       },
-      error: () => {
+      error: (err) => {
         this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo crear el usuario');
       }
     });
   }
@@ -184,8 +186,9 @@ export class UsersComponent implements OnInit {
         this.toastService.success('Usuario actualizado exitosamente');
         this.loadUsers();
       },
-      error: () => {
+      error: (err) => {
         this.isActionLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo actualizar el usuario');
       }
     });
   }
@@ -224,7 +227,7 @@ export class UsersComponent implements OnInit {
         },
         error: (err) => {
           this.isActionLoading.set(false);
-          this.toastService.error(err.error?.message || 'No se pudieron revocar las sesiones');
+          this.toastService.error(err.error?.detail || 'No se pudieron revocar las sesiones');
         }
       });
     } else if (this.confirmActionType() === 'status') {
@@ -236,7 +239,10 @@ export class UsersComponent implements OnInit {
           this.toastService.success(`Cuenta ${nuevoEstado ? 'activada' : 'suspendida'} exitosamente`);
           this.loadUsers();
         },
-        error: () => this.isActionLoading.set(false)
+        error: (err) => {
+          this.isActionLoading.set(false);
+          this.toastService.error(err.error?.detail || 'No se pudo cambiar el estado de la cuenta');
+        }
       });
     } else {
       this.adminUserService.deleteUser(user.idUsuario).subscribe({
@@ -246,7 +252,10 @@ export class UsersComponent implements OnInit {
           this.toastService.success('Usuario eliminado exitosamente');
           this.loadUsers();
         },
-        error: () => this.isActionLoading.set(false)
+        error: (err) => {
+          this.isActionLoading.set(false);
+          this.toastService.error(err.error?.detail || 'No se pudo eliminar el usuario');
+        }
       });
     }
   }

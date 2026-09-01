@@ -77,7 +77,7 @@ public class ContratoServicioImpl implements IContratoServicio {
     @Auditable(accion = "CONTRATO_FIRMAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "contratos", idEntidad = "#idContrato")
     public RespuestaContrato firmarContrato(Long idContrato, Long idUsuario) {
-        Contrato contrato = contratoRepository.findById(idContrato)
+        Contrato contrato = contratoRepository.findByIdParaFirmar(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
 
         Pedido pedido = contrato.getPedido();

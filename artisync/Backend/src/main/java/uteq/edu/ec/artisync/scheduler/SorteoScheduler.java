@@ -1,17 +1,11 @@
 package uteq.edu.ec.artisync.scheduler;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,16 +23,21 @@ import java.util.List;
 public class SorteoScheduler {
 
     private final SorteoRepository sorteoRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final NotificacionService notificacionService;
-    private final ObjectMapper objectMapper;
+    private final SorteoEjecutorServicio sorteoEjecutorServicio;
 
     /**
      * Se ejecuta cada 60 segundos.
      * Busca sorteos en estado "Activo" cuya fecha de cierre ya pasó y los finaliza.
+     *
+     * Sin @Transactional aquí: si todo el lote compartiera una única
+     * transacción/conexión, una excepción en un sorteo la dejaría "aborted"
+     * en Postgres hasta el COMMIT final -- el try/catch por elemento no la
+     * libera, así que los sorteos siguientes fallarían en cascada y, al no
+     * poder confirmar el método, Spring revertiría también los ya procesados
+     * con éxito. Cada sorteo se procesa en su propia transacción
+     * (SorteoEjecutorServicio.ejecutarSorteo, REQUIRES_NEW).
      */
     @Scheduled(fixedRate = 60_000)
-    @Transactional
     public void procesarSorteosCerrados() {
         List<Sorteo> sorteosPendientes = sorteoRepository
                 .findByEstadoSorteoAndFechaCierreBefore("Activo", LocalDateTime.now());
@@ -51,57 +50,11 @@ public class SorteoScheduler {
 
         for (Sorteo sorteo : sorteosPendientes) {
             try {
-                ejecutarSorteo(sorteo);
+                sorteoEjecutorServicio.ejecutarSorteo(sorteo);
             } catch (Exception e) {
                 log.error("[SorteoScheduler] Error al procesar sorteo {}: {}",
                         sorteo.getIdSorteo(), e.getMessage(), e);
             }
-        }
-    }
-
-    // =========================================================================
-    // Lógica interna de selección de ganadores
-    // =========================================================================
-
-    private void ejecutarSorteo(Sorteo sorteo) {
-        // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria
-        // (ORDER BY random()) y la actualizacion masiva de participantes+sorteo
-        // en el motor, en vez de Collections.shuffle en Java seguido de un save()
-        // por ganador. La notificacion en tiempo real permanece en Java.
-        String resultadoJson = sorteoRepository.seleccionarGanadores(sorteo.getIdSorteo());
-        JsonNode resultado = parseResultado(resultadoJson);
-        String estado = resultado.get("estado").asText();
-        JsonNode ganadoresNode = resultado.get("ganadores");
-
-        if (ganadoresNode == null || !ganadoresNode.isArray() || ganadoresNode.isEmpty()) {
-            log.info("[SorteoScheduler] Sorteo {} finalizado sin ganadores (estado={}).",
-                    sorteo.getIdSorteo(), estado);
-            return;
-        }
-
-        String tituloSorteo = resultado.hasNonNull("tituloSorteo")
-                ? resultado.get("tituloSorteo").asText() : sorteo.getTituloSorteo();
-
-        for (JsonNode ganadorNode : ganadoresNode) {
-            Long idUsuario = ganadorNode.get("idUsuario").asLong();
-            Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
-            // Notificación en tiempo real al ganador vía WebSocket (M6)
-            notificacionService.notificar(
-                    usuario,
-                    "SORTEO_GANADOR",
-                    "¡Felicidades! Has ganado el sorteo: " + tituloSorteo
-            );
-        }
-
-        log.info("[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es).",
-                tituloSorteo, sorteo.getIdSorteo(), ganadoresNode.size());
-    }
-
-    private JsonNode parseResultado(String json) {
-        try {
-            return objectMapper.readTree(json);
-        } catch (Exception e) {
-            throw new IllegalStateException("Error al interpretar el resultado de fn_seleccionar_ganadores_sorteo", e);
         }
     }
 }

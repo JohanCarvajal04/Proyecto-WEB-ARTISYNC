@@ -25,6 +25,9 @@ public class SubcategoriaControlador {
         return ResponseEntity.ok(categoriaServicio.listarTodasLasSubcategorias());
     }
 
+    // Mismo criterio que CategoriaControlador: MODERADOR administra el
+    // catálogo completo (categorías, subcategorías y etiquetas) vía el
+    // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
     @PostMapping
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaSubcategoria> crearSubcategoria(@Valid @RequestBody PeticionCrearSubcategoria peticion) {

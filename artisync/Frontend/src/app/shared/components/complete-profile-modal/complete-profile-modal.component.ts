@@ -188,6 +188,19 @@ export class CompleteProfileModalComponent implements OnInit {
       return;
     }
 
+    // Mismo requisito de mayoría de edad que register.component.ts
+    // (ageValidator) y user-form-modal.component.ts: aquí faltaba, así que
+    // el backend era el único que la exigía, sin aviso previo en la UI.
+    let edad = today.getFullYear() - selectedDate.getFullYear();
+    const mes = today.getMonth() - selectedDate.getMonth();
+    if (mes < 0 || (mes === 0 && today.getDate() < selectedDate.getDate())) {
+      edad--;
+    }
+    if (edad < 18) {
+      this.toastService.error('Debes ser mayor de 18 años para completar tu perfil');
+      return;
+    }
+
     this.isLoading.set(true);
     this.userService.updateCurrentUser({
       idPais: Number(val.idPais),

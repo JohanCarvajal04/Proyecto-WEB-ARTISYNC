@@ -12,11 +12,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -80,15 +82,17 @@ public class AdminUserController {
     @Operation(summary = "Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)")
     @PatchMapping("/{id}/estado")
     @PreAuthorize("hasAuthority('USUARIO_SUSPENDER') or hasAuthority('USUARIO_ELIMINAR') or hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> changeEstado(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request) {
-        return ResponseEntity.ok(adminUserService.changeEstado(id, request));
+    public ResponseEntity<UserResponse> changeEstado(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request,
+                                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(adminUserService.changeEstado(id, request, userDetails.getIdUsuario()));
     }
 
     @Operation(summary = "Asignar roles a un usuario")
     @PutMapping("/{id}/roles")
     @PreAuthorize("hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> assignRoles(@PathVariable Long id, @Valid @RequestBody AssignRolesRequest request) {
-        return ResponseEntity.ok(adminUserService.assignRoles(id, request));
+    public ResponseEntity<UserResponse> assignRoles(@PathVariable Long id, @Valid @RequestBody AssignRolesRequest request,
+                                                     @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(adminUserService.assignRoles(id, request, userDetails.getIdUsuario()));
     }
 
     @Operation(summary = "Revocar inmediatamente todas las sesiones activas de un usuario")
@@ -101,8 +105,8 @@ public class AdminUserController {
     @Operation(summary = "Eliminar lógicamente a un usuario (Soft Delete)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        adminUserService.deleteUser(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        adminUserService.deleteUser(id, userDetails.getIdUsuario());
         return ResponseEntity.noContent().build();
     }
 }
