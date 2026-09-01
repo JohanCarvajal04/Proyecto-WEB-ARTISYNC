@@ -2,6 +2,9 @@ package uteq.edu.ec.artisync.service.pedido.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -101,10 +104,15 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
         TicketRevision ticket = ticketRevisionRepository.findById(idTicket)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Ticket de revision no encontrado"));
 
-        // Verificar que el usuario es el creador del servicio del pedido
+        // El creador del servicio siempre puede resolver sus propios tickets.
+        // Además, el controlador autoriza aquí a SOPORTE (TICKET_RESOLVER) y a
+        // quien tenga PEDIDO_GESTIONAR/ADMIN -- este chequeo exigía SIEMPRE
+        // ser el creador, así que soporte/admin recibía 422 pese a que el
+        // @PreAuthorize les daba paso: la funcionalidad de soporte estaba
+        // rota en la práctica.
         Long idCreadorServicio = ticket.getPedido().getServicio().getPerfil().getUsuario().getIdUsuario();
-        if (!idCreadorServicio.equals(idCreador)) {
-            throw new ExcepcionReglaNegocio("Solo el creador del servicio puede cambiar el estado del ticket");
+        if (!idCreadorServicio.equals(idCreador) && !tienePermisoDeSoporteOAdmin()) {
+            throw new AccessDeniedException("No tienes permisos para cambiar el estado de este ticket");
         }
 
         ticket.setEstadoTicket(nuevoEstado);
@@ -112,6 +120,16 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
         log.info("Ticket {} cambio a estado '{}'", idTicket, nuevoEstado);
         return mapToRespuesta(ticket);
+    }
+
+    /** Mismos roles que el @PreAuthorize del endpoint, aparte del creador del servicio. */
+    private boolean tienePermisoDeSoporteOAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_ADMIN")
+                        || a.getAuthority().equals("TICKET_RESOLVER")
+                        || a.getAuthority().equals("PEDIDO_GESTIONAR"));
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
 import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
+import { rangoFechasInvertido } from '../../../../shared/utils/rango-fechas';
 
 /**
  * Reporte de contratos formalizados (Backend: ReporteContratoControlador).
@@ -53,6 +54,10 @@ export class ReportesContratosComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
+    if (rangoFechasInvertido(this.filtro())) {
+      this.toastService.error('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
     this.cargar(0);
   }
 
@@ -67,6 +72,10 @@ export class ReportesContratosComponent implements OnInit {
   }
 
   exportar(formato: FormatoReporte): void {
+    if (rangoFechasInvertido(this.filtro())) {
+      this.toastService.error('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
     this.exportando.set(true);
     this.reporteService.exportar(this.filtro(), formato).subscribe({
       next: (respuesta) => {

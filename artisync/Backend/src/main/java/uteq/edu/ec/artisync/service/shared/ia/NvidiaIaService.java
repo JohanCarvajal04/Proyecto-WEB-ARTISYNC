@@ -57,9 +57,9 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
 
     @Override
     public IaModeracionResponse moderarContenido(String textoMensaje) {
-        String prompt = cargarPrompt("prompt_moderacion_mensaje.md", textoMensaje);
+        String prompt = cargarPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(llamarNvidiaSoloTexto(prompt)));
+            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             return IaModeracionResponse.builder()
                     .esApropiado(nodo.path("es_apropiado").asBoolean(true))
                     .categoriaInfraccion(nodo.path("categoria_infraccion").asString("ninguno"))
@@ -77,9 +77,10 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
     @Override
     public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
-        String prompt = cargarPrompt("prompt_clasificacion_servicio.md", categorias, titulo, descripcion);
+        String prompt = cargarPrompt("prompt_clasificacion_servicio.md", categorias,
+                sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(llamarNvidiaSoloTexto(prompt)));
+            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             List<String> etiquetas = new ArrayList<>();
             nodo.path("etiquetas_sugeridas").forEach(e -> etiquetas.add(e.asString()));
             return IaClasificacionResponse.builder()
@@ -98,9 +99,10 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
 
     @Override
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
-        String prompt = cargarPrompt("prompt_sugerencia_briefing.md", categoria, titulo, descripcion);
+        String prompt = cargarPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
+                sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(llamarNvidiaSoloTexto(prompt)));
+            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             List<String> preguntas = new ArrayList<>();
             nodo.path("preguntas").forEach(p -> preguntas.add(p.asString()));
             return preguntas.isEmpty() ? List.of("¿Qué necesitas?") : preguntas;
@@ -113,9 +115,9 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
 
     @Override
     public IaResenaResponse analizarResena(String textoResena, int estrellas) {
-        String prompt = cargarPrompt("prompt_analisis_resena.md", estrellas, textoResena);
+        String prompt = cargarPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
         try {
-            JsonNode nodo = objectMapper.readTree(extraerJson(llamarNvidiaSoloTexto(prompt)));
+            JsonNode nodo = objectMapper.readTree(extraerJson(conReintentoTransitorio(() -> llamarNvidiaSoloTexto(prompt))));
             return IaResenaResponse.builder()
                     .sentimiento(nodo.path("sentimiento").asString("neutro"))
                     .esCoherenteConEstrellas(nodo.path("es_coherente_con_estrellas").asBoolean(true))

@@ -157,6 +157,17 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
 
   crearTicket(): void {
     if (this.creandoTicket) return;
+
+    // El botón solo comprobaba que la cadena no estuviera vacía, así que
+    // un textarea con puros espacios pasaba igual (string no vacía) y el
+    // backend quedaba como única línea de defensa real.
+    const descripcion = this.nuevoTicket.descripcionCliente.trim();
+    if (!descripcion) {
+      this.error = 'Describe el motivo de la revisión.';
+      return;
+    }
+    this.nuevoTicket.descripcionCliente = descripcion;
+
     this.creandoTicket = true;
 
     this.ticketService.crearTicket(this.pedidoId, this.nuevoTicket).subscribe({
@@ -167,7 +178,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         this.creandoTicket = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al crear ticket';
+        this.error = err.error?.detail || 'Error al crear ticket';
         this.creandoTicket = false;
       }
     });

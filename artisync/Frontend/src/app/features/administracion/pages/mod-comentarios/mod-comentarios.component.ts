@@ -57,6 +57,15 @@ export class ModComentariosComponent implements OnInit {
 
   toggleEstado(comentario: Comentario): void {
     if (this.procesandoId() !== null) return;
+
+    // Ocultar es visible de inmediato para el autor y el dueño del
+    // portafolio; a diferencia de reactivar (siempre reversible con un
+    // clic), un ocultar accidental merece una confirmación.
+    const vaAOcultar = comentario.estadoModeracion === ESTADO_ACTIVO;
+    if (vaAOcultar && !confirm('¿Ocultar este comentario? Dejará de ser visible para todos.')) {
+      return;
+    }
+
     this.procesandoId.set(comentario.idComentario);
 
     const accion$ = comentario.estadoModeracion === ESTADO_ACTIVO

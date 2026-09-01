@@ -5,6 +5,7 @@ import { FiltroPagoGarantia, PagoGarantia, PagoGarantiaDetalle, ResumenEscrow } 
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
+import { rangoFechasInvertido } from '../../../../shared/utils/rango-fechas';
 
 @Component({
   selector: 'app-pagos-garantia',
@@ -58,6 +59,10 @@ export class PagosGarantiaComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
+    if (rangoFechasInvertido(this.filtro())) {
+      this.toastService.error('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
     this.cargar(0);
   }
 

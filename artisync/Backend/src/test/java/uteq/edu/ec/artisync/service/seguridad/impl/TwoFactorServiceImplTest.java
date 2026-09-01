@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
@@ -18,6 +19,7 @@ import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresReposit
 import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,8 @@ class TwoFactorServiceImplTest {
     private UsuarioRolRepository usuarioRolRepository;
     @Mock
     private CertificadoIaRepository certificadoIaRepository;
+    @Mock
+    private IntentosAutenticacionService intentosAutenticacionService;
 
     @InjectMocks
     private TwoFactorServiceImpl twoFactorService;
@@ -51,6 +55,9 @@ class TwoFactorServiceImplTest {
                 .idUsuario(1L)
                 .correo("creador@example.com")
                 .build();
+        // @InjectMocks no procesa @Value; se fuerza el campo, igual que
+        // PagoServicioImplWebhookTest hace con sus propios @Value.
+        ReflectionTestUtils.setField(twoFactorService, "claveHmac", "clave-de-prueba-para-tests-2fa-1234567890");
     }
 
     @Test
@@ -119,5 +126,41 @@ class TwoFactorServiceImplTest {
         boolean resultado = twoFactorService.validarCodigoOBackup("creador@example.com", "ABCD1234");
 
         assertFalse(resultado);
+    }
+
+    // ── disable2Fa: cuota de intentos por cuenta (revisión técnica 2026-09-01) ──
+    // Ni confirm2Fa ni disable2Fa tenían límite de intentos: con una sesión
+    // válida, un atacante podía probar sin freno los 10^6 códigos TOTP.
+
+    @Test
+    void disable2Fa_ShouldIncrementarCuota_WhenCodigoIncorrecto() {
+        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+                .llaveSecreta("SECRETO").estaHabilitado(true).build();
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
+        when(codigoRespaldo2FaRepository.consumirCodigoRespaldo(eq(1L), anyString())).thenReturn(false);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.disable2Fa("creador@example.com", "WRONGCODE"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        verify(intentosAutenticacionService).verificarCuota(
+                eq("2fa-desactivar-cuenta"), eq("creador@example.com"), anyInt(), any());
+        verify(autenticacionDosFactoresRepository, never()).desactivar2Fa(any());
+    }
+
+    @Test
+    void disable2Fa_ShouldLimpiarCuota_WhenCodigoCorrecto() {
+        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+                .llaveSecreta("SECRETO").estaHabilitado(true).build();
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
+        when(codigoRespaldo2FaRepository.consumirCodigoRespaldo(eq(1L), anyString())).thenReturn(true);
+
+        twoFactorService.disable2Fa("creador@example.com", "ABCD1234");
+
+        verify(intentosAutenticacionService).limpiar("2fa-desactivar-cuenta", "creador@example.com");
+        verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
+        verify(autenticacionDosFactoresRepository).desactivar2Fa(1L);
     }
 }

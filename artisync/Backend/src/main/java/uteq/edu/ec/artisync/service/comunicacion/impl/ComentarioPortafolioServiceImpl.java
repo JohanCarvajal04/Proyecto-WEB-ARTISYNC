@@ -128,7 +128,7 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     @Auditable(accion = "COMENTARIO_OCULTAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
     public RespuestaComentario ocultarComentario(Long idComentario) {
-        ComentarioPortafolio comentario = obtenerComentario(idComentario);
+        ComentarioPortafolio comentario = obtenerComentarioParaModerar(idComentario);
         comentario.setEstadoModeracion(ESTADO_OCULTO);
         log.info("Comentario {} ocultado por moderación", idComentario);
         return mapToResponse(comentario);
@@ -139,13 +139,26 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     @Auditable(accion = "COMENTARIO_REACTIVAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
     public RespuestaComentario reactivarComentario(Long idComentario) {
-        ComentarioPortafolio comentario = obtenerComentario(idComentario);
+        ComentarioPortafolio comentario = obtenerComentarioParaModerar(idComentario);
         comentario.setEstadoModeracion(ESTADO_ACTIVO);
         log.info("Comentario {} reactivado por moderación", idComentario);
         return mapToResponse(comentario);
     }
 
     // -------------------------------------------------------------------------
+
+    /**
+     * Con bloqueo pesimista de fila: ocultar/reactivar son las dos únicas
+     * operaciones donde dos moderadores podrían pisarse la decisión sin
+     * ningún aviso. La segunda llamada espera a que la primera confirme y
+     * relee el estado ya actualizado antes de aplicar la suya.
+     */
+    private ComentarioPortafolio obtenerComentarioParaModerar(Long idComentario) {
+        return comentarioRepository.findByIdParaModerar(idComentario)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                        "Comentario no encontrado: " + idComentario));
+    }
+
     private ComentarioPortafolio obtenerComentario(Long idComentario) {
         return comentarioRepository.findById(idComentario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(

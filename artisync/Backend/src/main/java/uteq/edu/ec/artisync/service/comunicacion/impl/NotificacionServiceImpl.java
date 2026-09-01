@@ -28,32 +28,44 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Override
     @Transactional
     public void notificar(Usuario destinatario, String tipoEvento, String mensajeTexto) {
-        // Busca o crea el tipo de notificación dinámicamente
-        TipoNotificacion tipo = tipoNotificacionRepo.findByNombreEvento(tipoEvento)
-                .orElseGet(() -> {
-                    TipoNotificacion nuevo = TipoNotificacion.builder()
-                            .nombreEvento(tipoEvento)
-                            .formatoMensaje(mensajeTexto)
-                            .build();
-                    return tipoNotificacionRepo.save(nuevo);
-                });
+        // notificar() casi siempre se llama desde dentro de la transacción de
+        // una operación de negocio real (pago confirmado, ganador de sorteo,
+        // etc.). Sin este try/catch, un fallo aquí (choque de UNIQUE al crear
+        // TipoNotificacion por una carrera, o una excepción del broker STOMP
+        // al hacer convertAndSendToUser) marca la transacción como
+        // rollback-only y deshace en silencio el cambio de negocio ya
+        // confirmado que la originó -- la notificación es un efecto
+        // secundario de mejor esfuerzo, nunca debe poder tumbar eso.
+        try {
+            TipoNotificacion tipo = tipoNotificacionRepo.findByNombreEvento(tipoEvento)
+                    .orElseGet(() -> {
+                        TipoNotificacion nuevo = TipoNotificacion.builder()
+                                .nombreEvento(tipoEvento)
+                                .formatoMensaje(mensajeTexto)
+                                .build();
+                        return tipoNotificacionRepo.save(nuevo);
+                    });
 
-        NotificacionSistema notificacion = NotificacionSistema.builder()
-                .usuario(destinatario)
-                .tipoNotificacion(tipo)
-                .mensaje(mensajeTexto)
-                .estaLeida(false)
-                .build();
-        notificacion = notificacionRepo.save(notificacion);
+            NotificacionSistema notificacion = NotificacionSistema.builder()
+                    .usuario(destinatario)
+                    .tipoNotificacion(tipo)
+                    .mensaje(mensajeTexto)
+                    .estaLeida(false)
+                    .build();
+            notificacion = notificacionRepo.save(notificacion);
 
-        // Entrega en tiempo real al usuario via WebSocket (canal privado)
-        RespuestaNotificacion dto = mapToResponse(notificacion, mensajeTexto);
-        messagingTemplate.convertAndSendToUser(
-                destinatario.getCorreo(),
-                "/queue/notificaciones",
-                dto
-        );
-        log.debug("Notificación '{}' enviada a {}", tipoEvento, destinatario.getCorreo());
+            // Entrega en tiempo real al usuario via WebSocket (canal privado)
+            RespuestaNotificacion dto = mapToResponse(notificacion, mensajeTexto);
+            messagingTemplate.convertAndSendToUser(
+                    destinatario.getCorreo(),
+                    "/queue/notificaciones",
+                    dto
+            );
+            log.debug("Notificación '{}' enviada a {}", tipoEvento, destinatario.getCorreo());
+        } catch (Exception e) {
+            log.error("No se pudo entregar la notificación '{}' a {}: {}",
+                    tipoEvento, destinatario.getCorreo(), e.getMessage(), e);
+        }
     }
 
     @Override

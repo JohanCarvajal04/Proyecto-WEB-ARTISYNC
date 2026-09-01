@@ -14,10 +14,25 @@ public final class CsvUtil {
     private CsvUtil() {
     }
 
-    /** Escapa caracteres especiales de CSV (comillas, comas, saltos de línea). */
+    /**
+     * Caracteres que Excel/LibreOffice interpretan como inicio de fórmula al
+     * abrir un CSV. Sin neutralizarlos, un dato de usuario que termina en un
+     * CSV exportado (título de servicio, nombre de usuario, ambos editables
+     * por su dueño) puede ejecutar una fórmula -- incluida una que llame a
+     * un programa externo -- en la máquina de quien abre el reporte (p. ej.
+     * un admin auditando exportaciones). Mitigación estándar de OWASP (CSV
+     * Injection): anteponer un apóstrofo fuerza a la hoja de cálculo a
+     * tratar la celda como texto en vez de evaluarla.
+     */
+    private static final String CARACTERES_FORMULA = "=+-@\t\r";
+
+    /** Escapa caracteres especiales de CSV (comillas, comas, saltos de línea) y neutraliza inyección de fórmulas. */
     public static String escapeCsv(String valor) {
         if (valor == null) {
             return "";
+        }
+        if (!valor.isEmpty() && CARACTERES_FORMULA.indexOf(valor.charAt(0)) >= 0) {
+            valor = "'" + valor;
         }
         if (valor.contains(",") || valor.contains("\"") || valor.contains("\n")) {
             return "\"" + valor.replace("\"", "\"\"") + "\"";

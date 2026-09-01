@@ -77,7 +77,10 @@ export class TwoFactorSetupComponent implements OnInit {
 
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: (err) => {
+        this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'No se pudo iniciar la configuración de 2FA');
+      }
     });
   }
 
@@ -105,7 +108,10 @@ export class TwoFactorSetupComponent implements OnInit {
         this.is2faEnabled.set(true);
         this.isSettingUp2fa.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: (err) => {
+        this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'Código incorrecto. Intenta de nuevo.');
+      }
     });
   }
 
@@ -128,7 +134,10 @@ export class TwoFactorSetupComponent implements OnInit {
         this.qrCodeImage.set('');
         this.disableTwoFactorForm.reset();
       },
-      error: () => this.isLoading.set(false)
+      error: (err) => {
+        this.isLoading.set(false);
+        this.toastService.error(err.error?.detail || 'Código incorrecto. No se pudo desactivar 2FA.');
+      }
     });
   }
 }

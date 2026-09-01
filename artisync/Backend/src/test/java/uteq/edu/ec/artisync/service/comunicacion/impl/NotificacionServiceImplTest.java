@@ -72,6 +72,23 @@ class NotificacionServiceImplTest {
     }
 
     @Test
+    @DisplayName("notificar no propaga una falla del envío WebSocket -- es un efecto secundario de mejor esfuerzo")
+    void notificar_noPropagaFalloDeEnvio() {
+        // Si notificar() se llama dentro de la transacción de una operación
+        // de negocio real (pago liberado, ganador de sorteo...), dejar
+        // escapar esta excepción marcaría esa transacción como
+        // rollback-only y revertiría en silencio el cambio ya confirmado.
+        given(tipoNotificacionRepo.findByNombreEvento("MENSAJE_RECIBIDO")).willReturn(Optional.of(tipo));
+        given(notificacionRepo.save(any(NotificacionSistema.class))).willAnswer(inv -> inv.getArgument(0));
+        org.mockito.Mockito.doThrow(new RuntimeException("broker STOMP caído"))
+                .when(messagingTemplate).convertAndSendToUser(org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() ->
+                notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO", "hola"));
+    }
+
+    @Test
     @DisplayName("listarMisNotificaciones muestra el texto propio de cada una, no uno compartido")
     void listarMisNotificaciones_dosDelMismoTipoConTextoDistinto() {
         NotificacionSistema n1 = NotificacionSistema.builder()

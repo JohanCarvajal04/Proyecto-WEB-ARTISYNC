@@ -205,13 +205,39 @@ class TicketRevisionServicioImplTest {
     }
 
     @Test
-    @DisplayName("cambiarEstadoTicket rechaza a un usuario que no es el creador del servicio")
+    @DisplayName("cambiarEstadoTicket rechaza a un usuario que no es el creador del servicio ni tiene rol de soporte/admin")
     void cambiarEstadoTicket_rechazaNoCreador() {
         TicketRevision ticket = TicketRevision.builder().idTicket(1L).pedido(pedido).motivo(motivo).descripcionCliente("x").build();
         given(ticketRevisionRepository.findById(1L)).willReturn(Optional.of(ticket));
 
         assertThatThrownBy(() -> ticketRevisionServicio.cambiarEstadoTicket(1L, 99L, "Resuelto"))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("cambiarEstadoTicket permite a SOPORTE (TICKET_RESOLVER) aunque no sea el creador del servicio")
+    void cambiarEstadoTicket_permiteSoporte() {
+        TicketRevision ticket = TicketRevision.builder().idTicket(1L).pedido(pedido).motivo(motivo).descripcionCliente("x").estadoTicket("Abierto").build();
+        given(ticketRevisionRepository.findById(1L)).willReturn(Optional.of(ticket));
+        given(ticketRevisionRepository.save(any(TicketRevision.class))).willAnswer(inv -> inv.getArgument(0));
+        autenticarComo("soporte@test.dev", "TICKET_RESOLVER");
+
+        RespuestaTicketRevision respuesta = ticketRevisionServicio.cambiarEstadoTicket(1L, 99L, "Resuelto");
+
+        assertThat(respuesta.getEstadoTicket()).isEqualTo("Resuelto");
+    }
+
+    @Test
+    @DisplayName("cambiarEstadoTicket permite a ADMIN aunque no sea el creador del servicio")
+    void cambiarEstadoTicket_permiteAdmin() {
+        TicketRevision ticket = TicketRevision.builder().idTicket(1L).pedido(pedido).motivo(motivo).descripcionCliente("x").estadoTicket("Abierto").build();
+        given(ticketRevisionRepository.findById(1L)).willReturn(Optional.of(ticket));
+        given(ticketRevisionRepository.save(any(TicketRevision.class))).willAnswer(inv -> inv.getArgument(0));
+        autenticarComo("admin@test.dev", "ROLE_ADMIN");
+
+        RespuestaTicketRevision respuesta = ticketRevisionServicio.cambiarEstadoTicket(1L, 99L, "Resuelto");
+
+        assertThat(respuesta.getEstadoTicket()).isEqualTo("Resuelto");
     }
 
     @Test

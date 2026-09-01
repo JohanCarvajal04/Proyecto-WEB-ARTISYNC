@@ -5,6 +5,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +22,12 @@ import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
+import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -34,11 +38,36 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TwoFactorServiceImpl implements TwoFactorService {
 
+    // Revisión técnica 2026-09-01: ni confirm2Fa ni disable2Fa tenían cuota
+    // de intentos (AuthRateLimitFilter solo cubre /auth/2fa/verify, que es
+    // el login; estos dos endpoints son post-login y requieren sesión
+    // válida). Con una sesión robada, un atacante podía probar sin límite
+    // los 10^6 códigos TOTP de 6 dígitos. Mismo patrón que login/forgot-password
+    // en AuthServiceImpl: cuota POR CUENTA, se incrementa solo al fallar.
+    private static final String AMBITO_2FA_CONFIRM = "2fa-confirmar-cuenta";
+    private static final String AMBITO_2FA_DISABLE = "2fa-desactivar-cuenta";
+    private static final int LIMITE_INTENTOS_2FA = 5;
+    private static final Duration VENTANA_INTENTOS_2FA = Duration.ofMinutes(15);
+
     private final UsuarioRepository usuarioRepository;
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
     private final UsuarioRolRepository usuarioRolRepository;
     private final CertificadoIaRepository certificadoIaRepository;
+    private final IntentosAutenticacionService intentosAutenticacionService;
+
+    // Revisión técnica 2026-09-01: los códigos de respaldo se hasheaban con
+    // SHA-256 sin clave -- un volcado de codigo_respaldo_2fa permitía
+    // precomputar una única tabla arcoíris válida para TODOS los usuarios
+    // (los códigos son 8 hex = 32 bits de entropía, trivial de agotar con
+    // SHA-256 sin pepper). HMAC-SHA256 con esta clave hace que, sin conocer
+    // el secreto, un atacante que solo tiene el volcado de la BD no pueda
+    // precomputar nada. Reutiliza security.jwt.secret-key (ya validado como
+    // secreto fuerte en JwtService) en vez de introducir una nueva variable
+    // de entorno obligatoria; la separación de dominio entre JWT y estos
+    // hashes viene del prefijo fijo en el mensaje, no de una clave distinta.
+    @Value("${security.jwt.secret-key}")
+    private String claveHmac;
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
@@ -101,8 +130,11 @@ public class TwoFactorServiceImpl implements TwoFactorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se ha iniciado la configuración de 2FA"));
 
         if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {
+            intentosAutenticacionService.verificarCuota(
+                    AMBITO_2FA_CONFIRM, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código inválido o expirado");
         }
+        intentosAutenticacionService.limpiar(AMBITO_2FA_CONFIRM, correo);
 
         dosFactores.setEstaHabilitado(true);
         autenticacionDosFactoresRepository.save(dosFactores);
@@ -125,8 +157,11 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
 
         if (!validarCodigoOBackup(correo, codigo)) {
+            intentosAutenticacionService.verificarCuota(
+                    AMBITO_2FA_DISABLE, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
+        intentosAutenticacionService.limpiar(AMBITO_2FA_DISABLE, correo);
 
         // Fase 3 concurrencia (§7): fn_desactivar_2fa desactiva el flag y
         // purga los codigos de respaldo en una unica transaccion, en vez del
@@ -186,11 +221,16 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     private String hashSha256(String input) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(encodedhash);
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(claveHmac.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            // Prefijo fijo: separa este dominio de cualquier otro uso futuro
+            // de la misma clave, y evita que el hash de un código de
+            // respaldo coincida por casualidad con el de cualquier otro dato
+            // que alguna vez se firme con la misma clave.
+            byte[] resultado = mac.doFinal(("2fa-backup-codigo:" + input).getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(resultado);
         } catch (Exception e) {
-            throw new RuntimeException("Error al calcular hash SHA-256", e);
+            throw new RuntimeException("Error al calcular HMAC-SHA256", e);
         }
     }
 }

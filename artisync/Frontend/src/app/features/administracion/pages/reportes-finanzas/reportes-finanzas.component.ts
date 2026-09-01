@@ -7,6 +7,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
 import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
+import { rangoFechasInvertido } from '../../../../shared/utils/rango-fechas';
 
 /**
  * Reporte de comisiones por creador (Backend: ReporteFinancieroControlador).
@@ -39,6 +40,10 @@ export class ReportesFinanzasComponent {
       this.error.set('Indica el id de perfil del creador para generar el reporte.');
       return;
     }
+    if (rangoFechasInvertido(this.filtro())) {
+      this.error.set('La fecha "Desde" no puede ser posterior a "Hasta".');
+      return;
+    }
 
     this.error.set('');
     this.isLoading.set(true);
@@ -64,6 +69,10 @@ export class ReportesFinanzasComponent {
   exportar(formato: FormatoReporte): void {
     if (!this.filtro().idPerfil) {
       this.error.set('Indica el id de perfil del creador antes de exportar.');
+      return;
+    }
+    if (rangoFechasInvertido(this.filtro())) {
+      this.error.set('La fecha "Desde" no puede ser posterior a "Hasta".');
       return;
     }
 
