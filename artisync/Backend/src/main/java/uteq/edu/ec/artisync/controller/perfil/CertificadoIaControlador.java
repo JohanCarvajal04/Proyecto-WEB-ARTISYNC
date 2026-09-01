@@ -38,7 +38,7 @@ public class CertificadoIaControlador {
     private final ICertificadoIaServicio certificadoServicio;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaCertificadoIa> emitirCertificado(@Valid @RequestBody PeticionCrearCertificadoIa peticion) {
         RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
@@ -57,13 +57,13 @@ public class CertificadoIaControlador {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('MODERADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaCertificadoIa> > listarTodosLosCertificados() {
         return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarCertificado(@PathVariable Long id) {
         certificadoServicio.eliminarCertificado(id);
         return ResponseEntity.ok(new RespuestaMensaje("Certificado de IA eliminado exitosamente"));

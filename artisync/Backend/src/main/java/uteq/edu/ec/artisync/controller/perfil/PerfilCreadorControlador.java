@@ -24,7 +24,7 @@ public class PerfilCreadorControlador {
     private final IPerfilCreadorServicio perfilServicio;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPerfil> crearPerfil(
             @Valid @RequestBody PeticionCrearPerfil peticion,
             Authentication autenticacion) {
@@ -55,7 +55,7 @@ public class PerfilCreadorControlador {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPerfil> actualizarPerfil(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarPerfil peticion,
@@ -65,7 +65,7 @@ public class PerfilCreadorControlador {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarPerfil(@PathVariable Long id) {
         perfilServicio.eliminarPerfil(id);
         return ResponseEntity.ok(new RespuestaMensaje("Perfil de creador eliminado exitosamente"));

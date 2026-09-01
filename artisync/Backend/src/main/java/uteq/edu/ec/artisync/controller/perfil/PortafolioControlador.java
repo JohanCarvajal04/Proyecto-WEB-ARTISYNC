@@ -24,7 +24,7 @@ public class PortafolioControlador {
     private final IPortafolioServicio portafolioServicio;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPortafolio> crearPortafolio(
             @Valid @RequestBody PeticionCrearPortafolio peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -48,7 +48,7 @@ public class PortafolioControlador {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPortafolio> actualizarPortafolio(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarPortafolio peticion,
@@ -66,7 +66,7 @@ public class PortafolioControlador {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarPortafolio(@PathVariable Long id) {
         portafolioServicio.eliminarPortafolio(id);
         return ResponseEntity.ok(new RespuestaMensaje("Portafolio eliminado exitosamente"));

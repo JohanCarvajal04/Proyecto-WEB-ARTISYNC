@@ -33,7 +33,7 @@ public class PedidoControlador {
     private final IPedidoServicio pedidoServicio;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPedido> crearPedido(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PeticionCrearPedido peticion) {
@@ -50,14 +50,14 @@ public class PedidoControlador {
     }
 
     @GetMapping("/mis-pedidos")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaPedidoResumido>> listarMisPedidos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));
     }
 
     @GetMapping("/mis-comisiones")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaPedidoResumido>> listarMisComisiones(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(pedidoServicio.listarMisComisiones(userDetails.getIdUsuario()));
@@ -69,7 +69,7 @@ public class PedidoControlador {
      * que son reportes administrativos y sí lo llevan.
      */
     @GetMapping("/mis-pedidos/exportar")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportarMisPedidos(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam FormatoReporte formato,
@@ -80,7 +80,7 @@ public class PedidoControlador {
     }
 
     @GetMapping("/mis-comisiones/exportar")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportarMisComisiones(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam FormatoReporte formato,
@@ -92,7 +92,7 @@ public class PedidoControlador {
     }
 
     @PutMapping("/{id}/avanzar")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPedido> avanzarEtapa(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,

@@ -49,7 +49,7 @@ public class AdminComentarioControlador {
 
     @Operation(summary = "Eliminar definitivamente un comentario (moderación)")
     @DeleteMapping("/{idComentario}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
     public ResponseEntity<Void> eliminarComentario(@PathVariable Long idComentario) {
         comentarioService.eliminarComentario(idComentario, null, true);
         return ResponseEntity.noContent().build();

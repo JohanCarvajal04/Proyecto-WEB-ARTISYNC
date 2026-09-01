@@ -26,7 +26,7 @@ public class ServicioControlador {
     private final IServicioCatalogoServicio servicioCatalogoServicio;
 
     @PostMapping("/creador/{idPerfilCreador}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaServicio> crearServicio(
             @PathVariable Long idPerfilCreador,
             @Valid @RequestBody PeticionCrearServicio peticion) {
@@ -35,7 +35,7 @@ public class ServicioControlador {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaServicio> actualizarServicio(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarServicio peticion) {
@@ -48,7 +48,7 @@ public class ServicioControlador {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarServicio(@PathVariable Long id) {
         servicioCatalogoServicio.eliminarServicio(id);
         return ResponseEntity.ok(new RespuestaMensaje("Servicio eliminado exitosamente"));
@@ -67,7 +67,7 @@ public class ServicioControlador {
     }
 
     @PostMapping("/{id}/atributos")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaAtributo> agregarAtributo(
             @PathVariable Long id,
             @Valid @RequestBody PeticionCrearAtributo peticion) {
@@ -76,7 +76,7 @@ public class ServicioControlador {
     }
 
     @PutMapping("/{id}/atributos/{idAtributo}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaAtributo> actualizarAtributo(
             @PathVariable Long id,
             @PathVariable Long idAtributo,
@@ -85,7 +85,7 @@ public class ServicioControlador {
     }
 
     @DeleteMapping("/{id}/atributos/{idAtributo}")
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarAtributo(
             @PathVariable Long id,
             @PathVariable Long idAtributo) {

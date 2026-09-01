@@ -84,7 +84,12 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/metrics/**", "/actuator/info").hasRole("ADMIN")
                 .requestMatchers("/api/webhooks/paypal").permitAll()
-                .requestMatchers("/api/v1/flujos/**").hasAnyRole("ADMIN", "CREADOR")
+                // Sin restricción propia: FlujoTrabajoControlador ya exige
+                // FLUJO_GESTIONAR/FLUJO_MODERAR/ADMIN método a método. Un
+                // matcher aquí con hasAnyRole("ADMIN","CREADOR") bloqueaba a
+                // MODERADOR con FLUJO_MODERAR (V31) antes de que el @PreAuthorize
+                // del método llegara a evaluarse — la puerta de URL era más
+                // estricta que la de negocio y ganaba siempre.
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )

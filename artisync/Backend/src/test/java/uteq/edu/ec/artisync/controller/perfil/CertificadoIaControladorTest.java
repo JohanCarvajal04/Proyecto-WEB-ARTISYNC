@@ -26,11 +26,16 @@ class CertificadoIaControladorTest {
     private CertificadoIaControlador controlador;
 
     @Test
-    void emitirCertificado_exigeSoloRolAdmin() throws NoSuchMethodException {
+    void emitirCertificado_exigeRevisorOAdmin() throws NoSuchMethodException {
+        // Antes exigía solo hasRole('ADMIN'): un rol con CERTIFICADO_REVISAR
+        // (p. ej. MODERADOR) veía la pantalla de certificados pero no podía
+        // emitir uno. Los otros tres métodos del controlador ya usaban el
+        // permiso; este quedó desalineado.
         Method metodo = CertificadoIaControlador.class.getMethod("emitirCertificado", PeticionCrearCertificadoIa.class);
         var preAuthorize = metodo.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
 
-        assertThat(preAuthorize.value()).isEqualTo("hasRole('ADMIN')");
+        assertThat(preAuthorize).isNotNull();
+        assertThat(preAuthorize.value()).contains("CERTIFICADO_REVISAR");
     }
 
     @Test

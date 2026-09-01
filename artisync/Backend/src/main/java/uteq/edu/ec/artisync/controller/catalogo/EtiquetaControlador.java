@@ -31,13 +31,13 @@ public class EtiquetaControlador {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('CREADOR', 'ADMIN')")
+    @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaEtiqueta> crearEtiqueta(@Valid @RequestBody PeticionCrearEtiqueta peticion) {
         return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarEtiqueta(@PathVariable Long id) {
         etiquetaServicio.eliminarEtiqueta(id);
         return ResponseEntity.ok(new RespuestaMensaje("Etiqueta eliminada exitosamente"));

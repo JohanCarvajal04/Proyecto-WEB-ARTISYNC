@@ -26,13 +26,13 @@ public class SubcategoriaControlador {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaSubcategoria> crearSubcategoria(@Valid @RequestBody PeticionCrearSubcategoria peticion) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearSubcategoria(peticion));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarSubcategoria(@PathVariable Long id) {
         categoriaServicio.eliminarSubcategoria(id);
         return ResponseEntity.ok(new RespuestaMensaje("Subcategoria eliminada exitosamente"));

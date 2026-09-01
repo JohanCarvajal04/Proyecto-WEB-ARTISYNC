@@ -17,7 +17,7 @@ public class PagoControlador {
     private final IPagoServicio pagoServicio;
 
     @PostMapping("/{idPedido}/pago")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPago> crearOrdenPago(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
