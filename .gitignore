@@ -99,3 +99,10 @@ docs/superpowers/
 
 # Copia temporal que genera `make srs` (se borra al terminar el target)
 docs/requisitos/.srs-build.md
+
+# ---------------------------------------------------------------------------
+# Bytecode compilado de Python (generado automaticamente al importar un
+# script, p. ej. docs/mediciones/sus/bootstrap-sus.py cargando analisis-sus.py)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.pyc

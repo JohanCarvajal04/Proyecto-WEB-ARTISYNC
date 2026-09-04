@@ -1,0 +1,13 @@
+=== Bootstrap percentil sobre la media SUS (verificacion independiente del IC parametrico) ===
+Archivo de entrada: sus-raw.csv
+n participantes: 16
+Remuestreos: 10000
+Semilla: 20260904 (fija, para reproducibilidad exacta)
+
+Media observada: 61.25
+IC 95% bootstrap percentil: [50.47, 71.41]
+
+Comparar contra el IC parametrico (t de Student) de salida-sus.txt.
+Si ambos intervalos son consistentes (se superponen ampliamente), eso
+respalda que el supuesto de normalidad del IC parametrico no esta
+distorsionando demasiado el resultado pese al tamano de muestra pequeno.
