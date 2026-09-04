@@ -7,14 +7,17 @@
 
 \textbf{RQ1 --- ¿Cumple el sistema los umbrales de rendimiento, seguridad,
 usabilidad, cobertura y calidad web declarados?} Parcialmente. De los
-cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), cuatro
+cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), tres
 cumplen sus umbrales por completo (rendimiento, seguridad
-manual+automatizada, usabilidad, calidad web en ambos perfiles). El
+manual+automatizada, calidad web en ambos perfiles). El
 bloque de cobertura cumple en líneas (72.0\,\% $\geq$70\,\%) pero
-\textbf{no en ramas} (62.5\,\% $<$70\,\%) --- una respuesta honesta a RQ1
-no puede ser ``sí'' sin matiz. El sistema cumple la gran mayoría de sus
-propiedades de calidad declaradas con evidencia reproducible, con una
-brecha cuantificada y no oculta en cobertura de ramas.
+\textbf{no en ramas} (62.5\,\% $<$70\,\%), y el bloque de usabilidad
+\textbf{no alcanza} el umbral declarado (SUS medio 61.25 frente al umbral
+del proyecto de $>$68, IC~95\,\% [49.49, 73.01]) --- una respuesta honesta
+a RQ1 no puede ser ``sí'' sin matiz. El sistema cumple una parte
+sustancial de sus propiedades de calidad declaradas con evidencia
+reproducible, con dos brechas cuantificadas y no ocultas: cobertura de
+ramas y usabilidad percibida.
 
 \textbf{RQ2 --- ¿Es la estrategia híbrida de acceso a datos implementable
 y verificable dentro de las restricciones del proyecto?} Sí, parcialmente
@@ -95,8 +98,10 @@ evita sorpresas en la evaluación.
 ¿Miden los instrumentos elegidos lo que pretenden medir? El instrumento
 SUS mide usabilidad percibida, no usabilidad objetiva (tiempo de tarea,
 tasa de error) --- el proyecto no midió usabilidad objetiva como
-complemento, por lo que la conclusión de ``usabilidad aceptable'' se
-apoya en un único constructo subjetivo. \textbf{Mitigación aplicada:} se
+complemento, por lo que el resultado obtenido (por debajo del umbral de
+aceptabilidad) se apoya en un único constructo subjetivo y podría no
+coincidir con lo que mostraría una medición objetiva del mismo flujo.
+\textbf{Mitigación aplicada:} se
 usó el instrumento SUS sin modificar (10 ítems originales de
 Brooke~\cite{BROOKE1996}), evitando la amenaza de validez de constructo
 que introduciría una versión ad-hoc del cuestionario.
@@ -123,25 +128,32 @@ de economía creativa). Siguiendo la orientación de Baltes y
 Ralph~\cite{BALTES2022} sobre reporte de muestreo en ingeniería de
 software empírica, esta limitación se declara explícitamente en vez de
 generalizar el resultado SUS a ``los usuarios de Artisync'' sin matiz: el
-resultado (76.88, categoría~B de Bangor~\cite{BANGOR2009}) es válido para
+resultado (61.25, categoría~D de Bangor~\cite{BANGOR2009}, por debajo del
+umbral de aceptabilidad) es válido para
 la muestra evaluada, con generalización externa limitada a un perfil
 demográfico similar (adultos con experiencia web media-alta, dispositivos
 variados).
 
 \section{Validez de conclusión}
 
-Las conclusiones de los bloques de rendimiento y cobertura se apoyan en
-estadística descriptiva (media, DT, IC~95\,\%) sin test inferencial,
-porque no se identificaron comparaciones de dos condiciones
-estadísticamente válidas para probar dentro del alcance actual (la única
-candidata, caché frío/caliente, está invalidada por la amenaza de validez
-interna de \S10.2). Esto es consistente con la recomendación de preferir
-IC~95\,\% sobre valores p como reporte primario
-(Capítulo~\ref{cap:materiales-metodos}~\S5.6), siguiendo el protocolo
-estadístico de Arcuri y Briand~\cite{ARCURI2011} para ingeniería de
-software, pero implica que ninguna afirmación de ``diferencia
-significativa'' se sostiene en este documento --- y en efecto, ninguna se
-hace.
+Las conclusiones del bloque de cobertura se apoyan en estadística
+descriptiva (media, DT, IC~95\,\%) sin test inferencial, porque no hay
+una segunda condición con la que compararla dentro del alcance actual.
+El bloque de rendimiento sí tiene, desde T-15
+(Capítulo~\ref{cap:materiales-metodos}~\S5.6), un test inferencial no
+paramétrico (Mann-Whitney~U) con tamaño de efecto ordinal (Â$_{12}$ de
+Vargha-Delaney), siguiendo el protocolo estadístico de Arcuri y
+Briand~\cite{ARCURI2011} para ingeniería de software, aplicado a las dos
+comparaciones caliente/frío disponibles (Capítulo~\ref{cap:evaluacion-resultados}~\S8.1).
+Ambas resultan estadísticamente significativas ($p<10^{-46}$ en los dos
+casos, incluso tras corrección de Holm-Bonferroni), pero con matices
+distintos de validez de conclusión: la del \textbf{catálogo} sigue
+invalidada como afirmación causal por la amenaza de validez interna de
+\S10.2 (el experimento no aísla un \emph{cache miss} real, así que la
+significancia estadística no implica un efecto de caché); la del
+\textbf{endpoint protegido} (T-14) sí admite una interpretación causal
+razonable, porque ``frío'' allí significa un reinicio real del proceso
+backend, no una caché de aplicación potencialmente ya poblada.
 
 \chapter{Trabajo futuro}
 \label{cap:trabajo-futuro}
@@ -158,12 +170,22 @@ hace.
     del alcance de la ampliación del 16 de agosto porque esa ampliación
     priorizó sumar rutinas nuevas del módulo de seguridad, no reparar las
     existentes.
-  \item \textbf{Rediseñar el script de carga k6} para forzar \emph{cache
-    misses} reales y medibles por iteración, habilitando un test
-    inferencial (Wilcoxon) con tamaño de efecto (\emph{Cliff's delta})
-    válido sobre la comparación caché frío/caliente~\cite{ARCURI2011} ---
-    hoy inválida por la amenaza de validez interna documentada en
-    \S10.2.
+  \item \textbf{Rediseñar el script de carga k6 del catálogo}
+    (\texttt{k6/catalogo-load.js}) para forzar \emph{cache misses} reales
+    y medibles por iteración (variar página/categoría), de forma que el
+    test inferencial Mann-Whitney~U ya implementado
+    (\texttt{docs/mediciones/perf/analisis-inferencial.py}, T-15) mida un
+    efecto de caché real en vez de ruido de ejecución --- hoy la
+    comparación es estadísticamente significativa pero causalmente
+    inválida por la amenaza de validez interna documentada en \S10.2.
+  \item \textbf{Sembrar la cadena transaccional completa} (pedidos $\to$
+    contratos $\to$ pagos de garantía $\to$ transacciones de pago) para
+    \texttt{creador@test.com} antes de repetir la carga k6 contra
+    \texttt{GET /api/v1/admin/reportes/finanzas} (T-14): las 15{,}000
+    peticiones medidas ejercitan el \texttt{JOIN} de 5 tablas de
+    \texttt{fn\_reporte\_comisiones\_creador} pero agregan sobre un
+    conjunto vacío, así que el resultado no captura el costo de agregar
+    sobre un volumen transaccional realista.
   \item \textbf{Elevar la cobertura de ramas de JaCoCo} del 62.5\,\%
     actual al umbral de 70\,\% exigido, con desglose por módulo
     (dominio/servicio/controlador) en vez del agregado global actual, y
@@ -191,9 +213,10 @@ plataforma web de intermediación entre creadores de contenido digital y
 clientes, con una estrategia híbrida de acceso a datos y verificación de
 identidad asistida por inteligencia artificial. Respondiendo brevemente a
 las preguntas de investigación planteadas en el
-Capítulo~\ref{cap:introduccion}: el sistema cumple la mayoría de sus
-umbrales de calidad declarados con evidencia empírica reproducible (RQ1),
-con una brecha cuantificada en cobertura de ramas; la estrategia híbrida
+Capítulo~\ref{cap:introduccion}: el sistema cumple una parte sustancial de
+sus umbrales de calidad declarados con evidencia empírica reproducible
+(RQ1), con brechas cuantificadas en cobertura de ramas y en usabilidad
+percibida (SUS 61.25, por debajo del umbral de 68); la estrategia híbrida
 de acceso a datos es implementable y verificable dentro de las
 restricciones de un proyecto académico de 17 semanas, con 7
 procedimientos conectados end-to-end y una nuance de conformidad

@@ -35,8 +35,8 @@
 - [x] ¿Se documentó el proceso de análisis?
   **Sí.** `docs/mediciones/sus/analisis-sus.py` y `graficar-sus.py` calculan media/mediana/DT/IC 95% de forma reproducible (`make sus`); `REPORTE-PERF.md` documenta el cálculo de percentiles (p50/p90/p95/p99) desde los JSON crudos de k6.
 
-- [ ] ¿Se aplicaron métodos estadísticos o cualitativos apropiados?
-  **Parcial.** Estadística descriptiva completa (media, DT, IC 95%) está presente en SUS y k6. **Falta** todo test inferencial (ej. Wilcoxon para la comparación cache frío/caliente que la guía exige explícitamente en el Bloque C) y todo tamaño de efecto (Cliff's delta, r de rangos) en cualquiera de los bloques — no se encontró ninguno en el repositorio. Esta es una brecha ya identificada en `INFORME-BRECHAS-ENTREGA-FINAL.md` (Bloque C).
+- [x] ¿Se aplicaron métodos estadísticos o cualitativos apropiados?
+  **Sí.** Estadística descriptiva completa (media, DT, IC 95%) en SUS y k6. Desde T-15 (`docs/mediciones/perf/analisis-inferencial.py`, `make perf-stats`), también hay test inferencial no paramétrico (Mann-Whitney U, apropiado para latencias — no Wilcoxon, que es para muestras pareadas) con tamaño de efecto ordinal (Â₁₂ de Vargha-Delaney) y corrección de Holm-Bonferroni, sobre las dos comparaciones caliente/frío disponibles (catálogo público y el endpoint protegido añadido en T-14). Ver `docs/informe-final/secciones/08-evaluacion-resultados.tex` §8.1 y `docs/mediciones/perf/salida-inferencial.txt`. La brecha que documentaba `INFORME-BRECHAS-ENTREGA-FINAL.md` (Bloque C) queda cerrada; persiste solo la limitación de diseño del script del catálogo (no aísla un *cache miss* real, declarada como trabajo futuro).
 
 ## 4. Reporte de Resultados
 
@@ -44,7 +44,7 @@
   **Sí.** Cada reporte cierra con una tabla explícita de "umbral vs. resultado vs. cumple" (ver `REPORTE-LIGHTHOUSE.md`, `REPORTE-SEC.md`, `REPORTE-SUS.md`).
 
 - [ ] ¿Se incluyeron métricas clave (ej. tamaños de efecto, p-valores, intervalos de confianza)?
-  **Parcial.** IC 95% presente en SUS (`[69.16, 84.59]`, n=16) y en k6. **Ausentes:** tamaños de efecto y valores p en todos los bloques (ninguna comparación inferencial se ha corrido todavía — mismo hallazgo que el ítem anterior).
+  **Parcial.** IC 95% presente en SUS (`[49.49, 73.01]`, n=16) y en k6. **Ausentes:** tamaños de efecto y valores p en todos los bloques (ninguna comparación inferencial se ha corrido todavía — mismo hallazgo que el ítem anterior).
 
 - [ ] ¿Se discutieron las limitaciones (amenazas a la validez)?
   **Parcial.** Existen notas de limitación metodológica puntuales y honestas dentro de reportes individuales (ej. `REPORTE-PERF.md` sobre el cache frío no aislado; `DATA-PROVENANCE.md` sobre la traducción del cuestionario SUS). **Falta** un capítulo consolidado de "Amenazas a la validez" que cubra las cuatro categorías exigidas (constructo, interna, externa, conclusión) — depende del documento académico final, que todavía no existe (Bloque B.12 de la guía).

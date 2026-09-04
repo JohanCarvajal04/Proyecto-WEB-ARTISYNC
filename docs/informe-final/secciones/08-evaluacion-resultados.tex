@@ -48,11 +48,87 @@ petición en ambos escenarios --- de las 1500 iteraciones por corrida, como
 mucho una es un \emph{miss} real contra PostgreSQL. La diferencia de
 medias observada (21.38~ms vs. 13.62~ms) es ruido de ejecución (JIT/GC de
 la JVM, carga del contenedor), no un efecto real de caché frío vs.
-caliente. \textbf{No se ejecutó} el test inferencial (Wilcoxon) ni el
-tamaño de efecto que exige el Bloque~C de la guía para esta comparación
---- protocolo recomendado por Arcuri y Briand~\cite{ARCURI2011},
-declarado como brecha en el Capítulo~\ref{cap:materiales-metodos}~\S5.6 y
-retomado como amenaza a la validez en el Capítulo~\ref{cap:validez}.
+caliente.
+
+\textbf{Test inferencial y tamaño de efecto (T-15):} la guía (Bloque~C,
+\S4.3) exige, para esta comparación de dos condiciones, un test no
+paramétrico para datos de latencia --- Mann-Whitney~U, no el t-test de
+Welch --- acompañado de un tamaño de efecto ordinal (Â$_{12}$ de
+Vargha-Delaney o $\delta$ de Cliff), protocolo sistematizado por Arcuri y
+Briand~\cite{ARCURI2011}. Recalculado de forma reproducible desde los 6
+NDJSON crudos con \texttt{docs/mediciones/perf/analisis-inferencial.py}
+(\texttt{make perf-stats}, salida completa en
+\texttt{docs/mediciones/perf/salida-inferencial.txt}):
+Mann-Whitney $U=13{,}841{,}240$, $p=9.68\times10^{-200}$ (Holm-Bonferroni,
+2 comparaciones: sigue siendo $9.68\times10^{-200}$), Â$_{12}=0.684$
+(efecto mediano --- el valor de latencia ``caliente'' supera al ``frío''
+en $\approx$68\,\% de los pares aleatorios). Como contraste --- y porque
+la cifra ya había sido calculada por el docente --- también se reporta el
+resultado paramétrico: Welch $t=14.538$, $p=4.11\times10^{-47}$, $d$ de
+Cohen $=0.3065$ (efecto pequeño-mediano). Ambos test coinciden en
+significancia estadística, pero \textbf{ninguno de los dos implica una
+diferencia causal real de rendimiento}: como se explicó arriba, la
+diferencia observada es ruido de ejecución sobre un experimento que no
+aísla un \emph{cache miss} real, no evidencia de que el caché esté frío o
+caliente. Este resultado se reporta con ese matiz explícito, no como una
+conclusión de rendimiento por sí sola.
+
+\subsection{Rendimiento contra un endpoint protegido (T-14)}
+
+\textbf{Métrica:} igual perfil de carga (50~VUs, 30~s) contra
+\texttt{GET /api/v1/admin/reportes/finanzas} (reporte de comisiones por
+creador, protegido con \texttt{@PreAuthorize("hasAuthority('TRANSACCION\_VER')
+or hasRole('ADMIN')")}, respaldado por la función SQL
+\texttt{fn\_reporte\_comisiones\_creador}), autenticado con JWT
+(\texttt{admin@artisync.com}), 5~corridas por escenario. A diferencia del
+catálogo, este endpoint no tiene \texttt{@Cacheable}: ``frío'' se define
+reiniciando el contenedor del backend inmediatamente antes de cada
+corrida (JVM sin JIT calentado, \emph{connection pool} vacío), no
+vaciando una caché de aplicación --- ver la nota metodológica en
+\texttt{k6/comisiones-load.js} y el target \texttt{bench-auth-cold} del
+\texttt{Makefile}. \textbf{Datos crudos:}
+\texttt{docs/mediciones/perf/k6-auth-run\{1..5\}.json} (caliente),
+\texttt{k6-auth-cold-run\{1..5\}.json} (frío).
+
+\begin{table}[H]
+\centering
+\caption{Resultados de la prueba de carga k6 sobre el endpoint protegido}
+\label{tab:k6-auth}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Escenario} & \textbf{n} & \textbf{Media (ms)} & \textbf{Mediana (ms)} & \textbf{DT (ms)} & \textbf{p90/p95/p99 (ms)} & \textbf{Error $\geq$500} \\
+\midrule
+Caliente & 7500 & 19.66 & 15.09 & 18.19 & 34.50 / \textbf{45.05} / 99.17  & 0.00\,\% \\
+Frío     & 7302 & 37.89 & 23.63 & 40.88 & 78.81 / \textbf{113.73} / 232.21 & 0.00\,\% \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\textbf{Test inferencial:} Mann-Whitney $U=16{,}848{,}748$,
+$p<10^{-300}$ (por debajo de la precisión de \texttt{float64}; Holm-Bonferroni
+con las 2 comparaciones de este bloque no cambia la conclusión),
+Â$_{12}=0.308$ (efecto mediano, en el sentido opuesto al del catálogo: el
+valor ``frío'' supera al ``caliente'' en $\approx$69\,\% de los pares).
+Contraste paramétrico: Welch $t=-34.888$, $p=8.49\times10^{-252}$, $d$ de
+Cohen $=-0.579$ (efecto mediano). A diferencia de la comparación del
+catálogo, aquí \textbf{sí hay una explicación causal defendible}: la JVM
+recién reiniciada arranca sin JIT calentado y con el \emph{connection
+pool} de HikariCP vacío, así que las primeras peticiones de cada corrida
+``fría'' pagan ese costo de calentamiento -- consistente con la cola más
+pesada (p99 232~ms vs. 99~ms) y no solo con la media.
+
+\textbf{Limitación declarada:} \texttt{creador@test.com} (sembrado vía
+\texttt{artisync/database/seed-medicion-servicios.sql}) tiene 200
+servicios activos pero \textbf{no} tiene pedidos/contratos/pagos de
+garantía/transacciones asociados en este volumen de datos, así que
+\texttt{fn\_reporte\_comisiones\_creador} ejecuta el \texttt{JOIN} de 5
+tablas completo pero agrega sobre un conjunto vacío
+(\texttt{totalOperaciones: 0}) en las 15{,}000 peticiones medidas. La
+latencia reportada mide el costo de autenticación + autorización +
+ejecución de la función SQL, no el costo de agregar sobre un volumen
+transaccional realista --- declarado como trabajo futuro
+(Capítulo~\ref{cap:trabajo-futuro}).
 
 \section{Seguridad (OWASP + ZAP + análisis estático) --- RQ1, RQ2}
 
@@ -117,15 +193,24 @@ participantes en \texttt{perfil-participantes.csv}.
 \textbf{Métrica} & \textbf{Valor} \\
 \midrule
 n & 16 \\
-Media & 76.88 \\
-Mediana & 77.50 \\
-DT & 14.48 \\
-IC 95\,\% & [69.16, 84.59] \\
-Interpretación (escala de Bangor~\cite{BANGOR2009}) & \textbf{B} \\
-Umbral del proyecto ($>$68) & Supera \\
+Media & 61.25 \\
+Mediana & 66.25 \\
+DT & 22.08 \\
+IC 95\,\% & [49.49, 73.01] \\
+Interpretación (escala de Bangor~\cite{BANGOR2009}) & \textbf{D} \\
+Umbral del proyecto ($>$68) & No supera \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\textbf{Nota de integridad de datos (2026-09-03):} una versión anterior de
+esta tabla (media 76.88) se calculó sobre \texttt{sus-raw.csv} con cinco
+filas (P12--P16) que no coincidían con el export real del formulario;
+ver la corrección documentada en
+\texttt{docs/mediciones/sus/PLAN-MEJORA-SUS.md} y en
+\texttt{docs/mediciones/DATA-PROVENANCE.md}. La tabla anterior refleja ya
+el dato corregido, recalculado con \texttt{analisis-sus.py} sobre el
+export real.
 
 \begin{figure}[H]
 \centering
@@ -141,13 +226,33 @@ raster (PNG). Regenerarlo en SVG desde el mismo script
 (\texttt{docs/mediciones/sus/graficar-sus.py}) es una corrección de bajo
 esfuerzo pendiente antes del cierre.
 
-\textbf{Interpretación:} el puntaje medio (76.88) está por encima del
-percentil~50 de la escala SUS normalizada y en la categoría~B de Bangor
-(rango ``excelente'' bajo), superando el umbral mínimo del proyecto
-($>$68) con margen. La limitación de muestreo por conveniencia
-(Capítulo~\ref{cap:materiales-metodos}~\S5.4) restringe la generalización
-de este resultado a la población real de usuarios --- retomado en el
-Capítulo~\ref{cap:validez}.
+\textbf{Interpretación:} el puntaje medio (61.25) queda en la
+categoría~D de Bangor y \textbf{no alcanza} el umbral mínimo del proyecto
+($>$68); el intervalo de confianza al 95\,\% ([49.49, 73.01]) es además lo
+bastante ancho como para no descartar valores cercanos al umbral, lo que
+refleja tanto el resultado en sí como el tamaño de muestra reducido. El
+patrón por ítem apunta a una carga de aprendizaje inicial percibida como
+alta (ítem peor puntuado: ``Necesité aprender muchas cosas antes de poder
+empezar a usar este sistema''), no a un fallo puntual de una sola
+función. La limitación de muestreo por conveniencia
+(Capítulo~\ref{cap:materiales-metodos}~\S5.4) restringe además la
+generalización de este resultado a la población real de usuarios ---
+retomado en el Capítulo~\ref{cap:validez}.
+
+\textbf{Análisis inferencial:} al ser una muestra única (no hay un segundo
+grupo con el que comparar, a diferencia del bloque de rendimiento), el
+análisis inferencial que corresponde es la estimación del intervalo de
+confianza de la media poblacional, ya reportado en la
+Tabla~\ref{tab:sus}. Como verificación independiente, dado que $N=16$ y la
+escala está acotada (0--100), se calculó además un IC~95\,\% por
+\emph{bootstrap} percentil (10\,000 remuestreos, semilla fija
+\texttt{20260904}): $[50.47, 71.41]$, consistente con el IC paramétrico
+$[49.49, 73.01]$. Ambos intervalos cruzan el umbral del proyecto en su
+extremo superior, por lo que la evidencia no permite descartar por
+completo que la usabilidad real esté cerca del umbral, aunque el punto
+estimado (61.25) quede claramente por debajo. Script versionado:
+\texttt{docs/mediciones/sus/bootstrap-sus.py}; salida completa en
+\texttt{docs/mediciones/sus/salida-bootstrap-sus.txt}.
 
 \section{Cobertura de código (JaCoCo) --- RQ1}
 
