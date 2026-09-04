@@ -3,6 +3,7 @@ package uteq.edu.ec.artisync.repository.seguridad;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
@@ -22,15 +23,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
 
     boolean existsByPaisIdPais(Long idPais);
 
-    // Las cuatro rutinas siguientes se invocan con @Query nativa (SELECT fn_x(...)),
-    // no con @Procedure: son FUNCTION de PostgreSQL, y el unico ejemplo probado en
-    // este repositorio de una FUNCTION invocada desde Spring Data usa este patron
-    // (ver CertificadoIaRepository.listarCola / fn_listar_cola_verificacion). @Procedure
-    // solo se ha verificado en este proyecto contra un CREATE PROCEDURE real
-    // (sp_registrar_decision_verificacion).
+    
 
     /** REQ-F-001 - fn_registrar_usuario: inserta usuario + usuario_roles + perfil de creador opcional. Devuelve el id_usuario generado. */
-    @Query(value = "SELECT fn_registrar_usuario(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, :p_fecha_nacimiento, :p_nombre_rol)", nativeQuery = true)
+    @Procedure(procedureName = "fn_registrar_usuario")
     Long registrarUsuario(
             @Param("p_nombres") String nombres,
             @Param("p_apellidos") String apellidos,
@@ -40,11 +36,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_nombre_rol") String nombreRol);
 
     /** REQ-F-002 - fn_resolver_estado_login: estado de cuenta, 2FA y roles en una sola llamada. Devuelve JSONB serializado como texto. */
-    @Query(value = "SELECT fn_resolver_estado_login(:p_correo)::text", nativeQuery = true)
+    @Procedure(procedureName = "fn_resolver_estado_login")
     String resolverEstadoLogin(@Param("p_correo") String correo);
 
     /** REQ-F-005 - fn_restablecer_contrasena: valida token de recuperacion y actualiza el hash de contrasena. Devuelve el id_usuario afectado. */
-    @Query(value = "SELECT fn_restablecer_contrasena(:p_hash_token, :p_nueva_contrasena_hash)", nativeQuery = true)
+    @Procedure(procedureName = "fn_restablecer_contrasena")
     Long restablecerContrasena(
             @Param("p_hash_token") String hashToken,
             @Param("p_nueva_contrasena_hash") String nuevaContrasenaHash);
@@ -71,7 +67,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * ejecutado en CADA peticion autenticada. Devuelve JSONB serializado como
      * texto, NULL si el correo no existe.
      */
-    @Query(value = "SELECT fn_permisos_efectivos_usuario(:p_correo)::text", nativeQuery = true)
+    @Procedure(procedureName = "fn_permisos_efectivos_usuario")
     String permisosEfectivos(@Param("p_correo") String correo);
 
     /**
@@ -81,7 +77,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * JSONB {idUsuario, nombres} serializado como texto, NULL si la cuenta no
      * existe o esta inactiva (respuesta indistinguible preservada en Java).
      */
-    @Query(value = "SELECT fn_solicitar_recuperacion(:p_correo, :p_hash_token)::text", nativeQuery = true)
+    @Procedure(procedureName = "fn_solicitar_recuperacion")
     String solicitarRecuperacion(
             @Param("p_correo") String correo,
             @Param("p_hash_token") String hashToken);
@@ -93,7 +89,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * la actualizacion perdida (A7). Devuelve TRUE si se aplico; lanza
      * excepcion (ERRCODE 40001) si el hash ya no coincidia.
      */
-    @Query(value = "SELECT fn_cambiar_contrasena(:p_id_usuario, :p_hash_esperado, :p_hash_nuevo)", nativeQuery = true)
+    @Procedure(procedureName = "fn_cambiar_contrasena")
     Boolean cambiarContrasena(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_hash_esperado") String hashEsperado,
@@ -106,7 +102,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * vez de una comprobacion existsByCorreo no atomica (A3). Devuelve el
      * id_usuario generado.
      */
-    @Query(value = "SELECT fn_crear_usuario_admin(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, :p_fecha_nacimiento, :p_id_pais, :p_estado_cuenta, :p_nombres_rol)", nativeQuery = true)
+    @Procedure(procedureName = "fn_crear_usuario_admin")
     Long crearUsuarioAdmin(
             @Param("p_nombres") String nombres,
             @Param("p_apellidos") String apellidos,
@@ -117,3 +113,4 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_estado_cuenta") Boolean estadoCuenta,
             @Param("p_nombres_rol") String[] nombresRol);
 }
+

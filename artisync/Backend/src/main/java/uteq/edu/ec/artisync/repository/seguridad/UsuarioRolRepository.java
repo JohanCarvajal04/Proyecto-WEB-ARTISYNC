@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
@@ -43,8 +44,9 @@ public interface UsuarioRolRepository extends JpaRepository<UsuarioRol, Long> {
      * RolRepository.sincronizarPermisos (REQ-F-003) para el lado usuario<->rol.
      * Devuelve el total de filas insertadas.
      */
-    @Query(value = "SELECT fn_sincronizar_roles_usuario(:p_id_usuario, :p_nombres_rol)", nativeQuery = true)
+    @Procedure(procedureName = "fn_sincronizar_roles_usuario")
     Integer sincronizarRoles(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_nombres_rol") String[] nombresRol);
 }
+
