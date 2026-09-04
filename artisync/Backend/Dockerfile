@@ -12,4 +12,7 @@ WORKDIR /app
 RUN apk add --no-cache wget
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Flags para arranque rapido en CPU compartida/limitada (ej. Render free
+# tier): menos compilacion JIT tiered y GC serial (mas liviano con pocos
+# nucleos) que la config por defecto orientada a servidores con mas CPU.
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
