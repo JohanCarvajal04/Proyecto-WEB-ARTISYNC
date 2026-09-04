@@ -1,0 +1,5 @@
+# Dependencias de docs/mediciones/perf/analisis-inferencial.py (T-15).
+# El resto del repo no declara requirements.txt en ningun lugar (los scripts
+# de docs/mediciones/sus/ usan solo la libreria estandar); scipy es
+# necesario aqui porque Mann-Whitney U y Welch t-test no estan en stdlib.
+scipy>=1.11,<2
