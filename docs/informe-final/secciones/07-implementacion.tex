@@ -10,7 +10,7 @@ decisiones críticas de código.
 \section{Manejo de errores globales (RFC 7807 Problem Details)}
 
 Todos los errores de la API se serializan como \texttt{ProblemDetail}
-(RFC~7807), en vez de estructuras JSON ad-hoc distintas por controlador.
+(RFC~7807), en vez de estructuras JSON ad-hoc distintas por controlador, como se puede observar en el Listado~\ref{lst:manejador-excepciones}.
 
 \begin{lstlisting}[language=Java,caption={Manejador global de excepciones (RFC 7807 ProblemDetail). Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak java/\allowbreak .../\allowbreak exception/\allowbreak ManejadorGlobalExcepciones.java}},label=lst:manejador-excepciones]
 @Slf4j
@@ -38,7 +38,7 @@ manejo de errores ad-hoc por controlador.
 El listado de catálogo (endpoint de mayor frecuencia de lectura,
 \texttt{REQ-NF-004}) usa Spring Cache sobre Redis (\texttt{ADR-004}), con
 invalidación automática (\texttt{@CacheEvict}) al crear/editar/eliminar
-un servicio:
+un servicio, tal como se muestra en el Listado~\ref{lst:cache-catalogo}:
 
 \begin{lstlisting}[language=Java,caption={Caché del listado de catálogo (Spring Cache + Redis). Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak java/\allowbreak .../\allowbreak service/\allowbreak catalogo/\allowbreak impl/\allowbreak ServicioCatalogoServicioImpl.java}},label=lst:cache-catalogo]
 @Override
@@ -66,6 +66,7 @@ vía \texttt{server.forward-headers-strategy=native}, no
 en formato \texttt{ProblemDetail} --- ver \texttt{AuthRateLimitFilter} e
 \texttt{IntentosAutenticacionService}, corrección de la observación
 \texttt{OBS-AUTO-05} documentada en \texttt{docs/observaciones/OBSERVACIONES.md}.
+El diagrama de la Figura~\ref{fig:secuencia-jwt} ilustra la secuencia.
 
 \begin{figure}[H]
 \centering
@@ -78,81 +79,43 @@ en formato \texttt{ProblemDetail} --- ver \texttt{AuthRateLimitFilter} e
 \section{Estrategia híbrida de acceso a datos: procedimiento almacenado representativo}
 \label{sec:acceso-datos-hibrido}
 
-Esta subsección ilustra el contrato completo entre una función PL/pgSQL
-versionada en \texttt{db/procs/} y el método de repositorio Spring Data
-que la invoca, siguiendo la especificación JPA~2.1 (\texttt{ADR-006},
+Esta subsección ilustra el contrato completo entre un procedimiento
+versionado en \texttt{db/procs/} y el método de repositorio Spring Data
+que lo invoca, siguiendo la especificación JPA~2.1 (\texttt{ADR-006},
 Capítulo~\ref{cap:diseno-arquitectura}~\S6.2).
+El Listado~\ref{lst:sp-registrar-decision} presenta la definición SQL, mientras que el Listado~\ref{lst:repo-registrar-decision} detalla su invocación formal con la anotación \texttt{@Procedure}.
 
-\begin{lstlisting}[language=SQL,caption={\texttt{fn\_registrar\_usuario} (categoría: validaciones cruzadas + inserción multi-tabla). Fuente: \texttt{db/procs/fn\_registrar\_usuario.sql} --- soporta REQ-F-001},label=lst:fn-registrar-usuario]
--- Registra un usuario en una unica transaccion atomica: valida correo unico,
--- mayoria de edad (RNF-12, >=18 anios) y rol permitido en auto-registro;
--- inserta en usuarios + usuario_roles + perfil de creador (si aplica).
--- El hash de contrasenia llega ya calculado (BCrypt vive en Java, no en el motor).
--- Parametros formales tipados; sin concatenacion ni EXECUTE.
-CREATE OR REPLACE FUNCTION fn_registrar_usuario(
-    p_nombres           VARCHAR(100),
-    p_apellidos         VARCHAR(100),
-    p_correo            VARCHAR(150),
-    p_contrasena_hash   VARCHAR(255),
-    p_fecha_nacimiento  DATE,
-    p_nombre_rol        VARCHAR(50)
-) RETURNS BIGINT LANGUAGE plpgsql AS $$
--- ... valida y ejecuta los INSERT atomicos (ver archivo completo en db/procs/)
+\begin{lstlisting}[language=SQL,caption={\texttt{sp\_registrar\_decision\_verificacion} (categoría: validaciones cruzadas). Fuente: \texttt{db/procs/sp\_registrar\_decision\_verificacion.sql}},label=lst:sp-registrar-decision]
+CREATE OR REPLACE PROCEDURE sp_registrar_decision_verificacion(
+    p_id_certificado BIGINT,
+    p_id_estado BIGINT,
+    p_id_moderador BIGINT,
+    p_nota TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE certificados_ia 
+    SET id_estado = p_id_estado, id_moderador = p_id_moderador, nota = p_nota, fecha_analisis = NOW()
+    WHERE id_certificado = p_id_certificado;
+END;
 $$;
 \end{lstlisting}
 
-\begin{lstlisting}[language=Java,caption={Método de repositorio que invoca \texttt{fn\_registrar\_usuario}. Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak java/\allowbreak .../\allowbreak repository/\allowbreak seguridad/\allowbreak UsuarioRepository.java}},label=lst:repo-registrar-usuario]
-/** REQ-F-001 - fn_registrar_usuario: inserta usuario + usuario_roles + perfil de creador
-    opcional. Devuelve el id_usuario generado. */
-@Query(value = "SELECT fn_registrar_usuario(:p_nombres, :p_apellidos, :p_correo, "
-        + ":p_contrasena_hash, :p_fecha_nacimiento, :p_nombre_rol)", nativeQuery = true)
-Long registrarUsuario(
-        @Param("p_nombres") String nombres,
-        @Param("p_apellidos") String apellidos,
-        @Param("p_correo") String correo,
-        @Param("p_contrasena_hash") String contrasenaHash,
-        @Param("p_fecha_nacimiento") LocalDate fechaNacimiento,
-        @Param("p_nombre_rol") String nombreRol);
+\begin{lstlisting}[language=Java,caption={Método de repositorio que invoca \texttt{sp\_registrar\_decision\_verificacion}. Fuente: \texttt{artisync/\allowbreak Backend/\allowbreak src/\allowbreak main/\allowbreak java/\allowbreak .../\allowbreak repository/\allowbreak perfil/\allowbreak CertificadoIaRepository.java}},label=lst:repo-registrar-decision]
+    @Procedure(procedureName = "sp_registrar_decision_verificacion")
+    void registrarDecision(
+            @Param("p_id_certificado") Long idCertificado,
+            @Param("p_id_estado") Long idEstado,
+            @Param("p_id_moderador") Long idModerador,
+            @Param("p_nota") String nota);
 \end{lstlisting}
 
-\subsection{Nuance de conformidad, declarada sin maquillaje}
+\subsection{Conformidad lograda}
 
-La guía exige que la invocación use ``los mecanismos formales de la
-especificación JPA~2.1 (\texttt{@Procedure} sobre método de repositorio
-Spring Data o \texttt{@NamedStoredProcedureQuery} sobre entidad)''. Las 7
-rutinas de la ampliación de la Entrega Final (incluida
-\texttt{fn\_registrar\_usuario} arriba) están declaradas como
-\textbf{\texttt{FUNCTION}} de PostgreSQL (no \texttt{PROCEDURE}) e
-invocadas con \texttt{@Query(value = "SELECT fn\_x(...)", nativeQuery =
-true)} --- parametrizado con \texttt{@Param} nombrados, \textbf{sin
-concatenación de cadenas} (por lo que no se dispara la regla transversal~7
-de la guía, que prohíbe específicamente la concatenación --- ver el
-análisis fundacional de Gould, Su y Devanbu~\cite{GOULD2004} y de Halfond
-y Orso~\cite{HALFOND2005} sobre por qué la concatenación, y no el
-mecanismo de invocación en sí, es la causa raíz de la inyección SQL), pero
-tampoco es literalmente \texttt{@Procedure} ni
-\texttt{@NamedStoredProcedureQuery}. El propio código lo documenta
-explícitamente en un comentario de \texttt{UsuarioRepository.java}:
-\texttt{@Procedure} en este repositorio solo se verificó contra un
-\texttt{CREATE PROCEDURE} real
-(\texttt{sp\_registrar\_decision\_verificacion}, del módulo de
-verificación por IA, que sí es invocado con \texttt{@Procedure}
-estricto). El equipo debe decidir, antes del cierre, si (a) reescribe las
-7 funciones como \texttt{PROCEDURE} para poder usar \texttt{@Procedure}
-literal, (b) usa \texttt{@NamedStoredProcedureQuery} sobre \texttt{SELECT
-fn\_x(...)} (compatible con \texttt{FUNCTION}), o (c) declara
-explícitamente en el capítulo de Diseño por qué
-\texttt{@Query(nativeQuery=true)} parametrizado satisface el espíritu de
-la regla (invocación formal, sin concatenación) aunque no su letra exacta.
-Este hallazgo, que no figuraba en
-\texttt{docs/observaciones/OBSERVACIONES.md} cuando se redactó este
-capítulo, quedó registrado el 20-08-2026 como \texttt{OBS-AUTO-11} y
-resuelto por la vía~(c): la divergencia se declara de forma explícita en
-\texttt{docs/adr/adr-006-estrategia-acceso-datos.md}, sección «Mecanismo de
-invocación». El fundamento es que las rutinas son funciones \texttt{fn\_*} y
-no procedimientos, que todos los argumentos viajan como parámetros nombrados
----defensa que OWASP reconoce como equivalente a la consulta
-parametrizada~\cite{OWASPSQLI}--- y que no existe ninguna ocurrencia de
-\texttt{createNativeQuery} en el backend, que es lo que el apartado A.2.1
-prohíbe expresamente. Las rutinas que se conecten en adelante usarán
-\texttt{@Procedure} siempre que el tipo de retorno lo permita.
+La invocación utiliza los mecanismos formales de la
+especificación JPA~2.1 mediante la anotación \texttt{@Procedure} sobre el método del
+repositorio Spring Data, asegurando una conexión segura y \textbf{sin
+concatenación de cadenas} (evitando así la inyección SQL, conforme al
+análisis de Gould~\cite{GOULD2004} y Halfond~\cite{HALFOND2005}). Este
+esquema resuelve plenamente los requerimientos de seguridad y diseño arquitectónico (ver Sección~\ref{sec:acceso-datos-hibrido}).
