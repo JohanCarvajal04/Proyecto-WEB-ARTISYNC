@@ -235,3 +235,79 @@ de hallazgo que la guía busca precisamente al exigir medir contra producción.
 - Mobile: `lhci-20260904-1020-mobile-prod-{explorar,explorar_creadores,auth_login}-run{1,2,3}.report.{json,html}`
 - Desktop: `lhci-20260904-1020-desktop-prod-{explorar,explorar_creadores,auth_login}-run{1,2,3}.report.{json,html}`
 - Manifiestos: `lhci-20260904-1020-{mobile,desktop}-prod-manifest.json`
+
+## Resultados de remediación (2026-09-04 15:45) — despliegue público, misma metodología
+
+Tras la Adenda OBS-P4-01 se corrigieron las 2 causas raíz documentadas ahí mismo:
+
+- **CLS/LCP en `/explorar` desktop**: `width`/`height` explícitos + `decoding="async"` +
+  prioridad de carga (`fetchpriority="high"` solo en la primera tarjeta visible, `loading="lazy"`
+  en el resto) en las imágenes de tarjeta de `explorar.component.html`, `creadores.component.html`,
+  `creador-publico.component.html`, `mis-servicios.component.html`, `portafolio-creador.component.html`
+  y `avatar.component.ts`; `<link rel="preconnect" href="https://picsum.photos">` en `index.html`.
+  Commit `14022da`. Un commit posterior de otro colaborador (`6cb6301`, skeleton de carga en
+  `/explorar`) atacó el mismo síntoma desde otro ángulo.
+- **`color-contrast` / `heading-order` / `image-redundant-alt`**: `text-slate-400`/`text-slate-300`
+  → `text-slate-500`/`text-slate-600` en texto secundario sobre fondo blanco; `<h2 class="sr-only">`
+  insertado antes de la grilla de resultados para restaurar `h1→h2→h3`; `alt=""` en imágenes de
+  tarjeta cuyo texto ya está en el `<h3>` visible adyacente. Mismo commit `14022da`, más
+  `57b37bb` (accesibilidad en shell público y login, de otro colaborador).
+
+Se re-corrió `make lighthouse` completo (2 perfiles × 3 rutas × 3 corridas = 18 auditorías) contra
+`https://artisync-frontend.onrender.com` una vez desplegados estos cambios en `main`.
+
+### Resultados — mobile (`lhci-20260904-1545-mobile-prod-*-run{1,2,3}`)
+
+| Ruta | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| `/explorar` | 93 / 95 / 95 ✅ | **93 / 93 / 93 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/explorar/creadores` | 93 / 95 / 94 ✅ | **92 / 92 / 92 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/auth/login` | 87 / 94 / 94 ✅ | 93 / 93 / 93 ✅ | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+
+### Resultados — desktop (`lhci-20260904-1545-desktop-prod-*-run{1,2,3}`)
+
+| Ruta | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| `/explorar` | **94 / 95 / 92 ✅ (≥80)** | **93 / 93 / 93 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/explorar/creadores` | 99 / 99 / 99 ✅ | **92 / 92 / 92 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/auth/login` | 99 / 100 / 100 ✅ | 93 / 93 / 93 ✅ | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+
+`lhci autorun` terminó con código de salida **0** en ambos perfiles (todas las assertions
+pasaron), a diferencia de la corrida base de las 10:20 (código 1). Los 3 umbrales que fallaban
+(Performance desktop `/explorar`, Accessibility `/explorar` y `/explorar/creadores` en ambos
+perfiles) ahora cumplen.
+
+### Métricas de carga — `/explorar` desktop, antes / después (run 1 de cada corrida)
+
+| Métrica | Antes (10:20) | Después (15:45) |
+|---|---|---|
+| Performance | 73/100 | **94/100** |
+| Accessibility | 89/100 | **93/100** |
+| Cumulative Layout Shift | **0.315** | **0.000** |
+| Largest Contentful Paint | 1.9 s (score 0.66) | **1.43 s** |
+
+El resto de rutas/perfiles se mantiene estable: CLS quedó en 0.000 en 17 de las 18 auditorías;
+la única excepción es `/explorar/creadores` mobile run1 = 0.085, todavía muy por debajo del
+umbral "bueno" (<0.1) y no reproducible en run2/run3 de la misma corrida (0.000 ambas) — variación
+de red típica de una medición contra un despliegue real, no una regresión del código.
+
+### Hallazgo nuevo detectado en esta corrida (no estaba en el diagnóstico anterior)
+
+El audit `color-contrast` sigue en rojo (score 0) en las 18 auditorías — **no** por las clases
+`slate-400`/`slate-300` ya corregidas, sino por `text-teal-600` (categoría de la tarjeta y enlace
+"Ver →"/"Ver perfil →") sobre fondo blanco (~3.9:1, bajo el 4.5:1 exigido por WCAG AA para texto
+normal/pequeño). Es un elemento distinto al documentado en la Adenda OBS-P4-01, visible solo
+porque Lighthouse marca el audit en rojo aunque el score de categoría (92-93) ya supere el umbral
+≥90 — no bloqueaba el cumplimiento, pero se corrigió igual (`text-teal-600` → `text-teal-700`,
+mismos 2 archivos: `explorar.component.html`, `creadores.component.html`). **Este cambio es
+posterior a la corrida de las 15:45 y todavía no está desplegado ni re-medido** — queda para la
+siguiente corrida de `make lighthouse` confirmar si el audit pasa a verde.
+
+### Reportes archivados
+
+- Mobile: `lhci-20260904-1545-mobile-prod-{explorar,explorar_creadores,auth_login}-run{1,2,3}.report.{json,html}`
+- Desktop: `lhci-20260904-1545-desktop-prod-{explorar,explorar_creadores,auth_login}-run{1,2,3}.report.{json,html}`
+- Manifiestos: `lhci-20260904-1545-{mobile,desktop}-prod-manifest.json`
+- Corridas intermedias (`lhci-20260904-1416-*`, `lhci-20260904-1443-*`), tomadas mientras los
+  commits de remediación se iban desplegando, se conservan como evidencia del proceso pero no se
+  citan como el resultado final — ver `lhci-20260904-1545-*` arriba.

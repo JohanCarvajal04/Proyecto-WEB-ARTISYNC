@@ -1,0 +1,110 @@
+[
+  {
+    "url": "https://artisync-frontend.onrender.com/explorar",
+    "isRepresentativeRun": false,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar-2026_09_04_20_48_36.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar-2026_09_04_20_48_36.report.json",
+    "summary": {
+      "performance": 0.93,
+      "accessibility": 0.93,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/explorar",
+    "isRepresentativeRun": false,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar-2026_09_04_20_49_12.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar-2026_09_04_20_49_12.report.json",
+    "summary": {
+      "performance": 0.95,
+      "accessibility": 0.93,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/explorar/creadores",
+    "isRepresentativeRun": false,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar_creadores-2026_09_04_20_49_28.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar_creadores-2026_09_04_20_49_28.report.json",
+    "summary": {
+      "performance": 0.93,
+      "accessibility": 0.92,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/explorar/creadores",
+    "isRepresentativeRun": false,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar_creadores-2026_09_04_20_49_57.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar_creadores-2026_09_04_20_49_57.report.json",
+    "summary": {
+      "performance": 0.94,
+      "accessibility": 0.92,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/auth/login",
+    "isRepresentativeRun": false,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-auth_login-2026_09_04_20_50_10.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-auth_login-2026_09_04_20_50_10.report.json",
+    "summary": {
+      "performance": 0.87,
+      "accessibility": 0.93,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/auth/login",
+    "isRepresentativeRun": false,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-auth_login-2026_09_04_20_50_37.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-auth_login-2026_09_04_20_50_37.report.json",
+    "summary": {
+      "performance": 0.94,
+      "accessibility": 0.93,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/explorar",
+    "isRepresentativeRun": true,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar-2026_09_04_20_48_55.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar-2026_09_04_20_48_55.report.json",
+    "summary": {
+      "performance": 0.95,
+      "accessibility": 0.93,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/explorar/creadores",
+    "isRepresentativeRun": true,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar_creadores-2026_09_04_20_49_43.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-explorar_creadores-2026_09_04_20_49_43.report.json",
+    "summary": {
+      "performance": 0.95,
+      "accessibility": 0.92,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "https://artisync-frontend.onrender.com/auth/login",
+    "isRepresentativeRun": true,
+    "htmlPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-auth_login-2026_09_04_20_50_24.report.html",
+    "jsonPath": "/repo/docs/mediciones/lighthouse/artisync_frontend_onrender_com-auth_login-2026_09_04_20_50_24.report.json",
+    "summary": {
+      "performance": 0.94,
+      "accessibility": 0.93,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  }
+]
