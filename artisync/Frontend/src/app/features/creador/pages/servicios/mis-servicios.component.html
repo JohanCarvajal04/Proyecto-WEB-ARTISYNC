@@ -118,7 +118,7 @@
           <article class="ms-card" [style.animation]="'fadeIn 0.3s ease-out ' + (i * 50) + 'ms both'">
             <div class="ms-card__media">
               @if (s.urlMiniatura) {
-                <img [src]="s.urlMiniatura" [alt]="s.tituloServicio" loading="lazy" />
+                <img [src]="s.urlMiniatura" alt="" width="400" height="300" decoding="async" loading="lazy" />
               } @else {
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z" />

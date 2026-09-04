@@ -3,18 +3,18 @@
   <!-- Header -->
   <div class="flex flex-col gap-1">
     <h1 class="font-headline text-2xl md:text-3xl font-bold text-[#0F2027]">Explorar servicios</h1>
-    <p class="text-sm text-slate-400">Encuentra al creador ideal para tu proyecto.</p>
+    <p class="text-sm text-slate-500">Encuentra al creador ideal para tu proyecto.</p>
   </div>
 
   <!-- Buscador + filtros -->
   <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5 md:p-6 flex flex-col gap-5">
 
     <div class="relative">
-      <svg class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <svg class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
       <input type="search" placeholder="Buscar por título o descripción..." (input)="onBusqueda($event)"
-        class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl pl-11 pr-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all" />
+        class="w-full bg-slate-50 text-slate-800 placeholder-slate-500 text-sm rounded-xl pl-11 pr-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all" />
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -102,29 +102,32 @@
     </div>
   } @else if (pagina().contenido.length === 0) {
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center p-16 text-center gap-4">
-      <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+      <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-500">
         <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </div>
       <div>
         <p class="font-headline font-semibold text-slate-700">Sin resultados</p>
-        <p class="text-xs text-slate-400 mt-1">Prueba ajustando los filtros o el término de búsqueda.</p>
+        <p class="text-xs text-slate-500 mt-1">Prueba ajustando los filtros o el término de búsqueda.</p>
       </div>
     </div>
   } @else {
-    <p class="text-xs text-slate-400">
+    <h2 class="sr-only">Resultados</h2>
+    <p class="text-xs text-slate-500">
       {{ pagina().totalElementos }} servicio(s) encontrado(s)
     </p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      @for (servicio of pagina().contenido; track servicio.idServicio) {
+      @for (servicio of pagina().contenido; track servicio.idServicio; let i = $index) {
         <a [routerLink]="[base, 'servicio', servicio.idServicio]"
           class="group bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-lg hover:-translate-y-0.5 transition-all">
 
           <div class="aspect-[4/3] bg-slate-50 overflow-hidden flex items-center justify-center">
             @if (servicio.urlMiniatura) {
-              <img [src]="servicio.urlMiniatura" [alt]="servicio.tituloServicio"
+              <!-- <img> plano (no NgOptimizedImage): la URL viene de picsum.photos, externa y dinámica por fila desde la BD -->
+              <img [src]="servicio.urlMiniatura" alt="" width="400" height="300" decoding="async"
+                [attr.loading]="i === 0 ? 'eager' : 'lazy'" [attr.fetchpriority]="i === 0 ? 'high' : null"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 (error)="$any($event.target).style.display='none'" />
             } @else {
@@ -137,12 +140,12 @@
           <div class="p-4 flex flex-col gap-2 flex-1">
             <span class="text-[10px] font-bold text-teal-600 uppercase tracking-wider">{{ servicio.nombreCategoria }}</span>
             <h3 class="font-headline font-semibold text-sm text-[#0F2027] leading-snug line-clamp-2">{{ servicio.tituloServicio }}</h3>
-            <p class="text-xs text-slate-400 truncate">por {{ servicio.nombreCreador }}</p>
+            <p class="text-xs text-slate-500 truncate">por {{ servicio.nombreCreador }}</p>
 
             @if (servicio.etiquetas && servicio.etiquetas.length > 0) {
               <div class="flex flex-wrap gap-1 mt-1">
                 @for (etq of servicio.etiquetas.slice(0, 3); track etq.idEtiqueta) {
-                  <span class="text-[10px] bg-slate-50 text-slate-400 px-2 py-0.5 rounded-full">{{ etq.nombreEtiqueta }}</span>
+                  <span class="text-[10px] bg-slate-50 text-slate-600 px-2 py-0.5 rounded-full">{{ etq.nombreEtiqueta }}</span>
                 }
               </div>
             }
@@ -159,7 +162,7 @@
     @if (pagina().totalPaginas > 1) {
       <div class="flex items-center justify-center gap-1.5 pt-2">
         <button type="button" (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0"
-          class="px-3 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          class="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           Anterior
         </button>
 
@@ -167,13 +170,13 @@
           <button type="button" (click)="irAPagina(n)"
             [class]="n === pagina().numero
               ? 'w-9 h-9 rounded-xl text-sm font-bold bg-[#0F2027] text-white transition-all'
-              : 'w-9 h-9 rounded-xl text-sm font-semibold text-slate-500 hover:bg-white transition-all'">
+              : 'w-9 h-9 rounded-xl text-sm font-semibold text-slate-600 hover:bg-white transition-all'">
             {{ n + 1 }}
           </button>
         }
 
         <button type="button" (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima"
-          class="px-3 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+          class="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           Siguiente
         </button>
       </div>

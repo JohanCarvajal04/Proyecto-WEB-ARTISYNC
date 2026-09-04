@@ -8,7 +8,7 @@ import { Component, input, computed } from '@angular/core';
       [class]="containerClasses()"
       class="rounded-full overflow-hidden bg-surface-container shrink-0 border border-outline-variant flex items-center justify-center text-on-surface-variant font-medium select-none">
       @if (imageUrl()) {
-        <img [src]="imageUrl()" [alt]="name()" class="w-full h-full object-cover">
+        <img [src]="imageUrl()" [alt]="name()" [attr.width]="sizePx()" [attr.height]="sizePx()" decoding="async" class="w-full h-full object-cover">
       } @else {
         <span>{{ initials() }}</span>
       }
@@ -45,6 +45,15 @@ export class AvatarComponent {
       case 'lg': return 'w-20 h-20 text-2xl';
       case 'md':
       default: return 'w-10 h-10 text-sm';
+    }
+  });
+
+  sizePx = computed(() => {
+    switch (this.size()) {
+      case 'sm': return 32;
+      case 'lg': return 80;
+      case 'md':
+      default: return 40;
     }
   });
 }

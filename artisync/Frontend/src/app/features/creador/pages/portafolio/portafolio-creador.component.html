@@ -154,7 +154,7 @@
                   @if (esVideo(item)) {
                     <video [src]="item.urlArchivo" controls preload="metadata"></video>
                   } @else {
-                    <img [src]="item.urlArchivo" [alt]="item.tituloObra" loading="lazy" />
+                    <img [src]="item.urlArchivo" alt="" width="400" height="300" decoding="async" loading="lazy" />
                   }
                 </div>
                 @if (idItemEditando() === item.idItemPortafolio) {
