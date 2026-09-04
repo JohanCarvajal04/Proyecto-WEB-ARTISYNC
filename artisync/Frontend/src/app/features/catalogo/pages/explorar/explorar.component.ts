@@ -34,6 +34,10 @@ export class ExplorarComponent implements OnInit {
   /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
   readonly base = inject(CATALOGO_BASE_PATH);
 
+  /** Placeholders del skeleton de carga: mismo conteo que TAMANO_PAGINA para que la grilla
+   *  ocupe una altura similar a la del resultado real y no salte el layout (CLS). */
+  readonly skeletonItems = Array.from({ length: TAMANO_PAGINA }, (_, i) => i);
+
   readonly pagina = signal<Pagina<RespuestaServicioResumido>>(paginaVacia());
   readonly categorias = signal<RespuestaCategoria[]>([]);
   readonly subcategorias = signal<RespuestaSubcategoria[]>([]);
