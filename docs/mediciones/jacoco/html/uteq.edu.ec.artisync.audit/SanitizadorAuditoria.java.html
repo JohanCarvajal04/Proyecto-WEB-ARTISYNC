@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SanitizadorAuditoria.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.audit</a> &gt; <span class="el_source">SanitizadorAuditoria.java</span></div><h1>SanitizadorAuditoria.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.audit;
+
+import java.time.temporal.Temporal;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Prepara un mapa de detalle para persistirse en la columna JSONB
+ * detalle_cambio. Hace dos cosas, las dos obligatorias y no configurables:
+ *
+ * 1. Enmascara por nombre de clave cualquier dato sensible (denylist),
+ *    porque la primera defensa (que la anotación @Auditable declare campos
+ *    concretos y no objetos completos) puede fallar por descuido humano. El
+ *    fallo por omisión de este sanitizador debe ser &quot;no se auditó el campo&quot;,
+ *    nunca &quot;se guardó la contraseña&quot;.
+ *
+ * 2. Normaliza cada valor a String/Number/Boolean/null. Esto no es solo
+ *    higiene: ArtisyncApplication declara &quot;new ObjectMapper()&quot; a pelo como
+ *    bean, que SOBRESCRIBE el autoconfigurado de Spring Boot y por tanto NO
+ *    tiene registrado JavaTimeModule. Un LocalDateTime (o cualquier tipo
+ *    java.time) dentro del mapa de detalle lanzaría
+ *    InvalidDefinitionException al serializar a JSONB. Convertirlo aquí a
+ *    String evita tocar ese bean compartido por toda la aplicación.
+ */
+public final class SanitizadorAuditoria {
+
+    private static final int MAX_LONGITUD_STRING = 500;
+    private static final int MAX_LONGITUD_JSON = 8 * 1024;
+
+<span class="fc" id="L32">    private static final List&lt;String&gt; CLAVES_SENSIBLES = List.of(</span>
+            &quot;contrasena&quot;, &quot;password&quot;, &quot;token&quot;, &quot;jti&quot;, &quot;secreto&quot;, &quot;codigo&quot;,
+            &quot;cuerpomensaje&quot;, &quot;textomensaje&quot;, &quot;documento&quot;, &quot;archivo&quot;
+    );
+
+    private SanitizadorAuditoria() {
+    }
+
+    public static Map&lt;String, Object&gt; sanitizar(Map&lt;String, Object&gt; origen) {
+<span class="fc bfc" id="L41" title="All 4 branches covered.">        if (origen == null || origen.isEmpty()) {</span>
+<span class="fc" id="L42">            return Map.of();</span>
+        }
+<span class="fc" id="L44">        Map&lt;String, Object&gt; resultado = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        for (Map.Entry&lt;String, Object&gt; entrada : origen.entrySet()) {</span>
+<span class="fc" id="L46">            resultado.put(entrada.getKey(), sanitizarValor(entrada.getKey(), entrada.getValue()));</span>
+<span class="fc" id="L47">        }</span>
+<span class="fc" id="L48">        return truncarJson(resultado);</span>
+    }
+
+    private static Object sanitizarValor(String clave, Object valor) {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (esClaveSensible(clave)) {</span>
+<span class="fc" id="L53">            return &quot;***&quot;;</span>
+        }
+<span class="fc" id="L55">        return normalizar(valor);</span>
+    }
+
+    private static boolean esClaveSensible(String clave) {
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (clave == null) {</span>
+<span class="nc" id="L60">            return false;</span>
+        }
+<span class="fc" id="L62">        String normalizada = clave.toLowerCase(Locale.ROOT);</span>
+<span class="fc" id="L63">        return CLAVES_SENSIBLES.stream().anyMatch(normalizada::contains);</span>
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private static Object normalizar(Object valor) {
+<span class="pc bpc" id="L68" title="3 of 6 branches missed.">        if (valor == null || valor instanceof Number || valor instanceof Boolean) {</span>
+<span class="nc" id="L69">            return valor;</span>
+        }
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (valor instanceof Map&lt;?, ?&gt; mapa) {</span>
+<span class="fc" id="L72">            Map&lt;String, Object&gt; normalizado = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            for (Map.Entry&lt;?, ?&gt; entrada : mapa.entrySet()) {</span>
+<span class="fc" id="L74">                String clave = String.valueOf(entrada.getKey());</span>
+<span class="fc" id="L75">                normalizado.put(clave, sanitizarValor(clave, entrada.getValue()));</span>
+<span class="fc" id="L76">            }</span>
+<span class="fc" id="L77">            return normalizado;</span>
+        }
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (valor instanceof List&lt;?&gt; lista) {</span>
+<span class="fc" id="L80">            return lista.stream().map(SanitizadorAuditoria::normalizar).toList();</span>
+        }
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">        if (valor instanceof Temporal || valor instanceof java.util.Date) {</span>
+<span class="fc" id="L83">            return truncar(String.valueOf(valor));</span>
+        }
+<span class="fc" id="L85">        return truncar(String.valueOf(valor));</span>
+    }
+
+    private static String truncar(String texto) {
+<span class="pc bpc" id="L89" title="1 of 4 branches missed.">        if (texto == null || texto.length() &lt;= MAX_LONGITUD_STRING) {</span>
+<span class="fc" id="L90">            return texto;</span>
+        }
+<span class="fc" id="L92">        return texto.substring(0, MAX_LONGITUD_STRING) + &quot;…&quot;;</span>
+    }
+
+    /**
+     * Tope defensivo sobre el tamaño total: si el mapa resultante sigue
+     * siendo enorme (muchas claves, cada una dentro del límite individual),
+     * se descarta el detalle y se deja constancia del motivo en su lugar.
+     */
+    private static Map&lt;String, Object&gt; truncarJson(Map&lt;String, Object&gt; resultado) {
+<span class="fc" id="L101">        int longitudAproximada = resultado.toString().length();</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        if (longitudAproximada &lt;= MAX_LONGITUD_JSON) {</span>
+<span class="fc" id="L103">            return resultado;</span>
+        }
+<span class="nc" id="L105">        Map&lt;String, Object&gt; recortado = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L106">        recortado.put(&quot;_truncado&quot;, &quot;detalle_cambio excede &quot; + MAX_LONGITUD_JSON + &quot; bytes; omitido&quot;);</span>
+<span class="nc" id="L107">        return recortado;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServicioExportacionImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.reporte.impl</a> &gt; <span class="el_source">ServicioExportacionImpl.java</span></div><h1>ServicioExportacionImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.reporte.impl;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneradorReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+
+import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+<span class="fc" id="L20">@Slf4j</span>
+@Service
+public class ServicioExportacionImpl implements IServicioExportacion {
+
+<span class="fc" id="L24">    private static final DateTimeFormatter FORMATO_MARCA_TIEMPO = DateTimeFormatter.ofPattern(&quot;yyyyMMdd_HHmm&quot;);</span>
+<span class="fc" id="L25">    private static final Pattern CARACTERES_NO_SLUG = Pattern.compile(&quot;[^a-z0-9]+&quot;);</span>
+
+    private final Map&lt;FormatoReporte, GeneradorReporte&gt; generadoresPorFormato;
+
+<span class="fc" id="L29">    public ServicioExportacionImpl(List&lt;GeneradorReporte&gt; generadores) {</span>
+<span class="fc" id="L30">        this.generadoresPorFormato = new EnumMap&lt;&gt;(FormatoReporte.class);</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        for (GeneradorReporte generador : generadores) {</span>
+<span class="fc" id="L32">            GeneradorReporte previo = this.generadoresPorFormato.put(generador.formato(), generador);</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">            if (previo != null) {</span>
+<span class="fc" id="L34">                throw new IllegalStateException(</span>
+<span class="fc" id="L35">                        &quot;Hay más de un GeneradorReporte registrado para el formato &quot; + generador.formato());</span>
+            }
+<span class="fc" id="L37">        }</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        for (FormatoReporte formato : FormatoReporte.values()) {</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">            if (!this.generadoresPorFormato.containsKey(formato)) {</span>
+<span class="fc" id="L40">                throw new IllegalStateException(&quot;Falta un GeneradorReporte para el formato &quot; + formato);</span>
+            }
+        }
+<span class="fc" id="L43">    }</span>
+
+    @Override
+    public &lt;T&gt; DocumentoGenerado exportar(ModeloReporte&lt;T&gt; modelo, FormatoReporte formato) {
+<span class="fc" id="L47">        int totalFilas = modelo.getFilas().size();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (totalFilas &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L49">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L50">                    &quot;El reporte '&quot; + modelo.getTitulo() + &quot;' tiene &quot; + totalFilas + &quot; filas, más de las &quot;</span>
+<span class="fc" id="L51">                            + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                            + &quot;. Acote los filtros aplicados.&quot;);
+        }
+
+<span class="fc" id="L55">        GeneradorReporte generador = generadoresPorFormato.get(formato);</span>
+<span class="fc" id="L56">        DocumentoGenerado documento = generador.generar(modelo);</span>
+
+<span class="fc" id="L58">        log.info(&quot;Reporte '{}' exportado en {}: {} filas, {} bytes&quot;,</span>
+<span class="fc" id="L59">                modelo.getTitulo(), formato, totalFilas, documento.contenido().length);</span>
+
+<span class="fc" id="L61">        String nombreArchivo = nombreArchivo(modelo.getTitulo(), formato);</span>
+<span class="fc" id="L62">        return new DocumentoGenerado(documento.contenido(), documento.contentType(), nombreArchivo);</span>
+    }
+
+    private String nombreArchivo(String titulo, FormatoReporte formato) {
+<span class="fc" id="L66">        String slug = CARACTERES_NO_SLUG.matcher(titulo.toLowerCase(Locale.ROOT)).replaceAll(&quot;_&quot;);</span>
+<span class="fc" id="L67">        slug = slug.replaceAll(&quot;^_+|_+$&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (slug.isEmpty()) {</span>
+<span class="nc" id="L69">            slug = &quot;reporte&quot;;</span>
+        }
+<span class="fc" id="L71">        String marcaTiempo = FORMATO_MARCA_TIEMPO.format(</span>
+<span class="fc" id="L72">                java.time.LocalDateTime.now(FormateadorValores.zona()));</span>
+<span class="fc" id="L73">        return slug + &quot;_&quot; + marcaTiempo + &quot;.&quot; + formato.extension();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

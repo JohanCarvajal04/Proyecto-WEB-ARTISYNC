@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteFinancieroServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">ReporteFinancieroServicioImpl.java</span></div><h1>ReporteFinancieroServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.legal.FiltroReporteFinanciero;
+import uteq.edu.ec.artisync.dto.respuesta.legal.DetalleComision;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaReporteComisiones;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.service.legal.IReporteFinancieroServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.TipoColumna;
+import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Activa fn_reporte_comisiones_creador (db/procs/fn_reporte_comisiones_creador.sql),
+ * que estaba escrita, documentada y verificada por CI sin ningún llamador en
+ * Java. Sustituye al viejo AuditServiceImpl.exportarTransaccionesCreadorCsv
+ * (retirado): ese exportador no tenía tope de filas, no llevaba BOM UTF-8 y
+ * formateaba el monto con String.format(&quot;%.2f&quot;, ...), que hereda el locale por
+ * defecto de la JVM y en es-ES produce coma decimal — partiendo la columna de
+ * un CSV separado por comas. Aquí el bruto/comisión/neto los calcula la
+ * función SQL, y el detalle pasa por FormateadorValores (Locale fijo).
+ */
+<span class="fc" id="L43">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio {
+
+<span class="fc" id="L48">    private static final DateTimeFormatter FORMATO_FECHA_SQL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;</span>
+
+    private final TransaccionPagoRepository transaccionPagoRepository;
+    private final IServicioExportacion servicioExportacion;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaReporteComisiones obtenerReporteComisiones(FiltroReporteFinanciero filtro) {
+<span class="fc" id="L57">        return parsear(consultar(filtro));</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;REPORTE_FINANCIERO_EXPORTAR&quot;, modulo = ModuloAuditoria.FINANZAS,
+            entidad = &quot;perfiles_creadores&quot;, idEntidad = &quot;#filtro.idPerfil&quot;, detalle = &quot;{formato: #formato}&quot;)
+    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
+<span class="fc" id="L65">        RespuestaReporteComisiones reporte = parsear(consultar(filtro));</span>
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (reporte.detalle().size() &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L68">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L69">                    &quot;El reporte devuelve &quot; + reporte.detalle().size() + &quot; transacciones, más de las &quot;</span>
+<span class="fc" id="L70">                            + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                            + &quot;. Acote el rango de fechas.&quot;);
+        }
+
+<span class="fc" id="L74">        ModeloReporte&lt;DetalleComision&gt; modelo = ModeloReporte.&lt;DetalleComision&gt;builder()</span>
+<span class="fc" id="L75">                .titulo(&quot;Comisiones&quot;)</span>
+<span class="fc" id="L76">                .subtitulo(&quot;Reporte financiero por creador&quot;)</span>
+<span class="fc" id="L77">                .filtrosAplicados(filtrosLegibles(filtro, reporte))</span>
+<span class="fc" id="L78">                .columnas(List.of(</span>
+<span class="fc" id="L79">                        ColumnaReporte.fechaHora(&quot;Fecha&quot;, DetalleComision::fechaEjecucion),</span>
+<span class="fc" id="L80">                        ColumnaReporte.entero(&quot;Id. transacción&quot;, DetalleComision::idTransaccion),</span>
+<span class="fc" id="L81">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, DetalleComision::idPedido),</span>
+<span class="fc" id="L82">                        ColumnaReporte.texto(&quot;Servicio&quot;, DetalleComision::servicio),</span>
+<span class="fc" id="L83">                        ColumnaReporte.texto(&quot;Tipo&quot;, DetalleComision::tipo),</span>
+<span class="fc" id="L84">                        ColumnaReporte.moneda(&quot;Monto&quot;, DetalleComision::monto)))</span>
+<span class="fc" id="L85">                .filas(reporte.detalle())</span>
+<span class="fc" id="L86">                .totales(List.of(</span>
+<span class="fc" id="L87">                        new TotalReporte(&quot;Monto bruto&quot;, reporte.montoBruto(), TipoColumna.MONEDA),</span>
+<span class="fc" id="L88">                        new TotalReporte(&quot;Comisión&quot;, reporte.comision(), TipoColumna.MONEDA),</span>
+<span class="fc" id="L89">                        new TotalReporte(&quot;Monto neto&quot;, reporte.montoNeto(), TipoColumna.MONEDA)))</span>
+<span class="fc" id="L90">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L91">                .build();</span>
+
+<span class="fc" id="L93">        return servicioExportacion.exportar(modelo, formato);</span>
+    }
+
+    private String consultar(FiltroReporteFinanciero filtro) {
+<span class="fc" id="L97">        String json = transaccionPagoRepository.reporteComisionesJson(</span>
+<span class="fc" id="L98">                filtro.getIdPerfil(), filtro.getDesde(), filtro.getHasta(), filtro.getTasaComision());</span>
+<span class="fc" id="L99">        log.info(&quot;Reporte de comisiones consultado para perfil {}&quot;, filtro.getIdPerfil());</span>
+<span class="fc" id="L100">        return json;</span>
+    }
+
+    private RespuestaReporteComisiones parsear(String json) {
+        JsonNode nodo;
+        try {
+<span class="fc" id="L106">            nodo = objectMapper.readTree(json);</span>
+<span class="nc" id="L107">        } catch (Exception e) {</span>
+<span class="nc" id="L108">            throw new IllegalStateException(&quot;No se pudo interpretar el reporte de comisiones: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L109">        }</span>
+
+<span class="fc" id="L111">        List&lt;DetalleComision&gt; detalle = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        for (JsonNode item : nodo.get(&quot;detalle&quot;)) {</span>
+<span class="fc" id="L113">            detalle.add(new DetalleComision(</span>
+<span class="fc" id="L114">                    item.get(&quot;idTransaccion&quot;).asLong(),</span>
+<span class="pc bpc" id="L115" title="1 of 4 branches missed.">                    item.get(&quot;idPedido&quot;) != null &amp;&amp; !item.get(&quot;idPedido&quot;).isNull() ? item.get(&quot;idPedido&quot;).asLong() : null,</span>
+<span class="fc" id="L116">                    textoONulo(item.get(&quot;servicio&quot;)),</span>
+<span class="fc" id="L117">                    textoONulo(item.get(&quot;tipo&quot;)),</span>
+<span class="fc" id="L118">                    item.get(&quot;monto&quot;).decimalValue(),</span>
+<span class="fc" id="L119">                    fechaONula(item.get(&quot;fechaEjecucion&quot;))));</span>
+<span class="fc" id="L120">        }</span>
+
+<span class="fc" id="L122">        return new RespuestaReporteComisiones(</span>
+<span class="fc" id="L123">                nodo.get(&quot;idPerfil&quot;).asLong(),</span>
+<span class="fc" id="L124">                fechaONula(nodo.get(&quot;fechaDesde&quot;)),</span>
+<span class="fc" id="L125">                fechaONula(nodo.get(&quot;fechaHasta&quot;)),</span>
+<span class="fc" id="L126">                nodo.get(&quot;tasaComision&quot;).decimalValue(),</span>
+<span class="fc" id="L127">                nodo.get(&quot;totalPedidos&quot;).asLong(),</span>
+<span class="fc" id="L128">                nodo.get(&quot;totalOperaciones&quot;).asLong(),</span>
+<span class="fc" id="L129">                nodo.get(&quot;montoBruto&quot;).decimalValue(),</span>
+<span class="fc" id="L130">                nodo.get(&quot;comision&quot;).decimalValue(),</span>
+<span class="fc" id="L131">                nodo.get(&quot;montoNeto&quot;).decimalValue(),</span>
+                detalle);
+    }
+
+    private String textoONulo(JsonNode nodo) {
+<span class="pc bpc" id="L136" title="1 of 4 branches missed.">        return nodo == null || nodo.isNull() ? null : nodo.asText();</span>
+    }
+
+    private LocalDateTime fechaONula(JsonNode nodo) {
+<span class="pc bpc" id="L140" title="1 of 4 branches missed.">        if (nodo == null || nodo.isNull()) {</span>
+<span class="fc" id="L141">            return null;</span>
+        }
+<span class="fc" id="L143">        return LocalDateTime.parse(nodo.asText(), FORMATO_FECHA_SQL);</span>
+    }
+
+    private Map&lt;String, String&gt; filtrosLegibles(FiltroReporteFinanciero filtro, RespuestaReporteComisiones reporte) {
+<span class="fc" id="L147">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L148">        filtros.put(&quot;Id. perfil&quot;, String.valueOf(filtro.getIdPerfil()));</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">        if (filtro.getDesde() != null) {</span>
+<span class="nc" id="L150">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
+        }
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        if (filtro.getHasta() != null) {</span>
+<span class="nc" id="L153">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
+        }
+<span class="fc" id="L155">        filtros.put(&quot;Tasa de comisión&quot;, reporte.tasaComision().toString());</span>
+<span class="fc" id="L156">        return filtros;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

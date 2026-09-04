@@ -49,7 +49,7 @@ public class SecurityConfig {
 <span class="fc" id="L49">                    .maxAgeInSeconds(31536000)</span>
                 )
 <span class="fc" id="L51">                .contentSecurityPolicy(csp -&gt; csp</span>
-<span class="fc" id="L52">                    .policyDirectives(&quot;default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;&quot;)</span>
+<span class="fc" id="L52">                    .policyDirectives(&quot;default-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;&quot;)</span>
                 )
 <span class="fc" id="L54">                .referrerPolicy(referrer -&gt; referrer</span>
 <span class="fc" id="L55">                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)</span>
@@ -61,37 +61,57 @@ public class SecurityConfig {
 <span class="fc" id="L61">            .sessionManagement(sm -&gt; sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
 <span class="fc" id="L62">            .exceptionHandling(ex -&gt; ex.authenticationEntryPoint(customAuthenticationEntryPoint))</span>
 <span class="fc" id="L63">            .authorizeHttpRequests(auth -&gt; auth</span>
-<span class="fc" id="L64">                .requestMatchers(&quot;/api/auth/registro&quot;, &quot;/api/auth/login&quot;, &quot;/api/auth/2fa/verify&quot;,</span>
-<span class="fc" id="L65">                                 &quot;/api/auth/refresh&quot;, &quot;/api/auth/forgot-password&quot;, &quot;/api/auth/reset-password&quot;).permitAll()</span>
-<span class="fc" id="L66">                .requestMatchers(HttpMethod.GET, &quot;/api/catalog/**&quot;, &quot;/api/v1/catalogo/**&quot;, &quot;/api/v1/categorias/**&quot;, </span>
-                                 &quot;/api/v1/subcategorias/**&quot;, &quot;/api/v1/etiquetas/**&quot;, &quot;/api/v1/servicios/**&quot;, 
-<span class="fc" id="L68">                                 &quot;/api/v1/creadores/**&quot;, &quot;/api/v1/portafolios/**&quot;, &quot;/api/paises&quot;, &quot;/api/paises/**&quot;).permitAll()</span>
-<span class="fc" id="L69">                .requestMatchers(&quot;/swagger-ui/**&quot;, &quot;/v3/api-docs/**&quot;, &quot;/swagger-resources/**&quot;, &quot;/webjars/**&quot;, &quot;/api/docs/**&quot;, &quot;/api/swagger-ui/**&quot;, &quot;/api/swagger-ui.html&quot;).permitAll()</span>
-<span class="fc" id="L70">                .requestMatchers(&quot;/ws/**&quot;, &quot;/actuator/**&quot;).permitAll()</span>
-<span class="fc" id="L71">                .requestMatchers(&quot;/api/webhooks/paypal&quot;).permitAll()</span>
-<span class="fc" id="L72">                .requestMatchers(HttpMethod.GET, &quot;/api/v1/flujos/**&quot;).permitAll()</span>
-<span class="fc" id="L73">                .requestMatchers(HttpMethod.OPTIONS, &quot;/**&quot;).permitAll()</span>
-<span class="fc" id="L74">                .anyRequest().authenticated()</span>
+<span class="fc" id="L64">                .requestMatchers(&quot;/api/v1/auth/registro&quot;, &quot;/api/v1/auth/login&quot;, &quot;/api/v1/auth/2fa/verify&quot;,</span>
+<span class="fc" id="L65">                                 &quot;/api/v1/auth/refresh&quot;, &quot;/api/v1/auth/forgot-password&quot;, &quot;/api/v1/auth/reset-password&quot;).permitAll()</span>
+<span class="fc" id="L66">                .requestMatchers(HttpMethod.GET, &quot;/api/catalog/**&quot;, &quot;/api/v1/catalogo/**&quot;, &quot;/api/v1/categorias/**&quot;,</span>
+                                 &quot;/api/v1/subcategorias/**&quot;, &quot;/api/v1/etiquetas/**&quot;, &quot;/api/v1/servicios/{id}&quot;,
+                                 &quot;/api/v1/creadores/**&quot;, &quot;/api/v1/portafolios/{id}&quot;, &quot;/api/v1/portafolios/perfil/{id}&quot;,
+<span class="fc" id="L69">                                 &quot;/api/v1/paises&quot;, &quot;/api/v1/paises/**&quot;, &quot;/api/v1/usuarios/foto/**&quot;).permitAll()</span>
+                // Ficha pública del creador (M3 - página pública de servicios).
+                // Un solo segmento (&quot;/*&quot;, no &quot;/**&quot;) a propósito: deja fuera
+                // /api/v1/perfiles/usuario/{idUsuario} (expondría la
+                // correspondencia usuario-&gt;perfil) y /api/v1/perfiles (listado
+                // completo). RespuestaPerfil solo lleva id, nombres, biografía y
+                // red social, sin datos sensibles.
+<span class="fc" id="L76">                .requestMatchers(HttpMethod.GET, &quot;/api/v1/perfiles/*&quot;).permitAll()</span>
+                // Contador de visitas del portafolio: sin lógica de autorización
+                // (PortafolioServicio#incrementarVisitas), así que abrirlo a
+                // visitantes anónimos no cede nada que un usuario autenticado
+                // cualquiera no pudiera hacer ya.
+<span class="fc" id="L81">                .requestMatchers(HttpMethod.POST, &quot;/api/v1/portafolios/*/visita&quot;).permitAll()</span>
+<span class="fc" id="L82">                .requestMatchers(&quot;/swagger-ui/**&quot;, &quot;/v3/api-docs/**&quot;, &quot;/swagger-resources/**&quot;, &quot;/webjars/**&quot;, &quot;/api/docs/**&quot;, &quot;/api/swagger-ui/**&quot;, &quot;/api/swagger-ui.html&quot;).permitAll()</span>
+<span class="fc" id="L83">                .requestMatchers(&quot;/ws/**&quot;).permitAll()</span>
+<span class="fc" id="L84">                .requestMatchers(&quot;/actuator/health&quot;).permitAll()</span>
+<span class="fc" id="L85">                .requestMatchers(&quot;/actuator/metrics/**&quot;, &quot;/actuator/info&quot;).hasRole(&quot;ADMIN&quot;)</span>
+<span class="fc" id="L86">                .requestMatchers(&quot;/api/webhooks/paypal&quot;).permitAll()</span>
+                // Sin restricción propia: FlujoTrabajoControlador ya exige
+                // FLUJO_GESTIONAR/FLUJO_MODERAR/ADMIN método a método. Un
+                // matcher aquí con hasAnyRole(&quot;ADMIN&quot;,&quot;CREADOR&quot;) bloqueaba a
+                // MODERADOR con FLUJO_MODERAR (V31) antes de que el @PreAuthorize
+                // del método llegara a evaluarse — la puerta de URL era más
+                // estricta que la de negocio y ganaba siempre.
+<span class="fc" id="L93">                .requestMatchers(HttpMethod.OPTIONS, &quot;/**&quot;).permitAll()</span>
+<span class="fc" id="L94">                .anyRequest().authenticated()</span>
             )
-<span class="fc" id="L76">            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)</span>
-<span class="fc" id="L77">            .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);</span>
+<span class="fc" id="L96">            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)</span>
+<span class="fc" id="L97">            .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);</span>
 
-<span class="fc" id="L79">        return http.build();</span>
+<span class="fc" id="L99">        return http.build();</span>
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-<span class="fc" id="L84">        CorsConfiguration config = new CorsConfiguration();</span>
-<span class="fc" id="L85">        config.setAllowedOrigins(allowedOrigins);</span>
-<span class="fc" id="L86">        config.setAllowedMethods(List.of(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;, &quot;PATCH&quot;));</span>
-<span class="fc" id="L87">        config.setAllowedHeaders(List.of(&quot;Authorization&quot;, &quot;Content-Type&quot;, &quot;Accept&quot;, &quot;X-Requested-With&quot;));</span>
-<span class="fc" id="L88">        config.setExposedHeaders(List.of(&quot;Authorization&quot;));</span>
-<span class="fc" id="L89">        config.setAllowCredentials(true);</span>
-<span class="fc" id="L90">        config.setMaxAge(Duration.ofHours(1));</span>
+<span class="fc" id="L104">        CorsConfiguration config = new CorsConfiguration();</span>
+<span class="fc" id="L105">        config.setAllowedOrigins(allowedOrigins);</span>
+<span class="fc" id="L106">        config.setAllowedMethods(List.of(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;, &quot;PATCH&quot;));</span>
+<span class="fc" id="L107">        config.setAllowedHeaders(List.of(&quot;Authorization&quot;, &quot;Content-Type&quot;, &quot;Accept&quot;, &quot;X-Requested-With&quot;));</span>
+<span class="fc" id="L108">        config.setExposedHeaders(List.of(&quot;Authorization&quot;));</span>
+<span class="fc" id="L109">        config.setAllowCredentials(true);</span>
+<span class="fc" id="L110">        config.setMaxAge(Duration.ofHours(1));</span>
 
-<span class="fc" id="L92">        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
-<span class="fc" id="L93">        source.registerCorsConfiguration(&quot;/**&quot;, config);</span>
-<span class="fc" id="L94">        return source;</span>
+<span class="fc" id="L112">        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
+<span class="fc" id="L113">        source.registerCorsConfiguration(&quot;/**&quot;, config);</span>
+<span class="fc" id="L114">        return source;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

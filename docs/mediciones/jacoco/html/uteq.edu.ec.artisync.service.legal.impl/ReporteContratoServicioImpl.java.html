@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReporteContratoServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">ReporteContratoServicioImpl.java</span></div><h1>ReporteContratoServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.legal.FiltroReporteContrato;
+import uteq.edu.ec.artisync.dto.respuesta.legal.FilaReporteContrato;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.service.legal.IReporteContratoServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.TipoColumna;
+import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.PagedResponseBuilder;
+
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Cierra el permiso huérfano REPORTE_CONTRATO_EXPORTAR (V19__permisos_reportes.sql):
+ * sembrado desde que se creó el motor común de reportes, pero sin controlador
+ * ni servicio hasta ahora. Calcado de ReporteFinancieroServicioImpl.
+ */
+<span class="fc" id="L37">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class ReporteContratoServicioImpl implements IReporteContratoServicio {
+
+    private final ContratoRepository contratoRepository;
+    private final IServicioExportacion servicioExportacion;
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;FilaReporteContrato&gt; listar(FiltroReporteContrato filtro, int page, int size) {
+<span class="nc" id="L48">        Page&lt;FilaReporteContrato&gt; resultado = contratoRepository.buscarParaReporte(</span>
+<span class="nc" id="L49">                filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="nc" id="L50">                PageRequest.of(page, size));</span>
+<span class="nc" id="L51">        return PagedResponseBuilder.build(resultado);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;REPORTE_CONTRATO_EXPORTAR&quot;, modulo = ModuloAuditoria.FINANZAS,
+            entidad = &quot;contratos&quot;, detalle = &quot;{formato: #formato}&quot;)
+    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante) {
+<span class="nc" id="L59">        Page&lt;FilaReporteContrato&gt; pagina = contratoRepository.buscarParaReporte(</span>
+<span class="nc" id="L60">                filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="nc" id="L61">                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, &quot;fechaFormalizacion&quot;)));</span>
+
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (pagina.getTotalElements() &gt; formato.topeFilas()) {</span>
+<span class="nc" id="L64">            throw new ExcepcionReglaNegocio(</span>
+<span class="nc" id="L65">                    &quot;El reporte devuelve &quot; + pagina.getTotalElements() + &quot; contratos, más de los &quot;</span>
+<span class="nc" id="L66">                            + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                            + &quot;. Acote el rango de fechas.&quot;);
+        }
+
+<span class="nc" id="L70">        log.info(&quot;Reporte de contratos exportado en formato {} por {}&quot;, formato, correoSolicitante);</span>
+
+<span class="nc" id="L72">        ModeloReporte&lt;FilaReporteContrato&gt; modelo = ModeloReporte.&lt;FilaReporteContrato&gt;builder()</span>
+<span class="nc" id="L73">                .titulo(&quot;Contratos&quot;)</span>
+<span class="nc" id="L74">                .subtitulo(&quot;Reporte de contratos formalizados&quot;)</span>
+<span class="nc" id="L75">                .filtrosAplicados(filtrosLegibles(filtro))</span>
+<span class="nc" id="L76">                .columnas(List.of(</span>
+<span class="nc" id="L77">                        ColumnaReporte.entero(&quot;Id. contrato&quot;, FilaReporteContrato::idContrato),</span>
+<span class="nc" id="L78">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, FilaReporteContrato::idPedido),</span>
+<span class="nc" id="L79">                        ColumnaReporte.texto(&quot;Servicio&quot;, FilaReporteContrato::servicio),</span>
+<span class="nc" id="L80">                        ColumnaReporte.texto(&quot;Cliente&quot;, FilaReporteContrato::cliente),</span>
+<span class="nc" id="L81">                        ColumnaReporte.texto(&quot;Creador&quot;, FilaReporteContrato::creador),</span>
+<span class="nc" id="L82">                        ColumnaReporte.moneda(&quot;Precio pactado&quot;, FilaReporteContrato::precioPactado),</span>
+<span class="nc" id="L83">                        ColumnaReporte.entero(&quot;Límite de revisiones&quot;, FilaReporteContrato::limiteRevisiones),</span>
+<span class="nc" id="L84">                        ColumnaReporte.fechaHora(&quot;Formalizado&quot;, FilaReporteContrato::fechaFormalizacion),</span>
+<span class="nc" id="L85">                        ColumnaReporte.booleano(&quot;Firmado (cliente)&quot;, FilaReporteContrato::firmadoCliente),</span>
+<span class="nc" id="L86">                        ColumnaReporte.booleano(&quot;Firmado (creador)&quot;, FilaReporteContrato::firmadoCreador)))</span>
+<span class="nc" id="L87">                .filas(pagina.getContent())</span>
+<span class="nc" id="L88">                .totales(List.of(new TotalReporte(&quot;Importe pactado total&quot;, sumarPrecios(pagina.getContent()), TipoColumna.MONEDA)))</span>
+<span class="nc" id="L89">                .generadoPor(correoSolicitante)</span>
+<span class="nc" id="L90">                .build();</span>
+
+<span class="nc" id="L92">        return servicioExportacion.exportar(modelo, formato);</span>
+    }
+
+    private BigDecimal sumarPrecios(List&lt;FilaReporteContrato&gt; filas) {
+<span class="nc" id="L96">        return filas.stream()</span>
+<span class="nc" id="L97">                .map(FilaReporteContrato::precioPactado)</span>
+<span class="nc" id="L98">                .filter(java.util.Objects::nonNull)</span>
+<span class="nc" id="L99">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+    }
+
+    private Map&lt;String, String&gt; filtrosLegibles(FiltroReporteContrato filtro) {
+<span class="nc" id="L103">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (filtro.getDesde() != null) {</span>
+<span class="nc" id="L105">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
+        }
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (filtro.getHasta() != null) {</span>
+<span class="nc" id="L108">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
+        }
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (filtro.getIdPerfilCreador() != null) {</span>
+<span class="nc" id="L111">            filtros.put(&quot;Id. perfil del creador&quot;, String.valueOf(filtro.getIdPerfilCreador()));</span>
+        }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (filtro.getSoloFirmados() != null) {</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            filtros.put(&quot;Solo firmados&quot;, filtro.getSoloFirmados() ? &quot;Sí&quot; : &quot;No&quot;);</span>
+        }
+<span class="nc" id="L116">        return filtros;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

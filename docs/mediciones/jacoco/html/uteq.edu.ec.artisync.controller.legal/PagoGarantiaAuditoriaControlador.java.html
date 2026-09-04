@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PagoGarantiaAuditoriaControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">PagoGarantiaAuditoriaControlador.java</span></div><h1>PagoGarantiaAuditoriaControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.legal.FiltroPagoGarantia;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPagoGarantia;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPagoGarantiaDetalle;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaResumenEscrow;
+import uteq.edu.ec.artisync.service.legal.IPagoGarantiaAuditoriaServicio;
+
+import java.util.List;
+
+/**
+ * Supervisión de Pagos y Garantías (Escrow), gateada en PAGO_AUDITAR: el
+ * permiso ya estaba asignado a AUDITOR_FINANCIERO desde el seed inicial
+ * (V1__schema_inicial.sql) pero ningún endpoint lo comprobaba todavía.
+ */
+@Tag(name = &quot;Admin — Pagos y Garantías&quot;, description = &quot;Supervisión de fondos en escrow para el Auditor Financiero&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/pagos-garantia&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class PagoGarantiaAuditoriaControlador {
+
+    private final IPagoGarantiaAuditoriaServicio pagoGarantiaAuditoriaServicio;
+
+    @Operation(summary = &quot;Listado paginado y filtrado de pagos en garantía (escrow)&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Page&lt;RespuestaPagoGarantia&gt;&gt; listar(FiltroPagoGarantia filtro, Pageable pageable) {
+<span class="nc" id="L38">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.listar(filtro, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Detalle de un pago en garantía, con su historial de transacciones&quot;)
+    @GetMapping(&quot;/{idPago}&quot;)
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPagoGarantiaDetalle&gt; obtenerDetalle(@PathVariable Long idPago) {
+<span class="nc" id="L45">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerDetalle(idPago));</span>
+    }
+
+    @Operation(summary = &quot;Resumen agregado: cantidad y monto total de fondos por estado&quot;)
+    @GetMapping(&quot;/resumen&quot;)
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaResumenEscrow&gt;&gt; obtenerResumen() {
+<span class="nc" id="L52">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerResumen());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

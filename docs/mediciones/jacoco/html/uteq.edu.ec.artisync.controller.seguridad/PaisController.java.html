@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.service.seguridad.PaisService;
 import java.util.List;
 
 @RestController
-@RequestMapping(&quot;/api/paises&quot;)
+@RequestMapping(&quot;/api/v1/paises&quot;)
 @RequiredArgsConstructor
 @Tag(name = &quot;Catálogo de Países&quot;, description = &quot;Endpoints para consulta pública y administración (CUD) de países&quot;)
 public class PaisController {
@@ -30,31 +30,37 @@ public class PaisController {
 <span class="fc" id="L30">        return ResponseEntity.ok(paisService.getAllPaises());</span>
     }
 
+    @Operation(summary = &quot;Listar solo los países activos ordenados alfabéticamente&quot;)
+    @GetMapping(&quot;/activos&quot;)
+    public ResponseEntity&lt;List&lt;PaisResponse&gt;&gt; getPaisesActivos() {
+<span class="nc" id="L36">        return ResponseEntity.ok(paisService.getPaisesActivos());</span>
+    }
+
     @Operation(summary = &quot;Obtener un país por su ID&quot;)
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;PaisResponse&gt; getPaisById(@PathVariable Long id) {
-<span class="nc" id="L36">        return ResponseEntity.ok(paisService.getPaisById(id));</span>
+<span class="nc" id="L42">        return ResponseEntity.ok(paisService.getPaisById(id));</span>
     }
 
     @Operation(summary = &quot;Crear un nuevo país&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PreAuthorize(&quot;hasAuthority('PAIS_CREAR') or hasRole('ADMIN')&quot;)
     @PostMapping
     public ResponseEntity&lt;PaisResponse&gt; createPais(@Valid @RequestBody PaisRequest request) {
-<span class="fc" id="L43">        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));</span>
+<span class="fc" id="L49">        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));</span>
     }
 
     @Operation(summary = &quot;Actualizar el nombre de un país existente&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PreAuthorize(&quot;hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')&quot;)
     @PutMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;PaisResponse&gt; updatePais(@PathVariable Long id, @Valid @RequestBody PaisRequest request) {
-<span class="nc" id="L50">        return ResponseEntity.ok(paisService.updatePais(id, request));</span>
+<span class="nc" id="L56">        return ResponseEntity.ok(paisService.updatePais(id, request));</span>
     }
 
     @Operation(summary = &quot;Eliminar un país si no tiene usuarios asociados&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PreAuthorize(&quot;hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')&quot;)
     @DeleteMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; deletePais(@PathVariable Long id) {
-<span class="fc" id="L57">        return ResponseEntity.ok(paisService.deletePais(id));</span>
+<span class="fc" id="L63">        return ResponseEntity.ok(paisService.deletePais(id));</span>
     }
 }
 

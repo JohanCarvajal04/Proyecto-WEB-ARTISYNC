@@ -2,8 +2,12 @@
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
@@ -17,6 +21,7 @@ import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,7 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDate;
 
-<span class="fc" id="L27">@Slf4j</span>
+<span class="fc" id="L32">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class ContratoServicioImpl implements IContratoServicio {
@@ -36,219 +41,269 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional
-    public RespuestaContrato generarContrato(Long idPedido) {
-<span class="fc" id="L40">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="fc" id="L41">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+    @Auditable(accion = &quot;CONTRATO_GENERAR&quot;, modulo = ModuloAuditoria.FINANZAS,
+            entidad = &quot;contratos&quot;, idEntidad = &quot;#resultado.idContrato&quot;)
+    public RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante) {
+<span class="fc" id="L47">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L48">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+        // H-02: evita que cualquier autenticado genere un contrato sobre un pedido ajeno.
+<span class="fc" id="L50">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
 
         // Verificar que no exista ya un contrato para este pedido
-<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (contratoRepository.findByPedidoIdPedido(idPedido).isPresent()) {</span>
-<span class="fc" id="L45">            throw new ExcepcionReglaNegocio(&quot;Ya existe un contrato para este pedido&quot;);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (contratoRepository.findByPedidoIdPedido(idPedido).isPresent()) {</span>
+<span class="fc" id="L54">            throw new ExcepcionReglaNegocio(&quot;Ya existe un contrato para este pedido&quot;);</span>
         }
 
         // Obtener plantilla activa (la más reciente)
-<span class="fc" id="L49">        PlantillaContrato plantilla = plantillaContratoRepository.findFirstByOrderByIdPlantillaDesc()</span>
-<span class="fc" id="L50">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay plantillas de contrato disponibles en el sistema&quot;));</span>
+<span class="fc" id="L58">        PlantillaContrato plantilla = plantillaContratoRepository.findFirstByOrderByIdPlantillaDesc()</span>
+<span class="fc" id="L59">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay plantillas de contrato disponibles en el sistema&quot;));</span>
 
         // Crear contrato
-<span class="fc" id="L53">        Contrato contrato = Contrato.builder()</span>
-<span class="fc" id="L54">                .pedido(pedido)</span>
-<span class="fc" id="L55">                .plantilla(plantilla)</span>
-<span class="pc bpc" id="L56" title="1 of 2 branches missed.">                .limiteRevisiones(pedido.getServicio().getLimiteRevisionesBase() != null</span>
-<span class="pc" id="L57">                        ? pedido.getServicio().getLimiteRevisionesBase() : 0)</span>
-<span class="fc" id="L58">                .build();</span>
+<span class="fc" id="L62">        Contrato contrato = Contrato.builder()</span>
+<span class="fc" id="L63">                .pedido(pedido)</span>
+<span class="fc" id="L64">                .plantilla(plantilla)</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">                .limiteRevisiones(pedido.getServicio().getLimiteRevisionesBase() != null</span>
+<span class="pc" id="L66">                        ? pedido.getServicio().getLimiteRevisionesBase() : 0)</span>
+<span class="fc" id="L67">                .build();</span>
 
-<span class="fc" id="L60">        contrato = contratoRepository.save(contrato);</span>
-<span class="fc" id="L61">        log.info(&quot;Contrato {} generado para pedido {}&quot;, contrato.getIdContrato(), idPedido);</span>
+<span class="fc" id="L69">        contrato = contratoRepository.save(contrato);</span>
+<span class="fc" id="L70">        log.info(&quot;Contrato {} generado para pedido {}&quot;, contrato.getIdContrato(), idPedido);</span>
 
-<span class="fc" id="L63">        return mapToRespuesta(contrato);</span>
+<span class="fc" id="L72">        return mapToRespuesta(contrato);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;CONTRATO_FIRMAR&quot;, modulo = ModuloAuditoria.FINANZAS,
+            entidad = &quot;contratos&quot;, idEntidad = &quot;#idContrato&quot;)
     public RespuestaContrato firmarContrato(Long idContrato, Long idUsuario) {
-<span class="fc" id="L69">        Contrato contrato = contratoRepository.findById(idContrato)</span>
-<span class="fc" id="L70">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
+<span class="fc" id="L80">        Contrato contrato = contratoRepository.findByIdParaFirmar(idContrato)</span>
+<span class="fc" id="L81">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
 
-<span class="fc" id="L72">        Pedido pedido = contrato.getPedido();</span>
-<span class="fc" id="L73">        String hash = generarHashFirma(idContrato, idUsuario);</span>
+<span class="fc" id="L83">        Pedido pedido = contrato.getPedido();</span>
+<span class="fc" id="L84">        String hash = generarHashFirma(idContrato, idUsuario);</span>
 
-<span class="fc" id="L75">        Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
-<span class="fc" id="L76">        Long idCliente = pedido.getUsuarioCliente().getIdUsuario();</span>
+<span class="fc" id="L86">        Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc" id="L87">        Long idCliente = pedido.getUsuarioCliente().getIdUsuario();</span>
 
-<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (idUsuario.equals(idCreador)) {</span>
-<span class="fc bfc" id="L79" title="All 2 branches covered.">            if (contrato.getHashFirmaCreador() != null) {</span>
-<span class="fc" id="L80">                throw new ExcepcionReglaNegocio(&quot;El creador ya firmo este contrato&quot;);</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (idUsuario.equals(idCreador)) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">            if (contrato.getHashFirmaCreador() != null) {</span>
+<span class="fc" id="L91">                throw new ExcepcionReglaNegocio(&quot;El creador ya firmo este contrato&quot;);</span>
             }
-<span class="fc" id="L82">            contrato.setHashFirmaCreador(hash);</span>
-<span class="fc" id="L83">            log.info(&quot;Contrato {} firmado por creador (usuario {})&quot;, idContrato, idUsuario);</span>
-<span class="fc bfc" id="L84" title="All 2 branches covered.">        } else if (idUsuario.equals(idCliente)) {</span>
-<span class="fc bfc" id="L85" title="All 2 branches covered.">            if (contrato.getHashFirmaCliente() != null) {</span>
-<span class="fc" id="L86">                throw new ExcepcionReglaNegocio(&quot;El cliente ya firmo este contrato&quot;);</span>
+<span class="fc" id="L93">            contrato.setHashFirmaCreador(hash);</span>
+<span class="fc" id="L94">            log.info(&quot;Contrato {} firmado por creador (usuario {})&quot;, idContrato, idUsuario);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        } else if (idUsuario.equals(idCliente)) {</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            if (contrato.getHashFirmaCliente() != null) {</span>
+<span class="fc" id="L97">                throw new ExcepcionReglaNegocio(&quot;El cliente ya firmo este contrato&quot;);</span>
             }
-<span class="fc" id="L88">            contrato.setHashFirmaCliente(hash);</span>
-<span class="fc" id="L89">            log.info(&quot;Contrato {} firmado por cliente (usuario {})&quot;, idContrato, idUsuario);</span>
+<span class="fc" id="L99">            contrato.setHashFirmaCliente(hash);</span>
+<span class="fc" id="L100">            log.info(&quot;Contrato {} firmado por cliente (usuario {})&quot;, idContrato, idUsuario);</span>
         } else {
-<span class="fc" id="L91">            throw new ExcepcionReglaNegocio(&quot;No eres parte de este contrato&quot;);</span>
+            // H-02: 403, no 422 — coherente con el resto del proyecto (ManejadorGlobalExcepciones).
+<span class="fc" id="L103">            throw new AccessDeniedException(&quot;No eres parte de este contrato&quot;);</span>
         }
 
-<span class="fc" id="L94">        contratoRepository.save(contrato);</span>
+<span class="fc" id="L106">        contratoRepository.save(contrato);</span>
 
-        // Si ambos firmaron, crear sala de chat (M6 - placeholder)
-<span class="fc bfc" id="L97" title="All 4 branches covered.">        if (contrato.getHashFirmaCreador() != null &amp;&amp; contrato.getHashFirmaCliente() != null) {</span>
-<span class="fc" id="L98">            log.info(&quot;Ambas partes firmaron contrato {}. Sala de chat pendiente (M6)&quot;, idContrato);</span>
-            // TODO M6: chatService.crearSala(pedido);
-        }
-
-<span class="fc" id="L102">        return mapToRespuesta(contrato);</span>
+<span class="fc" id="L108">        return mapToRespuesta(contrato);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaContrato obtenerContrato(Long idContrato) {
-<span class="fc" id="L108">        Contrato contrato = contratoRepository.findById(idContrato)</span>
-<span class="fc" id="L109">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
-<span class="fc" id="L110">        return mapToRespuesta(contrato);</span>
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public RespuestaContrato obtenerContratoPorPedido(Long idPedido) {
-<span class="fc" id="L116">        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="fc" id="L117">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido con ID: &quot; + idPedido));</span>
+    public RespuestaContrato obtenerContrato(Long idContrato, Long idUsuarioSolicitante) {
+<span class="fc" id="L114">        Contrato contrato = contratoRepository.findById(idContrato)</span>
+<span class="fc" id="L115">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
+        // H-02: evita el acceso a contratos ajenos (IDOR).
+<span class="fc" id="L117">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);</span>
 <span class="fc" id="L118">        return mapToRespuesta(contrato);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato) {
-<span class="fc" id="L124">        Contrato contrato = contratoRepository.findById(idContrato)</span>
-<span class="fc" id="L125">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
-
-<span class="fc bfc" id="L127" title="All 2 branches covered.">        boolean firmaCreador = contrato.getHashFirmaCreador() != null;</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">        boolean firmaCliente = contrato.getHashFirmaCliente() != null;</span>
-<span class="fc bfc" id="L129" title="All 4 branches covered.">        boolean ambas = firmaCreador &amp;&amp; firmaCliente;</span>
-
-        String mensaje;
-<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (ambas) {</span>
-<span class="fc" id="L133">            mensaje = &quot;Contrato completamente firmado por ambas partes&quot;;</span>
-<span class="fc bfc" id="L134" title="All 2 branches covered.">        } else if (firmaCreador) {</span>
-<span class="fc" id="L135">            mensaje = &quot;Esperando firma del Cliente&quot;;</span>
-<span class="fc bfc" id="L136" title="All 2 branches covered.">        } else if (firmaCliente) {</span>
-<span class="fc" id="L137">            mensaje = &quot;Esperando firma del Creador&quot;;</span>
-        } else {
-<span class="fc" id="L139">            mensaje = &quot;Pendiente de firma por ambas partes&quot;;</span>
-        }
-
-<span class="fc" id="L142">        return RespuestaEstadoFirma.builder()</span>
-<span class="fc" id="L143">                .idContrato(idContrato)</span>
-<span class="fc" id="L144">                .firmaCreadorCompleta(firmaCreador)</span>
-<span class="fc" id="L145">                .firmaClienteCompleta(firmaCliente)</span>
-<span class="fc" id="L146">                .ambasFirmasCompletas(ambas)</span>
-<span class="fc" id="L147">                .mensajeEstado(mensaje)</span>
-<span class="fc" id="L148">                .build();</span>
+    public RespuestaContrato obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante) {
+<span class="fc" id="L124">        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L125">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No existe contrato para el pedido con ID: &quot; + idPedido));</span>
+        // H-02: evita el acceso a contratos ajenos (IDOR).
+<span class="fc" id="L127">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);</span>
+<span class="fc" id="L128">        return mapToRespuesta(contrato);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] generarPdf(Long idContrato) {
-<span class="fc" id="L154">        long start = System.currentTimeMillis();</span>
+    public RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante) {
+<span class="fc" id="L134">        Contrato contrato = contratoRepository.findById(idContrato)</span>
+<span class="fc" id="L135">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
+        // H-02: evita el acceso a contratos ajenos (IDOR).
+<span class="fc" id="L137">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);</span>
 
-<span class="fc" id="L156">        Contrato contrato = contratoRepository.findById(idContrato)</span>
-<span class="fc" id="L157">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        boolean firmaCreador = contrato.getHashFirmaCreador() != null;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        boolean firmaCliente = contrato.getHashFirmaCliente() != null;</span>
+<span class="fc bfc" id="L141" title="All 4 branches covered.">        boolean ambas = firmaCreador &amp;&amp; firmaCliente;</span>
 
-<span class="fc" id="L159">        String html = renderizarContratoCompleto(contrato);</span>
-<span class="fc" id="L160">        byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);</span>
+        String mensaje;
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (ambas) {</span>
+<span class="fc" id="L145">            mensaje = &quot;Contrato completamente firmado por ambas partes&quot;;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        } else if (firmaCreador) {</span>
+<span class="fc" id="L147">            mensaje = &quot;Esperando firma del Cliente&quot;;</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        } else if (firmaCliente) {</span>
+<span class="fc" id="L149">            mensaje = &quot;Esperando firma del Creador&quot;;</span>
+        } else {
+<span class="fc" id="L151">            mensaje = &quot;Pendiente de firma por ambas partes&quot;;</span>
+        }
 
-<span class="fc" id="L162">        long elapsed = System.currentTimeMillis() - start;</span>
-<span class="fc" id="L163">        log.info(&quot;PDF generado para contrato {} en {} ms (RNF-06: max 5000ms)&quot;, idContrato, elapsed);</span>
+<span class="fc" id="L154">        return RespuestaEstadoFirma.builder()</span>
+<span class="fc" id="L155">                .idContrato(idContrato)</span>
+<span class="fc" id="L156">                .firmaCreadorCompleta(firmaCreador)</span>
+<span class="fc" id="L157">                .firmaClienteCompleta(firmaCliente)</span>
+<span class="fc" id="L158">                .ambasFirmasCompletas(ambas)</span>
+<span class="fc" id="L159">                .mensajeEstado(mensaje)</span>
+<span class="fc" id="L160">                .build();</span>
+    }
 
-<span class="fc" id="L165">        return pdf;</span>
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante) {
+<span class="fc" id="L166">        long start = System.currentTimeMillis();</span>
+
+<span class="fc" id="L168">        Contrato contrato = contratoRepository.findById(idContrato)</span>
+<span class="fc" id="L169">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Contrato no encontrado&quot;));</span>
+        // H-02: evita descargar el PDF de un contrato ajeno (IDOR).
+<span class="fc" id="L171">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);</span>
+
+<span class="fc" id="L173">        String html = renderizarContratoCompleto(contrato);</span>
+<span class="fc" id="L174">        byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);</span>
+
+<span class="fc" id="L176">        long elapsed = System.currentTimeMillis() - start;</span>
+<span class="fc" id="L177">        log.info(&quot;PDF generado para contrato {} en {} ms (RNF-06: max 5000ms)&quot;, idContrato, elapsed);</span>
+
+<span class="fc" id="L179">        return pdf;</span>
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
+    /**
+     * Codificación usada para el escape de placeholders (ver más abajo): con
+     * ella, HtmlUtils.htmlEscape solo convierte los caracteres realmente
+     * peligrosos para HTML (&amp;lt; &amp;gt; &amp;amp; &quot; ') y deja el resto —incluidas
+     * las tildes y la ñ— como texto UTF-8 literal en vez de entidades HTML
+     * nombradas (&amp;aacute;, &amp;ntilde;...). openhtmltopdf parsea el documento
+     * como XML estricto, que solo reconoce las 5 entidades predefinidas por
+     * XML; sin este parámetro, HtmlUtils.htmlEscape(String) usa por defecto
+     * ISO-8859-1 y emite esas entidades nombradas para cualquier caracter no
+     * ASCII, y el parser rechazaba TODO contrato cuyo texto tuviera una tilde
+     * con &quot;The entity ... was referenced, but not declared.&quot; (SAXParseException).
+     */
+    private static final String CODIFICACION_ESCAPE = &quot;UTF-8&quot;;
+
+    /**
+     * Hallazgo SEC-01 (auditoria de seguridad): cada valor que entra aqui desde
+     * datos de usuario (nombres, descripcion del servicio) se escapa con
+     * HtmlUtils.htmlEscape antes de sustituirse en la plantilla. Antes se
+     * interpolaban crudos: un creador podia poner una etiqueta HTML en la
+     * descripcion de su servicio (p. ej. &lt;img src=&quot;http://...&quot;&gt;) y, al generar
+     * el PDF, ese marcado se renderizaba tal cual. plantilla.getCuerpoHtmlPlantilla()
+     * NO se escapa: es la plantilla legal en si, solo sembrable por migracion
+     * (V13__seed_plantilla_contrato.sql), sin ningun endpoint que la edite.
+     */
     private String generarContratoHtml(PlantillaContrato plantilla, Contrato contrato) {
-<span class="fc" id="L171">        Pedido pedido = contrato.getPedido();</span>
-<span class="fc" id="L172">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
-<span class="fc" id="L173">        Usuario cliente = pedido.getUsuarioCliente();</span>
+<span class="fc" id="L209">        Pedido pedido = contrato.getPedido();</span>
+<span class="fc" id="L210">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
+<span class="fc" id="L211">        Usuario cliente = pedido.getUsuarioCliente();</span>
 
-<span class="fc" id="L175">        String html = plantilla.getCuerpoHtmlPlantilla();</span>
-<span class="fc" id="L176">        html = html.replace(&quot;{{nombre_creador}}&quot;, creador.getNombres() + &quot; &quot; + creador.getApellidos());</span>
-<span class="fc" id="L177">        html = html.replace(&quot;{{nombre_cliente}}&quot;, cliente.getNombres() + &quot; &quot; + cliente.getApellidos());</span>
-<span class="fc" id="L178">        html = html.replace(&quot;{{descripcion_servicio}}&quot;, pedido.getServicio().getDescripcionDetallada());</span>
-<span class="fc" id="L179">        html = html.replace(&quot;{{precio_pactado}}&quot;, pedido.getPrecioPactado().toString());</span>
-<span class="fc" id="L180">        html = html.replace(&quot;{{limite_revisiones}}&quot;, String.valueOf(contrato.getLimiteRevisiones()));</span>
-<span class="fc" id="L181">        html = html.replace(&quot;{{fecha_entrega}}&quot;,</span>
-<span class="pc bpc" id="L182" title="1 of 2 branches missed.">                pedido.getFechaEntregaEstimada() != null ? pedido.getFechaEntregaEstimada().toString() : &quot;Por definir&quot;);</span>
-<span class="fc" id="L183">        html = html.replace(&quot;{{fecha_actual}}&quot;, LocalDate.now().toString());</span>
+<span class="fc" id="L213">        String html = plantilla.getCuerpoHtmlPlantilla();</span>
+<span class="fc" id="L214">        html = html.replace(&quot;{{nombre_creador}}&quot;,</span>
+<span class="fc" id="L215">                HtmlUtils.htmlEscape(creador.getNombres() + &quot; &quot; + creador.getApellidos(), CODIFICACION_ESCAPE));</span>
+<span class="fc" id="L216">        html = html.replace(&quot;{{nombre_cliente}}&quot;,</span>
+<span class="fc" id="L217">                HtmlUtils.htmlEscape(cliente.getNombres() + &quot; &quot; + cliente.getApellidos(), CODIFICACION_ESCAPE));</span>
+<span class="fc" id="L218">        html = html.replace(&quot;{{descripcion_servicio}}&quot;,</span>
+<span class="fc" id="L219">                HtmlUtils.htmlEscape(pedido.getServicio().getDescripcionDetallada(), CODIFICACION_ESCAPE));</span>
+        // precio_pactado, limite_revisiones, fecha_entrega y fecha_actual no son
+        // controlables por el usuario (numeros/fechas calculados en servidor), pero
+        // se escapan igual por uniformidad con el resto de placeholders.
+<span class="fc" id="L223">        html = html.replace(&quot;{{precio_pactado}}&quot;,</span>
+<span class="fc" id="L224">                HtmlUtils.htmlEscape(pedido.getPrecioPactado().toString(), CODIFICACION_ESCAPE));</span>
+<span class="fc" id="L225">        html = html.replace(&quot;{{limite_revisiones}}&quot;,</span>
+<span class="fc" id="L226">                HtmlUtils.htmlEscape(String.valueOf(contrato.getLimiteRevisiones()), CODIFICACION_ESCAPE));</span>
+<span class="fc" id="L227">        html = html.replace(&quot;{{fecha_entrega}}&quot;, HtmlUtils.htmlEscape(</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">                pedido.getFechaEntregaEstimada() != null ? pedido.getFechaEntregaEstimada().toString() : &quot;Por definir&quot;,</span>
+                CODIFICACION_ESCAPE));
+<span class="fc" id="L230">        html = html.replace(&quot;{{fecha_actual}}&quot;,</span>
+<span class="fc" id="L231">                HtmlUtils.htmlEscape(LocalDate.now().toString(), CODIFICACION_ESCAPE));</span>
 
-<span class="fc" id="L185">        return html;</span>
+<span class="fc" id="L233">        return html;</span>
     }
 
     private String renderizarContratoCompleto(Contrato contrato) {
-<span class="fc" id="L189">        String html = generarContratoHtml(contrato.getPlantilla(), contrato);</span>
+<span class="fc" id="L237">        String html = generarContratoHtml(contrato.getPlantilla(), contrato);</span>
 
-        // Agregar hashes de firma al pie del documento
-<span class="fc" id="L192">        StringBuilder footer = new StringBuilder();</span>
-<span class="fc" id="L193">        footer.append(&quot;&lt;hr&gt;&lt;div style='font-size:10px; color:#666;'&gt;&quot;);</span>
-<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        if (contrato.getHashFirmaCreador() != null) {</span>
-<span class="fc" id="L195">            footer.append(&quot;&lt;p&gt;Firma Creador (SHA-256): &quot;).append(contrato.getHashFirmaCreador()).append(&quot;&lt;/p&gt;&quot;);</span>
+        // Agregar hashes de firma al pie del documento. No requieren
+        // HtmlUtils.htmlEscape: son hex SHA-256 calculados en servidor por
+        // generarHashFirma(), no texto libre de usuario.
+<span class="fc" id="L242">        StringBuilder footer = new StringBuilder();</span>
+        // openhtmltopdf usa un parser XML estricto (XHTML): un &lt;hr&gt; sin cerrar
+        // rompe el render con SAXParseException, que el catch genérico de
+        // PdfGeneracionServicioImpl reenvía como 500 sin detalle.
+<span class="fc" id="L246">        footer.append(&quot;&lt;hr/&gt;&lt;div style='font-size:10px; color:#666;'&gt;&quot;);</span>
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        if (contrato.getHashFirmaCreador() != null) {</span>
+<span class="fc" id="L248">            footer.append(&quot;&lt;p&gt;Firma Creador (SHA-256): &quot;).append(contrato.getHashFirmaCreador()).append(&quot;&lt;/p&gt;&quot;);</span>
         }
-<span class="pc bpc" id="L197" title="1 of 2 branches missed.">        if (contrato.getHashFirmaCliente() != null) {</span>
-<span class="fc" id="L198">            footer.append(&quot;&lt;p&gt;Firma Cliente (SHA-256): &quot;).append(contrato.getHashFirmaCliente()).append(&quot;&lt;/p&gt;&quot;);</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">        if (contrato.getHashFirmaCliente() != null) {</span>
+<span class="fc" id="L251">            footer.append(&quot;&lt;p&gt;Firma Cliente (SHA-256): &quot;).append(contrato.getHashFirmaCliente()).append(&quot;&lt;/p&gt;&quot;);</span>
         }
-<span class="fc" id="L200">        footer.append(&quot;&lt;/div&gt;&quot;);</span>
+<span class="fc" id="L253">        footer.append(&quot;&lt;/div&gt;&quot;);</span>
 
         // Insertar antes del cierre de &lt;/body&gt;
-<span class="pc bpc" id="L203" title="1 of 2 branches missed.">        if (html.contains(&quot;&lt;/body&gt;&quot;)) {</span>
-<span class="fc" id="L204">            html = html.replace(&quot;&lt;/body&gt;&quot;, footer.toString() + &quot;&lt;/body&gt;&quot;);</span>
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">        if (html.contains(&quot;&lt;/body&gt;&quot;)) {</span>
+<span class="fc" id="L257">            html = html.replace(&quot;&lt;/body&gt;&quot;, footer.toString() + &quot;&lt;/body&gt;&quot;);</span>
         } else {
-<span class="nc" id="L206">            html = html + footer.toString();</span>
+<span class="nc" id="L259">            html = html + footer.toString();</span>
         }
 
-<span class="fc" id="L209">        return html;</span>
+<span class="fc" id="L262">        return html;</span>
     }
 
     private String generarHashFirma(Long idContrato, Long idUsuario) {
         try {
-<span class="fc" id="L214">            String data = idContrato + &quot;:&quot; + idUsuario + &quot;:&quot; + Instant.now().toString();</span>
-<span class="fc" id="L215">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
-<span class="fc" id="L216">            byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L267">            String data = idContrato + &quot;:&quot; + idUsuario + &quot;:&quot; + Instant.now().toString();</span>
+<span class="fc" id="L268">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L269">            byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));</span>
 
-<span class="fc" id="L218">            StringBuilder hexString = new StringBuilder();</span>
-<span class="fc bfc" id="L219" title="All 2 branches covered.">            for (byte b : hash) {</span>
-<span class="fc" id="L220">                String hex = Integer.toHexString(0xff &amp; b);</span>
-<span class="fc bfc" id="L221" title="All 2 branches covered.">                if (hex.length() == 1) hexString.append('0');</span>
-<span class="fc" id="L222">                hexString.append(hex);</span>
+<span class="fc" id="L271">            StringBuilder hexString = new StringBuilder();</span>
+<span class="fc bfc" id="L272" title="All 2 branches covered.">            for (byte b : hash) {</span>
+<span class="fc" id="L273">                String hex = Integer.toHexString(0xff &amp; b);</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">                if (hex.length() == 1) hexString.append('0');</span>
+<span class="fc" id="L275">                hexString.append(hex);</span>
             }
-<span class="fc" id="L224">            return hexString.toString();</span>
-<span class="nc" id="L225">        } catch (NoSuchAlgorithmException e) {</span>
-<span class="nc" id="L226">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
+<span class="fc" id="L277">            return hexString.toString();</span>
+<span class="nc" id="L278">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L279">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
         }
     }
 
     private RespuestaContrato mapToRespuesta(Contrato contrato) {
-<span class="fc" id="L231">        Pedido pedido = contrato.getPedido();</span>
-<span class="fc" id="L232">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
-<span class="fc" id="L233">        Usuario cliente = pedido.getUsuarioCliente();</span>
+<span class="fc" id="L284">        Pedido pedido = contrato.getPedido();</span>
+<span class="fc" id="L285">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
+<span class="fc" id="L286">        Usuario cliente = pedido.getUsuarioCliente();</span>
 
-<span class="fc" id="L235">        String htmlRenderizado = generarContratoHtml(contrato.getPlantilla(), contrato);</span>
+<span class="fc" id="L288">        String htmlRenderizado = generarContratoHtml(contrato.getPlantilla(), contrato);</span>
 
-<span class="fc" id="L237">        return RespuestaContrato.builder()</span>
-<span class="fc" id="L238">                .idContrato(contrato.getIdContrato())</span>
-<span class="fc" id="L239">                .idPedido(pedido.getIdPedido())</span>
-<span class="fc" id="L240">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
-<span class="fc" id="L241">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
-<span class="fc" id="L242">                .nombreCliente(cliente.getNombres() + &quot; &quot; + cliente.getApellidos())</span>
-<span class="fc" id="L243">                .versionLegal(contrato.getPlantilla().getVersionLegal())</span>
-<span class="fc" id="L244">                .contenidoHtml(htmlRenderizado)</span>
-<span class="fc" id="L245">                .hashFirmaCreador(contrato.getHashFirmaCreador())</span>
-<span class="fc" id="L246">                .hashFirmaCliente(contrato.getHashFirmaCliente())</span>
-<span class="fc" id="L247">                .limiteRevisiones(contrato.getLimiteRevisiones())</span>
-<span class="fc" id="L248">                .fechaFormalizacion(contrato.getFechaFormalizacion())</span>
-<span class="fc" id="L249">                .urlDocumentoPdf(contrato.getUrlDocumentoPdf())</span>
-<span class="fc bfc" id="L250" title="All 4 branches covered.">                .ambasFirmasCompletas(contrato.getHashFirmaCreador() != null &amp;&amp; contrato.getHashFirmaCliente() != null)</span>
-<span class="fc" id="L251">                .build();</span>
+<span class="fc" id="L290">        return RespuestaContrato.builder()</span>
+<span class="fc" id="L291">                .idContrato(contrato.getIdContrato())</span>
+<span class="fc" id="L292">                .idPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L293">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
+<span class="fc" id="L294">                .idCreador(creador.getIdUsuario())</span>
+<span class="fc" id="L295">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
+<span class="fc" id="L296">                .idCliente(cliente.getIdUsuario())</span>
+<span class="fc" id="L297">                .nombreCliente(cliente.getNombres() + &quot; &quot; + cliente.getApellidos())</span>
+<span class="fc" id="L298">                .versionLegal(contrato.getPlantilla().getVersionLegal())</span>
+<span class="fc" id="L299">                .contenidoHtml(htmlRenderizado)</span>
+<span class="fc" id="L300">                .hashFirmaCreador(contrato.getHashFirmaCreador())</span>
+<span class="fc" id="L301">                .hashFirmaCliente(contrato.getHashFirmaCliente())</span>
+<span class="fc" id="L302">                .limiteRevisiones(contrato.getLimiteRevisiones())</span>
+<span class="fc" id="L303">                .fechaFormalizacion(contrato.getFechaFormalizacion())</span>
+<span class="fc" id="L304">                .urlDocumentoPdf(contrato.getUrlDocumentoPdf())</span>
+<span class="fc bfc" id="L305" title="All 4 branches covered.">                .ambasFirmasCompletas(contrato.getHashFirmaCreador() != null &amp;&amp; contrato.getHashFirmaCliente() != null)</span>
+<span class="fc" id="L306">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

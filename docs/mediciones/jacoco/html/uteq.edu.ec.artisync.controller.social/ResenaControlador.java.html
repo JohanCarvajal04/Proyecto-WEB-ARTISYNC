@@ -36,21 +36,51 @@ public class ResenaControlador {
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionCrearResena peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L39">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L40">                .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L39">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L40">                .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
     }
+
+    @Operation(summary = &quot;Obtener mi reseña de un pedido, si existe (CLIENTE)&quot;)
+    @GetMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaResena&gt; obtenerMiResena(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L49">        RespuestaResena resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();</span>
+    }
+
+    @Operation(summary = &quot;Editar mi reseña de un pedido (CLIENTE)&quot;)
+    @PutMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaResena&gt; actualizarResena(
+            @PathVariable Long idPedido,
+            @Valid @RequestBody PeticionCrearResena peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L60">        return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
+    }
+
+    @Operation(summary = &quot;Eliminar mi reseña de un pedido (CLIENTE)&quot;)
+    @DeleteMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarResena(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L70">        resenaService.eliminarResena(idPedido, userDetails.getIdUsuario());</span>
+<span class="fc" id="L71">    }</span>
 
     @Operation(summary = &quot;Listar reseñas de un creador (público)&quot;)
     @GetMapping(&quot;/api/v1/creadores/{idPerfil}/resenas&quot;)
     public ResponseEntity&lt;List&lt;RespuestaResena&gt;&gt; listarResenas(@PathVariable Long idPerfil) {
-<span class="nc" id="L46">        return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));</span>
+<span class="fc" id="L76">        return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));</span>
     }
 
     @Operation(summary = &quot;Promedio de calificaciones de un creador (público)&quot;)
     @GetMapping(&quot;/api/v1/creadores/{idPerfil}/resenas/promedio&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; obtenerPromedio(@PathVariable Long idPerfil) {
-<span class="nc" id="L52">        Double promedio = resenaService.calcularPromedioPorCreador(idPerfil);</span>
-<span class="nc" id="L53">        return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L82">        Double promedio = resenaService.calcularPromedioPorCreador(idPerfil);</span>
+<span class="fc" id="L83">        return ResponseEntity.ok(Map.of(</span>
                 &quot;idPerfil&quot;, idPerfil,
                 &quot;promedio&quot;, promedio
         ));

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CsvUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.util</a> &gt; <span class="el_source">CsvUtil.java</span></div><h1>CsvUtil.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.util;
+
+/**
+ * Extraído de AuditServiceImpl (RNF-13) para que AuditoriaServicioImpl no
+ * duplique el mismo escapado.
+ */
+public final class CsvUtil {
+
+    /** BOM UTF-8: sin él, Excel en español interpreta el archivo como ANSI y
+     *  rompe las tildes. AuditServiceImpl no lo lleva (bug preexistente, fuera
+     *  de alcance de este módulo); el CSV de auditoría sí lo antepone. */
+    public static final String BOM_UTF8 = &quot;﻿&quot;;
+
+    private CsvUtil() {
+    }
+
+    /**
+     * Caracteres que Excel/LibreOffice interpretan como inicio de fórmula al
+     * abrir un CSV. Sin neutralizarlos, un dato de usuario que termina en un
+     * CSV exportado (título de servicio, nombre de usuario, ambos editables
+     * por su dueño) puede ejecutar una fórmula -- incluida una que llame a
+     * un programa externo -- en la máquina de quien abre el reporte (p. ej.
+     * un admin auditando exportaciones). Mitigación estándar de OWASP (CSV
+     * Injection): anteponer un apóstrofo fuerza a la hoja de cálculo a
+     * tratar la celda como texto en vez de evaluarla.
+     */
+    private static final String CARACTERES_FORMULA = &quot;=+-@\t\r&quot;;
+
+    /** Escapa caracteres especiales de CSV (comillas, comas, saltos de línea) y neutraliza inyección de fórmulas. */
+    public static String escapeCsv(String valor) {
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (valor == null) {</span>
+<span class="fc" id="L32">            return &quot;&quot;;</span>
+        }
+<span class="pc bpc" id="L34" title="1 of 4 branches missed.">        if (!valor.isEmpty() &amp;&amp; CARACTERES_FORMULA.indexOf(valor.charAt(0)) &gt;= 0) {</span>
+<span class="fc" id="L35">            valor = &quot;'&quot; + valor;</span>
+        }
+<span class="pc bpc" id="L37" title="2 of 6 branches missed.">        if (valor.contains(&quot;,&quot;) || valor.contains(&quot;\&quot;&quot;) || valor.contains(&quot;\n&quot;)) {</span>
+<span class="fc" id="L38">            return &quot;\&quot;&quot; + valor.replace(&quot;\&quot;&quot;, &quot;\&quot;\&quot;&quot;) + &quot;\&quot;&quot;;</span>
+        }
+<span class="fc" id="L40">        return valor;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -34,8 +34,8 @@ public class NotificacionControlador {
     public ResponseEntity&lt;Page&lt;RespuestaNotificacion&gt;&gt; listarMisNotificaciones(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable) {
-<span class="nc" id="L37">        return ResponseEntity.ok(</span>
-<span class="nc" id="L38">                notificacionService.listarMisNotificaciones(userDetails.getIdUsuario(), pageable));</span>
+<span class="fc" id="L37">        return ResponseEntity.ok(</span>
+<span class="fc" id="L38">                notificacionService.listarMisNotificaciones(userDetails.getIdUsuario(), pageable));</span>
     }
 
     @Operation(summary = &quot;Marcar una notificación como leída&quot;)
@@ -44,8 +44,8 @@ public class NotificacionControlador {
     public ResponseEntity&lt;RespuestaNotificacion&gt; marcarComoLeida(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L47">        return ResponseEntity.ok(</span>
-<span class="nc" id="L48">                notificacionService.marcarComoLeida(id, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L47">        return ResponseEntity.ok(</span>
+<span class="fc" id="L48">                notificacionService.marcarComoLeida(id, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Marcar todas las notificaciones como leídas&quot;)
@@ -53,8 +53,8 @@ public class NotificacionControlador {
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; marcarTodasLeidas(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L56">        int count = notificacionService.marcarTodasLeidas(userDetails.getIdUsuario());</span>
-<span class="nc" id="L57">        return ResponseEntity.ok(new RespuestaMensaje(count + &quot; notificaciones marcadas como leídas&quot;));</span>
+<span class="fc" id="L56">        int count = notificacionService.marcarTodasLeidas(userDetails.getIdUsuario());</span>
+<span class="fc" id="L57">        return ResponseEntity.ok(new RespuestaMensaje(count + &quot; notificaciones marcadas como leídas&quot;));</span>
     }
 
     @Operation(summary = &quot;Contador de notificaciones no leídas&quot;)
@@ -62,8 +62,8 @@ public class NotificacionControlador {
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;Map&lt;String, Long&gt;&gt; contarNoLeidas(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L65">        long count = notificacionService.contarNoLeidas(userDetails.getIdUsuario());</span>
-<span class="nc" id="L66">        return ResponseEntity.ok(Map.of(&quot;noLeidas&quot;, count));</span>
+<span class="fc" id="L65">        long count = notificacionService.contarNoLeidas(userDetails.getIdUsuario());</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(Map.of(&quot;noLeidas&quot;, count));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

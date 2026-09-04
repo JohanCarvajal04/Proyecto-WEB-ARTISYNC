@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
  * Implementación del servicio de reseñas de servicios.
  * RF-09: Una reseña por pedido, solo después de la liberación del entregable.
  */
-<span class="fc" id="L29">@Slf4j</span>
+<span class="fc" id="L31">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class ResenaServiceImpl implements ResenaService {
@@ -37,71 +39,121 @@ public class ResenaServiceImpl implements ResenaService {
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;RESENA_CREAR&quot;, modulo = ModuloAuditoria.SOCIAL,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;,
+            detalle = &quot;{calificacionEstrellas: #peticion.calificacionEstrellas}&quot;)
     public RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
-<span class="fc" id="L41">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="pc" id="L42">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado: &quot; + idPedido));</span>
+<span class="fc" id="L46">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L47">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado: &quot; + idPedido));</span>
 
         // Validar que es el cliente del pedido
-<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
-<span class="fc" id="L46">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L51">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
                     &quot;Solo el cliente del pedido puede dejar una reseña&quot;);
         }
 
         // Validar que el entregable fue liberado (post-entrega)
-<span class="fc" id="L51">        EntregableFinal entregable = entregableFinalRepository.findByPedidoIdPedido(idPedido)</span>
-<span class="fc" id="L52">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L56">        EntregableFinal entregable = entregableFinalRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L57">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
                         &quot;Solo puedes dejar una reseña después de recibir el entregable&quot;));
 
-<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (!Boolean.TRUE.equals(entregable.getEstaLiberado())) {</span>
-<span class="fc" id="L56">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (!Boolean.TRUE.equals(entregable.getEstaLiberado())) {</span>
+<span class="fc" id="L61">            throw new ExcepcionReglaNegocio(</span>
                     &quot;Solo puedes dejar una reseña después de recibir el entregable&quot;);
         }
 
         // Validar que no existe ya una reseña para este pedido (UNIQUE en BD)
-<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (resenaServicioRepository.existsByPedidoIdPedido(idPedido)) {</span>
-<span class="fc" id="L62">            throw new ExcepcionRecursoDuplicado(&quot;Ya has dejado una reseña para este pedido&quot;);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (resenaServicioRepository.existsByPedidoIdPedido(idPedido)) {</span>
+<span class="fc" id="L67">            throw new ExcepcionRecursoDuplicado(&quot;Ya has dejado una reseña para este pedido&quot;);</span>
         }
 
-<span class="fc" id="L65">        ResenaServicio resena = ResenaServicio.builder()</span>
-<span class="fc" id="L66">                .pedido(pedido)</span>
-<span class="fc" id="L67">                .calificacionEstrellas(peticion.getCalificacionEstrellas())</span>
-<span class="fc" id="L68">                .textoResena(peticion.getTextoResena())</span>
-<span class="fc" id="L69">                .build();</span>
+<span class="fc" id="L70">        ResenaServicio resena = ResenaServicio.builder()</span>
+<span class="fc" id="L71">                .pedido(pedido)</span>
+<span class="fc" id="L72">                .calificacionEstrellas(peticion.getCalificacionEstrellas())</span>
+<span class="fc" id="L73">                .textoResena(peticion.getTextoResena())</span>
+<span class="fc" id="L74">                .build();</span>
 
-<span class="fc" id="L71">        resena = resenaServicioRepository.save(resena);</span>
-<span class="fc" id="L72">        log.info(&quot;Reseña creada para pedido {} por cliente {}&quot;, idPedido, idCliente);</span>
-<span class="fc" id="L73">        return mapToResponse(resena);</span>
+<span class="fc" id="L76">        resena = resenaServicioRepository.save(resena);</span>
+<span class="fc" id="L77">        log.info(&quot;Reseña creada para pedido {} por cliente {}&quot;, idPedido, idCliente);</span>
+<span class="fc" id="L78">        return mapToResponse(resena);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
+    public RespuestaResena obtenerMiResena(Long idPedido, Long idCliente) {
+<span class="fc" id="L84">        return resenaServicioRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="fc" id="L85">                .filter(resena -&gt; resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente))</span>
+<span class="fc" id="L86">                .map(this::mapToResponse)</span>
+<span class="fc" id="L87">                .orElse(null);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;RESENA_EDITAR&quot;, modulo = ModuloAuditoria.SOCIAL,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;,
+            detalle = &quot;{calificacionEstrellas: #peticion.calificacionEstrellas}&quot;)
+    public RespuestaResena actualizarResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
+<span class="fc" id="L96">        ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L97">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Este pedido no tiene una reseña&quot;));</span>
+
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L100">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
+                    &quot;Solo el cliente que dejó la reseña puede editarla&quot;);
+        }
+
+<span class="fc" id="L104">        resena.setCalificacionEstrellas(peticion.getCalificacionEstrellas());</span>
+<span class="fc" id="L105">        resena.setTextoResena(peticion.getTextoResena());</span>
+<span class="fc" id="L106">        resena = resenaServicioRepository.save(resena);</span>
+<span class="fc" id="L107">        log.info(&quot;Reseña del pedido {} editada por cliente {}&quot;, idPedido, idCliente);</span>
+<span class="fc" id="L108">        return mapToResponse(resena);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;RESENA_ELIMINAR&quot;, modulo = ModuloAuditoria.SOCIAL,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;)
+    public void eliminarResena(Long idPedido, Long idCliente) {
+<span class="fc" id="L116">        ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)</span>
+<span class="pc" id="L117">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Este pedido no tiene una reseña&quot;));</span>
+
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L120">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
+                    &quot;Solo el cliente que dejó la reseña puede eliminarla&quot;);
+        }
+
+<span class="fc" id="L124">        resenaServicioRepository.delete(resena);</span>
+<span class="fc" id="L125">        log.info(&quot;Reseña del pedido {} eliminada por cliente {}&quot;, idPedido, idCliente);</span>
+<span class="fc" id="L126">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
     public List&lt;RespuestaResena&gt; listarResenasPorCreador(Long idPerfilCreador) {
-<span class="fc" id="L79">        return resenaServicioRepository.findByCreadorIdPerfil(idPerfilCreador)</span>
-<span class="fc" id="L80">                .stream().map(this::mapToResponse).collect(Collectors.toList());</span>
+<span class="fc" id="L131">        return resenaServicioRepository.findByCreadorIdPerfil(idPerfilCreador)</span>
+<span class="fc" id="L132">                .stream().map(this::mapToResponse).collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public Double calcularPromedioPorCreador(Long idPerfilCreador) {
-<span class="fc" id="L86">        Double promedio = resenaServicioRepository.calcularPromedioByCreadorIdPerfil(idPerfilCreador);</span>
-<span class="fc bfc" id="L87" title="All 2 branches covered.">        return promedio != null ? Math.round(promedio * 100.0) / 100.0 : 0.0;</span>
+<span class="fc" id="L138">        Double promedio = resenaServicioRepository.calcularPromedioByCreadorIdPerfil(idPerfilCreador);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        return promedio != null ? Math.round(promedio * 100.0) / 100.0 : 0.0;</span>
     }
 
     // -------------------------------------------------------------------------
     private RespuestaResena mapToResponse(ResenaServicio resena) {
-<span class="fc" id="L92">        Pedido pedido = resena.getPedido();</span>
-<span class="fc" id="L93">        String nombreCliente = pedido.getUsuarioCliente().getNombres()</span>
-<span class="fc" id="L94">                + &quot; &quot; + pedido.getUsuarioCliente().getApellidos();</span>
-<span class="fc" id="L95">        String tituloServicio = pedido.getServicio().getTituloServicio();</span>
+<span class="fc" id="L144">        Pedido pedido = resena.getPedido();</span>
+<span class="fc" id="L145">        String nombreCliente = pedido.getUsuarioCliente().getNombres()</span>
+<span class="fc" id="L146">                + &quot; &quot; + pedido.getUsuarioCliente().getApellidos();</span>
+<span class="fc" id="L147">        String tituloServicio = pedido.getServicio().getTituloServicio();</span>
 
-<span class="fc" id="L97">        return RespuestaResena.builder()</span>
-<span class="fc" id="L98">                .idResena(resena.getIdResena())</span>
-<span class="fc" id="L99">                .calificacionEstrellas(resena.getCalificacionEstrellas())</span>
-<span class="fc" id="L100">                .textoResena(resena.getTextoResena())</span>
-<span class="fc" id="L101">                .fechaResena(resena.getFechaResena())</span>
-<span class="fc" id="L102">                .nombreCliente(nombreCliente)</span>
-<span class="fc" id="L103">                .tituloServicio(tituloServicio)</span>
-<span class="fc" id="L104">                .build();</span>
+<span class="fc" id="L149">        return RespuestaResena.builder()</span>
+<span class="fc" id="L150">                .idResena(resena.getIdResena())</span>
+<span class="fc" id="L151">                .calificacionEstrellas(resena.getCalificacionEstrellas())</span>
+<span class="fc" id="L152">                .textoResena(resena.getTextoResena())</span>
+<span class="fc" id="L153">                .fechaResena(resena.getFechaResena())</span>
+<span class="fc" id="L154">                .nombreCliente(nombreCliente)</span>
+<span class="fc" id="L155">                .tituloServicio(tituloServicio)</span>
+<span class="fc" id="L156">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

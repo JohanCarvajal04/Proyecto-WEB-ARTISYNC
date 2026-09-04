@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespuestaDocumento.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.util</a> &gt; <span class="el_source">RespuestaDocumento.java</span></div><h1>RespuestaDocumento.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.util;
+
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+
+/**
+ * Convierte un {@link DocumentoGenerado} en la respuesta HTTP de descarga.
+ * Siempre {@code attachment}, nunca {@code inline} — mismo criterio que
+ * {@code EntregableControlador.responderArchivo}: un reporte puede incluir datos de
+ * usuario, y servirlo inline abriría la puerta a XSS almacenado si el navegador
+ * llegara a interpretarlo en el dominio de la plataforma.
+ */
+public final class RespuestaDocumento {
+
+    private RespuestaDocumento() {
+    }
+
+    public static ResponseEntity&lt;byte[]&gt; de(DocumentoGenerado documento) {
+<span class="fc" id="L22">        return ResponseEntity.ok()</span>
+<span class="fc" id="L23">                .contentType(MediaType.parseMediaType(documento.contentType()))</span>
+<span class="fc" id="L24">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L25">                        ContentDisposition.attachment().filename(documento.nombreArchivo()).toString())</span>
+<span class="fc" id="L26">                .body(documento.contenido());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

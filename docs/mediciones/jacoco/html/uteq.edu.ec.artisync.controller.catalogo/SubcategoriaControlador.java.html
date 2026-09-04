@@ -25,17 +25,20 @@ public class SubcategoriaControlador {
 <span class="nc" id="L25">        return ResponseEntity.ok(categoriaServicio.listarTodasLasSubcategorias());</span>
     }
 
+    // Mismo criterio que CategoriaControlador: MODERADOR administra el
+    // catálogo completo (categorías, subcategorías y etiquetas) vía el
+    // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
     @PostMapping
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaSubcategoria&gt; crearSubcategoria(@Valid @RequestBody PeticionCrearSubcategoria peticion) {
-<span class="nc" id="L31">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearSubcategoria(peticion));</span>
+<span class="nc" id="L34">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearSubcategoria(peticion));</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarSubcategoria(@PathVariable Long id) {
-<span class="nc" id="L37">        categoriaServicio.eliminarSubcategoria(id);</span>
-<span class="nc" id="L38">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Subcategoria eliminada exitosamente&quot;));</span>
+<span class="nc" id="L40">        categoriaServicio.eliminarSubcategoria(id);</span>
+<span class="nc" id="L41">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Subcategoria eliminada exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

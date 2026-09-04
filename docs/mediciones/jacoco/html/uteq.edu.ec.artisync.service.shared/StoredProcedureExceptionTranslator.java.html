@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StoredProcedureExceptionTranslator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared</a> &gt; <span class="el_source">StoredProcedureExceptionTranslator.java</span></div><h1>StoredProcedureExceptionTranslator.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.sql.SQLException;
+
+/**
+ * Traduce las excepciones que lanzan las funciones PL/pgSQL de {@code db/procs/}
+ * (RAISE EXCEPTION ... USING ERRCODE = '...') a {@link ResponseStatusException}
+ * con el mismo mensaje de negocio que antes lanzaba la capa de servicio en Java,
+ * para que el cambio de JPA a procedimiento almacenado sea transparente para los
+ * controladores y el frontend.
+ *
+ * Se apoya en {@link SQLException#getSQLState()} (JDBC estandar, en java.sql) en
+ * vez de en org.postgresql.util.PSQLException, porque el driver de Postgres se
+ * declara con scope &quot;runtime&quot; en pom.xml y no esta disponible en el classpath
+ * de compilacion de este modulo.
+ */
+public final class StoredProcedureExceptionTranslator {
+
+    private StoredProcedureExceptionTranslator() {
+    }
+
+    public static ResponseStatusException traducir(RuntimeException origen, HttpStatus porDefecto) {
+<span class="fc" id="L26">        SQLException sql = buscarSQLException(origen);</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        if (sql == null) {</span>
+<span class="fc" id="L28">            throw origen;</span>
+        }
+<span class="fc" id="L30">        String mensaje = limpiarMensaje(sql.getMessage());</span>
+<span class="fc bfc" id="L31" title="All 4 branches covered.">        HttpStatus status = switch (String.valueOf(sql.getSQLState())) {</span>
+<span class="fc" id="L32">            case &quot;23505&quot; -&gt; HttpStatus.CONFLICT;</span>
+<span class="fc" id="L33">            case &quot;23514&quot;, &quot;22004&quot;, &quot;23503&quot; -&gt; HttpStatus.BAD_REQUEST;</span>
+<span class="fc" id="L34">            case &quot;P0002&quot; -&gt; HttpStatus.NOT_FOUND;</span>
+<span class="fc" id="L35">            default -&gt; porDefecto;</span>
+        };
+<span class="fc" id="L37">        return new ResponseStatusException(status, mensaje);</span>
+    }
+
+    private static SQLException buscarSQLException(Throwable t) {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        while (t != null) {</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">            if (t instanceof SQLException sql) {</span>
+<span class="fc" id="L43">                return sql;</span>
+            }
+<span class="fc" id="L45">            t = t.getCause();</span>
+        }
+<span class="fc" id="L47">        return null;</span>
+    }
+
+    private static String limpiarMensaje(String mensajeOriginal) {
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        if (mensajeOriginal == null) {</span>
+<span class="nc" id="L52">            return &quot;Error al ejecutar la operacion&quot;;</span>
+        }
+<span class="fc" id="L54">        String primeraLinea = mensajeOriginal.split(&quot;\\R&quot;, 2)[0];</span>
+<span class="fc" id="L55">        return primeraLinea.replaceFirst(&quot;^ERROR:\\s*&quot;, &quot;&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

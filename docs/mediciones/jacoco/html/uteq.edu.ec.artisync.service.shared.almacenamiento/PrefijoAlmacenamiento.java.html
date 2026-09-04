@@ -12,6 +12,7 @@ public final class PrefijoAlmacenamiento {
     public static final String VERIFICACION = &quot;verificacion&quot;;
     public static final String PORTAFOLIO = &quot;portafolio&quot;;
     public static final String ENTREGABLES = &quot;entregables&quot;;
+    public static final String PERFILES = &quot;perfiles&quot;;
 
     private PrefijoAlmacenamiento() {
     }
@@ -22,14 +23,14 @@ public final class PrefijoAlmacenamiento {
      * termine apuntando fuera de su carpeta, tanto en disco como en el blob.
      */
     static String componer(String prefijo, String nombre) {
-<span class="pc bpc" id="L25" title="1 of 4 branches missed.">        if (prefijo == null || prefijo.isBlank()) {</span>
-<span class="fc" id="L26">            return nombre;</span>
+<span class="pc bpc" id="L26" title="1 of 4 branches missed.">        if (prefijo == null || prefijo.isBlank()) {</span>
+<span class="fc" id="L27">            return nombre;</span>
         }
-<span class="fc" id="L28">        String limpio = prefijo.trim();</span>
-<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (!limpio.matches(&quot;[a-z0-9-]+&quot;)) {</span>
-<span class="fc" id="L30">            throw new ExcepcionReglaNegocio(&quot;Prefijo de almacenamiento inválido: &quot; + prefijo);</span>
+<span class="fc" id="L29">        String limpio = prefijo.trim();</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (!limpio.matches(&quot;[a-z0-9-]+&quot;)) {</span>
+<span class="fc" id="L31">            throw new ExcepcionReglaNegocio(&quot;Prefijo de almacenamiento inválido: &quot; + prefijo);</span>
         }
-<span class="fc" id="L32">        return limpio + &quot;/&quot; + nombre;</span>
+<span class="fc" id="L33">        return limpio + &quot;/&quot; + nombre;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

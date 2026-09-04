@@ -22,13 +22,13 @@ public class TicketRevisionControlador {
     private final ITicketRevisionServicio ticketRevisionServicio;
 
     @PostMapping(&quot;/pedidos/{idPedido}/tickets-revision&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaTicketRevision&gt; crearTicket(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PeticionCrearTicketRevision peticion) {
-<span class="nc" id="L30">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L31">                .body(ticketRevisionServicio.crearTicketRevision(idPedido, userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L30">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L31">                .body(ticketRevisionServicio.crearTicketRevision(idPedido, userDetails.getIdUsuario(), peticion));</span>
     }
 
     @GetMapping(&quot;/pedidos/{idPedido}/tickets-revision&quot;)
@@ -36,17 +36,17 @@ public class TicketRevisionControlador {
     public ResponseEntity&lt;List&lt;RespuestaTicketRevision&gt;&gt; listarTickets(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L39">        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L39">        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @PutMapping(&quot;/tickets-revision/{idTicket}/estado&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaTicketRevision&gt; cambiarEstado(
             @PathVariable Long idTicket,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String nuevoEstado) {
-<span class="nc" id="L48">        return ResponseEntity.ok(</span>
-<span class="nc" id="L49">                ticketRevisionServicio.cambiarEstadoTicket(idTicket, userDetails.getIdUsuario(), nuevoEstado));</span>
+<span class="fc" id="L48">        return ResponseEntity.ok(</span>
+<span class="fc" id="L49">                ticketRevisionServicio.cambiarEstadoTicket(idTicket, userDetails.getIdUsuario(), nuevoEstado));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

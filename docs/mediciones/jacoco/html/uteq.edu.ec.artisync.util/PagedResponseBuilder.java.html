@@ -32,5 +32,25 @@ import java.util.function.Function;
 <span class="fc" id="L32">                .last(page.isLast())</span>
 <span class="fc" id="L33">                .build();</span>
     }
+
+    /**
+     * Variante de {@link #buildAndMap} que mapea el contenido de la pagina en
+     * un unico lote (p. ej. UsuarioMapper.toUserResponseList) en vez de
+     * elemento a elemento. Uso: cuando el mapper hace consultas adicionales
+     * por elemento (roles, permisos, flags), pasar la lista completa permite
+     * batchearlas con IN (...) en vez de repetirlas por cada fila (N+1).
+     */
+    public static &lt;T, R&gt; PagedResponse&lt;R&gt; buildAndMapList(Page&lt;T&gt; page, Function&lt;List&lt;T&gt;, List&lt;R&gt;&gt; mapper) {
+<span class="fc" id="L44">        List&lt;R&gt; mappedContent = mapper.apply(page.getContent());</span>
+
+<span class="fc" id="L46">        return PagedResponse.&lt;R&gt;builder()</span>
+<span class="fc" id="L47">                .content(mappedContent)</span>
+<span class="fc" id="L48">                .pageNumber(page.getNumber())</span>
+<span class="fc" id="L49">                .pageSize(page.getSize())</span>
+<span class="fc" id="L50">                .totalElements(page.getTotalElements())</span>
+<span class="fc" id="L51">                .totalPages(page.getTotalPages())</span>
+<span class="fc" id="L52">                .last(page.isLast())</span>
+<span class="fc" id="L53">                .build();</span>
+    }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

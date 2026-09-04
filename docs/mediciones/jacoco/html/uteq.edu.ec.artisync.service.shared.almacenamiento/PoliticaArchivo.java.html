@@ -38,25 +38,32 @@ import java.util.Set;
 <span class="fc" id="L38">    public static final PoliticaArchivo ENTREGABLE = new PoliticaArchivo(</span>
 <span class="fc" id="L39">            union(union(IMAGENES, VIDEOS), DOCUMENTOS), 100 * MB, &quot;imagen, video o documento&quot;);</span>
 
+    /**
+     * Foto de perfil: solo imagen, y a propósito sin SVG (IMAGENES no lo incluye):
+     * se sirve inline desde un endpoint público, así que un SVG con script
+     * embebido sería XSS almacenado.
+     */
+<span class="fc" id="L46">    public static final PoliticaArchivo PERFIL = new PoliticaArchivo(IMAGENES, 5 * MB, &quot;imagen&quot;);</span>
+
     private static Set&lt;String&gt; union(Set&lt;String&gt; a, Set&lt;String&gt; b) {
-<span class="fc" id="L42">        return java.util.stream.Stream.concat(a.stream(), b.stream())</span>
-<span class="fc" id="L43">                .collect(java.util.stream.Collectors.toUnmodifiableSet());</span>
+<span class="fc" id="L49">        return java.util.stream.Stream.concat(a.stream(), b.stream())</span>
+<span class="fc" id="L50">                .collect(java.util.stream.Collectors.toUnmodifiableSet());</span>
     }
 
     public void validar(MultipartFile archivo) {
-<span class="pc bpc" id="L47" title="2 of 4 branches missed.">        if (archivo == null || archivo.isEmpty()) {</span>
-<span class="nc" id="L48">            throw new ExcepcionReglaNegocio(&quot;El archivo está vacío.&quot;);</span>
+<span class="pc bpc" id="L54" title="2 of 4 branches missed.">        if (archivo == null || archivo.isEmpty()) {</span>
+<span class="nc" id="L55">            throw new ExcepcionReglaNegocio(&quot;El archivo está vacío.&quot;);</span>
         }
-<span class="fc" id="L50">        String tipo = archivo.getContentType();</span>
-<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        String normalizado = tipo == null ? &quot;&quot; : tipo.split(&quot;;&quot;)[0].trim().toLowerCase();</span>
-<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (!tiposPermitidos.contains(normalizado)) {</span>
-<span class="fc" id="L53">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L57">        String tipo = archivo.getContentType();</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        String normalizado = tipo == null ? &quot;&quot; : tipo.split(&quot;;&quot;)[0].trim().toLowerCase();</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (!tiposPermitidos.contains(normalizado)) {</span>
+<span class="fc" id="L60">            throw new ExcepcionReglaNegocio(</span>
                     &quot;Formato no soportado: &quot; + tipo + &quot;. Se acepta &quot; + descripcion + &quot;.&quot;);
         }
-<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (archivo.getSize() &gt; maxBytes) {</span>
-<span class="nc" id="L57">            throw new ExcepcionReglaNegocio(</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (archivo.getSize() &gt; maxBytes) {</span>
+<span class="nc" id="L64">            throw new ExcepcionReglaNegocio(</span>
                     &quot;El archivo supera el máximo de &quot; + (maxBytes / MB) + &quot; MB.&quot;);
         }
-<span class="fc" id="L60">    }</span>
+<span class="fc" id="L67">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

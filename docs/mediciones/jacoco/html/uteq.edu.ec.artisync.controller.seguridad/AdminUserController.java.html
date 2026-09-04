@@ -11,15 +11,22 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.RespuestaDocumento;
 
 @RestController
-@RequestMapping(&quot;/api/admin/usuarios&quot;)
+@RequestMapping(&quot;/api/v1/admin/usuarios&quot;)
 @RequiredArgsConstructor
 @Tag(name = &quot;Administración de Usuarios&quot;, description = &quot;Endpoints protegidos para administración completa de usuarios (CRUD con seguridad granular)&quot;)
 @SecurityRequirement(name = &quot;bearerAuth&quot;)
@@ -31,64 +38,76 @@ public class AdminUserController {
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('USUARIO_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;PagedResponse&lt;UserResponse&gt;&gt; getAllUsers(
+            FiltroUsuario filtro,
             @RequestParam(defaultValue = &quot;0&quot;) int page,
             @RequestParam(defaultValue = &quot;10&quot;) int size,
             @RequestParam(defaultValue = &quot;idUsuario&quot;) String sortBy,
             @RequestParam(defaultValue = &quot;asc&quot;) String direction) {
-        
-<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        Sort sort = direction.equalsIgnoreCase(&quot;desc&quot;) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();</span>
-<span class="fc" id="L40">        Pageable pageable = PageRequest.of(page, size, sort);</span>
-<span class="fc" id="L41">        return ResponseEntity.ok(adminUserService.getAllUsers(pageable));</span>
+
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        Sort sort = direction.equalsIgnoreCase(&quot;desc&quot;) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();</span>
+<span class="fc" id="L48">        Pageable pageable = PageRequest.of(page, size, sort);</span>
+<span class="fc" id="L49">        return ResponseEntity.ok(adminUserService.getAllUsers(filtro, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Exportar el listado de usuarios en CSV, XLSX o PDF&quot;)
+    @GetMapping(&quot;/exportar&quot;)
+    @PreAuthorize(&quot;hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportar(FiltroUsuario filtro, @RequestParam FormatoReporte formato,
+                                            Authentication authentication) {
+<span class="nc" id="L57">        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, authentication.getName());</span>
+<span class="nc" id="L58">        return RespuestaDocumento.de(documento);</span>
     }
 
     @Operation(summary = &quot;Obtener usuario por ID&quot;)
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; getUserById(@PathVariable Long id) {
-<span class="fc" id="L48">        return ResponseEntity.ok(adminUserService.getUserById(id));</span>
+<span class="fc" id="L65">        return ResponseEntity.ok(adminUserService.getUserById(id));</span>
     }
 
     @Operation(summary = &quot;Crear nuevo usuario desde el panel administrativo&quot;)
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('USUARIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; createUser(@Valid @RequestBody CreateUserRequest request) {
-<span class="nc" id="L55">        return ResponseEntity.status(HttpStatus.CREATED).body(adminUserService.createUser(request));</span>
+<span class="nc" id="L72">        return ResponseEntity.status(HttpStatus.CREATED).body(adminUserService.createUser(request));</span>
     }
 
     @Operation(summary = &quot;Actualizar información y configuración de un usuario&quot;)
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; updateUser(@PathVariable Long id, @Valid @RequestBody AdminUpdateUserRequest request) {
-<span class="nc" id="L62">        return ResponseEntity.ok(adminUserService.updateUser(id, request));</span>
+<span class="nc" id="L79">        return ResponseEntity.ok(adminUserService.updateUser(id, request));</span>
     }
 
     @Operation(summary = &quot;Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)&quot;)
     @PatchMapping(&quot;/{id}/estado&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_SUSPENDER') or hasAuthority('USUARIO_ELIMINAR') or hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;UserResponse&gt; changeEstado(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request) {
-<span class="fc" id="L69">        return ResponseEntity.ok(adminUserService.changeEstado(id, request));</span>
+    public ResponseEntity&lt;UserResponse&gt; changeEstado(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request,
+                                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L87">        return ResponseEntity.ok(adminUserService.changeEstado(id, request, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Asignar roles a un usuario&quot;)
     @PutMapping(&quot;/{id}/roles&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;UserResponse&gt; assignRoles(@PathVariable Long id, @Valid @RequestBody AssignRolesRequest request) {
-<span class="nc" id="L76">        return ResponseEntity.ok(adminUserService.assignRoles(id, request));</span>
+    public ResponseEntity&lt;UserResponse&gt; assignRoles(@PathVariable Long id, @Valid @RequestBody AssignRolesRequest request,
+                                                     @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L95">        return ResponseEntity.ok(adminUserService.assignRoles(id, request, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Revocar inmediatamente todas las sesiones activas de un usuario&quot;)
     @DeleteMapping(&quot;/{id}/sesiones&quot;)
     @PreAuthorize(&quot;hasAuthority('SESION_REVOCAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; revokeUserSessions(@PathVariable Long id) {
-<span class="nc" id="L83">        return ResponseEntity.ok(adminUserService.revokeUserSessions(id));</span>
+<span class="nc" id="L102">        return ResponseEntity.ok(adminUserService.revokeUserSessions(id));</span>
     }
 
     @Operation(summary = &quot;Eliminar lógicamente a un usuario (Soft Delete)&quot;)
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;Void&gt; deleteUser(@PathVariable Long id) {
-<span class="fc" id="L90">        adminUserService.deleteUser(id);</span>
-<span class="fc" id="L91">        return ResponseEntity.noContent().build();</span>
+    public ResponseEntity&lt;Void&gt; deleteUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L109">        adminUserService.deleteUser(id, userDetails.getIdUsuario());</span>
+<span class="fc" id="L110">        return ResponseEntity.noContent().build();</span>
     }
 }
 

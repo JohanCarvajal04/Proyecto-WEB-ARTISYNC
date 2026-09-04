@@ -25,7 +25,7 @@ import java.util.List;
  * OBS-AUTO-06 (A07 OWASP): limita por IP los intentos sobre las rutas publicas
  * de autenticacion mas expuestas a abuso (fuerza bruta de login/2FA, spam de
  * cuentas, mail-bombing vía forgot-password). Generaliza el antiguo
- * LoginRateLimitFilter, que solo cubria /api/auth/login.
+ * LoginRateLimitFilter, que solo cubria /api/v1/auth/login.
  *
  * La cuota POR IP vive aqui; la cuota POR CUENTA vive en
  * {@link uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService},
@@ -45,11 +45,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
 <span class="fc" id="L47">    private static final List&lt;Politica&gt; POLITICAS = List.of(</span>
-<span class="fc" id="L48">            new Politica(&quot;/api/auth/login&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;login&quot;),</span>
-<span class="fc" id="L49">            new Politica(&quot;/api/auth/2fa/verify&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;2fa&quot;),</span>
-<span class="fc" id="L50">            new Politica(&quot;/api/auth/forgot-password&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(15), &quot;recuperacion&quot;),</span>
-<span class="fc" id="L51">            new Politica(&quot;/api/auth/reset-password&quot;, &quot;POST&quot;, 10, Duration.ofMinutes(15), &quot;reset&quot;),</span>
-<span class="fc" id="L52">            new Politica(&quot;/api/auth/registro&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(60), &quot;registro&quot;)</span>
+<span class="fc" id="L48">            new Politica(&quot;/api/v1/auth/login&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;login&quot;),</span>
+<span class="fc" id="L49">            new Politica(&quot;/api/v1/auth/2fa/verify&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;2fa&quot;),</span>
+<span class="fc" id="L50">            new Politica(&quot;/api/v1/auth/forgot-password&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(15), &quot;recuperacion&quot;),</span>
+<span class="fc" id="L51">            new Politica(&quot;/api/v1/auth/reset-password&quot;, &quot;POST&quot;, 10, Duration.ofMinutes(15), &quot;reset&quot;),</span>
+<span class="fc" id="L52">            new Politica(&quot;/api/v1/auth/registro&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(60), &quot;registro&quot;)</span>
     );
 
     private final StringRedisTemplate redisTemplate;
@@ -59,8 +59,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     public AuthRateLimitFilter(StringRedisTemplate redisTemplate,
 <span class="fc" id="L60">                                @Autowired(required = false) ObjectMapper objectMapper) {</span>
 <span class="fc" id="L61">        this.redisTemplate = redisTemplate;</span>
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (objectMapper != null) {</span>
-<span class="nc" id="L63">            this.objectMapper = objectMapper;</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (objectMapper != null) {</span>
+<span class="fc" id="L63">            this.objectMapper = objectMapper;</span>
         } else {
 <span class="fc" id="L65">            this.objectMapper = new ObjectMapper()</span>
 <span class="fc" id="L66">                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())</span>

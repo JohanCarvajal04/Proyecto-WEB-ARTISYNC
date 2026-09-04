@@ -31,16 +31,19 @@ public class EtiquetaControlador {
     }
 
     @PostMapping
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaEtiqueta&gt; crearEtiqueta(@Valid @RequestBody PeticionCrearEtiqueta peticion) {
 <span class="nc" id="L36">        return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));</span>
     }
 
+    // Mismo criterio que CategoriaControlador: MODERADOR administra el
+    // catálogo completo (categorías, subcategorías y etiquetas) vía el
+    // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
     @DeleteMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarEtiqueta(@PathVariable Long id) {
-<span class="nc" id="L42">        etiquetaServicio.eliminarEtiqueta(id);</span>
-<span class="nc" id="L43">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etiqueta eliminada exitosamente&quot;));</span>
+<span class="nc" id="L45">        etiquetaServicio.eliminarEtiqueta(id);</span>
+<span class="nc" id="L46">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etiqueta eliminada exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

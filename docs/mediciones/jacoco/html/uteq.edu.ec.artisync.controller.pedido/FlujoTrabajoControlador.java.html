@@ -5,15 +5,25 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearFlujoTrabajo;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionEtapaConfig;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionSwapEtapas;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaFlujoTrabajo;
 import uteq.edu.ec.artisync.service.pedido.IFlujoTrabajoServicio;
 
 import java.util.List;
 
+/**
+ * Desde V25 (flujos_por_creador) cada FlujoTrabajo es propiedad de un
+ * creador. FLUJO_GESTIONAR es autoservicio: gestiona los flujos propios.
+ * FLUJO_MODERAR (V26) es supervisión: ve y gestiona los de todos los
+ * creadores — lo necesita, por ejemplo, el selector de flujo en Categorías,
+ * que no tiene sentido acotado a los flujos de un solo usuario.
+ */
 @RestController
 @RequestMapping(&quot;/api/v1/flujos&quot;)
 @RequiredArgsConstructor
@@ -22,56 +32,86 @@ public class FlujoTrabajoControlador {
     private final IFlujoTrabajoServicio flujoTrabajoServicio;
 
     @PostMapping
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; crearFlujo(
-            @Valid @RequestBody PeticionCrearFlujoTrabajo peticion) {
-<span class="nc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L29">                .body(flujoTrabajoServicio.crearFlujoTrabajo(peticion));</span>
+            @Valid @RequestBody PeticionCrearFlujoTrabajo peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L39">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L40">                .body(flujoTrabajoServicio.crearFlujoTrabajo(userDetails.getIdUsuario(), peticion));</span>
     }
 
     @GetMapping
-    public ResponseEntity&lt;List&lt;RespuestaFlujoTrabajo&gt;&gt; listarFlujos() {
-<span class="nc" id="L34">        return ResponseEntity.ok(flujoTrabajoServicio.listarFlujosTrabajo());</span>
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaFlujoTrabajo&gt;&gt; listarFlujos(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L47">        return ResponseEntity.ok(flujoTrabajoServicio.listarFlujosTrabajo(</span>
+<span class="fc" id="L48">                userDetails.getIdUsuario(), puedeVerTodos(userDetails)));</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
-    public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; obtenerFlujo(@PathVariable Long id) {
-<span class="nc" id="L39">        return ResponseEntity.ok(flujoTrabajoServicio.obtenerFlujoPorId(id));</span>
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; obtenerFlujo(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L56">        return ResponseEntity.ok(flujoTrabajoServicio.obtenerFlujoPorId(</span>
+<span class="fc" id="L57">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails)));</span>
     }
 
     @PutMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; actualizarFlujo(
             @PathVariable Long id,
-            @Valid @RequestBody PeticionCrearFlujoTrabajo peticion) {
-<span class="nc" id="L47">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarFlujoTrabajo(id, peticion));</span>
+            @Valid @RequestBody PeticionCrearFlujoTrabajo peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L66">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarFlujoTrabajo(</span>
+<span class="fc" id="L67">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
     @PostMapping(&quot;/{id}/etapas&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; agregarEtapa(
             @PathVariable Long id,
-            @Valid @RequestBody PeticionEtapaConfig peticion) {
-<span class="nc" id="L55">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L56">                .body(flujoTrabajoServicio.agregarEtapa(id, peticion));</span>
+            @Valid @RequestBody PeticionEtapaConfig peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L76">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L77">                .body(flujoTrabajoServicio.agregarEtapa(</span>
+<span class="fc" id="L78">                        id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
     @PutMapping(&quot;/{id}/etapas/{etapaId}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; actualizarEtapa(
             @PathVariable Long id,
             @PathVariable Long etapaId,
-            @Valid @RequestBody PeticionEtapaConfig peticion) {
-<span class="nc" id="L65">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarEtapa(id, etapaId, peticion));</span>
+            @Valid @RequestBody PeticionEtapaConfig peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L88">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarEtapa(</span>
+<span class="fc" id="L89">                id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
+    }
+
+    @PutMapping(&quot;/{id}/etapas/reordenar&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; intercambiarOrdenEtapas(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionSwapEtapas peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L98">        return ResponseEntity.ok(flujoTrabajoServicio.intercambiarOrdenEtapas(</span>
+<span class="fc" id="L99">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
     @DeleteMapping(&quot;/{id}/etapas/{etapaId}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarEtapa(
             @PathVariable Long id,
-            @PathVariable Long etapaId) {
-<span class="nc" id="L73">        flujoTrabajoServicio.eliminarEtapa(id, etapaId);</span>
-<span class="nc" id="L74">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etapa eliminada exitosamente del flujo de trabajo&quot;));</span>
+            @PathVariable Long etapaId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L108">        flujoTrabajoServicio.eliminarEtapa(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));</span>
+<span class="fc" id="L109">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etapa eliminada exitosamente del flujo de trabajo&quot;));</span>
+    }
+
+    private boolean puedeVerTodos(CustomUserDetails userDetails) {
+<span class="fc" id="L113">        return userDetails.getAuthorities().stream()</span>
+<span class="pc bpc" id="L114" title="3 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;FLUJO_MODERAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

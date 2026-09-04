@@ -38,7 +38,7 @@ public class CertificadoIaControlador {
     private final ICertificadoIaServicio certificadoServicio;
 
     @PostMapping
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCertificadoIa&gt; emitirCertificado(@Valid @RequestBody PeticionCrearCertificadoIa peticion) {
 <span class="fc" id="L43">        RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);</span>
 <span class="fc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
@@ -50,20 +50,20 @@ public class CertificadoIaControlador {
 <span class="nc" id="L50">        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));</span>
     }
 
-    @GetMapping(&quot;/perfil/{idPerfil}&quot;)
+    @GetMapping(&quot;/usuario/{idUsuario}&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarCertificadosPorPerfil(@PathVariable Long idPerfil) {
-<span class="nc" id="L56">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorPerfil(idPerfil));</span>
+    public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarCertificadosPorUsuario(@PathVariable Long idUsuario) {
+<span class="nc" id="L56">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorUsuario(idUsuario));</span>
     }
 
     @GetMapping
-    @PreAuthorize(&quot;hasAnyRole('MODERADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarTodosLosCertificados() {
 <span class="nc" id="L62">        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCertificado(@PathVariable Long id) {
 <span class="nc" id="L68">        certificadoServicio.eliminarCertificado(id);</span>
 <span class="nc" id="L69">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Certificado de IA eliminado exitosamente&quot;));</span>

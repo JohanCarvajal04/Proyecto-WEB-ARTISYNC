@@ -75,7 +75,7 @@ import java.util.Set;
 <span class="fc" id="L75">        byte[] resultado = comprimirJpeg(imagen, calidad);</span>
 
 <span class="fc" id="L77">        int intentos = 0;</span>
-<span class="pc bpc" id="L78" title="1 of 4 branches missed.">        while (resultado.length &gt; LIMITE_BYTES &amp;&amp; intentos &lt; MAX_INTENTOS) {</span>
+<span class="fc bfc" id="L78" title="All 4 branches covered.">        while (resultado.length &gt; LIMITE_BYTES &amp;&amp; intentos &lt; MAX_INTENTOS) {</span>
 <span class="fc bfc" id="L79" title="All 2 branches covered.">            if (calidad &gt; CALIDAD_MINIMA) {</span>
 <span class="fc" id="L80">                calidad -= 0.15f;</span>
             } else {
@@ -86,8 +86,8 @@ import java.util.Set;
 <span class="fc" id="L86">            intentos++;</span>
         }
 
-<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (resultado.length &gt; LIMITE_BYTES) {</span>
-<span class="nc" id="L90">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (resultado.length &gt; LIMITE_BYTES) {</span>
+<span class="fc" id="L90">            throw new ExcepcionReglaNegocio(</span>
                     &quot;No fue posible comprimir el documento por debajo de &quot; + LIMITE_BYTES + &quot; bytes.&quot;);
         }
 <span class="fc" id="L93">        return resultado;</span>

@@ -9,8 +9,13 @@ import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
 import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -19,37 +24,73 @@ public class UsuarioMapper {
     private final UsuarioRolRepository usuarioRolRepository;
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
 
+    /** Mapeo de una sola fila (getUserById, tras crear/editar un usuario): una consulta por usuario es aceptable aquí. */
     public UserResponse toUserResponse(Usuario usuario) {
-<span class="fc" id="L23">        List&lt;UsuarioRol&gt; usuarioRoles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L29">        List&lt;UsuarioRol&gt; usuarioRoles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L30">        boolean dosFactoresHabilitado = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L31">                .map(AutenticacionDosFactores::getEstaHabilitado)</span>
+<span class="fc" id="L32">                .map(Boolean.TRUE::equals)</span>
+<span class="fc" id="L33">                .orElse(false);</span>
+<span class="fc" id="L34">        return construir(usuario, usuarioRoles, dosFactoresHabilitado);</span>
+    }
 
-<span class="fc" id="L25">        List&lt;String&gt; roles = usuarioRoles.stream()</span>
-<span class="fc" id="L26">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
-<span class="fc" id="L27">                .toList();</span>
+    /**
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) - mapea
+     * una PAGINA completa de usuarios con solo dos consultas adicionales
+     * (findByUsuarioIdUsuarioIn de roles y de 2FA), en vez de invocar
+     * toUserResponse() por cada fila -- eso disparaba dos consultas por
+     * usuario (N+1): con una pagina de 20 usuarios, ~40 consultas en vez de 2.
+     */
+    public List&lt;UserResponse&gt; toUserResponseList(List&lt;Usuario&gt; usuarios) {
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if (usuarios.isEmpty()) {</span>
+<span class="fc" id="L46">            return List.of();</span>
+        }
 
-<span class="fc" id="L29">        List&lt;String&gt; permisos = usuarioRoles.stream()</span>
-<span class="fc bfc" id="L30" title="All 2 branches covered.">                .filter(ur -&gt; ur.getRol().getPermisos() != null)</span>
-<span class="fc" id="L31">                .flatMap(ur -&gt; ur.getRol().getPermisos().stream())</span>
-<span class="fc" id="L32">                .map(Permiso::getNombrePermiso)</span>
-<span class="fc" id="L33">                .distinct()</span>
-<span class="fc" id="L34">                .toList();</span>
+<span class="fc" id="L49">        List&lt;Long&gt; idsUsuario = usuarios.stream().map(Usuario::getIdUsuario).toList();</span>
 
-<span class="fc" id="L36">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L37">                .orElse(null);</span>
+<span class="fc" id="L51">        Map&lt;Long, List&lt;UsuarioRol&gt;&gt; rolesPorUsuario = usuarioRolRepository.findByUsuarioIdUsuarioIn(idsUsuario).stream()</span>
+<span class="fc" id="L52">                .collect(Collectors.groupingBy(ur -&gt; ur.getUsuario().getIdUsuario()));</span>
 
-<span class="fc" id="L39">        return UserResponse.builder()</span>
-<span class="fc" id="L40">                .idUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L41">                .nombres(usuario.getNombres())</span>
-<span class="fc" id="L42">                .apellidos(usuario.getApellidos())</span>
-<span class="fc" id="L43">                .correo(usuario.getCorreo())</span>
-<span class="fc" id="L44">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
-<span class="fc bfc" id="L45" title="All 2 branches covered.">                .idPais(usuario.getPais() != null ? usuario.getPais().getIdPais() : null)</span>
-<span class="fc bfc" id="L46" title="All 2 branches covered.">                .nombrePais(usuario.getPais() != null ? usuario.getPais().getNombrePais() : null)</span>
-<span class="fc" id="L47">                .fechaRegistro(usuario.getFechaRegistro())</span>
-<span class="fc" id="L48">                .estadoCuenta(usuario.getEstadoCuenta())</span>
-<span class="fc" id="L49">                .roles(roles)</span>
-<span class="fc bfc" id="L50" title="All 2 branches covered.">                .permisos(permisos)</span>
-<span class="fc bfc" id="L51" title="All 2 branches covered.">                .dosFactoresHabilitado(dosFactores != null &amp;&amp; Boolean.TRUE.equals(dosFactores.getEstaHabilitado()))</span>
-<span class="fc" id="L52">                .build();</span>
+<span class="fc" id="L54">        Set&lt;Long&gt; con2faHabilitado = autenticacionDosFactoresRepository.findByUsuarioIdUsuarioIn(idsUsuario).stream()</span>
+<span class="fc" id="L55">                .filter(df -&gt; Boolean.TRUE.equals(df.getEstaHabilitado()))</span>
+<span class="fc" id="L56">                .map(df -&gt; df.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L57">                .collect(Collectors.toCollection(HashSet::new));</span>
+
+<span class="fc" id="L59">        return usuarios.stream()</span>
+<span class="fc" id="L60">                .map(usuario -&gt; construir(</span>
+                        usuario,
+<span class="fc" id="L62">                        rolesPorUsuario.getOrDefault(usuario.getIdUsuario(), List.of()),</span>
+<span class="fc" id="L63">                        con2faHabilitado.contains(usuario.getIdUsuario())))</span>
+<span class="fc" id="L64">                .toList();</span>
+    }
+
+    private UserResponse construir(Usuario usuario, List&lt;UsuarioRol&gt; usuarioRoles, boolean dosFactoresHabilitado) {
+<span class="fc" id="L68">        List&lt;String&gt; roles = usuarioRoles.stream()</span>
+<span class="fc" id="L69">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L70">                .toList();</span>
+
+<span class="fc" id="L72">        List&lt;String&gt; permisos = usuarioRoles.stream()</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">                .filter(ur -&gt; ur.getRol().getPermisos() != null)</span>
+<span class="fc" id="L74">                .flatMap(ur -&gt; ur.getRol().getPermisos().stream())</span>
+<span class="fc" id="L75">                .map(Permiso::getNombrePermiso)</span>
+<span class="fc" id="L76">                .distinct()</span>
+<span class="fc" id="L77">                .toList();</span>
+
+<span class="fc" id="L79">        return UserResponse.builder()</span>
+<span class="fc" id="L80">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L81">                .nombres(usuario.getNombres())</span>
+<span class="fc" id="L82">                .apellidos(usuario.getApellidos())</span>
+<span class="fc" id="L83">                .correo(usuario.getCorreo())</span>
+<span class="fc" id="L84">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                .idPais(usuario.getPais() != null ? usuario.getPais().getIdPais() : null)</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">                .nombrePais(usuario.getPais() != null ? usuario.getPais().getNombrePais() : null)</span>
+<span class="fc" id="L87">                .fechaRegistro(usuario.getFechaRegistro())</span>
+<span class="fc" id="L88">                .estadoCuenta(usuario.getEstadoCuenta())</span>
+<span class="fc" id="L89">                .roles(roles)</span>
+<span class="fc" id="L90">                .permisos(permisos)</span>
+<span class="fc" id="L91">                .dosFactoresHabilitado(dosFactoresHabilitado)</span>
+<span class="fc" id="L92">                .urlFotoPerfil(UrlFotoPerfil.construir(usuario.getUrlFotoPerfil()))</span>
+<span class="fc" id="L93">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

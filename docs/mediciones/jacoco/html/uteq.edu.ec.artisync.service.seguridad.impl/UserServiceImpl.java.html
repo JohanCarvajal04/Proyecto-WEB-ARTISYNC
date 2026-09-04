@@ -22,7 +22,12 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -35,79 +40,115 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UsuarioMapper usuarioMapper;
     private final SessionRevocationService sessionRevocationService;
+    private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Override
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String correo) {
-<span class="fc" id="L42">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="fc" id="L43">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L48">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L49">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc" id="L45">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L51">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
     @Transactional
     public UserResponse updateCurrentUser(String correo, UpdateUserRequest request) {
-<span class="fc" id="L51">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="pc" id="L52">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L57">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L58">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="pc bpc" id="L54" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
-<span class="fc" id="L55">            usuario.setNombres(request.getNombres());</span>
+<span class="pc bpc" id="L60" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
+<span class="fc" id="L61">            usuario.setNombres(request.getNombres());</span>
         }
-<span class="pc bpc" id="L57" title="3 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
-<span class="nc" id="L58">            usuario.setApellidos(request.getApellidos());</span>
+<span class="pc bpc" id="L63" title="3 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="nc" id="L64">            usuario.setApellidos(request.getApellidos());</span>
         }
-<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
-<span class="nc" id="L61">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="nc" id="L67">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
         }
-<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (request.getIdPais() != null) {</span>
-<span class="fc" id="L64">            Pais pais = paisRepository.findById(request.getIdPais())</span>
-<span class="fc" id="L65">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
-<span class="fc" id="L66">            usuario.setPais(pais);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (request.getIdPais() != null) {</span>
+<span class="fc" id="L70">            Pais pais = paisRepository.findById(request.getIdPais())</span>
+<span class="fc" id="L71">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
+<span class="fc" id="L72">            usuario.setPais(pais);</span>
         }
 
-<span class="fc" id="L69">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L75">        usuario = usuarioRepository.save(usuario);</span>
 
-<span class="fc" id="L71">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L77">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
     @Transactional
     public RespuestaMensaje changePassword(String correo, ChangePasswordRequest request) {
-<span class="fc" id="L77">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="fc" id="L78">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L83">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L84">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (!passwordEncoder.matches(request.getContrasenaActual(), usuario.getContrasenaHash())) {</span>
-<span class="fc" id="L81">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;La contraseña actual es incorrecta&quot;);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (!passwordEncoder.matches(request.getContrasenaActual(), usuario.getContrasenaHash())) {</span>
+<span class="fc" id="L87">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;La contraseña actual es incorrecta&quot;);</span>
         }
 
-<span class="fc" id="L84">        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));</span>
-<span class="fc" id="L85">        usuarioRepository.save(usuario);</span>
+        // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
+        // fn_cambiar_contrasena aplica el UPDATE solo si el hash sigue siendo
+        // el que se acaba de verificar con BCrypt (compare-and-swap), en vez
+        // de un save() incondicional. Si otra sesion cambio la contrasena
+        // justo entre la verificacion y este punto, la funcion lanza en vez
+        // de pisar silenciosamente ese cambio (actualizacion perdida, A7).
+        try {
+<span class="fc" id="L97">            usuarioRepository.cambiarContrasena(usuario.getIdUsuario(), usuario.getContrasenaHash(),</span>
+<span class="fc" id="L98">                    passwordEncoder.encode(request.getNuevaContrasena()));</span>
+<span class="fc" id="L99">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L100">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.CONFLICT);</span>
+<span class="fc" id="L101">        }</span>
 
-<span class="fc" id="L87">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L103">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
 
-<span class="fc" id="L89">        return new RespuestaMensaje(&quot;Contraseña cambiada exitosamente. Vuelve a iniciar sesión.&quot;);</span>
+<span class="fc" id="L105">        return new RespuestaMensaje(&quot;Contraseña cambiada exitosamente. Vuelve a iniciar sesión.&quot;);</span>
     }
 
     @Override
     @Transactional
     public RespuestaMensaje deleteOwnAccount(String correo) {
-<span class="fc" id="L95">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="fc" id="L96">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L111">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L112">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc" id="L98">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
-<span class="fc" id="L99">        usuario.setEstadoCuenta(false); // Soft delete</span>
-<span class="fc" id="L100">        usuarioRepository.save(usuario);</span>
+        // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
+        // fn_cambiar_estado_cuenta desactiva la cuenta (soft delete) y revoca
+        // sus sesiones atomicamente, bajo SELECT FOR UPDATE.
+<span class="fc" id="L117">        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), false);</span>
 
-<span class="fc" id="L102">        return new RespuestaMensaje(&quot;Cuenta desactivada exitosamente&quot;);</span>
+<span class="fc" id="L119">        return new RespuestaMensaje(&quot;Cuenta desactivada exitosamente&quot;);</span>
     }
 
     @Override
+    @Transactional
     public RespuestaMensaje revokeAllMySessions(String correo) {
-<span class="fc" id="L107">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="fc" id="L108">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
-<span class="fc" id="L109">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
-<span class="fc" id="L110">        return new RespuestaMensaje(&quot;Todas las sesiones activas han sido cerradas.&quot;);</span>
+<span class="fc" id="L125">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L126">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L127">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());</span>
+<span class="fc" id="L128">        return new RespuestaMensaje(&quot;Todas las sesiones activas han sido cerradas.&quot;);</span>
+    }
+
+    @Override
+    @Transactional
+    public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
+<span class="nc" id="L134">        PoliticaArchivo.PERFIL.validar(file);</span>
+
+<span class="nc" id="L136">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L137">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (usuario.getUrlFotoPerfil() != null) {</span>
+            try {
+<span class="nc" id="L141">                almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());</span>
+<span class="nc" id="L142">            } catch (Exception e) {</span>
+                // Ignore failure to delete old picture
+<span class="nc" id="L144">            }</span>
+        }
+        
+<span class="nc" id="L147">        String nuevaReferencia = almacenamientoDocumentos.guardar(file, PrefijoAlmacenamiento.PERFILES);</span>
+<span class="nc" id="L148">        usuario.setUrlFotoPerfil(nuevaReferencia);</span>
+<span class="nc" id="L149">        usuarioRepository.save(usuario);</span>
+        
+<span class="nc" id="L151">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 }
 

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LikePortafolioServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.comunicacion.impl</a> &gt; <span class="el_source">LikePortafolioServiceImpl.java</span></div><h1>LikePortafolioServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.comunicacion.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoLike;
+import uteq.edu.ec.artisync.entity.comunicacion.LikePortafolio;
+import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.comunicacion.LikePortafolioRepository;
+import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.comunicacion.LikePortafolioService;
+
+/**
+ * Implementación del servicio de &quot;me gusta&quot; sobre ítems de portafolio.
+ */
+<span class="fc" id="L23">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class LikePortafolioServiceImpl implements LikePortafolioService {
+
+    private final LikePortafolioRepository likeRepository;
+    private final PortafolioItemRepository portafolioItemRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;LIKE_DAR&quot;, modulo = ModuloAuditoria.COMUNICACION,
+            entidad = &quot;likes_portafolio&quot;, idEntidad = &quot;#idItemPortafolio&quot;)
+    public RespuestaEstadoLike darLike(Long idItemPortafolio, Long idUsuario) {
+<span class="nc" id="L37">        PortafolioItem item = obtenerItem(idItemPortafolio);</span>
+
+        // La restricción UNIQUE de la tabla ya lo impide; se comprueba antes
+        // para devolver un 409 con mensaje de dominio en vez de un error de
+        // integridad de base de datos.
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        if (likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario)) {</span>
+<span class="nc" id="L43">            throw new ExcepcionRecursoDuplicado(&quot;Ya le diste like a esta obra&quot;);</span>
+        }
+
+<span class="nc" id="L46">        Usuario usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="nc" id="L47">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
+
+<span class="nc" id="L49">        likeRepository.save(LikePortafolio.builder()</span>
+<span class="nc" id="L50">                .itemPortafolio(item)</span>
+<span class="nc" id="L51">                .usuario(usuario)</span>
+<span class="nc" id="L52">                .build());</span>
+
+<span class="nc" id="L54">        log.info(&quot;Usuario {} dio like al ítem de portafolio {}&quot;, idUsuario, idItemPortafolio);</span>
+<span class="nc" id="L55">        return construirEstado(idItemPortafolio, true);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;LIKE_QUITAR&quot;, modulo = ModuloAuditoria.COMUNICACION,
+            entidad = &quot;likes_portafolio&quot;, idEntidad = &quot;#idItemPortafolio&quot;)
+    public RespuestaEstadoLike quitarLike(Long idItemPortafolio, Long idUsuario) {
+<span class="nc" id="L63">        LikePortafolio like = likeRepository</span>
+<span class="nc" id="L64">                .findByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario)</span>
+<span class="nc" id="L65">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No le has dado like a esta obra&quot;));</span>
+
+<span class="nc" id="L67">        likeRepository.delete(like);</span>
+<span class="nc" id="L68">        log.info(&quot;Usuario {} quitó el like del ítem de portafolio {}&quot;, idUsuario, idItemPortafolio);</span>
+<span class="nc" id="L69">        return construirEstado(idItemPortafolio, false);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaEstadoLike obtenerEstado(Long idItemPortafolio, Long idUsuario) {
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        boolean meGusta = idUsuario != null</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">                &amp;&amp; likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario);</span>
+<span class="nc" id="L77">        return construirEstado(idItemPortafolio, meGusta);</span>
+    }
+
+    // -------------------------------------------------------------------------
+    private PortafolioItem obtenerItem(Long idItemPortafolio) {
+<span class="nc" id="L82">        return portafolioItemRepository.findById(idItemPortafolio)</span>
+<span class="nc" id="L83">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+                        &quot;Ítem de portafolio no encontrado: &quot; + idItemPortafolio));
+    }
+
+    private RespuestaEstadoLike construirEstado(Long idItemPortafolio, boolean meGusta) {
+<span class="nc" id="L88">        long total = likeRepository.countByItemPortafolioIdItemPortafolio(idItemPortafolio);</span>
+<span class="nc" id="L89">        return RespuestaEstadoLike.builder()</span>
+<span class="nc" id="L90">                .idItemPortafolio(idItemPortafolio)</span>
+<span class="nc" id="L91">                .totalLikes(total)</span>
+<span class="nc" id="L92">                .meGusta(meGusta)</span>
+<span class="nc" id="L93">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -112,77 +112,91 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional
-    public void eliminarItem(Long idItem, Long idUsuario) {
+    public RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion) {
 <span class="fc" id="L116">        PortafolioItem item = buscarItem(idItem);</span>
 <span class="fc" id="L117">        exigirPropietario(item.getPortafolio(), idUsuario);</span>
 
-<span class="fc" id="L119">        String referencia = item.getUrlArchivoMultimedia();</span>
-<span class="fc" id="L120">        itemRepository.delete(item);</span>
+<span class="fc" id="L119">        item.setTituloObra(peticion.tituloObra());</span>
+<span class="fc" id="L120">        item.setDescripcionObra(peticion.descripcionObra());</span>
+<span class="fc" id="L121">        item = itemRepository.save(item);</span>
+
+<span class="fc" id="L123">        log.info(&quot;Obra {} actualizada en el portafolio {}&quot;, idItem, item.getPortafolio().getIdPortafolio());</span>
+<span class="fc" id="L124">        return mapear(item);</span>
+    }
+
+    @Override
+    @Transactional
+    public void eliminarItem(Long idItem, Long idUsuario) {
+<span class="fc" id="L130">        PortafolioItem item = buscarItem(idItem);</span>
+<span class="fc" id="L131">        exigirPropietario(item.getPortafolio(), idUsuario);</span>
+
+<span class="fc" id="L133">        String referencia = item.getUrlArchivoMultimedia();</span>
+<span class="fc" id="L134">        itemRepository.delete(item);</span>
         // Se borra después de la fila: si falla, queda un huérfano en el
         // almacenamiento, que es preferible a una fila apuntando a la nada.
-<span class="fc" id="L123">        eliminarSilencioso(referencia);</span>
+<span class="fc" id="L137">        eliminarSilencioso(referencia);</span>
 
-<span class="fc" id="L125">        log.info(&quot;Obra {} eliminada del portafolio {}&quot;, idItem, item.getPortafolio().getIdPortafolio());</span>
-<span class="fc" id="L126">    }</span>
+<span class="fc" id="L139">        log.info(&quot;Obra {} eliminada del portafolio {}&quot;, idItem, item.getPortafolio().getIdPortafolio());</span>
+<span class="fc" id="L140">    }</span>
 
     // ── Autorización ─────────────────────────────────────────────────────────
 
     /** Solo el creador dueño del portafolio puede modificarlo. */
     private void exigirPropietario(Portafolio portafolio, Long idUsuario) {
-<span class="fc" id="L132">        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();</span>
-<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (!idDuenio.equals(idUsuario)) {</span>
-<span class="fc" id="L134">            throw new ExcepcionReglaNegocio(&quot;Solo el creador dueño del portafolio puede modificarlo.&quot;);</span>
+<span class="fc" id="L146">        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (!idDuenio.equals(idUsuario)) {</span>
+<span class="fc" id="L148">            throw new ExcepcionReglaNegocio(&quot;Solo el creador dueño del portafolio puede modificarlo.&quot;);</span>
         }
-<span class="fc" id="L136">    }</span>
+<span class="fc" id="L150">    }</span>
 
     /** Un portafolio privado solo lo ve su dueño; uno público, cualquiera. */
     private void exigirVisibilidad(Portafolio portafolio, Long idUsuario) {
-<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (Boolean.TRUE.equals(portafolio.getEsPublico())) {</span>
-<span class="fc" id="L141">            return;</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (Boolean.TRUE.equals(portafolio.getEsPublico())) {</span>
+<span class="fc" id="L155">            return;</span>
         }
-<span class="fc" id="L143">        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();</span>
-<span class="fc bfc" id="L144" title="All 4 branches covered.">        if (idUsuario == null || !idDuenio.equals(idUsuario)) {</span>
-<span class="fc" id="L145">            throw new ExcepcionReglaNegocio(&quot;Este portafolio no es público.&quot;);</span>
+<span class="fc" id="L157">        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L158" title="All 4 branches covered.">        if (idUsuario == null || !idDuenio.equals(idUsuario)) {</span>
+<span class="fc" id="L159">            throw new ExcepcionReglaNegocio(&quot;Este portafolio no es público.&quot;);</span>
         }
-<span class="fc" id="L147">    }</span>
+<span class="fc" id="L161">    }</span>
 
     // ── Auxiliares ───────────────────────────────────────────────────────────
 
     private PortafolioItem buscarItem(Long idItem) {
-<span class="fc" id="L152">        return itemRepository.findById(idItem)</span>
-<span class="pc" id="L153">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Obra no encontrada con ID: &quot; + idItem));</span>
+<span class="fc" id="L166">        return itemRepository.findById(idItem)</span>
+<span class="pc" id="L167">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Obra no encontrada con ID: &quot; + idItem));</span>
     }
 
     private void eliminarSilencioso(String referencia) {
-<span class="pc bpc" id="L157" title="2 of 4 branches missed.">        if (referencia == null || referencia.isBlank()) {</span>
-<span class="nc" id="L158">            return;</span>
+<span class="pc bpc" id="L171" title="2 of 4 branches missed.">        if (referencia == null || referencia.isBlank()) {</span>
+<span class="nc" id="L172">            return;</span>
         }
         try {
-<span class="fc" id="L161">            almacenamiento.eliminar(referencia);</span>
-<span class="fc" id="L162">        } catch (RuntimeException e) {</span>
-<span class="fc" id="L163">            log.warn(&quot;No se pudo eliminar el archivo {}: {}&quot;, referencia, e.getMessage());</span>
-<span class="fc" id="L164">        }</span>
-<span class="fc" id="L165">    }</span>
+<span class="fc" id="L175">            almacenamiento.eliminar(referencia);</span>
+<span class="fc" id="L176">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L177">            log.warn(&quot;No se pudo eliminar el archivo {}: {}&quot;, referencia, e.getMessage());</span>
+<span class="fc" id="L178">        }</span>
+<span class="fc" id="L179">    }</span>
 
     private String extensionDe(String referencia) {
-<span class="pc bpc" id="L168" title="1 of 2 branches missed.">        int punto = referencia == null ? -1 : referencia.lastIndexOf('.');</span>
-<span class="pc bpc" id="L169" title="1 of 2 branches missed.">        return punto &lt; 0 ? &quot;&quot; : referencia.substring(punto);</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">        int punto = referencia == null ? -1 : referencia.lastIndexOf('.');</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        return punto &lt; 0 ? &quot;&quot; : referencia.substring(punto);</span>
     }
 
     private RespuestaPortafolioItem mapear(PortafolioItem item) {
-<span class="fc" id="L173">        String referencia = item.getUrlArchivoMultimedia();</span>
+<span class="fc" id="L187">        String referencia = item.getUrlArchivoMultimedia();</span>
         // Con Azure el video viaja directo desde el blob; sin SAS, por el backend.
-<span class="fc" id="L175">        String url = almacenamiento.urlTemporal(referencia)</span>
-<span class="fc" id="L176">                .orElse(&quot;/api/v1/portafolios/items/&quot; + item.getIdItemPortafolio() + &quot;/archivo&quot;);</span>
+<span class="fc" id="L189">        String url = almacenamiento.urlTemporal(referencia)</span>
+<span class="fc" id="L190">                .orElse(&quot;/api/v1/portafolios/items/&quot; + item.getIdItemPortafolio() + &quot;/archivo&quot;);</span>
 
-<span class="fc" id="L178">        return RespuestaPortafolioItem.builder()</span>
-<span class="fc" id="L179">                .idItemPortafolio(item.getIdItemPortafolio())</span>
-<span class="fc" id="L180">                .idPortafolio(item.getPortafolio().getIdPortafolio())</span>
-<span class="fc" id="L181">                .tituloObra(item.getTituloObra())</span>
-<span class="fc" id="L182">                .descripcionObra(item.getDescripcionObra())</span>
-<span class="fc" id="L183">                .urlArchivo(url)</span>
-<span class="fc" id="L184">                .fechaSubida(item.getFechaSubida())</span>
-<span class="fc" id="L185">                .build();</span>
+<span class="fc" id="L192">        return RespuestaPortafolioItem.builder()</span>
+<span class="fc" id="L193">                .idItemPortafolio(item.getIdItemPortafolio())</span>
+<span class="fc" id="L194">                .idPortafolio(item.getPortafolio().getIdPortafolio())</span>
+<span class="fc" id="L195">                .tituloObra(item.getTituloObra())</span>
+<span class="fc" id="L196">                .descripcionObra(item.getDescripcionObra())</span>
+<span class="fc" id="L197">                .urlArchivo(url)</span>
+<span class="fc" id="L198">                .fechaSubida(item.getFechaSubida())</span>
+<span class="fc" id="L199">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

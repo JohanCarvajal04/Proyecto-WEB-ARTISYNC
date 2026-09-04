@@ -2,13 +2,13 @@
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
 import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
@@ -19,14 +19,30 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
+import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.*;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.comunicacion.ChatService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-<span class="fc" id="L29">@Slf4j</span>
+<span class="fc" id="L45">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class PedidoServicioImpl implements IPedidoServicio {
@@ -38,56 +54,283 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private final FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     private final HistorialEstadoPedidoRepository historialRepository;
     private final EtapaFlujoRepository etapaFlujoRepository;
+    private final ContratoRepository contratoRepository;
+    private final EntregableFinalRepository entregableFinalRepository;
+    private final PropuestaTerminosPedidoRepository propuestaTerminosPedidoRepository;
+    private final NotificacionService notificacionService;
+    private final ChatService chatService;
+    private final IServicioExportacion servicioExportacion;
+    private final IVerificacionServicio verificacionServicio;
+    private final IContratoServicio contratoServicio;
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;PEDIDO_CREAR&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#resultado.idPedido&quot;,
+            detalle = &quot;{idServicio: #peticion.idServicio}&quot;)
     public RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion) {
-<span class="fc" id="L45">        Usuario cliente = usuarioRepository.findById(idCliente)</span>
-<span class="fc" id="L46">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario cliente no encontrado&quot;));</span>
+<span class="fc" id="L72">        Usuario cliente = usuarioRepository.findById(idCliente)</span>
+<span class="fc" id="L73">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario cliente no encontrado&quot;));</span>
 
-<span class="fc" id="L48">        Servicio servicio = servicioRepository.findById(peticion.getIdServicio())</span>
-<span class="pc" id="L49">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Servicio no encontrado&quot;));</span>
-
-        // Verificar que el cliente no sea el mismo creador del servicio
-<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (servicio.getPerfil().getUsuario().getIdUsuario().equals(idCliente)) {</span>
-<span class="fc" id="L53">            throw new ExcepcionReglaNegocio(&quot;No puedes crear un pedido para tu propio servicio&quot;);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (!verificacionServicio.estaIdentidadVerificada(idCliente)) {</span>
+<span class="fc" id="L76">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Debes verificar tu identidad antes de crear un pedido. Sube tu documento de identidad desde tu perfil.&quot;);
         }
 
-<span class="fc" id="L56">        FlujoTrabajo flujo = resolverFlujoDelServicio(servicio);</span>
+<span class="fc" id="L80">        Servicio servicio = servicioRepository.findById(peticion.getIdServicio())</span>
+<span class="pc" id="L81">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Servicio no encontrado&quot;));</span>
+
+        // Verificar que el cliente no sea el mismo creador del servicio
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if (servicio.getPerfil().getUsuario().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L85">            throw new ExcepcionReglaNegocio(&quot;No puedes crear un pedido para tu propio servicio&quot;);</span>
+        }
+
+<span class="fc" id="L88">        FlujoTrabajo flujo = resolverFlujoDelServicio(servicio);</span>
 
         // Verificar que el flujo tenga etapas configuradas
-<span class="fc" id="L59">        List&lt;FlujoEtapaConfig&gt; etapas = flujoEtapaConfigRepository</span>
-<span class="fc" id="L60">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());</span>
-<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (etapas.isEmpty()) {</span>
-<span class="fc" id="L62">            throw new ExcepcionReglaNegocio(</span>
-<span class="fc" id="L63">                    &quot;El flujo '&quot; + flujo.getNombreFlujo() + &quot;' no tiene etapas configuradas&quot;);</span>
+<span class="fc" id="L91">        List&lt;FlujoEtapaConfig&gt; etapas = flujoEtapaConfigRepository</span>
+<span class="fc" id="L92">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (etapas.isEmpty()) {</span>
+<span class="fc" id="L94">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L95">                    &quot;El flujo '&quot; + flujo.getNombreFlujo() + &quot;' no tiene etapas configuradas&quot;);</span>
         }
 
         // Crear el pedido
-<span class="fc" id="L67">        Pedido pedido = Pedido.builder()</span>
-<span class="fc" id="L68">                .usuarioCliente(cliente)</span>
-<span class="fc" id="L69">                .servicio(servicio)</span>
-<span class="fc" id="L70">                .flujo(flujo)</span>
-<span class="pc bpc" id="L71" title="1 of 2 branches missed.">                .precioPactado(peticion.getPrecioOfrecido() != null</span>
-<span class="nc" id="L72">                        ? peticion.getPrecioOfrecido()</span>
-<span class="fc" id="L73">                        : servicio.getPrecioBase())</span>
-<span class="fc" id="L74">                .fechaEntregaEstimada(peticion.getFechaEntregaEstimada())</span>
-<span class="fc" id="L75">                .build();</span>
+<span class="fc" id="L99">        Pedido pedido = Pedido.builder()</span>
+<span class="fc" id="L100">                .usuarioCliente(cliente)</span>
+<span class="fc" id="L101">                .servicio(servicio)</span>
+<span class="fc" id="L102">                .flujo(flujo)</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">                .precioPactado(peticion.getPrecioOfrecido() != null</span>
+<span class="nc" id="L104">                        ? peticion.getPrecioOfrecido()</span>
+<span class="fc" id="L105">                        : servicio.getPrecioBase())</span>
+<span class="fc" id="L106">                .fechaEntregaEstimada(peticion.getFechaEntregaEstimada())</span>
+<span class="fc" id="L107">                .build();</span>
 
-<span class="fc" id="L77">        pedido = pedidoRepository.save(pedido);</span>
+<span class="fc" id="L109">        pedido = pedidoRepository.save(pedido);</span>
 
         // Registrar estado inicial (primera etapa del flujo)
-<span class="fc" id="L80">        HistorialEstadoPedido estadoInicial = HistorialEstadoPedido.builder()</span>
-<span class="fc" id="L81">                .pedido(pedido)</span>
-<span class="fc" id="L82">                .etapa(etapas.get(0).getEtapa())</span>
-<span class="fc" id="L83">                .observacion(&quot;Pedido creado&quot;)</span>
-<span class="fc" id="L84">                .build();</span>
-<span class="fc" id="L85">        historialRepository.save(estadoInicial);</span>
+<span class="fc" id="L112">        HistorialEstadoPedido estadoInicial = HistorialEstadoPedido.builder()</span>
+<span class="fc" id="L113">                .pedido(pedido)</span>
+<span class="fc" id="L114">                .etapa(etapas.get(0).getEtapa())</span>
+<span class="fc" id="L115">                .observacion(&quot;Pedido creado&quot;)</span>
+<span class="fc" id="L116">                .build();</span>
+<span class="fc" id="L117">        historialRepository.save(estadoInicial);</span>
 
-<span class="fc" id="L87">        log.info(&quot;Pedido {} creado por cliente {} para servicio {} con flujo '{}'&quot;,</span>
-<span class="fc" id="L88">                pedido.getIdPedido(), idCliente, peticion.getIdServicio(), flujo.getNombreFlujo());</span>
+<span class="fc" id="L119">        log.info(&quot;Pedido {} creado por cliente {} para servicio {} con flujo '{}'&quot;,</span>
+<span class="fc" id="L120">                pedido.getIdPedido(), idCliente, peticion.getIdServicio(), flujo.getNombreFlujo());</span>
 
-<span class="fc" id="L90">        return mapToRespuesta(pedido);</span>
+        // La sala se abre desde ya, antes de cualquier firma: así cliente y
+        // creador pueden negociar precio/alcance por chat antes de
+        // comprometerse con un contrato (ver proponerTerminos). Antes solo
+        // se abría cuando ambas partes ya habían firmado.
+<span class="fc" id="L126">        chatService.crearSala(pedido);</span>
+
+<span class="fc" id="L128">        return mapToRespuesta(pedido);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;PEDIDO_PROPONER_TERMINOS&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;)
+    public RespuestaPropuestaTerminos proponerTerminos(Long idPedido, Long idUsuario, PeticionCrearPropuestaTerminos peticion) {
+<span class="pc bpc" id="L136" title="1 of 4 branches missed.">        if (peticion.getPrecioPropuesto() == null &amp;&amp; peticion.getFechaEntregaPropuesta() == null) {</span>
+<span class="fc" id="L137">            throw new ExcepcionReglaNegocio(&quot;Debes indicar al menos un término a proponer&quot;);</span>
+        }
+
+<span class="fc" id="L140">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L141">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+
+<span class="fc" id="L143">        Usuario proponente = obtenerParteDelPedido(pedido, idUsuario,</span>
+                &quot;No tienes permiso para proponer términos de este pedido&quot;);
+
+<span class="fc" id="L146">        validarContratoSinFirmar(idPedido);</span>
+
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(idPedido, PropuestaTerminosPedido.PENDIENTE).isPresent()) {</span>
+<span class="fc" id="L149">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Ya existe una propuesta de cambio de términos pendiente; resuélvela antes de crear otra&quot;);
+        }
+
+<span class="fc" id="L153">        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()</span>
+<span class="fc" id="L154">                .pedido(pedido)</span>
+<span class="fc" id="L155">                .propuestoPor(proponente)</span>
+<span class="fc" id="L156">                .precioPropuesto(peticion.getPrecioPropuesto())</span>
+<span class="fc" id="L157">                .fechaEntregaPropuesta(peticion.getFechaEntregaPropuesta())</span>
+<span class="fc" id="L158">                .build();</span>
+<span class="fc" id="L159">        propuesta = propuestaTerminosPedidoRepository.save(propuesta);</span>
+
+<span class="fc" id="L161">        log.info(&quot;Pedido {} recibió propuesta de términos {} (usuario {}): precio={}, entrega={}&quot;,</span>
+<span class="fc" id="L162">                idPedido, propuesta.getIdPropuesta(), idUsuario, propuesta.getPrecioPropuesto(), propuesta.getFechaEntregaPropuesta());</span>
+
+<span class="fc" id="L164">        Usuario otraParte = obtenerContraparte(pedido, idUsuario);</span>
+<span class="fc" id="L165">        notificacionService.notificar(otraParte, &quot;PEDIDO_PROPUESTA_TERMINOS_CREADA&quot;,</span>
+<span class="fc" id="L166">                &quot;Te proponen nuevos términos para el pedido \&quot;&quot; + pedido.getServicio().getTituloServicio() + &quot;\&quot;.&quot;);</span>
+
+<span class="fc" id="L168">        return mapPropuesta(propuesta);</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;PEDIDO_ACEPTAR_PROPUESTA_TERMINOS&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;)
+    public RespuestaPedido aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
+<span class="fc" id="L176">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L177">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="fc" id="L178">        PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);</span>
+
+<span class="fc bfc" id="L180" title="All 2 branches covered.">        if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
+<span class="fc" id="L181">            throw new ExcepcionReglaNegocio(&quot;No puedes aceptar tu propia propuesta; debe hacerlo la otra parte&quot;);</span>
+        }
+<span class="fc" id="L183">        obtenerParteDelPedido(pedido, idUsuario, &quot;No tienes permiso para aceptar esta propuesta&quot;);</span>
+
+<span class="fc" id="L185">        validarContratoSinFirmar(idPedido);</span>
+
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">        if (propuesta.getPrecioPropuesto() != null) {</span>
+<span class="fc" id="L188">            pedido.setPrecioPactado(propuesta.getPrecioPropuesto());</span>
+        }
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (propuesta.getFechaEntregaPropuesta() != null) {</span>
+<span class="nc" id="L191">            pedido.setFechaEntregaEstimada(propuesta.getFechaEntregaPropuesta());</span>
+        }
+<span class="fc" id="L193">        pedido = pedidoRepository.save(pedido);</span>
+
+<span class="fc" id="L195">        propuesta.setEstado(PropuestaTerminosPedido.ACEPTADA);</span>
+<span class="fc" id="L196">        propuesta.setFechaResolucion(LocalDateTime.now());</span>
+<span class="fc" id="L197">        propuestaTerminosPedidoRepository.save(propuesta);</span>
+
+<span class="fc" id="L199">        log.info(&quot;Pedido {} aceptó propuesta de términos {} (usuario {}): precio={}, entrega={}&quot;,</span>
+<span class="fc" id="L200">                idPedido, idPropuesta, idUsuario, pedido.getPrecioPactado(), pedido.getFechaEntregaEstimada());</span>
+
+        // El chat ofrece un atajo para generar el contrato una vez que ambas
+        // partes se pusieron de acuerdo (ver ChatPedidoComponent); aceptar la
+        // primera propuesta de términos ES ese acuerdo, así que el contrato se
+        // genera aquí mismo con los valores recién fijados en el pedido en vez
+        // de requerir un paso manual aparte.
+<span class="fc" id="L207">        boolean contratoRecienGenerado = contratoRepository.findByPedidoIdPedido(idPedido).isEmpty();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        if (contratoRecienGenerado) {</span>
+<span class="fc" id="L209">            contratoServicio.generarContrato(idPedido, idUsuario);</span>
+        }
+
+<span class="fc" id="L212">        notificacionService.notificar(propuesta.getPropuestoPor(),</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">                contratoRecienGenerado ? &quot;PEDIDO_PROPUESTA_TERMINOS_ACEPTADA_CONTRATO_GENERADO&quot; : &quot;PEDIDO_PROPUESTA_TERMINOS_ACEPTADA&quot;,</span>
+<span class="fc" id="L214">                &quot;Aceptaron tus términos propuestos para el pedido \&quot;&quot; + pedido.getServicio().getTituloServicio() + &quot;\&quot;.&quot;</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">                        + (contratoRecienGenerado ? &quot; Se generó el contrato.&quot; : &quot;&quot;));</span>
+
+<span class="fc" id="L217">        return mapToRespuesta(pedido);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPropuestaTerminos rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
+<span class="fc" id="L223">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L224">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="fc" id="L225">        PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);</span>
+
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
+<span class="nc" id="L228">            throw new ExcepcionReglaNegocio(&quot;No puedes rechazar tu propia propuesta; debe hacerlo la otra parte&quot;);</span>
+        }
+<span class="fc" id="L230">        obtenerParteDelPedido(pedido, idUsuario, &quot;No tienes permiso para rechazar esta propuesta&quot;);</span>
+
+<span class="fc" id="L232">        propuesta.setEstado(PropuestaTerminosPedido.RECHAZADA);</span>
+<span class="fc" id="L233">        propuesta.setFechaResolucion(LocalDateTime.now());</span>
+<span class="fc" id="L234">        propuesta = propuestaTerminosPedidoRepository.save(propuesta);</span>
+
+<span class="fc" id="L236">        log.info(&quot;Pedido {} rechazó propuesta de términos {} (usuario {})&quot;, idPedido, idPropuesta, idUsuario);</span>
+
+<span class="fc" id="L238">        notificacionService.notificar(propuesta.getPropuestoPor(), &quot;PEDIDO_PROPUESTA_TERMINOS_RECHAZADA&quot;,</span>
+<span class="fc" id="L239">                &quot;Rechazaron tus términos propuestos para el pedido \&quot;&quot; + pedido.getServicio().getTituloServicio() + &quot;\&quot;.&quot;);</span>
+
+<span class="fc" id="L241">        return mapPropuesta(propuesta);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPropuestaTerminos cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
+<span class="nc" id="L247">        PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);</span>
+
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (!propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
+<span class="nc" id="L250">            throw new ExcepcionReglaNegocio(&quot;Solo quien propuso los términos puede cancelar la propuesta&quot;);</span>
+        }
+
+<span class="nc" id="L253">        propuesta.setEstado(PropuestaTerminosPedido.CANCELADA);</span>
+<span class="nc" id="L254">        propuesta.setFechaResolucion(LocalDateTime.now());</span>
+<span class="nc" id="L255">        propuesta = propuestaTerminosPedidoRepository.save(propuesta);</span>
+
+<span class="nc" id="L257">        log.info(&quot;Pedido {} canceló propuesta de términos {} (usuario {})&quot;, idPedido, idPropuesta, idUsuario);</span>
+
+<span class="nc" id="L259">        return mapPropuesta(propuesta);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaPropuestaTerminos obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante) {
+<span class="nc" id="L265">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="nc" id="L266">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="nc" id="L267">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
+
+<span class="nc" id="L269">        PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository</span>
+<span class="nc" id="L270">                .findByPedidoIdPedidoAndEstado(idPedido, PropuestaTerminosPedido.PENDIENTE)</span>
+<span class="nc" id="L271">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay ninguna propuesta de términos pendiente para el pedido con ID: &quot; + idPedido));</span>
+
+<span class="nc" id="L273">        return mapPropuesta(propuesta);</span>
+    }
+
+    private PropuestaTerminosPedido obtenerPropuestaPendienteDelPedido(Long idPedido, Long idPropuesta) {
+<span class="fc" id="L277">        PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository.findById(idPropuesta)</span>
+<span class="pc" id="L278">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Propuesta no encontrada&quot;));</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">        if (!propuesta.getPedido().getIdPedido().equals(idPedido)) {</span>
+<span class="nc" id="L280">            throw new ExcepcionRecursoNoEncontrado(&quot;Propuesta no encontrada&quot;);</span>
+        }
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (!PropuestaTerminosPedido.PENDIENTE.equals(propuesta.getEstado())) {</span>
+<span class="nc" id="L283">            throw new ExcepcionReglaNegocio(&quot;Esta propuesta ya fue resuelta&quot;);</span>
+        }
+<span class="fc" id="L285">        return propuesta;</span>
+    }
+
+    private Usuario obtenerParteDelPedido(Pedido pedido, Long idUsuario, String mensajeError) {
+<span class="fc" id="L289">        Long idCliente = pedido.getUsuarioCliente().getIdUsuario();</span>
+<span class="fc" id="L290">        Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">        if (idCliente.equals(idUsuario)) {</span>
+<span class="fc" id="L292">            return pedido.getUsuarioCliente();</span>
+        }
+<span class="fc bfc" id="L294" title="All 2 branches covered.">        if (idCreador.equals(idUsuario)) {</span>
+<span class="fc" id="L295">            return pedido.getServicio().getPerfil().getUsuario();</span>
+        }
+<span class="fc" id="L297">        throw new ExcepcionReglaNegocio(mensajeError);</span>
+    }
+
+    private Usuario obtenerContraparte(Pedido pedido, Long idUsuario) {
+<span class="fc" id="L301">        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">        return esCliente ? pedido.getServicio().getPerfil().getUsuario() : pedido.getUsuarioCliente();</span>
+    }
+
+    /**
+     * Los términos quedan congelados apenas hay una firma: el contrato ya
+     * renderiza precio/fecha en vivo desde el pedido (ver
+     * ContratoServicioImpl#generarContratoHtml), así que cambiarlos después
+     * de que alguien firmó reescribiría en silencio lo que esa persona ya
+     * aceptó.
+     */
+    private void validarContratoSinFirmar(Long idPedido) {
+<span class="fc" id="L313">        contratoRepository.findByPedidoIdPedido(idPedido).ifPresent(contrato -&gt; {</span>
+<span class="pc bpc" id="L314" title="1 of 4 branches missed.">            if (contrato.getHashFirmaCreador() != null || contrato.getHashFirmaCliente() != null) {</span>
+<span class="fc" id="L315">                throw new ExcepcionReglaNegocio(</span>
+                        &quot;No se pueden modificar los términos: el contrato ya tiene al menos una firma&quot;);
+            }
+<span class="fc" id="L318">        });</span>
+<span class="fc" id="L319">    }</span>
+
+    private RespuestaPropuestaTerminos mapPropuesta(PropuestaTerminosPedido propuesta) {
+<span class="fc" id="L322">        Usuario propuestoPor = propuesta.getPropuestoPor();</span>
+<span class="fc" id="L323">        return RespuestaPropuestaTerminos.builder()</span>
+<span class="fc" id="L324">                .idPropuesta(propuesta.getIdPropuesta())</span>
+<span class="fc" id="L325">                .idPedido(propuesta.getPedido().getIdPedido())</span>
+<span class="fc" id="L326">                .idUsuarioPropuso(propuestoPor.getIdUsuario())</span>
+<span class="fc" id="L327">                .nombrePropuso(propuestoPor.getNombres() + &quot; &quot; + propuestoPor.getApellidos())</span>
+<span class="fc" id="L328">                .precioPropuesto(propuesta.getPrecioPropuesto())</span>
+<span class="fc" id="L329">                .fechaEntregaPropuesta(propuesta.getFechaEntregaPropuesta())</span>
+<span class="fc" id="L330">                .estado(propuesta.getEstado())</span>
+<span class="fc" id="L331">                .fechaCreacion(propuesta.getFechaCreacion())</span>
+<span class="fc" id="L332">                .fechaResolucion(propuesta.getFechaResolucion())</span>
+<span class="fc" id="L333">                .build();</span>
     }
 
     /**
@@ -103,15 +346,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * configurar no debe impedir vender.
      */
     private FlujoTrabajo resolverFlujoDelServicio(Servicio servicio) {
-<span class="fc" id="L106">        Categoria categoria = servicio.getSubcategoria().getCategoria();</span>
+<span class="fc" id="L349">        Categoria categoria = servicio.getSubcategoria().getCategoria();</span>
 
-<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (categoria.getFlujo() != null) {</span>
-<span class="fc" id="L109">            return categoria.getFlujo();</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">        if (categoria.getFlujo() != null) {</span>
+<span class="fc" id="L352">            return categoria.getFlujo();</span>
         }
 
-<span class="fc" id="L112">        log.warn(&quot;La categoria '{}' no tiene flujo asignado; se usa el flujo por defecto&quot;,</span>
-<span class="fc" id="L113">                categoria.getNombreCategoria());</span>
-<span class="fc" id="L114">        return obtenerFlujoPorDefecto();</span>
+<span class="fc" id="L355">        log.warn(&quot;La categoria '{}' no tiene flujo asignado; se usa el flujo por defecto&quot;,</span>
+<span class="fc" id="L356">                categoria.getNombreCategoria());</span>
+<span class="fc" id="L357">        return obtenerFlujoPorDefecto();</span>
     }
 
     /**
@@ -125,235 +368,318 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * determinista.
      */
     private FlujoTrabajo obtenerFlujoPorDefecto() {
-<span class="fc" id="L128">        return flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()</span>
-<span class="fc" id="L129">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L371">        return flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()</span>
+<span class="fc" id="L372">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
                         &quot;No hay flujos de trabajo configurados en el sistema&quot;));
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
-<span class="fc" id="L136">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="fc" id="L137">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado con ID: &quot; + idPedido));</span>
-<span class="fc" id="L138">        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);</span>
-<span class="fc" id="L139">        return mapToRespuesta(pedido);</span>
+<span class="fc" id="L379">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L380">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado con ID: &quot; + idPedido));</span>
+        // OBS-08 / H-02: evita el acceso indebido (IDOR) a pedidos ajenos.
+<span class="fc" id="L382">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
+<span class="fc" id="L383">        return mapToRespuesta(pedido);</span>
     }
-
-    /**
-     * OBS-08: evita el acceso indebido (IDOR) a pedidos ajenos — solo el cliente dueño,
-     * el creador del servicio pedido o un ADMIN pueden consultarlo.
-     */
-    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
-<span class="fc" id="L147">        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);</span>
-<span class="fc" id="L148">        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);</span>
-
-<span class="fc bfc" id="L150" title="All 4 branches covered.">        if (esCliente || esCreador) {</span>
-<span class="fc" id="L151">            return;</span>
-        }
-
-<span class="fc" id="L154">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="fc bfc" id="L155" title="All 2 branches covered.">        boolean esAdmin = auth != null &amp;&amp; auth.getAuthorities().stream()</span>
-<span class="pc bpc" id="L156" title="1 of 2 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
-
-<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (!esAdmin) {</span>
-<span class="fc" id="L159">            throw new AccessDeniedException(&quot;No tienes permisos para consultar este pedido&quot;);</span>
-        }
-<span class="fc" id="L161">    }</span>
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaPedidoResumido&gt; listarMisPedidos(Long idCliente) {
-<span class="fc" id="L166">        return pedidoRepository.findByUsuarioClienteIdUsuario(idCliente)</span>
-<span class="fc" id="L167">                .stream()</span>
-<span class="fc" id="L168">                .map(this::mapToResumido)</span>
-<span class="fc" id="L169">                .collect(Collectors.toList());</span>
+<span class="fc" id="L389">        return pedidoRepository.findByUsuarioClienteIdUsuario(idCliente)</span>
+<span class="fc" id="L390">                .stream()</span>
+<span class="fc" id="L391">                .map(this::mapToResumido)</span>
+<span class="fc" id="L392">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaPedidoResumido&gt; listarMisComisiones(Long idCreador) {
-<span class="fc" id="L175">        return pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idCreador)</span>
-<span class="fc" id="L176">                .stream()</span>
-<span class="fc" id="L177">                .map(this::mapToResumido)</span>
-<span class="fc" id="L178">                .collect(Collectors.toList());</span>
+<span class="fc" id="L398">        return pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idCreador)</span>
+<span class="fc" id="L399">                .stream()</span>
+<span class="fc" id="L400">                .map(this::mapToResumido)</span>
+<span class="fc" id="L401">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante) {
+<span class="nc" id="L407">        return exportarResumen(listarMisPedidos(idCliente), &quot;Mis pedidos&quot;, &quot;Pedidos como cliente&quot;,</span>
+                formato, correoSolicitante);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportarMisComisiones(Long idCreador, List&lt;Long&gt; idsPedido, FormatoReporte formato,
+                                                     String correoSolicitante) {
+<span class="fc" id="L415">        List&lt;RespuestaPedidoResumido&gt; comisiones = listarMisComisiones(idCreador);</span>
+<span class="pc bpc" id="L416" title="1 of 4 branches missed.">        if (idsPedido != null &amp;&amp; !idsPedido.isEmpty()) {</span>
+            // 1.4: filtra sobre el propio listado del creador, así que un id
+            // ajeno enviado por el cliente simplemente no matchea — no es una
+            // vía de IDOR, solo se restringe el subconjunto ya autorizado.
+<span class="fc" id="L420">            Set&lt;Long&gt; idsSolicitados = new HashSet&lt;&gt;(idsPedido);</span>
+<span class="fc" id="L421">            comisiones = comisiones.stream()</span>
+<span class="fc" id="L422">                    .filter(c -&gt; idsSolicitados.contains(c.getIdPedido()))</span>
+<span class="fc" id="L423">                    .collect(Collectors.toList());</span>
+        }
+<span class="fc" id="L425">        return exportarResumen(comisiones, &quot;Mis comisiones&quot;, &quot;Pedidos como creador&quot;,</span>
+                formato, correoSolicitante);
+    }
+
+    private DocumentoGenerado exportarResumen(List&lt;RespuestaPedidoResumido&gt; filas, String titulo, String subtitulo,
+                                               FormatoReporte formato, String correoSolicitante) {
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">        if (filas.size() &gt; formato.topeFilas()) {</span>
+<span class="nc" id="L432">            throw new ExcepcionReglaNegocio(</span>
+<span class="nc" id="L433">                    &quot;El listado tiene &quot; + filas.size() + &quot; pedidos, más de los &quot; + formato.topeFilas()</span>
+                            + &quot; que admite una exportación en &quot; + formato + &quot;.&quot;);
+        }
+
+<span class="fc" id="L437">        ModeloReporte&lt;RespuestaPedidoResumido&gt; modelo = ModeloReporte.&lt;RespuestaPedidoResumido&gt;builder()</span>
+<span class="fc" id="L438">                .titulo(titulo)</span>
+<span class="fc" id="L439">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L440">                .filtrosAplicados(Map.of())</span>
+<span class="fc" id="L441">                .columnas(List.of(</span>
+<span class="fc" id="L442">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, RespuestaPedidoResumido::getIdPedido),</span>
+<span class="fc" id="L443">                        ColumnaReporte.texto(&quot;Servicio&quot;, RespuestaPedidoResumido::getTituloServicio),</span>
+<span class="fc" id="L444">                        ColumnaReporte.texto(&quot;Etapa&quot;, RespuestaPedidoResumido::getEtapaActual),</span>
+<span class="fc" id="L445">                        ColumnaReporte.moneda(&quot;Precio pactado&quot;, RespuestaPedidoResumido::getPrecioPactado),</span>
+<span class="fc" id="L446">                        ColumnaReporte.fechaHora(&quot;Inicio&quot;, RespuestaPedidoResumido::getFechaInicio),</span>
+<span class="fc" id="L447">                        ColumnaReporte.fechaHora(&quot;Entrega estimada&quot;, RespuestaPedidoResumido::getFechaEntregaEstimada),</span>
+<span class="fc" id="L448">                        ColumnaReporte.texto(&quot;Creador&quot;, RespuestaPedidoResumido::getNombreCreador),</span>
+<span class="fc" id="L449">                        ColumnaReporte.texto(&quot;Cliente&quot;, RespuestaPedidoResumido::getNombreCliente)))</span>
+<span class="fc" id="L450">                .filas(filas)</span>
+<span class="fc" id="L451">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L452">                .build();</span>
+
+<span class="fc" id="L454">        return servicioExportacion.exportar(modelo, formato);</span>
     }
 
     @Override
     @Transactional
+    // Las transiciones de flujo: incluye los intentos FALLIDOS, que
+    // historial_estados_pedido (tabla de dominio) nunca registra.
+    @Auditable(accion = &quot;PEDIDO_AVANZAR_ETAPA&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;,
+            detalle = &quot;{observacion: #peticion.observacion}&quot;)
     public RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion) {
-<span class="fc" id="L184">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="fc" id="L185">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="fc" id="L465">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L466">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
 
         // Verificar que el creador es el dueño del servicio del pedido
-<span class="fc" id="L188">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
-<span class="fc bfc" id="L189" title="All 2 branches covered.">        if (!idCreadorServicio.equals(idCreador)) {</span>
-<span class="fc" id="L190">            throw new ExcepcionReglaNegocio(&quot;Solo el creador del servicio puede avanzar las etapas del pedido&quot;);</span>
+<span class="fc" id="L469">        Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L470" title="All 2 branches covered.">        if (!idCreadorServicio.equals(idCreador)) {</span>
+<span class="fc" id="L471">            throw new ExcepcionReglaNegocio(&quot;Solo el creador del servicio puede avanzar las etapas del pedido&quot;);</span>
         }
 
         // Obtener etapa actual del historial
-<span class="fc" id="L194">        HistorialEstadoPedido ultimoEstado = historialRepository</span>
-<span class="fc" id="L195">                .findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)</span>
-<span class="fc" id="L196">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(&quot;Pedido sin estado inicial&quot;));</span>
+<span class="fc" id="L475">        HistorialEstadoPedido ultimoEstado = historialRepository</span>
+<span class="fc" id="L476">                .findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)</span>
+<span class="fc" id="L477">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(&quot;Pedido sin estado inicial&quot;));</span>
 
-        // Obtener el orden actual de la etapa
-<span class="fc" id="L199">        Integer ordenActual = obtenerOrdenActual(pedido, ultimoEstado);</span>
+        // Obtener configuracion de la etapa actual (orden + si exige entregable).
+        // Si ya no está en la configuración del flujo (p. ej. se borró la
+        // etapa), no hay un &quot;siguiente&quot; seguro que calcular — tratarlo como
+        // orden 0 avanzaría el pedido a la primera etapa en vez de fallar.
+<span class="fc" id="L483">        FlujoEtapaConfig configActual = obtenerConfigActual(pedido, ultimoEstado);</span>
+<span class="fc bfc" id="L484" title="All 2 branches covered.">        if (configActual == null) {</span>
+<span class="fc" id="L485">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L486">                    &quot;La etapa actual del pedido ('&quot; + ultimoEstado.getEtapa().getNombreEtapa()</span>
+                            + &quot;') ya no forma parte del flujo de trabajo configurado. Contacta a soporte.&quot;);
+        }
+<span class="fc" id="L489">        Integer ordenActual = configActual.getNumeroOrden();</span>
+
+        // La etapa que se abandona puede exigir que ya exista un entregable
+        // subido para el pedido (p. ej. &quot;En Producción&quot; antes de pasar a
+        // revisión del cliente); sin él, el creador no puede avanzar.
+<span class="fc bfc" id="L494" title="All 2 branches covered.">        if (Boolean.TRUE.equals(configActual.getRequiereEntregable())</span>
+<span class="fc bfc" id="L495" title="All 2 branches covered.">                &amp;&amp; !entregableFinalRepository.existsByPedidoIdPedido(idPedido)) {</span>
+<span class="fc" id="L496">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Debes subir el entregable antes de avanzar de la etapa '&quot;
+<span class="fc" id="L498">                            + configActual.getEtapa().getNombreEtapa() + &quot;'&quot;);</span>
+        }
 
         // Obtener siguiente etapa del flujo configurado
-<span class="fc" id="L202">        List&lt;FlujoEtapaConfig&gt; siguientes = flujoEtapaConfigRepository</span>
-<span class="fc" id="L203">                .findByFlujoIdFlujoAndNumeroOrdenGreaterThanOrderByNumeroOrdenAsc(</span>
-<span class="fc" id="L204">                        pedido.getFlujo().getIdFlujo(), ordenActual);</span>
+<span class="fc" id="L502">        List&lt;FlujoEtapaConfig&gt; siguientes = flujoEtapaConfigRepository</span>
+<span class="fc" id="L503">                .findByFlujoIdFlujoAndNumeroOrdenGreaterThanOrderByNumeroOrdenAsc(</span>
+<span class="fc" id="L504">                        pedido.getFlujo().getIdFlujo(), ordenActual);</span>
 
-<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (siguientes.isEmpty()) {</span>
-<span class="fc" id="L207">            throw new ExcepcionReglaNegocio(&quot;El pedido ya se encuentra en la etapa final&quot;);</span>
+<span class="fc bfc" id="L506" title="All 2 branches covered.">        if (siguientes.isEmpty()) {</span>
+<span class="fc" id="L507">            throw new ExcepcionReglaNegocio(&quot;El pedido ya se encuentra en la etapa final&quot;);</span>
         }
 
-<span class="fc" id="L210">        FlujoEtapaConfig siguienteConfig = siguientes.get(0);</span>
+<span class="fc" id="L510">        FlujoEtapaConfig siguienteConfig = siguientes.get(0);</span>
 
         // Registrar transición (INMUTABLE)
-<span class="fc" id="L213">        HistorialEstadoPedido nuevoEstado = HistorialEstadoPedido.builder()</span>
-<span class="fc" id="L214">                .pedido(pedido)</span>
-<span class="fc" id="L215">                .etapa(siguienteConfig.getEtapa())</span>
-<span class="fc" id="L216">                .observacion(peticion.getObservacion())</span>
-<span class="fc" id="L217">                .build();</span>
-<span class="fc" id="L218">        historialRepository.save(nuevoEstado);</span>
+<span class="fc" id="L513">        HistorialEstadoPedido nuevoEstado = HistorialEstadoPedido.builder()</span>
+<span class="fc" id="L514">                .pedido(pedido)</span>
+<span class="fc" id="L515">                .etapa(siguienteConfig.getEtapa())</span>
+<span class="fc" id="L516">                .observacion(peticion.getObservacion())</span>
+<span class="fc" id="L517">                .build();</span>
+<span class="fc" id="L518">        historialRepository.save(nuevoEstado);</span>
 
-<span class="fc" id="L220">        log.info(&quot;Pedido {} avanzó a etapa '{}' (orden {})&quot;,</span>
-<span class="fc" id="L221">                idPedido, siguienteConfig.getEtapa().getNombreEtapa(), siguienteConfig.getNumeroOrden());</span>
+<span class="fc" id="L520">        log.info(&quot;Pedido {} avanzó a etapa '{}' (orden {})&quot;,</span>
+<span class="fc" id="L521">                idPedido, siguienteConfig.getEtapa().getNombreEtapa(), siguienteConfig.getNumeroOrden());</span>
 
-        // TODO M6: Notificar al cliente vía NotificacionService
-        // notificacionService.notificar(pedido.getUsuarioCliente(),
-        //     &quot;PEDIDO_AVANCE&quot;, &quot;Tu pedido ha avanzado a: &quot; + siguienteConfig.getEtapa().getNombreEtapa());
+<span class="fc" id="L523">        notificacionService.notificar(pedido.getUsuarioCliente(), &quot;PEDIDO_AVANCE&quot;,</span>
+<span class="fc" id="L524">                &quot;Tu pedido ha avanzado a: &quot; + siguienteConfig.getEtapa().getNombreEtapa());</span>
 
-<span class="fc" id="L227">        return mapToRespuesta(pedido);</span>
+<span class="fc" id="L526">        return mapToRespuesta(pedido);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List&lt;RespuestaHistorialEstado&gt; obtenerHistorial(Long idPedido) {
-<span class="fc bfc" id="L233" title="All 2 branches covered.">        if (!pedidoRepository.existsById(idPedido)) {</span>
-<span class="fc" id="L234">            throw new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado con ID: &quot; + idPedido);</span>
-        }
+    public List&lt;RespuestaHistorialEstado&gt; obtenerHistorial(Long idPedido, Long idUsuarioSolicitante) {
+<span class="fc" id="L532">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L533">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado con ID: &quot; + idPedido));</span>
+        // Evita que cualquier autenticado lea el historial de un pedido ajeno.
+<span class="fc" id="L535">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
 
-<span class="fc" id="L237">        return historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido)</span>
-<span class="fc" id="L238">                .stream()</span>
-<span class="fc" id="L239">                .map(this::mapHistorial)</span>
-<span class="fc" id="L240">                .collect(Collectors.toList());</span>
+<span class="fc" id="L537">        return historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido)</span>
+<span class="fc" id="L538">                .stream()</span>
+<span class="fc" id="L539">                .map(this::mapHistorial)</span>
+<span class="fc" id="L540">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido) {
-<span class="fc" id="L246">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="fc" id="L247">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+    public RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante) {
+<span class="fc" id="L546">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L547">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+        // Evita que cualquier autenticado lea el seguimiento de un pedido ajeno.
+<span class="fc" id="L549">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
 
-<span class="fc" id="L249">        List&lt;FlujoEtapaConfig&gt; etapasConfig = flujoEtapaConfigRepository</span>
-<span class="fc" id="L250">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());</span>
+<span class="fc" id="L551">        List&lt;FlujoEtapaConfig&gt; etapasConfig = flujoEtapaConfigRepository</span>
+<span class="fc" id="L552">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());</span>
 
-<span class="fc" id="L252">        List&lt;HistorialEstadoPedido&gt; historial = historialRepository</span>
-<span class="fc" id="L253">                .findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido);</span>
+<span class="fc" id="L554">        List&lt;HistorialEstadoPedido&gt; historial = historialRepository</span>
+<span class="fc" id="L555">                .findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido);</span>
 
-<span class="fc bfc" id="L255" title="All 2 branches covered.">        HistorialEstadoPedido ultimoEstado = historial.isEmpty() ? null : historial.get(historial.size() - 1);</span>
+<span class="fc bfc" id="L557" title="All 2 branches covered.">        HistorialEstadoPedido ultimoEstado = historial.isEmpty() ? null : historial.get(historial.size() - 1);</span>
 
-<span class="fc" id="L257">        Integer etapaActualOrden = 0;</span>
-<span class="fc" id="L258">        String etapaActualNombre = &quot;Sin estado&quot;;</span>
-<span class="fc bfc" id="L259" title="All 2 branches covered.">        if (ultimoEstado != null) {</span>
-<span class="fc" id="L260">            etapaActualNombre = ultimoEstado.getEtapa().getNombreEtapa();</span>
-<span class="fc" id="L261">            etapaActualOrden = obtenerOrdenActual(pedido, ultimoEstado);</span>
+<span class="fc" id="L559">        Integer etapaActualOrden = 0;</span>
+<span class="fc" id="L560">        String etapaActualNombre = &quot;Sin estado&quot;;</span>
+<span class="fc" id="L561">        boolean bloqueadoPorEntregable = false;</span>
+<span class="fc bfc" id="L562" title="All 2 branches covered.">        if (ultimoEstado != null) {</span>
+<span class="fc" id="L563">            etapaActualNombre = ultimoEstado.getEtapa().getNombreEtapa();</span>
+<span class="fc" id="L564">            FlujoEtapaConfig configActual = etapasConfig.stream()</span>
+<span class="fc" id="L565">                    .filter(c -&gt; c.getEtapa().getIdEtapa().equals(ultimoEstado.getEtapa().getIdEtapa()))</span>
+<span class="fc" id="L566">                    .findFirst()</span>
+<span class="fc" id="L567">                    .orElse(null);</span>
+<span class="pc bpc" id="L568" title="1 of 2 branches missed.">            if (configActual != null) {</span>
+<span class="fc" id="L569">                etapaActualOrden = configActual.getNumeroOrden();</span>
+<span class="pc bpc" id="L570" title="1 of 2 branches missed.">                bloqueadoPorEntregable = Boolean.TRUE.equals(configActual.getRequiereEntregable())</span>
+<span class="pc bnc" id="L571" title="All 2 branches missed.">                        &amp;&amp; !entregableFinalRepository.existsByPedidoIdPedido(idPedido);</span>
+            } else {
+                // Vista de solo lectura: no se puede fallar, pero sí avisar.
+                // El pedido quedó con una etapa que ya no está en la
+                // configuración del flujo.
+<span class="nc" id="L576">                log.warn(&quot;Pedido {} tiene como etapa actual '{}', que ya no está en la configuración del flujo {}&quot;,</span>
+<span class="nc" id="L577">                        idPedido, etapaActualNombre, pedido.getFlujo().getIdFlujo());</span>
+            }
         }
 
-<span class="fc" id="L264">        int totalEtapas = etapasConfig.size();</span>
-<span class="fc bfc" id="L265" title="All 2 branches covered.">        double porcentaje = totalEtapas &gt; 0 ? ((double) etapaActualOrden / totalEtapas) * 100 : 0;</span>
+<span class="fc" id="L581">        int totalEtapas = etapasConfig.size();</span>
+<span class="fc bfc" id="L582" title="All 2 branches covered.">        double porcentaje = totalEtapas &gt; 0 ? ((double) etapaActualOrden / totalEtapas) * 100 : 0;</span>
 
-<span class="fc" id="L267">        return RespuestaSeguimientoPedido.builder()</span>
-<span class="fc" id="L268">                .idPedido(idPedido)</span>
-<span class="fc" id="L269">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
-<span class="fc" id="L270">                .etapaActual(etapaActualNombre)</span>
-<span class="fc" id="L271">                .etapaActualOrden(etapaActualOrden)</span>
-<span class="fc" id="L272">                .totalEtapas(totalEtapas)</span>
-<span class="fc" id="L273">                .porcentajeProgreso(porcentaje)</span>
-<span class="fc bfc" id="L274" title="All 2 branches covered.">                .fechaUltimaActualizacion(ultimoEstado != null ? ultimoEstado.getFechaTransicion() : null)</span>
-<span class="fc" id="L275">                .etapasDelFlujo(etapasConfig.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))</span>
-<span class="fc" id="L276">                .historial(historial.stream().map(this::mapHistorial).collect(Collectors.toList()))</span>
-<span class="fc" id="L277">                .build();</span>
+<span class="fc" id="L584">        return RespuestaSeguimientoPedido.builder()</span>
+<span class="fc" id="L585">                .idPedido(idPedido)</span>
+<span class="fc" id="L586">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
+<span class="fc" id="L587">                .etapaActual(etapaActualNombre)</span>
+<span class="fc" id="L588">                .etapaActualOrden(etapaActualOrden)</span>
+<span class="fc" id="L589">                .totalEtapas(totalEtapas)</span>
+<span class="fc" id="L590">                .porcentajeProgreso(porcentaje)</span>
+<span class="fc bfc" id="L591" title="All 2 branches covered.">                .fechaUltimaActualizacion(ultimoEstado != null ? ultimoEstado.getFechaTransicion() : null)</span>
+<span class="fc" id="L592">                .bloqueadoPorEntregable(bloqueadoPorEntregable)</span>
+<span class="fc" id="L593">                .etapasDelFlujo(etapasConfig.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))</span>
+<span class="fc" id="L594">                .historial(historial.stream().map(this::mapHistorial).collect(Collectors.toList()))</span>
+<span class="fc" id="L595">                .build();</span>
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
-    private Integer obtenerOrdenActual(Pedido pedido, HistorialEstadoPedido ultimoEstado) {
-<span class="fc" id="L283">        List&lt;FlujoEtapaConfig&gt; configs = flujoEtapaConfigRepository</span>
-<span class="fc" id="L284">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());</span>
-
-<span class="fc" id="L286">        return configs.stream()</span>
-<span class="fc" id="L287">                .filter(c -&gt; c.getEtapa().getIdEtapa().equals(ultimoEstado.getEtapa().getIdEtapa()))</span>
-<span class="fc" id="L288">                .findFirst()</span>
-<span class="fc" id="L289">                .map(FlujoEtapaConfig::getNumeroOrden)</span>
-<span class="fc" id="L290">                .orElse(0);</span>
+    /**
+     * Null cuando la etapa del último historial ya no está en la
+     * configuración del flujo (p. ej. alguien la borró mientras el pedido
+     * estaba detenido ahí). Nunca debe tratarse como &quot;orden 0&quot;: eso haría
+     * que avanzarEtapa tome la primera etapa del flujo como &quot;siguiente&quot; y el
+     * pedido retroceda en silencio.
+     */
+    private FlujoEtapaConfig obtenerConfigActual(Pedido pedido, HistorialEstadoPedido ultimoEstado) {
+<span class="fc" id="L608">        return flujoEtapaConfigRepository</span>
+<span class="fc" id="L609">                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo())</span>
+<span class="fc" id="L610">                .stream()</span>
+<span class="fc" id="L611">                .filter(c -&gt; c.getEtapa().getIdEtapa().equals(ultimoEstado.getEtapa().getIdEtapa()))</span>
+<span class="fc" id="L612">                .findFirst()</span>
+<span class="fc" id="L613">                .orElse(null);</span>
     }
 
     private String obtenerEtapaActual(Long idPedido) {
-<span class="fc" id="L294">        return historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)</span>
-<span class="fc" id="L295">                .map(h -&gt; h.getEtapa().getNombreEtapa())</span>
-<span class="fc" id="L296">                .orElse(&quot;Sin estado&quot;);</span>
+<span class="fc" id="L617">        return historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)</span>
+<span class="pc" id="L618">                .map(h -&gt; h.getEtapa().getNombreEtapa())</span>
+<span class="fc" id="L619">                .orElse(&quot;Sin estado&quot;);</span>
     }
 
     private RespuestaPedido mapToRespuesta(Pedido pedido) {
-<span class="fc" id="L300">        List&lt;RespuestaHistorialEstado&gt; historial = historialRepository</span>
-<span class="fc" id="L301">                .findByPedidoIdPedidoOrderByFechaTransicionAsc(pedido.getIdPedido())</span>
-<span class="fc" id="L302">                .stream()</span>
-<span class="fc" id="L303">                .map(this::mapHistorial)</span>
-<span class="fc" id="L304">                .collect(Collectors.toList());</span>
+<span class="fc" id="L623">        List&lt;RespuestaHistorialEstado&gt; historial = historialRepository</span>
+<span class="fc" id="L624">                .findByPedidoIdPedidoOrderByFechaTransicionAsc(pedido.getIdPedido())</span>
+<span class="fc" id="L625">                .stream()</span>
+<span class="fc" id="L626">                .map(this::mapHistorial)</span>
+<span class="fc" id="L627">                .collect(Collectors.toList());</span>
 
-<span class="fc" id="L306">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
+<span class="fc" id="L629">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
 
-<span class="fc" id="L308">        return RespuestaPedido.builder()</span>
-<span class="fc" id="L309">                .idPedido(pedido.getIdPedido())</span>
-<span class="fc" id="L310">                .idServicio(pedido.getServicio().getIdServicio())</span>
-<span class="fc" id="L311">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
-<span class="fc" id="L312">                .idCliente(pedido.getUsuarioCliente().getIdUsuario())</span>
-<span class="fc" id="L313">                .nombreCliente(pedido.getUsuarioCliente().getNombres() + &quot; &quot; + pedido.getUsuarioCliente().getApellidos())</span>
-<span class="fc" id="L314">                .idCreador(creador.getIdUsuario())</span>
-<span class="fc" id="L315">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
-<span class="fc" id="L316">                .etapaActual(obtenerEtapaActual(pedido.getIdPedido()))</span>
-<span class="fc" id="L317">                .precioPactado(pedido.getPrecioPactado())</span>
-<span class="fc" id="L318">                .fechaInicio(pedido.getFechaInicio())</span>
-<span class="fc" id="L319">                .fechaEntregaEstimada(pedido.getFechaEntregaEstimada())</span>
-<span class="fc" id="L320">                .nombreFlujo(pedido.getFlujo().getNombreFlujo())</span>
-<span class="fc" id="L321">                .historial(historial)</span>
-<span class="fc" id="L322">                .build();</span>
+<span class="fc" id="L631">        return RespuestaPedido.builder()</span>
+<span class="fc" id="L632">                .idPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L633">                .idServicio(pedido.getServicio().getIdServicio())</span>
+<span class="fc" id="L634">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
+<span class="fc" id="L635">                .idCliente(pedido.getUsuarioCliente().getIdUsuario())</span>
+<span class="fc" id="L636">                .nombreCliente(pedido.getUsuarioCliente().getNombres() + &quot; &quot; + pedido.getUsuarioCliente().getApellidos())</span>
+<span class="fc" id="L637">                .idCreador(creador.getIdUsuario())</span>
+<span class="fc" id="L638">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
+                // 1.2: dato ya presente en `historial` (ordenado ASC), evita repetir
+                // la consulta que obtenerEtapaActual(idPedido) haría por separado.
+<span class="fc bfc" id="L641" title="All 2 branches covered.">                .etapaActual(historial.isEmpty() ? &quot;Sin estado&quot; : historial.get(historial.size() - 1).getNombreEtapa())</span>
+<span class="fc" id="L642">                .precioPactado(pedido.getPrecioPactado())</span>
+<span class="fc" id="L643">                .fechaInicio(pedido.getFechaInicio())</span>
+<span class="fc" id="L644">                .fechaEntregaEstimada(pedido.getFechaEntregaEstimada())</span>
+<span class="fc" id="L645">                .nombreFlujo(pedido.getFlujo().getNombreFlujo())</span>
+<span class="fc" id="L646">                .historial(historial)</span>
+<span class="fc" id="L647">                .build();</span>
     }
 
     private RespuestaPedidoResumido mapToResumido(Pedido pedido) {
-<span class="fc" id="L326">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
+<span class="fc" id="L651">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
 
-<span class="fc" id="L328">        return RespuestaPedidoResumido.builder()</span>
-<span class="fc" id="L329">                .idPedido(pedido.getIdPedido())</span>
-<span class="fc" id="L330">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
-<span class="fc" id="L331">                .etapaActual(obtenerEtapaActual(pedido.getIdPedido()))</span>
-<span class="fc" id="L332">                .precioPactado(pedido.getPrecioPactado())</span>
-<span class="fc" id="L333">                .fechaInicio(pedido.getFechaInicio())</span>
-<span class="fc" id="L334">                .fechaEntregaEstimada(pedido.getFechaEntregaEstimada())</span>
-<span class="fc" id="L335">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
-<span class="fc" id="L336">                .nombreCliente(pedido.getUsuarioCliente().getNombres() + &quot; &quot; + pedido.getUsuarioCliente().getApellidos())</span>
-<span class="fc" id="L337">                .build();</span>
+<span class="fc" id="L653">        return RespuestaPedidoResumido.builder()</span>
+<span class="fc" id="L654">                .idPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L655">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
+<span class="fc" id="L656">                .etapaActual(obtenerEtapaActual(pedido.getIdPedido()))</span>
+<span class="fc" id="L657">                .precioPactado(pedido.getPrecioPactado())</span>
+<span class="fc" id="L658">                .fechaInicio(pedido.getFechaInicio())</span>
+<span class="fc" id="L659">                .fechaEntregaEstimada(pedido.getFechaEntregaEstimada())</span>
+<span class="fc" id="L660">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
+<span class="fc" id="L661">                .nombreCliente(pedido.getUsuarioCliente().getNombres() + &quot; &quot; + pedido.getUsuarioCliente().getApellidos())</span>
+<span class="fc" id="L662">                .build();</span>
     }
 
     private RespuestaHistorialEstado mapHistorial(HistorialEstadoPedido h) {
-<span class="fc" id="L341">        return RespuestaHistorialEstado.builder()</span>
-<span class="fc" id="L342">                .idHistorial(h.getIdHistorialEstado())</span>
-<span class="fc" id="L343">                .nombreEtapa(h.getEtapa().getNombreEtapa())</span>
-<span class="fc" id="L344">                .fechaTransicion(h.getFechaTransicion())</span>
-<span class="fc" id="L345">                .observacion(h.getObservacion())</span>
-<span class="fc" id="L346">                .build();</span>
+<span class="fc" id="L666">        return RespuestaHistorialEstado.builder()</span>
+<span class="fc" id="L667">                .idHistorial(h.getIdHistorialEstado())</span>
+<span class="fc" id="L668">                .nombreEtapa(h.getEtapa().getNombreEtapa())</span>
+<span class="fc" id="L669">                .fechaTransicion(h.getFechaTransicion())</span>
+<span class="fc" id="L670">                .observacion(h.getObservacion())</span>
+<span class="fc" id="L671">                .build();</span>
     }
 
     private RespuestaEtapaConfig mapEtapaConfig(FlujoEtapaConfig config) {
-<span class="fc" id="L350">        return RespuestaEtapaConfig.builder()</span>
-<span class="fc" id="L351">                .idFlujoEtapa(config.getIdFlujoEtapa())</span>
-<span class="fc" id="L352">                .idEtapa(config.getEtapa().getIdEtapa())</span>
-<span class="fc" id="L353">                .nombreEtapa(config.getEtapa().getNombreEtapa())</span>
-<span class="fc" id="L354">                .numeroOrden(config.getNumeroOrden())</span>
-<span class="fc" id="L355">                .esEtapaFinal(config.getEsEtapaFinal())</span>
-<span class="fc" id="L356">                .build();</span>
+<span class="fc" id="L675">        return RespuestaEtapaConfig.builder()</span>
+<span class="fc" id="L676">                .idFlujoEtapa(config.getIdFlujoEtapa())</span>
+<span class="fc" id="L677">                .idEtapa(config.getEtapa().getIdEtapa())</span>
+<span class="fc" id="L678">                .nombreEtapa(config.getEtapa().getNombreEtapa())</span>
+<span class="fc" id="L679">                .numeroOrden(config.getNumeroOrden())</span>
+<span class="fc" id="L680">                .esEtapaFinal(config.getEsEtapaFinal())</span>
+<span class="fc" id="L681">                .requiereEntregable(config.getRequiereEntregable())</span>
+<span class="fc" id="L682">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

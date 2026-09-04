@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SorteoEjecutorServicio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">SorteoEjecutorServicio.java</span></div><h1>SorteoEjecutorServicio.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.social.Sorteo;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.social.SorteoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+
+/**
+ * Extraído de SorteoScheduler para que REQUIRES_NEW funcione de verdad: un
+ * método @Transactional llamado desde dentro de la misma clase (this.metodo())
+ * se salta el proxy de Spring AOP, así que la anotación se ignoraría en
+ * silencio. Al vivir en un bean distinto, SorteoScheduler lo invoca a través
+ * del proxy real y cada sorteo queda en su propia transacción.
+ */
+<span class="fc" id="L23">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class SorteoEjecutorServicio {
+
+    private final SorteoRepository sorteoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final NotificacionService notificacionService;
+    private final ObjectMapper objectMapper;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void ejecutarSorteo(Sorteo sorteo) {
+        // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria
+        // (ORDER BY random()) y la actualizacion masiva de participantes+sorteo
+        // en el motor, en vez de Collections.shuffle en Java seguido de un save()
+        // por ganador. La notificacion en tiempo real permanece en Java.
+<span class="nc" id="L39">        String resultadoJson = sorteoRepository.seleccionarGanadores(sorteo.getIdSorteo());</span>
+<span class="nc" id="L40">        JsonNode resultado = parseResultado(resultadoJson);</span>
+<span class="nc" id="L41">        String estado = resultado.get(&quot;estado&quot;).asText();</span>
+<span class="nc" id="L42">        JsonNode ganadoresNode = resultado.get(&quot;ganadores&quot;);</span>
+
+<span class="nc bnc" id="L44" title="All 6 branches missed.">        if (ganadoresNode == null || !ganadoresNode.isArray() || ganadoresNode.isEmpty()) {</span>
+<span class="nc" id="L45">            log.info(&quot;[SorteoScheduler] Sorteo {} finalizado sin ganadores (estado={}).&quot;,</span>
+<span class="nc" id="L46">                    sorteo.getIdSorteo(), estado);</span>
+<span class="nc" id="L47">            return;</span>
+        }
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        String tituloSorteo = resultado.hasNonNull(&quot;tituloSorteo&quot;)</span>
+<span class="nc" id="L51">                ? resultado.get(&quot;tituloSorteo&quot;).asText() : sorteo.getTituloSorteo();</span>
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        for (JsonNode ganadorNode : ganadoresNode) {</span>
+<span class="nc" id="L54">            Long idUsuario = ganadorNode.get(&quot;idUsuario&quot;).asLong();</span>
+<span class="nc" id="L55">            Usuario usuario = usuarioRepository.getReferenceById(idUsuario);</span>
+            // Notificación en tiempo real al ganador vía WebSocket (M6)
+<span class="nc" id="L57">            notificacionService.notificar(</span>
+                    usuario,
+                    &quot;SORTEO_GANADOR&quot;,
+                    &quot;¡Felicidades! Has ganado el sorteo: &quot; + tituloSorteo
+            );
+<span class="nc" id="L62">        }</span>
+
+<span class="nc" id="L64">        log.info(&quot;[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es).&quot;,</span>
+<span class="nc" id="L65">                tituloSorteo, sorteo.getIdSorteo(), ganadoresNode.size());</span>
+<span class="nc" id="L66">    }</span>
+
+    private JsonNode parseResultado(String json) {
+        try {
+<span class="nc" id="L70">            return objectMapper.readTree(json);</span>
+<span class="nc" id="L71">        } catch (Exception e) {</span>
+<span class="nc" id="L72">            throw new IllegalStateException(&quot;Error al interpretar el resultado de fn_seleccionar_ganadores_sorteo&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

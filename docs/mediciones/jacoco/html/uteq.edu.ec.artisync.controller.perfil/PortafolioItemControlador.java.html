@@ -32,7 +32,7 @@ public class PortafolioItemControlador {
     private final IPortafolioItemServicio itemServicio;
 
     @PostMapping(value = &quot;/{idPortafolio}/items&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPortafolioItem&gt; subirItem(
             @PathVariable Long idPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -79,18 +79,27 @@ public class PortafolioItemControlador {
 <span class="fc" id="L79">                .body(archivo.contenido());</span>
     }
 
+    @PutMapping(&quot;/items/{idItem}&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPortafolioItem&gt; actualizarItem(
+            @PathVariable Long idItem,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionCrearPortafolioItem datos) {
+<span class="nc" id="L88">        return ResponseEntity.ok(itemServicio.actualizarItem(idItem, userDetails.getIdUsuario(), datos));</span>
+    }
+
     @DeleteMapping(&quot;/items/{idItem}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L87">        itemServicio.eliminarItem(idItem, userDetails.getIdUsuario());</span>
-<span class="nc" id="L88">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Obra eliminada del portafolio&quot;));</span>
+<span class="nc" id="L96">        itemServicio.eliminarItem(idItem, userDetails.getIdUsuario());</span>
+<span class="nc" id="L97">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Obra eliminada del portafolio&quot;));</span>
     }
 
     /** Nulo cuando la petición es anónima, que en GET es un caso válido. */
     private Long idDe(CustomUserDetails userDetails) {
-<span class="pc bpc" id="L93" title="1 of 2 branches missed.">        return userDetails == null ? null : userDetails.getIdUsuario();</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        return userDetails == null ? null : userDetails.getIdUsuario();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

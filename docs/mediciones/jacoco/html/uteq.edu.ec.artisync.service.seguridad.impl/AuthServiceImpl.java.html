@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">AuthServiceImpl.java</span></div><h1>AuthServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -37,17 +41,18 @@ import uteq.edu.ec.artisync.service.shared.EmailService;
 import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 import uteq.edu.ec.artisync.service.shared.PreAuth2faTicketService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
-<span class="fc" id="L50">@Slf4j</span>
+<span class="fc" id="L55">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -59,18 +64,14 @@ public class AuthServiceImpl implements AuthService {
     // endpoint de desbloqueo — ver runbook: `redis-cli DEL rl:login-cuenta:&lt;hash&gt;`.
     private static final String AMBITO_LOGIN = &quot;login-cuenta&quot;;
     private static final int LIMITE_INTENTOS_LOGIN = 5;
-<span class="fc" id="L62">    private static final Duration VENTANA_INTENTOS_LOGIN = Duration.ofMinutes(15);</span>
+<span class="fc" id="L67">    private static final Duration VENTANA_INTENTOS_LOGIN = Duration.ofMinutes(15);</span>
 
     private static final String AMBITO_RECUPERACION = &quot;recuperacion-cuenta&quot;;
     private static final int LIMITE_INTENTOS_RECUPERACION = 3;
-<span class="fc" id="L66">    private static final Duration VENTANA_INTENTOS_RECUPERACION = Duration.ofHours(1);</span>
+<span class="fc" id="L71">    private static final Duration VENTANA_INTENTOS_RECUPERACION = Duration.ofHours(1);</span>
 
     private final UsuarioRepository usuarioRepository;
-    private final RolRepository rolRepository;
     private final UsuarioRolRepository usuarioRolRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
-    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
-    private final TokenRecuperacionRepository tokenRecuperacionRepository;
     private final SesionUsuarioRepository sesionUsuarioRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -82,331 +83,344 @@ public class AuthServiceImpl implements AuthService {
     private final TwoFactorService twoFactorService;
     private final IntentosAutenticacionService intentosAutenticacionService;
     private final PreAuth2faTicketService preAuth2faTicketService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;Usuario registrado desde el panel de crear cuenta&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#resultado.idUsuario&quot;,
+            correoActor = &quot;#request.correo&quot;,
+            detalle = &quot;{rol: #request.rol}&quot;)
     public UserResponse register(RegisterRequest request) {
-<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (usuarioRepository.existsByCorreo(request.getCorreo())) {</span>
-<span class="fc" id="L90">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;El correo ya está registrado en la plataforma&quot;);</span>
-        }
+<span class="pc bpc" id="L95" title="1 of 4 branches missed.">        String rolNombre = request.getRol() != null &amp;&amp; !request.getRol().isBlank()</span>
+<span class="fc" id="L96">                ? request.getRol().toUpperCase() : &quot;CLIENTE&quot;;</span>
 
-        // Validación RNF-12: Mayoría de edad (&gt;= 18 años)
-<span class="pc bpc" id="L94" title="1 of 4 branches missed.">        if (request.getFechaNacimiento() == null || LocalDate.now().minusYears(18).isBefore(request.getFechaNacimiento())) {</span>
-<span class="fc" id="L95">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Debes tener al menos 18 años para registrarte en ARTISYNC (RNF-12)&quot;);</span>
-        }
+        // REQ-F-001: fn_registrar_usuario valida correo unico, mayoria de edad
+        // (RNF-12) y rol permitido, e inserta usuario + usuario_roles + perfil
+        // de creador opcional en una unica transaccion atomica en el motor.
+        Long idUsuario;
+        try {
+<span class="fc" id="L103">            idUsuario = usuarioRepository.registrarUsuario(</span>
+<span class="fc" id="L104">                    request.getNombres(),</span>
+<span class="fc" id="L105">                    request.getApellidos(),</span>
+<span class="fc" id="L106">                    request.getCorreo(),</span>
+<span class="fc" id="L107">                    passwordEncoder.encode(request.getContrasena()),</span>
+<span class="fc" id="L108">                    request.getFechaNacimiento(),</span>
+                    rolNombre);
+<span class="fc" id="L110">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L111">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L112">        }</span>
 
-<span class="fc" id="L98">        Usuario usuario = Usuario.builder()</span>
-<span class="fc" id="L99">                .nombres(request.getNombres())</span>
-<span class="fc" id="L100">                .apellidos(request.getApellidos())</span>
-<span class="fc" id="L101">                .correo(request.getCorreo())</span>
-<span class="fc" id="L102">                .contrasenaHash(passwordEncoder.encode(request.getContrasena()))</span>
-<span class="fc" id="L103">                .fechaNacimiento(request.getFechaNacimiento())</span>
-<span class="fc" id="L104">                .estadoCuenta(true)</span>
-<span class="fc" id="L105">                .build();</span>
-<span class="fc" id="L106">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L114">        Usuario usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="pc" id="L115">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al registrar el usuario&quot;));</span>
 
-<span class="pc bpc" id="L108" title="1 of 4 branches missed.">        String rolNombre = request.getRol() != null &amp;&amp; !request.getRol().isBlank() ? request.getRol().toUpperCase() : &quot;CLIENTE&quot;;</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">        if (!List.of(&quot;CLIENTE&quot;, &quot;CREADOR&quot;).contains(rolNombre)) {</span>
-<span class="fc" id="L110">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Rol no permitido en registro. Solo se permiten CLIENTE o CREADOR&quot;);</span>
-        }
-<span class="fc" id="L112">        Rol rol = rolRepository.findByNombreRol(rolNombre)</span>
-<span class="fc" id="L113">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El rol especificado no existe en el sistema: &quot; + rolNombre));</span>
-
-<span class="fc" id="L115">        UsuarioRol usuarioRol = UsuarioRol.builder()</span>
-<span class="fc" id="L116">                .usuario(usuario)</span>
-<span class="fc" id="L117">                .rol(rol)</span>
-<span class="fc" id="L118">                .build();</span>
-<span class="fc" id="L119">        usuarioRolRepository.save(usuarioRol);</span>
-
-<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (&quot;CREADOR&quot;.equals(rolNombre)) {</span>
-<span class="fc" id="L122">            PerfilCreador perfil = PerfilCreador.builder()</span>
-<span class="fc" id="L123">                    .usuario(usuario)</span>
-<span class="fc" id="L124">                    .biografia(&quot;¡Hola! Soy un creador en ARTISYNC.&quot;)</span>
-<span class="fc" id="L125">                    .build();</span>
-<span class="fc" id="L126">            perfilCreadorRepository.save(perfil);</span>
-        }
-
-<span class="fc" id="L129">        return UserResponse.builder()</span>
-<span class="fc" id="L130">                .idUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L131">                .nombres(usuario.getNombres())</span>
-<span class="fc" id="L132">                .apellidos(usuario.getApellidos())</span>
-<span class="fc" id="L133">                .correo(usuario.getCorreo())</span>
-<span class="fc" id="L134">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
-<span class="fc" id="L135">                .fechaRegistro(usuario.getFechaRegistro())</span>
-<span class="fc" id="L136">                .estadoCuenta(usuario.getEstadoCuenta())</span>
-<span class="fc" id="L137">                .roles(List.of(rolNombre))</span>
-<span class="fc" id="L138">                .dosFactoresHabilitado(false)</span>
-<span class="fc" id="L139">                .build();</span>
+<span class="fc" id="L117">        return UserResponse.builder()</span>
+<span class="fc" id="L118">                .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L119">                .nombres(usuario.getNombres())</span>
+<span class="fc" id="L120">                .apellidos(usuario.getApellidos())</span>
+<span class="fc" id="L121">                .correo(usuario.getCorreo())</span>
+<span class="fc" id="L122">                .fechaNacimiento(usuario.getFechaNacimiento())</span>
+<span class="fc" id="L123">                .fechaRegistro(usuario.getFechaRegistro())</span>
+<span class="fc" id="L124">                .estadoCuenta(usuario.getEstadoCuenta())</span>
+<span class="fc" id="L125">                .roles(List.of(rolNombre))</span>
+<span class="fc" id="L126">                .dosFactoresHabilitado(false)</span>
+<span class="fc" id="L127">                .build();</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;AUTENTICACION_LOGIN&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            correoActor = &quot;#request.correo&quot;)
     public TokenResponse login(LoginRequest request) {
-<span class="fc" id="L145">        String ip = obtenerIpActual();</span>
+<span class="fc" id="L135">        String ip = obtenerIpActual();</span>
 
         try {
-<span class="fc" id="L148">            authenticationManager.authenticate(</span>
-<span class="fc" id="L149">                    new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())</span>
+<span class="fc" id="L138">            authenticationManager.authenticate(</span>
+<span class="fc" id="L139">                    new UsernamePasswordAuthenticationToken(request.getCorreo(), request.getContrasena())</span>
             );
-<span class="fc" id="L151">        } catch (AuthenticationException e) {</span>
-<span class="fc" id="L152">            log.warn(&quot;evento=LOGIN resultado=FALLIDO correo={} ip={}&quot;, request.getCorreo(), ip);</span>
+<span class="fc" id="L141">        } catch (AuthenticationException e) {</span>
+<span class="fc" id="L142">            log.warn(&quot;evento=LOGIN resultado=FALLIDO correo={} ip={}&quot;, request.getCorreo(), ip);</span>
             // Cuota por CUENTA: se incrementa únicamente cuando la autenticación
             // ACABA de fallar (no antes de intentarla), para que un usuario que
             // conoce su contraseña nunca se vea afectado — solo los fallos cuentan.
-<span class="fc" id="L156">            intentosAutenticacionService.verificarCuota(</span>
-<span class="fc" id="L157">                    AMBITO_LOGIN, request.getCorreo(), LIMITE_INTENTOS_LOGIN, VENTANA_INTENTOS_LOGIN);</span>
-<span class="fc" id="L158">            throw e;</span>
-<span class="fc" id="L159">        }</span>
+<span class="fc" id="L146">            intentosAutenticacionService.verificarCuota(</span>
+<span class="fc" id="L147">                    AMBITO_LOGIN, request.getCorreo(), LIMITE_INTENTOS_LOGIN, VENTANA_INTENTOS_LOGIN);</span>
+<span class="fc" id="L148">            throw e;</span>
+<span class="fc" id="L149">        }</span>
 
         // Autenticación correcta: limpiar cualquier cuota acumulada por fallos previos.
-<span class="fc" id="L162">        intentosAutenticacionService.limpiar(AMBITO_LOGIN, request.getCorreo());</span>
+<span class="fc" id="L152">        intentosAutenticacionService.limpiar(AMBITO_LOGIN, request.getCorreo());</span>
 
-<span class="fc" id="L164">        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())</span>
-<span class="fc" id="L165">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+        // REQ-F-002: fn_resolver_estado_login resuelve en una sola llamada el
+        // estado de cuenta, el flag de 2FA y los roles (join usuario_roles-roles),
+        // en vez de tres consultas separadas.
+<span class="fc" id="L157">        String estadoLoginJson = usuarioRepository.resolverEstadoLogin(request.getCorreo());</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (estadoLoginJson == null) {</span>
+<span class="fc" id="L159">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;);</span>
+        }
+<span class="fc" id="L161">        JsonNode estado = parseEstadoLogin(estadoLoginJson);</span>
+<span class="fc" id="L162">        Long idUsuario = estado.get(&quot;idUsuario&quot;).asLong();</span>
+<span class="fc" id="L163">        String correoUsuario = estado.get(&quot;correo&quot;).asText();</span>
+<span class="fc" id="L164">        boolean dosFactoresHabilitado = estado.get(&quot;dosFactoresHabilitado&quot;).asBoolean();</span>
 
-<span class="fc" id="L167">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L168">                .orElse(null);</span>
+<span class="fc" id="L166">        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);</span>
 
-<span class="pc bpc" id="L170" title="1 of 4 branches missed.">        if (dosFactores != null &amp;&amp; Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
-<span class="fc" id="L171">            log.info(&quot;evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}&quot;, usuario.getCorreo(), ip, usuario.getIdUsuario());</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (dosFactoresHabilitado) {</span>
+<span class="fc" id="L169">            log.info(&quot;evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}&quot;, correoUsuario, ip, idUsuario);</span>
             // §2.1 (OBS-AUTO-05): ticket de un solo uso que prueba que la
             // contraseña ya se validó — AuthController lo mueve a una cookie
             // HttpOnly. Sin esto, verify2Fa() no tenía forma de saber si el
             // llamante había pasado por aquí.
-<span class="fc" id="L176">            String ticket = preAuth2faTicketService.emitir(usuario.getIdUsuario(), usuario.getCorreo());</span>
-<span class="fc" id="L177">            return TokenResponse.builder()</span>
-<span class="fc" id="L178">                    .correo(usuario.getCorreo())</span>
-<span class="fc" id="L179">                    .idUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L180">                    .requiere2fa(true)</span>
-<span class="fc" id="L181">                    .preAuthTicket(ticket)</span>
-<span class="fc" id="L182">                    .build();</span>
+<span class="fc" id="L174">            String ticket = preAuth2faTicketService.emitir(idUsuario, correoUsuario);</span>
+<span class="fc" id="L175">            return TokenResponse.builder()</span>
+<span class="fc" id="L176">                    .correo(correoUsuario)</span>
+<span class="fc" id="L177">                    .idUsuario(idUsuario)</span>
+<span class="fc" id="L178">                    .requiere2fa(true)</span>
+<span class="fc" id="L179">                    .preAuthTicket(ticket)</span>
+<span class="fc" id="L180">                    .build();</span>
         }
 
-<span class="fc" id="L185">        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());</span>
-<span class="fc" id="L186">        String accessToken = jwtService.generarToken(userDetails);</span>
-<span class="fc" id="L187">        String refreshToken = jwtService.generarRefreshToken(userDetails);</span>
+<span class="fc" id="L183">        UserDetails userDetails = userDetailsService.loadUserByUsername(correoUsuario);</span>
+<span class="fc" id="L184">        String accessToken = jwtService.generarToken(userDetails);</span>
+<span class="fc" id="L185">        String refreshToken = jwtService.generarRefreshToken(userDetails);</span>
 
-<span class="fc" id="L189">        List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
-<span class="fc" id="L190">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
-<span class="fc" id="L191">                .toList();</span>
+<span class="fc" id="L187">        List&lt;String&gt; roles = extraerRoles(estado);</span>
 
-<span class="fc" id="L193">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
-<span class="fc" id="L194">                .map(GrantedAuthority::getAuthority)</span>
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
-<span class="fc" id="L196">                .toList();</span>
+<span class="fc" id="L189">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L190">                .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L192">                .toList();</span>
 
-<span class="fc" id="L198">        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());</span>
-<span class="fc" id="L199">        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());</span>
+<span class="fc" id="L194">        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());</span>
+<span class="fc" id="L195">        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());</span>
 
-<span class="fc" id="L201">        log.info(&quot;evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}&quot;, usuario.getCorreo(), ip, usuario.getIdUsuario());</span>
+<span class="fc" id="L197">        log.info(&quot;evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}&quot;, correoUsuario, ip, idUsuario);</span>
 
-<span class="fc" id="L203">        return TokenResponse.builder()</span>
-<span class="fc" id="L204">                .accessToken(accessToken)</span>
-<span class="fc" id="L205">                .refreshToken(refreshToken)</span>
-<span class="fc" id="L206">                .idUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L207">                .correo(usuario.getCorreo())</span>
-<span class="fc" id="L208">                .roles(roles)</span>
-<span class="fc" id="L209">                .permisos(permisos)</span>
-<span class="fc" id="L210">                .requiere2fa(false)</span>
-<span class="fc" id="L211">                .build();</span>
+<span class="fc" id="L199">        return TokenResponse.builder()</span>
+<span class="fc" id="L200">                .accessToken(accessToken)</span>
+<span class="fc" id="L201">                .refreshToken(refreshToken)</span>
+<span class="fc" id="L202">                .idUsuario(idUsuario)</span>
+<span class="fc" id="L203">                .correo(correoUsuario)</span>
+<span class="fc" id="L204">                .roles(roles)</span>
+<span class="fc" id="L205">                .permisos(permisos)</span>
+<span class="fc" id="L206">                .requiere2fa(false)</span>
+<span class="fc" id="L207">                .build();</span>
     }
 
     @Override
     @Transactional
+    // El correo real se resuelve DENTRO del método a partir del ticket
+    // (preAuthTicket), no está disponible como parámetro para el SpEL de
+    // correoActor; el evento queda con actor &quot;anonimo&quot;, que es correcto: en
+    // este punto el usuario aún no tiene una sesión completa.
+    @Auditable(accion = &quot;AUTENTICACION_2FA_VERIFICAR&quot;, modulo = ModuloAuditoria.SEGURIDAD)
     public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
         // ticket emitido por login() tras validar la contraseña — ya no desde
         // un correo en el body, que no probaba nada.
-<span class="fc" id="L220">        PreAuth2faTicketService.DatosTicket datos = preAuth2faTicketService.resolver(preAuthTicket)</span>
-<span class="fc" id="L221">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
+<span class="fc" id="L221">        PreAuth2faTicketService.DatosTicket datos = preAuth2faTicketService.resolver(preAuthTicket)</span>
+<span class="fc" id="L222">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
                         &quot;Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.&quot;));
 
-<span class="fc" id="L224">        Usuario usuario = usuarioRepository.findByCorreo(datos.correo())</span>
-<span class="fc" id="L225">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+        // REQ-F-002: misma funcion que login() -- consolida usuario + roles + 2FA
+        // en una sola llamada en vez de findByCorreo + findByUsuarioIdUsuario.
+<span class="fc" id="L227">        String estadoLoginJson = usuarioRepository.resolverEstadoLogin(datos.correo());</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">        if (estadoLoginJson == null) {</span>
+<span class="fc" id="L229">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;);</span>
+        }
+<span class="fc" id="L231">        JsonNode estado = parseEstadoLogin(estadoLoginJson);</span>
+<span class="fc" id="L232">        Long idUsuario = estado.get(&quot;idUsuario&quot;).asLong();</span>
+<span class="fc" id="L233">        boolean dosFactoresHabilitado = estado.get(&quot;dosFactoresHabilitado&quot;).asBoolean();</span>
 
-<span class="fc" id="L227">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L228">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;2FA no configurado para este usuario&quot;));</span>
-
-<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
-<span class="fc" id="L231">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra habilitado&quot;);</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">        if (!dosFactoresHabilitado) {</span>
+<span class="fc" id="L236">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra habilitado para este usuario&quot;);</span>
         }
 
-<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (!twoFactorService.validarCodigoOBackup(datos.correo(), request.getCodigo())) {</span>
-<span class="fc" id="L235">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
+<span class="fc" id="L239">        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);</span>
+
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        if (!twoFactorService.validarCodigoOBackup(datos.correo(), request.getCodigo())) {</span>
+<span class="fc" id="L242">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
         }
 
         // Uso único: si otra petición concurrente ya consumió este ticket, no se
         // emiten tokens dos veces para el mismo ticket.
-<span class="fc bfc" id="L240" title="All 2 branches covered.">        if (!preAuth2faTicketService.consumir(preAuthTicket)) {</span>
-<span class="fc" id="L241">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">        if (!preAuth2faTicketService.consumir(preAuthTicket)) {</span>
+<span class="fc" id="L248">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,</span>
                     &quot;Sesión de verificación inválida o expirada. Vuelve a iniciar sesión.&quot;);
         }
 
-<span class="fc" id="L245">        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getCorreo());</span>
-<span class="fc" id="L246">        String accessToken = jwtService.generarToken(userDetails);</span>
-<span class="fc" id="L247">        String refreshToken = jwtService.generarRefreshToken(userDetails);</span>
+<span class="fc" id="L252">        UserDetails userDetails = userDetailsService.loadUserByUsername(datos.correo());</span>
+<span class="fc" id="L253">        String accessToken = jwtService.generarToken(userDetails);</span>
+<span class="fc" id="L254">        String refreshToken = jwtService.generarRefreshToken(userDetails);</span>
 
-<span class="fc" id="L249">        List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
-<span class="fc" id="L250">                .map(ur -&gt; ur.getRol().getNombreRol())</span>
-<span class="fc" id="L251">                .toList();</span>
+<span class="fc" id="L256">        List&lt;String&gt; roles = extraerRoles(estado);</span>
 
-<span class="fc" id="L253">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
-<span class="fc" id="L254">                .map(GrantedAuthority::getAuthority)</span>
-<span class="pc bpc" id="L255" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
-<span class="fc" id="L256">                .toList();</span>
+<span class="fc" id="L258">        List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L259">                .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L261">                .toList();</span>
 
-<span class="fc" id="L258">        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());</span>
-<span class="fc" id="L259">        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());</span>
+<span class="fc" id="L263">        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());</span>
+<span class="fc" id="L264">        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());</span>
 
-<span class="fc" id="L261">        return TokenResponse.builder()</span>
-<span class="fc" id="L262">                .accessToken(accessToken)</span>
-<span class="fc" id="L263">                .refreshToken(refreshToken)</span>
-<span class="fc" id="L264">                .idUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L265">                .correo(usuario.getCorreo())</span>
-<span class="fc" id="L266">                .roles(roles)</span>
-<span class="fc" id="L267">                .permisos(permisos)</span>
-<span class="fc" id="L268">                .requiere2fa(false)</span>
-<span class="fc" id="L269">                .build();</span>
+<span class="fc" id="L266">        return TokenResponse.builder()</span>
+<span class="fc" id="L267">                .accessToken(accessToken)</span>
+<span class="fc" id="L268">                .refreshToken(refreshToken)</span>
+<span class="fc" id="L269">                .idUsuario(idUsuario)</span>
+<span class="fc" id="L270">                .correo(datos.correo())</span>
+<span class="fc" id="L271">                .roles(roles)</span>
+<span class="fc" id="L272">                .permisos(permisos)</span>
+<span class="fc" id="L273">                .requiere2fa(false)</span>
+<span class="fc" id="L274">                .build();</span>
     }
 
     @Override
     @Transactional
     public TokenResponse refreshToken(String refreshToken) {
-<span class="pc bpc" id="L275" title="1 of 4 branches missed.">        if (refreshToken == null || refreshToken.isBlank()) {</span>
-<span class="fc" id="L276">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token no proporcionado&quot;);</span>
+<span class="pc bpc" id="L280" title="1 of 4 branches missed.">        if (refreshToken == null || refreshToken.isBlank()) {</span>
+<span class="fc" id="L281">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token no proporcionado&quot;);</span>
         }
 
         try {
-<span class="fc" id="L280">            String jti = jwtService.extraerJti(refreshToken);</span>
+<span class="fc" id="L285">            String jti = jwtService.extraerJti(refreshToken);</span>
             // §2.5 (OBS-AUTO-06): un jti nulo cortocircuitaba el &amp;&amp; anterior y SALTABA
             // por completo la comprobación de revocación (bug F3). Ahora un jti
             // ausente se trata igual que &quot;no encontrado&quot;: rechazado.
-<span class="fc bfc" id="L284" title="All 4 branches covered.">            if (jti == null || sesionUsuarioRepository.findByJti(jti).isEmpty()) {</span>
-<span class="fc" id="L285">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token revocado o expirado&quot;);</span>
+<span class="fc bfc" id="L289" title="All 4 branches covered.">            if (jti == null || sesionUsuarioRepository.findByJti(jti).isEmpty()) {</span>
+<span class="fc" id="L290">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token revocado o expirado&quot;);</span>
             }
 
-<span class="fc" id="L288">            String username = jwtService.extraerUsername(refreshToken);</span>
-<span class="fc" id="L289">            UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
+<span class="fc" id="L293">            String username = jwtService.extraerUsername(refreshToken);</span>
+<span class="fc" id="L294">            UserDetails userDetails = userDetailsService.loadUserByUsername(username);</span>
 
-<span class="fc bfc" id="L291" title="All 2 branches covered.">            if (!jwtService.esRefreshTokenValido(refreshToken, userDetails)) {</span>
-<span class="fc" id="L292">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido&quot;);</span>
+<span class="fc bfc" id="L296" title="All 2 branches covered.">            if (!jwtService.esRefreshTokenValido(refreshToken, userDetails)) {</span>
+<span class="fc" id="L297">                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido&quot;);</span>
             }
 
-<span class="fc" id="L295">            Usuario usuario = usuarioRepository.findByCorreo(username)</span>
-<span class="pc" id="L296">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L300">            Usuario usuario = usuarioRepository.findByCorreo(username)</span>
+<span class="pc" id="L301">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc bfc" id="L298" title="All 2 branches covered.">            if (!Boolean.TRUE.equals(usuario.getEstadoCuenta())) {</span>
-<span class="fc" id="L299">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;La cuenta del usuario está inactiva&quot;);</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">            if (!Boolean.TRUE.equals(usuario.getEstadoCuenta())) {</span>
+<span class="fc" id="L304">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;La cuenta del usuario está inactiva&quot;);</span>
             }
 
-<span class="fc" id="L302">            sessionRevocationService.revocarToken(refreshToken);</span>
-<span class="fc" id="L303">            sesionUsuarioRepository.deleteByJti(jti);</span>
+<span class="fc" id="L307">            sessionRevocationService.revocarToken(refreshToken);</span>
+<span class="fc" id="L308">            sesionUsuarioRepository.deleteByJti(jti);</span>
 
-<span class="fc" id="L305">            String nuevoAccessToken = jwtService.generarToken(userDetails);</span>
-<span class="fc" id="L306">            String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);</span>
+<span class="fc" id="L310">            String nuevoAccessToken = jwtService.generarToken(userDetails);</span>
+<span class="fc" id="L311">            String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);</span>
 
-<span class="fc" id="L308">            registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());</span>
-<span class="fc" id="L309">            registrarSesionObligatoria(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());</span>
+<span class="fc" id="L313">            registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());</span>
+<span class="fc" id="L314">            registrarSesionObligatoria(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());</span>
 
-<span class="fc" id="L311">            List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
-<span class="fc" id="L312">                    .map(ur -&gt; ur.getRol().getNombreRol())</span>
-<span class="fc" id="L313">                    .toList();</span>
-
-<span class="fc" id="L315">            List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
-<span class="fc" id="L316">                    .map(GrantedAuthority::getAuthority)</span>
-<span class="pc bpc" id="L317" title="1 of 2 branches missed.">                    .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L316">            List&lt;String&gt; roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L317">                    .map(ur -&gt; ur.getRol().getNombreRol())</span>
 <span class="fc" id="L318">                    .toList();</span>
 
-<span class="fc" id="L320">            return TokenResponse.builder()</span>
-<span class="fc" id="L321">                    .accessToken(nuevoAccessToken)</span>
-<span class="fc" id="L322">                    .refreshToken(nuevoRefreshToken)</span>
-<span class="fc" id="L323">                    .idUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L324">                    .correo(usuario.getCorreo())</span>
-<span class="fc" id="L325">                    .roles(roles)</span>
-<span class="fc" id="L326">                    .permisos(permisos)</span>
-<span class="fc" id="L327">                    .requiere2fa(false)</span>
-<span class="fc" id="L328">                    .build();</span>
+<span class="fc" id="L320">            List&lt;String&gt; permisos = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L321">                    .map(GrantedAuthority::getAuthority)</span>
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">                    .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L323">                    .toList();</span>
 
-<span class="fc" id="L330">        } catch (ResponseStatusException e) {</span>
-<span class="fc" id="L331">            throw e;</span>
-<span class="fc" id="L332">        } catch (Exception e) {</span>
-<span class="fc" id="L333">            log.warn(&quot;Error al procesar refresh token: {}&quot;, e.getMessage());</span>
-<span class="fc" id="L334">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido o malformado&quot;);</span>
+<span class="fc" id="L325">            return TokenResponse.builder()</span>
+<span class="fc" id="L326">                    .accessToken(nuevoAccessToken)</span>
+<span class="fc" id="L327">                    .refreshToken(nuevoRefreshToken)</span>
+<span class="fc" id="L328">                    .idUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L329">                    .correo(usuario.getCorreo())</span>
+<span class="fc" id="L330">                    .roles(roles)</span>
+<span class="fc" id="L331">                    .permisos(permisos)</span>
+<span class="fc" id="L332">                    .requiere2fa(false)</span>
+<span class="fc" id="L333">                    .build();</span>
+
+<span class="fc" id="L335">        } catch (ResponseStatusException e) {</span>
+<span class="fc" id="L336">            throw e;</span>
+<span class="fc" id="L337">        } catch (Exception e) {</span>
+<span class="fc" id="L338">            log.warn(&quot;Error al procesar refresh token: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L339">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Refresh token inválido o malformado&quot;);</span>
         }
     }
 
     @Override
     @Transactional
+    // tokenHeader y refreshToken son secretos: nunca en detalle. No hace falta
+    // correoActor explícito, hay SecurityContext porque se llama autenticado.
+    @Auditable(accion = &quot;AUTENTICACION_LOGOUT&quot;, modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
-<span class="fc" id="L341">        sessionRevocationService.revocarTokenPorCabecera(tokenHeader);</span>
-<span class="pc bpc" id="L342" title="1 of 4 branches missed.">        if (refreshToken != null &amp;&amp; !refreshToken.isBlank()) {</span>
-<span class="fc" id="L343">            sessionRevocationService.revocarToken(refreshToken);</span>
+<span class="fc" id="L349">        sessionRevocationService.revocarTokenPorCabecera(tokenHeader);</span>
+<span class="pc bpc" id="L350" title="1 of 4 branches missed.">        if (refreshToken != null &amp;&amp; !refreshToken.isBlank()) {</span>
+<span class="fc" id="L351">            sessionRevocationService.revocarToken(refreshToken);</span>
             // Best-effort: un refresh token ya expirado o malformado en el momento del
             // logout no debe impedir cerrar sesión (no hay fila que borrar de todas formas).
             try {
-<span class="fc" id="L347">                String jti = jwtService.extraerJti(refreshToken);</span>
-<span class="pc bpc" id="L348" title="1 of 2 branches missed.">                if (jti != null) {</span>
-<span class="fc" id="L349">                    sesionUsuarioRepository.deleteByJti(jti);</span>
+<span class="fc" id="L355">                String jti = jwtService.extraerJti(refreshToken);</span>
+<span class="pc bpc" id="L356" title="1 of 2 branches missed.">                if (jti != null) {</span>
+<span class="fc" id="L357">                    sesionUsuarioRepository.deleteByJti(jti);</span>
                 }
-<span class="fc" id="L351">            } catch (Exception e) {</span>
-<span class="fc" id="L352">                log.debug(&quot;No se pudo extraer el jti del refresh token en logout (probablemente expirado o inválido): {}&quot;, e.getMessage());</span>
-<span class="fc" id="L353">            }</span>
+<span class="fc" id="L359">            } catch (Exception e) {</span>
+<span class="fc" id="L360">                log.debug(&quot;No se pudo extraer el jti del refresh token en logout (probablemente expirado o inválido): {}&quot;, e.getMessage());</span>
+<span class="fc" id="L361">            }</span>
         }
-<span class="fc" id="L355">        return new RespuestaMensaje(&quot;Sesión cerrada exitosamente&quot;);</span>
+<span class="fc" id="L363">        return new RespuestaMensaje(&quot;Sesión cerrada exitosamente&quot;);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;CONTRASENA_SOLICITAR_RESET&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            correoActor = &quot;#request.correo&quot;)
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de &quot;fallo&quot;, toda
         // llamada implica el mismo costo de abuso (correo potencialmente enviado)
         // exista o no la cuenta — mail-bombing a una víctima, cuota SMTP agotada.
-<span class="fc" id="L364">        intentosAutenticacionService.verificarCuota(</span>
-<span class="fc" id="L365">                AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);</span>
+<span class="fc" id="L374">        intentosAutenticacionService.verificarCuota(</span>
+<span class="fc" id="L375">                AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);</span>
 
-<span class="fc" id="L367">        usuarioRepository.findByCorreo(request.getCorreo()).ifPresent(usuario -&gt; {</span>
-<span class="fc" id="L368">            String tokenPlain = UUID.randomUUID().toString();</span>
-<span class="fc" id="L369">            String tokenHash = hashSha256(tokenPlain);</span>
-<span class="fc" id="L370">            TokenRecuperacion tokenRec = TokenRecuperacion.builder()</span>
-<span class="fc" id="L371">                    .usuario(usuario)</span>
-<span class="fc" id="L372">                    .hashToken(tokenHash)</span>
-<span class="fc" id="L373">                    .usado(false)</span>
-<span class="fc" id="L374">                    .build();</span>
-<span class="fc" id="L375">            tokenRecuperacionRepository.save(tokenRec);</span>
-<span class="fc" id="L376">            log.debug(&quot;Generado token de recuperación para usuario ID: {}&quot;, usuario.getIdUsuario());</span>
-<span class="fc" id="L377">            emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), tokenPlain);</span>
-<span class="fc" id="L378">        });</span>
-<span class="fc" id="L379">        return new RespuestaMensaje(&quot;Si el correo se encuentra registrado, recibirás un enlace de recuperación&quot;);</span>
+<span class="fc" id="L377">        String tokenPlain = UUID.randomUUID().toString();</span>
+<span class="fc" id="L378">        String tokenHash = hashSha256(tokenPlain);</span>
+
+        // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
+        // fn_solicitar_recuperacion invalida los tokens previos no usados del
+        // usuario e inserta el nuevo en la MISMA transaccion, cerrando la
+        // ventana en la que una cuenta acumulaba N tokens de recuperacion
+        // validos simultaneamente (A5). Devuelve NULL (no encontro cuenta
+        // activa) sin lanzar, preservando la respuesta indistinguible.
+<span class="fc" id="L386">        String resultadoJson = usuarioRepository.solicitarRecuperacion(request.getCorreo(), tokenHash);</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">        if (resultadoJson != null) {</span>
+<span class="fc" id="L388">            JsonNode resultado = parseJson(resultadoJson, &quot;Error al interpretar la solicitud de recuperación&quot;);</span>
+<span class="fc" id="L389">            String nombres = resultado.get(&quot;nombres&quot;).asText();</span>
+<span class="fc" id="L390">            log.debug(&quot;Generado token de recuperación para usuario ID: {}&quot;, resultado.get(&quot;idUsuario&quot;).asLong());</span>
+<span class="fc" id="L391">            emailService.enviarCorreoRecuperacion(request.getCorreo(), nombres, tokenPlain);</span>
+        }
+<span class="fc" id="L393">        return new RespuestaMensaje(&quot;Si el correo se encuentra registrado, recibirás un enlace de recuperación&quot;);</span>
     }
 
     @Override
     @Transactional
+    // request.getToken() y la nueva contraseña son secretos: jamás #request
+    // completo en detalle. El usuario se resuelve dentro por el token, no hay
+    // correo disponible como parámetro.
+    @Auditable(accion = &quot;CONTRASENA_RESTABLECER&quot;, modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
-<span class="fc" id="L385">        String tokenHash = hashSha256(request.getToken());</span>
-<span class="fc" id="L386">        TokenRecuperacion tokenRec = tokenRecuperacionRepository.findByHashTokenAndUsadoFalse(tokenHash)</span>
-<span class="fc" id="L387">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Este enlace ya ha sido utilizado o ha expirado&quot;));</span>
+        // REQ-F-005: fn_restablecer_contrasena valida (con FOR UPDATE) que el
+        // token exista, no este usado y no haya expirado, y actualiza usuarios +
+        // tokens_recuperacion de forma atomica, evitando la ventana de doble uso
+        // concurrente que tenia la version en dos save() secuenciales.
+<span class="fc" id="L407">        String tokenHash = hashSha256(request.getToken());</span>
+        try {
+<span class="fc" id="L409">            usuarioRepository.restablecerContrasena(tokenHash, passwordEncoder.encode(request.getNuevaContrasena()));</span>
+<span class="fc" id="L410">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L411">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L412">        }</span>
 
-<span class="fc bfc" id="L389" title="All 2 branches covered.">        if (tokenRec.getFechaGeneracion().plusMinutes(60).isBefore(LocalDateTime.now())) {</span>
-<span class="fc" id="L390">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Este enlace ya ha sido utilizado o ha expirado&quot;);</span>
-        }
-
-<span class="fc" id="L393">        Usuario usuario = tokenRec.getUsuario();</span>
-<span class="fc" id="L394">        usuario.setContrasenaHash(passwordEncoder.encode(request.getNuevaContrasena()));</span>
-<span class="fc" id="L395">        usuarioRepository.save(usuario);</span>
-
-<span class="fc" id="L397">        tokenRec.setUsado(true);</span>
-<span class="fc" id="L398">        tokenRecuperacionRepository.save(tokenRec);</span>
-
-<span class="fc" id="L400">        return new RespuestaMensaje(&quot;Contraseña reestablecida exitosamente&quot;);</span>
+<span class="fc" id="L414">        return new RespuestaMensaje(&quot;Contraseña reestablecida exitosamente&quot;);</span>
     }
 
     /** OBS-08 (A09 OWASP): IP del solicitante actual, usada tanto en el registro de sesión como en el log de auditoría de login. */
     private String obtenerIpActual() {
-<span class="fc" id="L405">        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span>
-<span class="pc bpc" id="L406" title="3 of 4 branches missed.">        if (attributes != null &amp;&amp; attributes.getRequest() != null) {</span>
-<span class="nc" id="L407">            return ClientIpResolver.resolver(attributes.getRequest());</span>
+<span class="fc" id="L419">        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span>
+<span class="pc bpc" id="L420" title="3 of 4 branches missed.">        if (attributes != null &amp;&amp; attributes.getRequest() != null) {</span>
+<span class="nc" id="L421">            return ClientIpResolver.resolver(attributes.getRequest());</span>
         }
-<span class="fc" id="L409">        return null;</span>
+<span class="fc" id="L423">        return null;</span>
     }
 
     /**
@@ -416,43 +430,63 @@ public class AuthServiceImpl implements AuthService {
      */
     private void registrarSesionMejorEsfuerzo(Usuario usuario, String jti, long expirationMs) {
         try {
-<span class="fc" id="L419">            registrarSesion(usuario, jti, expirationMs);</span>
-<span class="nc" id="L420">        } catch (Exception e) {</span>
-<span class="nc" id="L421">            log.error(&quot;Error registrando sesión de acceso para usuario {}&quot;, usuario.getIdUsuario(), e);</span>
-<span class="fc" id="L422">        }</span>
-<span class="fc" id="L423">    }</span>
+<span class="fc" id="L433">            registrarSesion(usuario, jti, expirationMs);</span>
+<span class="nc" id="L434">        } catch (Exception e) {</span>
+<span class="nc" id="L435">            log.error(&quot;Error registrando sesión de acceso para usuario {}&quot;, usuario.getIdUsuario(), e);</span>
+<span class="fc" id="L436">        }</span>
+<span class="fc" id="L437">    }</span>
 
     /**
      * Registro del refresh token: obligatorio (propaga la excepción). A diferencia
-     * del access token, la corrección del siguiente /api/auth/refresh DEPENDE de que
+     * del access token, la corrección del siguiente /api/v1/auth/refresh DEPENDE de que
      * esta fila exista (ver refreshToken(): busca por jti). Antes ambos registros
      * fallaban en silencio (catch genérico que solo logueaba), lo que dejaba al
      * usuario con un refresh token que el sistema rechazaría como &quot;revocado o
      * expirado&quot; en el siguiente intento, sin ninguna pista del motivo real.
      */
     private void registrarSesionObligatoria(Usuario usuario, String jti, long expirationMs) {
-<span class="fc" id="L434">        registrarSesion(usuario, jti, expirationMs);</span>
-<span class="fc" id="L435">    }</span>
+<span class="fc" id="L448">        registrarSesion(usuario, jti, expirationMs);</span>
+<span class="fc" id="L449">    }</span>
 
     private void registrarSesion(Usuario usuario, String jti, long expirationMs) {
-<span class="fc" id="L438">        String ip = obtenerIpActual();</span>
-<span class="fc" id="L439">        SesionUsuario sesion = SesionUsuario.builder()</span>
-<span class="fc" id="L440">                .usuario(usuario)</span>
-<span class="fc" id="L441">                .jti(jti)</span>
-<span class="fc" id="L442">                .direccionIp(ip)</span>
-<span class="fc" id="L443">                .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))</span>
-<span class="fc" id="L444">                .build();</span>
-<span class="fc" id="L445">        sesionUsuarioRepository.save(sesion);</span>
-<span class="fc" id="L446">    }</span>
+<span class="fc" id="L452">        String ip = obtenerIpActual();</span>
+<span class="fc" id="L453">        SesionUsuario sesion = SesionUsuario.builder()</span>
+<span class="fc" id="L454">                .usuario(usuario)</span>
+<span class="fc" id="L455">                .jti(jti)</span>
+<span class="fc" id="L456">                .direccionIp(ip)</span>
+<span class="fc" id="L457">                .fechaExpiracion(LocalDateTime.now().plus(Duration.ofMillis(expirationMs)))</span>
+<span class="fc" id="L458">                .build();</span>
+<span class="fc" id="L459">        sesionUsuarioRepository.save(sesion);</span>
+<span class="fc" id="L460">    }</span>
 
     private String hashSha256(String input) {
         try {
-<span class="fc" id="L450">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
-<span class="fc" id="L451">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
-<span class="fc" id="L452">            return HexFormat.of().formatHex(encodedhash);</span>
-<span class="nc" id="L453">        } catch (Exception e) {</span>
-<span class="nc" id="L454">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
+<span class="fc" id="L464">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L465">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L466">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="nc" id="L467">        } catch (Exception e) {</span>
+<span class="nc" id="L468">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
         }
+    }
+
+    /** Deserializa el JSONB devuelto por fn_resolver_estado_login (REQ-F-002). */
+    private JsonNode parseEstadoLogin(String estadoLoginJson) {
+<span class="fc" id="L474">        return parseJson(estadoLoginJson, &quot;Error al interpretar el estado de login&quot;);</span>
+    }
+
+    /** Deserializa el JSONB devuelto por una rutina de db/procs/, con un mensaje de error especifico del llamante. */
+    private JsonNode parseJson(String json, String mensajeError) {
+        try {
+<span class="fc" id="L480">            return objectMapper.readTree(json);</span>
+<span class="nc" id="L481">        } catch (Exception e) {</span>
+<span class="nc" id="L482">            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, mensajeError);</span>
+        }
+    }
+
+    private List&lt;String&gt; extraerRoles(JsonNode estado) {
+<span class="fc" id="L487">        List&lt;String&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L488">        estado.get(&quot;roles&quot;).forEach(nodo -&gt; roles.add(nodo.asText()));</span>
+<span class="fc" id="L489">        return roles;</span>
     }
 }
 

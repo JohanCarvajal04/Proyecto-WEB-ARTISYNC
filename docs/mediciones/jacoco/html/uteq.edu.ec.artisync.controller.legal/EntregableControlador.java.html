@@ -23,14 +23,14 @@ public class EntregableControlador {
     private final IEntregableServicio entregableServicio;
 
     @PostMapping(value = &quot;/{idPedido}/entregable&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaEntregable&gt; subirEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(&quot;versionMarcaAgua&quot;) MultipartFile versionMarcaAgua,
             @RequestParam(&quot;versionLimpia&quot;) MultipartFile versionLimpia) {
-<span class="nc" id="L32">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L33">                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),</span>
+<span class="fc" id="L32">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L33">                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),</span>
                         versionMarcaAgua, versionLimpia));
     }
 
@@ -39,26 +39,26 @@ public class EntregableControlador {
     public ResponseEntity&lt;RespuestaEntregable&gt; obtenerEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L42">        return ResponseEntity.ok(</span>
-<span class="nc" id="L43">                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(</span>
+<span class="fc" id="L43">                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @PostMapping(&quot;/{idPedido}/aprobar&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; aprobarEntrega(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L51">        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());</span>
-<span class="nc" id="L52">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Entrega aprobada exitosamente. Fondos liberados.&quot;));</span>
+<span class="fc" id="L51">        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());</span>
+<span class="fc" id="L52">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Entrega aprobada exitosamente. Fondos liberados.&quot;));</span>
     }
 
     @GetMapping(&quot;/{idPedido}/entregable/descargar&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;byte[]&gt; descargarVersionLimpia(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L60">        return responderArchivo(</span>
-<span class="nc" id="L61">                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L60">        return responderArchivo(</span>
+<span class="fc" id="L61">                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/{idPedido}/entregable/descargar/marca-agua&quot;)
@@ -66,8 +66,8 @@ public class EntregableControlador {
     public ResponseEntity&lt;byte[]&gt; descargarVersionMarcaAgua(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L69">        return responderArchivo(</span>
-<span class="nc" id="L70">                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L69">        return responderArchivo(</span>
+<span class="fc" id="L70">                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     /**
@@ -76,11 +76,11 @@ public class EntregableControlador {
      * de la plataforma abriría la puerta a XSS almacenado.
      */
     private ResponseEntity&lt;byte[]&gt; responderArchivo(IEntregableServicio.ArchivoDescargado archivo) {
-<span class="nc" id="L79">        return ResponseEntity.ok()</span>
-<span class="nc" id="L80">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
-<span class="nc" id="L81">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
-<span class="nc" id="L82">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())</span>
-<span class="nc" id="L83">                .body(archivo.contenido());</span>
+<span class="fc" id="L79">        return ResponseEntity.ok()</span>
+<span class="fc" id="L80">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
+<span class="fc" id="L81">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L82">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).build().toString())</span>
+<span class="fc" id="L83">                .body(archivo.contenido());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

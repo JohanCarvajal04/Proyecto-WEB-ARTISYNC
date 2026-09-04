@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PdfGeneracionServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">PdfGeneracionServicioImpl.java</span></div><h1>PdfGeneracionServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
 
+import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -7,26 +8,52 @@ import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
 
 import java.io.ByteArrayOutputStream;
 
-<span class="fc" id="L10">@Slf4j</span>
+<span class="fc" id="L11">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class PdfGeneracionServicioImpl implements IPdfGeneracionServicio {
 
     @Override
     public byte[] generarPdfDesdeHtml(String html) {
-<span class="nc" id="L17">        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {</span>
-<span class="nc" id="L18">            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder =</span>
+<span class="fc" id="L18">        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {</span>
+<span class="fc" id="L19">            com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder =</span>
                     new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
-<span class="nc" id="L20">            builder.useFastMode();</span>
-<span class="nc" id="L21">            builder.withHtmlContent(html, &quot;/&quot;);</span>
-<span class="nc" id="L22">            builder.toStream(os);</span>
-<span class="nc" id="L23">            builder.run();</span>
+<span class="fc" id="L21">            builder.useFastMode();</span>
+            // Hallazgo SEC-01 (auditoria de seguridad): sin esto, cualquier URI que
+            // aparezca en el HTML (una &lt;img src&gt;, un @import de CSS...) dispara una
+            // peticion HTTP/lectura de archivo hecha por ESTE SERVIDOR al renderizar
+            // el PDF. Como generarContratoHtml() interpola descripcion_servicio y
+            // nombres de usuario dentro del HTML, un cliente podia escribir
+            // &lt;img src=&quot;http://169.254.169.254/...&quot;&gt; en la descripcion de su servicio
+            // y usar el PDF del contrato como SSRF, o file:// para leer archivos
+            // locales del servidor. La plantilla sembrada (V13__seed_plantilla_contrato.sql)
+            // es HTML+CSS inline puro sin un solo recurso externo, asi que bloquear
+            // TODA carga externa (predicado constante `false`) no rompe nada legitimo;
+            // si algun dia una plantilla necesita imagenes, sera una decision explicita,
+            // no un descuido.
+            //
+            // Unica excepcion, anadida para el logo del motor de reportes
+            // (service/shared/reporte): se permite el esquema `data:` porque un
+            // data: URI no hace peticion de red ni lee un archivo — el navegador/
+            // renderizador decodifica el Base64 inline, no resuelve nada externo.
+            // El logo se lee del classpath en Java (ClassPathResource) y se inyecta
+            // ya codificado; NO se permite `classpath:` aqui, porque los reportes
+            // tienen celdas con datos de usuario y un `classpath:` abierto dejaria
+            // leer `classpath:/application.properties` (credenciales de BD) desde
+            // el HTML de una celda. `data:` no tiene ese riesgo: no hay URI que
+            // resolver, solo bytes ya presentes en el propio HTML.
+<span class="fc" id="L45">            builder.useExternalResourceAccessControl(</span>
+<span class="nc bnc" id="L46" title="All 4 branches missed.">                    (uri, type) -&gt; uri != null &amp;&amp; uri.startsWith(&quot;data:&quot;),</span>
+                    ExternalResourceControlPriority.RUN_BEFORE_RESOLVING_URI);
+<span class="fc" id="L48">            builder.withHtmlContent(html, &quot;/&quot;);</span>
+<span class="fc" id="L49">            builder.toStream(os);</span>
+<span class="fc" id="L50">            builder.run();</span>
 
-<span class="nc" id="L25">            log.info(&quot;PDF generado exitosamente ({} bytes)&quot;, os.size());</span>
-<span class="nc" id="L26">            return os.toByteArray();</span>
-<span class="nc" id="L27">        } catch (Exception e) {</span>
-<span class="nc" id="L28">            log.error(&quot;Error al generar PDF desde HTML&quot;, e);</span>
-<span class="nc" id="L29">            throw new RuntimeException(&quot;Error al generar el documento PDF: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L52">            log.info(&quot;PDF generado exitosamente ({} bytes)&quot;, os.size());</span>
+<span class="fc" id="L53">            return os.toByteArray();</span>
+<span class="fc" id="L54">        } catch (Exception e) {</span>
+<span class="fc" id="L55">            log.error(&quot;Error al generar PDF desde HTML&quot;, e);</span>
+<span class="fc" id="L56">            throw new RuntimeException(&quot;Error al generar el documento PDF: &quot; + e.getMessage(), e);</span>
         }
     }
 }

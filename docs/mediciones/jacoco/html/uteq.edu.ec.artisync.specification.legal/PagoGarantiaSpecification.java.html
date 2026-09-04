@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PagoGarantiaSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.legal</a> &gt; <span class="el_source">PagoGarantiaSpecification.java</span></div><h1>PagoGarantiaSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.legal;
+
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Filtros del panel de supervisión de Pagos y Garantías (Escrow) del Auditor
+ * Financiero. Navega contrato → pedido para llegar a cliente y creador, igual
+ * que hace {@code fn_reporte_comisiones_creador} para el reporte agregado.
+ */
+<span class="nc" id="L16">public class PagoGarantiaSpecification {</span>
+
+    public static Specification&lt;PagoGarantia&gt; conFiltros(
+            String estadoFondos,
+            Long idPerfilCreador,
+            Long idUsuarioCliente,
+            LocalDateTime desde,
+            LocalDateTime hasta) {
+
+<span class="fc" id="L25">        return (root, query, cb) -&gt; {</span>
+<span class="nc" id="L26">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L28" title="All 4 branches missed.">            if (estadoFondos != null &amp;&amp; !estadoFondos.isBlank()) {</span>
+<span class="nc" id="L29">                predicates.add(cb.equal(root.get(&quot;estadoFondos&quot;), estadoFondos));</span>
+            }
+
+<span class="nc bnc" id="L32" title="All 2 branches missed.">            if (idPerfilCreador != null) {</span>
+<span class="nc" id="L33">                predicates.add(cb.equal(</span>
+<span class="nc" id="L34">                        root.get(&quot;contrato&quot;).get(&quot;pedido&quot;).get(&quot;servicio&quot;).get(&quot;perfil&quot;).get(&quot;idPerfil&quot;),</span>
+                        idPerfilCreador));
+            }
+
+<span class="nc bnc" id="L38" title="All 2 branches missed.">            if (idUsuarioCliente != null) {</span>
+<span class="nc" id="L39">                predicates.add(cb.equal(</span>
+<span class="nc" id="L40">                        root.get(&quot;contrato&quot;).get(&quot;pedido&quot;).get(&quot;usuarioCliente&quot;).get(&quot;idUsuario&quot;),</span>
+                        idUsuarioCliente));
+            }
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">            if (desde != null) {</span>
+<span class="nc" id="L45">                predicates.add(cb.greaterThanOrEqualTo(root.get(&quot;contrato&quot;).get(&quot;fechaFormalizacion&quot;), desde));</span>
+            }
+
+<span class="nc bnc" id="L48" title="All 2 branches missed.">            if (hasta != null) {</span>
+<span class="nc" id="L49">                predicates.add(cb.lessThanOrEqualTo(root.get(&quot;contrato&quot;).get(&quot;fechaFormalizacion&quot;), hasta));</span>
+            }
+
+<span class="nc" id="L52">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

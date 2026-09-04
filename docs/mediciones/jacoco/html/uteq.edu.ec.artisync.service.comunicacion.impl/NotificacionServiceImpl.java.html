@@ -28,74 +28,87 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Override
     @Transactional
     public void notificar(Usuario destinatario, String tipoEvento, String mensajeTexto) {
-        // Busca o crea el tipo de notificación dinámicamente
-<span class="nc" id="L32">        TipoNotificacion tipo = tipoNotificacionRepo.findByNombreEvento(tipoEvento)</span>
-<span class="nc" id="L33">                .orElseGet(() -&gt; {</span>
-<span class="nc" id="L34">                    TipoNotificacion nuevo = TipoNotificacion.builder()</span>
-<span class="nc" id="L35">                            .nombreEvento(tipoEvento)</span>
-<span class="nc" id="L36">                            .formatoMensaje(mensajeTexto)</span>
-<span class="nc" id="L37">                            .build();</span>
-<span class="nc" id="L38">                    return tipoNotificacionRepo.save(nuevo);</span>
-                });
+        // notificar() casi siempre se llama desde dentro de la transacción de
+        // una operación de negocio real (pago confirmado, ganador de sorteo,
+        // etc.). Sin este try/catch, un fallo aquí (choque de UNIQUE al crear
+        // TipoNotificacion por una carrera, o una excepción del broker STOMP
+        // al hacer convertAndSendToUser) marca la transacción como
+        // rollback-only y deshace en silencio el cambio de negocio ya
+        // confirmado que la originó -- la notificación es un efecto
+        // secundario de mejor esfuerzo, nunca debe poder tumbar eso.
+        try {
+<span class="fc" id="L40">            TipoNotificacion tipo = tipoNotificacionRepo.findByNombreEvento(tipoEvento)</span>
+<span class="fc" id="L41">                    .orElseGet(() -&gt; {</span>
+<span class="nc" id="L42">                        TipoNotificacion nuevo = TipoNotificacion.builder()</span>
+<span class="nc" id="L43">                                .nombreEvento(tipoEvento)</span>
+<span class="nc" id="L44">                                .formatoMensaje(mensajeTexto)</span>
+<span class="nc" id="L45">                                .build();</span>
+<span class="nc" id="L46">                        return tipoNotificacionRepo.save(nuevo);</span>
+                    });
 
-<span class="nc" id="L41">        NotificacionSistema notificacion = NotificacionSistema.builder()</span>
-<span class="nc" id="L42">                .usuario(destinatario)</span>
-<span class="nc" id="L43">                .tipoNotificacion(tipo)</span>
-<span class="nc" id="L44">                .estaLeida(false)</span>
-<span class="nc" id="L45">                .build();</span>
-<span class="nc" id="L46">        notificacion = notificacionRepo.save(notificacion);</span>
+<span class="fc" id="L49">            NotificacionSistema notificacion = NotificacionSistema.builder()</span>
+<span class="fc" id="L50">                    .usuario(destinatario)</span>
+<span class="fc" id="L51">                    .tipoNotificacion(tipo)</span>
+<span class="fc" id="L52">                    .mensaje(mensajeTexto)</span>
+<span class="fc" id="L53">                    .estaLeida(false)</span>
+<span class="fc" id="L54">                    .build();</span>
+<span class="fc" id="L55">            notificacion = notificacionRepo.save(notificacion);</span>
 
-        // Entrega en tiempo real al usuario via WebSocket (canal privado)
-<span class="nc" id="L49">        RespuestaNotificacion dto = mapToResponse(notificacion, mensajeTexto);</span>
-<span class="nc" id="L50">        messagingTemplate.convertAndSendToUser(</span>
-<span class="nc" id="L51">                destinatario.getCorreo(),</span>
-                &quot;/queue/notificaciones&quot;,
-                dto
-        );
-<span class="nc" id="L55">        log.debug(&quot;Notificación '{}' enviada a {}&quot;, tipoEvento, destinatario.getCorreo());</span>
-<span class="nc" id="L56">    }</span>
+            // Entrega en tiempo real al usuario via WebSocket (canal privado)
+<span class="fc" id="L58">            RespuestaNotificacion dto = mapToResponse(notificacion, mensajeTexto);</span>
+<span class="fc" id="L59">            messagingTemplate.convertAndSendToUser(</span>
+<span class="fc" id="L60">                    destinatario.getCorreo(),</span>
+                    &quot;/queue/notificaciones&quot;,
+                    dto
+            );
+<span class="fc" id="L64">            log.debug(&quot;Notificación '{}' enviada a {}&quot;, tipoEvento, destinatario.getCorreo());</span>
+<span class="fc" id="L65">        } catch (Exception e) {</span>
+<span class="fc" id="L66">            log.error(&quot;No se pudo entregar la notificación '{}' a {}: {}&quot;,</span>
+<span class="fc" id="L67">                    tipoEvento, destinatario.getCorreo(), e.getMessage(), e);</span>
+<span class="fc" id="L68">        }</span>
+<span class="fc" id="L69">    }</span>
 
     @Override
     @Transactional(readOnly = true)
     public Page&lt;RespuestaNotificacion&gt; listarMisNotificaciones(Long idUsuario, Pageable pageable) {
-<span class="nc" id="L61">        return notificacionRepo</span>
-<span class="nc" id="L62">                .findByUsuarioIdUsuarioOrderByFechaEmisionDesc(idUsuario, pageable)</span>
-<span class="nc" id="L63">                .map(n -&gt; mapToResponse(n, n.getTipoNotificacion().getFormatoMensaje()));</span>
+<span class="fc" id="L74">        return notificacionRepo</span>
+<span class="fc" id="L75">                .findByUsuarioIdUsuarioOrderByFechaEmisionDesc(idUsuario, pageable)</span>
+<span class="fc" id="L76">                .map(n -&gt; mapToResponse(n, n.getMensaje()));</span>
     }
 
     @Override
     @Transactional
     public RespuestaNotificacion marcarComoLeida(Long idNotificacion, Long idUsuario) {
-<span class="nc" id="L69">        NotificacionSistema notificacion = notificacionRepo.findById(idNotificacion)</span>
-<span class="nc" id="L70">                .filter(n -&gt; n.getUsuario().getIdUsuario().equals(idUsuario))</span>
-<span class="nc" id="L71">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+<span class="nc" id="L82">        NotificacionSistema notificacion = notificacionRepo.findById(idNotificacion)</span>
+<span class="nc" id="L83">                .filter(n -&gt; n.getUsuario().getIdUsuario().equals(idUsuario))</span>
+<span class="nc" id="L84">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
                         &quot;Notificación no encontrada o no pertenece al usuario&quot;));
-<span class="nc" id="L73">        notificacion.setEstaLeida(true);</span>
-<span class="nc" id="L74">        notificacion = notificacionRepo.save(notificacion);</span>
-<span class="nc" id="L75">        return mapToResponse(notificacion, notificacion.getTipoNotificacion().getFormatoMensaje());</span>
+<span class="nc" id="L86">        notificacion.setEstaLeida(true);</span>
+<span class="nc" id="L87">        notificacion = notificacionRepo.save(notificacion);</span>
+<span class="nc" id="L88">        return mapToResponse(notificacion, notificacion.getMensaje());</span>
     }
 
     @Override
     @Transactional
     public int marcarTodasLeidas(Long idUsuario) {
-<span class="nc" id="L81">        return notificacionRepo.marcarTodasLeidas(idUsuario);</span>
+<span class="nc" id="L94">        return notificacionRepo.marcarTodasLeidas(idUsuario);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public long contarNoLeidas(Long idUsuario) {
-<span class="nc" id="L87">        return notificacionRepo.countByUsuarioIdUsuarioAndEstaLeidaFalse(idUsuario);</span>
+<span class="nc" id="L100">        return notificacionRepo.countByUsuarioIdUsuarioAndEstaLeidaFalse(idUsuario);</span>
     }
 
     // -------------------------------------------------------------------------
     private RespuestaNotificacion mapToResponse(NotificacionSistema n, String mensajeTexto) {
-<span class="nc" id="L92">        return RespuestaNotificacion.builder()</span>
-<span class="nc" id="L93">                .idNotificacion(n.getIdNotificacion())</span>
-<span class="nc" id="L94">                .tipoEvento(n.getTipoNotificacion().getNombreEvento())</span>
-<span class="nc" id="L95">                .mensaje(mensajeTexto)</span>
-<span class="nc" id="L96">                .estaLeida(n.getEstaLeida())</span>
-<span class="nc" id="L97">                .fechaEmision(n.getFechaEmision())</span>
-<span class="nc" id="L98">                .build();</span>
+<span class="fc" id="L105">        return RespuestaNotificacion.builder()</span>
+<span class="fc" id="L106">                .idNotificacion(n.getIdNotificacion())</span>
+<span class="fc" id="L107">                .tipoEvento(n.getTipoNotificacion().getNombreEvento())</span>
+<span class="fc" id="L108">                .mensaje(mensajeTexto)</span>
+<span class="fc" id="L109">                .estaLeida(n.getEstaLeida())</span>
+<span class="fc" id="L110">                .fechaEmision(n.getFechaEmision())</span>
+<span class="fc" id="L111">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerfilCreadorServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.perfil.impl</a> &gt; <span class="el_source">PerfilCreadorServicioImpl.java</span></div><h1>PerfilCreadorServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.perfil.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPerfil;
@@ -13,6 +14,8 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.perfil.IPerfilCreadorServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,86 +26,130 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
 
     private final PerfilCreadorRepository perfilRepository;
     private final UsuarioRepository usuarioRepository;
+    private final IVerificacionServicio verificacionServicio;
 
     @Override
     @Transactional
-    public RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion) {
-<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (perfilRepository.findByUsuarioIdUsuario(peticion.idUsuario()).isPresent()) {</span>
-<span class="fc" id="L31">            throw new ExcepcionRecursoDuplicado(&quot;El usuario ya tiene un perfil de creador asignado.&quot;);</span>
+    public RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion, String correoSolicitante, boolean esAdmin) {
+        // El idUsuario del cuerpo solo se honra para un ADMIN. Antes se confiaba
+        // en él sin más, así que cualquier CREADOR podía crear un perfil a nombre
+        // de un idUsuario arbitrario.
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        Long idDestino = esAdmin</span>
+<span class="fc" id="L38">                ? peticion.idUsuario()</span>
+<span class="fc" id="L39">                : resolverPorCorreo(correoSolicitante).getIdUsuario();</span>
+
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (perfilRepository.findByUsuarioIdUsuario(idDestino).isPresent()) {</span>
+<span class="fc" id="L42">            throw new ExcepcionRecursoDuplicado(&quot;El usuario ya tiene un perfil de creador asignado.&quot;);</span>
         }
 
-<span class="fc" id="L34">        Usuario usuario = usuarioRepository.findById(peticion.idUsuario())</span>
-<span class="fc" id="L35">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado con ID: &quot; + peticion.idUsuario()));</span>
+<span class="fc" id="L45">        Usuario usuario = usuarioRepository.findById(idDestino)</span>
+<span class="fc" id="L46">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado con ID: &quot; + idDestino));</span>
 
-<span class="fc" id="L37">        PerfilCreador perfil = PerfilCreador.builder()</span>
-<span class="fc" id="L38">                .usuario(usuario)</span>
-<span class="fc" id="L39">                .biografia(peticion.biografia())</span>
-<span class="fc" id="L40">                .urlRedSocial(peticion.urlRedSocial())</span>
-<span class="fc" id="L41">                .build();</span>
+<span class="fc" id="L48">        PerfilCreador perfil = PerfilCreador.builder()</span>
+<span class="fc" id="L49">                .usuario(usuario)</span>
+<span class="fc" id="L50">                .biografia(peticion.biografia())</span>
+<span class="fc" id="L51">                .urlRedSocial(peticion.urlRedSocial())</span>
+<span class="fc" id="L52">                .tituloProfesional(peticion.tituloProfesional())</span>
+<span class="fc" id="L53">                .build();</span>
 
-<span class="fc" id="L43">        PerfilCreador guardado = perfilRepository.save(perfil);</span>
-<span class="fc" id="L44">        return mapearARespuesta(guardado);</span>
+<span class="fc" id="L55">        PerfilCreador guardado = perfilRepository.save(perfil);</span>
+<span class="fc" id="L56">        return mapearARespuesta(guardado);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPerfil obtenerPerfilPorId(Long idPerfil) {
-<span class="fc" id="L50">        PerfilCreador perfil = perfilRepository.findById(idPerfil)</span>
-<span class="pc" id="L51">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil));</span>
-<span class="nc" id="L52">        return mapearARespuesta(perfil);</span>
+<span class="fc" id="L62">        PerfilCreador perfil = perfilRepository.findById(idPerfil)</span>
+<span class="fc" id="L63">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil));</span>
+<span class="fc" id="L64">        return mapearARespuesta(perfil);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario) {
-<span class="fc" id="L58">        PerfilCreador perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)</span>
-<span class="fc" id="L59">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No se encontró perfil para el usuario con ID: &quot; + idUsuario));</span>
-<span class="fc" id="L60">        return mapearARespuesta(perfil);</span>
+<span class="fc" id="L70">        PerfilCreador perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L71">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No se encontró perfil para el usuario con ID: &quot; + idUsuario));</span>
+<span class="fc" id="L72">        return mapearARespuesta(perfil);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaPerfil&gt; listarPerfiles() {
-<span class="fc" id="L66">        return perfilRepository.findAll().stream()</span>
-<span class="fc" id="L67">                .map(this::mapearARespuesta)</span>
-<span class="fc" id="L68">                .collect(Collectors.toList());</span>
+<span class="fc" id="L78">        return perfilRepository.findAll().stream()</span>
+<span class="fc" id="L79">                .map(this::mapearARespuesta)</span>
+<span class="fc" id="L80">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPerfil&gt; listarPerfilesActivos() {
+<span class="nc" id="L86">        return perfilRepository.findByUsuarioEstadoCuentaTrue().stream()</span>
+<span class="nc" id="L87">                .map(this::mapearARespuesta)</span>
+<span class="nc" id="L88">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional
-    public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion) {
-<span class="fc" id="L74">        PerfilCreador perfil = perfilRepository.findById(idPerfil)</span>
-<span class="fc" id="L75">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil));</span>
+    public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion,
+                                            String correoSolicitante, boolean esAdmin) {
+<span class="fc" id="L95">        PerfilCreador perfil = perfilRepository.findById(idPerfil)</span>
+<span class="fc" id="L96">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil));</span>
 
-<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        if (peticion.biografia() != null) {</span>
-<span class="fc" id="L78">            perfil.setBiografia(peticion.biografia());</span>
-        }
-<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        if (peticion.urlRedSocial() != null) {</span>
-<span class="fc" id="L81">            perfil.setUrlRedSocial(peticion.urlRedSocial());</span>
+        // El @PreAuthorize del controlador comprueba el ROL, no la propiedad. Sin
+        // esta verificación cualquier CREADOR podía sobrescribir la biografía y la
+        // urlRedSocial de otro creador enumerando ids con GET /api/v1/perfiles.
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (!esAdmin) {</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            Long propietario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">            if (!resolverPorCorreo(correoSolicitante).getIdUsuario().equals(propietario)) {</span>
+<span class="fc" id="L104">                throw new AccessDeniedException(&quot;No puedes modificar el perfil de otro usuario&quot;);</span>
+            }
         }
 
-<span class="fc" id="L84">        PerfilCreador actualizado = perfilRepository.save(perfil);</span>
-<span class="fc" id="L85">        return mapearARespuesta(actualizado);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (peticion.biografia() != null) {</span>
+<span class="fc" id="L109">            perfil.setBiografia(peticion.biografia());</span>
+        }
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (peticion.urlRedSocial() != null) {</span>
+<span class="fc" id="L112">            perfil.setUrlRedSocial(peticion.urlRedSocial());</span>
+        }
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (peticion.tituloProfesional() != null) {</span>
+<span class="fc" id="L115">            perfil.setTituloProfesional(peticion.tituloProfesional());</span>
+        }
+
+<span class="fc" id="L118">        PerfilCreador actualizado = perfilRepository.save(perfil);</span>
+<span class="fc" id="L119">        return mapearARespuesta(actualizado);</span>
     }
 
     @Override
     @Transactional
     public void eliminarPerfil(Long idPerfil) {
-<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (!perfilRepository.existsById(idPerfil)) {</span>
-<span class="fc" id="L92">            throw new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        if (!perfilRepository.existsById(idPerfil)) {</span>
+<span class="fc" id="L126">            throw new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + idPerfil);</span>
         }
-<span class="fc" id="L94">        perfilRepository.deleteById(idPerfil);</span>
-<span class="fc" id="L95">    }</span>
+<span class="fc" id="L128">        perfilRepository.deleteById(idPerfil);</span>
+<span class="fc" id="L129">    }</span>
+
+    /** Usuario autenticado a partir del correo que viaja en el token. */
+    private Usuario resolverPorCorreo(String correo) {
+<span class="fc" id="L133">        return usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L134">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario autenticado no encontrado&quot;));</span>
+    }
 
     private RespuestaPerfil mapearARespuesta(PerfilCreador perfil) {
-<span class="fc" id="L98">        return RespuestaPerfil.builder()</span>
-<span class="fc" id="L99">                .idPerfil(perfil.getIdPerfil())</span>
-<span class="pc bpc" id="L100" title="1 of 2 branches missed.">                .idUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null)</span>
-<span class="pc bpc" id="L101" title="1 of 2 branches missed.">                .nombresUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getNombres() : null)</span>
-<span class="pc bpc" id="L102" title="1 of 2 branches missed.">                .apellidosUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getApellidos() : null)</span>
-<span class="fc" id="L103">                .biografia(perfil.getBiografia())</span>
-<span class="fc" id="L104">                .urlRedSocial(perfil.getUrlRedSocial())</span>
-<span class="fc" id="L105">                .build();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;</span>
+<span class="fc" id="L139">        return RespuestaPerfil.builder()</span>
+<span class="fc" id="L140">                .idPerfil(perfil.getIdPerfil())</span>
+<span class="fc" id="L141">                .idUsuario(idUsuario)</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">                .nombresUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getNombres() : null)</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                .apellidosUsuario(perfil.getUsuario() != null ? perfil.getUsuario().getApellidos() : null)</span>
+<span class="fc" id="L144">                .biografia(perfil.getBiografia())</span>
+<span class="fc" id="L145">                .urlRedSocial(perfil.getUrlRedSocial())</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">                .urlFotoPerfil(perfil.getUsuario() != null ? UrlFotoPerfil.construir(perfil.getUsuario().getUrlFotoPerfil()) : null)</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">                .tituloProfesional(perfil.getTituloProfesional())</span>
+                // Antes el frontend pintaba &quot;Identidad verificada&quot; fijo para
+                // cualquier creador; ahora refleja el estado real (mismo criterio
+                // que gatea publicar servicios y crear pedidos).
+<span class="fc bfc" id="L151" title="All 2 branches covered.">                .identidadVerificada(idUsuario != null &amp;&amp; verificacionServicio.estaIdentidadVerificada(idUsuario))</span>
+<span class="fc" id="L152">                .build();</span>
     }
 }
 

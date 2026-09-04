@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -13,8 +14,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 
@@ -22,6 +24,7 @@ import uteq.edu.ec.artisync.service.comunicacion.ChatService;
  * Controlador de chat — REST + WebSocket STOMP.
  * RF-14: Mensajería en tiempo real. RF-15: Filtrado de datos de contacto.
  */
+<span class="fc" id="L27">@Slf4j</span>
 @Tag(name = &quot;Chat&quot;, description = &quot;Mensajería interna en tiempo real vinculada a pedidos&quot;)
 @RestController
 @RequestMapping(&quot;/api/v1/pedidos/{idPedido}/chat&quot;)
@@ -33,29 +36,32 @@ public class ChatControlador {
     @Operation(summary = &quot;Historial de mensajes de un pedido (paginado)&quot;)
     @GetMapping(&quot;/mensajes&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;Page&lt;RespuestaMensaje&gt;&gt; obtenerMensajes(
+    public ResponseEntity&lt;Page&lt;RespuestaMensajeChat&gt;&gt; obtenerMensajes(
             @PathVariable Long idPedido,
-            Pageable pageable) {
-<span class="nc" id="L39">        return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, pageable));</span>
+            Pageable pageable,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L43">        return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, userDetails.getIdUsuario(), pageable));</span>
     }
 
     @Operation(summary = &quot;Enviar mensaje por REST (fallback sin WebSocket)&quot;)
     @PostMapping(&quot;/mensajes&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaMensaje&gt; enviarMensaje(
+    public ResponseEntity&lt;RespuestaMensajeChat&gt; enviarMensaje(
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L49">        RespuestaMensaje respuesta = chatService.enviarMensaje(</span>
-<span class="nc" id="L50">                idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
-<span class="nc" id="L51">        return ResponseEntity.ok(respuesta);</span>
+<span class="fc" id="L53">        RespuestaMensajeChat respuesta = chatService.enviarMensaje(</span>
+<span class="fc" id="L54">                idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
+<span class="fc" id="L55">        return ResponseEntity.ok(respuesta);</span>
     }
 
     @Operation(summary = &quot;Estado actual de la sala de chat de un pedido&quot;)
     @GetMapping(&quot;/estado&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaSalaChat&gt; obtenerEstado(@PathVariable Long idPedido) {
-<span class="nc" id="L58">        return ResponseEntity.ok(chatService.obtenerEstadoSala(idPedido));</span>
+    public ResponseEntity&lt;RespuestaSalaChat&gt; obtenerEstado(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L64">        return ResponseEntity.ok(chatService.obtenerEstadoSala(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     // -------------------------------------------------------------------------
@@ -70,8 +76,11 @@ public class ChatControlador {
     public void enviarMensajeWs(
             @Payload PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        // El idPedido debe incluirse en el payload al llamar desde STOMP
-        // Nota: en WebSocket el path variable no está disponible; se pasa en el body
-<span class="nc" id="L75">    }</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (peticion.getIdPedido() == null) {</span>
+<span class="fc" id="L80">            log.warn(&quot;Mensaje STOMP recibido sin idPedido, usuario {}&quot;, userDetails.getIdUsuario());</span>
+<span class="fc" id="L81">            throw new ExcepcionReglaNegocio(&quot;idPedido es obligatorio para enviar mensajes por WebSocket&quot;);</span>
+        }
+<span class="fc" id="L83">        chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
+<span class="fc" id="L84">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -52,9 +52,9 @@ import java.util.Map;
     public ResponseEntity&lt;ProblemDetail&gt; manejarExcepcionRecursoNoEncontrado(
             ExcepcionRecursoNoEncontrado ex, HttpServletRequest peticion) {
 
-<span class="nc" id="L55">        ProblemDetail pd = construirProblemDetail(</span>
-<span class="nc" id="L56">                HttpStatus.NOT_FOUND, &quot;recurso-no-encontrado&quot;, ex.getMessage(), peticion.getRequestURI());</span>
-<span class="nc" id="L57">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);</span>
+<span class="fc" id="L55">        ProblemDetail pd = construirProblemDetail(</span>
+<span class="fc" id="L56">                HttpStatus.NOT_FOUND, &quot;recurso-no-encontrado&quot;, ex.getMessage(), peticion.getRequestURI());</span>
+<span class="fc" id="L57">        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);</span>
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

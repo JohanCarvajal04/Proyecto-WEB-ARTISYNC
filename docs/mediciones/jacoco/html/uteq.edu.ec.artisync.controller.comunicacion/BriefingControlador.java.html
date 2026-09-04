@@ -42,8 +42,8 @@ public class BriefingControlador {
             @Valid @RequestBody PeticionCrearBriefingPlantilla peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         // El idPerfilCreador se resuelve desde el JWT del usuario autenticado
-<span class="nc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L46">                .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L46">                .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));</span>
     }
 
     @Operation(summary = &quot;Listar mis plantillas de briefing&quot;)
@@ -51,7 +51,7 @@ public class BriefingControlador {
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;List&lt;RespuestaBriefing&gt;&gt; obtenerMisPlantillas(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L54">        return ResponseEntity.ok(briefingService.obtenerMisPlantillas(userDetails.getIdUsuario()));</span>
+<span class="fc" id="L54">        return ResponseEntity.ok(briefingService.obtenerMisPlantillas(userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Editar plantilla de briefing&quot;)
@@ -61,8 +61,8 @@ public class BriefingControlador {
             @PathVariable Long idPlantilla,
             @Valid @RequestBody PeticionCrearBriefingPlantilla peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L64">        return ResponseEntity.ok(</span>
-<span class="nc" id="L65">                briefingService.editarPlantilla(idPlantilla, userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L64">        return ResponseEntity.ok(</span>
+<span class="fc" id="L65">                briefingService.editarPlantilla(idPlantilla, userDetails.getIdUsuario(), peticion));</span>
     }
 
     @Operation(summary = &quot;Eliminar plantilla de briefing&quot;)
@@ -71,8 +71,8 @@ public class BriefingControlador {
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPlantilla(
             @PathVariable Long idPlantilla,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L74">        return ResponseEntity.ok(</span>
-<span class="nc" id="L75">                briefingService.eliminarPlantilla(idPlantilla, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L74">        return ResponseEntity.ok(</span>
+<span class="fc" id="L75">                briefingService.eliminarPlantilla(idPlantilla, userDetails.getIdUsuario()));</span>
     }
 
     // =========================================================================
@@ -87,15 +87,17 @@ public class BriefingControlador {
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionEnviarBriefing peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L90">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L91">                .body(briefingService.enviarBriefing(idPedido, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L90">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L91">                .body(briefingService.enviarBriefing(idPedido, peticion, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Ver briefing enviado a un pedido&quot;)
     @GetMapping(&quot;/api/v1/pedidos/{idPedido}/briefing&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaBriefing&gt; obtenerBriefing(@PathVariable Long idPedido) {
-<span class="nc" id="L98">        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido));</span>
+    public ResponseEntity&lt;RespuestaBriefing&gt; obtenerBriefing(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L100">        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Responder briefing (CLIENTE) — respuestas inmutables&quot;)
@@ -105,8 +107,8 @@ public class BriefingControlador {
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionResponderBriefing peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L108">        return ResponseEntity.ok(</span>
-<span class="nc" id="L109">                briefingService.responderBriefing(idPedido, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L110">        return ResponseEntity.ok(</span>
+<span class="fc" id="L111">                briefingService.responderBriefing(idPedido, peticion, userDetails.getIdUsuario()));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

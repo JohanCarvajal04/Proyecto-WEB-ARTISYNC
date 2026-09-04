@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditoriaControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.auditoria</a> &gt; <span class="el_source">AuditoriaControlador.java</span></div><h1>AuditoriaControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.auditoria;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
+import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.RespuestaDocumento;
+
+import java.util.List;
+
+/**
+ * Bitácora inmutable de eventos del sistema (REQ-NF-013). Ver
+ * V15__modulo_auditoria.sql para la garantía de inmutabilidad a nivel de
+ * base de datos.
+ *
+ * No confundir con AuditControlador (paquete controller.social): ese
+ * controlador es un exportador de transacciones de un creador concreto,
+ * preexistente y sin relación con esta bitácora transversal.
+ */
+@Tag(name = &quot;Auditoría&quot;, description = &quot;Bitácora inmutable de eventos del sistema (REQ-NF-013)&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/auditoria&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class AuditoriaControlador {
+
+    private final IAuditoriaServicio auditoriaServicio;
+
+    @Operation(summary = &quot;Listado paginado y filtrado de la bitácora de auditoría&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;PagedResponse&lt;RespuestaEventoAuditoriaResumen&gt;&gt; listar(
+            FiltroAuditoria filtro, Pageable pageable) {
+<span class="fc" id="L46">        return ResponseEntity.ok(auditoriaServicio.listar(filtro, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Detalle completo de un evento, incluido el JSON del cambio&quot;)
+    @GetMapping(&quot;/{idEvento}&quot;)
+    @PreAuthorize(&quot;hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaEventoAuditoria&gt; obtenerPorId(@PathVariable Long idEvento) {
+<span class="fc" id="L53">        return ResponseEntity.ok(auditoriaServicio.obtenerPorId(idEvento));</span>
+    }
+
+    @Operation(summary = &quot;Catálogo de acciones distintas registradas, para poblar el filtro&quot;)
+    @GetMapping(&quot;/acciones&quot;)
+    @PreAuthorize(&quot;hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;String&gt;&gt; listarAcciones() {
+<span class="fc" id="L60">        return ResponseEntity.ok(auditoriaServicio.listarAccionesDisponibles());</span>
+    }
+
+    @Operation(summary = &quot;Exportar los eventos que coinciden con el filtro en CSV, XLSX o PDF &quot;
+            + &quot;(cada formato tiene su propio tope de filas)&quot;)
+    @GetMapping(&quot;/exportar&quot;)
+    @PreAuthorize(&quot;hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportar(FiltroAuditoria filtro, @RequestParam FormatoReporte formato,
+                                            Authentication authentication) {
+<span class="fc" id="L69">        DocumentoGenerado documento = auditoriaServicio.exportar(filtro, formato, authentication.getName());</span>
+<span class="fc" id="L70">        return RespuestaDocumento.de(documento);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

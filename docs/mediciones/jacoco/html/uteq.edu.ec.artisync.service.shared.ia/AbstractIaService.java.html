@@ -2,53 +2,100 @@
 
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
+import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
-<span class="fc" id="L11">@Slf4j</span>
-<span class="fc" id="L12">public abstract class AbstractIaService {</span>
+<span class="fc" id="L13">@Slf4j</span>
+<span class="fc" id="L14">public abstract class AbstractIaService {</span>
+
+    /**
+     * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
+     * ver ExcepcionServicioIaNoDisponible#isReintentable). Mismo patrón que
+     * VerificacionServicioImpl#analizarConReintento, generalizado aquí para
+     * que moderarContenido/clasificarServicio/sugerirPreguntasBriefing/
+     * analizarResena no descarten en silencio un 429 momentáneo del
+     * proveedor (revisión técnica 2026-09-01: antes caían directo al
+     * catch-all y devolvían el valor por defecto sin reintentar).
+     */
+    protected &lt;T&gt; T conReintentoTransitorio(Supplier&lt;T&gt; llamada) {
+        try {
+<span class="nc" id="L27">            return llamada.get();</span>
+<span class="fc" id="L28">        } catch (ExcepcionServicioIaNoDisponible e) {</span>
+<span class="pc bpc" id="L29" title="1 of 2 branches missed.">            if (!e.isReintentable()) {</span>
+<span class="fc" id="L30">                throw e;</span>
+            }
+<span class="nc" id="L32">            log.warn(&quot;Fallo transitorio de IA, reintentando en 2s: {}&quot;, e.getMessage());</span>
+            try {
+<span class="nc" id="L34">                Thread.sleep(2000);</span>
+<span class="nc" id="L35">            } catch (InterruptedException interrupted) {</span>
+<span class="nc" id="L36">                Thread.currentThread().interrupt();</span>
+<span class="nc" id="L37">                throw e;</span>
+<span class="nc" id="L38">            }</span>
+<span class="nc" id="L39">            return llamada.get();</span>
+        }
+    }
+
+    /**
+     * Mitigación básica de inyección de prompt (revisión técnica
+     * 2026-09-01): los prompts de moderación/clasificación insertan texto de
+     * usuario sin sanitizar vía String.format, delimitado solo por comillas
+     * simples en la plantilla -- un texto que las cierra puede escribir
+     * instrucciones que el modelo interpreta como parte del prompt del
+     * sistema en vez de como dato a analizar. Esto no es una garantía contra
+     * inyección de prompt (ningún escapado de texto lo es del todo frente a
+     * un LLM), pero cierra la vía más directa: ya no se puede cerrar el
+     * delimitador de comillas de la plantilla, y se acota la longitud para
+     * no inflar el payload con un intento de relleno.
+     */
+    protected String sanitizarParaPrompt(String texto) {
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (texto == null) return &quot;&quot;;</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        String limitado = texto.length() &gt; 4000 ? texto.substring(0, 4000) : texto;</span>
+<span class="fc" id="L58">        return limitado.replace(&quot;\&quot;&quot;, &quot;'&quot;);</span>
+    }
 
     protected String cargarPrompt(String nombreArchivo, Object... args) {
-<span class="fc" id="L15">        try (InputStream is = getClass().getClassLoader().getResourceAsStream(&quot;IA/&quot; + nombreArchivo)) {</span>
-<span class="fc bfc" id="L16" title="All 2 branches covered.">            if (is == null) {</span>
-<span class="fc" id="L17">                throw new IllegalStateException(&quot;Prompt no encontrado: &quot; + nombreArchivo);</span>
+<span class="fc" id="L62">        try (InputStream is = getClass().getClassLoader().getResourceAsStream(&quot;IA/&quot; + nombreArchivo)) {</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            if (is == null) {</span>
+<span class="fc" id="L64">                throw new IllegalStateException(&quot;Prompt no encontrado: &quot; + nombreArchivo);</span>
             }
-<span class="fc" id="L19">            String plantilla = new String(is.readAllBytes(), StandardCharsets.UTF_8);</span>
-<span class="fc bfc" id="L20" title="All 2 branches covered.">            return args.length &gt; 0 ? String.format(plantilla, args) : plantilla;</span>
-<span class="nc" id="L21">        } catch (IOException e) {</span>
-<span class="nc" id="L22">            throw new IllegalStateException(&quot;Error al cargar prompt: &quot; + nombreArchivo, e);</span>
+<span class="fc" id="L66">            String plantilla = new String(is.readAllBytes(), StandardCharsets.UTF_8);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">            return args.length &gt; 0 ? String.format(plantilla, args) : plantilla;</span>
+<span class="nc" id="L68">        } catch (IOException e) {</span>
+<span class="nc" id="L69">            throw new IllegalStateException(&quot;Error al cargar prompt: &quot; + nombreArchivo, e);</span>
         }
     }
 
     protected String extraerJson(String respuesta) {
-<span class="pc bpc" id="L27" title="2 of 4 branches missed.">        if (respuesta == null || respuesta.isBlank()) {</span>
-<span class="nc" id="L28">            return &quot;{}&quot;;</span>
+<span class="pc bpc" id="L74" title="2 of 4 branches missed.">        if (respuesta == null || respuesta.isBlank()) {</span>
+<span class="nc" id="L75">            return &quot;{}&quot;;</span>
         }
-<span class="fc" id="L30">        String recortado = respuesta.trim();</span>
-<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (recortado.contains(&quot;```json&quot;)) {</span>
-<span class="fc" id="L32">            int inicio = recortado.indexOf(&quot;```json&quot;) + 7;</span>
-<span class="fc" id="L33">            int fin = recortado.indexOf(&quot;```&quot;, inicio);</span>
-<span class="pc bpc" id="L34" title="1 of 2 branches missed.">            if (fin &gt; inicio) {</span>
-<span class="fc" id="L35">                return recortado.substring(inicio, fin).trim();</span>
+<span class="fc" id="L77">        String recortado = respuesta.trim();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (recortado.contains(&quot;```json&quot;)) {</span>
+<span class="fc" id="L79">            int inicio = recortado.indexOf(&quot;```json&quot;) + 7;</span>
+<span class="fc" id="L80">            int fin = recortado.indexOf(&quot;```&quot;, inicio);</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">            if (fin &gt; inicio) {</span>
+<span class="fc" id="L82">                return recortado.substring(inicio, fin).trim();</span>
             }
         }
-<span class="pc bpc" id="L38" title="3 of 4 branches missed.">        if (recortado.startsWith(&quot;```&quot;) &amp;&amp; recortado.endsWith(&quot;```&quot;)) {</span>
-<span class="nc" id="L39">            return recortado.substring(3, recortado.length() - 3).trim();</span>
+<span class="pc bpc" id="L85" title="3 of 4 branches missed.">        if (recortado.startsWith(&quot;```&quot;) &amp;&amp; recortado.endsWith(&quot;```&quot;)) {</span>
+<span class="nc" id="L86">            return recortado.substring(3, recortado.length() - 3).trim();</span>
         }
-<span class="pc bpc" id="L41" title="1 of 4 branches missed.">        if (recortado.startsWith(&quot;{&quot;) &amp;&amp; recortado.endsWith(&quot;}&quot;)) {</span>
-<span class="fc" id="L42">            return recortado;</span>
+<span class="pc bpc" id="L88" title="1 of 4 branches missed.">        if (recortado.startsWith(&quot;{&quot;) &amp;&amp; recortado.endsWith(&quot;}&quot;)) {</span>
+<span class="fc" id="L89">            return recortado;</span>
         }
-<span class="fc" id="L44">        int inicio = recortado.indexOf('{');</span>
-<span class="fc" id="L45">        int fin = recortado.lastIndexOf('}');</span>
-<span class="pc bpc" id="L46" title="1 of 4 branches missed.">        if (inicio &gt;= 0 &amp;&amp; fin &gt; inicio) {</span>
-<span class="fc" id="L47">            return recortado.substring(inicio, fin + 1);</span>
+<span class="fc" id="L91">        int inicio = recortado.indexOf('{');</span>
+<span class="fc" id="L92">        int fin = recortado.lastIndexOf('}');</span>
+<span class="pc bpc" id="L93" title="1 of 4 branches missed.">        if (inicio &gt;= 0 &amp;&amp; fin &gt; inicio) {</span>
+<span class="fc" id="L94">            return recortado.substring(inicio, fin + 1);</span>
         }
-<span class="fc" id="L49">        log.warn(&quot;No se pudo extraer JSON válido de la respuesta de IA: {}&quot;,</span>
-<span class="fc" id="L50">                recortado.substring(0, Math.min(100, recortado.length())));</span>
-<span class="fc" id="L51">        return &quot;{}&quot;;</span>
+<span class="fc" id="L96">        log.warn(&quot;No se pudo extraer JSON válido de la respuesta de IA: {}&quot;,</span>
+<span class="fc" id="L97">                recortado.substring(0, Math.min(100, recortado.length())));</span>
+<span class="fc" id="L98">        return &quot;{}&quot;;</span>
     }
 
     /**
@@ -56,29 +103,29 @@ import java.nio.charset.StandardCharsets;
      * real — ambos deben mapear a null de Java, nunca a la cadena &quot;null&quot;.
      */
     protected String textoONull(JsonNode nodo, String campo) {
-<span class="fc" id="L59">        JsonNode valor = nodo.path(campo);</span>
-<span class="fc bfc" id="L60" title="All 4 branches covered.">        if (valor.isNull() || valor.isMissingNode()) {</span>
-<span class="fc" id="L61">            return null;</span>
+<span class="fc" id="L106">        JsonNode valor = nodo.path(campo);</span>
+<span class="fc bfc" id="L107" title="All 4 branches covered.">        if (valor.isNull() || valor.isMissingNode()) {</span>
+<span class="fc" id="L108">            return null;</span>
         }
-<span class="fc" id="L63">        return valor.asString();</span>
+<span class="fc" id="L110">        return valor.asString();</span>
     }
 
     protected BigDecimal toBigDecimal(Object valor) {
-<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (valor == null) return BigDecimal.ZERO;</span>
-<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (valor instanceof Number n) return BigDecimal.valueOf(n.doubleValue());</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        if (valor == null) return BigDecimal.ZERO;</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (valor instanceof Number n) return BigDecimal.valueOf(n.doubleValue());</span>
         try {
-<span class="nc" id="L70">            return new BigDecimal(valor.toString());</span>
-<span class="nc" id="L71">        } catch (NumberFormatException e) {</span>
-<span class="nc" id="L72">            return BigDecimal.ZERO;</span>
+<span class="nc" id="L117">            return new BigDecimal(valor.toString());</span>
+<span class="nc" id="L118">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L119">            return BigDecimal.ZERO;</span>
         }
     }
 
     /** Acota la confianza reportada por la IA a [0,1] (límite de la columna en BD). */
     protected BigDecimal acotarConfianza(BigDecimal confianza) {
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (confianza == null) return BigDecimal.ZERO;</span>
-<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ZERO) &lt; 0) return BigDecimal.ZERO;</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ONE) &gt; 0) return BigDecimal.ONE;</span>
-<span class="fc" id="L81">        return confianza;</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">        if (confianza == null) return BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ZERO) &lt; 0) return BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (confianza.compareTo(BigDecimal.ONE) &gt; 0) return BigDecimal.ONE;</span>
+<span class="fc" id="L128">        return confianza;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

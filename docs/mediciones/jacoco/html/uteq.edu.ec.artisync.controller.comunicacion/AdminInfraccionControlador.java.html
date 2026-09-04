@@ -14,9 +14,10 @@ import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 
 /**
  * Controlador de administración de infracciones y suspensiones.
- * RF-15: Solo ADMIN puede consultar historial y revertir suspensiones.
+ * RF-15: exige el permiso INFRACCION_GESTIONAR (V10__permisos_navegacion.sql),
+ * que en el seed solo tiene ADMIN pero es asignable a cualquier rol.
  */
-@Tag(name = &quot;Admin — Infracciones&quot;, description = &quot;Gestión de infracciones y suspensiones de cuenta (solo ADMIN)&quot;)
+@Tag(name = &quot;Admin — Infracciones&quot;, description = &quot;Gestión de infracciones y suspensiones de cuenta (INFRACCION_GESTIONAR)&quot;)
 @RestController
 @RequestMapping(&quot;/api/v1/admin&quot;)
 @RequiredArgsConstructor
@@ -26,25 +27,25 @@ public class AdminInfraccionControlador {
 
     @Operation(summary = &quot;Listar todas las infracciones del sistema&quot;)
     @GetMapping(&quot;/infracciones&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaInfraccion&gt;&gt; listarInfracciones(Pageable pageable) {
-<span class="nc" id="L31">        return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));</span>
+<span class="nc" id="L32">        return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));</span>
     }
 
     @Operation(summary = &quot;Historial de infracciones de un usuario específico&quot;)
     @GetMapping(&quot;/infracciones/usuario/{idUsuario}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaInfraccion&gt;&gt; historialPorUsuario(
             @PathVariable Long idUsuario,
             Pageable pageable) {
-<span class="nc" id="L40">        return ResponseEntity.ok(infraccionService.historialPorUsuario(idUsuario, pageable));</span>
+<span class="nc" id="L41">        return ResponseEntity.ok(infraccionService.historialPorUsuario(idUsuario, pageable));</span>
     }
 
     @Operation(summary = &quot;Revertir suspensión de un usuario&quot;)
     @DeleteMapping(&quot;/suspensiones/{idUsuario}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; revertirSuspension(@PathVariable Long idUsuario) {
-<span class="nc" id="L47">        return ResponseEntity.ok(infraccionService.revertirSuspension(idUsuario));</span>
+<span class="nc" id="L48">        return ResponseEntity.ok(infraccionService.revertirSuspension(idUsuario));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

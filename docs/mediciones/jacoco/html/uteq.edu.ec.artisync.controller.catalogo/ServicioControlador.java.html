@@ -26,71 +26,71 @@ public class ServicioControlador {
     private final IServicioCatalogoServicio servicioCatalogoServicio;
 
     @PostMapping(&quot;/creador/{idPerfilCreador}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaServicio&gt; crearServicio(
             @PathVariable Long idPerfilCreador,
             @Valid @RequestBody PeticionCrearServicio peticion) {
-<span class="nc" id="L33">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L34">                .body(servicioCatalogoServicio.crearServicio(idPerfilCreador, peticion));</span>
+<span class="fc" id="L33">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L34">                .body(servicioCatalogoServicio.crearServicio(idPerfilCreador, peticion));</span>
     }
 
     @PutMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaServicio&gt; actualizarServicio(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarServicio peticion) {
-<span class="nc" id="L42">        return ResponseEntity.ok(servicioCatalogoServicio.actualizarServicio(id, peticion));</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(servicioCatalogoServicio.actualizarServicio(id, peticion));</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaServicio&gt; obtenerServicioPorId(@PathVariable Long id) {
-<span class="nc" id="L47">        return ResponseEntity.ok(servicioCatalogoServicio.obtenerServicioPorId(id));</span>
+<span class="fc" id="L47">        return ResponseEntity.ok(servicioCatalogoServicio.obtenerServicioPorId(id));</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarServicio(@PathVariable Long id) {
-<span class="nc" id="L53">        servicioCatalogoServicio.eliminarServicio(id);</span>
-<span class="nc" id="L54">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Servicio eliminado exitosamente&quot;));</span>
+<span class="fc" id="L53">        servicioCatalogoServicio.eliminarServicio(id);</span>
+<span class="fc" id="L54">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Servicio eliminado exitosamente&quot;));</span>
     }
 
     @GetMapping(&quot;/creador/{idPerfilCreador}&quot;)
     public ResponseEntity&lt;List&lt;RespuestaServicioResumido&gt;&gt; listarServiciosPorCreador(
             @PathVariable Long idPerfilCreador,
             @RequestParam(required = false) String estadoPublicacion) {
-<span class="nc" id="L61">        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));</span>
+<span class="fc" id="L61">        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));</span>
     }
 
     @GetMapping(&quot;/{id}/atributos&quot;)
     public ResponseEntity&lt;List&lt;RespuestaAtributo&gt;&gt; listarAtributosPorServicio(@PathVariable Long id) {
-<span class="nc" id="L66">        return ResponseEntity.ok(servicioCatalogoServicio.listarAtributosPorServicio(id));</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(servicioCatalogoServicio.listarAtributosPorServicio(id));</span>
     }
 
     @PostMapping(&quot;/{id}/atributos&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaAtributo&gt; agregarAtributo(
             @PathVariable Long id,
             @Valid @RequestBody PeticionCrearAtributo peticion) {
-<span class="nc" id="L74">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L75">                .body(servicioCatalogoServicio.agregarAtributo(id, peticion));</span>
+<span class="fc" id="L74">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L75">                .body(servicioCatalogoServicio.agregarAtributo(id, peticion));</span>
     }
 
     @PutMapping(&quot;/{id}/atributos/{idAtributo}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaAtributo&gt; actualizarAtributo(
             @PathVariable Long id,
             @PathVariable Long idAtributo,
             @Valid @RequestBody PeticionActualizarAtributo peticion) {
-<span class="nc" id="L84">        return ResponseEntity.ok(servicioCatalogoServicio.actualizarAtributo(id, idAtributo, peticion));</span>
+<span class="fc" id="L84">        return ResponseEntity.ok(servicioCatalogoServicio.actualizarAtributo(id, idAtributo, peticion));</span>
     }
 
     @DeleteMapping(&quot;/{id}/atributos/{idAtributo}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarAtributo(
             @PathVariable Long id,
             @PathVariable Long idAtributo) {
-<span class="nc" id="L92">        servicioCatalogoServicio.eliminarAtributo(id, idAtributo);</span>
-<span class="nc" id="L93">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Atributo eliminado exitosamente del servicio&quot;));</span>
+<span class="fc" id="L92">        servicioCatalogoServicio.eliminarAtributo(id, idAtributo);</span>
+<span class="fc" id="L93">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Atributo eliminado exitosamente del servicio&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -5,11 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.perfil.IPortafolioServicio;
 
 import java.util.List;
@@ -22,46 +24,52 @@ public class PortafolioControlador {
     private final IPortafolioServicio portafolioServicio;
 
     @PostMapping
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaPortafolio&gt; crearPortafolio(@Valid @RequestBody PeticionCrearPortafolio peticion) {
-<span class="nc" id="L27">        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion);</span>
-<span class="nc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPortafolio&gt; crearPortafolio(
+            @Valid @RequestBody PeticionCrearPortafolio peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L31">        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion, userDetails.getIdUsuario());</span>
+<span class="fc" id="L32">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorId(@PathVariable Long id) {
-<span class="fc" id="L33">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
+<span class="fc" id="L37">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
     }
 
     @GetMapping(&quot;/perfil/{idPerfil}&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
-<span class="nc" id="L38">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));</span>
     }
 
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaPortafolio&gt; &gt; listarPortafolios() {
-<span class="nc" id="L43">        return ResponseEntity.ok(portafolioServicio.listarPortafolios());</span>
+<span class="fc" id="L47">        return ResponseEntity.ok(portafolioServicio.listarPortafolios());</span>
     }
 
     @PutMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; actualizarPortafolio(
             @PathVariable Long id,
-            @Valid @RequestBody PeticionActualizarPortafolio peticion) {
-<span class="nc" id="L51">        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion));</span>
+            @Valid @RequestBody PeticionActualizarPortafolio peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L56">        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion, userDetails.getIdUsuario()));</span>
     }
 
     @PostMapping(&quot;/{id}/visita&quot;)
-    public ResponseEntity&lt;RespuestaMensaje&gt; registrarVisita(@PathVariable Long id) {
-<span class="nc" id="L56">        portafolioServicio.incrementarVisitas(id);</span>
-<span class="nc" id="L57">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Visita al portafolio incrementada&quot;));</span>
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; registrarVisita(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L64">        portafolioServicio.incrementarVisitas(id, userDetails.getIdUsuario());</span>
+<span class="fc" id="L65">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Visita al portafolio incrementada&quot;));</span>
     }
 
     @DeleteMapping(&quot;/{id}&quot;)
-    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPortafolio(@PathVariable Long id) {
-<span class="nc" id="L63">        portafolioServicio.eliminarPortafolio(id);</span>
-<span class="nc" id="L64">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portafolio eliminado exitosamente&quot;));</span>
+<span class="fc" id="L71">        portafolioServicio.eliminarPortafolio(id);</span>
+<span class="fc" id="L72">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portafolio eliminado exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

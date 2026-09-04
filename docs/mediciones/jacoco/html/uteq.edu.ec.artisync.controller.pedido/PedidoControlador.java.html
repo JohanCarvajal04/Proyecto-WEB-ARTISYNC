@@ -5,17 +5,23 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
+import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaHistorialEstado;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.util.RespuestaDocumento;
 
 import java.util.List;
 
@@ -27,12 +33,12 @@ public class PedidoControlador {
     private final IPedidoServicio pedidoServicio;
 
     @PostMapping
-    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPedido&gt; crearPedido(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PeticionCrearPedido peticion) {
-<span class="nc" id="L34">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L35">                .body(pedidoServicio.crearPedido(userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L40">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L41">                .body(pedidoServicio.crearPedido(userDetails.getIdUsuario(), peticion));</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
@@ -40,42 +46,119 @@ public class PedidoControlador {
     public ResponseEntity&lt;RespuestaPedido&gt; obtenerPedido(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L43">        return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L49">        return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/mis-pedidos&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaPedidoResumido&gt;&gt; listarMisPedidos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L50">        return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));</span>
+<span class="fc" id="L56">        return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/mis-comisiones&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaPedidoResumido&gt;&gt; listarMisComisiones(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L57">        return ResponseEntity.ok(pedidoServicio.listarMisComisiones(userDetails.getIdUsuario()));</span>
+<span class="fc" id="L63">        return ResponseEntity.ok(pedidoServicio.listarMisComisiones(userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Exportación &quot;propia&quot;: mismo @PreAuthorize que el listado, sin permiso
+     * de exportación aparte — a diferencia de auditoría/finanzas/contratos,
+     * que son reportes administrativos y sí lo llevan.
+     */
+    @GetMapping(&quot;/mis-pedidos/exportar&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportarMisPedidos(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam FormatoReporte formato,
+            Authentication authentication) {
+<span class="fc" id="L77">        DocumentoGenerado documento = pedidoServicio.exportarMisPedidos(</span>
+<span class="fc" id="L78">                userDetails.getIdUsuario(), formato, authentication.getName());</span>
+<span class="fc" id="L79">        return RespuestaDocumento.de(documento);</span>
+    }
+
+    @GetMapping(&quot;/mis-comisiones/exportar&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportarMisComisiones(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false) List&lt;Long&gt; idsPedido,
+            Authentication authentication) {
+<span class="fc" id="L89">        DocumentoGenerado documento = pedidoServicio.exportarMisComisiones(</span>
+<span class="fc" id="L90">                userDetails.getIdUsuario(), idsPedido, formato, authentication.getName());</span>
+<span class="fc" id="L91">        return RespuestaDocumento.de(documento);</span>
     }
 
     @PutMapping(&quot;/{id}/avanzar&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CREADOR', 'ADMIN')&quot;)
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPedido&gt; avanzarEtapa(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody PeticionAvanzarEtapa peticion) {
-<span class="nc" id="L66">        return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));</span>
+            @Valid @RequestBody PeticionAvanzarEtapa peticion) {
+<span class="fc" id="L100">        return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    @PostMapping(&quot;/{id}/propuestas-terminos&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPropuestaTerminos&gt; proponerTerminos(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionCrearPropuestaTerminos peticion) {
+<span class="fc" id="L109">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L110">                .body(pedidoServicio.proponerTerminos(id, userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    @GetMapping(&quot;/{id}/propuestas-terminos/pendiente&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPropuestaTerminos&gt; obtenerPropuestaPendiente(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L118">        return ResponseEntity.ok(pedidoServicio.obtenerPropuestaPendiente(id, userDetails.getIdUsuario()));</span>
+    }
+
+    @PutMapping(&quot;/{id}/propuestas-terminos/{idPropuesta}/aceptar&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPedido&gt; aceptarPropuestaTerminos(
+            @PathVariable Long id,
+            @PathVariable Long idPropuesta,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L127">        return ResponseEntity.ok(pedidoServicio.aceptarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));</span>
+    }
+
+    @PutMapping(&quot;/{id}/propuestas-terminos/{idPropuesta}/rechazar&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPropuestaTerminos&gt; rechazarPropuestaTerminos(
+            @PathVariable Long id,
+            @PathVariable Long idPropuesta,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L136">        return ResponseEntity.ok(pedidoServicio.rechazarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));</span>
+    }
+
+    @PutMapping(&quot;/{id}/propuestas-terminos/{idPropuesta}/cancelar&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPropuestaTerminos&gt; cancelarPropuestaTerminos(
+            @PathVariable Long id,
+            @PathVariable Long idPropuesta,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L145">        return ResponseEntity.ok(pedidoServicio.cancelarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/{id}/historial&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;List&lt;RespuestaHistorialEstado&gt;&gt; obtenerHistorial(@PathVariable Long id) {
-<span class="nc" id="L72">        return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id));</span>
+    public ResponseEntity&lt;List&lt;RespuestaHistorialEstado&gt;&gt; obtenerHistorial(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L153">        return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/{id}/seguimiento&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaSeguimientoPedido&gt; obtenerSeguimiento(@PathVariable Long id) {
-<span class="nc" id="L78">        return ResponseEntity.ok(pedidoServicio.obtenerSeguimiento(id));</span>
+    public ResponseEntity&lt;RespuestaSeguimientoPedido&gt; obtenerSeguimiento(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L161">        return ResponseEntity.ok(pedidoServicio.obtenerSeguimiento(id, userDetails.getIdUsuario()));</span>
     }
 
     // ── Inmutabilidad del Historial (RNF-13) ─────────────────────────────────
@@ -83,14 +166,14 @@ public class PedidoControlador {
 
     @DeleteMapping(&quot;/{id}/historial&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; bloquearDeleteHistorial(@PathVariable Long id) {
-<span class="nc" id="L86">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
-<span class="nc" id="L87">                .body(new RespuestaMensaje(&quot;Operacion no permitida sobre registros de auditoria&quot;));</span>
+<span class="fc" id="L169">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="fc" id="L170">                .body(new RespuestaMensaje(&quot;Operacion no permitida sobre registros de auditoria&quot;));</span>
     }
 
     @PatchMapping(&quot;/{id}/historial&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; bloquearPatchHistorial(@PathVariable Long id) {
-<span class="nc" id="L92">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
-<span class="nc" id="L93">                .body(new RespuestaMensaje(&quot;Operacion no permitida sobre registros de auditoria&quot;));</span>
+<span class="fc" id="L175">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="fc" id="L176">                .body(new RespuestaMensaje(&quot;Operacion no permitida sobre registros de auditoria&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -42,8 +42,8 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaSorteo&gt; crearSorteo(
             @Valid @RequestBody PeticionCrearSorteo peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L46">                .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L46">                .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));</span>
     }
 
     @Operation(summary = &quot;Obtener detalle de un sorteo (público)&quot;)
@@ -51,8 +51,8 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaSorteo&gt; obtenerSorteo(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc bnc" id="L54" title="All 2 branches missed.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="nc" id="L55">        return ResponseEntity.ok(sorteoService.obtenerSorteo(idSorteo, idUsuarioActual));</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L55">        return ResponseEntity.ok(sorteoService.obtenerSorteo(idSorteo, idUsuarioActual));</span>
     }
 
     @Operation(summary = &quot;Editar un sorteo (CREADOR, con restricciones)&quot;)
@@ -62,8 +62,8 @@ public class SorteoControlador {
             @PathVariable Long idSorteo,
             @Valid @RequestBody PeticionActualizarSorteo peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L65">        return ResponseEntity.ok(</span>
-<span class="nc" id="L66">                sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L65">        return ResponseEntity.ok(</span>
+<span class="fc" id="L66">                sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));</span>
     }
 
     @Operation(summary = &quot;Eliminar un sorteo sin participantes (CREADOR)&quot;)
@@ -72,7 +72,7 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarSorteo(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L75">        return ResponseEntity.ok(sorteoService.eliminarSorteo(idSorteo, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L75">        return ResponseEntity.ok(sorteoService.eliminarSorteo(idSorteo, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Listar sorteos de un creador (público)&quot;)
@@ -80,16 +80,16 @@ public class SorteoControlador {
     public ResponseEntity&lt;List&lt;RespuestaSorteo&gt;&gt; listarSorteosPorCreador(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc bnc" id="L83" title="All 2 branches missed.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="nc" id="L84">        return ResponseEntity.ok(sorteoService.listarSorteosPorCreador(idPerfil, idUsuarioActual));</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L84">        return ResponseEntity.ok(sorteoService.listarSorteosPorCreador(idPerfil, idUsuarioActual));</span>
     }
 
     @Operation(summary = &quot;Listar sorteos activos (público)&quot;)
     @GetMapping(&quot;/api/v1/sorteos/activos&quot;)
     public ResponseEntity&lt;List&lt;RespuestaSorteo&gt;&gt; listarSorteosActivos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc bnc" id="L91" title="All 2 branches missed.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="nc" id="L92">        return ResponseEntity.ok(sorteoService.listarSorteosActivos(idUsuarioActual));</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L92">        return ResponseEntity.ok(sorteoService.listarSorteosActivos(idUsuarioActual));</span>
     }
 
     // =========================================================================
@@ -103,8 +103,8 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaParticipante&gt; participar(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L106">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L107">                .body(sorteoService.participar(idSorteo, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L106">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L107">                .body(sorteoService.participar(idSorteo, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Cancelar inscripción en un sorteo&quot;)
@@ -113,22 +113,22 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaMensaje&gt; cancelarParticipacion(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L116">        return ResponseEntity.ok(</span>
-<span class="nc" id="L117">                sorteoService.cancelarParticipacion(idSorteo, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L116">        return ResponseEntity.ok(</span>
+<span class="fc" id="L117">                sorteoService.cancelarParticipacion(idSorteo, userDetails.getIdUsuario()));</span>
     }
 
     @Operation(summary = &quot;Listar participantes de un sorteo&quot;)
     @GetMapping(&quot;/api/v1/sorteos/{idSorteo}/participantes&quot;)
     public ResponseEntity&lt;List&lt;RespuestaParticipante&gt;&gt; listarParticipantes(
             @PathVariable Long idSorteo) {
-<span class="nc" id="L124">        return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));</span>
+<span class="fc" id="L124">        return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));</span>
     }
 
     @Operation(summary = &quot;Ver ganadores del sorteo (solo post-cierre)&quot;)
     @GetMapping(&quot;/api/v1/sorteos/{idSorteo}/ganadores&quot;)
     public ResponseEntity&lt;List&lt;RespuestaGanador&gt;&gt; listarGanadores(
             @PathVariable Long idSorteo) {
-<span class="nc" id="L131">        return ResponseEntity.ok(sorteoService.listarGanadores(idSorteo));</span>
+<span class="fc" id="L131">        return ResponseEntity.ok(sorteoService.listarGanadores(idSorteo));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

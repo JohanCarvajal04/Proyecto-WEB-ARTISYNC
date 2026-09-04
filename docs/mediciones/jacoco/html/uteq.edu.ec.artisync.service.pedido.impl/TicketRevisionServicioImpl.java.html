@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearTicketRevision;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaTicketRevision;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
@@ -18,11 +20,12 @@ import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
 import uteq.edu.ec.artisync.service.pedido.ITicketRevisionServicio;
+import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-<span class="fc" id="L25">@Slf4j</span>
+<span class="fc" id="L28">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
@@ -34,111 +37,112 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;TICKET_CREAR&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;,
+            detalle = &quot;{idMotivo: #peticion.idMotivo}&quot;)
     public RespuestaTicketRevision crearTicketRevision(Long idPedido, Long idCliente,
                                                         PeticionCrearTicketRevision peticion) {
-<span class="fc" id="L39">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="fc" id="L40">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="fc" id="L45">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L46">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
 
         // Verificar que el usuario es el cliente del pedido
-<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
-<span class="fc" id="L44">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente del pedido puede crear tickets de revision&quot;);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {</span>
+<span class="fc" id="L50">            throw new ExcepcionReglaNegocio(&quot;Solo el cliente del pedido puede crear tickets de revision&quot;);</span>
         }
 
-<span class="fc" id="L47">        var motivo = motivoRechazoRepository.findById(peticion.getIdMotivo())</span>
-<span class="fc" id="L48">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Motivo de rechazo no encontrado&quot;));</span>
+<span class="fc" id="L53">        var motivo = motivoRechazoRepository.findById(peticion.getIdMotivo())</span>
+<span class="fc" id="L54">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Motivo de rechazo no encontrado&quot;));</span>
 
-<span class="fc" id="L50">        TicketRevision ticket = TicketRevision.builder()</span>
-<span class="fc" id="L51">                .pedido(pedido)</span>
-<span class="fc" id="L52">                .motivo(motivo)</span>
-<span class="fc" id="L53">                .descripcionCliente(peticion.getDescripcionCliente())</span>
-<span class="fc" id="L54">                .estadoTicket(&quot;Abierto&quot;)</span>
-<span class="fc" id="L55">                .build();</span>
+<span class="fc" id="L56">        TicketRevision ticket = TicketRevision.builder()</span>
+<span class="fc" id="L57">                .pedido(pedido)</span>
+<span class="fc" id="L58">                .motivo(motivo)</span>
+<span class="fc" id="L59">                .descripcionCliente(peticion.getDescripcionCliente())</span>
+<span class="fc" id="L60">                .estadoTicket(&quot;Abierto&quot;)</span>
+<span class="fc" id="L61">                .build();</span>
 
         // Verificar si supera el límite de revisiones del contrato
-<span class="fc" id="L58">        var contratoOpt = contratoRepository.findByPedidoIdPedido(idPedido);</span>
-<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (contratoOpt.isPresent()) {</span>
-<span class="fc" id="L60">            long revisionesActuales = ticketRevisionRepository.countByPedidoIdPedido(idPedido);</span>
-<span class="fc" id="L61">            int limiteRevisiones = contratoOpt.get().getLimiteRevisiones();</span>
+<span class="fc" id="L64">        var contratoOpt = contratoRepository.findByPedidoIdPedido(idPedido);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (contratoOpt.isPresent()) {</span>
+<span class="fc" id="L66">            long revisionesActuales = ticketRevisionRepository.countByPedidoIdPedido(idPedido);</span>
+<span class="fc" id="L67">            int limiteRevisiones = contratoOpt.get().getLimiteRevisiones();</span>
 
-<span class="pc bpc" id="L63" title="1 of 4 branches missed.">            if (revisionesActuales &gt;= limiteRevisiones &amp;&amp; limiteRevisiones &gt; 0) {</span>
+<span class="pc bpc" id="L69" title="1 of 4 branches missed.">            if (revisionesActuales &gt;= limiteRevisiones &amp;&amp; limiteRevisiones &gt; 0) {</span>
                 // Supera el límite → marcar costo adicional
-<span class="fc" id="L65">                var cargoExtra = pedido.getServicio().getCargoRevisionAdicional();</span>
-<span class="fc" id="L66">                ticket.setCostoAdicionalGenerado(cargoExtra);</span>
-<span class="fc" id="L67">                log.info(&quot;Ticket de revision para pedido {} supera el limite ({}/{}). Cargo adicional: {}&quot;,</span>
-<span class="fc" id="L68">                        idPedido, revisionesActuales, limiteRevisiones, cargoExtra);</span>
+<span class="fc" id="L71">                var cargoExtra = pedido.getServicio().getCargoRevisionAdicional();</span>
+<span class="fc" id="L72">                ticket.setCostoAdicionalGenerado(cargoExtra);</span>
+<span class="fc" id="L73">                log.info(&quot;Ticket de revision para pedido {} supera el limite ({}/{}). Cargo adicional: {}&quot;,</span>
+<span class="fc" id="L74">                        idPedido, revisionesActuales, limiteRevisiones, cargoExtra);</span>
             }
         }
 
-<span class="fc" id="L72">        ticket = ticketRevisionRepository.save(ticket);</span>
-<span class="fc" id="L73">        log.info(&quot;Ticket de revision {} creado para pedido {}&quot;, ticket.getIdTicket(), idPedido);</span>
+<span class="fc" id="L78">        ticket = ticketRevisionRepository.save(ticket);</span>
+<span class="fc" id="L79">        log.info(&quot;Ticket de revision {} creado para pedido {}&quot;, ticket.getIdTicket(), idPedido);</span>
 
-<span class="fc" id="L75">        return mapToRespuesta(ticket);</span>
+<span class="fc" id="L81">        return mapToRespuesta(ticket);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaTicketRevision&gt; listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante) {
-<span class="fc" id="L81">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="fc" id="L82">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado con ID: &quot; + idPedido));</span>
-<span class="fc" id="L83">        validarPertenenceOAdmin(pedido, idUsuarioSolicitante);</span>
+<span class="fc" id="L87">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="fc" id="L88">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado con ID: &quot; + idPedido));</span>
+        // OBS-08 / H-02: evita el acceso indebido (IDOR) a tickets de un pedido ajeno.
+<span class="fc" id="L90">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
 
-<span class="fc" id="L85">        return ticketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc(idPedido)</span>
-<span class="fc" id="L86">                .stream()</span>
-<span class="fc" id="L87">                .map(this::mapToRespuesta)</span>
-<span class="fc" id="L88">                .collect(Collectors.toList());</span>
+<span class="fc" id="L92">        return ticketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc(idPedido)</span>
+<span class="fc" id="L93">                .stream()</span>
+<span class="fc" id="L94">                .map(this::mapToRespuesta)</span>
+<span class="fc" id="L95">                .collect(Collectors.toList());</span>
     }
-
-    /**
-     * OBS-08: evita el acceso indebido (IDOR) a tickets de un pedido ajeno — solo el cliente
-     * dueño, el creador del servicio pedido o un ADMIN pueden listarlos.
-     */
-    private void validarPertenenceOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
-<span class="fc" id="L96">        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);</span>
-<span class="fc" id="L97">        boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);</span>
-
-<span class="fc bfc" id="L99" title="All 4 branches covered.">        if (esCliente || esCreador) {</span>
-<span class="fc" id="L100">            return;</span>
-        }
-
-<span class="fc" id="L103">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="fc bfc" id="L104" title="All 2 branches covered.">        boolean esAdmin = auth != null &amp;&amp; auth.getAuthorities().stream()</span>
-<span class="pc bpc" id="L105" title="1 of 2 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
-
-<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (!esAdmin) {</span>
-<span class="fc" id="L108">            throw new AccessDeniedException(&quot;No tienes permisos para consultar los tickets de este pedido&quot;);</span>
-        }
-<span class="fc" id="L110">    }</span>
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;TICKET_CAMBIAR_ESTADO&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            entidad = &quot;tickets_revision&quot;, idEntidad = &quot;#idTicket&quot;,
+            detalle = &quot;{nuevoEstado: #nuevoEstado}&quot;)
     public RespuestaTicketRevision cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado) {
-<span class="fc" id="L115">        TicketRevision ticket = ticketRevisionRepository.findById(idTicket)</span>
-<span class="fc" id="L116">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Ticket de revision no encontrado&quot;));</span>
+<span class="fc" id="L104">        TicketRevision ticket = ticketRevisionRepository.findById(idTicket)</span>
+<span class="fc" id="L105">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Ticket de revision no encontrado&quot;));</span>
 
-        // Verificar que el usuario es el creador del servicio del pedido
-<span class="fc" id="L119">        Long idCreadorServicio = ticket.getPedido().getServicio().getPerfil().getUsuario().getIdUsuario();</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (!idCreadorServicio.equals(idCreador)) {</span>
-<span class="fc" id="L121">            throw new ExcepcionReglaNegocio(&quot;Solo el creador del servicio puede cambiar el estado del ticket&quot;);</span>
+        // El creador del servicio siempre puede resolver sus propios tickets.
+        // Además, el controlador autoriza aquí a SOPORTE (TICKET_RESOLVER) y a
+        // quien tenga PEDIDO_GESTIONAR/ADMIN -- este chequeo exigía SIEMPRE
+        // ser el creador, así que soporte/admin recibía 422 pese a que el
+        // @PreAuthorize les daba paso: la funcionalidad de soporte estaba
+        // rota en la práctica.
+<span class="fc" id="L113">        Long idCreadorServicio = ticket.getPedido().getServicio().getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L114" title="All 4 branches covered.">        if (!idCreadorServicio.equals(idCreador) &amp;&amp; !tienePermisoDeSoporteOAdmin()) {</span>
+<span class="fc" id="L115">            throw new AccessDeniedException(&quot;No tienes permisos para cambiar el estado de este ticket&quot;);</span>
         }
 
-<span class="fc" id="L124">        ticket.setEstadoTicket(nuevoEstado);</span>
-<span class="fc" id="L125">        ticket = ticketRevisionRepository.save(ticket);</span>
+<span class="fc" id="L118">        ticket.setEstadoTicket(nuevoEstado);</span>
+<span class="fc" id="L119">        ticket = ticketRevisionRepository.save(ticket);</span>
 
-<span class="fc" id="L127">        log.info(&quot;Ticket {} cambio a estado '{}'&quot;, idTicket, nuevoEstado);</span>
-<span class="fc" id="L128">        return mapToRespuesta(ticket);</span>
+<span class="fc" id="L121">        log.info(&quot;Ticket {} cambio a estado '{}'&quot;, idTicket, nuevoEstado);</span>
+<span class="fc" id="L122">        return mapToRespuesta(ticket);</span>
+    }
+
+    /** Mismos roles que el @PreAuthorize del endpoint, aparte del creador del servicio. */
+    private boolean tienePermisoDeSoporteOAdmin() {
+<span class="fc" id="L127">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (auth == null) return false;</span>
+<span class="fc" id="L129">        return auth.getAuthorities().stream().anyMatch(a -&gt;</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">                a.getAuthority().equals(&quot;ROLE_ADMIN&quot;)</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">                        || a.getAuthority().equals(&quot;TICKET_RESOLVER&quot;)</span>
+<span class="pc bnc" id="L132" title="All 2 branches missed.">                        || a.getAuthority().equals(&quot;PEDIDO_GESTIONAR&quot;));</span>
     }
 
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     private RespuestaTicketRevision mapToRespuesta(TicketRevision ticket) {
-<span class="fc" id="L134">        return RespuestaTicketRevision.builder()</span>
-<span class="fc" id="L135">                .idTicket(ticket.getIdTicket())</span>
-<span class="fc" id="L136">                .idPedido(ticket.getPedido().getIdPedido())</span>
-<span class="fc" id="L137">                .descripcionMotivo(ticket.getMotivo().getDescripcionMotivo())</span>
-<span class="fc" id="L138">                .descripcionCliente(ticket.getDescripcionCliente())</span>
-<span class="fc" id="L139">                .estadoTicket(ticket.getEstadoTicket())</span>
-<span class="fc" id="L140">                .costoAdicionalGenerado(ticket.getCostoAdicionalGenerado())</span>
-<span class="fc" id="L141">                .build();</span>
+<span class="fc" id="L138">        return RespuestaTicketRevision.builder()</span>
+<span class="fc" id="L139">                .idTicket(ticket.getIdTicket())</span>
+<span class="fc" id="L140">                .idPedido(ticket.getPedido().getIdPedido())</span>
+<span class="fc" id="L141">                .descripcionMotivo(ticket.getMotivo().getDescripcionMotivo())</span>
+<span class="fc" id="L142">                .descripcionCliente(ticket.getDescripcionCliente())</span>
+<span class="fc" id="L143">                .estadoTicket(ticket.getEstadoTicket())</span>
+<span class="fc" id="L144">                .costoAdicionalGenerado(ticket.getCostoAdicionalGenerado())</span>
+<span class="fc" id="L145">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

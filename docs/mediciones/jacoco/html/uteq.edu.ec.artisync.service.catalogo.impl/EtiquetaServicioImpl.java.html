@@ -3,6 +3,8 @@
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearEtiqueta;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaEtiqueta;
 import uteq.edu.ec.artisync.entity.catalogo.Etiqueta;
@@ -23,48 +25,53 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaEtiqueta&gt; listarEtiquetas() {
-<span class="fc" id="L26">        return etiquetaRepository.findAll()</span>
-<span class="fc" id="L27">                .stream()</span>
-<span class="fc" id="L28">                .map(this::mapearAEtiquetaRespuesta)</span>
-<span class="fc" id="L29">                .collect(Collectors.toList());</span>
+<span class="fc" id="L28">        return etiquetaRepository.findAll()</span>
+<span class="fc" id="L29">                .stream()</span>
+<span class="fc" id="L30">                .map(this::mapearAEtiquetaRespuesta)</span>
+<span class="fc" id="L31">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaEtiqueta obtenerPorId(Long idEtiqueta) {
-<span class="fc" id="L35">        Etiqueta et = etiquetaRepository.findById(idEtiqueta)</span>
-<span class="fc" id="L36">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta));</span>
-<span class="fc" id="L37">        return mapearAEtiquetaRespuesta(et);</span>
+<span class="fc" id="L37">        Etiqueta et = etiquetaRepository.findById(idEtiqueta)</span>
+<span class="fc" id="L38">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta));</span>
+<span class="fc" id="L39">        return mapearAEtiquetaRespuesta(et);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;ETIQUETA_CREAR&quot;, modulo = ModuloAuditoria.CATALOGO,
+            entidad = &quot;etiquetas&quot;, idEntidad = &quot;#resultado.idEtiqueta&quot;,
+            detalle = &quot;{nombreEtiqueta: #peticion.nombreEtiqueta}&quot;)
     public RespuestaEtiqueta crearEtiqueta(PeticionCrearEtiqueta peticion) {
-<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {</span>
-<span class="fc" id="L44">            throw new ExcepcionReglaNegocio(&quot;Ya existe la etiqueta: &quot; + peticion.getNombreEtiqueta());</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {</span>
+<span class="fc" id="L49">            throw new ExcepcionReglaNegocio(&quot;Ya existe la etiqueta: &quot; + peticion.getNombreEtiqueta());</span>
         }
-<span class="fc" id="L46">        Etiqueta et = Etiqueta.builder()</span>
-<span class="fc" id="L47">                .nombreEtiqueta(peticion.getNombreEtiqueta().trim())</span>
-<span class="fc" id="L48">                .build();</span>
-<span class="fc" id="L49">        et = etiquetaRepository.save(et);</span>
-<span class="fc" id="L50">        return mapearAEtiquetaRespuesta(et);</span>
+<span class="fc" id="L51">        Etiqueta et = Etiqueta.builder()</span>
+<span class="fc" id="L52">                .nombreEtiqueta(peticion.getNombreEtiqueta().trim())</span>
+<span class="fc" id="L53">                .build();</span>
+<span class="fc" id="L54">        et = etiquetaRepository.save(et);</span>
+<span class="fc" id="L55">        return mapearAEtiquetaRespuesta(et);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;ETIQUETA_ELIMINAR&quot;, modulo = ModuloAuditoria.CATALOGO,
+            entidad = &quot;etiquetas&quot;, idEntidad = &quot;#idEtiqueta&quot;)
     public void eliminarEtiqueta(Long idEtiqueta) {
-<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (!etiquetaRepository.existsById(idEtiqueta)) {</span>
-<span class="fc" id="L57">            throw new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (!etiquetaRepository.existsById(idEtiqueta)) {</span>
+<span class="fc" id="L64">            throw new ExcepcionRecursoNoEncontrado(&quot;Etiqueta no encontrada con ID: &quot; + idEtiqueta);</span>
         }
-<span class="fc" id="L59">        etiquetaRepository.deleteById(idEtiqueta);</span>
-<span class="fc" id="L60">    }</span>
+<span class="fc" id="L66">        etiquetaRepository.deleteById(idEtiqueta);</span>
+<span class="fc" id="L67">    }</span>
 
     private RespuestaEtiqueta mapearAEtiquetaRespuesta(Etiqueta et) {
-<span class="fc" id="L63">        return RespuestaEtiqueta.builder()</span>
-<span class="fc" id="L64">                .idEtiqueta(et.getIdEtiqueta())</span>
-<span class="fc" id="L65">                .nombreEtiqueta(et.getNombreEtiqueta())</span>
-<span class="fc" id="L66">                .actualizadoEn(et.getActualizadoEn())</span>
-<span class="fc" id="L67">                .build();</span>
+<span class="fc" id="L70">        return RespuestaEtiqueta.builder()</span>
+<span class="fc" id="L71">                .idEtiqueta(et.getIdEtiqueta())</span>
+<span class="fc" id="L72">                .nombreEtiqueta(et.getNombreEtiqueta())</span>
+<span class="fc" id="L73">                .actualizadoEn(et.getActualizadoEn())</span>
+<span class="fc" id="L74">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

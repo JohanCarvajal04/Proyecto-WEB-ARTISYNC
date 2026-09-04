@@ -4,9 +4,14 @@ import uteq.edu.ec.artisync.service.seguridad.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
@@ -16,13 +21,15 @@ import uteq.edu.ec.artisync.entity.seguridad.Rol;
 import uteq.edu.ec.artisync.repository.seguridad.PermisoRepository;
 import uteq.edu.ec.artisync.repository.seguridad.RolRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
-<span class="fc" id="L25">@Slf4j</span>
+<span class="fc" id="L32">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class RolePermissionServiceImpl implements RolePermissionService {
@@ -30,137 +37,193 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final RolRepository rolRepository;
     private final PermisoRepository permisoRepository;
     private final UsuarioRolRepository usuarioRolRepository;
+    private final SessionRevocationService sessionRevocationService;
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RolResponse&gt; getAllRoles() {
-<span class="fc" id="L37">        return rolRepository.findAll().stream()</span>
-<span class="fc" id="L38">                .map(r -&gt; RolResponse.builder()</span>
-<span class="fc" id="L39">                        .idRol(r.getIdRol())</span>
-<span class="fc" id="L40">                        .nombreRol(r.getNombreRol())</span>
-<span class="fc" id="L41">                        .descripcionRol(r.getDescripcionRol())</span>
-<span class="pc bpc" id="L42" title="1 of 2 branches missed.">                        .permisos(r.getPermisos() != null ? r.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
-<span class="fc" id="L43">                        .build())</span>
-<span class="fc" id="L44">                .toList();</span>
+<span class="fc" id="L45">        return rolRepository.findAll().stream()</span>
+<span class="fc" id="L46">                .map(r -&gt; RolResponse.builder()</span>
+<span class="fc" id="L47">                        .idRol(r.getIdRol())</span>
+<span class="fc" id="L48">                        .nombreRol(r.getNombreRol())</span>
+<span class="fc" id="L49">                        .descripcionRol(r.getDescripcionRol())</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">                        .permisos(r.getPermisos() != null ? r.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
+<span class="fc" id="L51">                        .build())</span>
+<span class="fc" id="L52">                .toList();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;PermisoResponse&gt; getAllPermisos() {
-<span class="fc" id="L50">        return permisoRepository.findAll().stream()</span>
-<span class="fc" id="L51">                .map(p -&gt; PermisoResponse.builder()</span>
-<span class="fc" id="L52">                        .idPermiso(p.getIdPermiso())</span>
-<span class="fc" id="L53">                        .nombrePermiso(p.getNombrePermiso())</span>
-<span class="fc" id="L54">                        .moduloAplicacion(p.getModuloAplicacion())</span>
-<span class="fc" id="L55">                        .build())</span>
-<span class="fc" id="L56">                .toList();</span>
+<span class="fc" id="L58">        return permisoRepository.findAll().stream()</span>
+<span class="fc" id="L59">                .map(p -&gt; PermisoResponse.builder()</span>
+<span class="fc" id="L60">                        .idPermiso(p.getIdPermiso())</span>
+<span class="fc" id="L61">                        .nombrePermiso(p.getNombrePermiso())</span>
+<span class="fc" id="L62">                        .moduloAplicacion(p.getModuloAplicacion())</span>
+<span class="fc" id="L63">                        .build())</span>
+<span class="fc" id="L64">                .toList();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;String&gt; getPermissionsByRole(String roleName) {
-<span class="fc" id="L62">        Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())</span>
-<span class="fc" id="L63">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado: &quot; + roleName));</span>
-<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (rol.getPermisos() == null) {</span>
-<span class="fc" id="L65">            return List.of();</span>
+<span class="fc" id="L70">        Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())</span>
+<span class="fc" id="L71">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado: &quot; + roleName));</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (rol.getPermisos() == null) {</span>
+<span class="fc" id="L73">            return List.of();</span>
         }
-<span class="fc" id="L67">        return rol.getPermisos().stream()</span>
-<span class="fc" id="L68">                .map(Permiso::getNombrePermiso)</span>
-<span class="fc" id="L69">                .toList();</span>
+<span class="fc" id="L75">        return rol.getPermisos().stream()</span>
+<span class="fc" id="L76">                .map(Permiso::getNombrePermiso)</span>
+<span class="fc" id="L77">                .toList();</span>
     }
 
     @Override
     @Transactional
+    // El cambio más sensible del sistema: quién puede hacer qué. Se registra
+    // el conjunto &quot;antes&quot; (vía ContextoAuditoria) y &quot;después&quot; (los propios
+    // parámetros del método) para que el evento sea auditable como un diff,
+    // no solo como &quot;se llamó a syncPermissions&quot;.
+    @Auditable(accion = &quot;ROL_SINCRONIZAR_PERMISOS&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = &quot;roles&quot;, detalle = &quot;{rol: #roleName, despues: #permissionCodes}&quot;)
     public void syncPermissions(String roleName, List&lt;String&gt; permissionCodes) {
-<span class="fc" id="L75">        Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())</span>
-<span class="fc" id="L76">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado: &quot; + roleName));</span>
+        // REQ-F-003: fn_sincronizar_permisos_rol reemplaza atomicamente el set
+        // completo de rol_permisos (DELETE+INSERT) en el motor, en vez de que
+        // Hibernate calcule el diff de la coleccion @ManyToMany al hacer save().
+<span class="fc" id="L92">        String nombreRolUpper = roleName.toUpperCase();</span>
 
-<span class="fc" id="L78">        Set&lt;Permiso&gt; nuevosPermisos = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if (permissionCodes != null) {</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">            for (String code : permissionCodes) {</span>
-<span class="fc" id="L81">                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())</span>
-<span class="fc" id="L82">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Permiso inexistente: &quot; + code));</span>
-<span class="fc" id="L83">                nuevosPermisos.add(p);</span>
-<span class="fc" id="L84">            }</span>
+        // A propósito NO se usa getPermissionsByRole (lanza 404 si el rol no
+        // existe): capturar el &quot;antes&quot; es una mejora de la auditoría, nunca
+        // debe cambiar qué excepción ve el cliente cuando el rol no existe —
+        // esa decisión la sigue tomando exclusivamente sincronizarPermisos()
+        // más abajo, vía StoredProcedureExceptionTranslator.
+<span class="fc" id="L99">        rolRepository.findByNombreRol(nombreRolUpper).ifPresent(rol -&gt;</span>
+<span class="nc" id="L100">                ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(&quot;permisos&quot;,</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">                        rol.getPermisos() == null ? List.of()</span>
+<span class="nc" id="L102">                                : rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())));</span>
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        String[] codigos = permissionCodes != null ? permissionCodes.toArray(new String[0]) : new String[0];</span>
+        Integer totalAsignado;
+        try {
+<span class="fc" id="L107">            totalAsignado = rolRepository.sincronizarPermisos(nombreRolUpper, codigos);</span>
+<span class="fc" id="L108">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L109">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.NOT_FOUND);</span>
+<span class="fc" id="L110">        }</span>
+<span class="fc" id="L111">        log.info(&quot;Permisos sincronizados correctamente para el rol: {}. Total asignados: {}&quot;, nombreRolUpper, totalAsignado);</span>
+
+        // Los permisos viajan en el claim `permisos` del JWT, así que cambiarlos
+        // en la base no afecta a quien ya tiene sesión abierta: seguiría con el
+        // menú y los accesos anteriores hasta que su access token caducara.
+        // assignRoles() ya revoca por este mismo motivo cuando cambian los roles
+        // de un usuario; aquí toca hacerlo para todos los usuarios del rol.
+<span class="fc" id="L118">        revocarSesionesDeUsuariosConRol(nombreRolUpper);</span>
+<span class="fc" id="L119">    }</span>
+
+    private void revocarSesionesDeUsuariosConRol(String roleName) {
+        // NUNCA se revoca la sesión de quien está haciendo el cambio. El panel de
+        // &quot;Roles y Permisos&quot; preselecciona el primer rol de la lista, que es
+        // ADMIN, así que sin esta exclusión el administrador se cerraba la sesión
+        // a sí mismo al primer guardado: su jti quedaba en la lista negra de
+        // Redis y su fila de sesiones borrada, de modo que la siguiente petición
+        // daba 401, el refresh fallaba y la UI acababa mostrando que no tenía los
+        // permisos necesarios. Él ya conoce los permisos nuevos porque acaba de
+        // fijarlos; el frontend recarga los suyos con GET /api/v1/permissions/me.
+<span class="fc" id="L130">        Long idActual = idUsuarioAutenticado();</span>
+
+<span class="fc" id="L132">        List&lt;Long&gt; afectados = usuarioRolRepository.findIdsUsuarioByNombreRol(roleName).stream()</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">                .filter(id -&gt; !id.equals(idActual))</span>
+<span class="fc" id="L134">                .toList();</span>
+
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        for (Long idUsuario : afectados) {</span>
+<span class="fc" id="L137">            sessionRevocationService.revocarSesionesUsuario(idUsuario);</span>
+<span class="fc" id="L138">        }</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (!afectados.isEmpty()) {</span>
+<span class="fc" id="L140">            log.info(&quot;Revocadas las sesiones de {} usuario(s) con el rol {} para que recarguen sus permisos&quot;,</span>
+<span class="fc" id="L141">                    afectados.size(), roleName);</span>
         }
+<span class="fc" id="L143">    }</span>
 
-<span class="fc" id="L87">        rol.setPermisos(nuevosPermisos);</span>
-<span class="fc" id="L88">        rolRepository.save(rol);</span>
-<span class="fc" id="L89">        log.info(&quot;Permisos sincronizados correctamente para el rol: {}. Total asignados: {}&quot;, roleName, nuevosPermisos.size());</span>
-<span class="fc" id="L90">    }</span>
+    /** Id del usuario autenticado, o null si la petición no lleva un principal propio. */
+    private Long idUsuarioAutenticado() {
+<span class="fc" id="L147">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="pc bpc" id="L148" title="1 of 4 branches missed.">        if (auth != null &amp;&amp; auth.getPrincipal() instanceof CustomUserDetails detalles) {</span>
+<span class="fc" id="L149">            return detalles.getIdUsuario();</span>
+        }
+<span class="fc" id="L151">        return null;</span>
+    }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;ROL_CREAR&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = &quot;roles&quot;, idEntidad = &quot;#resultado.idRol&quot;,
+            detalle = &quot;{nombreRol: #request.nombreRol, permisosIniciales: #request.permisosIniciales}&quot;)
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_crear_rol, que captura unique_violation sobre el nombre en vez de
+    // la comprobacion findByNombreRol previa a esta version, que no era
+    // atomica respecto al save() (lectura fantasma, A8), y compone con
+    // fn_sincronizar_permisos_rol (REQ-F-003) para los permisos iniciales.
     public RolResponse createRole(CreateRoleRequest request) {
-<span class="fc" id="L95">        String nombreRolUpper = request.getNombreRol().trim().toUpperCase();</span>
-<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (rolRepository.findByNombreRol(nombreRolUpper).isPresent()) {</span>
-<span class="fc" id="L97">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Ya existe un rol con el nombre: &quot; + nombreRolUpper);</span>
-        }
+<span class="fc" id="L165">        String nombreRolUpper = request.getNombreRol().trim().toUpperCase();</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">        String[] codigos = request.getPermisosIniciales() != null</span>
+<span class="fc" id="L167">                ? request.getPermisosIniciales().stream().map(String::toUpperCase).toArray(String[]::new)</span>
+<span class="pc" id="L168">                : new String[0];</span>
 
-<span class="fc" id="L100">        Set&lt;Permiso&gt; permisosIniciales = new HashSet&lt;&gt;();</span>
-<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (request.getPermisosIniciales() != null) {</span>
-<span class="fc bfc" id="L102" title="All 2 branches covered.">            for (String code : request.getPermisosIniciales()) {</span>
-<span class="fc" id="L103">                Permiso p = permisoRepository.findByNombrePermiso(code.toUpperCase())</span>
-<span class="fc" id="L104">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Permiso inexistente: &quot; + code));</span>
-<span class="fc" id="L105">                permisosIniciales.add(p);</span>
-<span class="fc" id="L106">            }</span>
-        }
+        Long idRol;
+        try {
+<span class="fc" id="L172">            idRol = rolRepository.crearRol(nombreRolUpper, request.getDescripcionRol(), codigos);</span>
+<span class="fc" id="L173">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L174">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L175">        }</span>
 
-<span class="fc" id="L109">        Rol nuevoRol = Rol.builder()</span>
-<span class="fc" id="L110">                .nombreRol(nombreRolUpper)</span>
-<span class="fc" id="L111">                .descripcionRol(request.getDescripcionRol())</span>
-<span class="fc" id="L112">                .permisos(permisosIniciales)</span>
-<span class="fc" id="L113">                .build();</span>
+<span class="fc" id="L177">        Rol nuevoRol = rolRepository.findById(idRol)</span>
+<span class="pc" id="L178">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el rol&quot;));</span>
+<span class="fc" id="L179">        log.info(&quot;Rol personalizado creado exitosamente: {}&quot;, nombreRolUpper);</span>
 
-<span class="fc" id="L115">        nuevoRol = rolRepository.save(nuevoRol);</span>
-<span class="fc" id="L116">        log.info(&quot;Rol personalizado creado exitosamente: {}&quot;, nombreRolUpper);</span>
-
-<span class="fc" id="L118">        return RolResponse.builder()</span>
-<span class="fc" id="L119">                .idRol(nuevoRol.getIdRol())</span>
-<span class="fc" id="L120">                .nombreRol(nuevoRol.getNombreRol())</span>
-<span class="fc" id="L121">                .descripcionRol(nuevoRol.getDescripcionRol())</span>
-<span class="fc" id="L122">                .permisos(nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())</span>
-<span class="fc" id="L123">                .build();</span>
+<span class="fc" id="L181">        return RolResponse.builder()</span>
+<span class="fc" id="L182">                .idRol(nuevoRol.getIdRol())</span>
+<span class="fc" id="L183">                .nombreRol(nuevoRol.getNombreRol())</span>
+<span class="fc" id="L184">                .descripcionRol(nuevoRol.getDescripcionRol())</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">                .permisos(nuevoRol.getPermisos() != null ? nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
+<span class="fc" id="L186">                .build();</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;ROL_ACTUALIZAR&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = &quot;roles&quot;, idEntidad = &quot;#idRol&quot;,
+            detalle = &quot;{descripcionRol: #request.descripcionRol}&quot;)
     public RolResponse updateRole(Long idRol, UpdateRoleRequest request) {
-<span class="fc" id="L129">        Rol rol = rolRepository.findById(idRol)</span>
-<span class="pc" id="L130">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
+<span class="fc" id="L195">        Rol rol = rolRepository.findById(idRol)</span>
+<span class="pc" id="L196">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
 
-<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        if (request.getDescripcionRol() != null) {</span>
-<span class="fc" id="L133">            rol.setDescripcionRol(request.getDescripcionRol());</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        if (request.getDescripcionRol() != null) {</span>
+<span class="fc" id="L199">            rol.setDescripcionRol(request.getDescripcionRol());</span>
         }
 
-<span class="fc" id="L136">        rol = rolRepository.save(rol);</span>
-<span class="fc" id="L137">        log.info(&quot;Descripción del rol ID {} ({}) actualizada&quot;, idRol, rol.getNombreRol());</span>
+<span class="fc" id="L202">        rol = rolRepository.save(rol);</span>
+<span class="fc" id="L203">        log.info(&quot;Descripción del rol ID {} ({}) actualizada&quot;, idRol, rol.getNombreRol());</span>
 
-<span class="fc" id="L139">        return RolResponse.builder()</span>
-<span class="fc" id="L140">                .idRol(rol.getIdRol())</span>
-<span class="fc" id="L141">                .nombreRol(rol.getNombreRol())</span>
-<span class="fc" id="L142">                .descripcionRol(rol.getDescripcionRol())</span>
-<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                .permisos(rol.getPermisos() != null ? rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
-<span class="fc" id="L144">                .build();</span>
+<span class="fc" id="L205">        return RolResponse.builder()</span>
+<span class="fc" id="L206">                .idRol(rol.getIdRol())</span>
+<span class="fc" id="L207">                .nombreRol(rol.getNombreRol())</span>
+<span class="fc" id="L208">                .descripcionRol(rol.getDescripcionRol())</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                .permisos(rol.getPermisos() != null ? rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
+<span class="fc" id="L210">                .build();</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;ROL_ELIMINAR&quot;, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = &quot;roles&quot;, idEntidad = &quot;#idRol&quot;)
     public void deleteRole(Long idRol) {
-<span class="fc" id="L150">        Rol rol = rolRepository.findById(idRol)</span>
-<span class="fc" id="L151">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
-
-<span class="fc" id="L153">        Set&lt;String&gt; rolesProtegidos = Set.of(&quot;ADMIN&quot;, &quot;CLIENTE&quot;, &quot;CREADOR&quot;, &quot;MODERADOR&quot;, &quot;SOPORTE&quot;, &quot;AUDITOR_FINANCIERO&quot;);</span>
-<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (rolesProtegidos.contains(rol.getNombreRol().toUpperCase())) {</span>
-<span class="fc" id="L155">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se puede eliminar un rol base del sistema: &quot; + rol.getNombreRol());</span>
-        }
-
-<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (usuarioRolRepository.existsByRolIdRol(idRol)) {</span>
-<span class="fc" id="L159">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se puede eliminar el rol porque tiene usuarios activos asignados&quot;);</span>
-        }
-
-<span class="fc" id="L162">        rolRepository.delete(rol);</span>
-<span class="fc" id="L163">        log.info(&quot;Rol personalizado eliminado exitosamente: {} (ID {})&quot;, rol.getNombreRol(), idRol);</span>
-<span class="fc" id="L164">    }</span>
+        // REQ-F-004: fn_eliminar_rol valida (en la misma transaccion que el
+        // DELETE) que el rol no sea uno de los roles base protegidos y que no
+        // tenga usuarios activos asignados, antes de aplicar el borrado.
+        try {
+<span class="fc" id="L222">            rolRepository.eliminarRol(idRol);</span>
+<span class="fc" id="L223">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L224">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L225">        }</span>
+<span class="fc" id="L226">        log.info(&quot;Rol personalizado eliminado exitosamente (ID {})&quot;, idRol);</span>
+<span class="fc" id="L227">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

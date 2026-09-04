@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InfraccionServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.comunicacion.impl</a> &gt; <span class="el_source">InfraccionServiceImpl.java</span></div><h1>InfraccionServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.comunicacion.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
@@ -23,12 +29,11 @@ import java.time.LocalDateTime;
  * Implementación del servicio de infracciones.
  * RF-15: 3 infracciones en 30 días → suspensión automática de 15 días.
  */
-<span class="fc" id="L26">@Slf4j</span>
+<span class="fc" id="L32">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class InfraccionServiceImpl implements InfraccionService {
 
-    private static final int MAX_INFRACCIONES  = 3;
     private static final int PERIODO_DIAS      = 30;
     private static final int SUSPENSION_DIAS   = 15;
 
@@ -36,87 +41,107 @@ public class InfraccionServiceImpl implements InfraccionService {
     private final UsuarioRepository       usuarioRepo;
     private final MensajeFilterService    mensajeFilterService;
     private final NotificacionService     notificacionService;
+    private final ObjectMapper            objectMapper;
 
     @Override
-    @Transactional
+    // REQUIRES_NEW: quien llama a este metodo (ej. ChatServiceImpl.enviarMensaje)
+    // suele lanzar una excepcion de regla de negocio inmediatamente despues,
+    // dentro de su propia transaccion @Transactional -- con la propagacion
+    // por defecto (REQUIRED) esa excepcion marca rollback-only y deshace este
+    // INSERT y la suspension junto con todo lo demas de la transaccion del
+    // llamador. Una transaccion propia hace que la infraccion quede
+    // confirmada en el motor aunque el llamador aborte la suya despues.
+    //
+    // Jamás #mensaje en el detalle: el texto ya vive en
+    // infracciones_mensaje.mensaje_original con su propio control de acceso;
+    // duplicarlo en una bitácora que ni el ADMIN puede borrar empeoraría la
+    // posición de privacidad. Solo se registra su longitud y el patrón.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Auditable(accion = &quot;INFRACCION_REGISTRAR&quot;, modulo = ModuloAuditoria.COMUNICACION,
+            entidad = &quot;pedidos&quot;, idEntidad = &quot;#idPedido&quot;)
     public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
-<span class="nc" id="L43">        Usuario usuario = usuarioRepo.findById(idUsuario)</span>
-<span class="nc" id="L44">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
+        // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
+        // total en la ventana de 30 dias y suspende la cuenta si corresponde,
+        // todo en una unica transaccion atomica en el motor (evita la carrera
+        // entre el COUNT y el UPDATE condicional que tenia la version en tres
+        // llamadas independientes al repositorio).
+<span class="fc" id="L68">        String patron = mensajeFilterService.detectarPatron(mensaje);</span>
+<span class="fc" id="L69">        ContextoAuditoria.aportar(&quot;idUsuarioInfractor&quot;, idUsuario);</span>
+<span class="fc" id="L70">        ContextoAuditoria.aportar(&quot;patronDetectado&quot;, patron);</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">        ContextoAuditoria.aportar(&quot;longitudMensaje&quot;, mensaje != null ? mensaje.length() : 0);</span>
 
-<span class="nc" id="L46">        String patron = mensajeFilterService.detectarPatron(mensaje);</span>
+<span class="fc" id="L73">        String resultadoJson = infraccionRepo.registrarInfraccion(idUsuario, idPedido, mensaje, patron);</span>
+<span class="fc" id="L74">        JsonNode resultado = parseResultado(resultadoJson);</span>
+<span class="fc" id="L75">        int totalPeriodo = resultado.get(&quot;totalInfraccionesPeriodo&quot;).asInt();</span>
+<span class="fc" id="L76">        boolean cuentaSuspendida = resultado.get(&quot;cuentaSuspendida&quot;).asBoolean();</span>
 
-<span class="nc" id="L48">        InfraccionMensaje infraccion = InfraccionMensaje.builder()</span>
-<span class="nc" id="L49">                .usuario(usuario)</span>
-                // El pedido se deja null cuando se llama desde este servicio independiente;
-                // ChatServiceImpl es el flujo primario que siempre incluye el pedido.
-<span class="nc" id="L52">                .pedido(null)</span>
-<span class="nc" id="L53">                .mensajeOriginal(mensaje)</span>
-<span class="nc" id="L54">                .patronDetectado(patron)</span>
-<span class="nc" id="L55">                .build();</span>
-<span class="nc" id="L56">        infraccionRepo.save(infraccion);</span>
+<span class="fc" id="L78">        log.info(&quot;Infracción registrada para usuario {}. Total en últimos {} días: {}&quot;,</span>
+<span class="fc" id="L79">                idUsuario, PERIODO_DIAS, totalPeriodo);</span>
 
-        // Contar infracciones en los últimos PERIODO_DIAS días
-<span class="nc" id="L59">        long count = infraccionRepo.countByUsuarioIdUsuarioAndFechaInfraccionAfter(</span>
-<span class="nc" id="L60">                idUsuario, LocalDateTime.now().minusDays(PERIODO_DIAS));</span>
-
-<span class="nc" id="L62">        log.info(&quot;Infracción registrada para usuario {}. Total en últimos {} días: {}&quot;,</span>
-<span class="nc" id="L63">                idUsuario, PERIODO_DIAS, count);</span>
-
-<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (count &gt;= MAX_INFRACCIONES) {</span>
-<span class="nc" id="L66">            suspenderCuenta(usuario);</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (cuentaSuspendida) {</span>
+<span class="fc" id="L82">            Usuario usuario = usuarioRepo.findById(idUsuario)</span>
+<span class="pc" id="L83">                    .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
+<span class="fc" id="L84">            notificarSuspension(usuario);</span>
         }
-<span class="nc" id="L68">    }</span>
+<span class="fc" id="L86">    }</span>
+
+    private JsonNode parseResultado(String json) {
+        try {
+<span class="fc" id="L90">            return objectMapper.readTree(json);</span>
+<span class="nc" id="L91">        } catch (Exception e) {</span>
+<span class="nc" id="L92">            throw new IllegalStateException(&quot;Error al interpretar el resultado de fn_registrar_infraccion&quot;, e);</span>
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)
     public Page&lt;RespuestaInfraccion&gt; listarInfracciones(Pageable pageable) {
-<span class="nc" id="L73">        return infraccionRepo.findAll(pageable).map(this::mapToResponse);</span>
+<span class="nc" id="L99">        return infraccionRepo.findAll(pageable).map(this::mapToResponse);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page&lt;RespuestaInfraccion&gt; historialPorUsuario(Long idUsuario, Pageable pageable) {
-<span class="nc" id="L79">        return infraccionRepo.findAll(pageable)</span>
-<span class="nc" id="L80">                .map(this::mapToResponse)</span>
-<span class="nc bnc" id="L81" title="All 2 branches missed.">                .map(r -&gt; r.getIdUsuario().equals(idUsuario) ? r : null);</span>
+<span class="fc" id="L105">        return infraccionRepo.findByUsuarioIdUsuario(idUsuario, pageable)</span>
+<span class="fc" id="L106">                .map(this::mapToResponse);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;SUSPENSION_REVERTIR&quot;, modulo = ModuloAuditoria.COMUNICACION,
+            entidad = &quot;usuarios&quot;, idEntidad = &quot;#idUsuario&quot;)
     public RespuestaMensaje revertirSuspension(Long idUsuario) {
-<span class="nc" id="L87">        Usuario usuario = usuarioRepo.findById(idUsuario)</span>
-<span class="nc" id="L88">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
-<span class="nc" id="L89">        usuario.setEstadoCuenta(true);</span>
-<span class="nc" id="L90">        usuarioRepo.save(usuario);</span>
-<span class="nc" id="L91">        log.info(&quot;Suspensión revertida para usuario {} por admin&quot;, idUsuario);</span>
-<span class="nc" id="L92">        return new RespuestaMensaje(&quot;Cuenta del usuario &quot; + usuario.getCorreo() + &quot; reactivada correctamente&quot;);</span>
+<span class="nc" id="L114">        Usuario usuario = usuarioRepo.findById(idUsuario)</span>
+<span class="nc" id="L115">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
+<span class="nc" id="L116">        usuario.setEstadoCuenta(true);</span>
+<span class="nc" id="L117">        usuarioRepo.save(usuario);</span>
+<span class="nc" id="L118">        log.info(&quot;Suspensión revertida para usuario {} por admin&quot;, idUsuario);</span>
+<span class="nc" id="L119">        return new RespuestaMensaje(&quot;Cuenta del usuario &quot; + usuario.getCorreo() + &quot; reactivada correctamente&quot;);</span>
     }
 
     // -------------------------------------------------------------------------
 
-    private void suspenderCuenta(Usuario usuario) {
-<span class="nc" id="L98">        usuario.setEstadoCuenta(false);</span>
-<span class="nc" id="L99">        usuarioRepo.save(usuario);</span>
-
-<span class="nc" id="L101">        LocalDateTime hastaFecha = LocalDateTime.now().plusDays(SUSPENSION_DIAS);</span>
-<span class="nc" id="L102">        String mensajeNotif = &quot;Tu cuenta está suspendida hasta &quot; + hastaFecha.toLocalDate()</span>
+    /** El estado_cuenta ya lo actualizo fn_registrar_infraccion; aqui solo se notifica. */
+    private void notificarSuspension(Usuario usuario) {
+<span class="fc" id="L126">        LocalDateTime hastaFecha = LocalDateTime.now().plusDays(SUSPENSION_DIAS);</span>
+<span class="fc" id="L127">        String mensajeNotif = &quot;Tu cuenta está suspendida hasta &quot; + hastaFecha.toLocalDate()</span>
                 + &quot; por superar el límite de infracciones de datos de contacto.&quot;;
 
-<span class="nc" id="L105">        log.warn(&quot;Cuenta del usuario {} suspendida hasta {}&quot;, usuario.getCorreo(), hastaFecha.toLocalDate());</span>
-<span class="nc" id="L106">        notificacionService.notificar(usuario, &quot;CUENTA_SUSPENDIDA&quot;, mensajeNotif);</span>
-<span class="nc" id="L107">    }</span>
+<span class="fc" id="L130">        log.warn(&quot;Cuenta del usuario {} suspendida hasta {}&quot;, usuario.getCorreo(), hastaFecha.toLocalDate());</span>
+<span class="fc" id="L131">        notificacionService.notificar(usuario, &quot;CUENTA_SUSPENDIDA&quot;, mensajeNotif);</span>
+<span class="fc" id="L132">    }</span>
 
     private RespuestaInfraccion mapToResponse(InfraccionMensaje i) {
-<span class="nc" id="L110">        return RespuestaInfraccion.builder()</span>
-<span class="nc" id="L111">                .idInfraccion(i.getIdInfraccion())</span>
-<span class="nc" id="L112">                .idUsuario(i.getUsuario().getIdUsuario())</span>
-<span class="nc" id="L113">                .nombreUsuario(i.getUsuario().getNombres() + &quot; &quot; + i.getUsuario().getApellidos())</span>
-<span class="nc" id="L114">                .correoUsuario(i.getUsuario().getCorreo())</span>
-<span class="nc bnc" id="L115" title="All 2 branches missed.">                .idPedido(i.getPedido() != null ? i.getPedido().getIdPedido() : null)</span>
-<span class="nc" id="L116">                .mensajeOriginal(i.getMensajeOriginal())</span>
-<span class="nc" id="L117">                .patronDetectado(i.getPatronDetectado())</span>
-<span class="nc" id="L118">                .fechaInfraccion(i.getFechaInfraccion())</span>
-<span class="nc" id="L119">                .build();</span>
+<span class="fc" id="L135">        return RespuestaInfraccion.builder()</span>
+<span class="fc" id="L136">                .idInfraccion(i.getIdInfraccion())</span>
+<span class="fc" id="L137">                .idUsuario(i.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L138">                .nombreUsuario(i.getUsuario().getNombres() + &quot; &quot; + i.getUsuario().getApellidos())</span>
+<span class="fc" id="L139">                .correoUsuario(i.getUsuario().getCorreo())</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">                .idPedido(i.getPedido() != null ? i.getPedido().getIdPedido() : null)</span>
+<span class="fc" id="L141">                .mensajeOriginal(i.getMensajeOriginal())</span>
+<span class="fc" id="L142">                .patronDetectado(i.getPatronDetectado())</span>
+<span class="fc" id="L143">                .fechaInfraccion(i.getFechaInfraccion())</span>
+<span class="fc" id="L144">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

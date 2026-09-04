@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventoAuditoriaSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.auditoria</a> &gt; <span class="el_source">EventoAuditoriaSpecification.java</span></div><h1>EventoAuditoriaSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.auditoria;
+
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="nc" id="L11">public class EventoAuditoriaSpecification {</span>
+
+    public static Specification&lt;EventoAuditoria&gt; conFiltros(
+            String correoActor,
+            String accion,
+            String modulo,
+            String resultado,
+            String entidad,
+            Long idEntidad,
+            LocalDateTime desde,
+            LocalDateTime hasta) {
+
+<span class="fc" id="L23">        return (root, query, cb) -&gt; {</span>
+<span class="nc" id="L24">            List&lt;Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L26" title="All 4 branches missed.">            if (correoActor != null &amp;&amp; !correoActor.isBlank()) {</span>
+<span class="nc" id="L27">                String likePattern = &quot;%&quot; + correoActor.toLowerCase().trim() + &quot;%&quot;;</span>
+<span class="nc" id="L28">                predicates.add(cb.like(cb.lower(root.get(&quot;correoActor&quot;)), likePattern));</span>
+            }
+
+<span class="nc bnc" id="L31" title="All 4 branches missed.">            if (accion != null &amp;&amp; !accion.isBlank()) {</span>
+<span class="nc" id="L32">                predicates.add(cb.equal(root.get(&quot;accionAuditoria&quot;), accion));</span>
+            }
+
+<span class="nc bnc" id="L35" title="All 4 branches missed.">            if (modulo != null &amp;&amp; !modulo.isBlank()) {</span>
+<span class="nc" id="L36">                predicates.add(cb.equal(root.get(&quot;moduloAuditoria&quot;), modulo));</span>
+            }
+
+<span class="nc bnc" id="L39" title="All 4 branches missed.">            if (resultado != null &amp;&amp; !resultado.isBlank()) {</span>
+<span class="nc" id="L40">                predicates.add(cb.equal(root.get(&quot;resultadoEvento&quot;), resultado));</span>
+            }
+
+<span class="nc bnc" id="L43" title="All 4 branches missed.">            if (entidad != null &amp;&amp; !entidad.isBlank()) {</span>
+<span class="nc" id="L44">                predicates.add(cb.equal(root.get(&quot;entidadAfectada&quot;), entidad));</span>
+            }
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (idEntidad != null) {</span>
+<span class="nc" id="L48">                predicates.add(cb.equal(root.get(&quot;idEntidadAfectada&quot;), idEntidad));</span>
+            }
+
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            if (desde != null) {</span>
+<span class="nc" id="L52">                predicates.add(cb.greaterThanOrEqualTo(root.get(&quot;fechaEvento&quot;), desde));</span>
+            }
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">            if (hasta != null) {</span>
+<span class="nc" id="L56">                predicates.add(cb.lessThanOrEqualTo(root.get(&quot;fechaEvento&quot;), hasta));</span>
+            }
+
+<span class="nc" id="L59">            return cb.and(predicates.toArray(new Predicate[0]));</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

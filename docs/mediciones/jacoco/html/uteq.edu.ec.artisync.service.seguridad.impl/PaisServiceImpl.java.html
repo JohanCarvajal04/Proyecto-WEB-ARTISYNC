@@ -3,18 +3,21 @@ import uteq.edu.ec.artisync.service.seguridad.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.seguridad.request.PaisRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.PaisResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
 import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.seguridad.PaisService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 
 import java.util.List;
 
@@ -23,75 +26,128 @@ import java.util.List;
 public class PaisServiceImpl implements PaisService {
 
     private final PaisRepository paisRepository;
-    private final UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;PaisResponse&gt; getAllPaises() {
-<span class="fc" id="L31">        return paisRepository.findAll(Sort.by(Sort.Direction.ASC, &quot;nombrePais&quot;)).stream()</span>
-<span class="fc" id="L32">                .map(this::toResponse)</span>
-<span class="fc" id="L33">                .toList();</span>
+<span class="fc" id="L33">        return paisRepository.findAll(Sort.by(Sort.Direction.ASC, &quot;nombrePais&quot;)).stream()</span>
+<span class="fc" id="L34">                .map(this::toResponse)</span>
+<span class="fc" id="L35">                .toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;PaisResponse&gt; getPaisesActivos() {
+<span class="nc" id="L41">        return paisRepository.findByEstadoTrue(Sort.by(Sort.Direction.ASC, &quot;nombrePais&quot;)).stream()</span>
+<span class="nc" id="L42">                .map(this::toResponse)</span>
+<span class="nc" id="L43">                .toList();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public PaisResponse getPaisById(Long id) {
-<span class="fc" id="L39">        Pais pais = paisRepository.findById(id)</span>
-<span class="fc" id="L40">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
-<span class="fc" id="L41">        return toResponse(pais);</span>
+<span class="fc" id="L49">        Pais pais = paisRepository.findById(id)</span>
+<span class="fc" id="L50">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L51">        return toResponse(pais);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;País creado desde el panel de administración&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;pais&quot;, idEntidad = &quot;#resultado.idPais&quot;,
+            detalle = &quot;{nombrePais: #request.nombrePais}&quot;)
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): delega
+    // en fn_guardar_pais, que captura unique_violation sobre el nombre en vez
+    // de la comprobacion findByNombrePais previa a esta version, que no era
+    // atomica respecto al save() (lectura fantasma, misma clase de anomalia
+    // que A9 en updatePais). El tipo de excepcion de negocio se preserva
+    // (ExcepcionRecursoDuplicado) para no romper el contrato ya establecido
+    // de este servicio con su capa de presentacion.
     public PaisResponse createPais(PaisRequest request) {
-<span class="fc" id="L47">        String nombreTrimmed = request.getNombrePais().trim();</span>
-<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (paisRepository.findByNombrePais(nombreTrimmed).isPresent()) {</span>
-<span class="fc" id="L49">            throw new ExcepcionRecursoDuplicado(&quot;Ya existe un país registrado con el nombre: &quot; + nombreTrimmed);</span>
-        }
+        Long idPais;
+        try {
+<span class="fc" id="L69">            idPais = paisRepository.guardarPais(null, request.getNombrePais());</span>
+<span class="fc" id="L70">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L71">            throw traducirExcepcionDuplicado(e, request.getNombrePais());</span>
+<span class="fc" id="L72">        }</span>
 
-<span class="fc" id="L52">        Pais pais = Pais.builder()</span>
-<span class="fc" id="L53">                .nombrePais(nombreTrimmed)</span>
-<span class="fc" id="L54">                .build();</span>
-
-<span class="fc" id="L56">        return toResponse(paisRepository.save(pais));</span>
+        // Camino inalcanzable en operacion normal (la fila que se acaba de
+        // insertar en la MISMA transaccion siempre deberia ser legible aqui):
+        // ResponseStatusException(500), no una excepcion de negocio -- esto
+        // senalaria un fallo del servidor, no un error de entrada del cliente.
+        // (IllegalStateException se descarto: ManejadorGlobalExcepciones la
+        // mapea a 400, la semantica HTTP incorrecta para un fallo interno.)
+<span class="fc" id="L80">        Pais pais = paisRepository.findById(idPais)</span>
+<span class="pc" id="L81">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el país&quot;));</span>
+<span class="fc" id="L82">        return toResponse(pais);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;PAIS_EDITAR&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;pais&quot;, idEntidad = &quot;#id&quot;,
+            detalle = &quot;{nombrePais: #request.nombrePais}&quot;)
+    // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4): corrige
+    // la anomalia A9. fn_guardar_pais captura unique_violation sobre el
+    // nombre en vez de la comprobacion findByNombrePais previa a esta
+    // version, que no era atomica respecto al save(): entre comprobar &quot;el
+    // nombre no pertenece a otro pais&quot; y guardar, otra transaccion podia
+    // tomar ese mismo nombre (lectura fantasma).
     public PaisResponse updatePais(Long id, PaisRequest request) {
-<span class="fc" id="L62">        Pais pais = paisRepository.findById(id)</span>
-<span class="fc" id="L63">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if (!paisRepository.existsById(id)) {</span>
+<span class="fc" id="L98">            throw new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id);</span>
+        }
 
-<span class="fc" id="L65">        String nombreTrimmed = request.getNombrePais().trim();</span>
-<span class="fc" id="L66">        paisRepository.findByNombrePais(nombreTrimmed).ifPresent(p -&gt; {</span>
-<span class="fc bfc" id="L67" title="All 2 branches covered.">            if (!p.getIdPais().equals(id)) {</span>
-<span class="fc" id="L68">                throw new ExcepcionRecursoDuplicado(&quot;Ya existe otro país registrado con el nombre: &quot; + nombreTrimmed);</span>
-            }
-<span class="fc" id="L70">        });</span>
+        try {
+<span class="fc" id="L102">            paisRepository.guardarPais(id, request.getNombrePais());</span>
+<span class="fc" id="L103">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L104">            throw traducirExcepcionDuplicado(e, request.getNombrePais());</span>
+<span class="fc" id="L105">        }</span>
 
-<span class="fc" id="L72">        pais.setNombrePais(nombreTrimmed);</span>
-<span class="fc" id="L73">        return toResponse(paisRepository.save(pais));</span>
+<span class="fc" id="L107">        Pais pais = paisRepository.findById(id)</span>
+<span class="pc" id="L108">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L109">        return toResponse(pais);</span>
+    }
+
+    /**
+     * Traduce la excepcion nativa de fn_guardar_pais al vocabulario de
+     * excepciones de negocio ya establecido en este servicio
+     * (ExcepcionRecursoDuplicado/ExcepcionRecursoNoEncontrado), reutilizando
+     * StoredProcedureExceptionTranslator solo para el trabajo de desenvolver
+     * la SQLException y limpiar el mensaje.
+     */
+    private RuntimeException traducirExcepcionDuplicado(RuntimeException origen, String nombrePais) {
+<span class="fc" id="L120">        ResponseStatusException traducido = StoredProcedureExceptionTranslator.traducir(origen, HttpStatus.BAD_REQUEST);</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        if (traducido.getStatusCode() == HttpStatus.CONFLICT) {</span>
+<span class="fc" id="L122">            return new ExcepcionRecursoDuplicado(traducido.getReason());</span>
+        }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (traducido.getStatusCode() == HttpStatus.NOT_FOUND) {</span>
+<span class="nc" id="L125">            return new ExcepcionRecursoNoEncontrado(traducido.getReason());</span>
+        }
+<span class="nc" id="L127">        return traducido;</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;PAIS_CAMBIAR_ESTADO&quot;, modulo = ModuloAuditoria.SISTEMA, entidad = &quot;pais&quot;, idEntidad = &quot;#id&quot;)
     public RespuestaMensaje deletePais(Long id) {
-<span class="fc" id="L79">        Pais pais = paisRepository.findById(id)</span>
-<span class="fc" id="L80">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L134">        Pais pais = paisRepository.findById(id)</span>
+<span class="fc" id="L135">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;País no encontrado con ID: &quot; + id));</span>
 
-<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (usuarioRepository.existsByPaisIdPais(id)) {</span>
-<span class="fc" id="L83">            throw new ExcepcionReglaNegocio(&quot;No se puede eliminar el país porque tiene usuarios asociados.&quot;);</span>
-        }
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        boolean nuevoEstado = !pais.getEstado();</span>
+<span class="fc" id="L138">        pais.setEstado(nuevoEstado);</span>
+<span class="fc" id="L139">        paisRepository.save(pais);</span>
 
-<span class="fc" id="L86">        paisRepository.delete(pais);</span>
-<span class="fc" id="L87">        return new RespuestaMensaje(&quot;País eliminado exitosamente&quot;);</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        String accionStr = nuevoEstado ? &quot;reactivado&quot; : &quot;desactivado&quot;;</span>
+<span class="fc" id="L142">        return new RespuestaMensaje(&quot;País &quot; + accionStr + &quot; exitosamente&quot;);</span>
     }
 
     private PaisResponse toResponse(Pais pais) {
-<span class="fc" id="L91">        return PaisResponse.builder()</span>
-<span class="fc" id="L92">                .idPais(pais.getIdPais())</span>
-<span class="fc" id="L93">                .nombrePais(pais.getNombrePais())</span>
-<span class="fc" id="L94">                .build();</span>
+<span class="fc" id="L146">        return PaisResponse.builder()</span>
+<span class="fc" id="L147">                .idPais(pais.getIdPais())</span>
+<span class="fc" id="L148">                .nombrePais(pais.getNombrePais())</span>
+<span class="fc" id="L149">                .estado(pais.getEstado())</span>
+<span class="fc" id="L150">                .build();</span>
     }
 }
 

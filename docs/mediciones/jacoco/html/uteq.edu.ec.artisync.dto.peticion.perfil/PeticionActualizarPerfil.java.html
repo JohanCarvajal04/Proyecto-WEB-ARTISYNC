@@ -7,7 +7,10 @@ import jakarta.validation.constraints.Size;
         String biografia,
 
         @Size(max = 255, message = &quot;La URL de red social no puede superar los 255 caracteres&quot;)
-        String urlRedSocial
+        String urlRedSocial,
+
+        @Size(max = 150, message = &quot;El título profesional no puede superar los 150 caracteres&quot;)
+        String tituloProfesional
 ) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

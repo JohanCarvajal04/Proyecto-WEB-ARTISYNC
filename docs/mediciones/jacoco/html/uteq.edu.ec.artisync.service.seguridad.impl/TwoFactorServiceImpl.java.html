@@ -5,196 +5,232 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
-import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
 import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
+import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
-<span class="fc" id="L33">@Slf4j</span>
+<span class="fc" id="L36">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class TwoFactorServiceImpl implements TwoFactorService {
+
+    // Revisión técnica 2026-09-01: ni confirm2Fa ni disable2Fa tenían cuota
+    // de intentos (AuthRateLimitFilter solo cubre /auth/2fa/verify, que es
+    // el login; estos dos endpoints son post-login y requieren sesión
+    // válida). Con una sesión robada, un atacante podía probar sin límite
+    // los 10^6 códigos TOTP de 6 dígitos. Mismo patrón que login/forgot-password
+    // en AuthServiceImpl: cuota POR CUENTA, se incrementa solo al fallar.
+    private static final String AMBITO_2FA_CONFIRM = &quot;2fa-confirmar-cuenta&quot;;
+    private static final String AMBITO_2FA_DISABLE = &quot;2fa-desactivar-cuenta&quot;;
+    private static final int LIMITE_INTENTOS_2FA = 5;
+<span class="fc" id="L50">    private static final Duration VENTANA_INTENTOS_2FA = Duration.ofMinutes(15);</span>
 
     private final UsuarioRepository usuarioRepository;
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
     private final UsuarioRolRepository usuarioRolRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
     private final CertificadoIaRepository certificadoIaRepository;
+    private final IntentosAutenticacionService intentosAutenticacionService;
+
+    // Revisión técnica 2026-09-01: los códigos de respaldo se hasheaban con
+    // SHA-256 sin clave -- un volcado de codigo_respaldo_2fa permitía
+    // precomputar una única tabla arcoíris válida para TODOS los usuarios
+    // (los códigos son 8 hex = 32 bits de entropía, trivial de agotar con
+    // SHA-256 sin pepper). HMAC-SHA256 con esta clave hace que, sin conocer
+    // el secreto, un atacante que solo tiene el volcado de la BD no pueda
+    // precomputar nada. Reutiliza security.jwt.secret-key (ya validado como
+    // secreto fuerte en JwtService) en vez de introducir una nueva variable
+    // de entorno obligatoria; la separación de dominio entre JWT y estos
+    // hashes viene del prefijo fijo en el mensaje, no de una clave distinta.
+    @Value(&quot;${security.jwt.secret-key}&quot;)
+    private String claveHmac;
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     @Override
     @Transactional
+    // Nunca el secreto TOTP ni los códigos de respaldo en el detalle: solo el
+    // hecho de que se inició la configuración.
+    @Auditable(accion = &quot;SEGURIDAD_2FA_CONFIGURAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, correoActor = &quot;#correo&quot;)
     public TwoFactorSetupResponse setup2Fa(String correo) {
-<span class="fc" id="L50">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="pc" id="L51">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L80">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L81">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc" id="L53">        boolean esCreador = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
-<span class="fc" id="L54">                .anyMatch(ur -&gt; &quot;CREADOR&quot;.equalsIgnoreCase(ur.getRol().getNombreRol()));</span>
-<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (esCreador) {</span>
-<span class="fc" id="L56">            PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L57">                    .orElse(null);</span>
-<span class="pc bpc" id="L58" title="2 of 4 branches missed.">            if (perfil == null || !certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(perfil.getIdPerfil(), &quot;APROBADO&quot;)) {</span>
-<span class="fc" id="L59">                throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Debes verificar tu identidad antes de activar la autenticación de dos factores&quot;);</span>
-            }
+<span class="fc" id="L83">        boolean esCreador = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L84">                .anyMatch(ur -&gt; &quot;CREADOR&quot;.equalsIgnoreCase(ur.getRol().getNombreRol()));</span>
+        // V21: la verificación ya no cuelga de perfiles_creadores, cuelga
+        // directo del usuario — no hace falta resolver el perfil para esto.
+<span class="pc bpc" id="L87" title="1 of 4 branches missed.">        if (esCreador &amp;&amp; !certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(</span>
+<span class="fc" id="L88">                usuario.getIdUsuario(), &quot;IDENTIDAD&quot;, &quot;APROBADO&quot;)) {</span>
+<span class="fc" id="L89">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Debes verificar tu identidad antes de activar la autenticación de dos factores&quot;);</span>
         }
 
-<span class="fc" id="L63">        GoogleAuthenticatorKey key = gAuth.createCredentials();</span>
-<span class="fc" id="L64">        String secreto = key.getKey();</span>
+<span class="fc" id="L92">        GoogleAuthenticatorKey key = gAuth.createCredentials();</span>
+<span class="fc" id="L93">        String secreto = key.getKey();</span>
 
-<span class="fc" id="L66">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="fc" id="L67">                .orElseGet(() -&gt; AutenticacionDosFactores.builder().usuario(usuario).build());</span>
-
-<span class="fc" id="L69">        dosFactores.setLlaveSecreta(secreto);</span>
-<span class="fc" id="L70">        dosFactores.setEstaHabilitado(false);</span>
-<span class="fc" id="L71">        autenticacionDosFactoresRepository.save(dosFactores);</span>
-
-        // Limpiar códigos anteriores si hubiera
-<span class="fc" id="L74">        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());</span>
-
-        // Generar 8 nuevos códigos de respaldo
-<span class="fc" id="L77">        List&lt;String&gt; codigosPlano = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (int i = 0; i &lt; 8; i++) {</span>
-<span class="fc" id="L79">            String codigo = UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;).substring(0, 8).toUpperCase();</span>
-<span class="fc" id="L80">            codigosPlano.add(codigo);</span>
-
-<span class="fc" id="L82">            CodigoRespaldo2Fa respaldo = CodigoRespaldo2Fa.builder()</span>
-<span class="fc" id="L83">                    .usuario(usuario)</span>
-<span class="fc" id="L84">                    .codigoHash(hashSha256(codigo))</span>
-<span class="fc" id="L85">                    .usado(false)</span>
-<span class="fc" id="L86">                    .build();</span>
-<span class="fc" id="L87">            codigoRespaldo2FaRepository.save(respaldo);</span>
+        // Generar 8 nuevos códigos de respaldo (en texto plano, para devolver
+        // al usuario una única vez) y sus hashes (lo único que se persiste).
+<span class="fc" id="L97">        List&lt;String&gt; codigosPlano = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L98">        String[] hashes = new String[8];</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        for (int i = 0; i &lt; 8; i++) {</span>
+<span class="fc" id="L100">            String codigo = UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;).substring(0, 8).toUpperCase();</span>
+<span class="fc" id="L101">            codigosPlano.add(codigo);</span>
+<span class="fc" id="L102">            hashes[i] = hashSha256(codigo);</span>
         }
 
-<span class="fc" id="L90">        String otpauthUri = String.format(&quot;otpauth://totp/Artisync:%s?secret=%s&amp;issuer=Artisync&quot;, correo, secreto);</span>
+        // Fase 3 concurrencia (§7): fn_configurar_2fa hace el upsert del
+        // secreto TOTP + el reemplazo completo de los codigos de respaldo en
+        // UNA transaccion atomica, en vez de los 10 pasos no atomicos
+        // anteriores (upsert manual + delete + 8 save() individuales), que
+        // dejaban al usuario con un secreto nuevo y codigos incompletos si el
+        // proceso fallaba a mitad del bucle.
+<span class="fc" id="L111">        autenticacionDosFactoresRepository.configurar2Fa(usuario.getIdUsuario(), secreto, hashes);</span>
 
-<span class="fc" id="L92">        return TwoFactorSetupResponse.builder()</span>
-<span class="fc" id="L93">                .secreto(secreto)</span>
-<span class="fc" id="L94">                .otpauthUri(otpauthUri)</span>
-<span class="fc" id="L95">                .codigosRespaldo(codigosPlano)</span>
-<span class="fc" id="L96">                .build();</span>
+<span class="fc" id="L113">        String otpauthUri = String.format(&quot;otpauth://totp/Artisync:%s?secret=%s&amp;issuer=Artisync&quot;, correo, secreto);</span>
+
+<span class="fc" id="L115">        return TwoFactorSetupResponse.builder()</span>
+<span class="fc" id="L116">                .secreto(secreto)</span>
+<span class="fc" id="L117">                .otpauthUri(otpauthUri)</span>
+<span class="fc" id="L118">                .codigosRespaldo(codigosPlano)</span>
+<span class="fc" id="L119">                .build();</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;SEGURIDAD_2FA_ACTIVAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, correoActor = &quot;#correo&quot;)
     public RespuestaMensaje confirm2Fa(String correo, String codigo) {
-<span class="nc" id="L102">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="nc" id="L103">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="nc" id="L126">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="nc" id="L127">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="nc" id="L105">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="nc" id="L106">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se ha iniciado la configuración de 2FA&quot;));</span>
+<span class="nc" id="L129">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="nc" id="L130">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se ha iniciado la configuración de 2FA&quot;));</span>
 
-<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {</span>
-<span class="nc" id="L109">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Código inválido o expirado&quot;);</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {</span>
+<span class="nc" id="L133">            intentosAutenticacionService.verificarCuota(</span>
+                    AMBITO_2FA_CONFIRM, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
+<span class="nc" id="L135">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Código inválido o expirado&quot;);</span>
         }
+<span class="nc" id="L137">        intentosAutenticacionService.limpiar(AMBITO_2FA_CONFIRM, correo);</span>
 
-<span class="nc" id="L112">        dosFactores.setEstaHabilitado(true);</span>
-<span class="nc" id="L113">        autenticacionDosFactoresRepository.save(dosFactores);</span>
+<span class="nc" id="L139">        dosFactores.setEstaHabilitado(true);</span>
+<span class="nc" id="L140">        autenticacionDosFactoresRepository.save(dosFactores);</span>
 
-<span class="nc" id="L115">        return new RespuestaMensaje(&quot;Autenticación de dos factores activada exitosamente&quot;);</span>
+<span class="nc" id="L142">        return new RespuestaMensaje(&quot;Autenticación de dos factores activada exitosamente&quot;);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;SEGURIDAD_2FA_DESACTIVAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, correoActor = &quot;#correo&quot;)
     public RespuestaMensaje disable2Fa(String correo, String codigo) {
-<span class="nc" id="L121">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="nc" id="L122">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L149">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="pc" id="L150">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="nc" id="L124">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="nc" id="L125">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no está configurado&quot;));</span>
+<span class="fc" id="L152">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="pc" id="L153">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no está configurado&quot;));</span>
 
-<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
-<span class="nc" id="L128">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra activo&quot;);</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="nc" id="L156">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra activo&quot;);</span>
         }
 
-<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (!validarCodigoOBackup(correo, codigo)) {</span>
-<span class="nc" id="L132">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        if (!validarCodigoOBackup(correo, codigo)) {</span>
+<span class="fc" id="L160">            intentosAutenticacionService.verificarCuota(</span>
+                    AMBITO_2FA_DISABLE, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
+<span class="fc" id="L162">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
         }
+<span class="fc" id="L164">        intentosAutenticacionService.limpiar(AMBITO_2FA_DISABLE, correo);</span>
 
-<span class="nc" id="L135">        dosFactores.setEstaHabilitado(false);</span>
-<span class="nc" id="L136">        autenticacionDosFactoresRepository.save(dosFactores);</span>
-<span class="nc" id="L137">        codigoRespaldo2FaRepository.deleteByUsuarioIdUsuario(usuario.getIdUsuario());</span>
+        // Fase 3 concurrencia (§7): fn_desactivar_2fa desactiva el flag y
+        // purga los codigos de respaldo en una unica transaccion, en vez del
+        // UPDATE + DELETE separados anteriores.
+<span class="fc" id="L169">        autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());</span>
 
-<span class="nc" id="L139">        return new RespuestaMensaje(&quot;Autenticación de dos factores desactivada exitosamente&quot;);</span>
+<span class="fc" id="L171">        return new RespuestaMensaje(&quot;Autenticación de dos factores desactivada exitosamente&quot;);</span>
     }
 
     @Override
     @Transactional
     public boolean validarCodigoOBackup(String correo, String codigoIngresado) {
-<span class="nc bnc" id="L145" title="All 4 branches missed.">        if (codigoIngresado == null || codigoIngresado.isBlank()) {</span>
-<span class="nc" id="L146">            return false;</span>
+<span class="pc bpc" id="L177" title="2 of 4 branches missed.">        if (codigoIngresado == null || codigoIngresado.isBlank()) {</span>
+<span class="nc" id="L178">            return false;</span>
         }
 
-<span class="nc" id="L149">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="nc" id="L150">                .orElse(null);</span>
-<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (usuario == null) return false;</span>
+<span class="fc" id="L181">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L182">                .orElse(null);</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        if (usuario == null) return false;</span>
 
-<span class="nc" id="L153">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="nc" id="L154">                .orElse(null);</span>
+<span class="fc" id="L185">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L186">                .orElse(null);</span>
 
-<span class="nc bnc" id="L156" title="All 4 branches missed.">        if (dosFactores == null || !Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
-<span class="nc" id="L157">            return false;</span>
+<span class="pc bpc" id="L188" title="2 of 4 branches missed.">        if (dosFactores == null || !Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="nc" id="L189">            return false;</span>
         }
 
         // Probar si es código TOTP de 6 dígitos
-<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (codigoIngresado.matches(&quot;^[0-9]{6}$&quot;)) {</span>
-<span class="nc bnc" id="L162" title="All 2 branches missed.">            if (validarTotp(dosFactores.getLlaveSecreta(), codigoIngresado)) {</span>
-<span class="nc" id="L163">                return true;</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (codigoIngresado.matches(&quot;^[0-9]{6}$&quot;)) {</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">            if (validarTotp(dosFactores.getLlaveSecreta(), codigoIngresado)) {</span>
+<span class="nc" id="L195">                return true;</span>
             }
         }
 
-        // Probar si es un código de respaldo
-<span class="nc" id="L168">        String hashIngresado = hashSha256(codigoIngresado.trim().toUpperCase());</span>
-<span class="nc" id="L169">        List&lt;CodigoRespaldo2Fa&gt; codigos = codigoRespaldo2FaRepository.findByUsuarioIdUsuarioAndUsadoFalse(usuario.getIdUsuario());</span>
-<span class="nc bnc" id="L170" title="All 2 branches missed.">        for (CodigoRespaldo2Fa respaldo : codigos) {</span>
-<span class="nc bnc" id="L171" title="All 2 branches missed.">            if (respaldo.getCodigoHash().equals(hashIngresado)) {</span>
-<span class="nc" id="L172">                respaldo.setUsado(true);</span>
-<span class="nc" id="L173">                codigoRespaldo2FaRepository.save(respaldo);</span>
-<span class="nc" id="L174">                log.info(&quot;Código de respaldo 2FA utilizado para el usuario: {}&quot;, correo);</span>
-<span class="nc" id="L175">                return true;</span>
-            }
-<span class="nc" id="L177">        }</span>
-
-<span class="nc" id="L179">        return false;</span>
+        // Probar si es un código de respaldo. §2 (Fase 1 concurrencia):
+        // fn_consumir_codigo_respaldo_2fa hace el UPDATE atomico
+        // &quot;WHERE usado = FALSE&quot; en una sola sentencia, en vez de leer todos los
+        // códigos no usados a memoria y comparar en un bucle Java -- ese patrón
+        // read-modify-write permitía que dos peticiones concurrentes con el
+        // mismo código de respaldo lo consumieran ambas (actualización perdida).
+<span class="fc" id="L205">        String hashIngresado = hashSha256(codigoIngresado.trim().toUpperCase());</span>
+<span class="fc" id="L206">        boolean consumido = codigoRespaldo2FaRepository.consumirCodigoRespaldo(usuario.getIdUsuario(), hashIngresado);</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">        if (consumido) {</span>
+<span class="fc" id="L208">            log.info(&quot;Código de respaldo 2FA utilizado para el usuario: {}&quot;, correo);</span>
+        }
+<span class="fc" id="L210">        return consumido;</span>
     }
 
     private boolean validarTotp(String secreto, String codigo) {
         try {
-<span class="nc" id="L184">            int codigoInt = Integer.parseInt(codigo);</span>
-<span class="nc" id="L185">            return gAuth.authorize(secreto, codigoInt);</span>
-<span class="nc" id="L186">        } catch (NumberFormatException e) {</span>
-<span class="nc" id="L187">            return false;</span>
+<span class="nc" id="L215">            int codigoInt = Integer.parseInt(codigo);</span>
+<span class="nc" id="L216">            return gAuth.authorize(secreto, codigoInt);</span>
+<span class="nc" id="L217">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L218">            return false;</span>
         }
     }
 
     private String hashSha256(String input) {
         try {
-<span class="fc" id="L193">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
-<span class="fc" id="L194">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
-<span class="fc" id="L195">            return HexFormat.of().formatHex(encodedhash);</span>
-<span class="nc" id="L196">        } catch (Exception e) {</span>
-<span class="nc" id="L197">            throw new RuntimeException(&quot;Error al calcular hash SHA-256&quot;, e);</span>
+<span class="fc" id="L224">            Mac mac = Mac.getInstance(&quot;HmacSHA256&quot;);</span>
+<span class="fc" id="L225">            mac.init(new SecretKeySpec(claveHmac.getBytes(StandardCharsets.UTF_8), &quot;HmacSHA256&quot;));</span>
+            // Prefijo fijo: separa este dominio de cualquier otro uso futuro
+            // de la misma clave, y evita que el hash de un código de
+            // respaldo coincida por casualidad con el de cualquier otro dato
+            // que alguna vez se firme con la misma clave.
+<span class="fc" id="L230">            byte[] resultado = mac.doFinal((&quot;2fa-backup-codigo:&quot; + input).getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L231">            return HexFormat.of().formatHex(resultado);</span>
+<span class="nc" id="L232">        } catch (Exception e) {</span>
+<span class="nc" id="L233">            throw new RuntimeException(&quot;Error al calcular HMAC-SHA256&quot;, e);</span>
         }
     }
 }

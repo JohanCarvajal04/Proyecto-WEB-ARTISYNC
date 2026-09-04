@@ -6,18 +6,22 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
@@ -33,10 +37,10 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-<span class="fc" id="L36">@Slf4j</span>
+<span class="fc" id="L40">@Slf4j</span>
 public class VerificacionServicioImpl implements IVerificacionServicio {
 
-    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final UsuarioRepository usuarioRepository;
     private final EstadoVerificacionRepository estadoVerificacionRepository;
     private final CertificadoIaRepository certificadoIaRepository;
     private final AlmacenamientoDocumentos almacenamiento;
@@ -49,179 +53,236 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
+    // Nunca el contenido ni el nombre del documento: REQ-F-006 exige
+    // eliminarlo tras la respuesta, y guardarlo aquí lo contradiría.
+    @Auditable(accion = &quot;VERIFICACION_SOLICITAR&quot;, modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = &quot;certificados_ia&quot;, idEntidad = &quot;#resultado.idCertificado&quot;,
+            detalle = &quot;{tipoDocumento: #tipo}&quot;)
     public RespuestaVerificacion subir(Long idUsuarioSolicitante, TipoDocumentoVerificacion tipo, MultipartFile documento) {
-<span class="fc" id="L53">        PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuarioSolicitante)</span>
-<span class="fc" id="L54">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
-                        &quot;Debes tener un perfil de creador para solicitar una verificación.&quot;));
+<span class="fc" id="L62">        Usuario usuario = usuarioRepository.findById(idUsuarioSolicitante)</span>
+<span class="fc" id="L63">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuarioSolicitante));</span>
 
-<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (certificadoIaRepository.existsByPerfilIdPerfilAndEstadoVerificacionNombreEstado(</span>
-<span class="fc" id="L58">                perfil.getIdPerfil(), &quot;PENDIENTE&quot;)) {</span>
-<span class="fc" id="L59">            throw new ExcepcionReglaNegocio(</span>
-                    &quot;Ya existe una verificación pendiente para este perfil. Espera a que sea revisada antes de subir otra.&quot;);
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (certificadoIaRepository.existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(</span>
+                idUsuarioSolicitante, &quot;PENDIENTE&quot;)) {
+<span class="fc" id="L67">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Ya existe una verificación pendiente para tu cuenta. Espera a que sea revisada antes de subir otra.&quot;);
         }
 
-<span class="fc" id="L63">        preprocesador.validarFormato(documento);</span>
+<span class="fc" id="L71">        preprocesador.validarFormato(documento);</span>
 
-<span class="fc" id="L65">        EstadoVerificacion pendiente = estadoVerificacionRepository.findByNombreEstado(&quot;PENDIENTE&quot;)</span>
-<span class="fc" id="L66">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L73">        EstadoVerificacion pendiente = estadoVerificacionRepository.findByNombreEstado(&quot;PENDIENTE&quot;)</span>
+<span class="fc" id="L74">                .orElseThrow(() -&gt; new ExcepcionReglaNegocio(</span>
                         &quot;El estado PENDIENTE no está sembrado en estados_verificacion (ver migración V6).&quot;));
 
-<span class="fc" id="L69">        String hash = calcularHash(documento);</span>
-<span class="fc" id="L70">        String referenciaAlmacenamiento = almacenamiento.guardar(documento);</span>
+<span class="fc" id="L77">        String hash = calcularHash(documento);</span>
+<span class="fc" id="L78">        String referenciaAlmacenamiento = almacenamiento.guardar(documento);</span>
 
-<span class="fc" id="L72">        CertificadoIa certificado = CertificadoIa.builder()</span>
-<span class="fc" id="L73">                .perfil(perfil)</span>
-<span class="fc" id="L74">                .estadoVerificacion(pendiente)</span>
-<span class="fc" id="L75">                .urlDocumentoS3(referenciaAlmacenamiento)</span>
-<span class="fc" id="L76">                .tipoDocumento(tipo.name())</span>
-<span class="fc" id="L77">                .hashDocumento(hash)</span>
-<span class="fc" id="L78">                .documentoEliminado(false)</span>
-<span class="fc" id="L79">                .build();</span>
+<span class="fc" id="L80">        CertificadoIa certificado = CertificadoIa.builder()</span>
+<span class="fc" id="L81">                .usuario(usuario)</span>
+<span class="fc" id="L82">                .estadoVerificacion(pendiente)</span>
+<span class="fc" id="L83">                .urlDocumentoS3(referenciaAlmacenamiento)</span>
+<span class="fc" id="L84">                .tipoDocumento(tipo.name())</span>
+<span class="fc" id="L85">                .hashDocumento(hash)</span>
+<span class="fc" id="L86">                .documentoEliminado(false)</span>
+<span class="fc" id="L87">                .build();</span>
 
-<span class="fc" id="L81">        CertificadoIa guardado = certificadoIaRepository.save(certificado);</span>
-<span class="fc" id="L82">        log.info(&quot;Verificación {} creada para perfil {} [tipo={}]&quot;, guardado.getIdCertificado(), perfil.getIdPerfil(), tipo);</span>
-<span class="fc" id="L83">        return mapearARespuesta(guardado);</span>
+<span class="fc" id="L89">        CertificadoIa guardado = certificadoIaRepository.save(certificado);</span>
+<span class="fc" id="L90">        log.info(&quot;Verificación {} creada para usuario {} [tipo={}]&quot;, guardado.getIdCertificado(), idUsuarioSolicitante, tipo);</span>
+<span class="fc" id="L91">        return mapearARespuesta(guardado);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaColaVerificacion&gt; listarCola(String nombreEstado, int limite, int offset) {
-<span class="fc" id="L89">        return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()</span>
-<span class="fc" id="L90">                .map(fila -&gt; RespuestaColaVerificacion.builder()</span>
-<span class="fc" id="L91">                        .idCertificado(fila.getIdCertificado())</span>
-<span class="fc" id="L92">                        .idPerfil(fila.getIdPerfil())</span>
-<span class="fc" id="L93">                        .nombreCreador(fila.getNombreCreador())</span>
-<span class="fc" id="L94">                        .tipoDocumento(fila.getTipoDocumento())</span>
-<span class="fc" id="L95">                        .nombreEstado(fila.getNombreEstado())</span>
-<span class="fc" id="L96">                        .veredictoIa(fila.getVeredictoIa())</span>
-<span class="fc" id="L97">                        .puntajeConfianzaIa(fila.getPuntajeConfianzaIa())</span>
-<span class="fc" id="L98">                        .fechaAnalisis(fila.getFechaAnalisis())</span>
-<span class="fc" id="L99">                        .build())</span>
-<span class="fc" id="L100">                .toList();</span>
+<span class="fc" id="L97">        return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()</span>
+<span class="fc" id="L98">                .map(fila -&gt; RespuestaColaVerificacion.builder()</span>
+<span class="fc" id="L99">                        .idCertificado(fila.getIdCertificado())</span>
+<span class="fc" id="L100">                        .idUsuario(fila.getIdUsuario())</span>
+<span class="fc" id="L101">                        .nombreUsuario(fila.getNombreUsuario())</span>
+<span class="fc" id="L102">                        .tipoDocumento(fila.getTipoDocumento())</span>
+<span class="fc" id="L103">                        .nombreEstado(fila.getNombreEstado())</span>
+<span class="fc" id="L104">                        .veredictoIa(fila.getVeredictoIa())</span>
+<span class="fc" id="L105">                        .puntajeConfianzaIa(fila.getPuntajeConfianzaIa())</span>
+<span class="fc" id="L106">                        .fechaAnalisis(fila.getFechaAnalisis())</span>
+<span class="fc" id="L107">                        .build())</span>
+<span class="fc" id="L108">                .toList();</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
-<span class="fc" id="L106">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
-<span class="fc" id="L107">        boolean esDueno = certificado.getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);</span>
-<span class="fc bfc" id="L108" title="All 4 branches covered.">        if (!esRevisor &amp;&amp; !esDueno) {</span>
-<span class="fc" id="L109">            throw new AccessDeniedException(&quot;No tienes acceso a esta verificación.&quot;);</span>
+<span class="fc" id="L114">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
+<span class="fc" id="L115">        boolean esDueno = certificado.getUsuario().getIdUsuario().equals(idUsuarioSolicitante);</span>
+<span class="fc bfc" id="L116" title="All 4 branches covered.">        if (!esRevisor &amp;&amp; !esDueno) {</span>
+<span class="fc" id="L117">            throw new AccessDeniedException(&quot;No tienes acceso a esta verificación.&quot;);</span>
         }
-<span class="fc" id="L111">        return mapearARespuesta(certificado);</span>
+<span class="fc" id="L119">        return mapearARespuesta(certificado);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public byte[] obtenerDocumento(Long idCertificado) {
-<span class="fc" id="L117">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
-<span class="fc" id="L118">        return almacenamiento.leer(certificado.getUrlDocumentoS3());</span>
+<span class="fc" id="L125">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
+<span class="fc" id="L126">        return almacenamiento.leer(certificado.getUrlDocumentoS3());</span>
     }
 
     @Override
     @Transactional
     public RespuestaVerificacion analizarConIa(Long idCertificado) {
-<span class="fc" id="L124">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
+<span class="fc" id="L132">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
 
-<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (certificado.isDocumentoEliminado()) {</span>
-<span class="fc" id="L127">            throw new ExcepcionReglaNegocio(&quot;El documento ya fue eliminado; no se puede reanalizar.&quot;);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (certificado.isDocumentoEliminado()) {</span>
+<span class="fc" id="L135">            throw new ExcepcionReglaNegocio(&quot;El documento ya fue eliminado; no se puede reanalizar.&quot;);</span>
         }
 
-<span class="fc" id="L130">        byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());</span>
-<span class="fc" id="L131">        byte[] comprimido = preprocesador.comprimirParaIa(original);</span>
+<span class="fc" id="L138">        byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());</span>
+<span class="fc" id="L139">        byte[] comprimido = preprocesador.comprimirParaIa(original);</span>
+<span class="fc" id="L140">        log.info(&quot;Documento {} comprimido a {} bytes para envío a IA&quot;, idCertificado, comprimido.length);</span>
 
-<span class="fc bfc" id="L133" title="All 2 branches covered.">        IaVerificacionResponse dictamen = &quot;CERTIFICADO&quot;.equals(certificado.getTipoDocumento())</span>
-<span class="fc" id="L134">                ? iaService.analizarCertificado(comprimido, &quot;image/jpeg&quot;)</span>
-<span class="fc" id="L135">                : iaService.verificarIdentidad(comprimido, &quot;image/jpeg&quot;);</span>
+<span class="fc" id="L142">        IaVerificacionResponse dictamen = analizarConReintento(certificado, comprimido);</span>
 
-<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        certificado.setVeredictoIa(dictamen.isAprobado() ? &quot;SUGIERE_APROBAR&quot; : &quot;SUGIERE_RECHAZAR&quot;);</span>
-<span class="fc" id="L138">        certificado.setPuntajeConfianzaIa(dictamen.getConfianza());</span>
-<span class="fc" id="L139">        certificado.setRazonIa(dictamen.getRazonRechazo());</span>
-<span class="fc" id="L140">        certificado.setDatosExtraidosIa(serializarDatosExtraidos(dictamen));</span>
-<span class="fc" id="L141">        certificado.setFechaDictamenIa(LocalDateTime.now());</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">        certificado.setVeredictoIa(dictamen.isAprobado() ? &quot;SUGIERE_APROBAR&quot; : &quot;SUGIERE_RECHAZAR&quot;);</span>
+<span class="fc" id="L145">        certificado.setPuntajeConfianzaIa(dictamen.getConfianza());</span>
+<span class="fc" id="L146">        certificado.setRazonIa(dictamen.getRazonRechazo());</span>
+<span class="fc" id="L147">        certificado.setDatosExtraidosIa(serializarDatosExtraidos(dictamen));</span>
+<span class="fc" id="L148">        certificado.setFechaDictamenIa(LocalDateTime.now());</span>
 
-<span class="fc" id="L143">        CertificadoIa guardado = certificadoIaRepository.save(certificado);</span>
-<span class="fc" id="L144">        log.info(&quot;Dictamen de IA registrado para verificación {}: {}&quot;, idCertificado, certificado.getVeredictoIa());</span>
-<span class="fc" id="L145">        return mapearARespuesta(guardado);</span>
+<span class="fc" id="L150">        CertificadoIa guardado = certificadoIaRepository.save(certificado);</span>
+<span class="fc" id="L151">        log.info(&quot;Dictamen de IA registrado para verificación {}: {}&quot;, idCertificado, certificado.getVeredictoIa());</span>
+<span class="fc" id="L152">        return mapearARespuesta(guardado);</span>
     }
 
     @Override
     @Transactional
+    @Auditable(accion = &quot;VERIFICACION_DECIDIR&quot;, modulo = ModuloAuditoria.PORTAFOLIO,
+            entidad = &quot;certificados_ia&quot;, idEntidad = &quot;#idCertificado&quot;,
+            detalle = &quot;{idNuevoEstado: #idNuevoEstado}&quot;)
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
-<span class="fc" id="L151">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
+<span class="fc" id="L161">        CertificadoIa certificado = buscarPorId(idCertificado);</span>
 
-<span class="fc" id="L153">        estadoVerificacionRepository.findById(idNuevoEstado)</span>
-<span class="fc" id="L154">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación &quot; + idNuevoEstado + &quot; no existe.&quot;));</span>
+<span class="fc" id="L163">        estadoVerificacionRepository.findById(idNuevoEstado)</span>
+<span class="fc" id="L164">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Estado de verificación &quot; + idNuevoEstado + &quot; no existe.&quot;));</span>
 
-<span class="fc" id="L156">        certificadoIaRepository.registrarDecision(idCertificado, idNuevoEstado, idModerador, notaModerador);</span>
+<span class="fc" id="L166">        certificadoIaRepository.registrarDecision(idCertificado, idNuevoEstado, idModerador, notaModerador);</span>
 
         // El procedimiento escribió por fuera del ciclo de vida de Hibernate:
         // sin este refresh, `certificado` (ya gestionado) devolvería datos obsoletos.
-<span class="fc" id="L160">        entityManager.refresh(certificado);</span>
+<span class="fc" id="L170">        entityManager.refresh(certificado);</span>
 
         // El procedimiento es la única fuente de verdad sobre si el documento
         // debe borrarse: solo lo hace para estados terminales (APROBADO,
         // RECHAZADO), no para REQUIERE_ACLARACION. Actuamos sobre el flag ya
         // refrescado en vez de borrar incondicionalmente.
-<span class="fc bfc" id="L166" title="All 2 branches covered.">        if (certificado.isDocumentoEliminado()) {</span>
-<span class="fc" id="L167">            almacenamiento.eliminar(certificado.getUrlDocumentoS3());</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        if (certificado.isDocumentoEliminado()) {</span>
+<span class="fc" id="L177">            almacenamiento.eliminar(certificado.getUrlDocumentoS3());</span>
         }
 
-<span class="fc" id="L170">        log.info(&quot;Decisión registrada para verificación {}: estado={}, moderador={}&quot;,</span>
-<span class="fc" id="L171">                idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);</span>
-<span class="fc" id="L172">        return mapearARespuesta(certificado);</span>
+<span class="fc" id="L180">        log.info(&quot;Decisión registrada para verificación {}: estado={}, moderador={}&quot;,</span>
+<span class="fc" id="L181">                idCertificado, certificado.getEstadoVerificacion().getNombreEstado(), idModerador);</span>
+<span class="fc" id="L182">        return mapearARespuesta(certificado);</span>
+    }
+
+    /**
+     * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
+     * ver ExcepcionServicioIaNoDisponible#isReintentable). 401/413 fallarían
+     * exactamente igual en el segundo intento y solo duplicarían la espera
+     * del moderador, así que se propagan de inmediato.
+     */
+    private IaVerificacionResponse analizarConReintento(CertificadoIa certificado, byte[] comprimido) {
+<span class="fc" id="L192">        boolean esCertificado = &quot;CERTIFICADO&quot;.equals(certificado.getTipoDocumento());</span>
+        try {
+<span class="fc bfc" id="L194" title="All 2 branches covered.">            return esCertificado</span>
+<span class="fc" id="L195">                    ? iaService.analizarCertificado(comprimido, &quot;image/jpeg&quot;)</span>
+<span class="fc" id="L196">                    : iaService.verificarIdentidad(comprimido, &quot;image/jpeg&quot;);</span>
+<span class="fc" id="L197">        } catch (ExcepcionServicioIaNoDisponible e) {</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">            if (!e.isReintentable()) {</span>
+<span class="fc" id="L199">                throw e;</span>
+            }
+<span class="fc" id="L201">            log.warn(&quot;Fallo transitorio al analizar verificación {}, reintentando en 2s: {}&quot;,</span>
+<span class="fc" id="L202">                    certificado.getIdCertificado(), e.getMessage());</span>
+            try {
+<span class="fc" id="L204">                Thread.sleep(2000);</span>
+<span class="nc" id="L205">            } catch (InterruptedException interrupted) {</span>
+<span class="nc" id="L206">                Thread.currentThread().interrupt();</span>
+<span class="nc" id="L207">                throw e;</span>
+<span class="fc" id="L208">            }</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">            return esCertificado</span>
+<span class="nc" id="L210">                    ? iaService.analizarCertificado(comprimido, &quot;image/jpeg&quot;)</span>
+<span class="fc" id="L211">                    : iaService.verificarIdentidad(comprimido, &quot;image/jpeg&quot;);</span>
+        }
     }
 
     private CertificadoIa buscarPorId(Long idCertificado) {
-<span class="fc" id="L176">        return certificadoIaRepository.findById(idCertificado)</span>
-<span class="fc" id="L177">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Verificación &quot; + idCertificado + &quot; no encontrada.&quot;));</span>
+<span class="fc" id="L216">        return certificadoIaRepository.findById(idCertificado)</span>
+<span class="fc" id="L217">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Verificación &quot; + idCertificado + &quot; no encontrada.&quot;));</span>
     }
 
     private String calcularHash(MultipartFile documento) {
         try {
-<span class="fc" id="L182">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
-<span class="fc" id="L183">            byte[] hash = digest.digest(documento.getBytes());</span>
-<span class="fc" id="L184">            return HexFormat.of().formatHex(hash);</span>
-<span class="nc" id="L185">        } catch (IOException e) {</span>
-<span class="nc" id="L186">            throw new ExcepcionReglaNegocio(&quot;No se pudo leer el documento para calcular su huella.&quot;);</span>
-<span class="nc" id="L187">        } catch (NoSuchAlgorithmException e) {</span>
-<span class="nc" id="L188">            throw new IllegalStateException(&quot;SHA-256 no disponible en esta JVM.&quot;, e);</span>
+<span class="fc" id="L222">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L223">            byte[] hash = digest.digest(documento.getBytes());</span>
+<span class="fc" id="L224">            return HexFormat.of().formatHex(hash);</span>
+<span class="nc" id="L225">        } catch (IOException e) {</span>
+<span class="nc" id="L226">            throw new ExcepcionReglaNegocio(&quot;No se pudo leer el documento para calcular su huella.&quot;);</span>
+<span class="nc" id="L227">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L228">            throw new IllegalStateException(&quot;SHA-256 no disponible en esta JVM.&quot;, e);</span>
         }
     }
 
     private String serializarDatosExtraidos(IaVerificacionResponse dictamen) {
-<span class="fc" id="L193">        java.util.Map&lt;String, String&gt; datos = new java.util.LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (dictamen.getNombreDetectado() != null) datos.put(&quot;nombreDetectado&quot;, dictamen.getNombreDetectado());</span>
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">        if (dictamen.getTipoDocumento() != null) datos.put(&quot;tipoDocumentoDetectado&quot;, dictamen.getTipoDocumento());</span>
-<span class="pc bpc" id="L196" title="1 of 2 branches missed.">        if (dictamen.getFechaNacimiento() != null) datos.put(&quot;fechaNacimiento&quot;, dictamen.getFechaNacimiento());</span>
-<span class="pc bpc" id="L197" title="1 of 2 branches missed.">        if (dictamen.getPaisEmision() != null) datos.put(&quot;paisEmision&quot;, dictamen.getPaisEmision());</span>
-<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        if (dictamen.getInstitucionEmisora() != null) datos.put(&quot;institucionEmisora&quot;, dictamen.getInstitucionEmisora());</span>
-<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        if (dictamen.getCampoEstudio() != null) datos.put(&quot;campoEstudio&quot;, dictamen.getCampoEstudio());</span>
-<span class="pc bpc" id="L200" title="1 of 2 branches missed.">        if (dictamen.getFechaEmision() != null) datos.put(&quot;fechaEmision&quot;, dictamen.getFechaEmision());</span>
+<span class="fc" id="L233">        java.util.Map&lt;String, String&gt; datos = new java.util.LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (dictamen.getNombreDetectado() != null) datos.put(&quot;nombreDetectado&quot;, dictamen.getNombreDetectado());</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">        if (dictamen.getTipoDocumento() != null) datos.put(&quot;tipoDocumentoDetectado&quot;, dictamen.getTipoDocumento());</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">        if (dictamen.getFechaNacimiento() != null) datos.put(&quot;fechaNacimiento&quot;, dictamen.getFechaNacimiento());</span>
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">        if (dictamen.getPaisEmision() != null) datos.put(&quot;paisEmision&quot;, dictamen.getPaisEmision());</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        if (dictamen.getInstitucionEmisora() != null) datos.put(&quot;institucionEmisora&quot;, dictamen.getInstitucionEmisora());</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">        if (dictamen.getCampoEstudio() != null) datos.put(&quot;campoEstudio&quot;, dictamen.getCampoEstudio());</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">        if (dictamen.getFechaEmision() != null) datos.put(&quot;fechaEmision&quot;, dictamen.getFechaEmision());</span>
         try {
-<span class="fc" id="L202">            return objectMapper.writeValueAsString(datos);</span>
-<span class="nc" id="L203">        } catch (Exception e) {</span>
-<span class="nc" id="L204">            log.warn(&quot;No se pudieron serializar los datos extraídos por la IA: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L205">            return null;</span>
+<span class="fc" id="L242">            return objectMapper.writeValueAsString(datos);</span>
+<span class="nc" id="L243">        } catch (Exception e) {</span>
+<span class="nc" id="L244">            log.warn(&quot;No se pudieron serializar los datos extraídos por la IA: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L245">            return null;</span>
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean estaIdentidadVerificada(Long idUsuario) {
+<span class="nc" id="L252">        return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(</span>
+                idUsuario, &quot;IDENTIDAD&quot;, &quot;APROBADO&quot;);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaEstadoIdentidad obtenerEstadoIdentidad(Long idUsuario) {
+<span class="nc" id="L259">        boolean verificado = estaIdentidadVerificada(idUsuario);</span>
+<span class="nc" id="L260">        String estadoActual = certificadoIaRepository</span>
+<span class="nc" id="L261">                .findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(idUsuario, &quot;IDENTIDAD&quot;)</span>
+<span class="nc" id="L262">                .map(c -&gt; c.getEstadoVerificacion().getNombreEstado())</span>
+<span class="nc" id="L263">                .orElse(null);</span>
+<span class="nc" id="L264">        return RespuestaEstadoIdentidad.builder()</span>
+<span class="nc" id="L265">                .verificado(verificado)</span>
+<span class="nc" id="L266">                .estadoActual(estadoActual)</span>
+<span class="nc" id="L267">                .build();</span>
+    }
+
     private RespuestaVerificacion mapearARespuesta(CertificadoIa c) {
-<span class="fc" id="L210">        return RespuestaVerificacion.builder()</span>
-<span class="fc" id="L211">                .idCertificado(c.getIdCertificado())</span>
-<span class="fc" id="L212">                .idPerfil(c.getPerfil().getIdPerfil())</span>
-<span class="fc" id="L213">                .tipoDocumento(c.getTipoDocumento())</span>
-<span class="fc" id="L214">                .nombreEstadoVerificacion(c.getEstadoVerificacion().getNombreEstado())</span>
-<span class="fc" id="L215">                .veredictoIa(c.getVeredictoIa())</span>
-<span class="fc" id="L216">                .puntajeConfianzaIa(c.getPuntajeConfianzaIa())</span>
-<span class="fc" id="L217">                .razonIa(c.getRazonIa())</span>
-<span class="fc" id="L218">                .datosExtraidosIa(c.getDatosExtraidosIa())</span>
-<span class="fc" id="L219">                .fechaDictamenIa(c.getFechaDictamenIa())</span>
-<span class="fc bfc" id="L220" title="All 2 branches covered.">                .idModerador(c.getModerador() != null ? c.getModerador().getIdUsuario() : null)</span>
-<span class="fc" id="L221">                .fechaDecision(c.getFechaDecision())</span>
-<span class="fc" id="L222">                .notaModerador(c.getNotaModerador())</span>
-<span class="fc" id="L223">                .fechaAnalisis(c.getFechaAnalisis())</span>
-<span class="fc" id="L224">                .build();</span>
+<span class="fc" id="L271">        return RespuestaVerificacion.builder()</span>
+<span class="fc" id="L272">                .idCertificado(c.getIdCertificado())</span>
+<span class="fc" id="L273">                .idUsuario(c.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L274">                .tipoDocumento(c.getTipoDocumento())</span>
+<span class="fc" id="L275">                .nombreEstadoVerificacion(c.getEstadoVerificacion().getNombreEstado())</span>
+<span class="fc" id="L276">                .veredictoIa(c.getVeredictoIa())</span>
+<span class="fc" id="L277">                .puntajeConfianzaIa(c.getPuntajeConfianzaIa())</span>
+<span class="fc" id="L278">                .razonIa(c.getRazonIa())</span>
+<span class="fc" id="L279">                .datosExtraidosIa(c.getDatosExtraidosIa())</span>
+<span class="fc" id="L280">                .fechaDictamenIa(c.getFechaDictamenIa())</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">                .idModerador(c.getModerador() != null ? c.getModerador().getIdUsuario() : null)</span>
+<span class="fc" id="L282">                .fechaDecision(c.getFechaDecision())</span>
+<span class="fc" id="L283">                .notaModerador(c.getNotaModerador())</span>
+<span class="fc" id="L284">                .fechaAnalisis(c.getFechaAnalisis())</span>
+<span class="fc" id="L285">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

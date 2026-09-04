@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SeguridadPurgaScheduler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">SeguridadPurgaScheduler.java</span></div><h1>SeguridadPurgaScheduler.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Fase 4 de mantenimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7) —
+ * corrige la anomalia A10: sesiones_usuario, tokens_recuperacion y
+ * codigos_respaldo_2fa crecian sin ningun proceso de purga.
+ *
+ * Invoca sp_purgar_datos_seguridad, el unico PROCEDURE (no FUNCTION) del
+ * modulo de seguridad: hace su propio COMMIT por lote en vez de una unica
+ * transaccion de larga duracion sobre potencialmente millones de filas, que
+ * bloquearia a VACUUM y haria crecer los dead tuples de toda la base
+ * mientras dura.
+ *
+ * {@code Propagation.NOT_SUPPORTED} es obligatorio, no cosmetico: un
+ * PROCEDURE con COMMIT interno falla con
+ * {@code 2D000 invalid_transaction_termination} si Spring ya abrio una
+ * transaccion antes de invocarlo (ver plan §0.3). JdbcTemplate por defecto
+ * abre autocommit=true por sentencia cuando no hay una transaccion Spring
+ * activa, que es exactamente el modo en que este PROCEDURE necesita
+ * ejecutarse para poder hacer sus propios COMMIT/ROLLBACK internos.
+ */
+<span class="fc" id="L30">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class SeguridadPurgaScheduler {
+
+    /** Filas por lote dentro de sp_purgar_datos_seguridad; ver el parametro p_tamano_lote de la rutina. */
+    private static final int TAMANO_LOTE = 1000;
+
+    private final JdbcTemplate jdbcTemplate;
+
+    // Corre a las 3:30 AM, media hora despues de VerificacionScheduler
+    // (03:00) y SorteoScheduler, para no competir por E/S de disco con ellos.
+    @Scheduled(cron = &quot;0 30 3 * * *&quot;)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void purgarDatosSeguridad() {
+<span class="fc" id="L45">        log.info(&quot;[SeguridadPurgaScheduler] Iniciando purga de sesiones expiradas, tokens de recuperación muertos y códigos de respaldo 2FA consumidos (lote={})&quot;, TAMANO_LOTE);</span>
+        try {
+<span class="fc" id="L47">            jdbcTemplate.update(&quot;CALL sp_purgar_datos_seguridad(?)&quot;, TAMANO_LOTE);</span>
+<span class="fc" id="L48">            log.info(&quot;[SeguridadPurgaScheduler] Purga completada&quot;);</span>
+<span class="fc" id="L49">        } catch (Exception e) {</span>
+            // Best-effort: un fallo aqui no debe tumbar el proceso ni afectar
+            // el trafico en vivo. La siguiente ejecucion (24h despues) vuelve
+            // a intentarlo sobre lo que haya quedado sin purgar.
+<span class="fc" id="L53">            log.error(&quot;[SeguridadPurgaScheduler] Error durante la purga de datos de seguridad: {}&quot;, e.getMessage(), e);</span>
+<span class="fc" id="L54">        }</span>
+<span class="fc" id="L55">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

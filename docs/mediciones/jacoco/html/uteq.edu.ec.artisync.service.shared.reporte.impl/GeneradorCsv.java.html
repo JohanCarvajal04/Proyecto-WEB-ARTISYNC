@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeneradorCsv.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.reporte.impl</a> &gt; <span class="el_source">GeneradorCsv.java</span></div><h1>GeneradorCsv.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.reporte.impl;
+
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneradorReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.util.CsvUtil;
+
+import java.nio.charset.StandardCharsets;
+
+/**
+ * CSV plano: solo cabecera + filas. Totales y metadatos (filtros, quién/cuándo lo
+ * generó) se quedan fuera a propósito — el CSV es el formato que otros sistemas
+ * vuelven a parsear, así que se mantiene como dato puro (RFC 4180). Quien quiera
+ * un documento con totales y contexto tiene XLSX o PDF.
+ */
+@Component
+<span class="fc" id="L21">public class GeneradorCsv implements GeneradorReporte {</span>
+
+    @Override
+    public FormatoReporte formato() {
+<span class="fc" id="L25">        return FormatoReporte.CSV;</span>
+    }
+
+    @Override
+    public &lt;T&gt; DocumentoGenerado generar(ModeloReporte&lt;T&gt; modelo) {
+<span class="fc" id="L30">        StringBuilder csv = new StringBuilder(CsvUtil.BOM_UTF8);</span>
+
+<span class="fc" id="L32">        var columnas = modelo.getColumnas();</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        for (int i = 0; i &lt; columnas.size(); i++) {</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">            if (i &gt; 0) {</span>
+<span class="fc" id="L35">                csv.append(',');</span>
+            }
+<span class="fc" id="L37">            csv.append(CsvUtil.escapeCsv(columnas.get(i).encabezado()));</span>
+        }
+<span class="fc" id="L39">        csv.append('\n');</span>
+
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        for (T fila : modelo.getFilas()) {</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">            for (int i = 0; i &lt; columnas.size(); i++) {</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">                if (i &gt; 0) {</span>
+<span class="fc" id="L44">                    csv.append(',');</span>
+                }
+<span class="fc" id="L46">                ColumnaReporte&lt;T&gt; columna = columnas.get(i);</span>
+<span class="fc" id="L47">                Object valor = columna.extractor().apply(fila);</span>
+<span class="fc" id="L48">                csv.append(CsvUtil.escapeCsv(FormateadorValores.texto(valor, columna.tipo())));</span>
+            }
+<span class="fc" id="L50">            csv.append('\n');</span>
+<span class="fc" id="L51">        }</span>
+
+<span class="fc" id="L53">        byte[] contenido = csv.toString().getBytes(StandardCharsets.UTF_8);</span>
+<span class="fc" id="L54">        return new DocumentoGenerado(contenido, formato().contentType(), null);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

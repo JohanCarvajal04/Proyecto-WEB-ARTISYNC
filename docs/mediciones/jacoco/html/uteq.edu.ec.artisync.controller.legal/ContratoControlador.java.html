@@ -22,9 +22,11 @@ public class ContratoControlador {
 
     @PostMapping(&quot;/pedido/{idPedido}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaContrato&gt; generarContrato(@PathVariable Long idPedido) {
-<span class="nc" id="L26">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="nc" id="L27">                .body(contratoServicio.generarContrato(idPedido));</span>
+    public ResponseEntity&lt;RespuestaContrato&gt; generarContrato(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L28">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L29">                .body(contratoServicio.generarContrato(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @PostMapping(&quot;/{id}/firmar&quot;)
@@ -32,38 +34,46 @@ public class ContratoControlador {
     public ResponseEntity&lt;RespuestaContrato&gt; firmarContrato(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L35">        return ResponseEntity.ok(contratoServicio.firmarContrato(id, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L37">        return ResponseEntity.ok(contratoServicio.firmarContrato(id, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaContrato&gt; obtenerContrato(@PathVariable Long id) {
-<span class="nc" id="L41">        return ResponseEntity.ok(contratoServicio.obtenerContrato(id));</span>
+    public ResponseEntity&lt;RespuestaContrato&gt; obtenerContrato(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L45">        return ResponseEntity.ok(contratoServicio.obtenerContrato(id, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/pedido/{idPedido}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaContrato&gt; obtenerContratoPorPedido(@PathVariable Long idPedido) {
-<span class="nc" id="L47">        return ResponseEntity.ok(contratoServicio.obtenerContratoPorPedido(idPedido));</span>
+    public ResponseEntity&lt;RespuestaContrato&gt; obtenerContratoPorPedido(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L53">        return ResponseEntity.ok(contratoServicio.obtenerContratoPorPedido(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/{id}/estado-firma&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaEstadoFirma&gt; obtenerEstadoFirma(@PathVariable Long id) {
-<span class="nc" id="L53">        return ResponseEntity.ok(contratoServicio.obtenerEstadoFirma(id));</span>
+    public ResponseEntity&lt;RespuestaEstadoFirma&gt; obtenerEstadoFirma(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L61">        return ResponseEntity.ok(contratoServicio.obtenerEstadoFirma(id, userDetails.getIdUsuario()));</span>
     }
 
     @GetMapping(&quot;/{id}/pdf&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;byte[]&gt; descargarPdf(@PathVariable Long id) {
-<span class="nc" id="L59">        byte[] pdf = contratoServicio.generarPdf(id);</span>
+    public ResponseEntity&lt;byte[]&gt; descargarPdf(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L69">        byte[] pdf = contratoServicio.generarPdf(id, userDetails.getIdUsuario());</span>
 
-<span class="nc" id="L61">        HttpHeaders headers = new HttpHeaders();</span>
-<span class="nc" id="L62">        headers.setContentType(MediaType.APPLICATION_PDF);</span>
-<span class="nc" id="L63">        headers.setContentDispositionFormData(&quot;attachment&quot;, &quot;contrato_&quot; + id + &quot;.pdf&quot;);</span>
-<span class="nc" id="L64">        headers.setContentLength(pdf.length);</span>
+<span class="fc" id="L71">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L72">        headers.setContentType(MediaType.APPLICATION_PDF);</span>
+<span class="fc" id="L73">        headers.setContentDispositionFormData(&quot;attachment&quot;, &quot;contrato_&quot; + id + &quot;.pdf&quot;);</span>
+<span class="fc" id="L74">        headers.setContentLength(pdf.length);</span>
 
-<span class="nc" id="L66">        return new ResponseEntity&lt;&gt;(pdf, headers, HttpStatus.OK);</span>
+<span class="fc" id="L76">        return new ResponseEntity&lt;&gt;(pdf, headers, HttpStatus.OK);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

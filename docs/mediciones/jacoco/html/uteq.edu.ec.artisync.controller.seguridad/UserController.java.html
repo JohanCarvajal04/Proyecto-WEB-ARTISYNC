@@ -4,54 +4,96 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
 
 import java.security.Principal;
+import java.util.concurrent.TimeUnit;
 
 @RestController
-@RequestMapping(&quot;/api/usuarios&quot;)
+@RequestMapping(&quot;/api/v1/usuarios&quot;)
 @RequiredArgsConstructor
 @Tag(name = &quot;Gestión de Usuarios&quot;, description = &quot;Endpoints protegidos para administración del perfil del usuario actual&quot;)
 @SecurityRequirement(name = &quot;bearerAuth&quot;)
 public class UserController {
 
     private final UserService userService;
+    private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Operation(summary = &quot;Obtener el perfil completo del usuario autenticado actual&quot;)
     @GetMapping(&quot;/me&quot;)
     public ResponseEntity&lt;UserResponse&gt; getCurrentUser(Principal principal) {
-<span class="fc" id="L30">        return ResponseEntity.ok(userService.getCurrentUser(principal.getName()));</span>
+<span class="fc" id="L39">        return ResponseEntity.ok(userService.getCurrentUser(principal.getName()));</span>
     }
 
     @Operation(summary = &quot;Actualizar información personal del usuario autenticado actual&quot;)
     @PutMapping(&quot;/me&quot;)
     public ResponseEntity&lt;UserResponse&gt; updateCurrentUser(Principal principal, @Valid @RequestBody UpdateUserRequest request) {
-<span class="fc" id="L36">        return ResponseEntity.ok(userService.updateCurrentUser(principal.getName(), request));</span>
+<span class="fc" id="L45">        return ResponseEntity.ok(userService.updateCurrentUser(principal.getName(), request));</span>
     }
 
     @Operation(summary = &quot;Cambiar la contraseña del usuario autenticado actual&quot;)
     @PutMapping(&quot;/me/password&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; changePassword(Principal principal, @Valid @RequestBody ChangePasswordRequest request) {
-<span class="nc" id="L42">        return ResponseEntity.ok(userService.changePassword(principal.getName(), request));</span>
+<span class="fc" id="L51">        return ResponseEntity.ok(userService.changePassword(principal.getName(), request));</span>
     }
 
     @Operation(summary = &quot;Desactivar la cuenta del usuario autenticado actual&quot;)
     @DeleteMapping(&quot;/me&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; deleteOwnAccount(Principal principal) {
-<span class="fc" id="L48">        return ResponseEntity.ok(userService.deleteOwnAccount(principal.getName()));</span>
+<span class="fc" id="L57">        return ResponseEntity.ok(userService.deleteOwnAccount(principal.getName()));</span>
     }
 
     @Operation(summary = &quot;Cerrar todas las sesiones activas del usuario actual&quot;)
     @DeleteMapping(&quot;/me/sesiones&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; revokeAllMySessions(Principal principal) {
-<span class="nc" id="L54">        return ResponseEntity.ok(userService.revokeAllMySessions(principal.getName()));</span>
+<span class="fc" id="L63">        return ResponseEntity.ok(userService.revokeAllMySessions(principal.getName()));</span>
+    }
+
+    @Operation(summary = &quot;Subir o actualizar la foto de perfil del usuario actual&quot;)
+    @PostMapping(value = &quot;/me/foto&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity&lt;UserResponse&gt; uploadProfilePicture(Principal principal, @RequestParam(&quot;foto&quot;) org.springframework.web.multipart.MultipartFile foto) {
+<span class="fc" id="L69">        return ResponseEntity.ok(userService.uploadProfilePicture(principal.getName(), foto));</span>
+    }
+
+    /**
+     * Sirve la foto de perfil públicamente (sin autenticación). La referencia
+     * puede contener subdirectorios (e.g., &quot;perfiles/uuid.jpg&quot;), por eso se
+     * captura con ** y se extrae manualmente del path.
+     *
+     * &lt;p&gt;Solo referencias bajo el prefijo &quot;perfiles/&quot; son válidas aquí: sin este
+     * filtro, cualquiera podría pedir &quot;verificacion/...&quot; o &quot;entregables/...&quot; y
+     * leer documentos privados (cédulas, títulos, entregables) sin autenticarse,
+     * saltándose los @PreAuthorize de sus propios controladores.
+     */
+    @Operation(summary = &quot;Servir la foto de perfil de un usuario (público)&quot;)
+    @GetMapping(&quot;/foto/**&quot;)
+    public ResponseEntity&lt;byte[]&gt; servirFotoPerfil(HttpServletRequest request) {
+<span class="fc" id="L85">        String fullPath = request.getRequestURI();</span>
+<span class="fc" id="L86">        String prefix = &quot;/api/v1/usuarios/foto/&quot;;</span>
+<span class="fc" id="L87">        String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (!referencia.startsWith(PrefijoAlmacenamiento.PERFILES + &quot;/&quot;)) {</span>
+<span class="fc" id="L89">            throw new ExcepcionRecursoNoEncontrado(&quot;Documento no disponible: &quot; + referencia);</span>
+        }
+<span class="fc" id="L91">        byte[] contenido = almacenamientoDocumentos.leer(referencia);</span>
+<span class="fc" id="L92">        String contentType = ExtensionesArchivo.contentTypeDe(referencia);</span>
+<span class="fc" id="L93">        return ResponseEntity.ok()</span>
+<span class="fc" id="L94">                .contentType(MediaType.parseMediaType(contentType))</span>
+<span class="fc" id="L95">                .header(HttpHeaders.CACHE_CONTROL, &quot;public, max-age=&quot; + TimeUnit.DAYS.toSeconds(7))</span>
+<span class="fc" id="L96">                .body(contenido);</span>
     }
 }
 

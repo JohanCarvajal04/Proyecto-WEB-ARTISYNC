@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeneradorPdf.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.reporte.impl</a> &gt; <span class="el_source">GeneradorPdf.java</span></div><h1>GeneradorPdf.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.reporte.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneradorReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+
+/**
+ * PDF vía plantilla Thymeleaf (mismo motor que {@code EmailService}) + el
+ * {@link IPdfGeneracionServicio} ya existente para contratos — no se añade un
+ * segundo renderizador de PDF. Thymeleaf escapa con {@code th:text} sin que el
+ * dominio tenga que llamar a {@code HtmlUtils.htmlEscape} a mano.
+ */
+<span class="fc" id="L31">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class GeneradorPdf implements GeneradorReporte {
+
+<span class="fc" id="L36">    private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+    private static final String RUTA_LOGO = &quot;reportes/logo-artisync.png&quot;;
+
+    private final TemplateEngine templateEngine;
+    private final IPdfGeneracionServicio pdfGeneracionServicio;
+
+    @Override
+    public FormatoReporte formato() {
+<span class="fc" id="L44">        return FormatoReporte.PDF;</span>
+    }
+
+    @Override
+    public &lt;T&gt; DocumentoGenerado generar(ModeloReporte&lt;T&gt; modelo) {
+<span class="fc" id="L49">        Context contexto = new Context();</span>
+<span class="fc" id="L50">        contexto.setVariable(&quot;titulo&quot;, modelo.getTitulo());</span>
+<span class="fc" id="L51">        contexto.setVariable(&quot;subtitulo&quot;, modelo.getSubtitulo());</span>
+<span class="fc" id="L52">        contexto.setVariable(&quot;filtrosAplicados&quot;, modelo.getFiltrosAplicados());</span>
+<span class="fc" id="L53">        contexto.setVariable(&quot;generadoPor&quot;, modelo.getGeneradoPor());</span>
+<span class="fc" id="L54">        contexto.setVariable(&quot;generadoEn&quot;, modelo.getGeneradoEn().format(FORMATO_FECHA_HORA));</span>
+<span class="fc" id="L55">        contexto.setVariable(&quot;logoDataUri&quot;, logoComoDataUri());</span>
+
+<span class="fc" id="L57">        List&lt;ColumnaReporte&lt;T&gt;&gt; columnas = modelo.getColumnas();</span>
+<span class="fc" id="L58">        contexto.setVariable(&quot;encabezados&quot;, columnas.stream().map(ColumnaReporte::encabezado).toList());</span>
+
+<span class="fc" id="L60">        List&lt;List&lt;String&gt;&gt; filas = new ArrayList&lt;&gt;(modelo.getFilas().size());</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        for (T fila : modelo.getFilas()) {</span>
+<span class="fc" id="L62">            List&lt;String&gt; valores = new ArrayList&lt;&gt;(columnas.size());</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            for (ColumnaReporte&lt;T&gt; columna : columnas) {</span>
+<span class="fc" id="L64">                valores.add(FormateadorValores.texto(columna.extractor().apply(fila), columna.tipo()));</span>
+<span class="fc" id="L65">            }</span>
+<span class="fc" id="L66">            filas.add(valores);</span>
+<span class="fc" id="L67">        }</span>
+<span class="fc" id="L68">        contexto.setVariable(&quot;filas&quot;, filas);</span>
+
+<span class="fc" id="L70">        List&lt;TotalConTexto&gt; totales = modelo.getTotales().stream()</span>
+<span class="fc" id="L71">                .map(t -&gt; new TotalConTexto(t.etiqueta(), FormateadorValores.texto(t.valor(), t.tipo())))</span>
+<span class="fc" id="L72">                .toList();</span>
+<span class="fc" id="L73">        contexto.setVariable(&quot;totales&quot;, totales);</span>
+
+<span class="fc" id="L75">        String html = templateEngine.process(&quot;reportes/tabla&quot;, contexto);</span>
+<span class="fc" id="L76">        byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);</span>
+<span class="fc" id="L77">        return new DocumentoGenerado(pdf, formato().contentType(), null);</span>
+    }
+
+    /** El logo se codifica como {@code data:} URI para que el candado anti-SSRF de
+     *  {@link IPdfGeneracionServicio} no tenga que abrir el esquema {@code classpath:}. */
+    private String logoComoDataUri() {
+<span class="fc" id="L83">        try (InputStream is = new ClassPathResource(RUTA_LOGO).getInputStream()) {</span>
+<span class="fc" id="L84">            byte[] bytes = is.readAllBytes();</span>
+<span class="fc" id="L85">            return &quot;data:image/png;base64,&quot; + Base64.getEncoder().encodeToString(bytes);</span>
+<span class="nc" id="L86">        } catch (IOException e) {</span>
+<span class="nc" id="L87">            log.warn(&quot;No se pudo cargar el logo del reporte ({}), se omite del PDF&quot;, RUTA_LOGO, e);</span>
+<span class="nc" id="L88">            return null;</span>
+        }
+    }
+
+    /** Vista de {@link TotalReporte} con el valor ya formateado a texto para la plantilla. */
+<span class="fc" id="L93">    public record TotalConTexto(String etiqueta, String valorTexto) {</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

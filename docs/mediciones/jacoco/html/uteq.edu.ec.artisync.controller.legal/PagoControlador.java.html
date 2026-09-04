@@ -3,8 +3,10 @@
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IPagoServicio;
 
 @RestController
@@ -15,15 +17,19 @@ public class PagoControlador {
     private final IPagoServicio pagoServicio;
 
     @PostMapping(&quot;/{idPedido}/pago&quot;)
-    @PreAuthorize(&quot;hasAnyRole('CLIENTE', 'ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaPago&gt; crearOrdenPago(@PathVariable Long idPedido) {
-<span class="nc" id="L20">        return ResponseEntity.ok(pagoServicio.crearOrdenPayPal(idPedido, null));</span>
+    @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaPago&gt; crearOrdenPago(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L24">        return ResponseEntity.ok(pagoServicio.crearOrdenPayPal(idPedido, userDetails.getIdUsuario(), null));</span>
     }
 
     @GetMapping(&quot;/{idPedido}/pago/estado&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaPago&gt; obtenerEstadoPago(@PathVariable Long idPedido) {
-<span class="nc" id="L26">        return ResponseEntity.ok(pagoServicio.obtenerEstadoPago(idPedido));</span>
+    public ResponseEntity&lt;RespuestaPago&gt; obtenerEstadoPago(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L32">        return ResponseEntity.ok(pagoServicio.obtenerEstadoPago(idPedido, userDetails.getIdUsuario()));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

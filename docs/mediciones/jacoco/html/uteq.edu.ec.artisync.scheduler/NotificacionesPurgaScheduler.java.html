@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificacionesPurgaScheduler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">NotificacionesPurgaScheduler.java</span></div><h1>NotificacionesPurgaScheduler.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * H-08 (auditoría de estado 2026-08-26): notificaciones_sistema crecía sin
+ * ningún proceso de purga. Es la única de las tres tablas de alto volumen
+ * candidatas (junto a auditoria_eventos y mensajes) que se puede purgar sin
+ * riesgo — ver la cabecera de {@code db/procs/sp_purgar_notificaciones.sql}
+ * para por qué las otras dos quedan fuera de alcance.
+ *
+ * {@code Propagation.NOT_SUPPORTED} es obligatorio, no cosmético: igual que
+ * en {@link SeguridadPurgaScheduler}, el PROCEDURE hace su propio COMMIT por
+ * lote y falla con {@code 2D000 invalid_transaction_termination} si Spring
+ * ya abrió una transacción antes de invocarlo.
+ */
+<span class="fc" id="L23">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class NotificacionesPurgaScheduler {
+
+    /** Filas por lote; ver el parámetro p_tamano_lote de sp_purgar_notificaciones. */
+    private static final int TAMANO_LOTE = 1000;
+
+    /** Días de retención tras la lectura; ver el parámetro p_dias_retencion. */
+    private static final int DIAS_RETENCION = 90;
+
+    private final JdbcTemplate jdbcTemplate;
+
+    // Corre a las 4:00 AM, después de VerificacionScheduler (03:00) y
+    // SeguridadPurgaScheduler (03:30), para no competir por E/S de disco.
+    @Scheduled(cron = &quot;0 0 4 * * *&quot;)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void purgarNotificaciones() {
+<span class="fc" id="L41">        log.info(&quot;[NotificacionesPurgaScheduler] Iniciando purga de notificaciones leídas con más de {} días (lote={})&quot;,</span>
+<span class="fc" id="L42">                DIAS_RETENCION, TAMANO_LOTE);</span>
+        try {
+<span class="fc" id="L44">            jdbcTemplate.update(&quot;CALL sp_purgar_notificaciones(?, ?)&quot;, TAMANO_LOTE, DIAS_RETENCION);</span>
+<span class="fc" id="L45">            log.info(&quot;[NotificacionesPurgaScheduler] Purga completada&quot;);</span>
+<span class="fc" id="L46">        } catch (Exception e) {</span>
+            // Best-effort: un fallo aqui no debe tumbar el proceso ni afectar
+            // el trafico en vivo. La siguiente ejecucion (24h despues) vuelve
+            // a intentarlo sobre lo que haya quedado sin purgar.
+<span class="fc" id="L50">            log.error(&quot;[NotificacionesPurgaScheduler] Error durante la purga de notificaciones: {}&quot;, e.getMessage(), e);</span>
+<span class="fc" id="L51">        }</span>
+<span class="fc" id="L52">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

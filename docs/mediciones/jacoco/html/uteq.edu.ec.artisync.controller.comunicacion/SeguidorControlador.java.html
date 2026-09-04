@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SeguidorControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.comunicacion</a> &gt; <span class="el_source">SeguidorControlador.java</span></div><h1>SeguidorControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.comunicacion;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaCreadorSeguidoNovedad;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoSeguimiento;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSeguidor;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.comunicacion.ISeguidorServicio;
+
+import java.util.List;
+
+@Tag(name = &quot;Seguidores&quot;, description = &quot;Gestión de seguimiento a perfiles de creadores&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/creadores&quot;)
+@RequiredArgsConstructor
+public class SeguidorControlador {
+
+    private final ISeguidorServicio seguidorServicio;
+
+    @Operation(summary = &quot;Seguir a un perfil de creador&quot;)
+    @PostMapping(&quot;/{idPerfil}/seguir&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaEstadoSeguimiento&gt; seguirCreador(
+            @PathVariable Long idPerfil,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L33">        return ResponseEntity.ok(seguidorServicio.seguirCreador(userDetails.getIdUsuario(), idPerfil));</span>
+    }
+
+    @Operation(summary = &quot;Dejar de seguir a un perfil de creador&quot;)
+    @DeleteMapping(&quot;/{idPerfil}/seguir&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaEstadoSeguimiento&gt; dejarDeSeguirCreador(
+            @PathVariable Long idPerfil,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L42">        return ResponseEntity.ok(seguidorServicio.dejarDeSeguirCreador(userDetails.getIdUsuario(), idPerfil));</span>
+    }
+
+    @Operation(summary = &quot;Obtener el estado de seguimiento y conteo de un perfil de creador&quot;)
+    @GetMapping(&quot;/{idPerfil}/es-seguidor&quot;)
+    public ResponseEntity&lt;RespuestaEstadoSeguimiento&gt; obtenerEstadoSeguimiento(
+            @PathVariable Long idPerfil,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L51">        return ResponseEntity.ok(seguidorServicio.obtenerEstadoSeguimiento(idUsuario, idPerfil));</span>
+    }
+
+    @Operation(summary = &quot;Listar los seguidores de un perfil de creador&quot;)
+    @GetMapping(&quot;/{idPerfil}/seguidores&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaSeguidor&gt;&gt; listarSeguidores(@PathVariable Long idPerfil) {
+<span class="fc" id="L57">        return ResponseEntity.ok(seguidorServicio.listarSeguidores(idPerfil));</span>
+    }
+
+    @Operation(summary = &quot;Listar las novedades de los creadores que el usuario sigue&quot;)
+    @GetMapping(&quot;/siguiendo/novedades&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaCreadorSeguidoNovedad&gt;&gt; listarCreadoresSeguidosNovedades(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L65">        return ResponseEntity.ok(seguidorServicio.listarCreadoresSeguidosNovedades(userDetails.getIdUsuario()));</span>
+    }
+
+    @Operation(summary = &quot;Actualizar la portada y título profesional del creador&quot;)
+    @PutMapping(&quot;/mi-perfil/portada&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; actualizarPortadaYTitulo(
+            @RequestParam(required = false) String urlPortada,
+            @RequestParam(required = false) String tituloProfesional,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L75">        seguidorServicio.actualizarPortadaYTitulo(userDetails.getIdUsuario(), urlPortada, tituloProfesional);</span>
+<span class="fc" id="L76">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portada y especialidad del perfil actualizadas correctamente.&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

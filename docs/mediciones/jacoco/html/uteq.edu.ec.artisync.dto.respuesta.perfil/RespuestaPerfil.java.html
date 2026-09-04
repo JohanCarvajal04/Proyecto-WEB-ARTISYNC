@@ -9,7 +9,14 @@ import lombok.Builder;
         String nombresUsuario,
         String apellidosUsuario,
         String biografia,
-        String urlRedSocial
+        String urlRedSocial,
+        String urlFotoPerfil,
+        // La entidad PerfilCreador ya tenía esta columna (titulo_profesional);
+        // solo faltaba exponerla en la respuesta y permitir editarla.
+        String tituloProfesional,
+        // Identidad verificada de verdad (CertificadoIa tipo IDENTIDAD en estado
+        // APROBADO), no un badge fijo mostrado igual para todos los creadores.
+        boolean identidadVerificada
 ) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

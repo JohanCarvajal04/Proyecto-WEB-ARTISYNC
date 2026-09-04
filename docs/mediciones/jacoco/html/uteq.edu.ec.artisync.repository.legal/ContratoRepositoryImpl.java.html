@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContratoRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.repository.legal</a> &gt; <span class="el_source">ContratoRepositoryImpl.java</span></div><h1>ContratoRepositoryImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.repository.legal;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import uteq.edu.ec.artisync.dto.respuesta.legal.FilaReporteContrato;
+import uteq.edu.ec.artisync.entity.catalogo.Servicio;
+import uteq.edu.ec.artisync.entity.legal.Contrato;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Implementación Criteria API de {@link ContratoRepositoryCustom}: construye los
+ * predicados condicionalmente en Java (solo se añade el predicado si el filtro
+ * llegó, nunca se bindea un parámetro nulo a Postgres), igual patrón que
+ * {@code EventoAuditoriaSpecification}. Se optó por esto en vez de un
+ * {@code @Query} JPQL con {@code (:param is null or ...)} porque, en este JOIN
+ * de 6 tablas, Postgres no lograba inferir el tipo de un parámetro cuyo único
+ * uso era &quot;$1 is null&quot; (PSQLException: could not determine data type of
+ * parameter $1) — el driver JDBC de Postgres decide el tipo de cada bind
+ * durante el Parse, antes de conocer el valor, y una ocurrencia aislada de
+ * &quot;IS NULL&quot; no le da ninguna pista.
+ */
+@RequiredArgsConstructor
+public class ContratoRepositoryImpl implements ContratoRepositoryCustom {
+
+    private final EntityManager entityManager;
+
+    @Override
+    public Page&lt;FilaReporteContrato&gt; buscarParaReporte(LocalDateTime desde, LocalDateTime hasta,
+                                                         Long idPerfilCreador, Boolean soloFirmados,
+                                                         Pageable pageable) {
+<span class="nc" id="L46">        CriteriaBuilder cb = entityManager.getCriteriaBuilder();</span>
+
+<span class="nc" id="L48">        CriteriaQuery&lt;FilaReporteContrato&gt; cq = cb.createQuery(FilaReporteContrato.class);</span>
+<span class="nc" id="L49">        Root&lt;Contrato&gt; c = cq.from(Contrato.class);</span>
+<span class="nc" id="L50">        Join&lt;Contrato, Pedido&gt; p = c.join(&quot;pedido&quot;);</span>
+<span class="nc" id="L51">        Join&lt;Pedido, Servicio&gt; s = p.join(&quot;servicio&quot;);</span>
+<span class="nc" id="L52">        Join&lt;Pedido, Usuario&gt; cliente = p.join(&quot;usuarioCliente&quot;);</span>
+<span class="nc" id="L53">        Join&lt;Servicio, PerfilCreador&gt; perfil = s.join(&quot;perfil&quot;);</span>
+<span class="nc" id="L54">        Join&lt;PerfilCreador, Usuario&gt; creador = perfil.join(&quot;usuario&quot;);</span>
+
+<span class="nc" id="L56">        cq.select(cb.construct(FilaReporteContrato.class,</span>
+<span class="nc" id="L57">                c.get(&quot;idContrato&quot;), p.get(&quot;idPedido&quot;), s.get(&quot;tituloServicio&quot;),</span>
+<span class="nc" id="L58">                cb.concat(cb.concat(cliente.get(&quot;nombres&quot;), &quot; &quot;), cliente.get(&quot;apellidos&quot;)),</span>
+<span class="nc" id="L59">                cb.concat(cb.concat(creador.get(&quot;nombres&quot;), &quot; &quot;), creador.get(&quot;apellidos&quot;)),</span>
+<span class="nc" id="L60">                p.get(&quot;precioPactado&quot;), c.get(&quot;limiteRevisiones&quot;), c.get(&quot;fechaFormalizacion&quot;),</span>
+<span class="nc" id="L61">                cb.&lt;Boolean&gt;selectCase().when(cb.isNotNull(c.get(&quot;hashFirmaCliente&quot;)), true).otherwise(false),</span>
+<span class="nc" id="L62">                cb.&lt;Boolean&gt;selectCase().when(cb.isNotNull(c.get(&quot;hashFirmaCreador&quot;)), true).otherwise(false)));</span>
+
+<span class="nc" id="L64">        List&lt;Predicate&gt; predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (!predicados.isEmpty()) {</span>
+<span class="nc" id="L66">            cq.where(predicados.toArray(new Predicate[0]));</span>
+        }
+<span class="nc" id="L68">        cq.orderBy(cb.desc(c.get(&quot;fechaFormalizacion&quot;)));</span>
+
+<span class="nc" id="L70">        TypedQuery&lt;FilaReporteContrato&gt; query = entityManager.createQuery(cq);</span>
+<span class="nc" id="L71">        query.setFirstResult((int) pageable.getOffset());</span>
+<span class="nc" id="L72">        query.setMaxResults(pageable.getPageSize());</span>
+<span class="nc" id="L73">        List&lt;FilaReporteContrato&gt; contenido = query.getResultList();</span>
+
+<span class="nc" id="L75">        long total = contar(cb, desde, hasta, idPerfilCreador, soloFirmados);</span>
+
+<span class="nc" id="L77">        return new PageImpl&lt;&gt;(contenido, pageable, total);</span>
+    }
+
+    private long contar(CriteriaBuilder cb, LocalDateTime desde, LocalDateTime hasta,
+                         Long idPerfilCreador, Boolean soloFirmados) {
+<span class="nc" id="L82">        CriteriaQuery&lt;Long&gt; cq = cb.createQuery(Long.class);</span>
+<span class="nc" id="L83">        Root&lt;Contrato&gt; c = cq.from(Contrato.class);</span>
+<span class="nc" id="L84">        Join&lt;Contrato, Pedido&gt; p = c.join(&quot;pedido&quot;);</span>
+<span class="nc" id="L85">        Join&lt;Pedido, Servicio&gt; s = p.join(&quot;servicio&quot;);</span>
+<span class="nc" id="L86">        Join&lt;Servicio, PerfilCreador&gt; perfil = s.join(&quot;perfil&quot;);</span>
+
+<span class="nc" id="L88">        cq.select(cb.count(c));</span>
+<span class="nc" id="L89">        List&lt;Predicate&gt; predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (!predicados.isEmpty()) {</span>
+<span class="nc" id="L91">            cq.where(predicados.toArray(new Predicate[0]));</span>
+        }
+<span class="nc" id="L93">        return entityManager.createQuery(cq).getSingleResult();</span>
+    }
+
+    private List&lt;Predicate&gt; construirPredicados(CriteriaBuilder cb, Root&lt;Contrato&gt; c, Join&lt;Servicio, PerfilCreador&gt; perfil,
+                                                 LocalDateTime desde, LocalDateTime hasta,
+                                                 Long idPerfilCreador, Boolean soloFirmados) {
+<span class="nc" id="L99">        List&lt;Predicate&gt; predicados = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (desde != null) {</span>
+<span class="nc" id="L102">            predicados.add(cb.greaterThanOrEqualTo(c.get(&quot;fechaFormalizacion&quot;), desde));</span>
+        }
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (hasta != null) {</span>
+<span class="nc" id="L105">            predicados.add(cb.lessThanOrEqualTo(c.get(&quot;fechaFormalizacion&quot;), hasta));</span>
+        }
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (idPerfilCreador != null) {</span>
+<span class="nc" id="L108">            predicados.add(cb.equal(perfil.get(&quot;idPerfil&quot;), idPerfilCreador));</span>
+        }
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (soloFirmados != null) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (soloFirmados) {</span>
+<span class="nc" id="L112">                predicados.add(cb.and(</span>
+<span class="nc" id="L113">                        cb.isNotNull(c.get(&quot;hashFirmaCliente&quot;)),</span>
+<span class="nc" id="L114">                        cb.isNotNull(c.get(&quot;hashFirmaCreador&quot;))));</span>
+            } else {
+<span class="nc" id="L116">                predicados.add(cb.or(</span>
+<span class="nc" id="L117">                        cb.isNull(c.get(&quot;hashFirmaCliente&quot;)),</span>
+<span class="nc" id="L118">                        cb.isNull(c.get(&quot;hashFirmaCreador&quot;))));</span>
+            }
+        }
+
+<span class="nc" id="L122">        return predicados;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

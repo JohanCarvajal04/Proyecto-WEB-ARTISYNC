@@ -16,11 +16,17 @@ public interface IPortafolioItemServicio {
 
     RespuestaPortafolioItem obtenerItem(Long idItem, Long idUsuario);
 
+    /**
+     * Edita el título y la descripción de una obra. El archivo no cambia: para
+     * reemplazarlo hay que eliminar la obra y subir una nueva.
+     */
+    RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion);
+
     ArchivoItem descargarArchivo(Long idItem, Long idUsuario);
 
     void eliminarItem(Long idItem, Long idUsuario);
 
-<span class="fc" id="L23">    record ArchivoItem(byte[] contenido, String nombreSugerido, String contentType) {</span>
+<span class="fc" id="L29">    record ArchivoItem(byte[] contenido, String nombreSugerido, String contentType) {</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

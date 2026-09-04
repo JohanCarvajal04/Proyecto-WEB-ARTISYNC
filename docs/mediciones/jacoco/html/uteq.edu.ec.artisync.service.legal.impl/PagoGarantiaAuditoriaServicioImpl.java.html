@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PagoGarantiaAuditoriaServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">PagoGarantiaAuditoriaServicioImpl.java</span></div><h1>PagoGarantiaAuditoriaServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.legal.FiltroPagoGarantia;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPagoGarantia;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPagoGarantiaDetalle;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaResumenEscrow;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaTransaccionPago;
+import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
+import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.service.legal.IPagoGarantiaAuditoriaServicio;
+import uteq.edu.ec.artisync.specification.legal.PagoGarantiaSpecification;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoriaServicio {
+
+    private final PagoGarantiaRepository pagoGarantiaRepository;
+    private final TransaccionPagoRepository transaccionPagoRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page&lt;RespuestaPagoGarantia&gt; listar(FiltroPagoGarantia filtro, Pageable pageable) {
+<span class="fc" id="L34">        var spec = PagoGarantiaSpecification.conFiltros(</span>
+<span class="fc" id="L35">                filtro.getEstadoFondos(), filtro.getIdPerfilCreador(), filtro.getIdUsuarioCliente(),</span>
+<span class="fc" id="L36">                filtro.getDesde(), filtro.getHasta());</span>
+
+<span class="fc" id="L38">        return pagoGarantiaRepository.findAll(spec, pageable).map(this::mapearAResumen);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaPagoGarantiaDetalle obtenerDetalle(Long idPago) {
+<span class="fc" id="L44">        PagoGarantia pago = pagoGarantiaRepository.findById(idPago)</span>
+<span class="fc" id="L45">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pago de garantía no encontrado: &quot; + idPago));</span>
+
+<span class="fc" id="L47">        Pedido pedido = pago.getContrato().getPedido();</span>
+<span class="fc" id="L48">        Usuario cliente = pedido.getUsuarioCliente();</span>
+<span class="fc" id="L49">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
+
+<span class="fc" id="L51">        List&lt;RespuestaTransaccionPago&gt; transacciones = transaccionPagoRepository</span>
+<span class="fc" id="L52">                .findByPagoIdPagoOrderByFechaEjecucionDesc(idPago).stream()</span>
+<span class="fc" id="L53">                .map(t -&gt; RespuestaTransaccionPago.builder()</span>
+<span class="fc" id="L54">                        .idTransaccion(t.getIdTransaccion())</span>
+<span class="fc" id="L55">                        .tipoTransaccion(t.getTipoTransaccion())</span>
+<span class="fc" id="L56">                        .monto(t.getMonto())</span>
+<span class="fc" id="L57">                        .fechaEjecucion(t.getFechaEjecucion())</span>
+<span class="fc" id="L58">                        .build())</span>
+<span class="fc" id="L59">                .toList();</span>
+
+<span class="fc" id="L61">        return RespuestaPagoGarantiaDetalle.builder()</span>
+<span class="fc" id="L62">                .idPago(pago.getIdPago())</span>
+<span class="fc" id="L63">                .idContrato(pago.getContrato().getIdContrato())</span>
+<span class="fc" id="L64">                .idPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L65">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
+<span class="fc" id="L66">                .idUsuarioCliente(cliente.getIdUsuario())</span>
+<span class="fc" id="L67">                .nombreCliente(cliente.getNombres() + &quot; &quot; + cliente.getApellidos())</span>
+<span class="fc" id="L68">                .correoCliente(cliente.getCorreo())</span>
+<span class="fc" id="L69">                .idPerfilCreador(pedido.getServicio().getPerfil().getIdPerfil())</span>
+<span class="fc" id="L70">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
+<span class="fc" id="L71">                .idOrdenPaypal(pago.getIdOrdenPaypal())</span>
+<span class="fc" id="L72">                .montoRetenido(pago.getMontoRetenido())</span>
+<span class="fc" id="L73">                .estadoFondos(pago.getEstadoFondos())</span>
+<span class="fc" id="L74">                .fechaFormalizacion(pago.getContrato().getFechaFormalizacion())</span>
+<span class="fc" id="L75">                .transacciones(transacciones)</span>
+<span class="fc" id="L76">                .build();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaResumenEscrow&gt; obtenerResumen() {
+<span class="fc" id="L82">        return pagoGarantiaRepository.resumenPorEstado();</span>
+    }
+
+    private RespuestaPagoGarantia mapearAResumen(PagoGarantia pago) {
+<span class="fc" id="L86">        Pedido pedido = pago.getContrato().getPedido();</span>
+<span class="fc" id="L87">        Usuario cliente = pedido.getUsuarioCliente();</span>
+<span class="fc" id="L88">        Usuario creador = pedido.getServicio().getPerfil().getUsuario();</span>
+
+<span class="fc" id="L90">        return RespuestaPagoGarantia.builder()</span>
+<span class="fc" id="L91">                .idPago(pago.getIdPago())</span>
+<span class="fc" id="L92">                .idContrato(pago.getContrato().getIdContrato())</span>
+<span class="fc" id="L93">                .idPedido(pedido.getIdPedido())</span>
+<span class="fc" id="L94">                .tituloServicio(pedido.getServicio().getTituloServicio())</span>
+<span class="fc" id="L95">                .idUsuarioCliente(cliente.getIdUsuario())</span>
+<span class="fc" id="L96">                .nombreCliente(cliente.getNombres() + &quot; &quot; + cliente.getApellidos())</span>
+<span class="fc" id="L97">                .idPerfilCreador(pedido.getServicio().getPerfil().getIdPerfil())</span>
+<span class="fc" id="L98">                .nombreCreador(creador.getNombres() + &quot; &quot; + creador.getApellidos())</span>
+<span class="fc" id="L99">                .idOrdenPaypal(pago.getIdOrdenPaypal())</span>
+<span class="fc" id="L100">                .montoRetenido(pago.getMontoRetenido())</span>
+<span class="fc" id="L101">                .estadoFondos(pago.getEstadoFondos())</span>
+<span class="fc" id="L102">                .fechaFormalizacion(pago.getContrato().getFechaFormalizacion())</span>
+<span class="fc" id="L103">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

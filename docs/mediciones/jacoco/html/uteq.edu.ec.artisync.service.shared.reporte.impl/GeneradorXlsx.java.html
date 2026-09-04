@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeneradorXlsx.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.reporte.impl</a> &gt; <span class="el_source">GeneradorXlsx.java</span></div><h1>GeneradorXlsx.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.reporte.impl;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.util.WorkbookUtil;
+import org.apache.poi.xssf.streaming.SXSSFCell;
+import org.apache.poi.xssf.streaming.SXSSFRow;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneradorReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.TipoColumna;
+import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * XLSX real vía Apache POI {@link SXSSFWorkbook} (streaming, memoria acotada — no
+ * mantiene todas las filas en memoria como el XSSFWorkbook clásico). Hoja &quot;Datos&quot;
+ * con tipos de celda reales (fecha, moneda, entero) + hoja &quot;Info&quot; con título,
+ * filtros aplicados y quién/cuándo lo generó.
+ */
+<span class="fc" id="L38">@Slf4j</span>
+@Component
+<span class="fc" id="L40">public class GeneradorXlsx implements GeneradorReporte {</span>
+
+    private static final int FILAS_EN_MEMORIA = 100;
+<span class="fc" id="L43">    private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+
+    @Override
+    public FormatoReporte formato() {
+<span class="fc" id="L47">        return FormatoReporte.XLSX;</span>
+    }
+
+    @Override
+    public &lt;T&gt; DocumentoGenerado generar(ModeloReporte&lt;T&gt; modelo) {
+<span class="fc" id="L52">        try (SXSSFWorkbook libro = new SXSSFWorkbook(FILAS_EN_MEMORIA)) {</span>
+            try {
+<span class="fc" id="L54">                Map&lt;TipoColumna, CellStyle&gt; estilosPorTipo = crearEstilosPorTipo(libro);</span>
+<span class="fc" id="L55">                CellStyle estiloEncabezado = crearEstiloEncabezado(libro);</span>
+<span class="fc" id="L56">                CellStyle estiloTotal = crearEstiloTotal(libro);</span>
+
+<span class="fc" id="L58">                escribirHojaDatos(libro, modelo, estiloEncabezado, estilosPorTipo, estiloTotal);</span>
+<span class="fc" id="L59">                escribirHojaInfo(libro, modelo, estiloEncabezado);</span>
+
+<span class="fc" id="L61">                ByteArrayOutputStream salida = new ByteArrayOutputStream();</span>
+<span class="fc" id="L62">                libro.write(salida);</span>
+<span class="fc" id="L63">                return new DocumentoGenerado(salida.toByteArray(), formato().contentType(), null);</span>
+            } finally {
+                // SXSSFWorkbook escribe filas fuera de memoria en archivos temporales;
+                // sin dispose() esos temporales quedan huérfanos en disco.
+<span class="fc" id="L67">                libro.dispose();</span>
+            }
+<span class="nc" id="L69">        } catch (IOException e) {</span>
+<span class="nc" id="L70">            throw new IllegalStateException(&quot;Error al generar el documento XLSX: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    private &lt;T&gt; void escribirHojaDatos(SXSSFWorkbook libro, ModeloReporte&lt;T&gt; modelo, CellStyle estiloEncabezado,
+                                        Map&lt;TipoColumna, CellStyle&gt; estilosPorTipo, CellStyle estiloTotal) {
+<span class="fc" id="L76">        SXSSFSheet hoja = libro.createSheet(WorkbookUtil.createSafeSheetName(&quot;Datos&quot;));</span>
+<span class="fc" id="L77">        List&lt;ColumnaReporte&lt;T&gt;&gt; columnas = modelo.getColumnas();</span>
+
+<span class="fc" id="L79">        SXSSFRow filaEncabezado = hoja.createRow(0);</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        for (int c = 0; c &lt; columnas.size(); c++) {</span>
+<span class="fc" id="L81">            SXSSFCell celda = filaEncabezado.createCell(c);</span>
+<span class="fc" id="L82">            celda.setCellValue(columnas.get(c).encabezado());</span>
+<span class="fc" id="L83">            celda.setCellStyle(estiloEncabezado);</span>
+<span class="fc" id="L84">            hoja.setColumnWidth(c, columnas.get(c).anchoCaracteres() * 256);</span>
+        }
+<span class="fc" id="L86">        hoja.createFreezePane(0, 1);</span>
+<span class="fc" id="L87">        hoja.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(</span>
+<span class="fc" id="L88">                0, 0, 0, Math.max(0, columnas.size() - 1)));</span>
+
+<span class="fc" id="L90">        int numeroFila = 1;</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (T fila : modelo.getFilas()) {</span>
+<span class="fc" id="L92">            SXSSFRow filaHoja = hoja.createRow(numeroFila++);</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            for (int c = 0; c &lt; columnas.size(); c++) {</span>
+<span class="fc" id="L94">                ColumnaReporte&lt;T&gt; columna = columnas.get(c);</span>
+<span class="fc" id="L95">                Object valor = columna.extractor().apply(fila);</span>
+<span class="fc" id="L96">                SXSSFCell celda = filaHoja.createCell(c);</span>
+<span class="fc" id="L97">                escribirValorCelda(celda, valor, columna.tipo());</span>
+<span class="fc" id="L98">                celda.setCellStyle(estilosPorTipo.get(columna.tipo()));</span>
+            }
+<span class="fc" id="L100">        }</span>
+
+<span class="fc" id="L102">        List&lt;TotalReporte&gt; totales = modelo.getTotales();</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (!totales.isEmpty()) {</span>
+<span class="fc" id="L104">            numeroFila++;</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">            for (TotalReporte total : totales) {</span>
+<span class="fc" id="L106">                SXSSFRow filaTotal = hoja.createRow(numeroFila++);</span>
+<span class="fc" id="L107">                SXSSFCell celdaEtiqueta = filaTotal.createCell(0);</span>
+<span class="fc" id="L108">                celdaEtiqueta.setCellValue(total.etiqueta());</span>
+<span class="fc" id="L109">                celdaEtiqueta.setCellStyle(estiloTotal);</span>
+<span class="fc" id="L110">                SXSSFCell celdaValor = filaTotal.createCell(1);</span>
+<span class="fc" id="L111">                escribirValorCelda(celdaValor, total.valor(), total.tipo());</span>
+<span class="fc" id="L112">                celdaValor.setCellStyle(estiloTotal);</span>
+<span class="fc" id="L113">            }</span>
+        }
+<span class="fc" id="L115">    }</span>
+
+    private void escribirValorCelda(Cell celda, Object valor, TipoColumna tipo) {
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (valor == null) {</span>
+<span class="nc" id="L119">            celda.setBlank();</span>
+<span class="nc" id="L120">            return;</span>
+        }
+<span class="pc bpc" id="L122" title="2 of 6 branches missed.">        switch (tipo) {</span>
+<span class="fc" id="L123">            case ENTERO -&gt; celda.setCellValue(((Number) valor).doubleValue());</span>
+<span class="fc" id="L124">            case DECIMAL, MONEDA -&gt; celda.setCellValue(</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">                    valor instanceof BigDecimal bd ? bd.doubleValue() : ((Number) valor).doubleValue());</span>
+            case FECHA -&gt; {
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                if (valor instanceof LocalDate fecha) {</span>
+<span class="nc" id="L128">                    celda.setCellValue(fecha);</span>
+                } else {
+<span class="nc" id="L130">                    celda.setCellValue(valor.toString());</span>
+                }
+<span class="nc" id="L132">            }</span>
+            case FECHA_HORA -&gt; {
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                if (valor instanceof LocalDateTime fechaHora) {</span>
+<span class="fc" id="L135">                    celda.setCellValue(fechaHora);</span>
+                } else {
+<span class="nc" id="L137">                    celda.setCellValue(valor.toString());</span>
+                }
+<span class="nc" id="L139">            }</span>
+<span class="nc" id="L140">            case BOOLEANO -&gt; celda.setCellValue(Boolean.TRUE.equals(valor));</span>
+<span class="fc" id="L141">            default -&gt; celda.setCellValue(valor.toString());</span>
+        }
+<span class="fc" id="L143">    }</span>
+
+    private &lt;T&gt; void escribirHojaInfo(SXSSFWorkbook libro, ModeloReporte&lt;T&gt; modelo, CellStyle estiloEncabezado) {
+<span class="fc" id="L146">        SXSSFSheet hoja = libro.createSheet(WorkbookUtil.createSafeSheetName(&quot;Info&quot;));</span>
+<span class="fc" id="L147">        int fila = 0;</span>
+
+<span class="fc" id="L149">        fila = escribirParInfo(hoja, fila, &quot;Título&quot;, modelo.getTitulo());</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">        if (modelo.getSubtitulo() != null) {</span>
+<span class="fc" id="L151">            fila = escribirParInfo(hoja, fila, &quot;Subtítulo&quot;, modelo.getSubtitulo());</span>
+        }
+<span class="fc" id="L153">        fila = escribirParInfo(hoja, fila, &quot;Generado por&quot;, modelo.getGeneradoPor());</span>
+<span class="fc" id="L154">        fila = escribirParInfo(hoja, fila, &quot;Generado el&quot;, modelo.getGeneradoEn().format(FORMATO_FECHA_HORA));</span>
+<span class="fc" id="L155">        fila = escribirParInfo(hoja, fila, &quot;Total de filas&quot;, String.valueOf(modelo.getFilas().size()));</span>
+
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        if (!modelo.getFiltrosAplicados().isEmpty()) {</span>
+<span class="fc" id="L158">            fila++;</span>
+<span class="fc" id="L159">            SXSSFRow filaTitulo = hoja.createRow(fila++);</span>
+<span class="fc" id="L160">            SXSSFCell celda = filaTitulo.createCell(0);</span>
+<span class="fc" id="L161">            celda.setCellValue(&quot;Filtros aplicados&quot;);</span>
+<span class="fc" id="L162">            celda.setCellStyle(estiloEncabezado);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            for (Map.Entry&lt;String, String&gt; filtro : modelo.getFiltrosAplicados().entrySet()) {</span>
+<span class="fc" id="L164">                fila = escribirParInfo(hoja, fila, filtro.getKey(), filtro.getValue());</span>
+<span class="fc" id="L165">            }</span>
+        }
+
+<span class="fc" id="L168">        hoja.setColumnWidth(0, 24 * 256);</span>
+<span class="fc" id="L169">        hoja.setColumnWidth(1, 48 * 256);</span>
+<span class="fc" id="L170">    }</span>
+
+    private int escribirParInfo(SXSSFSheet hoja, int numeroFila, String etiqueta, String valor) {
+<span class="fc" id="L173">        SXSSFRow fila = hoja.createRow(numeroFila);</span>
+<span class="fc" id="L174">        fila.createCell(0).setCellValue(etiqueta);</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">        fila.createCell(1).setCellValue(valor != null ? valor : &quot;&quot;);</span>
+<span class="fc" id="L176">        return numeroFila + 1;</span>
+    }
+
+    private CellStyle crearEstiloEncabezado(SXSSFWorkbook libro) {
+<span class="fc" id="L180">        Font fuente = libro.createFont();</span>
+<span class="fc" id="L181">        fuente.setBold(true);</span>
+<span class="fc" id="L182">        fuente.setColor(IndexedColors.WHITE.getIndex());</span>
+<span class="fc" id="L183">        CellStyle estilo = libro.createCellStyle();</span>
+<span class="fc" id="L184">        estilo.setFont(fuente);</span>
+<span class="fc" id="L185">        estilo.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());</span>
+<span class="fc" id="L186">        estilo.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);</span>
+<span class="fc" id="L187">        return estilo;</span>
+    }
+
+    private CellStyle crearEstiloTotal(SXSSFWorkbook libro) {
+<span class="fc" id="L191">        Font fuente = libro.createFont();</span>
+<span class="fc" id="L192">        fuente.setBold(true);</span>
+<span class="fc" id="L193">        CellStyle estilo = libro.createCellStyle();</span>
+<span class="fc" id="L194">        estilo.setFont(fuente);</span>
+<span class="fc" id="L195">        return estilo;</span>
+    }
+
+    private Map&lt;TipoColumna, CellStyle&gt; crearEstilosPorTipo(SXSSFWorkbook libro) {
+<span class="fc" id="L199">        Map&lt;TipoColumna, CellStyle&gt; estilos = new EnumMap&lt;&gt;(TipoColumna.class);</span>
+<span class="fc" id="L200">        var formato = libro.createDataFormat();</span>
+
+<span class="fc" id="L202">        CellStyle fecha = libro.createCellStyle();</span>
+<span class="fc" id="L203">        fecha.setDataFormat(formato.getFormat(&quot;yyyy-mm-dd&quot;));</span>
+<span class="fc" id="L204">        estilos.put(TipoColumna.FECHA, fecha);</span>
+
+<span class="fc" id="L206">        CellStyle fechaHora = libro.createCellStyle();</span>
+<span class="fc" id="L207">        fechaHora.setDataFormat(formato.getFormat(&quot;yyyy-mm-dd hh:mm:ss&quot;));</span>
+<span class="fc" id="L208">        estilos.put(TipoColumna.FECHA_HORA, fechaHora);</span>
+
+<span class="fc" id="L210">        CellStyle moneda = libro.createCellStyle();</span>
+<span class="fc" id="L211">        moneda.setDataFormat(formato.getFormat(&quot;\&quot;$\&quot;#,##0.00&quot;));</span>
+<span class="fc" id="L212">        estilos.put(TipoColumna.MONEDA, moneda);</span>
+
+<span class="fc" id="L214">        CellStyle decimal = libro.createCellStyle();</span>
+<span class="fc" id="L215">        decimal.setDataFormat(formato.getFormat(&quot;#,##0.00&quot;));</span>
+<span class="fc" id="L216">        estilos.put(TipoColumna.DECIMAL, decimal);</span>
+
+<span class="fc" id="L218">        CellStyle entero = libro.createCellStyle();</span>
+<span class="fc" id="L219">        entero.setDataFormat(formato.getFormat(&quot;#,##0&quot;));</span>
+<span class="fc" id="L220">        estilos.put(TipoColumna.ENTERO, entero);</span>
+
+<span class="fc" id="L222">        estilos.put(TipoColumna.TEXTO, libro.createCellStyle());</span>
+<span class="fc" id="L223">        estilos.put(TipoColumna.BOOLEANO, libro.createCellStyle());</span>
+
+<span class="fc" id="L225">        return estilos;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -4,16 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -23,21 +17,27 @@ import java.util.List;
  *
  * Requiere: @EnableScheduling en ArtisyncApplication.
  */
-<span class="fc" id="L26">@Slf4j</span>
+<span class="fc" id="L20">@Slf4j</span>
 @Component
 @RequiredArgsConstructor
 public class SorteoScheduler {
 
     private final SorteoRepository sorteoRepository;
-    private final ParticipanteSorteoRepository participanteSorteoRepository;
-    private final NotificacionService notificacionService;
+    private final SorteoEjecutorServicio sorteoEjecutorServicio;
 
     /**
      * Se ejecuta cada 60 segundos.
      * Busca sorteos en estado &quot;Activo&quot; cuya fecha de cierre ya pasó y los finaliza.
+     *
+     * Sin @Transactional aquí: si todo el lote compartiera una única
+     * transacción/conexión, una excepción en un sorteo la dejaría &quot;aborted&quot;
+     * en Postgres hasta el COMMIT final -- el try/catch por elemento no la
+     * libera, así que los sorteos siguientes fallarían en cascada y, al no
+     * poder confirmar el método, Spring revertiría también los ya procesados
+     * con éxito. Cada sorteo se procesa en su propia transacción
+     * (SorteoEjecutorServicio.ejecutarSorteo, REQUIRES_NEW).
      */
     @Scheduled(fixedRate = 60_000)
-    @Transactional
     public void procesarSorteosCerrados() {
 <span class="fc" id="L42">        List&lt;Sorteo&gt; sorteosPendientes = sorteoRepository</span>
 <span class="fc" id="L43">                .findByEstadoSorteoAndFechaCierreBefore(&quot;Activo&quot;, LocalDateTime.now());</span>
@@ -50,53 +50,12 @@ public class SorteoScheduler {
 
 <span class="nc bnc" id="L51" title="All 2 branches missed.">        for (Sorteo sorteo : sorteosPendientes) {</span>
             try {
-<span class="nc" id="L53">                ejecutarSorteo(sorteo);</span>
+<span class="nc" id="L53">                sorteoEjecutorServicio.ejecutarSorteo(sorteo);</span>
 <span class="nc" id="L54">            } catch (Exception e) {</span>
 <span class="nc" id="L55">                log.error(&quot;[SorteoScheduler] Error al procesar sorteo {}: {}&quot;,</span>
 <span class="nc" id="L56">                        sorteo.getIdSorteo(), e.getMessage(), e);</span>
 <span class="nc" id="L57">            }</span>
 <span class="nc" id="L58">        }</span>
 <span class="nc" id="L59">    }</span>
-
-    // =========================================================================
-    // Lógica interna de selección de ganadores
-    // =========================================================================
-
-    private void ejecutarSorteo(Sorteo sorteo) {
-<span class="nc" id="L66">        List&lt;ParticipanteSorteo&gt; participantes = participanteSorteoRepository</span>
-<span class="nc" id="L67">                .findBySorteoIdSorteoAndEsGanadorFalse(sorteo.getIdSorteo());</span>
-
-<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (participantes.isEmpty()) {</span>
-<span class="nc" id="L70">            sorteo.setEstadoSorteo(&quot;Finalizado_Sin_Participantes&quot;);</span>
-<span class="nc" id="L71">            sorteoRepository.save(sorteo);</span>
-<span class="nc" id="L72">            log.info(&quot;[SorteoScheduler] Sorteo {} finalizado sin participantes.&quot;, sorteo.getIdSorteo());</span>
-<span class="nc" id="L73">            return;</span>
-        }
-
-        // Selección aleatoria criptográficamente segura (RF-23)
-<span class="nc" id="L77">        Collections.shuffle(participantes, new SecureRandom());</span>
-<span class="nc" id="L78">        int cantidad = Math.min(sorteo.getCantidadGanadores(), participantes.size());</span>
-<span class="nc" id="L79">        List&lt;ParticipanteSorteo&gt; ganadores = participantes.subList(0, cantidad);</span>
-
-<span class="nc" id="L81">        LocalDateTime ahora = LocalDateTime.now();</span>
-<span class="nc bnc" id="L82" title="All 2 branches missed.">        for (ParticipanteSorteo ganador : ganadores) {</span>
-<span class="nc" id="L83">            ganador.setEsGanador(true);</span>
-<span class="nc" id="L84">            ganador.setFechaNotificacionPremio(ahora);</span>
-<span class="nc" id="L85">            participanteSorteoRepository.save(ganador);</span>
-
-            // Notificación en tiempo real al ganador vía WebSocket (M6)
-<span class="nc" id="L88">            notificacionService.notificar(</span>
-<span class="nc" id="L89">                    ganador.getUsuario(),</span>
-                    &quot;SORTEO_GANADOR&quot;,
-<span class="nc" id="L91">                    &quot;¡Felicidades! Has ganado el sorteo: &quot; + sorteo.getTituloSorteo()</span>
-            );
-<span class="nc" id="L93">        }</span>
-
-<span class="nc" id="L95">        sorteo.setEstadoSorteo(&quot;Finalizado&quot;);</span>
-<span class="nc" id="L96">        sorteoRepository.save(sorteo);</span>
-
-<span class="nc" id="L98">        log.info(&quot;[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es) de {} participante(s).&quot;,</span>
-<span class="nc" id="L99">                sorteo.getTituloSorteo(), sorteo.getIdSorteo(), cantidad, participantes.size());</span>
-<span class="nc" id="L100">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
