@@ -79,7 +79,7 @@ public class EntregableControlador {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(archivo.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())
+                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).build().toString())
                 .body(archivo.contenido());
     }
 }
