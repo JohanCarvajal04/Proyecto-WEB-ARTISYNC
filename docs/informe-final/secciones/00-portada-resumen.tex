@@ -56,51 +56,7 @@ licencia CC~BY~4.0, conforme al Bloque D.3 de la guía)
 \chapter*{Resumen}
 \addcontentsline{toc}{chapter}{Resumen}
 
-<<<<<<< HEAD
-\textbf{Contexto y problema.} La economía creativa digital carece de
-plataformas que centralicen, en un único entorno auditable, la
-contratación, la comunicación y el pago entre creadores de contenido y
-clientes, obligando a ambas partes a fragmentar el proceso entre redes
-sociales, mensajería externa y pasarelas de pago desconectadas --- lo que
-eleva el riesgo de fraude, de incumplimiento contractual y de pérdida de
-trazabilidad financiera. \textbf{Objetivo.} Diseñar, implementar y evaluar
-empíricamente Artisync, una plataforma web que integra en un solo sistema
-el ciclo completo de intermediación (perfil verificado, catálogo,
-mensajería moderada, contrato con firma electrónica, pago con patrón
-\emph{escrow} y funciones sociales), aplicando una estrategia híbrida de
-acceso a datos (\gls{orm} para operaciones \gls{crud} elementales,
-procedimientos almacenados PL/pgSQL para operaciones multi-tabla) y
-verificación de identidad asistida por inteligencia artificial.
-\textbf{Métodos.} Se siguió la metodología \gls{dsr} de Peffers en seis
-actividades~\cite{PEFFERS2007}, con ingeniería de requisitos conforme a
-ISO/IEC/IEEE~29148:2018~\cite{ISO29148} y al marco de Pohl~\cite{POHL2010},
-y evaluación empírica multidimensional: prueba de carga (k6, 50~VUs/30s),
-auditoría de seguridad (6 controles \gls{owasp}~\cite{OWASP2021} + escaneo
-automatizado ZAP baseline + análisis estático SpotBugs/find-sec-bugs),
-usabilidad (\gls{sus}, $N=16$)~\cite{BROOKE1996,BANGOR2009}, cobertura de
-código (JaCoCo) y calidad web (Lighthouse, perfiles mobile y desktop).
-\textbf{Resultados principales.} El sistema alcanza p95 de 50.17~ms bajo
-carga (umbral 200~ms), 0\,\% de errores HTTP $\geq$500, puntaje SUS de
-61.25/100 (categoría D de Bangor, IC~95\,\% [49.49, 73.01], por debajo del
-umbral de aceptabilidad del proyecto), cobertura
-JaCoCo de 72.0\,\% líneas / 62.5\,\% ramas, Lighthouse Performance 100/100
-en desktop y 80--81/100 en mobile con Accessibility/Best
-Practices/SEO~$\geq$93 en ambos perfiles, los 6 controles OWASP mínimos
-evidenciados sin hallazgos altos en ZAP baseline (0~FAIL-NEW), y 7
-procedimientos almacenados conectados end-to-end al código en ejecución vía
-\gls{jpa} (\texttt{@Query(nativeQuery=true)} parametrizado), sin
-concatenación de SQL dinámico detectada. \textbf{Conclusiones.} La
-estrategia híbrida de acceso a datos y la verificación asistida por IA son
-técnicamente viables dentro de las restricciones de un proyecto académico
-de 17 semanas, con evidencia empírica reproducible; quedan como brechas
-honestamente declaradas la usabilidad medida (por debajo del umbral de
-aceptabilidad), la conexión completa de los procedimientos heredados de la
-Tercera Entrega, la ejecución de tests inferenciales sobre las
-comparaciones de rendimiento, y el despliegue en un ambiente de producción
-con dominio público.
-=======
 \textbf{Contexto y problema.} La economía creativa digital fragmenta la contratación, comunicación y pagos entre plataformas desconectadas, aumentando el riesgo de fraude. \textbf{Objetivo.} Diseñar, implementar y evaluar Artisync, plataforma que integra el ciclo completo de intermediación con pagos \emph{escrow}, usando una estrategia híbrida de acceso a datos (\gls{orm} y PL/pgSQL) y verificación por IA. \textbf{Métodos.} Se aplicó la metodología \gls{dsr} de Peffers~\cite{PEFFERS2007}, ingeniería de requisitos ISO/IEC/IEEE~29148:2018~\cite{ISO29148}, y evaluación empírica de rendimiento (k6), seguridad (OWASP/ZAP), usabilidad (\gls{sus}, $N=16$)~\cite{BROOKE1996,BANGOR2009}, cobertura (JaCoCo) y calidad web (Lighthouse). \textbf{Resultados principales.} Artisync logró p95 de 50.17~ms bajo carga, 0\,\% de errores HTTP, cobertura JaCoCo de 72.0\,\% líneas / 62.5\,\% ramas, Lighthouse Performance 100/100 (desktop) y 80 (mobile), y 0 hallazgos altos en seguridad ZAP. Sin embargo, la usabilidad alcanzó un \gls{sus} de 61.25/100, sin superar el umbral de aceptabilidad (68). Se implementaron 7 procedimientos almacenados limpios de SQL dinámico. \textbf{Conclusiones.} Artisync demuestra la viabilidad de la estrategia híbrida y validación por IA en 17 semanas con evidencia empírica reproducible, aunque requiere mejoras en usabilidad. Quedan brechas respecto a pruebas inferenciales y despliegue público.
->>>>>>> 059f9de (docs(informe-final): aplicar victorias rapidas, etiquetas huerfanas y resumenes)
 
 \textbf{Palabras clave:} ingeniería de requisitos; procedimientos
 almacenados; verificación de identidad; arquitectura de microservicios;
@@ -109,49 +65,7 @@ usabilidad de software; seguridad web
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-<<<<<<< HEAD
-\textbf{Context and problem.} The digital creative economy lacks platforms
-that centralize, within a single auditable environment, the contracting,
-communication, and payment process between content creators and clients,
-forcing both parties to fragment the workflow across social media,
-external messaging, and disconnected payment gateways --- raising the risk
-of fraud, contractual non-compliance, and loss of financial traceability.
-\textbf{Objective.} To design, implement, and empirically evaluate
-Artisync, a web platform that integrates the full intermediation cycle
-(verified profile, catalog, moderated messaging, electronically signed
-contract, escrow-pattern payment, and social features) into a single
-system, applying a hybrid data-access strategy (ORM for elementary CRUD
-operations, PL/pgSQL stored procedures for multi-table operations) and
-AI-assisted identity verification. \textbf{Methods.} The study followed
-Peffers' Design Science Research methodology across six
-activities~\cite{PEFFERS2007}, with requirements engineering conforming to
-ISO/IEC/IEEE~29148:2018~\cite{ISO29148} and Pohl's
-framework~\cite{POHL2010}, and multidimensional empirical evaluation: load
-testing (k6, 50~VUs/30s), security auditing (6 OWASP controls plus
-automated ZAP baseline scanning and SpotBugs/find-sec-bugs static
-analysis), usability (System Usability Scale, $N=16$), code coverage
-(JaCoCo), and web quality (Lighthouse, mobile and desktop profiles).
-\textbf{Main results.} The system achieves a p95 of 50.17~ms under load
-(200~ms threshold), 0\% of HTTP $\geq$500 errors, a SUS score of
-61.25/100 (Bangor grade D, 95\% CI [49.49, 73.01], below the project's
-acceptability threshold), JaCoCo coverage of
-72.0\% lines / 62.5\% branches, Lighthouse Performance of 100/100 on
-desktop and 80--81/100 on mobile with Accessibility/Best Practices/SEO
-$\geq$93 on both profiles, all 6 minimum OWASP controls evidenced with no
-high findings in the ZAP baseline scan (0 FAIL-NEW), and 7 stored
-procedures connected end-to-end to the running code via JPA (parameterized
-\texttt{@Query(nativeQuery=true)}), with no dynamic SQL concatenation
-detected. \textbf{Conclusions.} The hybrid data-access strategy and
-AI-assisted verification are technically viable within the constraints of
-a 17-week academic project, backed by reproducible empirical evidence;
-honestly declared gaps remain in the measured usability (below the
-acceptability threshold), fully connecting the stored procedures inherited
-from the third deliverable, running inferential tests on the performance
-comparisons, and deploying to a production environment with a public
-domain.
-=======
 \textbf{Context and problem.} The digital creative economy fragments contracting, communication, and payments across disconnected platforms, increasing fraud risks. \textbf{Objective.} To design, implement, and evaluate Artisync, a platform integrating the intermediation cycle with escrow payments, a hybrid data-access strategy (ORM and PL/pgSQL), and AI-assisted verification. \textbf{Methods.} Peffers' \gls{dsr} methodology~\cite{PEFFERS2007} was applied, alongside ISO/IEC/IEEE~29148:2018 requirements engineering~\cite{ISO29148}, and empirical evaluations of performance (k6), security (OWASP/ZAP), usability (\gls{sus}, $N=16$)~\cite{BROOKE1996,BANGOR2009}, code coverage (JaCoCo), and web quality (Lighthouse). \textbf{Main results.} Artisync achieved a p95 of 50.17~ms under load, 0\% HTTP errors, JaCoCo coverage of 72.0\% lines / 62.5\% branches, Lighthouse Performance 100/100 (desktop) and 80 (mobile), and 0 high security findings in ZAP. However, usability reached a \gls{sus} of 61.25/100, failing to pass the acceptability threshold (68). Seven stored procedures free of dynamic SQL were implemented. \textbf{Conclusions.} Artisync proves the viability of hybrid data access and AI validation in a 17-week timeframe with reproducible empirical evidence, though usability improvements are needed. Gaps remain regarding inferential tests and public deployment.
->>>>>>> 059f9de (docs(informe-final): aplicar victorias rapidas, etiquetas huerfanas y resumenes)
 
 \textbf{Keywords:} requirements engineering; stored procedures; identity
 verification; microservices architecture; software usability; web
