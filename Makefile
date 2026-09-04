@@ -16,7 +16,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up down test bench audit audit-zap clean sus lighthouse docs srs sync-procs sync-procs-check
+.PHONY: all up down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse docs srs sync-procs sync-procs-check
 
 # Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
 # de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
@@ -33,11 +33,28 @@ SRS_PANDOC_OPTS ?= --toc --number-sections --pdf-engine=xelatex \
 ## auditoria estatica de SQL dinamico y escaneo ZAP, Lighthouse, el analisis
 ## SUS sobre los datos ya recolectados, y compila el documento academico
 ## final a PDF. Requiere Docker, k6 y pandoc instalados (ver README).
-all: up test bench audit audit-zap lighthouse sus srs docs
+all: up test bench audit audit-sql-dynamic audit-zap lighthouse sus perf-stats srs docs
 	@echo "OK: pipeline de reproduccion completo (make all) termino sin errores."
 
 ## Levanta postgres, redis, backend y frontend (con build y live reload) en segundo plano.
+## Si artisync/.env no existe, se copia de artisync/.env.example (postgres/redis
+## usan los defaults del propio docker-compose.yml). El placeholder JWT_SECRET
+## del ejemplo tiene 31 bytes -- por debajo del minimo de 32 que exige JwtService
+## (falla el arranque del backend) -- asi que se sustituye por uno real generado
+## con openssl.
 up:
+	@test -f artisync/.env || { \
+		cp artisync/.env.example artisync/.env; \
+		if command -v openssl >/dev/null 2>&1; then \
+			secret=$$(openssl rand -hex 32); \
+			sed -i.bak "s/^JWT_SECRET=.*/JWT_SECRET=$$secret/" artisync/.env && rm -f artisync/.env.bak; \
+		else \
+			echo "AVISO: openssl no disponible, JWT_SECRET quedo con el placeholder de .env.example (31 bytes, el backend no arrancara)."; \
+			echo "       Genera uno manualmente: openssl rand -hex 32"; \
+		fi; \
+		echo "AVISO: artisync/.env no existia, se genero desde .env.example."; \
+		echo "       Revisa MAIL_*/PAYPAL_*/IA_PROVIDER si necesitas esas integraciones."; \
+	}
 	$(COMPOSE) up -d --build
 
 ## Detiene los servicios sin borrar los volumenes (datos de postgres persisten).
@@ -56,10 +73,12 @@ sync-procs:
 sync-procs-check:
 	bash scripts/sync-procs.sh --check
 
-## Prueba de carga k6 (50 VUs, 30s) contra el endpoint de catalogo, igual
-## configuracion que docs/mediciones/perf/REPORTE-PERF.md. Requiere k6
-## instalado (https://k6.io/docs/get-started/installation/) y el sistema
-## levantado con `make up`.
+## Prueba de carga k6 (50 VUs, 30s) contra el endpoint de catalogo (publico,
+## permitAll), igual configuracion que docs/mediciones/perf/REPORTE-PERF.md.
+## Requiere k6 instalado (https://k6.io/docs/get-started/installation/) y el
+## sistema levantado con `make up`. Para el escenario PROTEGIDO (autenticado),
+## ver los targets `bench-auth` / `bench-auth-cold` (T-14,
+## docs/observaciones/PLAN-EXAMEN-FINAL.md).
 bench:
 	@command -v k6 >/dev/null 2>&1 || { \
 		echo "ERROR: k6 no esta instalado. Ver https://k6.io/docs/get-started/installation/"; \
@@ -73,13 +92,74 @@ bench:
 	fi
 	k6 run k6/catalogo-load.js
 
+## Imagen oficial de k6 usada por bench-auth/bench-auth-cold (el backend no
+## publica el 8080 al host por diseno -- ver docker-compose.yml, servicio
+## backend -- asi que k6 corre en un contenedor efimero que comparte el
+## namespace de red de pfc_backend, igual patron que el target `lighthouse`
+## con pfc_frontend).
+K6_IMAGE ?= grafana/k6:0.54.0
+
+## Genera las 5 corridas "calientes" versionadas del escenario PROTEGIDO
+## (GET /api/v1/admin/reportes/finanzas, autenticado) en
+## docs/mediciones/perf/k6-auth-run{1..5}.json. Requiere el stack arriba
+## (`make up`), el usuario admin del seed base y un usuario con perfil de
+## creador sembrado (ver artisync/database/seed-medicion-servicios.sql /
+## K6_USER, K6_PASS, CREADOR_CORREO). NO se encadena en `make all`: son 5
+## corridas de 30s (~2.5 min) que sobrescribirian evidencia ya versionada
+## cada vez que alguien reproduce el pipeline completo; se corre a demanda,
+## igual que `bench-auth-cold`.
+bench-auth:
+	@mkdir -p docs/mediciones/perf
+	@for i in 1 2 3 4 5; do \
+		echo "== corrida caliente $$i/5 =="; \
+		MSYS_NO_PATHCONV=1 docker run --rm --network container:pfc_backend \
+			-v "$(CURDIR)/k6:/scripts:ro" -v "$(CURDIR)/docs/mediciones/perf:/output" \
+			-e ESCENARIO=caliente -e BASE_URL=http://localhost:8080 \
+			-e K6_USER=$${K6_USER:-admin@artisync.com} -e K6_PASS=$${K6_PASS:-ArtisyncAdmin2026!} \
+			-e CREADOR_CORREO=$${CREADOR_CORREO:-creador@test.com} \
+			$(K6_IMAGE) run --out json=/output/k6-auth-run$$i.json /scripts/comisiones-load.js \
+			| tee docs/mediciones/perf/k6-console-auth-run$$i.txt; \
+	done
+	@echo "OK: 5 corridas calientes en docs/mediciones/perf/k6-auth-run{1..5}.json"
+
+## Igual que `bench-auth` pero para el escenario "frio": reinicia el
+## contenedor del backend (pfc_backend) justo antes de CADA corrida, para que
+## la JVM arranque sin JIT calentado y con el pool de conexiones vacio (este
+## endpoint no tiene @Cacheable, asi que un FLUSHALL de Redis no serviria de
+## nada -- ver la nota metodologica en k6/comisiones-load.js). Usa
+## `up -d --wait` (no un curl al host, el 8080 no esta publicado) para
+## esperar a que el healthcheck del backend pase antes de disparar cada
+## corrida.
+bench-auth-cold:
+	@mkdir -p docs/mediciones/perf
+	@for i in 1 2 3 4 5; do \
+		echo "== reiniciando pfc_backend antes de la corrida fria $$i/5 =="; \
+		$(COMPOSE) restart backend; \
+		$(COMPOSE) up -d --wait backend; \
+		echo "== corrida fria $$i/5 =="; \
+		MSYS_NO_PATHCONV=1 docker run --rm --network container:pfc_backend \
+			-v "$(CURDIR)/k6:/scripts:ro" -v "$(CURDIR)/docs/mediciones/perf:/output" \
+			-e ESCENARIO=frio -e BASE_URL=http://localhost:8080 \
+			-e K6_USER=$${K6_USER:-admin@artisync.com} -e K6_PASS=$${K6_PASS:-ArtisyncAdmin2026!} \
+			-e CREADOR_CORREO=$${CREADOR_CORREO:-creador@test.com} \
+			$(K6_IMAGE) run --out json=/output/k6-auth-cold-run$$i.json /scripts/comisiones-load.js \
+			| tee docs/mediciones/perf/k6-console-auth-cold-run$$i.txt; \
+	done
+	@echo "OK: 5 corridas frias en docs/mediciones/perf/k6-auth-cold-run{1..5}.json"
+
+## Auditoria estatica de SQL dinamico como script independiente versionado
+## (cubre db/procs/*.sql y migraciones Flyway ademas del codigo Java;
+## complementa la logica en linea que corre audit: sobre el Backend).
+audit-sql-dynamic:
+	bash scripts/audit-sql-dynamic.sh
+
 ## Auditoria estatica minima de SQL dinamico (regla transversal):
 ## falla si aparece EXECUTE IMMEDIATE/sp_executesql, o una @Query nativeQuery=true
 ## que concatene con el operador `+` (indicio de entrada de usuario sin parametrizar).
 ## Se complementa con SpotBugs+find-sec-bugs (analisis de bytecode, ve lo que el
 ## grep no puede: concatenacion multi-linea, StringBuilder, JDBC Statement crudo).
 ## No sustituye la auditoria OWASP completa de docs/mediciones/sec/.
-audit:
+audit: audit-sql-dynamic
 	@echo "== Auditoria estatica de SQL dinamico (texto, Backend) =="
 	@if grep -rnE "EXECUTE IMMEDIATE|sp_executesql" artisync/Backend/src/main/java artisync/database 2>/dev/null; then \
 		echo "FALLO: se encontro SQL dinamico prohibido (EXECUTE IMMEDIATE / sp_executesql)."; \
@@ -99,7 +179,7 @@ audit:
 	@# soporta bytecode mas nuevo que Java 21 (falla con class file "major version" >65
 	@# si la maquina tiene un JDK mas nuevo por defecto, aunque el proyecto compile
 	@# correctamente para release 21).
-	docker run --rm -v "$(CURDIR)/artisync/Backend:/app" -w /app \
+	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR)/artisync/Backend:/app" -w /app \
 		maven:3.9-eclipse-temurin-21 mvn -B spotbugs:spotbugs
 	@mkdir -p docs/mediciones/sec/static-analysis
 	@cp artisync/Backend/target/spotbugsXml.xml \
@@ -113,7 +193,7 @@ audit:
 ## disponible para correr la imagen oficial de ZAP.
 audit-zap:
 	@mkdir -p docs/mediciones/sec/zap
-	docker run --rm -v "$$(pwd)/docs/mediciones/sec/zap:/zap/wrk/:rw" \
+	MSYS_NO_PATHCONV=1 docker run --rm -v "$$(pwd)/docs/mediciones/sec/zap:/zap/wrk/:rw" \
 		--network host ghcr.io/zaproxy/zaproxy:stable \
 		zap-baseline.py -t http://localhost:4200 \
 		-r zap-baseline-$$(date +%Y%m%d-%H%M).html \
@@ -151,22 +231,38 @@ clean:
 lighthouse:
 	$(COMPOSE) -f artisync/docker-compose.lighthouse.yml up -d --wait --build frontend
 	@rm -rf artisync/Frontend/.lighthouseci
-	docker run --rm --network container:pfc_frontend \
+	MSYS_NO_PATHCONV=1 docker run --rm --network container:pfc_frontend \
 		-v "$(CURDIR):/repo" -w /repo/artisync/Frontend \
 		node:20-bookworm-slim bash -c ' \
 			apt-get update -qq && apt-get install -y -qq chromium >/dev/null; \
 			export CHROME_PATH=$$(command -v chromium); \
 			npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.mobile.json --collect.settings.chromeFlags="--no-sandbox" \
 		' || true
+	@ts=$$(date +%Y%m%d-%H%M); n=1; \
+	for jf in docs/mediciones/lighthouse/localhost--*.report.json; do \
+		[ -e "$$jf" ] || continue; \
+		base="$${jf%.report.json}"; hf="$$base.report.html"; \
+		mv "$$jf" "docs/mediciones/lighthouse/lhci-$$ts-mobile-run$$n.report.json"; \
+		[ -e "$$hf" ] && mv "$$hf" "docs/mediciones/lighthouse/lhci-$$ts-mobile-run$$n.report.html"; \
+		n=$$((n+1)); \
+	done
 	@rm -rf artisync/Frontend/.lighthouseci
-	docker run --rm --network container:pfc_frontend \
+	MSYS_NO_PATHCONV=1 docker run --rm --network container:pfc_frontend \
 		-v "$(CURDIR):/repo" -w /repo/artisync/Frontend \
 		node:20-bookworm-slim bash -c ' \
 			apt-get update -qq && apt-get install -y -qq chromium >/dev/null; \
 			export CHROME_PATH=$$(command -v chromium); \
 			npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.desktop.json --collect.settings.chromeFlags="--no-sandbox" \
 		' || true
-	@echo "OK: reportes en docs/mediciones/lighthouse/ (nombrados localhost--<timestamp>.report.*; renombrar/archivar con la convencion lhci-YYYYMMDD-HHMM-<perfil>-runN antes de comitear)."
+	@ts=$$(date +%Y%m%d-%H%M); n=1; \
+	for jf in docs/mediciones/lighthouse/localhost--*.report.json; do \
+		[ -e "$$jf" ] || continue; \
+		base="$${jf%.report.json}"; hf="$$base.report.html"; \
+		mv "$$jf" "docs/mediciones/lighthouse/lhci-$$ts-desktop-run$$n.report.json"; \
+		[ -e "$$hf" ] && mv "$$hf" "docs/mediciones/lighthouse/lhci-$$ts-desktop-run$$n.report.html"; \
+		n=$$((n+1)); \
+	done
+	@echo "OK: reportes archivados en docs/mediciones/lighthouse/ con convencion lhci-YYYYMMDD-HHMM-<perfil>-runN."
 
 ## Calcula el puntaje SUS (Bloque C.3) a partir de docs/mediciones/sus/sus-raw.csv
 ## y escribe docs/mediciones/sus/salida-sus.txt. Falla si el CSV solo tiene
@@ -178,15 +274,27 @@ sus:
 		echo "       Ver docs/mediciones/sus/instrucciones-formulario.md para correr las sesiones."; \
 		exit 1; \
 	fi
-	python docs/mediciones/sus/analisis-sus.py > docs/mediciones/sus/salida-sus.txt
+	python3 docs/mediciones/sus/analisis-sus.py > docs/mediciones/sus/salida-sus.txt
 	@echo "OK: ver docs/mediciones/sus/salida-sus.txt"
+
+## Test inferencial (Mann-Whitney U + tamano de efecto A12 de Vargha-Delaney,
+## mas Welch t / d de Cohen como contraste) sobre los NDJSON crudos de k6 ya
+## versionados: catalogo (k6-run*.json vs k6-cold-run*.json) y el endpoint
+## protegido (k6-auth-run*.json vs k6-auth-cold-run*.json). Requiere scipy
+## (ver docs/mediciones/perf/requirements.txt); NO relanza k6 -- solo
+## recalcula sobre archivos ya generados por `bench`/`bench-auth`/
+## `bench-auth-cold`, por eso si se encadena en `make all` (T-15,
+## docs/observaciones/PLAN-EXAMEN-FINAL.md).
+perf-stats:
+	pip install -q -r docs/mediciones/perf/requirements.txt
+	python3 docs/mediciones/perf/analisis-inferencial.py > docs/mediciones/perf/salida-inferencial.txt
+	@echo "OK: ver docs/mediciones/perf/salida-inferencial.txt"
 
 ## Compila el documento academico final (Bloque B / D.1) desde la fuente
 ## LaTeX de docs/informe-final/main.tex (bibliografia IEEE en
-## referencias.bib). Requiere una distribucion LaTeX (TeX Live/MiKTeX) con
-## pdflatex y bibtex. Si docs/informe-final/ todavia no existe o pdflatex no
-## esta instalado, informa el motivo y termina con error en vez de fallar en
-## silencio -- make all debe poder detectar este paso como pendiente.
+## referencias.bib). Usa pdflatex/bibtex/makeglossaries locales si estan
+## instalados; si no, cae a un contenedor con TeX Live completo, igual que
+## srs/lighthouse, para que "make all" sea reproducible con solo Docker.
 ##
 ## Nota de migracion: hasta la v1.0.0-rc este objetivo compilaba los .md de
 ## docs/informe-final/ con pandoc. Esa carpeta ahora contiene la fuente
@@ -196,19 +304,25 @@ docs:
 		echo "ERROR: docs/informe-final/main.tex no existe todavia (documento academico en borrador)."; \
 		exit 1; \
 	fi
-	@command -v pdflatex >/dev/null 2>&1 || { \
-		echo "ERROR: pdflatex no esta instalado. Ver https://www.tug.org/texlive/ (o MiKTeX en Windows)."; \
-		exit 1; \
-	}
-	@command -v bibtex >/dev/null 2>&1 || { \
-		echo "ERROR: bibtex no esta instalado (deberia venir con TeX Live/MiKTeX)."; \
-		exit 1; \
-	}
-	cd docs/informe-final && \
-		pdflatex -interaction=nonstopmode main.tex && \
-		bibtex main && \
-		pdflatex -interaction=nonstopmode main.tex && \
-		pdflatex -interaction=nonstopmode main.tex
+	@if command -v pdflatex >/dev/null 2>&1 && command -v bibtex >/dev/null 2>&1; then \
+		echo "== Compilando con TeX local =="; \
+		cd docs/informe-final && \
+			pdflatex -interaction=nonstopmode main.tex && \
+			bibtex main && \
+			(command -v makeglossaries >/dev/null 2>&1 && makeglossaries main || true) && \
+			pdflatex -interaction=nonstopmode main.tex && \
+			pdflatex -interaction=nonstopmode main.tex; \
+	else \
+		command -v docker >/dev/null 2>&1 || { \
+			echo "ERROR: se necesita Docker, o una instalacion local de pdflatex+bibtex (TeX Live/MiKTeX)."; \
+			exit 1; \
+		}; \
+		echo "== pdflatex/bibtex no estan localmente; compilando en contenedor texlive/texlive =="; \
+		echo "   (se monta el repo completo, no solo docs/informe-final: main.tex usa"; \
+		echo "   \\graphicspath hacia ../diagramas/ y ../mediciones/, fuera de esta carpeta)"; \
+		MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" -w /repo/docs/informe-final texlive/texlive:latest \
+			bash -c "pdflatex -interaction=nonstopmode main.tex && bibtex main && makeglossaries main && pdflatex -interaction=nonstopmode main.tex && pdflatex -interaction=nonstopmode main.tex"; \
+	fi
 	cp docs/informe-final/main.pdf docs/informe-final/Informe-Final-v1.0.0.pdf
 	@echo "OK: docs/informe-final/Informe-Final-v1.0.0.pdf generado."
 
@@ -245,7 +359,7 @@ srs:
 			rm -f docs/requisitos/.srs-build.md; \
 			exit 1; \
 		}; \
-		docker run --rm -v "$(CURDIR):/data" -w /data $(PANDOC_IMAGE) \
+		MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/data" -w /data $(PANDOC_IMAGE) \
 			docs/requisitos/.srs-build.md \
 			-o docs/requisitos/SRS-v1.0.0.pdf $(SRS_PANDOC_OPTS); \
 	fi
