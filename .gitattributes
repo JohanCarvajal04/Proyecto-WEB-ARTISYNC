@@ -1,3 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 *.sh text eol=lf
+
+# scripts/sync-procs.sh concatena db/procs/*.sql tal cual hacia
+# R__procedimientos.sql. Si alguno de los dos se checa en CRLF (Windows con
+# core.autocrlf=true) y el otro en LF, `make sync-procs-check` da un falso
+# "desincronizado" aunque el contenido sea identico. Forzar LF en ambos lados
+# evita el falso positivo, cualquiera sea el core.autocrlf de quien clona.
+*.sql text eol=lf
