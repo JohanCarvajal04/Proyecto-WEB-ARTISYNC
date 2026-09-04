@@ -297,35 +297,61 @@ declarada también en \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.m
 \section{Calidad web (Lighthouse) --- RQ1}
 
 \textbf{Métrica:} puntajes Performance, Accessibility, Best Practices, SEO
-(0--100), 3 corridas por perfil (mobile, desktop). \textbf{Datos crudos:}
-\texttt{docs/mediciones/lighthouse/lhci-20260817-*-\{mobile,desktop\}-run\{1,2,3\}.json}.
+(0--100), 3 corridas por perfil (mobile, desktop) $\times$ 3 rutas
+públicas del \textbf{despliegue real}
+(\texttt{https://artisync-frontend.onrender.com}), no localhost ---
+corrección de OBS-P4-01, que señalaba que la Entrega Final había
+auditado solo la portada en local. \textbf{Datos crudos:}
+\texttt{docs/mediciones/lighthouse/lhci-20260904-1020-\{mobile,desktop\}-prod-\{explorar,explorar\_creadores,auth\_login\}-run\{1,2,3\}.report.json}
+(18 reportes, 175 auditorías cada uno).
 
 \begin{table}[H]
 \centering
-\caption{Resultados Lighthouse por perfil y categoría}
+\caption{Resultados Lighthouse por perfil, ruta y categoría (despliegue público)}
 \label{tab:lighthouse}
-\begin{tabular}{@{}lllcc@{}}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llllll@{}}
 \toprule
-\textbf{Categoría} & \textbf{Mobile (3 corridas)} & \textbf{Desktop (3 corridas)} & \textbf{Umbral} & \textbf{Cumple} \\
+\textbf{Perfil} & \textbf{Ruta} & \textbf{Performance} & \textbf{Accessibility} & \textbf{Best Practices} & \textbf{SEO} \\
 \midrule
-Performance     & 81 / 81 / 80   & 100 / 100 / 100 & $\geq$80 & \checkmark ambos \\
-Accessibility   & 93 / 93 / 93   & 93 / 93 / 93    & $\geq$90 & \checkmark ambos \\
-Best Practices  & 96 / 96 / 96   & 96 / 96 / 96    & $\geq$90 & \checkmark ambos \\
-SEO             & 100 / 100 / 100 & 100 / 100 / 100 & $\geq$90 & \checkmark ambos \\
+Mobile  & /explorar             & 93/95/95 \checkmark & 89/89/89 \textbf{$\times$} & 96/96/96 \checkmark & 100/100/100 \checkmark \\
+Mobile  & /explorar/creadores   & 97/96/96 \checkmark & 87/87/87 \textbf{$\times$} & 96/96/96 \checkmark & 100/100/100 \checkmark \\
+Mobile  & /auth/login           & 82/80/83 \checkmark & 93/93/93 \checkmark         & 96/96/96 \checkmark & 100/100/100 \checkmark \\
+Desktop & /explorar             & \textbf{73/74/75 $\times$} & 89/89/89 \textbf{$\times$} & 96/96/96 \checkmark & 100/100/100 \checkmark \\
+Desktop & /explorar/creadores   & 99/99/99 \checkmark & 87/87/87 \textbf{$\times$} & 96/96/96 \checkmark & 100/100/100 \checkmark \\
+Desktop & /auth/login           & 99/99/99 \checkmark & 93/93/93 \checkmark         & 96/96/96 \checkmark & 100/100/100 \checkmark \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
-\textbf{Interpretación:} las cuatro categorías cumplen umbral en ambos
-perfiles, con consistencia prácticamente perfecta entre las 3 corridas de
-cada perfil (varianza $\leq$1 punto en Performance mobile, 0 en el
-resto). Los hallazgos reales que impiden el 100/100 están documentados
-sin maquillaje en \texttt{docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md}:
-\texttt{target-size} (elementos táctiles bajo el tamaño mínimo
-recomendado, Accessibility 93) y un \texttt{403} de red esperado en
-\texttt{/api/auth/refresh} al cargar sin sesión (Best Practices 96) ---
-ninguno de los dos es un defecto real de la aplicación, sino
-comportamiento esperado bajo las condiciones de la auditoría.
+\textbf{Umbrales:} Performance $\geq$80 (\texttt{warn}), Accessibility/Best
+Practices/SEO $\geq$90 (\texttt{error}). \texttt{lhci autorun} terminó con
+código de salida 1 en ambos perfiles --- a diferencia de la corrida de
+localhost de agosto (código 0), aquí sí hay assertions que fallan, y se
+reportan sin maquillar.
+
+\textbf{Interpretación:} SEO y Best Practices cumplen sin excepción en
+las 18 auditorías. Accessibility cae por debajo del umbral en
+\texttt{/explorar} y \texttt{/explorar/creadores} (87--89, ambos
+perfiles) por tres auditorías nuevas que no aparecían contra el seed de
+desarrollo: \texttt{color-contrast}, \texttt{heading-order} e
+\texttt{image-redundant-alt} --- \texttt{/auth/login} (formulario
+estático, sin contenido del catálogo) se mantiene en 93, lo que apunta a
+que la causa es el \emph{contenido real} sembrado en producción, no una
+regresión de la plantilla. Performance cae a 73--75 solo en
+\texttt{/explorar} en desktop, explicado por
+\emph{Cumulative Layout Shift} de 0.315 (umbral ``bueno'' $<$0.1) y
+\emph{Largest Contentful Paint} de 1.9s, consistentes con las imágenes de
+\texttt{picsum.photos} del catálogo servidas sin dimensiones fijas ni
+\texttt{srcset}. Ambos hallazgos son reales, diagnosticados con causa
+raíz (no solo el número) en
+\texttt{docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md}, y quedan como
+trabajo futuro (Capítulo~\ref{cap:trabajo-futuro}) --- exactamente el
+tipo de hallazgo que motiva exigir auditar el despliegue público en vez
+de un entorno de desarrollo controlado. Los reportes de localhost de
+agosto (Performance 80--100, Accessibility 93 uniforme) se conservan en
+el repositorio como evidencia histórica del proceso de optimización
+previo, pero ya no se citan como cumplimiento de este bloque.
 
 \section{Resumen de reproducibilidad de las figuras y tablas de este capítulo}
 

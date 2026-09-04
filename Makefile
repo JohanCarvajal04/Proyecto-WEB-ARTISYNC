@@ -323,7 +323,19 @@ perf-stats:
 ## Nota de migracion: hasta la v1.0.0-rc este objetivo compilaba los .md de
 ## docs/informe-final/ con pandoc. Esa carpeta ahora contiene la fuente
 ## LaTeX (.tex/.bib) directamente, ver docs/informe-final/README.md.
-docs:
+caratula:
+	@if command -v pdflatex >/dev/null 2>&1; then \
+		echo "== Compilando caratula con TeX local =="; \
+		cd docs/informe-final && pdflatex -interaction=nonstopmode caratula.tex; \
+	else \
+		echo "== Compilando caratula en contenedor texlive =="; \
+		MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo" -w /repo/docs/informe-final texlive/texlive:latest \
+			bash -c "pdflatex -interaction=nonstopmode caratula.tex"; \
+	fi
+	cp docs/informe-final/caratula.pdf docs/informe-final/Caratula-v1.1.0.pdf
+	@echo "OK: docs/informe-final/Caratula-v1.1.0.pdf generado."
+
+docs: caratula
 	@if [ ! -f docs/informe-final/main.tex ]; then \
 		echo "ERROR: docs/informe-final/main.tex no existe todavia (documento academico en borrador)."; \
 		exit 1; \
