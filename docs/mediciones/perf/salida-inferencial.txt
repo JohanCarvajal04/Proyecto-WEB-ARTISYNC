@@ -1,0 +1,56 @@
+==============================================================================
+Catalogo (publico) -- caliente vs frio
+==============================================================================
+  Caliente:
+    n peticiones     : 4500
+    media (ms)       : 21.3789
+    mediana (ms)     : 13.0124
+    desv. estandar   : 32.7063
+    p90 / p95 / p99  : 31.7491 / 50.1748 / 205.5998
+    tasa error >=500 : 0.0000%
+  Frio:
+    n peticiones     : 4500
+    media (ms)       : 13.6241
+    mediana (ms)     : 9.0400
+    desv. estandar   : 14.5160
+    p90 / p95 / p99  : 22.3932 / 39.1448 / 89.9758
+    tasa error >=500 : 0.0000%
+
+  -- Contraste parametrico (no es el test correcto para latencias, se
+     reporta solo como contraste con el valor ya calculado) --
+    Welch t-test     : t = 14.538, p = 4.112476e-47
+    d de Cohen       : 0.3065
+
+  -- Test correcto para datos de latencia (no parametrico) --
+    Mann-Whitney U   : U = 13841240.0, p = 9.677117e-200
+    p ajustado (Holm-Bonferroni, 2 comparaciones): 9.677117e-200
+    A12 Vargha-Delaney: 0.6835 (efecto mediano)
+
+==============================================================================
+Comisiones /api/v1/admin/reportes/finanzas (protegido) -- caliente vs frio
+==============================================================================
+  Caliente:
+    n peticiones     : 7500
+    media (ms)       : 19.6563
+    mediana (ms)     : 15.0873
+    desv. estandar   : 18.1878
+    p90 / p95 / p99  : 34.4955 / 45.0549 / 99.1680
+    tasa error >=500 : 0.0000%
+  Frio:
+    n peticiones     : 7302
+    media (ms)       : 37.8861
+    mediana (ms)     : 23.6320
+    desv. estandar   : 40.8848
+    p90 / p95 / p99  : 78.8142 / 113.7255 / 232.2136
+    tasa error >=500 : 0.0000%
+
+  -- Contraste parametrico (no es el test correcto para latencias, se
+     reporta solo como contraste con el valor ya calculado) --
+    Welch t-test     : t = -34.888, p = 8.486694e-252
+    d de Cohen       : -0.5787
+
+  -- Test correcto para datos de latencia (no parametrico) --
+    Mann-Whitney U   : U = 16848748.0, p = 0.000000e+00
+    p ajustado (Holm-Bonferroni, 2 comparaciones): 0.000000e+00
+    A12 Vargha-Delaney: 0.3077 (efecto mediano)
+
