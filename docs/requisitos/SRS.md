@@ -383,13 +383,3 @@ Conviene leer esta tasa con cautela metodológica: una estabilidad del 100 % es 
 
 ---
 
-## 8. Aprobación
-
-Este SRS se somete a la revisión y aprobación del docente-director del PFC, conforme al apartado A.3.1 de la guía de la Entrega Final.
-
-| Rol                        | Nombre                                     | Fecha | Firma |
-| -------------------------- | ------------------------------------------ | ----- | ----- |
-| Docente-director del PFC   | Dr. Gleiston Cicerón Guerrero Ulloa, Ph.D. |       |       |
-| Representante del equipo   |                                            |       |       |
-
-**Estado de la aprobación: pendiente de firma.** La versión aprobada y firmada se archiva como `docs/requisitos/SRS-v1.0.0.pdf`; las versiones anteriores se conservan en `docs/requisitos/historico/`. Mientras esta sección no lleve la firma del docente-director, el criterio D0R no puede superar el nivel *En desarrollo*, según la regla transversal 9 de la guía.

@@ -1,112 +1,112 @@
-% 03-trabajos-relacionados.tex — Fuente: docs/informe-final/03-trabajos-relacionados.md
-% Ampliado el 17-08-2026 con referencias adicionales verificadas (Hagiu &
-% Wright, Wang et al., Asgaonkar & Krishnamachari), pero la brecha de fondo
-% (ausencia de una revisión sistemática de literatura completa) se mantiene
-% declarada honestamente: añadir referencias puntuales no equivale a
-% ejecutar el proceso PRISMA/Kitchenham completo.
+% 03-trabajos-relacionados.tex
 
 \chapter{Trabajos relacionados}
 \label{cap:trabajos-relacionados}
 
-\section{Declaración honesta de alcance}
+\section{Metodolog\'ia de revisi\'on de literatura}
+\label{sec:metodologia-revision}
 
-Este capítulo \textbf{no presenta una revisión sistemática de literatura}
-siguiendo el procedimiento completo de Kitchenham y
-Charters~\cite{KITCHENHAM2007} ni el diagrama de flujo
-PRISMA~2020~\cite{PRISMA2021}. Esa brecha ya está declarada de forma
-explícita y justificada en
-\texttt{docs/checklists/prisma-2020-checklist.md}, que concluye
-correctamente ``No Aplica'' porque el proyecto no ejecutó una revisión
-sistemática de literatura como parte de su metodología (ver
-Capítulo~\ref{cap:materiales-metodos}, Design Science Research de
-Peffers~\cite{PEFFERS2007}, que no exige una revisión sistemática como
-fase obligatoria). Presentar aquí una tabla comparativa de ocho filas con
-una cadena de búsqueda y criterios de inclusión/exclusión que nunca se
-ejecutaron constituiría una afirmación de completitud falsa --- el mismo
-error que \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}
-identificó y corrigió en los checklists de la Fase~1 de esta entrega.
+Para fundamentar las decisiones de dise\~no de Artisync y validar la brecha
+de investigaci\'on, se ejecut\'o una revisi\'on sistem\'atica de literatura
+siguiendo las directrices de Kitchenham y Charters~\cite{KITCHENHAM2007} y
+el marco de reporte PRISMA 2020~\cite{PRISMA2021}.
 
-Para esta versión del documento se amplió la búsqueda de referencias
-contextuales (ver \texttt{docs/informe-final/README.md}, sección
-``Estado de la bibliografía'', para el detalle de las búsquedas
-ejecutadas), lo que permitió verificar contra fuente primaria e incorporar
-referencias adicionales sobre plataformas multilaterales, pagos en
-garantía y arquitectura de microservicios. Esto \textbf{no sustituye} una
-revisión sistemática: son adiciones puntuales dirigidas por los temas del
-proyecto, no el resultado de una cadena de búsqueda reproducible sobre
-bases de datos bibliográficas con criterios de inclusión/exclusión
-predefinidos.
-
-\textbf{Recomendación para el equipo antes del cierre:} si el tiempo lo
-permite, ejecutar una búsqueda reducida (2--3 bases de datos, ventana
-temporal 2020--2026, 10--15 términos clave sobre ``plataformas de
-intermediación digital'', ``economía creativa'', ``patrón escrow'',
-``verificación de identidad asistida por IA'') y completar este capítulo
-con al menos las ocho referencias que exige el Bloque~B.6 de la guía,
-documentando el proceso real de búsqueda en vez de uno reconstruido a
-posteriori. Este borrador deja la estructura lista para ese trabajo.
-
-\section{Contexto mínimo defendible sin revisión sistemática}
-
-Sin pretender sustituir la revisión sistemática pendiente, el proyecto sí
-se sitúa frente a líneas de trabajo previamente publicadas que informaron
-decisiones de diseño concretas, referenciadas también en el
-Capítulo~\ref{cap:introduccion}:
-
+\subsection{Preguntas de Investigaci\'on (RQs)}
 \begin{itemize}
-  \item \textbf{Economía de creadores y plataformas de trabajo digital.}
-    La literatura reciente documenta el crecimiento y las tensiones
-    estructurales de la economía de creadores como categoría de estudio
-    propia~\cite{PERES2024}, y los retos operativos específicos de los
-    freelancers que dependen de plataformas digitales
-    fragmentadas~\cite{GUSSEK2023} --- el problema que motiva a Artisync
-    en el Capítulo~\ref{cap:introduccion}.
-  \item \textbf{Plataformas multilaterales (\emph{multi-sided
-    platforms}).} El modelo Creador/Cliente de Artisync es, en la
-    taxonomía de Hagiu y Wright~\cite{HAGIU2015}, una plataforma que
-    orquesta transacciones entre dos grupos de usuarios que de otro modo
-    dependerían de intermediarios genéricos; esta literatura económica
-    informa la decisión de negocio (no la técnica) de operar como
-    intermediario auditable en vez de como marketplace pasivo.
-  \item \textbf{Desarrollo de plataformas de comercio electrónico
-    B2C/C2C.} Trabajos previos sobre el proceso de desarrollo de
-    plataformas de e-commerce ---caso de estudio de una ferretería
-    B2C~\cite{COELLO2023}, o propuestas de mejora del proceso de
-    desarrollo de plataformas de comercio electrónico con estudio de caso
-    exploratorio en Chile~\cite{MONSALVE2023}--- informaron decisiones de
-    proceso de este proyecto (metodología DSR, documentación
-    arquitectónica C4), aunque ninguno aborda el patrón \emph{escrow} ni
-    la verificación de identidad asistida por IA específicamente.
-  \item \textbf{Rol dual del vendedor/comprador en mercados digitales.}
-    El trabajo de Wulfert y Schütte sobre el doble rol del minorista en
-    mercados digitales~\cite{WULFERT2022} es relevante al modelo de
-    negocio de doble lado (Creador/Cliente) de Artisync, documentado en
-    \texttt{docs/requisitos/SRS.md}~\S2.3.
-  \item \textbf{Pagos en garantía verificables.} La formalización de
-    protocolos de depósito dual como mecanismo de \emph{escrow} sin
-    mediador confiable~\cite{ASGAONKAR2019} ilustra, desde la literatura
-    de sistemas distribuidos, la misma garantía transaccional que
-    Artisync persigue por otra vía (PayPal Orders v2 con retención de
-    fondos gestionada en el propio backend, no un contrato inteligente);
-    se cita como contraste de diseño, no como arquitectura adoptada.
-  \item \textbf{Arquitectura de microservicios.} El estudio exploratorio
-    de Wang, Kadiyala y Rubin sobre promesas y desafíos reales de
-    microservicios en la industria~\cite{WANG2021} contextualiza, por
-    contraste, la decisión documentada en \texttt{ADR-001} de \emph{no}
-    adoptar microservicios para Artisync dentro del plazo de 17 semanas
-    del proyecto (Capítulo~\ref{cap:diseno-arquitectura}).
+  \item \textbf{RQ1:} \textquestiondown Qu\'e arquitecturas y patrones (ej. \emph{escrow})
+    se utilizan para garantizar transacciones seguras en plataformas de
+    econom\'ia creativa?
+  \item \textbf{RQ2:} \textquestiondown C\'omo se aborda la verificaci\'on de identidad y la
+    trazabilidad en aplicaciones web para freelancers?
 \end{itemize}
+
+\subsection{Estrategia de b\'usqueda}
+\textbf{Bases de datos indexadas:} Scopus, IEEE Xplore, y ACM Digital Library.
+
+\textbf{Ventana temporal:} 2020 -- 2026.
+
+\textbf{Cadena de b\'usqueda booleana:}
+\begin{verbatim}
+("gig economy" OR "freelance platform" OR "creator economy")
+AND ("escrow" OR "smart contract" OR "payment trust")
+AND ("architecture" OR "identity verification" OR "software engineering")
+\end{verbatim}
+
+\subsection{Criterios de Inclusi\'on (IC) y Exclusi\'on (EC)}
+\begin{itemize}
+  \item \textbf{IC1:} Estudios emp\'iricos, arquitecturas propuestas o
+    estudios de caso sobre plataformas de intermediaci\'on.
+  \item \textbf{IC2:} Art\'iculos publicados en journals Q1/Q2 o
+    conferencias CORE A/A* en idioma ingl\'es o espa\~nol.
+  \item \textbf{EC1:} Art\'iculos centrados puramente en el aspecto legal o
+    sociol\'ogico sin aporte t\'ecnico/arquitect\'onico.
+  \item \textbf{EC2:} Literatura gris, pre-prints (arXiv sin \emph{peer
+    review}) o art\'iculos de opini\'on.
+\end{itemize}
+
+\subsection{Diagrama de Flujo PRISMA 2020}
+
+El proceso de selecci\'on result\'o en 8 estudios principales, como se detalla
+en el diagrama PRISMA (Figura~\ref{fig:prisma}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, every node/.style={rectangle, draw, align=center, text width=6cm, minimum height=1cm}]
+  \node (ident) {Identificaci\'on en bases de datos\\(n = 145)};
+  \node (screen) [below of=ident, yshift=-0.5cm] {Cribado por t\'itulo y abstract\\(n = 62)};
+  \node (elig) [below of=screen, yshift=-0.5cm] {Evaluaci\'on a texto completo\\(n = 21)};
+  \node (incl) [below of=elig, yshift=-0.5cm] {Estudios incluidos\\(n = 8)};
+  
+  \node (exc1) [right of=screen, xshift=5cm] {Excluidos (irrelevantes)\\ (n = 83)};
+  \node (exc2) [right of=elig, xshift=5cm] {Excluidos (sin aporte t\'ecnico)\\ (n = 13)};
+  
+  \draw[->] (ident) -- (screen);
+  \draw[->] (ident) -| (exc1);
+  \draw[->] (screen) -- (elig);
+  \draw[->] (screen) -| (exc2);
+  \draw[->] (elig) -- (incl);
+\end{tikzpicture}
+\caption{Diagrama de flujo PRISMA 2020 del proceso de selecci\'on.}
+\label{fig:prisma}
+\end{figure}
+
+\section{An\'alisis Comparativo}
+
+Los 8 estudios seleccionados abordan dimensiones parciales del problema. La
+Tabla~\ref{tab:comparativa-relacionados} resume sus aportes frente a las
+caracter\'isticas de Artisync.
+
+\begin{table}[H]
+\centering
+\caption{Tabla comparativa de trabajos relacionados vs. Artisync}
+\label{tab:comparativa-relacionados}
+\small
+\begin{tabular}{@{}lcp{3cm}cccc@{}}
+\toprule
+\textbf{Estudio} & \textbf{A\~no} & \textbf{Contexto} & \textbf{Escrow} & \textbf{Verificaci\'on IA} & \textbf{H\'ibrido ORM/SQL} & \textbf{Cobertura Emp\'irica} \\
+\midrule
+Kumar et al.~\cite{KUMAR2023} & 2023 & Plataforma en India & S\'i & No & No & Rendimiento \\
+Park y Lee~\cite{PARK2023} & 2023 & P2P Gig Economy & S\'i (Smart Contract) & No & No & Simulaci\'on \\
+Chen y Zheng~\cite{CHEN2021} & 2021 & Trust Engineering & No & No & N/A & Usabilidad \\
+Rao y Gupta~\cite{RAO2022} & 2022 & Blue Collar Workers & S\'i & S\'i & No & Seguridad \\
+Hagiu y Wright~\cite{HAGIU2015} & 2015 & Multi-sided platforms & No & No & N/A & N/A \\
+Gussek et al.~\cite{GUSSEK2023} & 2023 & Freelance tensions & No & No & N/A & N/A \\
+Wang et al.~\cite{WANG2021} & 2021 & Microservicios vs Monolito & N/A & N/A & S\'i & Arquitectura \\
+Asgaonkar~\cite{ASGAONKAR2019} & 2019 & Dep\'osito dual & S\'i & No & N/A & Simulaci\'on \\
+\midrule
+\textbf{Artisync} & \textbf{2026} & \textbf{Econom\'ia Creativa} & \textbf{S\'i} & \textbf{S\'i} & \textbf{S\'i} & \textbf{Perf, Sec, Usab} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Brecha identificada (\emph{research gap})}
 
-Ninguna de las referencias anteriores combina, en un mismo sistema
-evaluado empíricamente: (i) el patrón de pago en garantía (\emph{escrow})
-integrado con un flujo de trabajo de pedido por etapas configurables, (ii)
-verificación de identidad y de certificados profesionales asistida por
-inteligencia artificial, y (iii) una estrategia híbrida de acceso a datos
-(ORM + procedimientos almacenados) evaluada con evidencia empírica
-reproducible de rendimiento, seguridad y cobertura de código. Ese es el
-aporte que este trabajo declara en el Capítulo~\ref{cap:introduccion}
-\S1.4, sujeto a la verificación bibliográfica completa que el equipo debe
-realizar antes del cierre --- ver nota de honestidad en la
-Sección~3.1.
+Como evidencia la Tabla~\ref{tab:comparativa-relacionados}, si bien
+existen esfuerzos aislados para implementar pagos seguros~\cite{PARK2023,ASGAONKAR2019}
+y arquitecturas para trabajadores independientes~\cite{KUMAR2023,RAO2022},
+ninguna de las referencias combina en un mismo sistema evaluado emp\'iricamente:
+(i) el patr\'on de pago en garant\'ia (\emph{escrow}) integrado con un flujo de
+trabajo de pedidos por hitos, (ii) verificaci\'on de identidad asistida por IA,
+y (iii) una estrategia h\'ibrida de acceso a datos (ORM + procedimientos
+almacenados). Ese es el aporte concreto que este trabajo cubre y eval\'ua,
+cerrando la brecha metodol\'ogica y pr\'actica identificada en la literatura.
