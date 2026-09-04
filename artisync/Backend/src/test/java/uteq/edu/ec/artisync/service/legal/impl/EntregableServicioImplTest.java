@@ -46,6 +46,8 @@ class EntregableServicioImplTest {
     @Mock private ContratoRepository contratoRepository;
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
     @Mock private AlmacenamientoDocumentos almacenamiento;
+    @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
+    @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificacionService notificacionService;
 
     @InjectMocks private EntregableServicioImpl servicio;
 
@@ -269,5 +271,42 @@ class EntregableServicioImplTest {
 
         assertThat(respuesta.getUrlVersionLimpia()).isNull();
         assertThat(respuesta.getUrlVersionMarcaAgua()).isNotNull();
+    }
+
+    // ── Aprobar Entrega ──────────────────────────────────────────────────────
+    @Test
+    void aprobarEntrega_ok() {
+        when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
+        when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
+                .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+
+        uteq.edu.ec.artisync.entity.legal.Contrato contrato = new uteq.edu.ec.artisync.entity.legal.Contrato();
+        contrato.setIdContrato(1L);
+        when(contratoRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.of(contrato));
+
+        uteq.edu.ec.artisync.entity.legal.PagoGarantia pago = new uteq.edu.ec.artisync.entity.legal.PagoGarantia();
+        pago.setMontoRetenido(new java.math.BigDecimal("100.00"));
+        when(pagoGarantiaRepository.findByContratoIdContrato(1L)).thenReturn(Optional.of(pago));
+
+        servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE);
+
+        verify(transaccionPagoRepository, times(2)).save(any());
+        verify(entregableRepository).save(any());
+    }
+
+    @Test
+    void aprobarEntrega_noEsCliente_error() {
+        when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_TERCERO));
+    }
+
+    @Test
+    void aprobarEntrega_yaLiberado_error() {
+        when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
+        when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
+                .thenReturn(Optional.of(entregableGuardado("m", "l", true)));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
     }
 }

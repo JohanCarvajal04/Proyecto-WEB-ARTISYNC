@@ -118,5 +118,96 @@ class AuthControllerTest {
         assertNotNull(cookieHeader);
         assertTrue(cookieHeader.contains("Max-Age=0"));
     }
+    @Test
+    void register_devuelveCreated() {
+        uteq.edu.ec.artisync.dto.seguridad.request.RegisterRequest requestReg = new uteq.edu.ec.artisync.dto.seguridad.request.RegisterRequest();
+        uteq.edu.ec.artisync.dto.seguridad.response.UserResponse resp = new uteq.edu.ec.artisync.dto.seguridad.response.UserResponse();
+        when(authService.register(requestReg)).thenReturn(resp);
+
+        ResponseEntity<uteq.edu.ec.artisync.dto.seguridad.response.UserResponse> result = authController.register(requestReg);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertEquals(resp, result.getBody());
+    }
+
+    @Test
+    void verify2Fa_sinTicket_devuelveUnauthorized() {
+        ResponseEntity<TokenResponse> res = authController.verify2Fa(null, new uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorRequest(), response);
+        assertEquals(HttpStatus.UNAUTHORIZED, res.getStatusCode());
+    }
+
+    @Test
+    void verify2Fa_conTicket_devuelveOk() {
+        uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorRequest request2fa = new uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorRequest();
+        TokenResponse tokenResp = TokenResponse.builder().accessToken("access").build();
+        when(authService.verify2Fa("ticket", request2fa)).thenReturn(tokenResp);
+
+        ResponseEntity<TokenResponse> res = authController.verify2Fa("ticket", request2fa, response);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertEquals(tokenResp, res.getBody());
+    }
+
+    @Test
+    void forgotPassword_devuelveOk() {
+        uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest req = new uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest();
+        RespuestaMensaje resp = new RespuestaMensaje("Ok");
+        when(authService.forgotPassword(req)).thenReturn(resp);
+
+        ResponseEntity<RespuestaMensaje> res = authController.forgotPassword(req);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+    }
+
+    @Test
+    void resetPassword_devuelveOk() {
+        uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest req = new uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest();
+        RespuestaMensaje resp = new RespuestaMensaje("Ok");
+        when(authService.resetPassword(req)).thenReturn(resp);
+
+        ResponseEntity<RespuestaMensaje> res = authController.resetPassword(req);
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+    }
+
+    @Test
+    void verify2Fa_ticketBlanco_devuelveUnauthorized() {
+        ResponseEntity<TokenResponse> res = authController.verify2Fa("   ", new uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorRequest(), response);
+        assertEquals(HttpStatus.UNAUTHORIZED, res.getStatusCode());
+    }
+
+    @Test
+    void refresh_tokenBlanco_devuelveUnauthorized() {
+        ResponseEntity<TokenResponse> res = authController.refresh("   ", null, response);
+        assertEquals(HttpStatus.UNAUTHORIZED, res.getStatusCode());
+    }
+
+    @Test
+    void login_sinTicket2fa_noSeteaCookie() {
+        LoginRequest loginRequest = new LoginRequest("test2@example.com", "pass");
+        // token sin preAuthTicket
+        TokenResponse tokenResponse = TokenResponse.builder()
+                .accessToken("access-token")
+                .refreshToken("refresh-token")
+                .correo("test2@example.com")
+                .preAuthTicket(null)
+                .build();
+
+        when(authService.login(loginRequest)).thenReturn(tokenResponse);
+        ResponseEntity<TokenResponse> result = authController.login(loginRequest, response);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+    }
+
+    @Test
+    void login_sinRefreshToken_noSeteaCookie() {
+        LoginRequest loginRequest = new LoginRequest("test3@example.com", "pass");
+        // token sin refreshToken
+        TokenResponse tokenResponse = TokenResponse.builder()
+                .accessToken("access-token")
+                .refreshToken(null)
+                .correo("test3@example.com")
+                .preAuthTicket("ticket")
+                .build();
+
+        when(authService.login(loginRequest)).thenReturn(tokenResponse);
+        ResponseEntity<TokenResponse> result = authController.login(loginRequest, response);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+    }
 }
 

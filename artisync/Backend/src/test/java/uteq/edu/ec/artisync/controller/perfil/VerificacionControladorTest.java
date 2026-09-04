@@ -83,4 +83,42 @@ class VerificacionControladorTest {
         assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resultado.getBody().idModerador()).isEqualTo(99L);
     }
+
+    @Test
+    void obtenerMiEstadoIdentidad_devuelveOk() {
+        uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad respuesta = 
+                new uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad(true, "mensaje");
+        when(verificacionServicio.obtenerEstadoIdentidad(1L)).thenReturn(respuesta);
+
+        ResponseEntity<uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad> res = 
+                controlador.obtenerMiEstadoIdentidad(usuarioCreador());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerPorId_esRevisor_devuelveOk() {
+        RespuestaVerificacion respuesta = RespuestaVerificacion.builder().idCertificado(10L).build();
+        when(verificacionServicio.obtenerPorId(10L, 99L, true)).thenReturn(respuesta);
+
+        ResponseEntity<RespuestaVerificacion> res = controlador.obtenerPorId(10L, usuarioRevisor());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerPorId_noEsRevisor_devuelveOk() {
+        RespuestaVerificacion respuesta = RespuestaVerificacion.builder().idCertificado(10L).build();
+        when(verificacionServicio.obtenerPorId(10L, 1L, false)).thenReturn(respuesta);
+
+        ResponseEntity<RespuestaVerificacion> res = controlador.obtenerPorId(10L, usuarioCreador());
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void obtenerDocumento_devuelveOk() {
+        byte[] doc = new byte[]{1,2};
+        when(verificacionServicio.obtenerDocumento(10L)).thenReturn(doc);
+
+        ResponseEntity<byte[]> res = controlador.obtenerDocumento(10L);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
 }
