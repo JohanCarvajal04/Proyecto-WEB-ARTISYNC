@@ -1,17 +1,33 @@
-HTTP/1.1 200 
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json
-Transfer-Encoding: chunked
-Date: Fri, 31 Jul 2026 01:11:05 GMT
+Comando ejecutado (recaptura 2026-09-04, commit a0132222b1be7bb1a3b06861c1b592c86d623f31):
 
+$ curl -sS -i -X GET "http://localhost:4200/api/v1/catalogo"
+
+HTTP/1.1 200 OK
+vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+x-content-type-options: nosniff
+x-xss-protection: 0
+cache-control: no-cache, no-store, max-age=0, must-revalidate
+pragma: no-cache
+expires: 0
+x-frame-options: DENY
+content-security-policy: default-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+referrer-policy: strict-origin-when-cross-origin
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=()
+content-type: application/json
+date: Fri, 04 Sep 2026 21:26:21 GMT
+connection: close
+Transfer-Encoding: chunked
+
+{"content":[{"idServicio":6,"tituloServicio":"Prop 3D para Videojuego", ...} ... 6 servicios ...],
+"empty":false,"first":true,"last":true,"number":0,"numberOfElements":6,"totalElements":6,"totalPages":1}
+(cuerpo completo omitido por brevedad — 6 servicios activos del seed de medición)
+
+`Strict-Transport-Security` no aparece en esta captura porque se hizo sobre `:4200` (HTTP plano,
+proxy del frontend) — Spring Security nunca la envía en texto plano. Confirmada sobre HTTPS en la
+misma sesión de medición, ver `a02-tls.txt`:
+
+Strict-Transport-Security: max-age=31536000 ; includeSubDomains
+
+Las demás cabeceras de seguridad (nosniff, X-Frame-Options, CSP, Referrer-Policy,
+Permissions-Policy) sí están presentes sobre HTTP plano porque Spring Security las añade
+independientemente del esquema de transporte.

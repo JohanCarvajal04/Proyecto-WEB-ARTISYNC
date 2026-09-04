@@ -1,10 +1,43 @@
-Can't use SSL_get_servername
-SSL handshake has read 1376 bytes and written 1538 bytes
+Comando ejecutado (recaptura 2026-09-04, commit a0132222b1be7bb1a3b06861c1b592c86d623f31):
+
+$ curl -sS -i --insecure -X GET https://localhost:8443/api/v1/catalogo
+
+Entorno: perfil `medicion` activo (`docker compose -f docker-compose.yml -f
+docker-compose.medicion.yml up -d backend`), conector HTTPS adicional en :8443
+(`TlsMedicionConfig`), keystore PKCS12 autofirmado generado con `keytool` para esta ventana de
+medición (no versionado, ver `Backend/.gitignore: *.p12`).
+
+Verificación del protocolo/cifrado negociado con openssl (curl en Windows usa Schannel y no
+imprime el resumen TLS en texto plano):
+
+$ echo | openssl s_client -connect localhost:8443 -tls1_3
+
 New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
 Protocol: TLSv1.3
-This TLS version forbids renegotiation.
 SSL-Session:
     Protocol  : TLSv1.3
     Cipher    : TLS_AES_256_GCM_SHA384
-    TLS session ticket lifetime hint: 86400 (seconds)
-    TLS session ticket:
+
+Respuesta completa de la petición curl (confirma además que HSTS sí se emite sobre HTTPS,
+cerrando la aclaración pendiente de la captura anterior de A05):
+
+HTTP/1.1 200
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+Strict-Transport-Security: max-age=31536000 ; includeSubDomains
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Fri, 04 Sep 2026 21:28:26 GMT
+
+(cuerpo: listado JSON del catálogo, 6 servicios activos — omitido aquí por brevedad, ver
+a05-cabeceras.txt para el cuerpo completo de la misma ruta)

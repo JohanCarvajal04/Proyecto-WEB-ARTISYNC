@@ -1,35 +1,104 @@
 # Reporte de Auditoría de Seguridad OWASP — Bloque C.2
 
-- Fecha: 2026-07-30
-- Commit del sistema evaluado: `entrega-3/mediciones-bloque-c` (base `f05feeb` + arreglos de esta sesión)
+- Fecha de la auditoría original: 2026-07-30 · **Recaptura de los 6 controles: 2026-09-04**
+- Commit del sistema evaluado en la recaptura: `a0132222b1be7bb1a3b06861c1b592c86d623f31`
 - Entorno: `docker compose up -d --build` (A02 requiere además el override
-  `docker-compose.medicion.yml`, ver [`PLAN-MEDICIONES.md §2.2`](../PLAN-MEDICIONES.md))
+  `docker-compose.medicion.yml`, ver [`PLAN-MEDICIONES.md §2.2`](../PLAN-MEDICIONES.md)). Todas
+  las peticiones salvo A02 se hicieron contra `http://localhost:4200/api/...` (proxy del
+  frontend) — el puerto 8080 del backend ya no se publica al host desde OBS-AUTO-05.
 
 | Control | Evidencia | Resultado observado | Cumple |
 |---|---|---|---|
-| A01 — Control de acceso roto | [`a01-control-acceso.txt`](a01-control-acceso.txt) | `userA` (token propio) solicita el pedido de `userB` (`GET /api/v1/pedidos/2`) → `403 Forbidden` | ✅ Sí |
-| A02 — Fallas criptográficas | [`a02-tls.txt`](a02-tls.txt) | Conector HTTPS adicional en 8443 (perfil `medicion`) negocia `TLSv1.3`, cipher `TLS_AES_256_GCM_SHA384` (AEAD) | ✅ Sí |
+| A01 — Control de acceso roto | [`a01-control-acceso.txt`](a01-control-acceso.txt) | Usuario `CLIENTE` sin rol/permiso de administrador solicita `GET /api/v1/admin/auditoria` → `403 Forbidden` | ✅ Sí |
+| A02 — Fallas criptográficas | [`a02-tls.txt`](a02-tls.txt) | Conector HTTPS adicional en 8443 (perfil `medicion`) negocia `TLSv1.3`, cipher `TLS_AES_256_GCM_SHA384` (AEAD); HSTS confirmado en la misma respuesta | ✅ Sí |
 | A03 — Inyección | [`a03-inyeccion.txt`](a03-inyeccion.txt) | `GET /api/v1/catalogo?q=test' OR '1'='1` → `200` con `content: []` (consulta parametrizada vía JPA `Specification`); sin `500` ni filtración de datos | ✅ Sí |
-| A05 — Configuración incorrecta de seguridad | [`a05-cabeceras.txt`](a05-cabeceras.txt) | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy`, `Referrer-Policy`, `Permissions-Policy` presentes sobre HTTP plano. `Strict-Transport-Security` **no aparece en este archivo** porque se capturó sobre `:8080` (HTTP) — Spring Security nunca la envía en texto plano; confirmada por separado sobre `:8443` en la misma sesión (ver nota abajo) | ✅ Sí (con la aclaración de HSTS) |
-| A07 — Fallas de identificación y autenticación | [`a07-rate-limit.txt`](a07-rate-limit.txt) | 6 intentos de login con contraseña incorrecta: intentos 1–5 → `401`, intento **6 → `429`** con `Retry-After` | ✅ Sí |
+| A05 — Configuración incorrecta de seguridad | [`a05-cabeceras.txt`](a05-cabeceras.txt) | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy`, `Referrer-Policy`, `Permissions-Policy` presentes sobre HTTP plano. `Strict-Transport-Security` **no aparece en este archivo** porque se capturó sobre el proxy `:4200` (HTTP) — Spring Security nunca la envía en texto plano; confirmada en la misma sesión sobre `:8443` (ver `a02-tls.txt`) | ✅ Sí (con la aclaración de HSTS) |
+| A07 — Fallas de identificación y autenticación | [`a07-rate-limit.txt`](a07-rate-limit.txt) | 11 intentos de login con contraseña incorrecta: intentos 1–5 → `401`; intento **6 → `429`** (cuota por cuenta, `Retry-After: 900`); intentos 10–11 → `429` (cuota por IP, `Retry-After: 60`) | ✅ Sí |
 | A09 — Fallas de registro y monitoreo | [`a09-logging.txt`](a09-logging.txt) | Logs con `evento=LOGIN`, `resultado=EXITOSO`/`FALLIDO`, `correo`, `ip` y `sub` (id de usuario, solo en éxito) para ambos casos | ✅ Sí |
 
-## Nota sobre A05 / HSTS
+## A01 — Broken Access Control
 
-> **Las URLs de este reporte son las de la sesión de captura y se conservan tal cual.** En ese
-> momento el backend aún publicaba el 8080 al host, y el 8443 provenía del override
-> `docker-compose.medicion.yml`. Tras OBS-AUTO-05 el 8080 ya no se publica: para reproducir estas
-> capturas hoy hay que ir por el proxy del frontend (`http://localhost:4200/api/...`).
+Commit auditado: `a0132222b1be7bb1a3b06861c1b592c86d623f31` · Fecha: 2026-09-04T21:26:09Z
+```
+$ curl -sS -i -X GET "http://localhost:4200/api/v1/admin/auditoria" \
+    -H "Authorization: Bearer <token-de-usuario-CLIENTE-sin-rol-ADMIN>"
+HTTP/1.1 403 Forbidden
+{"detail":"No tienes permisos suficientes para realizar esta acción","instance":"/api/v1/admin/auditoria","status":403,"title":"Forbidden","type":"https://artisync.dev/errors/acceso-denegado"}
+```
+Detalle y nota sobre el cambio de escenario respecto a la captura original (julio 2026, control
+de acceso horizontal sobre un pedido) en [`a01-control-acceso.txt`](a01-control-acceso.txt).
 
-`a05-cabeceras.txt` se generó con `curl -s -D - -X GET http://localhost:8080/api/v1/catalogo`
-(el endpoint es `permitAll` solo para `GET`; un `HEAD` con `curl -I` cae en `anyRequest().authenticated()`
-y devuelve `401` — no confundir con una brecha real, es un detalle del método HTTP usado en la prueba).
+## A02 — Fallas criptográficas (TLS)
+
+Commit auditado: `a0132222b1be7bb1a3b06861c1b592c86d623f31` · Fecha: 2026-09-04T21:28:26Z
+```
+$ curl -sS -i --insecure -X GET https://localhost:8443/api/v1/catalogo
+HTTP/1.1 200
+Strict-Transport-Security: max-age=31536000 ; includeSubDomains
+...
+$ echo | openssl s_client -connect localhost:8443 -tls1_3
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+```
+Detalle completo en [`a02-tls.txt`](a02-tls.txt).
+
+## A03 — Inyección
+
+Commit auditado: `a0132222b1be7bb1a3b06861c1b592c86d623f31` · Fecha: 2026-09-04T21:26:16Z
+```
+$ curl -sS -i -X GET "http://localhost:4200/api/v1/catalogo?q=test%27%20OR%20%271%27%3D%271"
+HTTP/1.1 200 OK
+{"content":[],"empty":true,...,"totalElements":0,"totalPages":0}
+```
+Detalle en [`a03-inyeccion.txt`](a03-inyeccion.txt).
+
+## A05 — Configuración incorrecta de seguridad / Nota sobre HSTS
+
+Commit auditado: `a0132222b1be7bb1a3b06861c1b592c86d623f31` · Fecha: 2026-09-04T21:26:21Z
+```
+$ curl -sS -i -X GET "http://localhost:4200/api/v1/catalogo"
+HTTP/1.1 200 OK
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; ...
+```
 Sobre HTTP plano nunca aparece `Strict-Transport-Security`, porque Spring Security solo la
-emite en respuestas servidas por HTTPS. Se verificó en la misma sesión, sobre el conector TLS de
-8443, que la cabecera sí se emite (`Strict-Transport-Security: max-age=31536000 ;
-includeSubDomains`), confirmando que la configuración en `SecurityConfig.java` funciona
+emite en respuestas servidas por HTTPS. Confirmada en la misma sesión de recaptura sobre el
+conector TLS de 8443 (`Strict-Transport-Security: max-age=31536000 ; includeSubDomains`, ver
+`a02-tls.txt`), confirmando que la configuración en `SecurityConfig.java` funciona
 correctamente — solo no se ve en este `.txt` concreto porque ese archivo es deliberadamente el
-del endpoint plano.
+del endpoint plano. Detalle completo en [`a05-cabeceras.txt`](a05-cabeceras.txt).
+
+## A07 — Fallas de identificación y autenticación (rate limit)
+
+Commit auditado: `a0132222b1be7bb1a3b06861c1b592c86d623f31` · Fecha: 2026-09-04T21:26:30Z a 21:26:34Z
+```
+$ for i in $(seq 1 11); do
+    curl -sS -i -X POST "http://localhost:4200/api/v1/auth/login" \
+      -H "Content-Type: application/json" \
+      -d '{"correo":"usera-owasp@test.com","contrasena":"WrongPass999"}'
+  done
+Intento 1-5: HTTP/1.1 401 Unauthorized
+Intento 6-9: HTTP/1.1 429 Too Many Requests (retry-after: 900 — cuota por cuenta)
+Intento 10-11: HTTP/1.1 429 Too Many Requests (retry-after: 60 — cuota por IP)
+```
+Recaptura que **reemplaza la evidencia marcada OBSOLETA** (OBS-AUTO-05, agosto 2026). Confirma
+que `AuthRateLimitFilter` + la cuota por cuenta (`IntentosAutenticacionService`) sí bloquean
+intentos repetidos, con cuerpo `ProblemDetail` en UTF-8 (ya no el bug de encoding ISO-8859-1 de
+la captura anterior). Detalle completo en [`a07-rate-limit.txt`](a07-rate-limit.txt).
+
+## A09 — Fallas de registro y monitoreo
+
+Commit auditado: `a0132222b1be7bb1a3b06861c1b592c86d623f31` · Fecha: 2026-09-04T21:28:45Z
+```
+$ curl -sS -X POST "http://localhost:4200/api/v1/auth/login" -H "Content-Type: application/json" \
+    -d '{"correo":"userb-owasp@test.com","contrasena":"WrongPass999"}'
+$ curl -sS -X POST "http://localhost:4200/api/v1/auth/login" -H "Content-Type: application/json" \
+    -d '{"correo":"userb-owasp@test.com","contrasena":"UserBPass123"}'
+$ docker logs pfc_backend 2>&1 | grep "evento=LOGIN"
+... evento=LOGIN resultado=FALLIDO correo=userb-owasp@test.com ip=172.18.0.5
+... evento=LOGIN resultado=EXITOSO correo=userb-owasp@test.com ip=172.18.0.5 sub=12
+```
+Detalle en [`a09-logging.txt`](a09-logging.txt).
 
 ## Remediaciones aplicadas en esta entrega (con referencia a OBSERVACIONES.md)
 

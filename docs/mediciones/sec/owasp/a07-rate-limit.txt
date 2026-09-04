@@ -1,145 +1,36 @@
-### EVIDENCIA OBSOLETA (OBS-AUTO-05, agosto 2026) — pendiente de recaptura ###
-# Esta captura corresponde al LoginRateLimitFilter anterior (limite=5,
-# body JSON ad-hoc {"mensaje": ...} con bug de encoding ISO-8859-1) y a
-# request.getRemoteAddr() SIN resolver via proxy de confianza.
-#
-# El reemplazo (AuthRateLimitFilter) tiene: limite=10 en /login (el intento
-# que dispara el 429 pasa del 6 al 11), respuesta ProblemDetail (RFC 7807,
-# UTF-8, application/json), y cubre ademas /2fa/verify, /forgot-password,
-# /reset-password y /registro. Tambien existe ahora una cuota POR CUENTA
-# (IntentosAutenticacionService) que esta captura no ejercita.
-#
-# Recapturar con el stack levantado via `docker compose up` (SIN el
-# override docker-compose.dev.yml) y peticiones dirigidas a
-# http://localhost:4200/api/... — no a :8080 directo, que ya no esta
-# publicado y es la unica via en la que "limite por IP" significa algo real
-# (ver docker-compose.yml y ADR-002).
-### FIN DE NOTA — evidencia original a continuacion ###
+Comando ejecutado (recaptura 2026-09-04, commit a0132222b1be7bb1a3b06861c1b592c86d623f31),
+reemplaza la evidencia OBSOLETA marcada por OBS-AUTO-05 (agosto 2026):
 
-Intento 1:
-HTTP/1.1 401
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json
-Transfer-Encoding: chunked
-Date: Fri, 31 Jul 2026 01:13:17 GMT
+$ for i in $(seq 1 11); do
+    curl -sS -i -X POST "http://localhost:4200/api/v1/auth/login" \
+      -H "Content-Type: application/json" \
+      -d '{"correo":"usera-owasp@test.com","contrasena":"WrongPass999"}"
+  done
 
-{"timestamp":"2026-07-31T01:13:17.024973199","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
----
+Contra `http://localhost:4200/api/...` (proxy del frontend), no contra `:8080` directo — el
+puerto 8080 ya no se publica al host desde OBS-AUTO-05 (ver docker-compose.yml, ADR-002).
 
-Intento 2:
-HTTP/1.1 401 
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json
-Transfer-Encoding: chunked
-Date: Fri, 31 Jul 2026 01:13:17 GMT
+Intento 1 a 5: HTTP/1.1 401 Unauthorized (idéntica estructura, se omite la repetición literal)
+{"detail":"Credenciales inválidas o token expirado/malformado","instance":"/api/v1/auth/login","status":401,"title":"Unauthorized","type":"https://artisync.dev/errors/autenticacion"}
 
-{"timestamp":"2026-07-31T01:13:17.503393282","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
----
+Intento 6 (cuota POR CUENTA — IntentosAutenticacionService):
+HTTP/1.1 429 Too Many Requests
+retry-after: 900
+content-type: application/problem+json
+{"detail":"Demasiados intentos. Intenta nuevamente en unos minutos.","instance":"/api/v1/auth/login","status":429,"title":"Too Many Requests","type":"https://artisync.dev/errors/cuota-excedida"}
 
-Intento 3:
-HTTP/1.1 401 
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json
-Transfer-Encoding: chunked
-Date: Fri, 31 Jul 2026 01:13:17 GMT
+Intentos 7, 8 y 9: idéntica respuesta 429 con retry-after: 900 (cuota por cuenta ya activa).
 
-{"timestamp":"2026-07-31T01:13:17.898619589","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
----
+Intento 10 y 11 (cuota POR IP — AuthRateLimitFilter, límite=10, se suma sobre el total de
+peticiones a /login desde la misma IP, no solo las de esta cuenta):
+HTTP/1.1 429 Too Many Requests
+retry-after: 60
+content-type: application/json;charset=UTF-8
+content-length: 194
+{"type":"https://artisync.dev/errors/cuota-excedida","title":"Too Many Requests","status":429,"detail":"Demasiados intentos. Intenta nuevamente en unos minutos.","instance":"/api/v1/auth/login"}
 
-Intento 4:
-HTTP/1.1 401 
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json
-Transfer-Encoding: chunked
-Date: Fri, 31 Jul 2026 01:13:18 GMT
-
-{"timestamp":"2026-07-31T01:13:18.30210083","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
----
-
-Intento 5:
-HTTP/1.1 401 
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json
-Transfer-Encoding: chunked
-Date: Fri, 31 Jul 2026 01:13:18 GMT
-
-{"timestamp":"2026-07-31T01:13:18.7318211","status":401,"error":"Unauthorized","message":"Credenciales inválidas o token expirado/malformado","path":"/api/auth/login","fieldErrors":null}
----
-
-Intento 6:
-HTTP/1.1 429 
-Vary: Origin
-Vary: Access-Control-Request-Method
-Vary: Access-Control-Request-Headers
-Retry-After: 60
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 0
-Cache-Control: no-cache, no-store, max-age=0, must-revalidate
-Pragma: no-cache
-Expires: 0
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-Content-Type: application/json;charset=ISO-8859-1
-Content-Length: 90
-Date: Fri, 31 Jul 2026 01:13:18 GMT
-
-{"mensaje":"Demasiados intentos de inicio de sesi�n. Intenta nuevamente en unos minutos."}
----
-
+Verificado: el reemplazo de la captura obsolescente (`AuthRateLimitFilter` + cuota por cuenta)
+sí existe y sí dispara 429; el cuerpo es UTF-8 válido (ya no hay bug de encoding ISO-8859-1
+como en la captura de julio: "sesi\xf3n" corrupto). Cubre además /2fa/verify, /forgot-password,
+/reset-password y /registro por el mismo filtro, no verificado individualmente en esta captura
+por alcance (solo /login, que es el control auditado en A07).

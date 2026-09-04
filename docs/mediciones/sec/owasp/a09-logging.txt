@@ -1,17 +1,15 @@
-pfc_backend  | 2026-07-31T01:12:21.749Z  INFO 1 --- [artisync] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
-pfc_backend  | 2026-07-31T01:13:17.017Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
-pfc_backend  | 2026-07-31T01:13:17.024Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
-pfc_backend  | 2026-07-31T01:13:17.500Z  WARN 1 --- [artisync] [nio-8080-exec-2] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
-pfc_backend  | 2026-07-31T01:13:17.502Z  WARN 1 --- [artisync] [nio-8080-exec-2] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
-pfc_backend  | 2026-07-31T01:13:17.897Z  WARN 1 --- [artisync] [nio-8080-exec-4] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
-pfc_backend  | 2026-07-31T01:13:17.898Z  WARN 1 --- [artisync] [nio-8080-exec-4] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
-pfc_backend  | 2026-07-31T01:13:18.300Z  WARN 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
-pfc_backend  | 2026-07-31T01:13:18.301Z  WARN 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
-pfc_backend  | 2026-07-31T01:13:18.726Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=test@test.com ip=172.18.0.1
-pfc_backend  | 2026-07-31T01:13:18.731Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
-pfc_backend  | 2026-07-31T01:13:18.799Z  WARN 1 --- [artisync] [nio-8080-exec-2] u.e.e.a.security.LoginRateLimitFilter    : Rate limit de login excedido para IP 172.18.0.1
-pfc_backend  | 2026-07-31T01:13:30.060Z  WARN 1 --- [artisync] [nio-8080-exec-7] u.e.e.a.security.LoginRateLimitFilter    : Rate limit de login excedido para IP 172.18.0.1
-pfc_backend  | 2026-07-31T01:13:30.128Z  WARN 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.security.LoginRateLimitFilter    : Rate limit de login excedido para IP 172.18.0.1
-pfc_backend  | 2026-07-31T01:14:10.322Z  INFO 1 --- [artisync] [nio-8080-exec-6] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=EXITOSO correo=userB@test.com ip=172.18.0.1 sub=6
-pfc_backend  | 2026-07-31T01:14:10.763Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=userB@test.com ip=172.18.0.1
-pfc_backend  | 2026-07-31T01:14:10.765Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.e.ManejadorGlobalExcepciones     : Error de autenticación/JWT en /api/auth/login: Bad credentials
+Comando ejecutado (recaptura 2026-09-04, commit a0132222b1be7bb1a3b06861c1b592c86d623f31):
+
+$ curl -sS -X POST "http://localhost:4200/api/v1/auth/login" -H "Content-Type: application/json" \
+    -d '{"correo":"userb-owasp@test.com","contrasena":"WrongPass999"}'
+$ curl -sS -X POST "http://localhost:4200/api/v1/auth/login" -H "Content-Type: application/json" \
+    -d '{"correo":"userb-owasp@test.com","contrasena":"UserBPass123"}'
+$ docker logs pfc_backend 2>&1 | grep "evento=LOGIN"
+
+2026-09-04T21:28:45.933Z  WARN 1 --- [artisync] [io-8080-exec-10] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=FALLIDO correo=userb-owasp@test.com ip=172.18.0.5
+2026-09-04T21:28:46.606Z  INFO 1 --- [artisync] [nio-8080-exec-1] u.e.e.a.s.s.impl.AuthServiceImpl         : evento=LOGIN resultado=EXITOSO correo=userb-owasp@test.com ip=172.18.0.5 sub=12
+
+El primer intento (contraseña incorrecta) responde 401 y registra resultado=FALLIDO sin exponer
+el hash ni la contraseña enviada. El segundo (credenciales correctas) responde 200 y registra
+resultado=EXITOSO con el identificador de usuario (`sub=12`), habilitando trazabilidad de acceso
+sin filtrar datos sensibles en el log.
