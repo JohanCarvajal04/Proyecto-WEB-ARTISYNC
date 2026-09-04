@@ -73,4 +73,67 @@ configuración.
 
 - `k6-run{1,2,3}.json` / `k6-console-run{1,2,3}.txt` — escenario caliente
 - `k6-cold-run{1,2,3}.json` / `k6-console-cold-run{1,2,3}.txt` — escenario frío
-- `analisis-perf.py` / `salida-analisis.txt` — análisis agregado
+- `analisis-perf.py` / `salida-analisis.txt` — análisis agregado (histórico; no versionado, solo quedó su salida)
+
+## Adenda T-14/T-15 (2026-09-04) — endpoint protegido + test inferencial
+
+Los datos y advertencia metodológica de arriba (endpoint público
+`/api/v1/catalogo`) se conservan sin cambios: siguen siendo evidencia
+válida de un escenario público. Se **añaden** dos piezas nuevas, sin
+sustituir nada:
+
+**T-14 — carga contra un endpoint protegido.** `k6/comisiones-load.js`
+repite el mismo perfil de carga (50 VUs, 30s) contra
+`GET /api/v1/admin/reportes/finanzas` (protegido con JWT + rol/permiso,
+respaldado por `fn_reporte_comisiones_creador`), 5 corridas por
+escenario. A diferencia del catálogo, este endpoint no tiene
+`@Cacheable`, así que "frío" se redefine como reinicio real del proceso
+del backend (`make bench-auth-cold`) en vez de un `FLUSHALL` de Redis —
+ver la nota metodológica al inicio del script.
+
+| Métrica | Caliente (n=7500) | Frío (n=7302) |
+|---|---|---|
+| Media | 19.66 ms | 37.89 ms |
+| Mediana | 15.09 ms | 23.63 ms |
+| Desviación típica | 18.19 ms | 40.88 ms |
+| p90 / p95 / p99 | 34.50 / 45.05 / 99.17 ms | 78.81 / 113.73 / 232.21 ms |
+| Tasa de error ≥500 | 0.00% | 0.00% |
+
+A diferencia del catálogo, aquí "frío" **sí** salió más lento que
+"caliente" — consistente con un costo real de calentamiento de JVM (JIT)
+y de `connection pool` (HikariCP) tras el reinicio del contenedor, no con
+ruido de ejecución. La cola es notablemente más pesada (p99 232ms vs.
+99ms), reforzando esa lectura.
+
+**Limitación declarada:** `creador@test.com` (sembrado con 200 servicios
+vía `seed-medicion-servicios.sql`) no tiene pedidos/contratos/pagos de
+garantía/transacciones de pago asociados, así que
+`fn_reporte_comisiones_creador` ejecuta el `JOIN` completo de 5 tablas
+pero agrega sobre un conjunto vacío en las 15,000 peticiones medidas. La
+latencia mide autenticación + autorización + ejecución de la función SQL
+contra una tabla de transacciones vacía para ese perfil, no el costo de
+agregar sobre un volumen transaccional realista.
+
+**T-15 — test inferencial y tamaño de efecto.**
+`docs/mediciones/perf/analisis-inferencial.py` (`make perf-stats`)
+recalcula, de forma reproducible desde los NDJSON crudos, Mann-Whitney~U
+(test correcto para datos de latencia, no el t-test de Welch) y Â₁₂ de
+Vargha-Delaney (tamaño de efecto ordinal), con corrección de
+Holm-Bonferroni entre las 2 comparaciones disponibles. Salida completa en
+`salida-inferencial.txt`; resumen:
+
+| Comparación | Mann-Whitney U | p (Holm-Bonferroni) | Â₁₂ | Welch t (contraste) | d de Cohen (contraste) |
+|---|---|---|---|---|---|
+| Catálogo caliente/frío | 13,841,240 | 9.68×10⁻²⁰⁰ | 0.684 (mediano) | 14.538 | 0.3065 |
+| Endpoint protegido caliente/frío | 16,848,748 | <10⁻³⁰⁰ | 0.308 (mediano) | −34.888 | −0.579 |
+
+El resultado del catálogo reproduce dígito a dígito las cifras
+paramétricas ya calculadas por el docente (Welch t=14.538, d=0.3065); el
+test correcto (Mann-Whitney/Â₁₂) confirma significancia pero, como se
+explica arriba, **no** valida una interpretación causal de caché en ese
+caso — la advertencia metodológica de este documento sigue vigente. El
+resultado del endpoint protegido sí admite esa interpretación causal.
+
+**Artefactos añadidos:** `k6-auth-run{1..5}.json` / `k6-console-auth-run{1..5}.txt`
+(caliente), `k6-auth-cold-run{1..5}.json` / `k6-console-auth-cold-run{1..5}.txt`
+(frío), `analisis-inferencial.py` / `salida-inferencial.txt` / `requirements.txt`.

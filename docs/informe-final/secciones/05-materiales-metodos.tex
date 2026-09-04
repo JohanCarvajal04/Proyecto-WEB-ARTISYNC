@@ -190,27 +190,37 @@ siguiendo la recomendación de la comunidad de ingeniería de software
 empírica~\cite{WOHLIN2012,ARCURI2011}. Ver valores concretos por bloque en
 el Capítulo~\ref{cap:evaluacion-resultados}.
 
-\textbf{Brecha declarada honestamente:} la guía de la Entrega Final exige,
-cuando se comparan dos condiciones (ej. caché frío vs. caliente en el
-bloque de rendimiento), un test inferencial no paramétrico (Wilcoxon,
-Mann-Whitney) acompañado de un tamaño de efecto (\emph{Cliff's delta}, r
-de rangos) --- exactamente el procedimiento que Arcuri y
-Briand~\cite{ARCURI2011} sistematizan para algoritmos y comparaciones no
-deterministas en ingeniería de software. \textbf{Ese test no se ejecutó}
---- \texttt{docs/checklists/ralph-2021-checklist.md} y
-\texttt{docs/checklists/fair-checklist.md} documentan esta ausencia sin
-maquillarla. Además, la propia comparación caliente/frío tiene una
+\textbf{Test inferencial (T-15, cierra la brecha declarada en versiones
+previas de este documento):} la guía de la Entrega Final exige, cuando se
+comparan dos condiciones (ej. caché frío vs. caliente en el bloque de
+rendimiento), un test inferencial no paramétrico para datos de latencia
+(Mann-Whitney~U) acompañado de un tamaño de efecto ordinal (Â$_{12}$ de
+Vargha-Delaney) --- exactamente el procedimiento que Arcuri y
+Briand~\cite{ARCURI2011} sistematizan para comparaciones no deterministas
+en ingeniería de software. Ese test se ejecuta ahora de forma
+reproducible con \texttt{docs/mediciones/perf/analisis-inferencial.py}
+(\texttt{make perf-stats}), sobre las dos comparaciones caliente/frío
+disponibles (catálogo público y el endpoint protegido
+\texttt{GET /api/v1/admin/reportes/finanzas} añadido en T-14), con
+corrección de Holm-Bonferroni entre ambas comparaciones. Resultados y
+discusión en el Capítulo~\ref{cap:evaluacion-resultados}~\S8.1.
+
+La comparación caliente/frío del \textbf{catálogo} conserva una
 limitación metodológica de diseño documentada en
 \texttt{docs/mediciones/perf/REPORTE-PERF.md}: el script de carga no
-aísla un \emph{cache miss} real por iteración, por lo que un test
-inferencial sobre los datos actuales no respondería a la pregunta que
-pretende responder. Corregir el diseño del experimento (variar los
-parámetros de consulta para forzar \emph{misses} reales) es prerrequisito
-para que el test inferencial tenga sentido --- declarado como trabajo
-futuro en el Capítulo~\ref{cap:trabajo-futuro}.
+aísla un \emph{cache miss} real por iteración, así que el test
+inferencial sobre esos datos es estadísticamente válido pero no responde
+a una pregunta causal sobre caché frío vs. caliente (la diferencia es
+ruido de ejecución, no efecto de caché). Rediseñar ese script para forzar
+\emph{misses} reales sigue declarado como trabajo futuro en el
+Capítulo~\ref{cap:trabajo-futuro}. La comparación caliente/frío del
+\textbf{endpoint protegido} no tiene esta limitación (no hay
+\texttt{@Cacheable} de por medio; ``frío'' se logra reiniciando el
+proceso del backend), por lo que sí admite una interpretación causal
+(costo de calentamiento de JVM y \emph{connection pool}).
 
-No se realizaron comparaciones múltiples que requieran corrección (Holm,
-Benjamini-Hochberg) en esta entrega.
+Se realizó corrección de comparaciones múltiples (Holm-Bonferroni) sobre
+las 2 comparaciones caliente/frío de esta entrega.
 
 \section{Determinismo y semillas}
 
