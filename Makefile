@@ -16,7 +16,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse docs srs sync-procs sync-procs-check
+.PHONY: all up down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check
 
 # Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
 # de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
@@ -206,63 +206,87 @@ clean:
 	$(COMPOSE) down -v
 	cd artisync/Backend && ./mvnw -B clean
 
-## Auditoria de calidad web Lighthouse (Bloque A.1): perfiles mobile y desktop,
-## 3 corridas cada uno via @lhci/cli, contra el build de PRODUCCION del
-## frontend (nginx), no el ng serve de desarrollo. Requiere el backend ya
-## saludable (`make up`). Reconstruye el frontend con el override de medicion
-## y lo deja asi al terminar; volver al frontend de desarrollo con
-## `docker compose -f artisync/docker-compose.yml up -d --build frontend`.
+## Auditoria de calidad web Lighthouse (Bloque A.1, OBS-P4-01): perfiles
+## mobile y desktop, 3 corridas cada uno via @lhci/cli, contra el
+## DESPLIEGUE PUBLICO real (LIGHTHOUSE_URL, default
+## https://artisync-frontend.onrender.com), sobre 3 rutas publicas
+## (/explorar, /explorar/creadores, /auth/login) -- ver collect.url en
+## lighthouserc.mobile.json / lighthouserc.desktop.json. Ya no depende de
+## `make up` ni de docker-compose.lighthouse.yml: al ser una URL HTTPS
+## publica real, Lighthouse detecta "contexto seguro" de forma nativa y no
+## hace falta el truco de compartir namespace de red con un contenedor
+## frontend local (a diferencia de auditar localhost, que si lo necesitaba).
 ##
 ## Corre lhci dentro de un contenedor Linux efimero (node:20 + chromium), en
 ## vez de invocar npx directo en la maquina del desarrollador: chrome-launcher
 ## (dependencia de lighthouse) tiene un bug de limpieza de directorio temporal
 ## en Windows (EPERM al borrar el perfil de Chrome) que aborta la corrida
-## antes de escribir el reporte. El contenedor efimero comparte el namespace
-## de red del propio contenedor "frontend" (--network container:pfc_frontend,
-## no la red de compose) para que "localhost:4200" en lighthouserc.*.json
-## resuelva igual que en la maquina del desarrollador — usar el nombre DNS
-## interno de compose ("frontend") en su lugar rompe la deteccion de
-## "contexto seguro" de Lighthouse para localhost y produce falsos negativos
-## en is-on-https/redirects-http que no reflejan la aplicacion real. Los dos
-## perfiles se corren en invocaciones SEPARADAS y SECUENCIALES (nunca en
-## paralelo): ambas comparten el mismo .lighthouseci/ como scratch dir, y
-## correrlas a la vez contamina el conteo de corridas y satura CPU/red,
-## sesgando los resultados.
-lighthouse:
-	$(COMPOSE) -f artisync/docker-compose.lighthouse.yml up -d --wait --build frontend
+## antes de escribir el reporte. Los dos perfiles se corren en invocaciones
+## SEPARADAS y SECUENCIALES (nunca en paralelo): ambas comparten el mismo
+## .lighthouseci/ como scratch dir, y correrlas a la vez contamina el conteo
+## de corridas y satura CPU/red, sesgando los resultados. `|| true` porque
+## `lhci autorun` sale con codigo != 0 si una assertion no pasa el umbral
+## (warn/error) -- eso es una senal a revisar, no una falla del target: los
+## reportes igual se escriben a disco antes de salir.
+## El backend en Render (plan free) se duerme tras inactividad y responde 502
+## en el primer request tras despertar (~30-60s de cold-start). Si Lighthouse
+## mide justo en ese momento, las llamadas a /api/v1/categorias|catalogo|
+## etiquetas devuelven 502, el frontend muestra un toast de error que se
+## convierte en el elemento LCP (~5s de retraso) y ademas arrastra una
+## violacion de accesibilidad (boton de cerrar del toast). Este paso hace
+## polling al healthcheck del backend ANTES de arrancar lhci, para que el
+## cold-start ya haya pasado cuando Lighthouse dispare los requests reales.
+BACKEND_HEALTH_URL ?= https://artisync-backend.onrender.com/actuator/health
+lighthouse_wait_backend:
+	@echo "Esperando a que $(BACKEND_HEALTH_URL) responda antes de correr Lighthouse..."
+	@for i in $$(seq 1 24); do \
+		if curl -sf -o /dev/null "$(BACKEND_HEALTH_URL)"; then \
+			echo "OK: backend listo (intento $$i)."; exit 0; \
+		fi; \
+		echo "  backend no listo todavia (intento $$i/24), esperando 5s..."; \
+		sleep 5; \
+	done; \
+	echo "AVISO: el backend no respondio tras 2 minutos; se continua igual (podria contaminar la medicion)."
+
+LIGHTHOUSE_TS ?= $(shell date +%Y%m%d-%H%M)
+lighthouse: lighthouse_wait_backend
 	@rm -rf artisync/Frontend/.lighthouseci
-	MSYS_NO_PATHCONV=1 docker run --rm --network container:pfc_frontend \
+	MSYS_NO_PATHCONV=1 docker run --rm \
 		-v "$(CURDIR):/repo" -w /repo/artisync/Frontend \
 		node:20-bookworm-slim bash -c ' \
 			apt-get update -qq && apt-get install -y -qq chromium >/dev/null; \
 			export CHROME_PATH=$$(command -v chromium); \
 			npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.mobile.json --collect.settings.chromeFlags="--no-sandbox" \
 		' || true
-	@ts=$$(date +%Y%m%d-%H%M); n=1; \
-	for jf in docs/mediciones/lighthouse/localhost--*.report.json; do \
-		[ -e "$$jf" ] || continue; \
-		base="$${jf%.report.json}"; hf="$$base.report.html"; \
-		mv "$$jf" "docs/mediciones/lighthouse/lhci-$$ts-mobile-run$$n.report.json"; \
-		[ -e "$$hf" ] && mv "$$hf" "docs/mediciones/lighthouse/lhci-$$ts-mobile-run$$n.report.html"; \
-		n=$$((n+1)); \
-	done
+	@$(call lighthouse_archive,mobile)
 	@rm -rf artisync/Frontend/.lighthouseci
-	MSYS_NO_PATHCONV=1 docker run --rm --network container:pfc_frontend \
+	MSYS_NO_PATHCONV=1 docker run --rm \
 		-v "$(CURDIR):/repo" -w /repo/artisync/Frontend \
 		node:20-bookworm-slim bash -c ' \
 			apt-get update -qq && apt-get install -y -qq chromium >/dev/null; \
 			export CHROME_PATH=$$(command -v chromium); \
 			npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.desktop.json --collect.settings.chromeFlags="--no-sandbox" \
 		' || true
-	@ts=$$(date +%Y%m%d-%H%M); n=1; \
-	for jf in docs/mediciones/lighthouse/localhost--*.report.json; do \
-		[ -e "$$jf" ] || continue; \
-		base="$${jf%.report.json}"; hf="$$base.report.html"; \
-		mv "$$jf" "docs/mediciones/lighthouse/lhci-$$ts-desktop-run$$n.report.json"; \
-		[ -e "$$hf" ] && mv "$$hf" "docs/mediciones/lighthouse/lhci-$$ts-desktop-run$$n.report.html"; \
+	@$(call lighthouse_archive,desktop)
+	@echo "OK: reportes archivados en docs/mediciones/lighthouse/ (lhci-<fecha>-<perfil>-prod-<ruta>-runN)."
+
+## Renombra los reportes crudos que escribe lhci (nombrados por lhci a partir
+## del host+ruta de la URL, ej. artisync_frontend_onrender_com-explorar-
+## <timestamp>.report.json) a la convencion versionada del proyecto:
+## lhci-<fecha>-<perfil>-prod-<ruta>-run<N>.report.{json,html}. Recibe el
+## perfil ($1: mobile|desktop) como argumento.
+define lighthouse_archive
+for route in explorar explorar_creadores auth_login; do \
+	n=1; \
+	for jf in $$(ls docs/mediciones/lighthouse/artisync_frontend_onrender_com-$$route-*.report.json 2>/dev/null | sort); do \
+		hf="$${jf%.report.json}.report.html"; \
+		mv "$$jf" "docs/mediciones/lighthouse/lhci-$(LIGHTHOUSE_TS)-$(1)-prod-$$route-run$$n.report.json"; \
+		[ -e "$$hf" ] && mv "$$hf" "docs/mediciones/lighthouse/lhci-$(LIGHTHOUSE_TS)-$(1)-prod-$$route-run$$n.report.html"; \
 		n=$$((n+1)); \
-	done
-	@echo "OK: reportes archivados en docs/mediciones/lighthouse/ con convencion lhci-YYYYMMDD-HHMM-<perfil>-runN."
+	done; \
+done; \
+[ -e docs/mediciones/lighthouse/manifest.json ] && mv docs/mediciones/lighthouse/manifest.json "docs/mediciones/lighthouse/lhci-$(LIGHTHOUSE_TS)-$(1)-prod-manifest.json" || true
+endef
 
 ## Calcula el puntaje SUS (Bloque C.3) a partir de docs/mediciones/sus/sus-raw.csv
 ## y escribe docs/mediciones/sus/salida-sus.txt. Falla si el CSV solo tiene

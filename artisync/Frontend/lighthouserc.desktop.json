@@ -1,7 +1,11 @@
 {
   "ci": {
     "collect": {
-      "url": ["http://localhost:4200/"],
+      "url": [
+        "https://artisync-frontend.onrender.com/explorar",
+        "https://artisync-frontend.onrender.com/explorar/creadores",
+        "https://artisync-frontend.onrender.com/auth/login"
+      ],
       "numberOfRuns": 3,
       "settings": {
         "throttlingMethod": "simulate",
