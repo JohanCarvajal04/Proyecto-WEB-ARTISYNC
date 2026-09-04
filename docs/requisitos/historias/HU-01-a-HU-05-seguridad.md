@@ -7,7 +7,7 @@ Formato Connextra (*As a ⟨rol⟩, I want ⟨objetivo⟩, so that ⟨beneficio�
 > - **Trazabilidad:** el requisito del SRS que la historia soporta.
 > - **Prueba de aceptación:** la prueba automatizada que la verifica, tomada de la columna `prueba_automatizada` de [`docs/trazabilidad/matriz.csv`](../../trazabilidad/matriz.csv), que es la fuente de verdad. Cuando un requisito no tiene prueba, el campo lo dice explícitamente en vez de omitirse, para que la ausencia sea visible y no se confunda con un descuido de redacción.
 >
-> **Limitación declarada:** la justificación INVEST está redactada solo en HU-01, como ejemplo trabajado del criterio. Las 22 historias restantes cumplen el formato Connextra y tienen criterios de aceptación en Gherkin, pero no llevan su valoración INVEST individual escrita. Es una brecha de documentación conocida, no un descuido: se declara aquí en lugar de rellenarla con texto formulario que no aportaría análisis real.
+> **Estado de la valoración INVEST:** las 23 historias llevan su bloque `**INVEST:**` individual, redactado sobre el texto Connextra y el criterio de aceptación de cada una — no una plantilla repetida.
 
 ---
 
@@ -44,6 +44,8 @@ Escenario: Un Cliente no puede acceder a rutas de Creador
 **I want** asignar y revocar permisos específicos a cada rol,
 **so that** pueda ajustar con precisión qué puede hacer cada tipo de usuario sin modificar código.
 
+**INVEST:** Independiente de HU-01 (opera sobre roles ya existentes, no sobre el alta de cuentas); negociable en qué permisos concretos se agrupan por rol; valiosa porque evita tener que redesplegar código para cambiar autorizaciones; estimable y pequeña porque se limita a los tres endpoints de `RolePermissionController` (leer, sincronizar, eliminar); testable mediante el escenario de revocación inmediata ya definido.
+
 ```gherkin
 Escenario: Revocación de permiso surte efecto inmediato
   Given que el rol "Creador" tiene el permiso "publicar_servicio"
@@ -61,6 +63,8 @@ Escenario: Revocación de permiso surte efecto inmediato
 **As a** usuario registrado,
 **I want** iniciar sesión y mantenerla activa de forma segura durante 24 horas,
 **so that** no tenga que volver a autenticarme en cada acción dentro de ese período.
+
+**INVEST:** Independiente porque el filtro JWT actúa sobre cualquier ruta protegida sin acoplarse a una historia funcional concreta; negociable en la duración exacta de la sesión (24 h) y en el mensaje devuelto en cada caso; valiosa porque sostiene la seguridad de acceso de todo el resto del sistema; estimable y pequeña porque se acota a `JwtAuthenticationFilter` y `JwtService`; testable con los tres escenarios de token válido, expirado y ausente.
 
 ```gherkin
 Escenario: Acceso con token válido
@@ -89,6 +93,8 @@ Escenario: Acceso sin token
 **I want** recibir un enlace de un solo uso para restablecerla,
 **so that** pueda recuperar el acceso a mi cuenta sin intervención del administrador.
 
+**INVEST:** Independiente del inicio de sesión normal (HU-03), ya que no requiere una sesión previa; negociable en la duración del enlace (hoy 60 minutos) y en el canal de entrega (correo); valiosa porque evita que un usuario quede bloqueado de forma permanente; estimable y pequeña porque cubre dos endpoints (`forgot-password`, `reset-password`); testable mediante los tres escenarios de enlace usado dos veces, expirado y flujo exitoso.
+
 ```gherkin
 Escenario: Enlace usado dos veces
   Given que ya usé mi enlace de recuperación para cambiar la contraseña
@@ -115,6 +121,8 @@ Escenario: Flujo completo exitoso
 **As a** Creador con identidad verificada,
 **I want** activar un segundo factor de autenticación basado en TOTP,
 **so that** mi cuenta tenga una capa adicional de protección frente a robo de contraseña.
+
+**INVEST:** Independiente porque se activa de forma opcional sobre una cuenta ya existente y verificada, sin alterar el flujo de login base; negociable en el algoritmo exacto (TOTP) y en la ventana de validez del código; valiosa porque reduce el riesgo de toma de cuenta por contraseña filtrada; estimable y pequeña porque se limita a `TwoFactorService` y al ticket de pre-autenticación; testable con los escenarios de código incorrecto y de restricción a usuarios verificados.
 
 ```gherkin
 Escenario: Código TOTP incorrecto

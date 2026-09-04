@@ -7,7 +7,7 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 > - **Trazabilidad:** el requisito del SRS y la historia de usuario que le corresponden.
 > - **Prueba de integración:** la prueba automatizada que ejercita el flujo, tomada de la columna `prueba_automatizada` de [`docs/trazabilidad/matriz.csv`](../../trazabilidad/matriz.csv). Cuando un requisito no tiene prueba, el campo lo dice explícitamente en vez de omitirse.
 >
-> **Limitación declarada:** la guía pide además que cada caso de uso se trace a un flujo de un diagrama de secuencia. Esa correspondencia no puede establecerse hoy para los 23 casos: el repositorio contiene **un solo** diagrama de secuencia, `docs/diagramas/secuencia_login_jwt.png`, que cubre el flujo de autenticación (CU-03). Los 22 casos restantes no tienen diagrama al que trazarse. Se declara como brecha conocida en lugar de enlazar a diagramas que no existen.
+> **Trazabilidad a diagrama de secuencia:** 6 de los 23 casos de uso tienen diagrama de secuencia propio: CU-03 (`docs/diagramas/secuencia_login_jwt.png`) y, embebidos como Mermaid junto a su caso, CU-02, CU-04, CU-13, CU-17 y CU-20 — priorizados por ser requisitos Must que cubren dominios distintos (roles, recuperación de cuenta, catálogo, contrato, pago). Los 17 casos restantes no tienen diagrama al que trazarse todavía; se declara como brecha conocida en lugar de enlazar a diagramas que no existen.
 
 ---
 
@@ -66,6 +66,35 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 **4. Manejo de extensiones:**
 - 3a1. El sistema rechaza la operación para evitar que el administrador se bloquee a sí mismo, y muestra un mensaje explicativo. Vuelve al paso 3.
 
+### Diagrama de secuencia
+
+```mermaid
+sequenceDiagram
+    actor Admin as Administrador
+    participant RPC as RolePermissionController
+    participant RPS as RolePermissionServiceImpl
+    participant DB as Base de datos
+
+    Admin->>RPC: GET /api/admin/role-permissions/{roleName}
+    RPC->>RPS: obtenerPermisos(roleName)
+    RPS->>DB: SELECT permisos del rol
+    DB-->>RPS: lista de permisos
+    RPS-->>RPC: permisos actuales
+    RPC-->>Admin: 200 OK (permisos)
+
+    Admin->>RPC: PUT /api/admin/role-permissions/sync
+    RPC->>RPS: sincronizarPermisos(roleName, permisos)
+    alt intenta revocar el último permiso administrativo propio
+        RPS-->>RPC: rechazo (regla de autoprotección)
+        RPC-->>Admin: 409 Conflict
+    else cambio válido
+        RPS->>DB: fn_sincronizar_permisos_rol(roleName, permisos)
+        DB-->>RPS: OK
+        RPS-->>RPC: permisos actualizados
+        RPC-->>Admin: 200 OK
+    end
+```
+
 ---
 
 ## CU-03: Iniciar sesión
@@ -123,6 +152,37 @@ Plantilla de Cockburn con los cuatro niveles de precisión exigidos: (1) nombre 
 **4. Manejo de extensiones:**
 - 3a1. El sistema muestra "Enlace inválido" y ofrece generar uno nuevo. Termina.
 - 3b1. El sistema muestra "Enlace expirado" y ofrece generar uno nuevo. Termina.
+
+### Diagrama de secuencia
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant AC as AuthController
+    participant AS as AuthServiceImpl
+    participant DB as Base de datos
+    participant Mail as Servicio de correo
+
+    U->>AC: POST /api/auth/forgot-password {correo}
+    AC->>AS: forgotPassword(correo)
+    AS->>DB: fn_restablecer_contrasena (generar token, 60 min)
+    DB-->>AS: token creado
+    AS->>Mail: enviar enlace de recuperación
+    AS-->>AC: 200 OK
+    AC-->>U: confirmación de envío
+
+    U->>AC: POST /api/auth/reset-password {token, nuevaContrasena}
+    AC->>AS: resetPassword(token, nuevaContrasena)
+    alt token usado o expirado
+        AS-->>AC: 400 Bad Request
+        AC-->>U: "Enlace inválido/expirado"
+    else token válido
+        AS->>DB: actualizar hash de contraseña, invalidar token
+        DB-->>AS: OK
+        AS-->>AC: 200 OK
+        AC-->>U: contraseña actualizada
+    end
+```
 
 ---
 

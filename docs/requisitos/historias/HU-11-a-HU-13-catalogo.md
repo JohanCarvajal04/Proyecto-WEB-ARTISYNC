@@ -10,6 +10,8 @@
 **I want** publicar un producto o servicio con precio, imagen y descripción,
 **so that** los Clientes puedan descubrirlo y contratarlo desde el catálogo.
 
+**INVEST:** Independiente porque cualquier Creador puede publicar sin depender de que otro lo haga; negociable en los límites exactos (tamaño de imagen, longitud mínima de descripción); valiosa porque es la puerta de entrada al catálogo, sin ítems no hay negocio; estimable y pequeña porque es un alta simple con validaciones de campo; testable con los escenarios de publicación exitosa y de descripción demasiado corta.
+
 ```gherkin
 Escenario: Publicación exitosa
   Given que ingreso un precio de 15.00 USD, una imagen de 3 MB y una descripción de 150 caracteres
@@ -32,6 +34,8 @@ Escenario: Descripción demasiado corta
 **I want** que el formulario de publicación muestre campos específicos según mi categoría (ej. "técnica" para ilustración, "duración" para música),
 **so that** pueda describir mi producto o servicio con la precisión que su categoría requiere.
 
+**INVEST:** Independiente de HU-11 porque extiende el formulario de publicación sin cambiar su flujo base; negociable en qué atributos exactos se definen por categoría; valiosa porque mejora la calidad y comparabilidad de la información publicada; estimable y pequeña porque se acota a un máximo de 10 atributos por categoría; testable mediante el escenario de renderizado dinámico según categoría seleccionada.
+
 ```gherkin
 Escenario: Atributos dinámicos según categoría
   Given que selecciono la categoría "Ilustración digital"
@@ -48,6 +52,8 @@ Escenario: Atributos dinámicos según categoría
 **As a** Cliente,
 **I want** buscar y filtrar servicios por categoría, subcategoría, rango de precio, etiquetas y texto libre,
 **so that** encuentre rápidamente al Creador que se ajusta a lo que necesito.
+
+**INVEST:** Independiente porque opera en modo lectura sobre ítems ya publicados por HU-11/HU-12, sin modificarlos; negociable en qué combinaciones de filtro se soportan; valiosa porque es el mecanismo principal de descubrimiento para el Cliente; estimable y pequeña porque se apoya en una única `Specification` de consulta parametrizada; testable con los escenarios de filtro combinado y de edición reflejada de inmediato.
 
 ```gherkin
 Escenario: Filtro combinado

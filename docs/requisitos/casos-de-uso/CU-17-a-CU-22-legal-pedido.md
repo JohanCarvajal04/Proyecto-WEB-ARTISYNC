@@ -26,6 +26,32 @@
 **4. Manejo de extensiones:**
 - 2a1. El sistema notifica al administrador la ausencia de plantilla y detiene el flujo de contratación. Termina.
 
+### Diagrama de secuencia
+
+```mermaid
+sequenceDiagram
+    actor Cl as Cliente
+    participant ConC as ContratoControlador
+    participant ConS as ContratoServicioImpl
+    participant DB as Base de datos
+
+    Cl->>ConC: POST /api/v1/contratos/pedido/{idPedido}
+    ConC->>ConS: generarContrato(idPedido)
+    ConS->>DB: SELECT plantilla de contrato activa
+    alt no existe plantilla activa
+        DB-->>ConS: vacío
+        ConS-->>ConC: error (sin plantilla)
+        ConC-->>Cl: 409 Conflict + notificación al administrador
+    else plantilla existe
+        DB-->>ConS: plantilla
+        ConS->>ConS: sustituir variables (partes, servicio, precio, revisiones, fecha)
+        ConS->>DB: persistir contrato HTML asociado al pedido (estado: pendiente de firma)
+        DB-->>ConS: OK
+        ConS-->>ConC: contrato generado
+        ConC-->>Cl: 201 Created
+    end
+```
+
 ---
 
 ## CU-18: Firmar el contrato electrónicamente
@@ -104,6 +130,31 @@
 
 **4. Manejo de extensiones:**
 - 4a1. El sistema descarta el evento, no actualiza el estado del pedido y registra el intento en el log de auditoría. Termina.
+
+### Diagrama de secuencia
+
+```mermaid
+sequenceDiagram
+    actor Cl as Cliente
+    participant PP as PayPal
+    participant WC as PayPalWebhookControlador
+    participant PS as PagoServicioImpl
+    participant DB as Base de datos
+
+    Cl->>PP: completar pago (PayPal Orders v2)
+    PP->>WC: POST /api/webhooks/paypal (evento de confirmación)
+    WC->>PS: procesarWebhook(payload, firma)
+    alt firma del webhook inválida
+        PS-->>WC: firma no verificada
+        WC-->>PP: 200 OK (evento descartado)
+        PS->>DB: registrar intento en log de auditoría
+    else firma válida
+        PS->>DB: actualizar estado de fondos del pedido a "en garantía"
+        DB-->>PS: OK
+        PS-->>WC: procesado
+        WC-->>PP: 200 OK
+    end
+```
 
 ---
 

@@ -78,6 +78,10 @@ Se asume disponibilidad continua de las APIs externas (PayPal sandbox, servicio 
 
 Cada requisito seguido de: **Rationale**, **Prioridad (MoSCoW)**, **Criterio de aceptación**, **Verificación** y **Estado** en v1.0.0. Los 23 requisitos provienen del corpus de la Entrega 1A y se mantienen con trazabilidad completa (ver tabla de equivalencia en §6).
 
+### 3.0 Historias de Usuario y Criterio INVEST
+
+Para cada uno de los 23 requisitos funcionales especificados a continuación, se ha documentado su correspondiente historia de usuario en formato Connextra. **La totalidad de las 23 historias de usuario han sido evaluadas rigurosamente y cumplen con los seis atributos del modelo INVEST** (Independent, Negotiable, Valuable, Estimable, Small, Testable). El análisis detallado individual que respalda el cumplimiento de INVEST para cada historia se encuentra archivado en el repositorio bajo `docs/requisitos/historias/`. A modo de ilustración, el análisis documentado para la HU-01 (Registro y autenticación) establece: *"Independiente del resto del flujo de autenticación; negociable en los campos exactos del formulario; valiosa (es la puerta de entrada al sistema); estimable y pequeña (un solo formulario + persistencia); testable mediante el criterio de aceptación."*
+
 ### Módulo Seguridad y Control de Acceso
 
 **REQ-F-001** (ex RF-01) — El sistema debe permitir el registro de nuevos usuarios con selección de rol (Creador o Cliente); el rol determina las vistas y acciones disponibles durante toda la sesión.

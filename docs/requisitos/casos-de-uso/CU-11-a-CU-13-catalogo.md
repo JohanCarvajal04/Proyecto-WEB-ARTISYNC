@@ -80,3 +80,24 @@
 
 **4. Manejo de extensiones:**
 - 4a1. El sistema muestra un mensaje de "sin resultados" y sugiere relajar los filtros. Termina.
+
+### Diagrama de secuencia
+
+```mermaid
+sequenceDiagram
+    actor C as Cliente
+    participant CC as CatalogoControlador
+    participant SP as ServicioSpecification
+    participant DB as Base de datos
+
+    C->>CC: GET /api/v1/catalogo?categoria=...&precioMin=...&precioMax=...&q=...
+    CC->>SP: construir Specification con filtros activos
+    SP->>DB: SELECT paginado con predicados combinados (JPA Criteria)
+    DB-->>SP: filas que cumplen todos los criterios
+    SP-->>CC: página de resultados
+    alt sin coincidencias
+        CC-->>C: 200 OK, lista vacía + sugerencia de relajar filtros
+    else con coincidencias
+        CC-->>C: 200 OK, ítems paginados
+    end
+```
