@@ -148,7 +148,7 @@ Todas las mediciones, con sus datos crudos, están versionadas bajo [`docs/medic
 | Escaneo OWASP ZAP baseline | 0 FAIL · 8 WARN · 59 PASS | 0 hallazgos altos |
 | Análisis estático SQL (SpotBugs + find-sec-bugs) | 0 hallazgos de inyección | 0 hallazgos |
 | Cobertura JaCoCo (líneas / ramas) | 72.0 % / 62.5 % | ≥ 70 % |
-| Usabilidad SUS | 76.88 / 100 (n=16, Bangor B) | > 68 puntos, ≥ 10 participantes |
+| Usabilidad SUS | 61.25 / 100 (n=16, Bangor D, no supera el umbral) | > 68 puntos, ≥ 10 participantes |
 
 El diccionario de variables está en [`docs/mediciones/DATA-DICTIONARY.md`](docs/mediciones/DATA-DICTIONARY.md). El estado de cumplimiento frente a la guía de la Entrega Final, incluidas las brechas abiertas, se detalla en [`docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md`](docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md).
 

@@ -55,16 +55,18 @@ y evaluación empírica multidimensional: prueba de carga (k6, 50 VUs/30s), audi
 (6 controles OWASP + escaneo automatizado ZAP baseline + análisis estático SpotBugs/find-sec-bugs),
 usabilidad (System Usability Scale, N=16), cobertura de código (JaCoCo) y calidad web (Lighthouse,
 perfiles mobile y desktop). **Resultados principales.** El sistema alcanza p95 de 50.17 ms bajo
-carga (umbral 200 ms), 0 % de errores HTTP ≥500, puntaje SUS de 76.88/100 (categoría B de Bangor,
-IC 95 % [69.16, 84.59]), cobertura JaCoCo de 72.0 % líneas / 62.5 % ramas, Lighthouse Performance
+carga (umbral 200 ms), 0 % de errores HTTP ≥500, puntaje SUS de 61.25/100 (categoría D de Bangor,
+IC 95 % [49.49, 73.01], por debajo del umbral de aceptabilidad del proyecto), cobertura JaCoCo de
+72.0 % líneas / 62.5 % ramas, Lighthouse Performance
 100/100 en desktop y 80–81/100 en mobile con Accessibility/Best Practices/SEO ≥93 en ambos
 perfiles, los 6 controles OWASP mínimos evidenciados sin hallazgos altos en ZAP baseline
 (0 FAIL-NEW), y 7 procedimientos almacenados conectados end-to-end al código en ejecución vía
 JPA 2.1 (`@Query(nativeQuery=true)` parametrizado), sin concatenación de SQL dinámico detectada.
 **Conclusiones.** La estrategia híbrida de acceso a datos y la verificación asistida por IA son
 técnicamente viables dentro de las restricciones de un proyecto académico de 17 semanas, con
-evidencia empírica reproducible que respalda cada propiedad de calidad declarada; quedan como
-brechas honestamente declaradas la conexión completa de los procedimientos heredados de la
+evidencia empírica reproducible; quedan como
+brechas honestamente declaradas la usabilidad medida (por debajo del umbral de aceptabilidad), la
+conexión completa de los procedimientos heredados de la
 Tercera Entrega, la ejecución de tests inferenciales sobre las comparaciones de rendimiento, y el
 despliegue en un ambiente de producción con dominio público.
 
@@ -91,15 +93,17 @@ testing (k6, 50 VUs/30s), security auditing (6 OWASP controls plus automated ZAP
 and SpotBugs/find-sec-bugs static analysis), usability (System Usability Scale, N=16), code
 coverage (JaCoCo), and web quality (Lighthouse, mobile and desktop profiles). **Main results.**
 The system achieves a p95 of 50.17 ms under load (200 ms threshold), 0% of HTTP ≥500 errors, a SUS
-score of 76.88/100 (Bangor grade B, 95% CI [69.16, 84.59]), JaCoCo coverage of 72.0% lines / 62.5%
+score of 61.25/100 (Bangor grade D, 95% CI [49.49, 73.01], below the project's acceptability
+threshold), JaCoCo coverage of 72.0% lines / 62.5%
 branches, Lighthouse Performance of 100/100 on desktop and 80–81/100 on mobile with
 Accessibility/Best Practices/SEO ≥93 on both profiles, all 6 minimum OWASP controls evidenced with
 no high findings in the ZAP baseline scan (0 FAIL-NEW), and 7 stored procedures connected
 end-to-end to the running code via JPA 2.1 (parameterized `@Query(nativeQuery=true)`), with no
 dynamic SQL concatenation detected. **Conclusions.** The hybrid data-access strategy and
 AI-assisted verification are technically viable within the constraints of a 17-week academic
-project, backed by reproducible empirical evidence for every declared quality property; honestly
-declared gaps remain in fully connecting the stored procedures inherited from the third
+project, backed by reproducible empirical evidence; honestly
+declared gaps remain in the measured usability (below the acceptability threshold), fully
+connecting the stored procedures inherited from the third
 deliverable, running inferential tests on the performance comparisons, and deploying to a
 production environment with a public domain.
 
