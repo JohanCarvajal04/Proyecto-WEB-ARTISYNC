@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
@@ -32,7 +33,7 @@ public interface AutenticacionDosFactoresRepository extends JpaRepository<Autent
      * en 10 pasos de TwoFactorServiceImpl.setup2Fa (A4). Devuelve el numero de
      * codigos de respaldo insertados.
      */
-    @Query(value = "SELECT fn_configurar_2fa(:p_id_usuario, :p_llave_secreta, :p_hashes)", nativeQuery = true)
+    @Procedure(procedureName = "fn_configurar_2fa")
     Integer configurar2Fa(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_llave_secreta") String llaveSecreta,
@@ -45,6 +46,7 @@ public interface AutenticacionDosFactoresRepository extends JpaRepository<Autent
      * 2FA configurado. Unifica el codigo antes duplicado entre
      * TwoFactorServiceImpl.disable2Fa y AdminUserServiceImpl.updateUser (A4).
      */
-    @Query(value = "SELECT fn_desactivar_2fa(:p_id_usuario)", nativeQuery = true)
+    @Procedure(procedureName = "fn_desactivar_2fa")
     Boolean desactivar2Fa(@Param("p_id_usuario") Long idUsuario);
 }
+

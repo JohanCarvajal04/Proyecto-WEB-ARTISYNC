@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.repository.social;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
@@ -25,7 +26,8 @@ public interface SorteoRepository extends JpaRepository<Sorteo, Long> {
     List<Sorteo> findByEstadoSorteo(String estadoSorteo);
 
     /** REQ-F-023 - fn_seleccionar_ganadores_sorteo: sortea ganadores y actualiza participantes+sorteo en bloque. Devuelve JSONB serializado como texto. */
-    @Query(value = "SELECT fn_seleccionar_ganadores_sorteo(:p_id_sorteo)::text", nativeQuery = true)
+    @Procedure(procedureName = "fn_seleccionar_ganadores_sorteo")
     String seleccionarGanadores(@Param("p_id_sorteo") Long idSorteo);
 }
+
 

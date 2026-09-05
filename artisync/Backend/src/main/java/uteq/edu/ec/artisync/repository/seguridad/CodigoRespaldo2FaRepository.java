@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
@@ -25,8 +26,9 @@ public interface CodigoRespaldo2FaRepository extends JpaRepository<CodigoRespald
      * perdida del patron anterior (SELECT de todos los codigos + comparacion en
      * Java + save()). Devuelve TRUE solo para el primer llamante concurrente.
      */
-    @Query(value = "SELECT fn_consumir_codigo_respaldo_2fa(:p_id_usuario, :p_codigo_hash)", nativeQuery = true)
+    @Procedure(procedureName = "fn_consumir_codigo_respaldo_2fa")
     Boolean consumirCodigoRespaldo(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_codigo_hash") String codigoHash);
 }
+
