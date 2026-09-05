@@ -1,9 +1,28 @@
+server_tokens off;
+
 server {
     listen ${PORT};
     server_name _;
 
     root /usr/share/nginx/html;
     index index.html;
+
+    # Cabeceras de seguridad (docs/observaciones/PLAN-EXAMEN-FINAL.md T-09,
+    # docs/mediciones/sec/REPORTE-SEC.md): deben coincidir con nginx.conf, ya
+    # que este template es el que sirve el frontend público en Render.
+    #
+    # script-src-attr 'unsafe-inline': el build de Angular (Beasties, CSS crítico
+    # inline) emite <link rel=stylesheet media=print onload="this.media='all'">
+    # para diferir el CSS no crítico. Sin este permiso ese onload= queda
+    # bloqueado, el <link> nunca pasa a media=all y la página se ve sin estilos.
+    # No afecta a script-src (sigue sin 'unsafe-inline'/'unsafe-eval'): esto solo
+    # habilita atributos onX=, no la ejecución de <script> ni eval() inyectados.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     # BACKEND_INTERNAL_URL debe ser el origen del backend sin barra final,
     # p.ej. https://artisync-backend.onrender.com — al no tener path, nginx
