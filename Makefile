@@ -314,6 +314,15 @@ perf-stats:
 	python3 docs/mediciones/perf/analisis-inferencial.py > docs/mediciones/perf/salida-inferencial.txt
 	@echo "OK: ver docs/mediciones/perf/salida-inferencial.txt"
 
+## Ejecuta de punta a punta el cuaderno de reproduccion (T-40, OBS-R1-05): recalcula
+## cobertura/percentiles-inferencial/SUS/Lighthouse desde los artefactos crudos ya
+## versionados en docs/mediciones/, sin relanzar k6/Lighthouse/tests. Falla (exit != 0)
+## si alguna celda lanza una excepcion, asi que sirve como verificacion de reproducibilidad.
+notebook:
+	pip install -q -r docs/mediciones/requirements.txt
+	jupyter nbconvert --to notebook --execute --inplace docs/mediciones/reproduccion.ipynb
+	@echo "OK: ver docs/mediciones/reproduccion.ipynb"
+
 ## Compila el documento academico final (Bloque B / D.1) desde la fuente
 ## LaTeX de docs/informe-final/main.tex (bibliografia IEEE en
 ## referencias.bib). Usa pdflatex/bibtex/makeglossaries locales si estan
