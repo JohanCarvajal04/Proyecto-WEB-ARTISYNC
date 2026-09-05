@@ -1,0 +1,12 @@
+# Dependencias del cuaderno docs/mediciones/reproduccion.ipynb (T-40 / OBS-R1-05).
+# scipy: requerido para reimportar docs/mediciones/perf/analisis-inferencial.py
+# (Mann-Whitney U, Welch t-test) tal cual, sin reimplementarlo en el notebook.
+# matplotlib: usado por docs/mediciones/sus/graficar-sus.py, que hasta ahora no
+# declaraba sus dependencias en ningun requirements.txt del repo.
+# jupyter/nbconvert/ipykernel: para ejecutar el cuaderno de punta a punta desde
+# la linea de comandos (`make notebook`) sin depender de Jupyter ya instalado.
+scipy>=1.11,<2
+matplotlib>=3.8,<4
+jupyter>=1.0,<2
+nbconvert>=7,<8
+ipykernel>=6,<7
