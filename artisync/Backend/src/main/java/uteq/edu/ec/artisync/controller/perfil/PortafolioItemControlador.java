@@ -23,6 +23,12 @@ import java.util.List;
  * Obras del portafolio. Las rutas de lectura cuelgan de /api/v1/portafolios,
  * que SecurityConfig deja abierto en GET: un portafolio público debe poder
  * verse sin sesión, y el servicio es quien filtra los privados.
+/**
+ * Controlador REST (PortafolioItemControlador)
+ * 
+ * Gestiona el ciclo de vida de los items u obras dentro de un portafolio publico.
+ * Expone endpoints para subir archivos multimedia, listarlos, descargarlos y eliminarlos.
+ * Incorpora protecciones contra XSS al forzar la descarga de archivos (Content-Disposition: attachment).
  */
 @RestController
 @RequestMapping("/api/v1/portafolios")

@@ -15,13 +15,22 @@ public interface CertificadoIaRepository extends JpaRepository<CertificadoIa, Lo
     boolean existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(Long idUsuario, String nombreEstado);
     List<CertificadoIa> findByUsuarioIdUsuario(Long idUsuario);
 
-    /** Gating de REQ-F-006 ampliado: ¿este usuario tiene su identidad aprobada? */
+    /** Gating de REQ-F-006 ampliado: ??este usuario tiene su identidad aprobada? */
     boolean existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
             Long idUsuario, String tipoDocumento, String nombreEstado);
 
-    /** Última solicitud de identidad de un usuario, para mostrarle su estado actual. */
+    /** ??ltima solicitud de identidad de un usuario, para mostrarle su estado actual. */
     java.util.Optional<CertificadoIa> findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(
             Long idUsuario, String tipoDocumento);
+
+        /**
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery]
+     * Esta rutina devuelve un result set (TABLE) complejo proyectado en una interfaz Spring Data (DTO).
+     * El mecanismo @Procedure (o @NamedStoredProcedureQuery) en PostgreSQL exige la devolucion de un RefCursor
+     * como parametro OUT para mapear tablas, lo que colisiona con el soporte nativo de Proyecciones de Hibernate.
+     * Por lo tanto, para funciones que devuelven multiples columnas como filas, nativeQuery=true es el mecanismo
+     * recomendado y correcto que evita acoplar el esquema de BD a DTOs de mapeo hiper-estrictos.
+     */
 
     @Query(value = "SELECT * FROM fn_listar_cola_verificacion(:estado, :limite, :offset)", nativeQuery = true)
     List<VerificacionColaProyeccion> listarCola(
@@ -39,3 +48,4 @@ public interface CertificadoIaRepository extends JpaRepository<CertificadoIa, Lo
     List<CertificadoIa> findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(
             String nombreEstado, LocalDateTime limite);
 }
+

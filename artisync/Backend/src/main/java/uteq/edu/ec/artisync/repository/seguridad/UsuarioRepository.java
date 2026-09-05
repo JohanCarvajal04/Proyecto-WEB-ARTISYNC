@@ -46,12 +46,20 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_nueva_contrasena_hash") String nuevaContrasenaHash);
 
     /**
-     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5) -
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??5) -
      * fn_cambiar_estado_cuenta: cambia estado_cuenta y, si hay transicion
      * activa->inactiva, revoca las sesiones del usuario, todo bajo
      * SELECT ... FOR UPDATE sobre la misma transaccion. Cierra la actualizacion
      * perdida entre dos administradores operando el mismo usuario a la vez.
      * Devuelve las sesiones revocadas (vacio si no hubo transicion).
+     */
+        /**
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery]
+     * Esta rutina devuelve un result set (TABLE) complejo proyectado en una interfaz Spring Data (DTO).
+     * El mecanismo @Procedure (o @NamedStoredProcedureQuery) en PostgreSQL exige la devolucion de un RefCursor
+     * como parametro OUT para mapear tablas, lo que colisiona con el soporte nativo de Proyecciones de Hibernate.
+     * Por lo tanto, para funciones que devuelven multiples columnas como filas, nativeQuery=true es el mecanismo
+     * recomendado y correcto que evita acoplar el esquema de BD a DTOs de mapeo hiper-estrictos.
      */
     @Query(value = "SELECT * FROM fn_cambiar_estado_cuenta(:p_id_usuario, :p_estado)", nativeQuery = true)
     List<SesionRevocadaProyeccion> cambiarEstadoCuenta(
@@ -59,7 +67,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_estado") boolean estado);
 
     /**
-     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) -
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??8) -
      * fn_permisos_efectivos_usuario: resuelve usuario + authorities (roles
      * ROLE_* + permisos, deduplicados) en una sola llamada STABLE. Sustituye
      * el N+1 de CustomUserDetailsService.loadUserByUsername (findByCorreo +
@@ -71,7 +79,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
     String permisosEfectivos(@Param("p_correo") String correo);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??6) -
      * fn_solicitar_recuperacion: invalida tokens de recuperacion previos e
      * inserta el nuevo atomicamente bajo SELECT FOR UPDATE (A5). Devuelve
      * JSONB {idUsuario, nombres} serializado como texto, NULL si la cuenta no
@@ -83,7 +91,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_hash_token") String hashToken);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??6) -
      * fn_cambiar_contrasena: UPDATE condicionado (compare-and-swap sobre el
      * hash) que aplica el cambio solo si nadie mas la cambio primero, cerrando
      * la actualizacion perdida (A7). Devuelve TRUE si se aplico; lanza
@@ -96,7 +104,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_hash_nuevo") String hashNuevo);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??4) -
      * fn_crear_usuario_admin: crea un usuario administrativo con sus roles en
      * una unica transaccion, capturando unique_violation sobre el correo en
      * vez de una comprobacion existsByCorreo no atomica (A3). Devuelve el
@@ -113,4 +121,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_estado_cuenta") Boolean estadoCuenta,
             @Param("p_nombres_rol") String[] nombresRol);
 }
+
 

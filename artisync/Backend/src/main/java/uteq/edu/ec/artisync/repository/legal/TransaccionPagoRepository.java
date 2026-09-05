@@ -17,10 +17,10 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
 
     /**
      * fn_reporte_comisiones_creador (db/procs/fn_reporte_comisiones_creador.sql):
-     * agrega bruto/comisión/neto y el detalle de transacciones de un creador en
+     * agrega bruto/comisi??n/neto y el detalle de transacciones de un creador en
      * una sola sentencia STABLE, en vez de traer entidades crudas y sumar en
-     * Java. Sustituye a la vieja findByCreadorPerfilId + agregación manual que
-     * usaba AuditServiceImpl (retirado: su CSV no tenía tope, no llevaba BOM y
+     * Java. Sustituye a la vieja findByCreadorPerfilId + agregaci??n manual que
+     * usaba AuditServiceImpl (retirado: su CSV no ten??a tope, no llevaba BOM y
      * formateaba el monto con el locale por defecto de la JVM).
      */
     @Query(value = "SELECT fn_reporte_comisiones_creador(:idPerfil, :desde, :hasta, :tasa)::text",
@@ -30,4 +30,5 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
                                   @Param("hasta") LocalDateTime hasta,
                                   @Param("tasa") BigDecimal tasa);
 }
+
 
