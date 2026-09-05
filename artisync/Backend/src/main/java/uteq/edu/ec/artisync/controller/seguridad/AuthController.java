@@ -37,7 +37,9 @@ public class AuthController {
     private static final String COOKIE_PRE_AUTH_2FA = "preAuth2fa";
     private static final int MAX_AGE_PRE_AUTH_2FA_SEGUNDOS = 300; // 5 min — igual TTL que en Redis
 
-    @Value("${app.security.cookie-secure:false}")
+    // Por defecto true (falla seguro): solo el perfil/entorno de desarrollo local
+    // (APP_COOKIE_SECURE=false en .env) lo desactiva para poder probar por HTTP.
+    @Value("${app.security.cookie-secure:true}")
     private boolean cookieSecure;
 
     private final AuthService authService;
