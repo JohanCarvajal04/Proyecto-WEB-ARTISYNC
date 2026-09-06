@@ -154,7 +154,7 @@ class ServicioCatalogoServicioImplTest {
         PerfilCreador perfilSinUsuario = PerfilCreador.builder().idPerfil(2L).usuario(null).build();
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
                 .tituloServicio("X").descripcionDetallada("Descripcion de mas de veinte caracteres")
-                .precioBase(new BigDecimal("15.00")).idSubcategoria(1L).build();
+                .precioBase(new BigDecimal("15.00")).idsSubcategoria(List.of(1L)).build();
         given(perfilRepository.findById(2L)).willReturn(Optional.of(perfilSinUsuario));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(2L, peticion))
@@ -172,9 +172,9 @@ class ServicioCatalogoServicioImplTest {
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
-                .precioBase(new BigDecimal("15.00")).idSubcategoria(1L).build();
+                .precioBase(new BigDecimal("15.00")).idsSubcategoria(List.of(1L)).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(subcategoria));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
         given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
@@ -251,11 +251,11 @@ class ServicioCatalogoServicioImplTest {
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
                 .precioBase(new BigDecimal("15.00"))
-                .idSubcategoria(1L)
+                .idsSubcategoria(List.of(1L))
                 .build();
 
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(subcategoria));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
         given(servicioRepository.save(any(Servicio.class))).willAnswer(inv -> inv.getArgument(0));
         given(servicioRepository.findById(any())).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findByServicioIdServicio(any())).willReturn(List.of());
@@ -504,7 +504,7 @@ class ServicioCatalogoServicioImplTest {
     void obtenerServicioPorId_perfilSinUsuario_usaNombrePorDefecto() {
         PerfilCreador perfilSinUsuario = PerfilCreador.builder().idPerfil(2L).usuario(null).build();
         Servicio servicioSinUsuario = Servicio.builder()
-                .idServicio(20L).perfil(perfilSinUsuario).subcategoria(subcategoria)
+                .idServicio(20L).perfil(perfilSinUsuario)
                 .tituloServicio("X").precioBase(BigDecimal.TEN).build();
         given(servicioRepository.findById(20L)).willReturn(Optional.of(servicioSinUsuario));
         given(servicioAtributoRepository.findByServicioIdServicio(20L)).willReturn(List.of());
