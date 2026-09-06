@@ -99,6 +99,10 @@ export const PAGE_PERMISSIONS = {
   comisiones: ['PEDIDO_GESTIONAR'],
   sorteos: ['SORTEO_CREAR'],
   portafolioPropio: ['PORTAFOLIO_CREAR'],
+  // "Mis Retiros" (creador) y la cola de gestión (admin) llevan permisos
+  // distintos a propósito (V33__permisos_retiros.sql): mismo criterio que
+  // flujosPropios/flujosModeracion más arriba, cada uno abre solo SU pantalla.
+  retirosCreador: ['RETIROS_SOLICITAR'],
   pedidosCliente: ['PEDIDO_CREAR', 'PEDIDO_GESTIONAR'],
   pedidoCrear: ['PEDIDO_CREAR'],
   // Bitácora de auditoría transversal (V15__modulo_auditoria.sql). Exportar
@@ -115,7 +119,11 @@ export const PAGE_PERMISSIONS = {
   reportesContratos: ['TRANSACCION_VER'],
   // Supervisión de pagos en escrow. PAGO_AUDITAR estaba asignado a
   // AUDITOR_FINANCIERO desde el seed inicial sin ninguna pantalla que lo usara.
-  pagosGarantia: ['PAGO_AUDITAR']
+  pagosGarantia: ['PAGO_AUDITAR'],
+  // RETIROS_GESTIONAR se asigna a AUDITOR_FINANCIERO, no a ADMIN (mismo
+  // criterio que PAGO_AUDITAR/FONDOS_LIBERAR desde V32): el @PreAuthorize del
+  // controlador añade "or hasRole('ADMIN')" como comodín aparte.
+  retirosAdmin: ['RETIROS_GESTIONAR']
 } as const satisfies Record<string, readonly string[]>;
 
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
@@ -254,6 +262,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // AUDITOR_FINANCIERO antes de este punto en la lista, así que de otro modo
   // su página de aterrizaje sería "Gestión de Países" (más abajo).
   { label: 'Pagos y Garantías', icon: 'account_balance', route: 'pagos-garantia', panel: 'admin', permissions: PAGE_PERMISSIONS.pagosGarantia, crossPanel: true },
+  { label: 'Retiros', icon: 'account_balance_wallet', route: 'retiros', panel: 'admin', permissions: PAGE_PERMISSIONS.retirosAdmin, crossPanel: true },
   { label: 'Panel de Moderación', icon: 'dashboard', route: 'mod-overview', panel: 'admin', permissions: PAGE_PERMISSIONS.panelModeracion, crossPanel: true },
   { label: 'Verificaciones', icon: 'verified', route: 'verificaciones', panel: 'admin', permissions: PAGE_PERMISSIONS.verificaciones, crossPanel: true },
   { label: 'Portafolios', icon: 'palette', route: 'mod-portafolios', panel: 'admin', permissions: PAGE_PERMISSIONS.portafoliosModeracion, crossPanel: true },
@@ -279,6 +288,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'creador' },
   { label: 'Mis Servicios', icon: 'storefront', route: 'servicios', panel: 'creador', permissions: PAGE_PERMISSIONS.servicios, crossPanel: true },
   { label: 'Comisiones', icon: 'shopping_bag', route: 'comisiones', panel: 'creador', permissions: PAGE_PERMISSIONS.comisiones, crossPanel: true },
+  { label: 'Mis Retiros', icon: 'account_balance_wallet', route: 'retiros', panel: 'creador', permissions: PAGE_PERMISSIONS.retirosCreador, crossPanel: true },
   { label: 'Briefings', icon: 'assignment', route: 'briefings', panel: 'creador' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'creador' },
   { label: 'Reseñas', icon: 'rate_review', route: 'resenas', panel: 'creador' },

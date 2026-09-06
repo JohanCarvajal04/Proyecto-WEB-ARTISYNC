@@ -29,6 +29,18 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
                                   @Param("desde") LocalDateTime desde,
                                   @Param("hasta") LocalDateTime hasta,
                                   @Param("tasa") BigDecimal tasa);
+
+    /**
+     * Total histórico de "Egreso" (la parte del creador tras la comisión,
+     * ver EntregableServicioImpl.aprobarEntrega) acumulado por todos sus
+     * pedidos. Es la mitad "ingresos" del cálculo de saldo disponible para
+     * retiro; la otra mitad (lo ya solicitado) vive en
+     * SolicitudRetiroRepository.sumMontosEnCursoPorCreador.
+     */
+    @Query("SELECT COALESCE(SUM(t.monto), 0) FROM TransaccionPago t " +
+            "WHERE t.tipoTransaccion = 'Egreso' " +
+            "AND t.pago.contrato.pedido.servicio.perfil.usuario.idUsuario = :idUsuarioCreador")
+    BigDecimal sumEgresosPorCreador(@Param("idUsuarioCreador") Long idUsuarioCreador);
 }
 
 

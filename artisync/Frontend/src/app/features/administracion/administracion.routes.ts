@@ -108,5 +108,11 @@ export const ADMINISTRACION_ROUTES: Routes = [
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.pagosGarantia },
     loadComponent: () => import('./pages/pagos-garantia/pagos-garantia.component').then(m => m.PagosGarantiaComponent)
+  },
+  {
+    path: 'retiros',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.retirosAdmin },
+    loadComponent: () => import('./pages/retiros/retiros-admin.component').then(m => m.RetirosAdminComponent)
   }
 ];
