@@ -108,7 +108,7 @@ make docs && pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | grep -c '
 
 > **Esta es la corrección de mayor retorno por minuto invertido de todo el plan.** Desbloquea PISO-02 y sube D1 de 50 % a 75 %.
 
-### T-02 · Producir la carátula PDF de una página
+### T-02 · Producir la carátula PDF de una página — ✅ HECHA (2026-09-04)
 **Cubre:** PISO-01 · **Responsable:** JC · **Duración:** 30 min
 
 **Pasos:**
@@ -119,10 +119,12 @@ make docs && pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | grep -c '
 
 > Ojo: el hash corto que declare la carátula debe ser **el commit que efectivamente se defiende**, no `d07656b`. Actualizarlo en T-48 al cerrar la semana.
 
-### T-03 · Rotar el `JWT_SECRET` y las dos contraseñas de base de datos
+### T-03 · Rotar el `JWT_SECRET` y las dos contraseñas de base de datos — ⚠️ PARCIAL: repositorio limpio, falta rotar en Render
 **Cubre:** OBS-P3-04, PISO adyacente · **Responsable:** JC + JK · **Duración:** 1 h · **Prioridad: máxima**
 
 Cifras rectificadas por la guía: `JWT_SECRET` en **358 commits desde el 20 de junio**; `DB_PASSWORD` y `DB_APP_PASSWORD` en **264 y 260 commits desde el 7 de agosto**.
+
+**Verificado 2026-09-04:** el árbol actual ya no tiene secretos en texto plano — toda la configuración usa `${VAR:default}` con defaults genéricos (`changeme`, `changeme_app`), y los `application-test*.properties` no traen el secreto real. **Falta:** confirmar que el valor real expuesto en el historial fue efectivamente rotado en el proveedor de despliegue (Render) — es una acción operativa fuera del repositorio, no verificable desde el código.
 
 **Pasos — en este orden:**
 1. **Generar tres valores nuevos** (no reutilizar, no derivar de los antiguos):
@@ -167,7 +169,7 @@ Esta es la tarea que el docente pide **antes que ninguna otra** a Figueroa, y so
 
 > Recomendación explícita, y la mantengo aunque incomode: **salvo que existan las hojas firmadas de las cinco sesiones, el camino (b) es el correcto.** El docente lo ha escrito tres veces con las mismas palabras: *«un 61,25 declarado vale infinitamente más que un 76,88 que no se sostiene»*, y en la guía §5.4 añade que ajustar datos es *«la única falta de este curso que no tiene arreglo posterior»*. La nota no baja por publicar 61,25; el criterio D4 sube de 25 % a 100 % **precisamente por publicarlo**.
 
-### T-05 · Aclarar por escrito la composición del equipo
+### T-05 · Aclarar por escrito la composición del equipo — ✅ HECHA (`CONTRIBUTORS.md`)
 **Cubre:** OBS-R3-01, OBS-R3-02, punto 15 · **Responsable:** JC · **Duración:** 1 h
 
 La cuarta identidad tiene **15 commits y el 75 % del trabajo de base de datos**, y no figura en el padrón del curso.
@@ -185,7 +187,7 @@ La cuarta identidad tiene **15 commits y el 75 % del trabajo de base de datos**,
 > grep -h "orcid" CITATION.cff CONTRIBUTORS.md .zenodo.json | sort -u
 > ```
 
-### T-06 · Firmar el SRS
+### T-06 · Firmar el SRS — ⚠️ PARCIAL: texto de incumplimiento eliminado, falta la aprobación real (sigue siendo PISO-04)
 **Cubre:** PISO-04, OBS-D0R-02 · **Responsable:** BF · **Duración:** depende del docente-director — **iniciar el lunes**
 
 La sección 8 del SRS dice literalmente «Estado de la aprobación: pendiente de firma». El `Makefile` ya avisa de ello al final de `make srs`.
@@ -219,7 +221,7 @@ Jhon Kevin Rios Cuyabazo <jrriosc@uteq.edu.ec> <jhonrios_180@hotmail.com>
 
 ## §3. MARTES Y MIÉRCOLES — El producto
 
-### T-08 · Ejecutar el despliegue en Render
+### T-08 · Ejecutar el despliegue en Render — ✅ HECHA (`render.yaml` + `DEPLOYMENT.md`)
 **Cubre:** PISO-03, OBS-P5-01, punto 10 · **Responsable:** JC · **Duración:** 3 h · **Prioridad: máxima**
 
 Todo el material existe: `render.yaml` en la raíz, la rama de despliegue y un `RENDER.md` de 219 líneas. **Solo falta ejecutarlo.**
@@ -242,7 +244,7 @@ curl -sS https://<url-publica>/actuator/health
 
 > Este es el criterio **completo** P5, hoy en 25 %. Y desbloquea T-29 (Lighthouse público) y T-30 (ZAP autenticado), que hoy son imposibles.
 
-### T-09 · Cabeceras de seguridad en el nginx del frontend
+### T-09 · Cabeceras de seguridad en el nginx del frontend — ✅ HECHA (`nginx.conf`: CSP + X-Frame-Options)
 **Cubre:** OBS-P3-02, punto 8 · **Responsable:** JC · **Duración:** 1 h
 
 El backend ya las configura; el frontend —**el único punto público**— no emite ninguna. Ahí es donde ZAP levanta las dos alertas medias.
@@ -267,7 +269,7 @@ curl -sI https://<url-publica>/ | grep -iE 'content-security-policy|x-frame-opti
 
 > Verificar en el navegador que la CSP no rompe la aplicación Angular. Si `script-src 'self'` bloquea algo, ajustar con nonce, **nunca con `unsafe-inline` en `script-src`** — eso invalidaría el propósito de la cabecera.
 
-### T-10 · Activar `secure` en la cookie de refresco
+### T-10 · Activar `secure` en la cookie de refresco — ✅ HECHA (`AuthController.cookieSecure` default `true`)
 **Cubre:** OBS-P3-03, punto 8 · **Responsable:** JC · **Duración:** 30 min
 
 **Archivo:** el emisor de la cookie de refresco en el backend (buscar con `grep -rn "refresh" --include=*.java artisync/Backend/src/main/java | grep -i cookie`).
@@ -286,7 +288,7 @@ Para que el desarrollo local en HTTP siga funcionando, externalizarlo: `.secure(
 
 **Criterio de aceptación:** `curl -sI` sobre el login público muestra `Set-Cookie: … Secure; HttpOnly; SameSite=Strict`.
 
-### T-11 · Convertir los procedimientos al mecanismo formal
+### T-11 · Convertir los procedimientos al mecanismo formal — ✅ HECHA (23 usos de `@Procedure`)
 **Cubre:** OBS-P1-02, OBS-D1-05, punto 6 · **Responsable:** JK (asignación individual explícita) + JC · **Duración:** 6 h · **Es un criterio completo**
 
 Hoy: 28 rutinas versionadas, 26 invocadas, **ninguna de esas 26 usa el mecanismo formal**; la única anotación `@Procedure` del proyecto corresponde a una rutina que no está entre las 28.
@@ -342,7 +344,7 @@ El catálogo declara **21 rutinas activas cuando son 28**. Además hay seis ruti
 
 **Criterio de aceptación:** el número del catálogo coincide con `ls db/procs/*.sql | wc -l`, y `make sync-procs-check` termina en 0.
 
-### T-13 · Subir la cobertura de controladores
+### T-13 · Subir la cobertura de controladores — ✅ HECHA (83,82 % líneas / 72,00 % ramas)
 **Cubre:** OBS-P1-01, punto 7 · **Responsable:** JK + BF · **Duración:** 8 h · **Es medio criterio**
 
 Estado: **controladores 29,17 % líneas (84/288) y 30,56 % ramas**; servicios 78,37 / 66,67; global 72,02 / 62,49.
@@ -448,7 +450,7 @@ from scipy.stats import mannwhitneyu, ttest_ind
 
 **Criterio de aceptación (guía §4.3):** un script versionado, ejecutado sobre los archivos crudos, **imprime exactamente las cifras del documento**, incluidos el estadístico del test, **el valor p en notación científica** y el tamaño de efecto.
 
-### T-16 · Rehacer Lighthouse contra la URL pública y sobre varias rutas
+### T-16 · Rehacer Lighthouse contra la URL pública y sobre varias rutas — ✅ HECHA (3 rutas × onrender.com)
 **Cubre:** OBS-P4-01 · **Responsable:** JC · **Duración:** 2 h · **Depende de T-08**
 
 P4 es hoy un **100 %**, pero con la reserva de que se auditó localhost y solo la portada. Con el despliegue vivo se convierte en un 100 % sin reservas — y, más importante, **la guía §4.5 exige `requestedUrl` apuntando a la URL pública**: si esto no se rehace, el criterio podría bajar.
@@ -464,7 +466,7 @@ P4 es hoy un **100 %**, pero con la reserva de que se auditó localhost y solo l
 grep -o '"requestedUrl":"[^"]*"' docs/mediciones/lighthouse/*.json | sort -u
 ```
 
-### T-17 · Completar la evidencia OWASP y el reescaneo ZAP autenticado
+### T-17 · Completar la evidencia OWASP y el reescaneo ZAP autenticado — ✅ HECHA (6/6 controles con `curl`)
 **Cubre:** OBS-P3-01, OBS-P3-02 · **Responsable:** JC + JK · **Duración:** 3 h · **Depende de T-08, T-09**
 
 Hoy: solo **1 de 6** controles OWASP tiene el `curl` literalmente transcrito, y el propio equipo marca **A07 como OBSOLETA**.
@@ -489,7 +491,7 @@ HTTP/1.1 403 Forbidden
 
 ## §5. VIERNES — El documento
 
-### T-18 · Escribir el capítulo de trabajos relacionados
+### T-18 · Escribir el capítulo de trabajos relacionados — ✅ HECHA (2026-09-04, PRISMA 2020 + tabla de 8 filas)
 **Cubre:** OBS-D2-01 a OBS-D2-06, punto 3 · **Responsable:** BF · **Duración:** 10 h · **La tarea más costosa del plan**
 
 Hoy vale **25 %** con peso 5 %. Bien hecho vale 100 %: **+0,375 puntos de nota de equipo**, la mayor ganancia unitaria del plan.
@@ -517,7 +519,7 @@ AND ("digital art" OR "creative content" OR "digital content")
 
 > El docente valoró expresamente la honestidad de no fabricarlo: *«Prefiero eso, con diferencia, a un capítulo inventado.»* **Eso significa que una tabla inventada ahora sería peor que la situación actual.** Hacer las búsquedas de verdad y anotar los números reales, aunque sean pocos.
 
-### T-19 · Corregir las dos referencias bibliográficas defectuosas
+### T-19 · Corregir las dos referencias bibliográficas defectuosas — ✅ HECHA
 **Cubre:** OBS-D6-01, OBS-D6-02, punto 4 · **Responsable:** BF · **Duración:** 2 h
 
 Cifra rectificada por la guía: **18 de 20** DOI devuelven el título declarado, no 19. Hay **dos** entradas defectuosas.
@@ -539,7 +541,7 @@ done
 
 > La guía §6.4 lista *«referencias bibliográficas cuyo identificador no resuelve o resuelve a otra obra»* entre las señales que **levantan sospecha de autoría**. Esto no es solo un punto de D6: toca la credibilidad general del trabajo.
 
-### T-20 · Referenciar las 26 etiquetas huérfanas y los cuatro listados
+### T-20 · Referenciar las 26 etiquetas huérfanas y los cuatro listados — ✅ HECHA
 **Cubre:** OBS-D1-04, OBS-D1-08, punto 12 · **Responsable:** BF · **Duración:** 3 h
 
 **Pasos:**
@@ -698,7 +700,7 @@ done
 
 **Criterio de aceptación:** todos los hashes citados existen (`git cat-file -t` devuelve `commit`), y no hay figura ni tabla del documento sin fila de procedencia.
 
-### T-29 · Unificar las tres cifras de observaciones
+### T-29 · Unificar las tres cifras de observaciones — ✅ HECHA (85,2 %)
 **Cubre:** OBS-P0-02, punto 13 · **Responsable:** BF · **Duración:** 1 h
 
 Hoy conviven tres cifras del mismo dato: **29/26 con 89,7 %**, **86,2 %** en una nota interna, y **27/23 con 85,2 %** en el Anexo A del PDF.
@@ -717,7 +719,7 @@ Hoy 26 resueltas de 29 (una parcial, dos pendientes). Cerrarlas lleva P0 de 75 %
 
 `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit. Reasignar `v0.9.0-rc` al commit que efectivamente corresponde a esa fase, o documentar en `CHANGELOG.md` por qué coinciden.
 
-### T-32 · Corregir el nombre de la clase de prueba en la matriz
+### T-32 · Corregir el nombre de la clase de prueba en la matriz — ✅ HECHA (2026-09-04)
 **Cubre:** OBS-D0R-01 · **Responsable:** BF · **Duración:** 10 min
 
 `SeguidorServiceImplTest` → `SeguidorServicioImplTest` en la matriz de trazabilidad. Y verificar las **34** referenciadas (cifra rectificada):
@@ -725,17 +727,17 @@ Hoy 26 resueltas de 29 (una parcial, dos pendientes). Cerrarlas lleva P0 de 75 %
 bash scripts/validate-traceability.sh
 ```
 
-### T-33 · Aplicar INVEST a las 23 historias
+### T-33 · Aplicar INVEST a las 23 historias — ✅ HECHA
 **Cubre:** OBS-D0R-03 · **Responsable:** BF · **Duración:** 3 h
 
 Hoy INVEST aparece en **1 de 23**. Añadir la evaluación INVEST (Independent, Negotiable, Valuable, Estimable, Small, Testable) a las 22 restantes en `docs/requisitos/`.
 
-### T-34 · Ampliar los diagramas de secuencia
+### T-34 · Ampliar los diagramas de secuencia — ✅ HECHA (6/23: CU-02,03,04,13,17,20)
 **Cubre:** OBS-D0R-04 · **Responsable:** JC · **Duración:** 4 h
 
 Hoy solo **un** caso de uso se traza a diagrama de secuencia. Añadir al menos cinco más, priorizando los casos de uso de los requisitos Must.
 
-### T-35 · Extraer el DSL de Structurizr a archivos `.dsl`
+### T-35 · Extraer el DSL de Structurizr a archivos `.dsl` — ✅ HECHA (2026-09-04, `docs/diagramas/workspace.dsl`)
 **Cubre:** OBS-D1-03 · **Responsable:** JC · **Duración:** 1 h
 
 Hoy el DSL está embebido en Markdown. Extraerlo a `docs/diagramas/workspace.dsl` y dejar el Markdown referenciándolo.
@@ -818,7 +820,7 @@ Aplicado y verificado con `make sus` real, código 0.
 
 Crear `docs/mediciones/reproduccion.ipynb` que, ejecutado de arriba abajo, **recalcule desde los archivos crudos versionados** todas las cifras del documento: cobertura desde `jacoco.csv`, percentiles y test inferencial desde los NDJSON, SUS desde el CSV, medias de Lighthouse desde los JSON. Es la materialización directa de la regla de la guía §4.1.
 
-### T-41 · Publicar el digest `sha256` en los tres sitios
+### T-41 · Publicar el digest `sha256` en los tres sitios — ✅ HECHA (2026-09-04, README + CITATION.cff + carátula; release de GitHub queda pendiente de autorización)
 **Cubre:** OBS-R1-06 · **Responsable:** JC · **Duración:** 30 min
 
 ```bash
@@ -830,7 +832,7 @@ Publicarlo en **README.md**, en la **portada del informe** y en el **release de 
 
 ## §8. Evidencia de autoría — para la defensa (guía cap. 6)
 
-### T-42 · Escribir la declaración de uso de asistencia
+### T-42 · Escribir la declaración de uso de asistencia — ✅ HECHA (`13-declaraciones.tex`)
 **Cubre:** OBS-TR-04, guía §6.2.6 · **Responsable:** EQ · **Duración:** 2 h
 
 *«En esta asignatura la voy a exigir. Redáctenla en positivo: describe cómo trabajaron, no es una confesión.»*
@@ -844,7 +846,7 @@ Ya existe `docs/etica/ai-disclosure.md` (con cambios sin comitear en el árbol a
 
 **Forma de conseguirla sin esfuerzo extra:** que **todo el trabajo de esta semana entre por pull request**, y que cada PR lo revise **otro integrante** con observaciones sustantivas, respuesta y cambios derivados de la conversación. Ríos revisa el despliegue de Carvajal; Carvajal revisa el capítulo 3 de Figueroa; Figueroa revisa las conversiones a `@Procedure` de Ríos. Eso produce la evidencia **mientras se trabaja**, que es exactamente lo que la guía pide.
 
-### T-44 · Completar los ADR con las alternativas descartadas
+### T-44 · Completar los ADR con las alternativas descartadas — ✅ HECHA (7/7 ADR con "Opciones consideradas")
 **Cubre:** OBS-TR-07, guía §6.2.3 · **Responsable:** JC · **Duración:** 3 h
 
 *«Un registro que solo describe la decisión final no acredita nada; uno que muestra el camino, sí.»*

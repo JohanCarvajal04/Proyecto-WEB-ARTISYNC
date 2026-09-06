@@ -4,6 +4,8 @@ Este documento describe el **Nivel 1 (Contexto del Sistema)** de la metodología
 
 El diagrama de contexto sitúa al sistema **Artisync** como una **caja negra** central y muestra los límites globales del sistema, identificando a los **actores (usuarios que interactúan)** y los **sistemas y servicios externos** con los que el sistema se comunica para cumplir con sus requisitos de negocio.
 
+> **Código fuente DSL (Structurizr):** el modelo formal de este nivel está en [`docs/diagramas/workspace.dsl`](workspace.dsl) (vista `systemContext`), no embebido en este Markdown. Este documento es su descripción narrativa.
+
 ---
 
 ## 1. Identificación de Elementos del Nivel 1

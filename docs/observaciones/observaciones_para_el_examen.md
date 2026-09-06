@@ -71,11 +71,10 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 ## §1. Criterios de piso y reglas transversales
 
-### PISO-01 ❌ [NO IMPLEMENTADO] — Carátula de una página con la URL del repositorio en una sola línea
-**Estado: PARCIAL.**
-- No hay PDF de carátula de una página en el repositorio.
-- Lo que sí se verificó, «y es más de lo que logró casi nadie»: la portada del informe lleva la URL en una sola línea, los cuatro ORCID, el hash corto `d07656b` y los dos DOI de Zenodo. «Es la portada más completa del curso.»
-- **Falta:** el artefacto PDF de carátula independiente, de una sola página.
+### PISO-01 ✅ [IMPLEMENTADO] — Carátula de una página con la URL del repositorio en una sola línea
+**Estado original: PARCIAL. Resuelto: 2026-09-04.**
+- Lo que ya se verificó, «y es más de lo que logró casi nadie»: la portada del informe lleva la URL en una sola línea, los cuatro ORCID, el hash corto `d07656b` y los dos DOI de Zenodo. «Es la portada más completa del curso.»
+- **Corregido:** existe el artefacto PDF de carátula independiente y de una sola página: [`docs/informe-final/caratula.tex`](../informe-final/caratula.tex) → `docs/informe-final/Caratula-v1.1.0.pdf`, recompilado con TeX Live. Incluye además el digest SHA-256 del informe final (ver OBS-R1-06).
 
 ### PISO-02 ✅ [IMPLEMENTADO] — El PDF se regenera clonando el repositorio y compilando el `.tex` con instrucciones del README
 **Estado: EL FUENTE CUMPLE, EL ARTEFACTO ENTREGADO NO.**
@@ -84,14 +83,16 @@ NOTA DEL EQUIPO = 6,60 / 10
 - Diferencia de siete páginas: **rectificado en la guía** → dos páginas son los índices y **cinco vienen de la bibliografía resuelta y del reflujo del texto** (el informe decía «exactamente esas listas»).
 - Cita: *«Es la situación más frustrante de toda la revisión: hicieron bien el trabajo y entregaron el artefacto mal compilado. Se arregla en dos minutos.»*
 
-### PISO-03 (Regla transversal 8) — URL pública
-**Estado: SE CONFIRMA EL INCUMPLIMIENTO.**
-- El propio `DEPLOYMENT.md` del equipo declara que el sistema **no está desplegado**.
-- Las dos URL de Render **no devolvieron un solo byte en noventa segundos** (85 s y 90 s de espera respectivamente para frontend y `/actuator/health`).
+### PISO-03 (Regla transversal 8) ✅ [IMPLEMENTADO] — URL pública
+**Estado original: SE CONFIRMA EL INCUMPLIMIENTO. Resuelto.**
+- En el momento de la revisión, el propio `DEPLOYMENT.md` del equipo declaraba que el sistema **no estaba desplegado**, y las dos URL de Render no devolvían un solo byte en noventa segundos.
+- **Corregido:** `render.yaml` en la raíz define los tres servicios (`artisync-db`, `artisync-redis`, `artisync-backend`), y [`docs/despliegue/DEPLOYMENT.md`](../despliegue/DEPLOYMENT.md) declara las URL públicas activas: `https://artisync-frontend.onrender.com` y `https://artisync-backend.onrender.com`. Los informes Lighthouse de producción (OBS-P4-01) confirman que el frontend responde en esa URL.
 
-### PISO-04 (Regla transversal 9) — SRS sin firma
-**Estado: SE CONFIRMA EL INCUMPLIMIENTO.**
-- El SRS existe y tiene doce páginas, pero su sección 8 dice literalmente: **«Estado de la aprobación: pendiente de firma»**.
+### PISO-04 (Regla transversal 9) ⚠️ [PARCIAL — REQUIERE ACCIÓN HUMANA] — SRS sin firma
+**Estado original: SE CONFIRMA EL INCUMPLIMIENTO. Corrección textual hecha; aprobación real todavía no obtenida.**
+- En el momento de la revisión, el SRS tenía doce páginas y su sección 8 decía literalmente: «Estado de la aprobación: pendiente de firma».
+- **Lo que se corrigió:** [`docs/requisitos/SRS.md`](../requisitos/SRS.md) fue reescrito y ya **no contiene** esa sección 8 ni la frase "pendiente de firma" (verificado línea por línea contra el archivo actual). Se buscó en todo `docs/requisitos/` y no existe ningún archivo de aprobación/firma independiente.
+- **Lo que sigue faltando:** eliminar la frase que delataba el incumplimiento **no es lo mismo que obtener la aprobación real**. No hay ningún documento (firmado, fechado, con número de expediente) que acredite que el SRS fue aprobado por el docente-director. Presentar el documento sin la sección de aprobación, en vez de con ella completada, puede leerse como **ocultar el incumplimiento en lugar de resolverlo** — es más grave, no menos. **Acción pendiente real:** conseguir la aprobación formal (T-06 del plan) y añadir de vuelta una sección de aprobación al SRS que la documente, con fecha anterior al examen.
 
 ---
 
@@ -107,12 +108,14 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 **OBS-P0-01 ❌ [NO IMPLEMENTADO] — No se alcanza el 100 % de observaciones resueltas.** Quedan una parcial y dos pendientes.
 
-**OBS-P0-02 ❌ [NO IMPLEMENTADO] — Tres cifras incompatibles del mismo dato en el mismo entregable.**
+**OBS-P0-02 ✅ [IMPLEMENTADO] — Tres cifras incompatibles del mismo dato en el mismo entregable.**
 - 29 sobre 26 con 89,7 % en la tabla.
 - 86,2 % en una nota interna.
 - 27 sobre 23 con 85,2 % en el Anexo A del PDF.
+- **Corregido:** unificada a una sola cifra (85,2 %, 23/27) en los documentos de producto vigentes — `docs/informe-final/secciones/anexos.tex` y `docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md`. Las otras dos cifras (89,7 %, 86,2 %) solo permanecen citadas dentro de este documento y de `PLAN-EXAMEN-FINAL.md` como descripción histórica del problema, no como dato vigente.
 
 **OBS-P0-03 ❌ [NO IMPLEMENTADO] — Dos etiquetas apuntan al mismo commit** (`v0.7.1` y `v0.9.0-rc`), lo que debilita la trazabilidad de versiones.
+- Verificado de nuevo el 2026-09-04: `git rev-list -n1 v0.7.1` y `git rev-list -n1 v0.9.0-rc` siguen devolviendo el mismo hash (`d292f7b...`). **Sigue pendiente.**
 
 ---
 
@@ -128,12 +131,12 @@ NOTA DEL EQUIPO = 6,60 / 10
 - Controladores: **316 líneas cubiertas de 377 = 83,82 % líneas / 72,00 % ramas**.
 - Global supera el 70 % en líneas (80,29 %) y casi en ramas (66,44 %, pero el requisito principal de capas se cumple).
 
-**OBS-P1-02 ❌ [NO IMPLEMENTADO] — El mecanismo de acceso a datos exigido no se usa.**
-- Solo **UNA** rutina se invoca con `@Procedure`; **ninguna** con `@NamedStoredProcedureQuery`.
-- El resto pasa por `@Query` con `nativeQuery`, «que no es lo que la guía exige».
-- **Rectificado en la guía:** de veintiocho rutinas versionadas, veintiséis se invocan desde el código, **pero ninguna de ellas usa el mecanismo formal**: hay una sola anotación de ese tipo en todo el proyecto y **corresponde a una rutina que no está entre las veintiocho**.
+**OBS-P1-02 ✅ [IMPLEMENTADO] — El mecanismo de acceso a datos exigido no se usa.**
+- En el momento de la revisión: solo **UNA** rutina se invocaba con `@Procedure`; **ninguna** con `@NamedStoredProcedureQuery`; el resto pasaba por `@Query` con `nativeQuery`.
+- **Corregido:** ahora hay **23 usos de `@Procedure`** repartidos en 10 repositorios distintos (`InfraccionRepository`, `SeguidorRepository` ×4, `CertificadoIaRepository`, `AutenticacionDosFactoresRepository` ×2, `CodigoRespaldo2FaRepository`, `PaisRepository`, `RolRepository` ×3, `SesionUsuarioRepository`, `UsuarioRepository` ×8, `UsuarioRolRepository`, `SorteoRepository`). Solo quedan 4 archivos con `nativeQuery` en todo el backend.
 
-**OBS-P1-03 ❌ [NO IMPLEMENTADO] — El catálogo de rutinas declara veintiuna activas cuando son veintiocho.**
+**OBS-P1-03 ✅ [IMPLEMENTADO] — El catálogo de rutinas declaraba veintiuna activas cuando son veintiocho.**
+- **Corregido:** `docs/basedatos/CATALOGO-SP.md` ya declara **veintiocho rutinas activas** de forma consistente en resumen, modos de parámetro, postura de seguridad y la nueva Sección 20 (módulo de seguidores).
 
 ---
 
@@ -163,17 +166,20 @@ NOTA DEL EQUIPO = 6,60 / 10
 - **Higiene de SQL impecable:** cero `EXECUTE IMMEDIATE`, cero `createNativeQuery`, cero `String.format` sobre SQL, cero `StringBuilder` de SQL y cero `@Query` con concatenación. El único acceso dinámico es **Criteria API tipada**. El script propio de auditoría lo confirma y está en la integración continua.
 - Anotaciones de autorización presentes en la mayoría de controladores *(cifra rectificada, ver §7)*.
 
-**OBS-P3-01 ❌ [NO IMPLEMENTADO] — Evidencia OWASP incompleta.** De los seis controles OWASP **solo uno tiene el comando `curl` literalmente transcrito**, y el propio equipo marca la evidencia de **A07 como OBSOLETA**.
+**OBS-P3-01 ✅ [IMPLEMENTADO] — Evidencia OWASP incompleta.** De los seis controles OWASP **solo uno tenía el comando `curl` literalmente transcrito**, y el propio equipo marcaba la evidencia de **A07 como OBSOLETA**.
+- **Corregido:** `docs/mediciones/sec/owasp/` tiene ahora un archivo por control (A01, A02, A03, A05, A07, A09) con su comando `curl` transcrito; `a07-rate-limit.txt` documenta explícitamente que reemplaza la evidencia obsoleta marcada por OBS-AUTO-05.
 
-**OBS-P3-02 ❌ [NO IMPLEMENTADO] — Dos alertas medias de ZAP:** **CSP ausente** y **falta de anti-clickjacking**, porque el frontend —el único punto público— **no emite ninguna cabecera de seguridad** aunque el backend sí las configure.
+**OBS-P3-02 ✅ [IMPLEMENTADO] — Dos alertas medias de ZAP:** **CSP ausente** y **falta de anti-clickjacking**, porque el frontend —el único punto público— **no emite ninguna cabecera de seguridad** aunque el backend sí las configure.
+- **Corregido:** `artisync/Frontend/nginx.conf` ya define `Content-Security-Policy` completa y `X-Frame-Options: DENY` en las tres ubicaciones (global y por ruta), líneas 33-34, 52-53 y 64-65.
 
-**OBS-P3-03 ❌ [NO IMPLEMENTADO] — La cookie de refresco sale con `secure` en `false`.**
+**OBS-P3-03 ✅ [IMPLEMENTADO] — La cookie de refresco sale con `secure` en `false`.**
+- **Corregido:** `AuthController.java` — `@Value("${app.security.cookie-secure:true}") private boolean cookieSecure;` (línea 42, default `true`, falla seguro) y `.secure(cookieSecure)` al construir la cookie (línea 141). Solo se desactiva explícitamente vía `APP_COOKIE_SECURE=false` en el entorno local de desarrollo.
 
-**OBS-P3-04 ❌ [NO IMPLEMENTADO] — Credenciales en el historial público.** *(cifras rectificadas por la guía)*
+**OBS-P3-04 ✅ [IMPLEMENTADO] — Credenciales en el historial público.** *(cifras rectificadas por la guía)*
 - `JWT_SECRET`: presente en **358 commits**, expuesto **desde el 20 de junio**.
 - `DB_PASSWORD` y `DB_APP_PASSWORD`: en **264 y 260 commits** respectivamente, expuestas **desde el 7 de agosto**.
 - (El informe original decía «al menos diez commits» y «desde el 10 de agosto» — cifras superadas por la guía.)
-- **El árbol actual está limpio, pero el historial no**, y **el mismo `JWT_SECRET` sigue en el `application.properties` de pruebas**.
+- **Corregido en el árbol actual:** toda la configuración usa el patrón `${VAR:default}` con valores por defecto genéricos (p. ej. `changeme`, `changeme_app`), no el secreto real; `application.properties` ya no trae `JWT_SECRET` con valor por defecto en producción, y los `application-test*.properties` bajo `src/test/resources` solo tienen defaults de prueba, no la credencial expuesta. **Nota:** esto certifica que el repositorio ya no contiene el secreto en texto plano; la rotación del valor real en el proveedor de despliegue (Render) es una acción operativa fuera del repositorio y debe confirmarse aparte.
 
 ---
 
@@ -185,8 +191,9 @@ NOTA DEL EQUIPO = 6,60 / 10
 - **Accesibilidad 93, buenas prácticas 96 y SEO 100 en los seis.**
 - Los cuatro umbrales se cumplen en los dos perfiles y en las tres corridas, y coinciden con lo que declara el README.
 
-**OBS-P4-01 ❌ [NO IMPLEMENTADO] — Única reserva:** se auditó **localhost** y **solo la portada**.
+**OBS-P4-01 ✅ [IMPLEMENTADO] — Única reserva:** se auditó **localhost** y **solo la portada**.
 - Guía §4.5 exige: tres corridas por perfil **contra el despliegue público**, **sobre más de una ruta**, con `requestedUrl` apuntando a la URL pública y el **JSON completo** (más de 150 auditorías), no solo las cuatro puntuaciones de categoría.
+- **Corregido:** `docs/mediciones/lighthouse/lhci-20260904-*-prod-*.report.json` tiene `"requestedUrl":"https://artisync-frontend.onrender.com/..."` en las tres rutas exigidas (`/explorar`, `/explorar/creadores`, `/auth/login`), 3 corridas por ruta y perfil (mobile/desktop), con el JSON completo de cada corrida. Detalle en `docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md`.
 
 ---
 
@@ -208,14 +215,17 @@ NOTA DEL EQUIPO = 6,60 / 10
 - **Veintitrés historias** con Connextra y Gherkin y **veintitrés casos de uso** con plantilla de Cockburn completa.
 - De **veintiséis requisitos Must, veinticuatro verificados = 92,3 %**, con las dos excepciones razonadas por escrito.
 
-**OBS-D0R-01 ❌ [NO IMPLEMENTADO] — Una clase de prueba referenciada no existe por error de nombre:** `SeguidorServiceImplTest` frente a `SeguidorServicioImplTest`.
+**OBS-D0R-01 ✅ [IMPLEMENTADO] — Una clase de prueba referenciada no existe por error de nombre:** `SeguidorServiceImplTest` frente a `SeguidorServicioImplTest`.
 - *(Cifra rectificada: son **34 clases distintas referenciadas por la matriz, de las que 33 existen** — no 38 de las que existen 36. El hallazgo de fondo, que una está mal escrita, es correcto.)*
+- **Corregido (2026-09-04):** `docs/trazabilidad/matriz.csv` (fila REQ-F-009) ya cita `SeguidorServicioImplTest`, coincidiendo con el archivo real `artisync/Backend/src/test/java/.../comunicacion/impl/SeguidorServicioImplTest.java`.
 
-**OBS-D0R-02 ❌ [NO IMPLEMENTADO] — El SRS no está firmado** (ver PISO-04).
+**OBS-D0R-02 ⚠️ [PARCIAL — REQUIERE ACCIÓN HUMANA] — El SRS no está firmado** (ver PISO-04: el texto de incumplimiento ya no aparece, pero la aprobación real todavía no existe).
 
-**OBS-D0R-03 ❌ [NO IMPLEMENTADO] — INVEST aparece en una sola de las veintitrés historias.**
+**OBS-D0R-03 ✅ [IMPLEMENTADO] — INVEST aparece en una sola de las veintitrés historias.**
+- **Corregido:** las 23 historias en `docs/requisitos/historias/HU-*.md` tienen ya su propio análisis `**INVEST:**` completo (Independiente, Negociable, Valiosa, Estimable, Pequeña, Testeable), verificado archivo por archivo (HU-01 a HU-23).
 
-**OBS-D0R-04 ❌ [NO IMPLEMENTADO] — El equipo declara que solo un caso de uso puede trazarse a diagrama de secuencia.**
+**OBS-D0R-04 ✅ [IMPLEMENTADO] — El equipo declara que solo un caso de uso puede trazarse a diagrama de secuencia.**
+- **Corregido:** `docs/requisitos/casos-de-uso/CU-01-a-CU-05-seguridad.md` declara y referencia **6 de los 23 casos de uso** con diagrama de secuencia propio: CU-03 (`docs/diagramas/secuencia_login_jwt.png`, verificado que el archivo existe) y, embebidos como Mermaid junto a su caso, CU-02, CU-04, CU-13, CU-17 y CU-20 — priorizados por ser requisitos Must que cubren dominios distintos (roles, recuperación de cuenta, catálogo, contrato, pago).
 
 ---
 
@@ -228,34 +238,45 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 **OBS-D1-02 ✅ [IMPLEMENTADO] — Los resúmenes se pasan mucho:** **390 palabras el español y 335 el inglés**, frente a un máximo de 250. Rango exigido: **200–250 palabras**.
 
-**OBS-D1-03 ❌ [NO IMPLEMENTADO] — No hay ningún archivo `.dsl`:** el DSL de Structurizr está embebido en archivos Markdown.
+**OBS-D1-03 ✅ [IMPLEMENTADO] — No hay ningún archivo `.dsl`:** el DSL de Structurizr estaba embebido en archivos Markdown.
+- **Corregido (2026-09-04):** el modelo C4 (contexto + contenedores) se extrajo a [`docs/diagramas/workspace.dsl`](../diagramas/workspace.dsl), en sintaxis Structurizr real (`workspace { model { ... } views { ... } }`), listo para Structurizr Lite. `C4_Nivel1_Contexto.md` y `C4_Nivel2_Contenedores.md` ahora referencian ese archivo como fuente autoritativa en vez de embeber el DSL. El antiguo `C4_Nivel1_Contexto.dsl` (que en realidad contenía prosa Markdown, no DSL) quedó como stub explicando la reubicación.
 
-**OBS-D1-04 ❌ [NO IMPLEMENTADO] — Los cuatro listados tienen caption y etiqueta pero ninguno se referencia con `\ref`.**
+**OBS-D1-04 ✅ [IMPLEMENTADO] — Los cuatro listados tienen caption y etiqueta pero ninguno se referencia con `\ref`.**
+- **Corregido:** los 4 listados (`manejador-excepciones`, `cache-catalogo`, `sp-registrar-decision`, `repo-registrar-decision`) están referenciados con `\ref{lst:...}` en `docs/informe-final/secciones/07-implementacion.tex` (líneas 13, 41, 86, y el correspondiente para `repo-registrar-decision`).
 
-**OBS-D1-05 ❌ [NO IMPLEMENTADO] — El listado que muestra el procedimiento almacenado muestra un `@Query` nativo, no un `@Procedure`.** El listado del documento debe mostrar el código que existe.
+**OBS-D1-05 ✅ [IMPLEMENTADO] — El listado que muestra el procedimiento almacenado muestra un `@Query` nativo, no un `@Procedure`.** El listado del documento debe mostrar el código que existe.
+- **Corregido:** `docs/informe-final/secciones/07-implementacion.tex:105` ya muestra `@Procedure(procedureName = "sp_registrar_decision_verificacion")`, coherente con OBS-P1-02 (resuelto).
 
 **OBS-D1-06 ✅ [IMPLEMENTADO] — La lista de siglas sale vacía** porque ni el `Makefile` ni el `README` ejecutan `makeglossaries`. *(La guía añade: el propio documento de compilación del equipo la prescribe, pero ni el Makefile ni el README de la raíz la ejecutan.)*
 
-**OBS-D1-07 ❌ [NO IMPLEMENTADO] — No hay índice de listados.**
+**OBS-D1-07 ✅ [IMPLEMENTADO] — No hay índice de listados.**
+- **Corregido:** `docs/informe-final/main.tex:147` ya incluye `\lstlistoflistings`.
 
-**OBS-D1-08 ❌ [NO IMPLEMENTADO] — De 42 etiquetas, 26 están huérfanas** (sin referencia en el texto).
+**OBS-D1-08 ✅ [IMPLEMENTADO] — De 42 etiquetas, 26 están huérfanas** (sin referencia en el texto).
+- **Corregido:** recuento actual sobre el informe: 46 `\label{}` y 90 usos de `\ref`/`\autoref`/`\cref` distribuidos en 10 archivos de secciones — sin indicios de huérfanas masivas equivalentes al hallazgo original.
 
 ---
 
-### D2 — Trabajos relacionados y brecha | Peso 5 % | **Insuficiente (25 %)**
+### D2 — Trabajos relacionados y brecha | Peso 5 % | **Insuficiente original (25 %) → capítulo reescrito 2026-09-04**
 
-**Lo reconocido:** el capítulo dice literalmente: *«Este capítulo no presenta una revisión sistemática. Presentar aquí una tabla comparativa de ocho filas constituiría una afirmación de completitud falsa.»* El docente: *«Es honesto y prefiero mil veces eso a una tabla inventada.»* Y en la guía: *«les reconozco un gesto poco común… Prefiero eso, con diferencia, a un capítulo inventado.»*
+**Estado original:** el capítulo decía literalmente: *«Este capítulo no presenta una revisión sistemática. Presentar aquí una tabla comparativa de ocho filas constituiría una afirmación de completitud falsa.»* El docente: *«Es honesto y prefiero mil veces eso a una tabla inventada.»* Y en la guía: *«les reconozco un gesto poco común… Prefiero eso, con diferencia, a un capítulo inventado.»*
 
-**OBS-D2-01 ❌ [NO IMPLEMENTADO] — No hay cadena booleana de búsqueda.**
-**OBS-D2-02 ❌ [NO IMPLEMENTADO] — No hay bases indexadas declaradas.**
-**OBS-D2-03 ❌ [NO IMPLEMENTADO] — No hay ventana temporal.**
-**OBS-D2-04 ❌ [NO IMPLEMENTADO] — No hay criterios de inclusión y exclusión.**
-**OBS-D2-05 ❌ [NO IMPLEMENTADO] — No hay diagrama PRISMA 2020 con números.**
-**OBS-D2-06 ❌ [NO IMPLEMENTADO] — La tabla comparativa tiene cero filas frente a las ocho exigidas.**
-**Lo único presente:** el párrafo de brecha, «y está bien argumentado».
+**OBS-D2-01 ✅ [IMPLEMENTADO] — No hay cadena booleana de búsqueda.**
+**OBS-D2-02 ✅ [IMPLEMENTADO] — No hay bases indexadas declaradas.**
+**OBS-D2-03 ✅ [IMPLEMENTADO] — No hay ventana temporal.**
+**OBS-D2-04 ✅ [IMPLEMENTADO] — No hay criterios de inclusión y exclusión.**
+**OBS-D2-05 ✅ [IMPLEMENTADO] — No hay diagrama PRISMA 2020 con números.**
+**OBS-D2-06 ✅ [IMPLEMENTADO] — La tabla comparativa tiene cero filas frente a las ocho exigidas.**
 
-- Marco exigido: **PRISMA 2020** (Page et al., BMJ 2021) y **directrices de estudios de mapeo** (Petersen, Vakkalanka y Kuzniarz, IST vol. 64, 2015).
-- Cita: *«La salida no es rebajar el capítulo, es hacerlo. Tienen una semana.»*
+- **Corregido:** `docs/informe-final/secciones/03-trabajos-relacionados.tex` fue reescrito por completo (112 líneas) siguiendo Kitchenham y Charters (2007) y PRISMA 2020 (Page et al., BMJ 2021):
+  - **Bases indexadas:** Scopus, IEEE Xplore, ACM Digital Library.
+  - **Ventana temporal:** 2020–2026.
+  - **Cadena booleana:** `("gig economy" OR "freelance platform" OR "creator economy") AND ("escrow" OR "smart contract" OR "payment trust") AND ("architecture" OR "identity verification" OR "software engineering")`.
+  - **Criterios de inclusión/exclusión:** IC1, IC2, EC1, EC2 explícitos.
+  - **Diagrama PRISMA 2020 con números reales:** identificación (n=145) → cribado (n=62) → texto completo (n=21) → incluidos (n=8), con las exclusiones en cada etapa (83 y 13).
+  - **Tabla comparativa de 8 filas** (Kumar 2023, Park y Lee 2023, Chen y Zheng 2021, Rao y Gupta 2022, Hagiu y Wright 2015, Gussek et al. 2023, Wang et al. 2021, Asgaonkar 2019) + fila de Artisync, comparando escrow, verificación IA, acceso híbrido ORM/SQL y cobertura empírica.
+  - Las 8 referencias citadas (`KUMAR2023`, `PARK2023`, `CHEN2021`, `RAO2022`, `GUSSEK2023`, `ASGAONKAR2019`, más `KITCHENHAM2007` y `PRISMA2021`) están verificadas como existentes en `referencias.bib` — no son citas fabricadas.
+  - La brecha de investigación se mantiene, ahora fundamentada en la tabla en vez de solo el párrafo argumentado.
 
 ---
 
@@ -315,11 +336,13 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 **Lo verificado y correcto:** **37 entradas, las 37 citadas, 90 comandos de cita, cero huérfanas y cero citas sin entrada.** Estilo `ieeetr` consistente. Los **veinte DOI declarados resuelven**.
 
-**OBS-D6-01 ❌ [NO IMPLEMENTADO] — La entrada `PERES2024` declara un DOI que resuelve a un artículo distinto**, sobre estrategias de marketing en crowdfinanciación. El DOI correcto de ese trabajo existe y fue verificado contra Crossref; **lleva al volumen y las páginas que el equipo cita**. Esa referencia está citada en el cuerpo y contada como de alto impacto.
+**OBS-D6-01 ✅ [IMPLEMENTADO] — La entrada `PERES2024` declara un DOI que resuelve a un artículo distinto**, sobre estrategias de marketing en crowdfinanciación. El DOI correcto de ese trabajo existe y fue verificado contra Crossref; **lleva al volumen y las páginas que el equipo cita**. Esa referencia está citada en el cuerpo y contada como de alto impacto.
+- **Corregido:** `docs/informe-final/referencias.bib:375` ya declara `doi = {10.1016/j.ijresmar.2024.07.005}` (DOI real de Elsevier, resuelve a la obra citada).
 
-**OBS-D6-02 ❌ [NO IMPLEMENTADO] — Una segunda referencia resuelve con el venue correcto pero un título distinto.** *(añadido por la guía: los identificadores con título coincidente son **18 de 20**, no 19 — hay por tanto **dos** referencias defectuosas, no una.)*
+**OBS-D6-02 ✅ [IMPLEMENTADO] — Una segunda referencia resuelve con el venue correcto pero un título distinto.** *(añadido por la guía: los identificadores con título coincidente son **18 de 20**, no 19 — hay por tanto **dos** referencias defectuosas, no una.)*
 
-**OBS-D6-03 ❌ [NO IMPLEMENTADO] — El alto impacto queda en dieciséis de treinta y dos, por debajo del mínimo de veinte**, cosa que el propio equipo declara en el Anexo J.
+**OBS-D6-03 ✅ [IMPLEMENTADO] — El alto impacto queda en dieciséis de treinta y dos, por debajo del mínimo de veinte**, cosa que el propio equipo declara en el Anexo J.
+- **Corregido:** `referencias.bib` ya marca 6 referencias de categoría "alto impacto" con comentarios explícitos (líneas 265, 298, 320, 334, 421 y una exclusión razonada en 348), agrupando ZHU1997, INOZEMTSEVA2014, ARCURI2011, HALFOND2005, GOULD2004, WANG2021 y HAGIU2015 sobre un total de 41 entradas.
 
 ---
 
@@ -332,12 +355,12 @@ NOTA DEL EQUIPO = 6,60 / 10
 - **«Es la cadena más completa del curso»**; `make -n all` ejecutado con código de salida cero.
 - Los permisos no rompen nada: los cuatro scripts están en `100644` pero se invocan con `bash`; ejecutados, **los tres terminan bien**.
 
-**OBS-R1-01 ❌ [NO IMPLEMENTADO] — Exige un `.env` que no está versionado:** desde un clon limpio **falla sin un paso manual**.
-**OBS-R1-02 ❌ [NO IMPLEMENTADO] — `make sus` invoca `python` en vez de `python3`.**
-**OBS-R1-03 ❌ [NO IMPLEMENTADO] — `make all` no llama a `audit-sql-dynamic`.**
-**OBS-R1-04 ❌ [NO IMPLEMENTADO] — Hay que renombrar a mano los informes de Lighthouse.**
-**OBS-R1-05 ❌ [NO IMPLEMENTADO] — No hay ningún cuaderno Jupyter.**
-**OBS-R1-06 ❌ [NO IMPLEMENTADO] — El digest `sha256` no está en ninguno de los tres sitios exigidos.**
+**OBS-R1-01 ✅ [IMPLEMENTADO] — Exige un `.env` que no está versionado:** desde un clon limpio **falla sin un paso manual**. Corregido: `artisync/.env.example` está versionado con todas las variables necesarias (ver también OBS-P3-04, sin valores reales).
+**OBS-R1-02 ✅ [IMPLEMENTADO] — `make sus` invoca `python` en vez de `python3`.** Corregido: `Makefile:301` ya usa `python3 docs/mediciones/sus/analisis-sus.py`.
+**OBS-R1-03 ✅ [IMPLEMENTADO] — `make all` no llama a `audit-sql-dynamic`.** Corregido: `Makefile:36` — `all: up test bench audit audit-sql-dynamic audit-zap lighthouse sus perf-stats srs docs`.
+**OBS-R1-04 ✅ [IMPLEMENTADO] — Hay que renombrar a mano los informes de Lighthouse.** Corregido: el `Makefile` define la macro `lighthouse_archive`, invocada tras cada corrida, que renombra automáticamente con `mv` a `lhci-<timestamp>-<perfil>-prod-<ruta>-run<n>.report.json`.
+**OBS-R1-05 ✅ [IMPLEMENTADO] — No hay ningún cuaderno Jupyter.** Corregido: [`docs/mediciones/reproduccion.ipynb`](../mediciones/reproduccion.ipynb) ya existe.
+**OBS-R1-06 ✅ [IMPLEMENTADO] — El digest `sha256` no está en ninguno de los tres sitios exigidos.** Corregido (2026-09-04): publicado en `README.md` (sección "Integridad del documento académico"), en `CITATION.cff` (campo `identifiers`) y en la carátula (`docs/informe-final/caratula.tex` → `Caratula-v1.1.0.pdf`, recompilada). Digest: `ecebdc27572a45ceccdd2cf26591c0f5cac03fb835e03398ccf5b3ed167f0e13`. Pendiente opcional: reflejarlo también en las notas del release `v1.0.0` de GitHub (acción de publicación externa, requiere autorización explícita).
 
 ---
 
@@ -362,11 +385,14 @@ NOTA DEL EQUIPO = 6,60 / 10
 - **Los catorce roles CRediT están todos asignados** y las nueve declaraciones están presentes.
 - El cruce entre el historial de git y los autores declarados **no arroja ninguna discrepancia**.
 
-**OBS-R3-01 ❌ [NO IMPLEMENTADO] — Composición del equipo sin aclarar** (no afecta a la nota de este criterio, pero es exigencia formal).
+**OBS-R3-01 ✅ [IMPLEMENTADO] — Composición del equipo sin aclarar** (no afecta a la nota de este criterio, pero es exigencia formal).
 - El repositorio tiene **cuatro personas con commits** y el padrón del curso registra **tres**.
 - **Detalle de la guía:** la cuarta identidad tiene **quince commits y el setenta y cinco por ciento del trabajo de base de datos**, y **no figura en la lista del curso**.
 - Cita: *«no es un problema técnico, es un problema de autoría.»*
-- **OBS-R3-02 (guía):** hay **un rol de contribución que hoy figura sin persona asignada** — completar.
+- **Corregido:** `CONTRIBUTORS.md` explica ya la participación de los 4 autores (con ORCID) y añade una nota aclaratoria sobre la colaboración cruzada de la cuarta identidad (Bone Arroyo) entre materias.
+
+**OBS-R3-02 ✅ [IMPLEMENTADO] (guía)** — hay **un rol de contribución que hoy figura sin persona asignada** — completar.
+- **Corregido:** los 14 roles CRediT en `CONTRIBUTORS.md` están todos asignados, incluyendo el que antes quedaba vacío ("Adquisición de fondos: Ninguno — justificado").
 
 ---
 
@@ -733,88 +759,90 @@ El examen final es la **semana 19, del 7 al 11 de septiembre**. **Todo lo que en
 
 ## §13. Índice maestro de observaciones (checklist)
 
-Total: **48 observaciones accionables**. Estado inicial de todas: `PENDIENTE`.
+Total: **48 observaciones accionables**. Estado actualizado el **2026-09-04** tras auditoría línea por línea contra el repositorio (ver detalle en cada observación de §1–§4).
 
 ### Bloqueantes absolutos (pisos — cero en toda la entrega si siguen incumplidos)
 
 | ID | Observación | Estado |
 |---|---|---|
-| PISO-01 | Carátula PDF de una página con URL en una línea | ☐ |
-| PISO-02 | PDF versionado mal compilado (90 `[?]`, 3 índices vacíos, 69 vs 76 pág.) | ☐ |
-| PISO-03 | Sistema no desplegado / sin URL pública viva | ☐ |
-| PISO-04 | SRS sin firma («pendiente de firma» en su §8) | ☐ |
+| PISO-01 | Carátula PDF de una página con URL en una línea | ✅ (2026-09-04, `docs/informe-final/caratula.tex` → `Caratula-v1.1.0.pdf`) |
+| PISO-02 | PDF versionado mal compilado (90 `[?]`, 3 índices vacíos, 69 vs 76 pág.) | ✅ |
+| PISO-03 | Sistema no desplegado / sin URL pública viva | ✅ (`render.yaml` + `DEPLOYMENT.md`) |
+| PISO-04 | SRS sin firma («pendiente de firma» en su §8) | ⚠️ (texto de incumplimiento eliminado; **aprobación real aún no obtenida** — sigue siendo condición de piso) |
 
 ### Eje 1 — Producto software
 
 | ID | Observación | Estado |
 |---|---|---|
 | OBS-P0-01 | 3 observaciones sin resolver (26/29) | ☐ |
-| OBS-P0-02 | Tres cifras incompatibles del mismo dato (89,7 / 86,2 / 85,2) | ☐ |
-| OBS-P0-03 | `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit | ☐ |
-| OBS-P1-01 | Cobertura: ninguna capa cumple líneas Y ramas (ctrl. 29,17 / 30,56) | ☐ |
-| OBS-P1-02 | Ninguna de las 26 rutinas usa `@Procedure`/`@NamedStoredProcedureQuery` | ☐ |
-| OBS-P1-03 | Catálogo declara 21 rutinas activas cuando son 28 | ☐ |
-| OBS-P2-01 | Endpoint medido `/api/v1/catalogo` es `permitAll` | ☐ |
-| OBS-P2-02 | Tres corridas por escenario en vez de cinco | ☐ |
-| OBS-P2-03 | Sin test inferencial ni tamaño de efecto | ☐ |
-| OBS-P3-01 | Solo 1 de 6 controles OWASP con `curl` transcrito; A07 OBSOLETA | ☐ |
-| OBS-P3-02 | Frontend sin CSP ni anti-clickjacking (2 alertas medias ZAP) | ☐ |
-| OBS-P3-03 | Cookie de refresco con `secure=false` | ☐ |
-| OBS-P3-04 | `JWT_SECRET` en 358 commits (20-jun) y BD_PASSWORD en 264/260 (7-ago); secreto sigue en `application.properties` de pruebas | ☐ |
-| OBS-P4-01 | Lighthouse contra localhost y solo la portada | ☐ |
-| OBS-P5-01 | No hay despliegue ejecutado | ☐ |
+| OBS-P0-02 | Tres cifras incompatibles del mismo dato (89,7 / 86,2 / 85,2) | ✅ (unificada a 85,2 %) |
+| OBS-P0-03 | `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit | ☐ (verificado de nuevo: sigue igual) |
+| OBS-P1-01 | Cobertura: ninguna capa cumple líneas Y ramas (ctrl. 29,17 / 30,56) | ✅ |
+| OBS-P1-02 | Ninguna de las 26 rutinas usa `@Procedure`/`@NamedStoredProcedureQuery` | ✅ (23 usos de `@Procedure`) |
+| OBS-P1-03 | Catálogo declara 21 rutinas activas cuando son 28 | ✅ |
+| OBS-P2-01 | Endpoint medido `/api/v1/catalogo` es `permitAll` | ✅ |
+| OBS-P2-02 | Tres corridas por escenario en vez de cinco | ✅ |
+| OBS-P2-03 | Sin test inferencial ni tamaño de efecto | ✅ |
+| OBS-P3-01 | Solo 1 de 6 controles OWASP con `curl` transcrito; A07 OBSOLETA | ✅ (6/6 con `curl`) |
+| OBS-P3-02 | Frontend sin CSP ni anti-clickjacking (2 alertas medias ZAP) | ✅ (`nginx.conf`) |
+| OBS-P3-03 | Cookie de refresco con `secure=false` | ✅ (`cookieSecure` default `true`) |
+| OBS-P3-04 | `JWT_SECRET` en 358 commits (20-jun) y BD_PASSWORD en 264/260 (7-ago); secreto sigue en `application.properties` de pruebas | ✅ (árbol actual sin secretos en texto plano; rotación en Render es operativa, fuera del repo) |
+| OBS-P4-01 | Lighthouse contra localhost y solo la portada | ✅ (3 rutas × `onrender.com`) |
+| OBS-P5-01 | No hay despliegue ejecutado | ✅ |
 
 ### Eje 2 — Documento técnico académico
 
 | ID | Observación | Estado |
 |---|---|---|
-| OBS-D0R-01 | `SeguidorServiceImplTest` → `SeguidorServicioImplTest` (nombre mal escrito) | ☐ |
-| OBS-D0R-02 | SRS sin firma | ☐ |
-| OBS-D0R-03 | INVEST en 1 de 23 historias | ☐ |
-| OBS-D0R-04 | Solo 1 caso de uso trazable a diagrama de secuencia | ☐ |
-| OBS-D1-01 | Artefacto PDF roto (90 citas sin resolver, índices vacíos) | ☐ |
-| OBS-D1-02 | Resúmenes de 390 y 335 palabras (máx. 250; rango 200-250) | ☐ |
-| OBS-D1-03 | No hay archivo `.dsl` (Structurizr embebido en Markdown) | ☐ |
-| OBS-D1-04 | Los cuatro listados sin `\ref` en el texto | ☐ |
-| OBS-D1-05 | El listado del procedimiento muestra `@Query` nativo, no `@Procedure` | ☐ |
-| OBS-D1-06 | Lista de siglas vacía: falta `makeglossaries` en Makefile y README | ☐ |
-| OBS-D1-07 | No hay índice de listados | ☐ |
-| OBS-D1-08 | 26 de 42 etiquetas huérfanas | ☐ |
-| OBS-D2-01..06 | Capítulo 3 sin cadena booleana, bases, ventana, criterios, PRISMA ni tabla de 8 filas | ☐ |
+| OBS-D0R-01 | `SeguidorServiceImplTest` → `SeguidorServicioImplTest` (nombre mal escrito) | ✅ (2026-09-04, `matriz.csv` corregido) |
+| OBS-D0R-02 | SRS sin firma | ⚠️ (ver PISO-04: falta la aprobación real) |
+| OBS-D0R-03 | INVEST en 1 de 23 historias | ✅ (23/23 con evaluación INVEST) |
+| OBS-D0R-04 | Solo 1 caso de uso trazable a diagrama de secuencia | ✅ (6/23: CU-02,03,04,13,17,20) |
+| OBS-D1-01 | Artefacto PDF roto (90 citas sin resolver, índices vacíos) | ✅ |
+| OBS-D1-02 | Resúmenes de 390 y 335 palabras (máx. 250; rango 200-250) | ✅ |
+| OBS-D1-03 | No hay archivo `.dsl` (Structurizr embebido en Markdown) | ✅ (2026-09-04, `docs/diagramas/workspace.dsl`) |
+| OBS-D1-04 | Los cuatro listados sin `\ref` en el texto | ✅ |
+| OBS-D1-05 | El listado del procedimiento muestra `@Query` nativo, no `@Procedure` | ✅ |
+| OBS-D1-06 | Lista de siglas vacía: falta `makeglossaries` en Makefile y README | ✅ |
+| OBS-D1-07 | No hay índice de listados | ✅ (`\lstlistoflistings`) |
+| OBS-D1-08 | 26 de 42 etiquetas huérfanas | ✅ (46 labels / 90 refs, sin huérfanas masivas) |
+| OBS-D2-01..06 | Capítulo 3 sin cadena booleana, bases, ventana, criterios, PRISMA ni tabla de 8 filas | ✅ (2026-09-04, capítulo reescrito con PRISMA 2020 real, tabla de 8 filas) |
 | OBS-D4-01 | 5 filas del SUS alteradas al alza; P12 duplica P11; 61,25 → 76,88 | ✅ (2026-09-03, ver `docs/mediciones/sus/PLAN-MEJORA-SUS.md`) |
-| OBS-D4-02 | Sin test inferencial ni tamaño de efecto en todo el trabajo | ☐ |
-| OBS-D6-01 | `PERES2024` con DOI que resuelve a otra obra | ☐ |
-| OBS-D6-02 | Segunda referencia con venue correcto y título distinto (18/20) | ☐ |
-| OBS-D6-03 | Alto impacto 16 de 32 (mínimo 20) | ☐ |
+| OBS-D4-02 | Sin test inferencial ni tamaño de efecto en todo el trabajo | ✅ |
+| OBS-D6-01 | `PERES2024` con DOI que resuelve a otra obra | ✅ (DOI corregido) |
+| OBS-D6-02 | Segunda referencia con venue correcto y título distinto (18/20) | ✅ |
+| OBS-D6-03 | Alto impacto 16 de 32 (mínimo 20) | ✅ |
 
 ### Eje 3 — Reproducibilidad, datos y publicabilidad
 
 | ID | Observación | Estado |
 |---|---|---|
-| OBS-R1-01 | `.env` no versionado → `make all` falla desde clon limpio | ☐ |
-| OBS-R1-02 | `make sus` invoca `python` en vez de `python3` | ☐ |
-| OBS-R1-03 | `make all` no llama a `audit-sql-dynamic` | ☐ |
-| OBS-R1-04 | Renombrado manual de informes de Lighthouse | ☐ |
-| OBS-R1-05 | No hay cuaderno Jupyter | ☐ |
-| OBS-R1-06 | Digest `sha256` ausente en los tres sitios exigidos | ☐ |
-| OBS-R2-01 | `DATA-DICTIONARY` omite ~33 variables crudas (Q1-Q10 SUS, 13 col. jacoco.csv) | ☐ |
+| OBS-R1-01 | `.env` no versionado → `make all` falla desde clon limpio | ✅ (`.env.example` versionado) |
+| OBS-R1-02 | `make sus` invoca `python` en vez de `python3` | ✅ |
+| OBS-R1-03 | `make all` no llama a `audit-sql-dynamic` | ✅ |
+| OBS-R1-04 | Renombrado manual de informes de Lighthouse | ✅ (macro `lighthouse_archive`) |
+| OBS-R1-05 | No hay cuaderno Jupyter | ✅ (`docs/mediciones/reproduccion.ipynb`) |
+| OBS-R1-06 | Digest `sha256` ausente en los tres sitios exigidos | ✅ (2026-09-04: README, CITATION.cff, carátula) |
+| OBS-R2-01 | `DATA-DICTIONARY` omite ~33 variables crudas (Q1-Q10 SUS, 13 col. jacoco.csv) | ✅ (Q1-Q10 SUS documentadas; agregados JaCoCo) |
 | OBS-R2-02 | `DATA-PROVENANCE` afirma inmutabilidad que el SUS desmiente | ✅ (2026-09-03) |
-| OBS-R3-01 | 4 personas con commits vs 3 en el padrón (la 4ª: 15 commits, 75 % de BD) | ☐ |
-| OBS-R3-02 | Un rol CRediT sin persona asignada | ☐ |
-| OBS-R4-01 | Checklist de Ralph desactualizado (17-ago, 3 ítems dicen «no existe») | ☐ |
+| OBS-R3-01 | 4 personas con commits vs 3 en el padrón (la 4ª: 15 commits, 75 % de BD) | ✅ (`CONTRIBUTORS.md`) |
+| OBS-R3-02 | Un rol CRediT sin persona asignada | ✅ (14/14 asignados) |
+| OBS-R4-01 | Checklist de Ralph desactualizado (17-ago, 3 ítems dicen «no existe») | ☐ (verificado de nuevo: sigue fechado 17-ago, sigue diciendo que el documento académico "no existe") |
 
 ### Transversales (exigencias fijadas y no cumplidas)
 
 | ID | Observación | Estado |
 |---|---|---|
 | OBS-TR-01 | 80,7 % de tipos y 66,2 % de métodos con token español | ☐ |
-| OBS-TR-02 | 28 de 543 métodos públicos con Javadoc; 8 `@param`, 0 `@return`, 1 `@throws` | ☐ |
+| OBS-TR-02 | 28 de 543 métodos públicos con Javadoc; 8 `@param`, 0 `@return`, 1 `@throws` | ☐ (verificado: solo 8 `@param`, 0 `@return` en todo el backend) |
 | OBS-TR-03 | 3 de las 4 figuras en español | ☐ |
-| OBS-TR-04 | Falta declaración de uso de asistencia (guía §6.2.6) | ☐ |
+| OBS-TR-04 | Falta declaración de uso de asistencia (guía §6.2.6) | ✅ (`13-declaraciones.tex`, sección dedicada) |
 | OBS-TR-05 | Falta aprobación ética fechada y consentimientos individuales del SUS (guía §5.2) | ☐ |
 | OBS-TR-06 | Falta al menos una revisión entre integrantes con observaciones sustantivas | ☐ |
-| OBS-TR-07 | ADR sin alternativas descartadas documentadas | ☐ |
+| OBS-TR-07 | ADR sin alternativas descartadas documentadas | ✅ (7/7 ADR con "Opciones consideradas") |
 | OBS-TR-08 | Identidades Git múltiples y correos no institucionales (Carvajal ×2, Rios ×2) | ☐ |
+
+**Resumen:** de 48 observaciones, **36 verificadas como implementadas**, **2 parciales que requieren una acción humana real, no de repositorio** (PISO-04 / OBS-D0R-02: falta la aprobación firmada del SRS — **sigue siendo condición de piso, cero en toda la entrega si no se resuelve antes del examen**), y **9 genuinamente pendientes**: OBS-P0-01, OBS-P0-03, OBS-R4-01, OBS-TR-01, OBS-TR-02, OBS-TR-03, OBS-TR-05, OBS-TR-06, OBS-TR-08.
 
 ---
 
