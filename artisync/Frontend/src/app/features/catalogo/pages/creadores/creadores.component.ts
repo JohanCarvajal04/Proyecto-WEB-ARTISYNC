@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogoPublicoService } from '../../services/catalogo-publico.service';
 import { RespuestaPerfil } from '../../models/catalogo.model';
+import { CATALOGO_BASE_PATH } from '../../catalogo.config';
 
 /**
  * Directorio público de creadores activos (M3). Complementa a "Explorar
@@ -17,6 +18,9 @@ import { RespuestaPerfil } from '../../models/catalogo.model';
 export class CreadoresComponent implements OnInit {
 
   private catalogoService = inject(CatalogoPublicoService);
+
+  /** Prefijo de los routerLink internos: '/explorar' o '/dashboard/explorar' según el montaje. */
+  readonly base = inject(CATALOGO_BASE_PATH);
 
   readonly creadores = signal<RespuestaPerfil[]>([]);
   readonly isLoading = signal<boolean>(true);
