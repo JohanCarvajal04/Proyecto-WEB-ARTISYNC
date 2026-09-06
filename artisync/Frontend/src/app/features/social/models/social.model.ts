@@ -6,7 +6,8 @@ export type {
   RespuestaResena,
   RespuestaSorteo,
   RespuestaParticipante,
-  RespuestaGanador
+  RespuestaGanador,
+  RespuestaPremio
 } from '../../creador/models/creador.model';
 
 /** POST /api/v1/pedidos/{idPedido}/resena */

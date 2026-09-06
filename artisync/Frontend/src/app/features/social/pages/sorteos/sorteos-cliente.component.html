@@ -49,7 +49,11 @@
             por <span class="font-semibold">{{ s.nombreCreador }}</span>
           </a>
 
-          <p class="text-sm text-slate-600 leading-relaxed line-clamp-4">{{ s.descripcionPremios }}</p>
+          <ul class="text-sm text-slate-600 leading-relaxed list-disc pl-4 line-clamp-4">
+            @for (p of s.premios; track p.idPremio) {
+              <li>{{ p.descripcionPremio }}</li>
+            }
+          </ul>
 
           <div class="grid grid-cols-2 gap-3 text-xs bg-slate-50 rounded-xl p-3">
             <div class="flex flex-col gap-0.5">

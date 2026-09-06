@@ -18,4 +18,8 @@ public class RespuestaGanador {
     private Long idUsuario;
     private String nombreUsuario;
     private LocalDateTime fechaNotificacionPremio;
+
+    /** Premio ganado. REQ-F-023 (V39): cada ganador queda ligado a un premio individual. */
+    private Long idPremio;
+    private String descripcionPremio;
 }

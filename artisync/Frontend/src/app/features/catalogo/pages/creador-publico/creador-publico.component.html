@@ -407,7 +407,11 @@
                     {{ s.estadoSorteo }}
                   </span>
                 </div>
-                <p class="text-xs text-slate-500 leading-relaxed">{{ s.descripcionPremios }}</p>
+                <ul class="text-xs text-slate-500 leading-relaxed list-disc pl-4">
+                  @for (p of s.premios; track p.idPremio) {
+                    <li>{{ p.descripcionPremio }}</li>
+                  }
+                </ul>
                 <div class="flex items-center justify-between text-xs text-slate-400 mt-auto pt-3 border-t border-slate-100">
                   <span>{{ s.totalParticipantes }} inscritos</span>
                   <span class="text-purple-700 font-bold">Ver participantes</span>

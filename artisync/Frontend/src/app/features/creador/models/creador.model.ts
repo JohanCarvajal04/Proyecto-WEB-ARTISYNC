@@ -190,6 +190,16 @@ export interface RespuestaGanador {
   idUsuario: number;
   nombreUsuario: string;
   fechaNotificacionPremio: string | null;
+  idPremio: number | null;
+  descripcionPremio: string | null;
+}
+
+/** Un premio individual del sorteo, con su ganador si ya se sorteó. */
+export interface RespuestaPremio {
+  idPremio: number;
+  descripcionPremio: string;
+  orden: number;
+  ganador: RespuestaGanador | null;
 }
 
 export interface RespuestaParticipante {
@@ -203,7 +213,6 @@ export interface RespuestaParticipante {
 export interface RespuestaSorteo {
   idSorteo: number;
   tituloSorteo: string;
-  descripcionPremios: string;
   cantidadGanadores: number;
   fechaInicio: string;
   fechaCierre: string;
@@ -214,11 +223,13 @@ export interface RespuestaSorteo {
   totalParticipantes: number;
   yoParticipo: boolean;
   ganadores: RespuestaGanador[] | null;
+  premios: RespuestaPremio[];
 }
 
 export interface PeticionCrearSorteo {
   tituloSorteo: string;
-  descripcionPremios: string;
+  /** Uno por ganador; cantidadGanadores debe ser igual a premios.length. */
+  premios: string[];
   cantidadGanadores: number;
   fechaInicio: string;
   fechaCierre: string;
@@ -227,7 +238,7 @@ export interface PeticionCrearSorteo {
 
 export interface PeticionActualizarSorteo {
   tituloSorteo?: string;
-  descripcionPremios?: string;
+  premios?: string[];
   cantidadGanadores?: number;
   fechaCierre?: string;
 }

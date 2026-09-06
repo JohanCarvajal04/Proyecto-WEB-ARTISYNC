@@ -53,12 +53,13 @@ public class SorteoEjecutorServicio {
         for (JsonNode ganadorNode : ganadoresNode) {
             Long idUsuario = ganadorNode.get("idUsuario").asLong();
             Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
+            String descripcionPremio = ganadorNode.hasNonNull("descripcionPremio")
+                    ? ganadorNode.get("descripcionPremio").asText() : null;
+            String mensaje = descripcionPremio != null
+                    ? "¡Felicidades! Has ganado el premio '" + descripcionPremio + "' en el sorteo: " + tituloSorteo
+                    : "¡Felicidades! Has ganado el sorteo: " + tituloSorteo;
             // Notificación en tiempo real al ganador vía WebSocket (M6)
-            notificacionService.notificar(
-                    usuario,
-                    "SORTEO_GANADOR",
-                    "¡Felicidades! Has ganado el sorteo: " + tituloSorteo
-            );
+            notificacionService.notificar(usuario, "SORTEO_GANADOR", mensaje);
         }
 
         log.info("[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es).",

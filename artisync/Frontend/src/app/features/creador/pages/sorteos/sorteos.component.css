@@ -8,52 +8,71 @@
 
 .so-card { animation: fadeIn 0.3s ease-out both; }
 
-.so-premios {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: #64748b;
-  line-height: 1.6;
-  white-space: pre-line;
-}
-
 .so-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
-  margin-top: 0.875rem;
+  margin-bottom: 0.875rem;
 }
 
-/* ── Ganadores ── */
+/* ── Premios: una caja por premio, cada una con su propio ganador ── */
 
-.so-ganadores {
-  margin-top: 1.25rem;
-  padding: 0.875rem 1rem;
+.so-premios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.so-premio-card {
+  padding: 0.75rem 0.875rem;
   border-radius: 0.875rem;
-  background: #f0fdfa;
-  border: 1px solid #ccfbf1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
-.so-ganadores ul {
-  list-style: none;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.so-ganadores li {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+.so-premio-card__desc {
+  margin: 0 0 0.375rem;
   font-size: 0.8125rem;
-  color: #1e293b;
+  color: #334155;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-.so-ganadores small {
+.so-premio-card__ganador {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #0f766e;
+}
+
+.so-premio-card__pendiente {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.so-premio-card small {
   font-size: 0.6875rem;
   color: #94a3b8;
+}
+
+/* ── Formulario: lista dinamica de premios ── */
+
+.so-premios-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.so-premios-form__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.so-premios-form__row .cr-input {
+  flex: 1;
 }
 
 /* ── Participantes desplegables ── */

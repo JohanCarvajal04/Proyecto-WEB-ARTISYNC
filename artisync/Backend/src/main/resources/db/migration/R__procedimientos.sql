@@ -1547,15 +1547,23 @@ COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
 -- sorteo se toma con FOR UPDATE, de modo que dos disparos simultaneos del
 -- scheduler sobre el mismo sorteo se serializan y el segundo ve el sorteo ya
 -- en estado distinto de 'Activo'. ORDER BY random() LIMIT n resuelve la
--- seleccion y la actualizacion de todos los ganadores en una unica sentencia,
--- en vez de N idas y vueltas a la base.
+-- seleccion de ganadores en una unica sentencia, en vez de N idas y vueltas a
+-- la base.
+--
+-- REQ-F-023 (V41__sorteo_premios): cada sorteo tiene una lista de premios
+-- individuales en premios_sorteo, no un unico texto libre. La cantidad de
+-- premios (no sorteos.cantidad_ganadores) es la fuente de verdad de cuantos
+-- ganadores se sortean, y cada ganador queda emparejado 1 a 1 con un premio
+-- distinto via participantes_sorteo.id_premio -- asi el frontend puede
+-- mostrar cada premio con su propio ganador en vez de agruparlos todos.
 --
 -- La notificacion en tiempo real (WebSocket) permanece en Java: no es
 -- responsabilidad del motor de datos. La funcion devuelve el listado de
--- ganadores para que el scheduler los notifique despues de confirmar la
--- transaccion.
+-- ganadores (con su premio) para que el scheduler los notifique despues de
+-- confirmar la transaccion.
 --
--- Devuelve JSONB: { idSorteo, tituloSorteo, estado, ganadores: [ { idParticipacion, idUsuario } ] }.
+-- Devuelve JSONB: { idSorteo, tituloSorteo, estado,
+--   ganadores: [ { idParticipacion, idUsuario, idPremio, descripcionPremio } ] }.
 -- Si el sorteo ya no esta 'Activo' (segunda ejecucion concurrente o manual),
 -- devuelve el estado actual con ganadores: [] sin volver a sortear
 -- (idempotencia). Si no hay participantes, marca el sorteo como
@@ -1571,10 +1579,10 @@ RETURNS JSONB
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_cantidad_ganadores  INTEGER;
     v_titulo              VARCHAR(150);
     v_estado_actual       VARCHAR(50);
     v_total_participantes INTEGER;
+    v_cantidad_premios    INTEGER;
     v_ganadores           JSONB;
 BEGIN
     IF p_id_sorteo IS NULL THEN
@@ -1582,8 +1590,8 @@ BEGIN
             USING ERRCODE = '22004';
     END IF;
 
-    SELECT cantidad_ganadores, titulo_sorteo, estado_sorteo
-      INTO v_cantidad_ganadores, v_titulo, v_estado_actual
+    SELECT titulo_sorteo, estado_sorteo
+      INTO v_titulo, v_estado_actual
       FROM sorteos
      WHERE id_sorteo = p_id_sorteo
        FOR UPDATE;
@@ -1605,6 +1613,15 @@ BEGIN
         );
     END IF;
 
+    SELECT COUNT(*) INTO v_cantidad_premios
+      FROM premios_sorteo
+     WHERE id_sorteo = p_id_sorteo;
+
+    IF v_cantidad_premios = 0 THEN
+        RAISE EXCEPTION 'El sorteo % no tiene premios configurados', p_id_sorteo
+            USING ERRCODE = 'P0001';
+    END IF;
+
     SELECT COUNT(*) INTO v_total_participantes
       FROM participantes_sorteo
      WHERE id_sorteo = p_id_sorteo
@@ -1622,23 +1639,47 @@ BEGIN
         );
     END IF;
 
-    WITH seleccionados AS (
+    -- Empareja cada ganador elegido al azar con un premio distinto: rn de la
+    -- seleccion aleatoria contra rn de los premios ordenados por "orden".
+    WITH candidatos AS (
         SELECT id_participacion, id_usuario
           FROM participantes_sorteo
          WHERE id_sorteo = p_id_sorteo
            AND es_ganador = FALSE
          ORDER BY random()
-         LIMIT LEAST(v_cantidad_ganadores, v_total_participantes)
+         LIMIT LEAST(v_cantidad_premios, v_total_participantes)
+    ),
+    seleccionados AS (
+        SELECT id_participacion, id_usuario,
+               ROW_NUMBER() OVER () AS rn
+          FROM candidatos
+    ),
+    premios_ordenados AS (
+        SELECT id_premio, descripcion_premio,
+               ROW_NUMBER() OVER (ORDER BY orden) AS rn
+          FROM premios_sorteo
+         WHERE id_sorteo = p_id_sorteo
+    ),
+    asignaciones AS (
+        SELECT s.id_participacion, s.id_usuario, p.id_premio, p.descripcion_premio
+          FROM seleccionados s
+          JOIN premios_ordenados p ON p.rn = s.rn
     ),
     actualizados AS (
-        UPDATE participantes_sorteo p
+        UPDATE participantes_sorteo pt
            SET es_ganador = TRUE,
+               id_premio = a.id_premio,
                fecha_notificacion_premio = CURRENT_TIMESTAMP
-          FROM seleccionados s
-         WHERE p.id_participacion = s.id_participacion
-        RETURNING p.id_participacion, p.id_usuario
+          FROM asignaciones a
+         WHERE pt.id_participacion = a.id_participacion
+        RETURNING pt.id_participacion, pt.id_usuario, a.id_premio, a.descripcion_premio
     )
-    SELECT jsonb_agg(jsonb_build_object('idParticipacion', id_participacion, 'idUsuario', id_usuario))
+    SELECT jsonb_agg(jsonb_build_object(
+               'idParticipacion', id_participacion,
+               'idUsuario', id_usuario,
+               'idPremio', id_premio,
+               'descripcionPremio', descripcion_premio
+           ))
       INTO v_ganadores
       FROM actualizados;
 
