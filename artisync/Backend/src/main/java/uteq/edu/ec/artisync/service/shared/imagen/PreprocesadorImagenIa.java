@@ -97,7 +97,7 @@ public class PreprocesadorImagenIa {
         BufferedImage sinAlfa = quitarCanalAlfa(imagen);
         Iterator<ImageWriter> escritores = ImageIO.getImageWritersByFormatName("jpg");
         if (!escritores.hasNext()) {
-            throw new IllegalStateException("No hay un ImageWriter de JPEG disponible en esta JVM.");
+            throw new RuntimeException("No hay un ImageWriter de JPEG disponible en esta JVM.");
         }
         ImageWriter escritor = escritores.next();
         ImageWriteParam parametros = escritor.getDefaultWriteParam();
@@ -110,7 +110,7 @@ public class PreprocesadorImagenIa {
             escritor.write(null, new IIOImage(sinAlfa, null, null), parametros);
             return salida.toByteArray();
         } catch (IOException e) {
-            throw new IllegalStateException("Error al comprimir la imagen del documento.", e);
+            throw new RuntimeException("Error al comprimir la imagen del documento.", e);
         } finally {
             escritor.dispose();
         }

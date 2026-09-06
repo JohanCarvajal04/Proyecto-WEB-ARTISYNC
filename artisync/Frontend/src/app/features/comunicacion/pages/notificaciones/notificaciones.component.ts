@@ -39,7 +39,7 @@ export class NotificacionesComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudieron cargar las notificaciones');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudieron cargar las notificaciones');
         this.isLoading.set(false);
       }
     });

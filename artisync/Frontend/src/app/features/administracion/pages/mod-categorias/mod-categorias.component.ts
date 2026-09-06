@@ -83,7 +83,7 @@ export class ModCategoriasComponent implements OnInit {
       },
       error: (err) => {
         this.revisandoId.set(null);
-        this.toastService.error(err.error?.message || 'No se pudo marcar como revisada');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo marcar como revisada');
       }
     });
   }
@@ -101,7 +101,7 @@ export class ModCategoriasComponent implements OnInit {
         this.loadPendientes();
         this.loadCategorias();
       },
-      error: (err) => this.toastService.error(err.error?.message || 'No se pudo eliminar la categoría')
+      error: (err) => this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo eliminar la categoría')
     });
   }
 
@@ -115,7 +115,7 @@ export class ModCategoriasComponent implements OnInit {
       },
       error: (err) => {
         this.revisandoId.set(null);
-        this.toastService.error(err.error?.message || 'No se pudo marcar como revisada');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo marcar como revisada');
       }
     });
   }
@@ -132,7 +132,7 @@ export class ModCategoriasComponent implements OnInit {
         this.toastService.success('Subcategoría eliminada y creador notificado');
         this.loadPendientes();
       },
-      error: (err) => this.toastService.error(err.error?.message || 'No se pudo eliminar la subcategoría')
+      error: (err) => this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo eliminar la subcategoría')
     });
   }
 
@@ -165,7 +165,7 @@ export class ModCategoriasComponent implements OnInit {
       },
       error: (err) => {
         this.guardandoSub.set(false);
-        this.toastService.error(err.error?.message || 'No se pudo crear la subcategoría');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo crear la subcategoría');
       }
     });
   }
@@ -178,7 +178,7 @@ export class ModCategoriasComponent implements OnInit {
         this.toastService.success('Subcategoría eliminada');
         this.loadSubcategorias();
       },
-      error: (err) => this.toastService.error(err.error?.message || 'No se pudo eliminar la subcategoría')
+      error: (err) => this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo eliminar la subcategoría')
     });
   }
 
@@ -203,7 +203,7 @@ export class ModCategoriasComponent implements OnInit {
       },
       error: (err) => {
         this.borrandoEtiqueta.set(null);
-        this.toastService.error(err.error?.message || 'No se pudo eliminar la etiqueta');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo eliminar la etiqueta');
       }
     });
   }

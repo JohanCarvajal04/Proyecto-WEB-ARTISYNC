@@ -105,7 +105,7 @@ export class InfraccionesComponent implements OnInit {
       },
       error: (err) => {
         this.revirtiendo.set(false);
-        this.toastService.error(err.error?.message || 'No se pudo revertir la suspensión');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo revertir la suspensión');
       }
     });
   }

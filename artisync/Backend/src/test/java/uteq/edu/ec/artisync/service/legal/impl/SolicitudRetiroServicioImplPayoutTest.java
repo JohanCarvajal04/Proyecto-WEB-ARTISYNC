@@ -1,5 +1,7 @@
 package uteq.edu.ec.artisync.service.legal.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,13 +13,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.mockito.stubbing.OngoingStubbing;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSolicitudRetiro;
 import uteq.edu.ec.artisync.entity.legal.SolicitudRetiro;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
@@ -25,9 +23,9 @@ import uteq.edu.ec.artisync.repository.legal.SolicitudRetiroRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,8 +39,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Fase 2: la llamada real a PayPal Payouts dentro de aprobar()/reintentar().
- * Mismo patrón que PagoServicioImplWebhookTest: RestTemplate mockeado, sin
- * salir a la red, encolando las respuestas de OAuth y de la propia llamada.
+ * PayPalClient mockeado, sin salir a la red, encolando las respuestas de la
+ * propia llamada (el paso de OAuth queda encapsulado dentro del cliente).
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -54,17 +52,25 @@ class SolicitudRetiroServicioImplPayoutTest {
     @Mock private DatosPagoCreadorRepository datosPagoCreadorRepository;
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
     @Mock private UsuarioRepository usuarioRepository;
-    @Mock private RestTemplate restTemplate;
+    @Mock private PayPalClient payPalClient;
 
     @InjectMocks
     private SolicitudRetiroServicioImpl servicio;
 
     private SolicitudRetiro solicitudPendiente;
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static JsonNode json(String texto) {
+        try {
+            return MAPPER.readTree(texto);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(servicio, "restTemplate", restTemplate);
-
         Usuario creador = Usuario.builder().idUsuario(200L).nombres("Ana").apellidos("Creadora").build();
         Usuario admin = Usuario.builder().idUsuario(ID_ADMIN).nombres("Admin").apellidos("X").build();
 
@@ -81,16 +87,12 @@ class SolicitudRetiroServicioImplPayoutTest {
         given(usuarioRepository.findById(ID_ADMIN)).willReturn(Optional.of(admin));
     }
 
-    /** Encola las respuestas de PayPal. La primera llamada de cada intercambio es el token OAuth. */
+    /** Encola las respuestas de PayPal, una por cada llamada a ejecutarPayout(). */
     private void conRespuestasPayPal(String... cuerpos) {
-        given(restTemplate.exchange(contains("/v1/oauth2/token"), any(HttpMethod.class),
-                any(HttpEntity.class), eq(Map.class)))
-                .willReturn(ResponseEntity.ok(Map.of("access_token", "token-de-prueba")));
-
-        OngoingStubbing<ResponseEntity<String>> stub = when(restTemplate.exchange(
-                anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)));
+        OngoingStubbing<JsonNode> stub = when(payPalClient.llamarPayPal(
+                anyString(), any(HttpMethod.class), any(JsonNode.class)));
         for (String cuerpo : cuerpos) {
-            stub = stub.thenReturn(ResponseEntity.ok(cuerpo));
+            stub = stub.thenReturn(json(cuerpo));
         }
     }
 
@@ -135,14 +137,10 @@ class SolicitudRetiroServicioImplPayoutTest {
     @Test
     @DisplayName("un error HTTP de PayPal deja la solicitud Fallida, sin propagar la excepcion")
     void aprobar_conErrorHttp_quedaFallida() {
-        given(restTemplate.exchange(contains("/v1/oauth2/token"), any(HttpMethod.class),
-                any(HttpEntity.class), eq(Map.class)))
-                .willReturn(ResponseEntity.ok(Map.of("access_token", "token-de-prueba")));
-
         HttpStatusCodeException error = mock(HttpStatusCodeException.class);
         when(error.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
         when(error.getResponseBodyAsString()).thenReturn("{\"name\":\"RECEIVER_UNREGISTERED\"}");
-        given(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
+        given(payPalClient.llamarPayPal(anyString(), eq(HttpMethod.POST), any(JsonNode.class)))
                 .willThrow(error);
 
         RespuestaSolicitudRetiro respuesta = servicio.aprobar(1L, ID_ADMIN);
@@ -170,12 +168,12 @@ class SolicitudRetiroServicioImplPayoutTest {
         RespuestaSolicitudRetiro segundoIntento = servicio.reintentar(1L, ID_ADMIN);
         assertThat(segundoIntento.estado()).isEqualTo("Pagado");
 
-        ArgumentCaptor<HttpEntity<String>> captor = ArgumentCaptor.forClass(HttpEntity.class);
-        org.mockito.Mockito.verify(restTemplate, org.mockito.Mockito.times(2)).exchange(
-                contains("/v1/payments/payouts"), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+        ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
+        org.mockito.Mockito.verify(payPalClient, org.mockito.Mockito.times(2)).llamarPayPal(
+                contains("/v1/payments/payouts"), eq(HttpMethod.POST), captor.capture());
 
-        String cuerpoPrimero = captor.getAllValues().get(0).getBody();
-        String cuerpoSegundo = captor.getAllValues().get(1).getBody();
+        String cuerpoPrimero = captor.getAllValues().get(0).toString();
+        String cuerpoSegundo = captor.getAllValues().get(1).toString();
         assertThat(cuerpoPrimero).contains("\"sender_batch_id\":\"retiro-1\"");
         assertThat(cuerpoSegundo).contains("\"sender_batch_id\":\"retiro-1\"");
     }

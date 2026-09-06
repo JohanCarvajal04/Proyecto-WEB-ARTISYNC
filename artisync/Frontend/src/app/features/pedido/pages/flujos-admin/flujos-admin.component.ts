@@ -221,7 +221,7 @@ export class FlujosAdminComponent implements OnInit {
       },
       error: (err) => {
         this.etapaEnCurso.set(null);
-        this.error.set(err.error?.message || 'No se pudo actualizar la etapa');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo actualizar la etapa');
       }
     });
   }

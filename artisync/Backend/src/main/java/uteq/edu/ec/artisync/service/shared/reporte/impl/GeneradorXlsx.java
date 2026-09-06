@@ -67,7 +67,7 @@ public class GeneradorXlsx implements GeneradorReporte {
                 libro.dispose();
             }
         } catch (IOException e) {
-            throw new IllegalStateException("Error al generar el documento XLSX: " + e.getMessage(), e);
+            throw new RuntimeException("Error al generar el documento XLSX: " + e.getMessage(), e);
         }
     }
 

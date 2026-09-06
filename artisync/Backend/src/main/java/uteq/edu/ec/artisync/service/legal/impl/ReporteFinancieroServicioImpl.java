@@ -105,7 +105,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
         try {
             nodo = objectMapper.readTree(json);
         } catch (Exception e) {
-            throw new IllegalStateException("No se pudo interpretar el reporte de comisiones: " + e.getMessage(), e);
+            throw new RuntimeException("No se pudo interpretar el reporte de comisiones: " + e.getMessage(), e);
         }
 
         List<DetalleComision> detalle = new ArrayList<>();

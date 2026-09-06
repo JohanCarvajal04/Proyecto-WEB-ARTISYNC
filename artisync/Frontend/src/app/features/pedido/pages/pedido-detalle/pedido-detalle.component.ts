@@ -92,7 +92,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al cargar el pedido';
+        this.error = err.error?.detail || err.error?.message || 'Error al cargar el pedido';
         this.loading = false;
         this.cdr.markForCheck();
       }

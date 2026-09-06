@@ -31,7 +31,7 @@ class AbstractIaServiceTest {
 
     @Test
     void cargarPrompt_archivoInexistente_lanzaExcepcion() {
-        assertThrows(IllegalStateException.class, () -> servicio.cargar("no_existe.md"));
+        assertThrows(RuntimeException.class, () -> servicio.cargar("no_existe.md"));
     }
 
     @Test

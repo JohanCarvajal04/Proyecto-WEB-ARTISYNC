@@ -80,7 +80,7 @@ export class ModPortafoliosComponent implements OnInit {
       },
       error: (err) => {
         this.eliminando.set(false);
-        this.toastService.error(err.error?.message || 'No se pudo eliminar el portafolio');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo eliminar el portafolio');
       }
     });
   }

@@ -170,7 +170,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
         setTimeout(() => { this.successMsg = ''; this.cdr.markForCheck(); }, 4000);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al subir entregable';
+        this.error = err.error?.detail || err.error?.message || 'Error al subir entregable';
         this.subiendo = false;
         this.cdr.markForCheck();
       }
@@ -192,7 +192,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
         setTimeout(() => { this.successMsg = ''; this.cdr.markForCheck(); }, 5000);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al aprobar la entrega';
+        this.error = err.error?.detail || err.error?.message || 'Error al aprobar la entrega';
         this.aprobando = false;
         this.cdr.markForCheck();
       }
@@ -203,7 +203,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
     this.entregableService.descargarVersionLimpia(this.idPedido).subscribe({
       next: (blob) => descargarBlob(blob, `entregable_${this.idPedido}_limpio`),
       error: (err) => {
-        this.error = err.error?.message || 'El entregable no está disponible hasta que el pago sea liberado';
+        this.error = err.error?.detail || err.error?.message || 'El entregable no está disponible hasta que el pago sea liberado';
         this.cdr.markForCheck();
       }
     });
@@ -213,7 +213,7 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
     this.entregableService.descargarVersionMarcaAgua(this.idPedido).subscribe({
       next: (blob) => descargarBlob(blob, `vista_previa_pedido_${this.idPedido}`),
       error: (err) => {
-        this.error = err.error?.message || 'No se pudo descargar la previsualización';
+        this.error = err.error?.detail || err.error?.message || 'No se pudo descargar la previsualización';
         this.cdr.markForCheck();
       }
     });

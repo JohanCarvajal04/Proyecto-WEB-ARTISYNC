@@ -47,6 +47,6 @@ export function badgePublicacion(estado: string | null | undefined): string {
 
 /** Mensaje de error legible a partir de una respuesta HTTP fallida. */
 export function mensajeError(err: unknown, porDefecto: string): string {
-  const e = err as { error?: { message?: string; mensaje?: string } };
-  return e?.error?.message || e?.error?.mensaje || porDefecto;
+  const e = err as { error?: { detail?: string; message?: string; mensaje?: string } };
+  return e?.error?.detail || e?.error?.message || e?.error?.mensaje || porDefecto;
 }

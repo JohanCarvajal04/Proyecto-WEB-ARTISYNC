@@ -103,7 +103,7 @@ export class PagoCheckoutComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al crear la orden de pago');
+        this.error.set(err.error?.detail || err.error?.message || 'Error al crear la orden de pago');
         this.creandoPago.set(false);
       }
     });

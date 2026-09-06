@@ -76,7 +76,7 @@ export class MisPedidosDashboardComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al cargar tus pedidos');
+        this.error.set(err.error?.detail || err.error?.message || 'Error al cargar tus pedidos');
         this.isLoading.set(false);
       }
     });

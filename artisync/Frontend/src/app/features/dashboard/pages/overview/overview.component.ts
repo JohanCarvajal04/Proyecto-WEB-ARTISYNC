@@ -77,7 +77,7 @@ export class OverviewComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al cargar datos');
+        this.error.set(err.error?.detail || err.error?.message || 'Error al cargar datos');
         this.isLoading.set(false);
       }
     });

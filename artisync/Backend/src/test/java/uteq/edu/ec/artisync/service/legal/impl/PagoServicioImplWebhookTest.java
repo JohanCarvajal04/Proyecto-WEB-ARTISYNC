@@ -1,5 +1,7 @@
 package uteq.edu.ec.artisync.service.legal.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,11 +12,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.mockito.stubbing.OngoingStubbing;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
@@ -26,16 +25,14 @@ import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -55,12 +52,22 @@ class PagoServicioImplWebhookTest {
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
     @Mock private NotificacionService notificacionService;
 
-    @Mock private RestTemplate restTemplate;
+    @Mock private PayPalClient payPalClient;
 
     @InjectMocks
     private PagoServicioImpl pagoServicio;
 
     private PagoGarantia pagoPendiente;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static JsonNode json(String texto) {
+        try {
+            return MAPPER.readTree(texto);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /** Payload con la forma real de CHECKOUT.ORDER.APPROVED. */
     private static final String EVENTO_APROBADO = """
@@ -89,8 +96,6 @@ class PagoServicioImplWebhookTest {
                 .build();
 
         ReflectionTestUtils.setField(pagoServicio, "paypalWebhookId", "WEBHOOK-CONFIGURADO");
-        // @InjectMocks no sustituye el campo inicializado en línea; se fuerza.
-        ReflectionTestUtils.setField(pagoServicio, "restTemplate", restTemplate);
         given(pagoGarantiaRepository.findByIdOrdenPaypal("ORDER-123"))
                 .willReturn(Optional.of(pagoPendiente));
     }
@@ -199,14 +204,10 @@ class PagoServicioImplWebhookTest {
      * el token OAuth, que se resuelve aparte por devolver Map.
      */
     private void conRespuestasPayPal(String... cuerpos) {
-        given(restTemplate.exchange(contains("/v1/oauth2/token"), any(HttpMethod.class),
-                any(HttpEntity.class), eq(Map.class)))
-                .willReturn(ResponseEntity.ok(Map.of("access_token", "token-de-prueba")));
-
-        OngoingStubbing<ResponseEntity<String>> stub = when(restTemplate.exchange(
-                anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)));
+        OngoingStubbing<JsonNode> stub = when(payPalClient.llamarPayPal(
+                anyString(), any(HttpMethod.class), any(JsonNode.class)));
         for (String cuerpo : cuerpos) {
-            stub = stub.thenReturn(ResponseEntity.ok(cuerpo));
+            stub = stub.thenReturn(json(cuerpo));
         }
     }
 }

@@ -130,7 +130,7 @@ export class CreadorPublicoComponent implements OnInit {
         if (portafolio) this.cargarPortafolio(portafolio);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo cargar el perfil del creador');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo cargar el perfil del creador');
         this.isLoading.set(false);
       }
     });
