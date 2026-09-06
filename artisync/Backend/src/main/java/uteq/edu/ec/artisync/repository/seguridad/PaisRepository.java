@@ -2,7 +2,6 @@ package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.Pais;
@@ -22,8 +21,13 @@ public interface PaisRepository extends JpaRepository<Pais, Long> {
      * un pais, capturando unique_violation sobre el nombre en vez de una
      * comprobacion findByNombrePais no atomica (A9). Devuelve el id_pais
      * afectado.
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
      */
-    @Procedure(procedureName = "fn_guardar_pais")
+    @Query(value = "SELECT fn_guardar_pais(:p_id_pais, :p_nombre_pais)", nativeQuery = true)
     Long guardarPais(
             @Param("p_id_pais") Long idPais,
             @Param("p_nombre_pais") String nombrePais);

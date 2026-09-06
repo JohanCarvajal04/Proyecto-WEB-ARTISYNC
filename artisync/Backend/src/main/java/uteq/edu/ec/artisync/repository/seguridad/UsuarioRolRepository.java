@@ -2,7 +2,6 @@ package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
@@ -43,8 +42,13 @@ public interface UsuarioRolRepository extends JpaRepository<UsuarioRol, Long> {
      * SELECT ... FOR UPDATE sobre usuarios. Gemela de
      * RolRepository.sincronizarPermisos (REQ-F-003) para el lado usuario<->rol.
      * Devuelve el total de filas insertadas.
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
      */
-    @Procedure(procedureName = "fn_sincronizar_roles_usuario")
+    @Query(value = "SELECT fn_sincronizar_roles_usuario(:p_id_usuario, :p_nombres_rol)", nativeQuery = true)
     Integer sincronizarRoles(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_nombres_rol") String[] nombresRol);
