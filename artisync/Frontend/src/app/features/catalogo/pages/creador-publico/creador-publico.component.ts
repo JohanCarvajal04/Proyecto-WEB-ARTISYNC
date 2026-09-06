@@ -61,6 +61,14 @@ export class CreadorPublicoComponent implements OnInit {
   readonly seguidoresList = signal<RespuestaSeguidorInfo[]>([]);
   readonly creadoresSeguidosNovedades = signal<RespuestaCreadorSeguidoNovedad[]>([]);
 
+  // Estado de sesión
+  readonly isLoggedIn = computed(() => this.authService.isLoggedIn());
+
+  /** Comisiones entregadas que cuentan con reseña de clientes. */
+  readonly comisionesEntregadasConResena = computed(() =>
+    this.resenas().filter(r => r.textoResena && r.textoResena.trim().length > 0)
+  );
+
   // Estado de seguimiento y propio perfil
   readonly esSeguidor = signal<boolean>(false);
   readonly totalSeguidores = signal<number>(0);
@@ -105,9 +113,7 @@ export class CreadorPublicoComponent implements OnInit {
         this.portafolio.set(portafolio);
         this.resenas.set(resenas);
 
-        // Sin reseñas propias no hay calificación que mostrar. Antes caía a un
-        // 4.9 fijo — en una página pública eso es una calificación falsa a la
-        // vista de cualquiera, no un dato de maqueta inofensivo.
+        // Sin reseñas propias no hay calificación que mostrar.
         const valor = Number(promedio['promedio'] ?? 0);
         this.promedio.set(valor > 0 ? valor : null);
         this.sorteos.set(sorteos);
@@ -162,9 +168,7 @@ export class CreadorPublicoComponent implements OnInit {
   }
 
   /**
-   * Últimos comentarios de todas las obras del portafolio, para que el
-   * creador (y cualquier visitante) los vea sin tener que abrir obra por
-   * obra. Se pide la primera página de cada ítem y se mezclan por fecha.
+   * Últimos comentarios de todas las obras del portafolio.
    */
   private cargarComentariosRecientes(items: PortafolioItem[]): void {
     if (items.length === 0) {
@@ -212,6 +216,10 @@ export class CreadorPublicoComponent implements OnInit {
 
   toggleLike(obra: PortafolioItem, evento: Event): void {
     evento.stopPropagation();
+    if (!this.authService.isLoggedIn()) {
+      this.toast.info('Debes iniciar sesión para interactuar con el creador.');
+      return;
+    }
     if (this.procesandoLike() !== null) return;
 
     const idItem = obra.idItemPortafolio;
@@ -239,7 +247,6 @@ export class CreadorPublicoComponent implements OnInit {
     this.obraSeleccionada.set(obra);
   }
 
-  /** Abre el modal de comentarios de la obra a la que pertenece un comentario reciente. */
   verComentariosDeObra(idItemPortafolio: number): void {
     const obra = this.obras().find(o => o.idItemPortafolio === idItemPortafolio);
     if (obra) this.verComentarios(obra);
@@ -247,19 +254,12 @@ export class CreadorPublicoComponent implements OnInit {
 
   cerrarComentarios(): void {
     this.obraSeleccionada.set(null);
-    // Refresca conteos y recientes por si se publicó o borró algo en el modal.
     if (this.obras().length > 0) {
       this.cargarConteoComentarios(this.obras());
       this.cargarComentariosRecientes(this.obras());
     }
   }
 
-  /**
-   * Vuelve a la pantalla anterior (Explorar, Creadores, un servicio...), en
-   * vez de mandar siempre a "Explorar" sin importar de dónde vino el usuario.
-   * Si no hay historial dentro de la app (enlace directo, pestaña nueva), cae
-   * al directorio de creadores en vez de dejar el botón sin efecto.
-   */
   volver(): void {
     if (window.history.length > 1) {
       this.location.back();
@@ -272,8 +272,12 @@ export class CreadorPublicoComponent implements OnInit {
     const p = this.perfil();
     if (!p || this.esPropioPerfil() || this.procesandoSeguir()) return;
 
-    const returnUrl = `${this.base}/creador/${p.idPerfil}`;
-    if (!exigirSesion(this.authService, this.router, returnUrl, 'seguir')) return;
+    if (!this.authService.isLoggedIn()) {
+      this.toast.info('Debes iniciar sesión para interactuar con el creador.');
+      const returnUrl = `${this.base}/creador/${p.idPerfil}`;
+      exigirSesion(this.authService, this.router, returnUrl, 'seguir');
+      return;
+    }
 
     this.procesandoSeguir.set(true);
 
@@ -304,13 +308,16 @@ export class CreadorPublicoComponent implements OnInit {
     this.pestana.set(pestana);
   }
 
-  /**
-   * El chat de verdad solo existe atado a un pedido (SalaChat.pedido es
-   * obligatorio y único) — no hay mensajería directa sin comprar. En vez de
-   * prometer un "Mensaje" que no existe, este botón lleva a donde sí se puede
-   * abrir una conversación real: pedir uno de sus servicios.
-   */
   contactarCreador(): void {
+    const p = this.perfil();
+    if (!this.authService.isLoggedIn()) {
+      this.toast.info('Debes iniciar sesión para interactuar con el creador.');
+      if (p) {
+        exigirSesion(this.authService, this.router, `${this.base}/creador/${p.idPerfil}`, 'contratar');
+      }
+      return;
+    }
+
     const lista = this.servicios();
     if (lista.length === 0) {
       this.toast.error('Este creador todavía no tiene servicios publicados para solicitar.');
@@ -334,37 +341,18 @@ export class CreadorPublicoComponent implements OnInit {
     return `@${nombre || 'creador'}`;
   });
 
-  /**
-   * Antes devolvía el string fijo 'Ilustradora & Directora de Arte' para
-   * cualquier creador: era texto de maqueta (Figma) que nunca se conectó al
-   * dato real `tituloProfesional` del perfil, así que todos los creadores
-   * mostraban la misma profesión. Ahora viene del campo real en
-   * RespuestaPerfil; la plantilla lo trata como opcional para el creador que
-   * aún no lo haya definido.
-   */
   tituloProfesional = computed(() => this.perfil()?.tituloProfesional || '');
 
-  /**
-   * Paleta de personalización del creador (ver Mi Perfil > Personalización y
-   * visibilidad), con respaldo a la paleta por defecto cuando el portafolio
-   * no existe o no tiene personalización guardada.
-   */
   colores = computed(() => ({
     ...COLORES_POR_DEFECTO,
     ...(this.portafolio()?.opcionesPersonalizacion || {})
   }));
 
-  /** Gradiente del banner, derivado de la paleta del creador. */
-  estiloBanner = computed(() => {
-    const c = this.colores();
-    return `linear-gradient(to right, ${c.secondary}, ${c.primary}, ${c.secondary})`;
-  });
+  /** Color sólido del banner (morado elegante sin degradado artificial). */
+  estiloBanner = computed(() => '#4C1D95');
 
   biografiaText = computed(() => {
     const p = this.perfil();
-    // Antes, si el creador no había escrito biografía, se mostraba un texto
-    // de maqueta ("Creo mundos coloridos entre lo editorial y lo onírico...")
-    // como si fuera suya. Ahora el vacío se comunica como tal.
     return p?.biografia || 'Este creador todavía no ha añadido una biografía.';
   });
 

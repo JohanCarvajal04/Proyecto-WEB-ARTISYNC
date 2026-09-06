@@ -16,7 +16,8 @@ import { AuthService } from '../../features/seguridad/services/auth.service';
   selector: 'app-public-shell',
   standalone: true,
   imports: [RouterOutlet, RouterLink],
-  templateUrl: './public-shell.component.html'
+  templateUrl: './public-shell.component.html',
+  styleUrl: './public-shell.component.css'
 })
 export class PublicShellComponent {
   private readonly authService = inject(AuthService);

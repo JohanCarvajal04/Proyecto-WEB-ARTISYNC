@@ -381,22 +381,22 @@ BEGIN
 
     -- Ítems de portafolio (sin UNIQUE natural: se guarda por combinación titulo+portafolio)
     INSERT INTO portafolio_items (id_portafolio, titulo_obra, descripcion_obra, url_archivo_multimedia)
-    SELECT v_portafolio_valentina, 'Retrato realista - Comisión privada', 'Retrato a color por encargo, técnica digital mixta.', 'https://picsum.photos/seed/valentina1/900/700'
+    SELECT v_portafolio_valentina, 'Retrato realista - Comisión privada', 'Retrato a color por encargo, técnica digital mixta.', 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=900&q=80'
     WHERE NOT EXISTS (SELECT 1 FROM portafolio_items WHERE id_portafolio = v_portafolio_valentina AND titulo_obra = 'Retrato realista - Comisión privada');
     SELECT id_item_portafolio INTO v_item_valentina_1 FROM portafolio_items WHERE id_portafolio = v_portafolio_valentina AND titulo_obra = 'Retrato realista - Comisión privada';
 
     INSERT INTO portafolio_items (id_portafolio, titulo_obra, descripcion_obra, url_archivo_multimedia)
-    SELECT v_portafolio_valentina, 'Concept art - Guerrera del bosque', 'Diseño de personaje original para proyecto de fantasía.', 'https://picsum.photos/seed/valentina2/900/700'
+    SELECT v_portafolio_valentina, 'Concept art - Guerrera del bosque', 'Diseño de personaje original para proyecto de fantasía.', 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=900&q=80'
     WHERE NOT EXISTS (SELECT 1 FROM portafolio_items WHERE id_portafolio = v_portafolio_valentina AND titulo_obra = 'Concept art - Guerrera del bosque');
     SELECT id_item_portafolio INTO v_item_valentina_2 FROM portafolio_items WHERE id_portafolio = v_portafolio_valentina AND titulo_obra = 'Concept art - Guerrera del bosque';
 
     INSERT INTO portafolio_items (id_portafolio, titulo_obra, descripcion_obra, url_archivo_multimedia)
-    SELECT v_portafolio_mateo, 'Identidad visual - Café Aroma', 'Logotipo y manual de marca para cafetería local.', 'https://picsum.photos/seed/mateo1/900/700'
+    SELECT v_portafolio_mateo, 'Identidad visual - Café Aroma', 'Logotipo y manual de marca para cafetería local.', 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=80'
     WHERE NOT EXISTS (SELECT 1 FROM portafolio_items WHERE id_portafolio = v_portafolio_mateo AND titulo_obra = 'Identidad visual - Café Aroma');
     SELECT id_item_portafolio INTO v_item_mateo_1 FROM portafolio_items WHERE id_portafolio = v_portafolio_mateo AND titulo_obra = 'Identidad visual - Café Aroma';
 
     INSERT INTO portafolio_items (id_portafolio, titulo_obra, descripcion_obra, url_archivo_multimedia)
-    SELECT v_portafolio_sofia, 'Personaje 3D - Explorador espacial', 'Modelo low-poly listo para videojuego, con texturizado PBR.', 'https://picsum.photos/seed/sofia1/900/700'
+    SELECT v_portafolio_sofia, 'Personaje 3D - Explorador espacial', 'Modelo low-poly listo para videojuego, con texturizado PBR.', '/images/servicios/modelado-3d.jpg'
     WHERE NOT EXISTS (SELECT 1 FROM portafolio_items WHERE id_portafolio = v_portafolio_sofia AND titulo_obra = 'Personaje 3D - Explorador espacial');
     SELECT id_item_portafolio INTO v_item_sofia_1 FROM portafolio_items WHERE id_portafolio = v_portafolio_sofia AND titulo_obra = 'Personaje 3D - Explorador espacial';
 
@@ -508,42 +508,42 @@ BEGIN
     INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base, url_miniatura, limite_revisiones_base)
     SELECT v_perfil_valentina, v_sub_retratos, 'Retrato Digital Personalizado',
            'Retrato digital a todo color a partir de una fotografía de referencia, con dos revisiones incluidas.', 45.00,
-           'https://picsum.photos/seed/srv-retrato/500/500', 2
+           '/images/servicios/retrato-digital.jpg', 2
     WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE id_perfil = v_perfil_valentina AND titulo_servicio = 'Retrato Digital Personalizado');
     SELECT id_servicio INTO v_srv_retrato FROM servicios WHERE id_perfil = v_perfil_valentina AND titulo_servicio = 'Retrato Digital Personalizado';
 
     INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base, url_miniatura, limite_revisiones_base)
     SELECT v_perfil_valentina, v_sub_conceptart, 'Concept Art de Personaje',
            'Diseño de personaje original para videojuegos o novelas gráficas, incluye hoja de expresiones.', 120.00,
-           'https://picsum.photos/seed/srv-conceptart/500/500', 1
+           '/images/servicios/concept-art.png', 1
     WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE id_perfil = v_perfil_valentina AND titulo_servicio = 'Concept Art de Personaje');
     SELECT id_servicio INTO v_srv_conceptart FROM servicios WHERE id_perfil = v_perfil_valentina AND titulo_servicio = 'Concept Art de Personaje';
 
     INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base, url_miniatura, limite_revisiones_base)
     SELECT v_perfil_mateo, v_sub_logotipos, 'Diseño de Logotipo Profesional',
            'Logotipo vectorial con tres propuestas iniciales y ajustes ilimitados sobre la opción elegida.', 80.00,
-           'https://picsum.photos/seed/srv-logo/500/500', 3
+           '/images/servicios/diseno-logo.png', 3
     WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE id_perfil = v_perfil_mateo AND titulo_servicio = 'Diseño de Logotipo Profesional');
     SELECT id_servicio INTO v_srv_logo FROM servicios WHERE id_perfil = v_perfil_mateo AND titulo_servicio = 'Diseño de Logotipo Profesional';
 
     INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base, url_miniatura, limite_revisiones_base)
     SELECT v_perfil_mateo, v_sub_identidad, 'Manual de Identidad de Marca',
            'Manual completo de marca: paleta de color, tipografía, usos del logotipo y aplicaciones.', 250.00,
-           'https://picsum.photos/seed/srv-manual/500/500', 2
+           '/images/servicios/manual-identidad.png', 2
     WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE id_perfil = v_perfil_mateo AND titulo_servicio = 'Manual de Identidad de Marca');
     SELECT id_servicio INTO v_srv_manual FROM servicios WHERE id_perfil = v_perfil_mateo AND titulo_servicio = 'Manual de Identidad de Marca';
 
     INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base, url_miniatura, limite_revisiones_base)
     SELECT v_perfil_sofia, v_sub_personajes, 'Modelado de Personaje 3D',
            'Modelado, texturizado y rig básico de un personaje 3D listo para animación o videojuego.', 300.00,
-           'https://picsum.photos/seed/srv-modelo3d/500/500', 1
+           '/images/servicios/modelado-3d.jpg', 1
     WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE id_perfil = v_perfil_sofia AND titulo_servicio = 'Modelado de Personaje 3D');
     SELECT id_servicio INTO v_srv_modelo3d FROM servicios WHERE id_perfil = v_perfil_sofia AND titulo_servicio = 'Modelado de Personaje 3D';
 
     INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base, url_miniatura, limite_revisiones_base)
     SELECT v_perfil_sofia, v_sub_props, 'Prop 3D para Videojuego',
            'Modelado de un objeto/prop optimizado en low-poly con texturizado PBR.', 150.00,
-           'https://picsum.photos/seed/srv-prop3d/500/500', 1
+           '/images/servicios/prop-3d.jpg', 1
     WHERE NOT EXISTS (SELECT 1 FROM servicios WHERE id_perfil = v_perfil_sofia AND titulo_servicio = 'Prop 3D para Videojuego');
     SELECT id_servicio INTO v_srv_prop3d FROM servicios WHERE id_perfil = v_perfil_sofia AND titulo_servicio = 'Prop 3D para Videojuego';
 
