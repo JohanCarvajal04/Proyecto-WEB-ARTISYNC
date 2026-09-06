@@ -48,5 +48,8 @@ public class PeticionActualizarServicio {
     @Max(value = 100, message = "El limite de revisiones no puede superar 100")
     private Integer limiteRevisionesBase;
 
+    /** Opcional: uno de los flujos propios del creador. Si no se indica, los pedidos caen al flujo por defecto. */
+    private Long idFlujo;
+
     private List<Long> etiquetaIds;
 }

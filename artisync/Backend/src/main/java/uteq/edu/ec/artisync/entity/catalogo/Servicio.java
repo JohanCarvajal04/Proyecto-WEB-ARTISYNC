@@ -71,6 +71,15 @@ public class Servicio {
     @Column(name = "limite_revisiones_base")
     private Integer limiteRevisionesBase = 0;
 
+    /**
+     * Flujo de trabajo elegido por el creador para este servicio, entre los
+     * suyos propios. Nullable a propósito: si queda sin asignar, el servicio
+     * de pedidos cae a un flujo por defecto en vez de bloquear el encargo.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_flujo")
+    private FlujoTrabajo flujo;
+
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "actualizado_en")
     private java.time.LocalDateTime actualizadoEn;

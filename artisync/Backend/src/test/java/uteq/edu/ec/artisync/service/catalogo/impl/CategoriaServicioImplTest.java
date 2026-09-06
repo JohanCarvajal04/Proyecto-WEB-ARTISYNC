@@ -13,12 +13,10 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.entity.catalogo.Categoria;
-import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
-import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
 
@@ -35,7 +33,6 @@ class CategoriaServicioImplTest {
 
     @Mock private CategoriaRepository categoriaRepository;
     @Mock private SubcategoriaRepository subcategoriaRepository;
-    @Mock private FlujoTrabajoRepository flujoTrabajoRepository;
     @Mock private ServicioRepository servicioRepository;
 
     @InjectMocks
@@ -68,31 +65,6 @@ class CategoriaServicioImplTest {
 
         assertThatThrownBy(() -> categoriaServicio.crearCategoria(peticion))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
-    }
-
-    @Test
-    @DisplayName("crearCategoria asigna el flujo cuando se indica un id valido")
-    void crearCategoria_asignaFlujo() {
-        FlujoTrabajo flujo = FlujoTrabajo.builder().idFlujo(2L).nombreFlujo("Flujo estandar").build();
-        PeticionCrearCategoria peticion = PeticionCrearCategoria.builder().nombreCategoria("Diseno").idFlujo(2L).build();
-        given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Diseno")).willReturn(false);
-        given(flujoTrabajoRepository.findById(2L)).willReturn(Optional.of(flujo));
-        given(categoriaRepository.save(any(Categoria.class))).willAnswer(inv -> inv.getArgument(0));
-
-        RespuestaCategoria respuesta = categoriaServicio.crearCategoria(peticion);
-
-        assertThat(respuesta.getIdFlujo()).isEqualTo(2L);
-    }
-
-    @Test
-    @DisplayName("crearCategoria lanza recurso no encontrado si el flujo indicado no existe")
-    void crearCategoria_flujoInexistente() {
-        PeticionCrearCategoria peticion = PeticionCrearCategoria.builder().nombreCategoria("Diseno").idFlujo(99L).build();
-        given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Diseno")).willReturn(false);
-        given(flujoTrabajoRepository.findById(99L)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> categoriaServicio.crearCategoria(peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
     }
 
     @Test

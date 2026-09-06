@@ -47,6 +47,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private final EtiquetaRepository etiquetaRepository;
     private final ServicioEtiquetaRepository servicioEtiquetaRepository;
     private final IVerificacionServicio verificacionServicio;
+    private final FlujoTrabajoRepository flujoTrabajoRepository;
 
     @Override
     @Transactional
@@ -79,6 +80,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .estadoPublicacion("ACTIVO")
                 .cargoRevisionAdicional(peticion.getCargoRevisionAdicional() != null ? peticion.getCargoRevisionAdicional() : BigDecimal.ZERO)
                 .limiteRevisionesBase(peticion.getLimiteRevisionesBase() != null ? peticion.getLimiteRevisionesBase() : 0)
+                .flujo(resolverFlujoPropio(peticion.getIdFlujo(), perfil))
                 .build();
 
         Servicio guardado = servicioRepository.save(servicio);
@@ -133,6 +135,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         if (peticion.getLimiteRevisionesBase() != null) {
             servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());
         }
+        servicio.setFlujo(resolverFlujoPropio(peticion.getIdFlujo(), servicio.getPerfil()));
 
         Servicio guardado = servicioRepository.save(servicio);
 
@@ -373,10 +376,27 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .nombreCategoria(servicio.getSubcategoria().getCategoria().getNombreCategoria())
                 .idPerfilCreador(servicio.getPerfil().getIdPerfil())
                 .nombreCreador(nombreCreador)
+                .idFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getIdFlujo() : null)
+                .nombreFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getNombreFlujo() : null)
                 .atributos(atributos)
                 .etiquetas(etiquetas)
                 .actualizadoEn(servicio.getActualizadoEn())
                 .build();
+    }
+
+    /**
+     * `null` es una respuesta válida: significa "sin flujo asignado", y el
+     * servicio de pedidos cae a un flujo por defecto en ese caso. Un id que no
+     * existe, o que existe pero pertenece a otro creador, se rechaza: un
+     * creador solo puede asignarle a su servicio uno de sus propios flujos.
+     */
+    private FlujoTrabajo resolverFlujoPropio(Long idFlujo, PerfilCreador perfil) {
+        if (idFlujo == null) {
+            return null;
+        }
+        return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, perfil.getUsuario().getIdUsuario())
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                        "Flujo de trabajo no encontrado con ID: " + idFlujo));
     }
 
     private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio) {

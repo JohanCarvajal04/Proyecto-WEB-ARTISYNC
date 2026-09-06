@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -7,6 +7,8 @@ import { CreadorContextoService } from '../../services/creador-contexto.service'
 import { ServicioService } from '../../services/servicio.service';
 import { CatalogoService } from '../../services/catalogo.service';
 import { PerfilRequeridoComponent } from '../../components/perfil-requerido.component';
+import { FlujoTrabajoService } from '../../../pedido/services/flujo-trabajo.service';
+import { RespuestaFlujoTrabajo, PeticionCrearFlujoTrabajo, PeticionEtapaConfig } from '../../../pedido/models/pedido.model';
 import {
   RespuestaServicio,
   RespuestaSubcategoria,
@@ -22,7 +24,7 @@ import { mensajeError } from '../../utils/formato';
 @Component({
   selector: 'app-servicio-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, PerfilRequeridoComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, PerfilRequeridoComponent],
   templateUrl: './servicio-form.component.html',
   styleUrl: './servicio-form.component.css'
 })
@@ -35,6 +37,7 @@ export class ServicioFormComponent implements OnInit {
   private catalogoService = inject(CatalogoService);
   private contexto = inject(CreadorContextoService);
   private toast = inject(ToastService);
+  private flujoService = inject(FlujoTrabajoService);
 
   readonly idServicio = signal<number | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -46,6 +49,13 @@ export class ServicioFormComponent implements OnInit {
   readonly etiquetasElegidas = signal<number[]>([]);
   readonly nuevaEtiqueta = signal<string>('');
   readonly creandoEtiqueta = signal<boolean>(false);
+
+  // Flujo de trabajo: el creador elige uno de los suyos, o crea uno nuevo sin salir del formulario.
+  readonly flujos = signal<RespuestaFlujoTrabajo[]>([]);
+  readonly mostrarFormFlujo = signal<boolean>(false);
+  readonly creandoFlujo = signal<boolean>(false);
+  formFlujo: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
+  nuevaEtapaFlujo: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
 
   // Atributos: solo disponibles al editar, porque cuelgan de un servicio existente.
   readonly atributos = signal<RespuestaAtributo[]>([]);
@@ -79,7 +89,8 @@ export class ServicioFormComponent implements OnInit {
     estadoPublicacion: ['BORRADOR' as EstadoPublicacion, [Validators.required]],
     urlMiniatura: ['', [Validators.maxLength(255)]],
     cargoRevisionAdicional: [null as number | null, [Validators.min(0)]],
-    limiteRevisionesBase: [null as number | null, [Validators.min(0)]]
+    limiteRevisionesBase: [null as number | null, [Validators.min(0)]],
+    idFlujo: [null as number | null]
   });
 
   formAtributo: FormGroup = this.fb.group({
@@ -112,11 +123,13 @@ export class ServicioFormComponent implements OnInit {
   private cargarCatalogos(): void {
     forkJoin({
       subcategorias: this.catalogoService.listarSubcategorias().pipe(catchError(() => of([] as RespuestaSubcategoria[]))),
-      etiquetas: this.catalogoService.listarEtiquetas().pipe(catchError(() => of([] as RespuestaEtiqueta[])))
+      etiquetas: this.catalogoService.listarEtiquetas().pipe(catchError(() => of([] as RespuestaEtiqueta[]))),
+      flujos: this.flujoService.listarFlujos().pipe(catchError(() => of([] as RespuestaFlujoTrabajo[])))
     }).subscribe({
-      next: ({ subcategorias, etiquetas }) => {
+      next: ({ subcategorias, etiquetas, flujos }) => {
         this.subcategorias.set(subcategorias);
         this.etiquetas.set(etiquetas);
+        this.flujos.set(flujos);
 
         const id = this.idServicio();
         if (id) {
@@ -144,7 +157,8 @@ export class ServicioFormComponent implements OnInit {
           estadoPublicacion: servicio.estadoPublicacion,
           urlMiniatura: servicio.urlMiniatura || '',
           cargoRevisionAdicional: servicio.cargoRevisionAdicional,
-          limiteRevisionesBase: servicio.limiteRevisionesBase
+          limiteRevisionesBase: servicio.limiteRevisionesBase,
+          idFlujo: servicio.idFlujo
         });
         this.etiquetasElegidas.set((servicio.etiquetas || []).map(e => e.idEtiqueta));
         this.atributos.set(servicio.atributos || []);
@@ -203,6 +217,60 @@ export class ServicioFormComponent implements OnInit {
     });
   }
 
+  // ── Flujo de trabajo ──
+
+  abrirFormFlujo(): void {
+    this.formFlujo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
+    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
+    this.mostrarFormFlujo.set(true);
+  }
+
+  cancelarFormFlujo(): void {
+    this.mostrarFormFlujo.set(false);
+  }
+
+  agregarEtapaFlujo(): void {
+    const nombre = this.nuevaEtapaFlujo.nombreEtapa.trim();
+    if (!nombre) return;
+
+    const yaExiste = this.formFlujo.etapas.some(
+      e => e.nombreEtapa.trim().toLowerCase() === nombre.toLowerCase());
+    if (yaExiste) {
+      this.toast.warning(`Ya agregaste una etapa llamada «${nombre}».`);
+      return;
+    }
+
+    this.formFlujo.etapas.push({ ...this.nuevaEtapaFlujo, nombreEtapa: nombre });
+    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: this.formFlujo.etapas.length + 1, esEtapaFinal: false, requiereEntregable: false };
+  }
+
+  quitarEtapaFlujo(index: number): void {
+    this.formFlujo.etapas.splice(index, 1);
+    this.formFlujo.etapas.forEach((e, i) => e.numeroOrden = i + 1);
+  }
+
+  guardarFlujo(): void {
+    if (!this.formFlujo.nombreFlujo.trim() || this.formFlujo.etapas.length === 0) {
+      this.toast.error('El flujo necesita un nombre y al menos una etapa.');
+      return;
+    }
+
+    this.creandoFlujo.set(true);
+    this.flujoService.crearFlujo(this.formFlujo).subscribe({
+      next: (flujo) => {
+        this.flujos.update(lista => [...lista, flujo]);
+        this.form.patchValue({ idFlujo: flujo.idFlujo });
+        this.creandoFlujo.set(false);
+        this.mostrarFormFlujo.set(false);
+        this.toast.success(`Flujo «${flujo.nombreFlujo}» creado`);
+      },
+      error: (err) => {
+        this.creandoFlujo.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo crear el flujo'));
+      }
+    });
+  }
+
   // ── Guardado del servicio ──
 
   invalido(campo: string): boolean {
@@ -228,6 +296,7 @@ export class ServicioFormComponent implements OnInit {
       urlMiniatura: val.urlMiniatura || null,
       cargoRevisionAdicional: val.cargoRevisionAdicional !== null ? Number(val.cargoRevisionAdicional) : null,
       limiteRevisionesBase: val.limiteRevisionesBase !== null ? Number(val.limiteRevisionesBase) : null,
+      idFlujo: val.idFlujo !== null ? Number(val.idFlujo) : null,
       etiquetaIds: this.etiquetasElegidas()
     };
 

@@ -30,6 +30,8 @@ public class RespuestaServicio {
     private String nombreCategoria;
     private Long idPerfilCreador;
     private String nombreCreador;
+    private Long idFlujo;
+    private String nombreFlujo;
     private List<RespuestaAtributo> atributos;
     private List<RespuestaEtiqueta> etiquetas;
     private LocalDateTime actualizadoEn;

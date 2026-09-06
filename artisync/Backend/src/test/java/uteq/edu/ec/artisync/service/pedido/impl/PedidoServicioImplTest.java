@@ -112,11 +112,11 @@ class PedidoServicioImplTest {
         cliente = Usuario.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").build();
         creador = Usuario.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").build();
         flujo = FlujoTrabajo.builder().idFlujo(1L).nombreFlujo("Flujo estandar").build();
-        categoria = Categoria.builder().idCategoria(1L).nombreCategoria("Arte").flujo(flujo).build();
+        categoria = Categoria.builder().idCategoria(1L).nombreCategoria("Arte").build();
         Subcategoria subcategoria = Subcategoria.builder().idSubcategoria(1L).categoria(categoria).build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
         servicio = Servicio.builder().idServicio(1L).perfil(perfil).subcategoria(subcategoria)
-                .tituloServicio("Ilustracion").precioBase(new BigDecimal("20.00")).build();
+                .tituloServicio("Ilustracion").precioBase(new BigDecimal("20.00")).flujo(flujo).build();
         pedido = Pedido.builder().idPedido(10L).usuarioCliente(cliente).servicio(servicio)
                 .flujo(flujo).precioPactado(new BigDecimal("20.00")).build();
         etapaInicial = EtapaFlujo.builder().idEtapa(1L).nombreEtapa("Inicio").build();

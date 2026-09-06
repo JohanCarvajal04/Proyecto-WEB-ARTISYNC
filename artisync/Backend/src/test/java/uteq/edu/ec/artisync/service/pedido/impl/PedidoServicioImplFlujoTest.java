@@ -40,11 +40,13 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 
 /**
- * RF-19: el flujo del pedido sale de la categoría del servicio.
+ * El flujo del pedido sale del servicio, elegido por su creador entre sus
+ * propios flujos (antes, RF-19, salía de la categoría del servicio).
  *
- * <p>Antes se tomaba {@code flujoTrabajoRepository.findAll().get(0)}: todos los
- * pedidos compartían flujo y cuál era dependía del orden que devolviese
- * Postgres. Estas pruebas fijan el comportamiento nuevo.
+ * <p>Si el servicio no tiene flujo asignado, cae primero al flujo más antiguo
+ * del propio creador, y si el creador tampoco tiene ninguno, a un flujo por
+ * defecto global -- así un catálogo a medio configurar nunca bloquea la
+ * creación de un pedido.
  */
 @ExtendWith(MockitoExtension.class)
 class PedidoServicioImplFlujoTest {
@@ -62,10 +64,13 @@ class PedidoServicioImplFlujoTest {
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
 
+    private static final Long ID_CREADOR = 2L;
+
     private Usuario cliente;
     private Servicio servicio;
     private Categoria categoria;
-    private FlujoTrabajo flujoDeCategoria;
+    private FlujoTrabajo flujoDelServicio;
+    private FlujoTrabajo flujoDelCreador;
     private FlujoTrabajo flujoPorDefecto;
     private PeticionCrearPedido peticion;
 
@@ -73,7 +78,7 @@ class PedidoServicioImplFlujoTest {
     void setUp() {
         cliente = Usuario.builder().idUsuario(1L).build();
 
-        Usuario creador = Usuario.builder().idUsuario(2L).build();
+        Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(creador).build();
 
         categoria = Categoria.builder()
@@ -95,7 +100,8 @@ class PedidoServicioImplFlujoTest {
                 .precioBase(new BigDecimal("50.00"))
                 .build();
 
-        flujoDeCategoria = FlujoTrabajo.builder().idFlujo(20L).nombreFlujo("Flujo ilustracion").build();
+        flujoDelServicio = FlujoTrabajo.builder().idFlujo(20L).nombreFlujo("Flujo ilustracion").build();
+        flujoDelCreador = FlujoTrabajo.builder().idFlujo(15L).nombreFlujo("Flujo del creador").build();
         flujoPorDefecto = FlujoTrabajo.builder().idFlujo(1L).nombreFlujo("Flujo estandar").build();
 
         peticion = PeticionCrearPedido.builder().idServicio(100L).build();
@@ -120,10 +126,10 @@ class PedidoServicioImplFlujoTest {
     }
 
     @Test
-    @DisplayName("usa el flujo configurado en la categoria del servicio")
-    void usaElFlujoDeLaCategoria() {
-        categoria.setFlujo(flujoDeCategoria);
-        conEtapas(flujoDeCategoria);
+    @DisplayName("usa el flujo configurado en el servicio")
+    void usaElFlujoDelServicio() {
+        servicio.setFlujo(flujoDelServicio);
+        conEtapas(flujoDelServicio);
 
         pedidoServicio.crearPedido(1L, peticion);
 
@@ -133,10 +139,27 @@ class PedidoServicioImplFlujoTest {
     }
 
     @Test
-    @DisplayName("cae al flujo de respaldo cuando la categoria no tiene flujo asignado")
-    void caeAlFlujoDeRespaldo() {
-        categoria.setFlujo(null);
+    @DisplayName("cae al flujo mas antiguo del propio creador cuando el servicio no tiene flujo asignado")
+    void caeAlFlujoDelCreador() {
+        servicio.setFlujo(null);
+        conEtapas(flujoDelCreador);
+        given(flujoTrabajoRepository.findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(ID_CREADOR))
+                .willReturn(Optional.of(flujoDelCreador));
+
+        pedidoServicio.crearPedido(1L, peticion);
+
+        ArgumentCaptor<Pedido> captor = ArgumentCaptor.forClass(Pedido.class);
+        verify(pedidoRepository).save(captor.capture());
+        assertThat(captor.getValue().getFlujo().getIdFlujo()).isEqualTo(15L);
+    }
+
+    @Test
+    @DisplayName("cae al flujo por defecto global si ni el servicio ni su creador tienen flujo")
+    void caeAlFlujoPorDefectoGlobal() {
+        servicio.setFlujo(null);
         conEtapas(flujoPorDefecto);
+        given(flujoTrabajoRepository.findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(ID_CREADOR))
+                .willReturn(Optional.empty());
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc())
                 .willReturn(Optional.of(flujoPorDefecto));
 
@@ -150,10 +173,12 @@ class PedidoServicioImplFlujoTest {
     @Test
     @DisplayName("el respaldo no depende del nombre del flujo, que lo fija el seed")
     void respaldoIndependienteDelNombre() {
-        categoria.setFlujo(null);
+        servicio.setFlujo(null);
         FlujoTrabajo conOtroNombre = FlujoTrabajo.builder()
                 .idFlujo(3L).nombreFlujo("Flujo Estándar de Medición").build();
         conEtapas(conOtroNombre);
+        given(flujoTrabajoRepository.findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(ID_CREADOR))
+                .willReturn(Optional.empty());
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()).willReturn(Optional.of(conOtroNombre));
 
         pedidoServicio.crearPedido(1L, peticion);
@@ -166,7 +191,9 @@ class PedidoServicioImplFlujoTest {
     @Test
     @DisplayName("sin ningun flujo configurado, se rechaza el pedido")
     void sinFlujosRechaza() {
-        categoria.setFlujo(null);
+        servicio.setFlujo(null);
+        given(flujoTrabajoRepository.findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(ID_CREADOR))
+                .willReturn(Optional.empty());
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
@@ -177,7 +204,7 @@ class PedidoServicioImplFlujoTest {
     @Test
     @DisplayName("un flujo sin etapas configuradas se rechaza nombrando el flujo")
     void flujoSinEtapasRechaza() {
-        categoria.setFlujo(flujoDeCategoria);
+        servicio.setFlujo(flujoDelServicio);
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(anyLong()))
                 .willReturn(List.of());
 

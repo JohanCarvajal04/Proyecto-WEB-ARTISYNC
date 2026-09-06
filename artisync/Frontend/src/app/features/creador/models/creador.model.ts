@@ -52,6 +52,8 @@ export interface RespuestaServicio {
   nombreCategoria: string;
   idPerfilCreador: number;
   nombreCreador: string;
+  idFlujo: number | null;
+  nombreFlujo: string | null;
   atributos: RespuestaAtributo[];
   etiquetas: RespuestaEtiqueta[];
   actualizadoEn: string;
@@ -82,6 +84,7 @@ export interface PeticionCrearServicio {
   urlMiniatura?: string | null;
   cargoRevisionAdicional?: number | null;
   limiteRevisionesBase?: number | null;
+  idFlujo?: number | null;
   etiquetaIds?: number[];
 }
 

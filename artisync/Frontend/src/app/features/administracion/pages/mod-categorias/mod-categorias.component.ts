@@ -4,8 +4,6 @@ import { ModeracionService } from '../../services/moderacion.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { Categoria, CrearCategoria, ActualizarCategoria, Subcategoria, Etiqueta } from '../../models/moderacion.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
-import { FlujoTrabajoService } from '../../../pedido/services/flujo-trabajo.service';
-import { RespuestaFlujoTrabajo } from '../../../pedido/models/pedido.model';
 
 @Component({
   selector: 'app-mod-categorias',
@@ -17,7 +15,6 @@ export class ModCategoriasComponent implements OnInit {
   private modService = inject(ModeracionService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
-  private flujoService = inject(FlujoTrabajoService);
 
   readonly categorias = signal<Categoria[]>([]);
   readonly isLoading = signal<boolean>(true);
@@ -45,27 +42,15 @@ export class ModCategoriasComponent implements OnInit {
   
   formData = {
     nombreCategoria: '',
-    estadoActiva: true,
-    idFlujo: null as number | null
+    estadoActiva: true
   };
-
-  /** Flujos disponibles para asignar a una categoría (RF-19). */
-  readonly flujos = signal<RespuestaFlujoTrabajo[]>([]);
 
   ngOnInit(): void {
     this.loadCategorias();
-    this.loadFlujos();
     if (this.esAdmin) {
       this.loadSubcategorias();
       this.loadEtiquetas();
     }
-  }
-
-  loadFlujos(): void {
-    this.flujoService.listarFlujos().subscribe({
-      next: (data) => this.flujos.set(data),
-      error: () => this.flujos.set([])
-    });
   }
 
   // ── Subcategorías ────────────────────────────────────────────────────────
@@ -158,7 +143,7 @@ export class ModCategoriasComponent implements OnInit {
 
   openNewForm(): void {
     this.editingId.set(null);
-    this.formData = { nombreCategoria: '', estadoActiva: true, idFlujo: null };
+    this.formData = { nombreCategoria: '', estadoActiva: true };
     this.isFormOpen.set(true);
   }
 
@@ -166,8 +151,7 @@ export class ModCategoriasComponent implements OnInit {
     this.editingId.set(categoria.idCategoria);
     this.formData = {
       nombreCategoria: categoria.nombreCategoria,
-      estadoActiva: categoria.estadoActiva,
-      idFlujo: categoria.idFlujo
+      estadoActiva: categoria.estadoActiva
     };
     this.isFormOpen.set(true);
   }
@@ -202,8 +186,7 @@ export class ModCategoriasComponent implements OnInit {
     } else {
       const payload: CrearCategoria = {
         nombreCategoria: this.formData.nombreCategoria.trim(),
-        estadoActiva: this.formData.estadoActiva,
-        idFlujo: this.formData.idFlujo
+        estadoActiva: this.formData.estadoActiva
       };
       this.modService.crearCategoria(payload).subscribe({
         next: () => {

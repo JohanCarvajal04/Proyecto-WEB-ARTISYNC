@@ -103,16 +103,12 @@ export interface Categoria {
   idCategoria: number;
   nombreCategoria: string;
   estadoActiva: boolean;
-  /** Flujo que heredan los pedidos de esta categoría (RF-19); null si no se asignó. */
-  idFlujo: number | null;
-  nombreFlujo: string | null;
   actualizadoEn: string;
 }
 
 export interface CrearCategoria {
   nombreCategoria: string;
   estadoActiva?: boolean;
-  idFlujo?: number | null;
 }
 
 /**
@@ -123,5 +119,4 @@ export interface CrearCategoria {
 export interface ActualizarCategoria {
   nombreCategoria: string;
   estadoActiva?: boolean;
-  idFlujo?: number | null;
 }

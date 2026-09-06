@@ -109,6 +109,60 @@
           </div>
         </div>
 
+        <!-- Flujo de trabajo -->
+        <div class="cr-field">
+          <label class="cr-label" for="idFlujo">Flujo de trabajo</label>
+          <div class="cr-form__row">
+            <select id="idFlujo" class="cr-select" formControlName="idFlujo">
+              <option [ngValue]="null">Sin flujo (se usará el flujo por defecto)</option>
+              @for (flujo of flujos(); track flujo.idFlujo) {
+                <option [ngValue]="flujo.idFlujo">{{ flujo.nombreFlujo }} ({{ flujo.etapas.length }} etapas)</option>
+              }
+            </select>
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="abrirFormFlujo()">
+              Crear nuevo flujo
+            </button>
+          </div>
+          <span class="cr-hint">Las etapas por las que pasará cada pedido de este servicio.</span>
+        </div>
+
+        @if (mostrarFormFlujo()) {
+          <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Nombre del flujo" [(ngModel)]="formFlujo.nombreFlujo" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Descripción (opcional)" [(ngModel)]="formFlujo.descripcionFlujo" [ngModelOptions]="{standalone: true}" />
+            </div>
+
+            @for (etapa of formFlujo.etapas; track etapa.numeroOrden; let i = $index) {
+              <div class="cr-form__row" style="align-items: center;">
+                <span class="cr-hint">{{ etapa.numeroOrden }}. {{ etapa.nombreEtapa }}</span>
+                <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarEtapaFlujo(i)">Quitar</button>
+              </div>
+            }
+
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Nombre de la etapa" [(ngModel)]="nuevaEtapaFlujo.nombreEtapa" [ngModelOptions]="{standalone: true}" />
+              <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.esEtapaFinal" [ngModelOptions]="{standalone: true}" /> Final
+              </label>
+              <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.requiereEntregable" [ngModelOptions]="{standalone: true}" /> Exige entregable
+              </label>
+              <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarEtapaFlujo()">Añadir etapa</button>
+            </div>
+
+            <div class="cr-form__row" style="justify-content: flex-end;">
+              <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormFlujo()">Cancelar</button>
+              <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoFlujo()" (click)="guardarFlujo()">
+                @if (creandoFlujo()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                Guardar flujo
+              </button>
+            </div>
+          </div>
+        }
+
         <div class="cr-form__row cr-form__row--3">
           <div class="cr-field">
             <label class="cr-label" for="limiteRevisionesBase">Revisiones incluidas</label>
