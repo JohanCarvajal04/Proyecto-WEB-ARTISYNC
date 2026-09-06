@@ -26,8 +26,9 @@ describe('AccesoRequeridoComponent', () => {
   it('propaga returnUrl a los enlaces de login y registro', () => {
     const fixture = crear({ returnUrl: '/pedido/crear?idServicio=7', motivo: 'contratar' });
 
-    const login: HTMLAnchorElement = fixture.nativeElement.querySelectorAll('a')[0];
-    const registro: HTMLAnchorElement = fixture.nativeElement.querySelectorAll('a')[1];
+    const anchors: HTMLAnchorElement[] = Array.from(fixture.nativeElement.querySelectorAll('a'));
+    const login = anchors.find(a => (a.getAttribute('href') ?? '').includes('/auth/login'))!;
+    const registro = anchors.find(a => (a.getAttribute('href') ?? '').includes('/auth/register'))!;
 
     expect(login.getAttribute('href')).toContain('/auth/login');
     expect(login.getAttribute('href')).toContain('returnUrl');
@@ -50,7 +51,8 @@ describe('AccesoRequeridoComponent', () => {
   it('sin returnUrl, cae a /explorar', () => {
     const fixture = crear({});
 
-    const login: HTMLAnchorElement = fixture.nativeElement.querySelectorAll('a')[0];
+    const anchors: HTMLAnchorElement[] = Array.from(fixture.nativeElement.querySelectorAll('a'));
+    const login = anchors.find(a => (a.getAttribute('href') ?? '').includes('/auth/login'))!;
     expect(decodeURIComponent(login.getAttribute('href') ?? '')).toContain('returnUrl=/explorar');
   });
 });

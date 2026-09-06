@@ -1769,6 +1769,13 @@ COMMENT ON FUNCTION fn_sincronizar_permisos_rol(VARCHAR, TEXT[])
 -- de perfil de creador + save de perfil) -- unos 10 viajes a la base sin
 -- ninguna atomicidad entre ellos.
 --
+-- Si el rol CREADOR queda entre los asignados, da de alta perezosamente (y de
+-- forma idempotente) tanto el perfil de creador como su portafolio inicial --
+-- el mismo par que fn_registrar_usuario crea en el auto-registro -- para que
+-- un usuario ascendido o creado a CREADOR por un administrador (via
+-- fn_crear_usuario_admin o el endpoint de asignacion de roles) quede con la
+-- misma cuenta completa que quien se auto-registro como CREADOR.
+--
 -- Dos anomalias que corrige:
 --
 --   * Lectura fantasma: sin restriccion unica, dos administradores editando
@@ -1808,6 +1815,7 @@ DECLARE
     v_existe     BOOLEAN;
     v_nombre_rol TEXT;
     v_total      INTEGER := 0;
+    v_id_perfil  BIGINT;
 BEGIN
     IF p_id_usuario IS NULL THEN
         RAISE EXCEPTION 'fn_sincronizar_roles_usuario: p_id_usuario es obligatorio'
@@ -1856,10 +1864,29 @@ BEGIN
 
     -- Alta perezosa del perfil de creador (mismo criterio que
     -- AdminUserServiceImpl.actualizarRoles ya aplicaba), tambien idempotente.
+    -- Ademas del perfil, da de alta su portafolio inicial con el mismo tema
+    -- por defecto que fn_registrar_usuario usa en el auto-registro: antes de
+    -- este cambio, un CREADOR dado de alta o ascendido por un administrador
+    -- (via fn_crear_usuario_admin o assignRoles) se quedaba con perfil pero
+    -- sin portafolio, a diferencia de quien se auto-registraba como CREADOR.
     IF EXISTS (SELECT 1 FROM unnest(p_nombres_rol) AS n(nombre) WHERE UPPER(n.nombre) = 'CREADOR') THEN
         INSERT INTO perfiles_creadores (id_usuario, biografia)
         SELECT p_id_usuario, 'Hola! Soy un creador en ARTISYNC.'
          WHERE NOT EXISTS (SELECT 1 FROM perfiles_creadores WHERE id_usuario = p_id_usuario);
+
+        SELECT id_perfil INTO v_id_perfil
+          FROM perfiles_creadores
+         WHERE id_usuario = p_id_usuario;
+
+        INSERT INTO portafolios (id_perfil, opciones_personalizacion)
+        SELECT v_id_perfil, jsonb_build_object(
+            'primary', '#0d6efd',
+            'secondary', '#6c757d',
+            'bg', '#f8f9fa',
+            'text', '#212529',
+            'surface', '#ffffff'
+        )
+         WHERE NOT EXISTS (SELECT 1 FROM portafolios WHERE id_perfil = v_id_perfil);
     END IF;
 
     RETURN v_total;
@@ -1867,7 +1894,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_sincronizar_roles_usuario(BIGINT, TEXT[])
-    IS 'Fase 1 concurrencia - Reemplaza atomicamente el conjunto de roles de un usuario (DELETE+INSERT con ON CONFLICT), serializado con SELECT FOR UPDATE sobre usuarios; cierra lectura fantasma y estados a medias.';
+    IS 'Fase 1 concurrencia - Reemplaza atomicamente el conjunto de roles de un usuario (DELETE+INSERT con ON CONFLICT), serializado con SELECT FOR UPDATE sobre usuarios; cierra lectura fantasma y estados a medias. Da de alta perfil de creador y portafolio inicial si el rol CREADOR queda asignado.';
 
 
 -- ---------------------------------------------------------------------------
