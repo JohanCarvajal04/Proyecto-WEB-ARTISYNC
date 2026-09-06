@@ -37,9 +37,7 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
      * retiro; la otra mitad (lo ya solicitado) vive en
      * SolicitudRetiroRepository.sumMontosEnCursoPorCreador.
      */
-    @Query("SELECT COALESCE(SUM(t.monto), 0) FROM TransaccionPago t " +
-            "WHERE t.tipoTransaccion = 'Egreso' " +
-            "AND t.pago.contrato.pedido.servicio.perfil.usuario.idUsuario = :idUsuarioCreador")
+    @Query("SELECT COALESCE(SUM(t.monto), 0) FROM TransaccionPago t WHERE t.tipoTransaccion = 'Egreso' AND t.pago.contrato.pedido.servicio.perfil.usuario.idUsuario = :idUsuarioCreador")
     BigDecimal sumEgresosPorCreador(@Param("idUsuarioCreador") Long idUsuarioCreador);
 }
 

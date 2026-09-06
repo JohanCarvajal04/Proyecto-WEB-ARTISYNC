@@ -8,7 +8,7 @@ const TEXTOS_MOTIVO: Record<MotivoAccesoRequerido, string> = {
   sorteo: 'Debes iniciar sesión para participar en este sorteo.'
 };
 
-const TEXTO_GENERICO = 'Debes iniciar sesión para interactuar con el creador.';
+const TEXTO_GENERICO = 'Necesitas iniciar sesión para continuar.';
 
 @Component({
   selector: 'app-acceso-requerido',
