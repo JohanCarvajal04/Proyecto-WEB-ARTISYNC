@@ -12,6 +12,10 @@ services:
       POSTGRES_USER: ${DB_USER:-pfc_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
+      # Alinea CURRENT_TIMESTAMP con la hora local que usa el backend (ver
+      # TZ en el Dockerfile del backend) -- solo toma efecto en un volumen
+      # nuevo; initdb fija el timezone del servidor una sola vez.
+      TZ: America/Guayaquil
     ports:
       - "5432:5432"
     volumes:
@@ -70,6 +74,10 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      # Ver el ENV TZ del Dockerfile: se repite aqui de forma explicita para
+      # que sea visible en la config de despliegue sin depender de leer la
+      # imagen. docker-compose la sobreescribiria igual si difiriera.
+      TZ: America/Guayaquil
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-pfc_db}
       # DB_USER/DB_PASSWORD: solo para Flyway (crea/gestiona flyway_schema_history).
       DB_USER: ${DB_USER:-pfc_user}
