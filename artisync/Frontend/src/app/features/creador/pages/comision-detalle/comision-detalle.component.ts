@@ -13,8 +13,6 @@ import {
 } from '../../../pedido/models/pedido.model';
 import { RespuestaEntregable, RespuestaContrato } from '../../../legal/models/legal.model';
 import { ACEPTA_ENTREGABLE, formatSize, validarEntregable } from '../../../legal/utils/archivo-entregable';
-import { BriefingService } from '../../../comunicacion/services/briefing.service';
-import { RespuestaBriefing } from '../../../comunicacion/models/comunicacion.model';
 import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedido/chat-pedido.component';
 import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
 import { formatPrice, formatDate, formatDateTime, badgeEtapa, mensajeError } from '../../utils/formato';
@@ -33,7 +31,6 @@ export class ComisionDetalleComponent implements OnInit {
   private ticketService = inject(TicketRevisionService);
   private entregableService = inject(EntregableService);
   private contratoService = inject(ContratoService);
-  private briefingService = inject(BriefingService);
   private toast = inject(ToastService);
 
   readonly idPedido = signal<number>(0);
@@ -57,12 +54,6 @@ export class ComisionDetalleComponent implements OnInit {
 
   readonly tiposAceptados = ACEPTA_ENTREGABLE;
   readonly formatSize = formatSize;
-
-  // Envío de briefing al cliente
-  readonly plantillas = signal<RespuestaBriefing[]>([]);
-  readonly briefingEnviado = signal<RespuestaBriefing | null>(null);
-  readonly plantillaElegida = signal<number | null>(null);
-  readonly enviandoBriefing = signal<boolean>(false);
 
   readonly firmando = signal<boolean>(false);
   readonly ticketEnCurso = signal<number | null>(null);
@@ -101,18 +92,14 @@ export class ComisionDetalleComponent implements OnInit {
       seguimiento: this.pedidoService.obtenerSeguimiento(id).pipe(catchError(() => of(null))),
       entregable: this.entregableService.obtenerEntregable(id).pipe(catchError(() => of(null))),
       contrato: this.contratoService.obtenerContratoPorPedido(id).pipe(catchError(() => of(null))),
-      tickets: this.ticketService.listarTickets(id).pipe(catchError(() => of([] as RespuestaTicketRevision[]))),
-      briefing: this.briefingService.obtenerBriefing(id).pipe(catchError(() => of(null))),
-      plantillas: this.briefingService.listarMisPlantillas().pipe(catchError(() => of([] as RespuestaBriefing[])))
+      tickets: this.ticketService.listarTickets(id).pipe(catchError(() => of([] as RespuestaTicketRevision[])))
     }).subscribe({
-      next: ({ pedido, seguimiento, entregable, contrato, tickets, briefing, plantillas }) => {
+      next: ({ pedido, seguimiento, entregable, contrato, tickets }) => {
         this.pedido.set(pedido);
         this.seguimiento.set(seguimiento);
         this.entregable.set(entregable);
         this.contrato.set(contrato);
         this.tickets.set(tickets);
-        this.briefingEnviado.set(briefing);
-        this.plantillas.set(plantillas);
         this.isLoading.set(false);
       },
       error: (err) => {
@@ -149,31 +136,6 @@ export class ComisionDetalleComponent implements OnInit {
       error: (err) => {
         this.avanzando.set(false);
         this.toast.error(mensajeError(err, 'No se pudo avanzar la etapa'));
-      }
-    });
-  }
-
-  // ── Briefing ──────────────────────────────────────────────────────────────
-
-  onPlantilla(evento: Event): void {
-    const valor = (evento.target as HTMLSelectElement).value;
-    this.plantillaElegida.set(valor ? Number(valor) : null);
-  }
-
-  enviarBriefing(): void {
-    const idPlantilla = this.plantillaElegida();
-    if (idPlantilla === null || this.enviandoBriefing()) return;
-
-    this.enviandoBriefing.set(true);
-    this.briefingService.enviarBriefing(this.idPedido(), idPlantilla).subscribe({
-      next: (briefing) => {
-        this.briefingEnviado.set(briefing);
-        this.enviandoBriefing.set(false);
-        this.toast.success('Briefing enviado. El cliente ya puede responderlo.');
-      },
-      error: (err) => {
-        this.enviandoBriefing.set(false);
-        this.toast.error(mensajeError(err, 'No se pudo enviar el briefing'));
       }
     });
   }

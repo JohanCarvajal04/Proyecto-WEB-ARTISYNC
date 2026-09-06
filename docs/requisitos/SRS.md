@@ -192,7 +192,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Verificación: Test
 - Estado: verificado
 
-**REQ-F-016** (ex RF-16) — Formulario de briefing configurable (hasta 10 preguntas); respuestas no editables tras el envío.
+**REQ-F-016** (ex RF-16) — Cuestionario (briefing) configurable (hasta 10 preguntas) asociado a un servicio del Creador; si el servicio tiene uno asignado, el Cliente lo responde al crear el pedido (obligatorio antes de que el pedido se registre); respuestas no editables tras el envío. Un servicio sin cuestionario asignado no bloquea la creación del pedido.
 
 - Prioridad: Must
 - Verificación: Test
@@ -200,7 +200,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 ### Módulo Legal, Entregables y Finanzas
 
-**REQ-F-017** (ex RF-17) — Generación automática de contrato HTML desde plantilla activa, sustituyendo variables (partes, servicio, precio, revisiones, fecha).
+**REQ-F-017** (ex RF-17) — Generación automática de contrato HTML desde la plantilla asignada al servicio del pedido (catálogo de plantillas curado por Administrador), o la plantilla predeterminada si el servicio no tiene una propia, sustituyendo variables (partes, servicio, precio, revisiones, fecha).
 
 - Prioridad: Must
 - Verificación: Test (`ContratoControlador`)

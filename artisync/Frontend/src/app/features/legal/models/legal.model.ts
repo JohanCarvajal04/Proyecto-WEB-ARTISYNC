@@ -42,3 +42,32 @@ export interface RespuestaPago {
   estadoFondos: string;
   approvalUrl: string | null;
 }
+
+// ── Catálogo de plantillas de contrato (REQ-F-017 ampliado) ──
+// Curado por ADMIN: el creador solo elige entre estas, no escribe texto legal libre.
+
+export interface RespuestaPlantillaContrato {
+  idPlantilla: number;
+  nombrePlantilla: string;
+  versionLegal: string;
+  cuerpoHtmlPlantilla: string;
+  esPredeterminada: boolean;
+  activa: boolean;
+}
+
+/** DTO liviano para el selector del creador al crear/editar un servicio. */
+export interface RespuestaPlantillaContratoResumen {
+  idPlantilla: number;
+  nombrePlantilla: string;
+}
+
+export interface PeticionCrearPlantillaContrato {
+  nombrePlantilla: string;
+  versionLegal: string;
+  cuerpoHtmlPlantilla: string;
+  esPredeterminada: boolean;
+}
+
+export interface PeticionActualizarPlantillaContrato extends PeticionCrearPlantillaContrato {
+  activa: boolean;
+}

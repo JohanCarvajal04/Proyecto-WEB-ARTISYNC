@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PedidoService } from '../../services/pedido.service';
@@ -43,6 +43,23 @@ export class PedidoCrearComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
 
+  /**
+   * Preguntas del cuestionario del servicio (si tiene uno asignado), en el
+   * orden en que deben responderse. REQ-F-016 ampliado: se responden aquí,
+   * al crear el pedido, no con un envío manual del creador después.
+   */
+  readonly preguntasBriefing = computed(() =>
+    [...(this.servicio()?.preguntasBriefing ?? [])].sort((a, b) => a.numeroOrden - b.numeroOrden));
+
+  /** Borradores de respuesta por idPregunta. */
+  readonly respuestasBriefing = signal<Record<number, string>>({});
+
+  readonly todasLasPreguntasRespondidas = computed(() => {
+    const borradores = this.respuestasBriefing();
+    const preguntas = this.preguntasBriefing();
+    return preguntas.every(p => (borradores[p.idPregunta] ?? '').trim().length > 0);
+  });
+
   ngOnInit(): void {
     const idServicio = Number(this.route.snapshot.queryParamMap.get('idServicio'));
     if (!idServicio) return;
@@ -67,6 +84,11 @@ export class PedidoCrearComponent implements OnInit {
     });
   }
 
+  onRespuestaBriefing(idPregunta: number, evento: Event): void {
+    const texto = (evento.target as HTMLTextAreaElement).value;
+    this.respuestasBriefing.update(r => ({ ...r, [idPregunta]: texto }));
+  }
+
   onSubmit(): void {
     if (!this.pedido.idServicio) {
       this.error.set('Elige un servicio en el catálogo antes de continuar.');
@@ -78,6 +100,19 @@ export class PedidoCrearComponent implements OnInit {
     if (this.pedido.precioOfrecido != null && this.pedido.precioOfrecido <= 0) {
       this.error.set('El precio ofrecido debe ser mayor a 0.');
       return;
+    }
+
+    if (this.preguntasBriefing().length > 0 && !this.todasLasPreguntasRespondidas()) {
+      this.error.set('Este servicio tiene un cuestionario: responde todas sus preguntas antes de continuar.');
+      return;
+    }
+
+    if (this.preguntasBriefing().length > 0) {
+      const borradores = this.respuestasBriefing();
+      this.pedido.respuestasBriefing = this.preguntasBriefing().map(p => ({
+        idPregunta: p.idPregunta,
+        textoRespuesta: (borradores[p.idPregunta] ?? '').trim()
+      }));
     }
 
     this.loading.set(true);

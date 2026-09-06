@@ -2,21 +2,31 @@
 
 ---
 
-## HU-17 — Generación automática de contrato
+## HU-17 — Generación automática de contrato con plantilla personalizada por servicio
 **Trazabilidad:** REQ-F-017
-**Prueba de aceptación:** `ContratoServicioImplTest`
+**Prueba de aceptación:** `ContratoServicioImplTest` · `PlantillaContratoAdminServicioImplTest`
 
 **As a** Cliente que inicia un pedido,
-**I want** que se genere automáticamente un contrato con los datos del servicio contratado,
-**so that** ambas partes tengamos un documento formal que respalde el acuerdo.
+**I want** que se genere automáticamente un contrato con la plantilla legal adecuada al tipo de servicio contratado y los datos del propio pedido,
+**so that** ambas partes tengamos un documento formal, con el texto legal apropiado, que respalde el acuerdo.
 
-**INVEST:** Independiente porque se dispara al iniciar el pedido, sin depender de HU-18 (la firma es un paso posterior); negociable en la plantilla exacta y en qué campos del servicio se sustituyen; valiosa porque formaliza el acuerdo entre Cliente y Creador; estimable y pequeña porque es una sustitución de plantilla sobre datos ya existentes del pedido; testable mediante el escenario de generación con datos correctos.
+**INVEST:** Independiente porque se dispara al iniciar el pedido, sin depender de HU-18 (la firma es un paso posterior) ni de qué otras plantillas existan en el catálogo; negociable en qué plantillas ofrece el catálogo y en qué campos del servicio se sustituyen; valiosa porque formaliza el acuerdo entre Cliente y Creador con un texto legal acorde al servicio, en vez de una única plantilla genérica para toda la plataforma; estimable y pequeña porque es resolución de plantilla (propia del servicio o predeterminada) más sustitución de placeholders sobre datos ya existentes del pedido; testable mediante los escenarios de plantilla propia, plantilla predeterminada de respaldo y catálogo administrado.
 
 ```gherkin
-Escenario: Generación con datos correctos
-  Given que inicio un pedido de un servicio de 30 USD con 2 revisiones incluidas
+Escenario: Servicio con plantilla de contrato propia
+  Given que el servicio del pedido tiene asignada una plantilla del catálogo (p. ej. "Diseño gráfico")
   When el sistema genera el contrato
-  Then el documento HTML muestra las partes, el servicio, el precio y el número de revisiones correctamente sustituidos desde la plantilla
+  Then el documento HTML usa esa plantilla, con las partes, el servicio, el precio y el número de revisiones correctamente sustituidos
+
+Escenario: Servicio sin plantilla propia
+  Given que el servicio del pedido no tiene ninguna plantilla asignada
+  When el sistema genera el contrato
+  Then el documento HTML usa la plantilla marcada como predeterminada en el catálogo
+
+Escenario: El catálogo de plantillas lo administra un Administrador
+  Given que un Administrador con el permiso CONTRATO_PLANTILLA_GESTIONAR crea o edita una plantilla
+  When la marca como predeterminada
+  Then el sistema desmarca la plantilla predeterminada anterior, garantizando que exista una sola a la vez
 ```
 
 ---

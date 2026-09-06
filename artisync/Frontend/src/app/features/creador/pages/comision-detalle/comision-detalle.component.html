@@ -97,47 +97,8 @@
           </div>
         </div>
 
-        <!-- Briefing -->
-        @if (briefingEnviado()) {
-          <app-briefing-pedido [idPedido]="idPedido()" [puedeResponder]="false" />
-        } @else {
-          <div class="cr-card">
-            <div class="cr-card__head">
-              <div>
-                <h2 class="cr-card__title">Briefing</h2>
-                <p class="cr-card__hint">Envía un cuestionario al cliente para recoger los requisitos</p>
-              </div>
-            </div>
-
-            <div class="cr-card__body cr-form">
-              @if (plantillas().length === 0) {
-                <p class="cr-muted">
-                  Todavía no tienes plantillas de briefing.
-                  <a class="cr-link" routerLink="/creador/briefings">Crear una</a>
-                </p>
-              } @else {
-                <div class="cr-field">
-                  <label class="cr-label" for="plantillaBriefing">Plantilla</label>
-                  <select id="plantillaBriefing" class="cr-select" (change)="onPlantilla($event)">
-                    <option value="">Elige una plantilla…</option>
-                    @for (p of plantillas(); track p.idPlantilla) {
-                      <option [value]="p.idPlantilla">
-                        {{ p.nombrePlantilla }} ({{ p.preguntas?.length || 0 }} preguntas)
-                      </option>
-                    }
-                  </select>
-                </div>
-                <div class="cr-form__actions">
-                  <button type="button" class="cr-btn cr-btn--primary"
-                    [disabled]="plantillaElegida() === null || enviandoBriefing()" (click)="enviarBriefing()">
-                    @if (enviandoBriefing()) { <span class="cr-spinner cr-spinner--sm"></span> }
-                    Enviar briefing
-                  </button>
-                </div>
-              }
-            </div>
-          </div>
-        }
+        <!-- Cuestionario (briefing): respondido por el cliente al crear el pedido -->
+        <app-briefing-pedido [idPedido]="idPedido()" />
 
         <!-- Entregable -->
         <div class="cr-card">

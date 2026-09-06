@@ -19,18 +19,22 @@
     "@angular/router": "^22.0.0",
     "@stomp/stompjs": "^7.3.0",
     "jwt-decode": "^4.0.0",
+    "markdown-it": "^15.0.1",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
     "sockjs-client": "^1.6.1",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
     "@angular/build": "^22.0.1",
     "@angular/cli": "^22.0.1",
     "@angular/compiler-cli": "^22.0.0",
     "@tailwindcss/postcss": "^4.3.1",
+    "@types/markdown-it": "^14.2.0",
     "@types/qrcode": "^1.5.6",
     "@types/sockjs-client": "^1.5.4",
+    "@types/turndown": "^5.0.6",
     "jsdom": "^28.0.0",
     "postcss": "^8.5.16",
     "prettier": "^3.8.1",

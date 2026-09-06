@@ -12,6 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
@@ -23,6 +24,9 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingEnviado;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPregunta;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
@@ -31,6 +35,8 @@ import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PropuestaTerminosPedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.PropuestaTerminosPedidoRepository;
@@ -59,6 +65,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -92,6 +99,8 @@ class PedidoServicioImplTest {
     @Mock private IServicioExportacion servicioExportacion;
     @Mock private IVerificacionServicio verificacionServicio;
     @Mock private IContratoServicio contratoServicio;
+    @Mock private BriefingEnviadoRepository briefingEnviadoRepository;
+    @Mock private BriefingRespuestaRepository briefingRespuestaRepository;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -191,6 +200,87 @@ class PedidoServicioImplTest {
                 .isInstanceOf(ExcepcionReglaNegocio.class)
                 .hasMessageContaining("verificar tu identidad");
         verifyNoInteractions(servicioRepository);
+    }
+
+    // ---------- crearPedido: cuestionario (briefing) por servicio, REQ-F-016 ampliado ----------
+
+    private BriefingPlantilla plantillaBriefingDeDosPreguntas() {
+        BriefingPregunta p1 = BriefingPregunta.builder().idPregunta(101L).textoPregunta("¿Colores preferidos?").numeroOrden(1).build();
+        BriefingPregunta p2 = BriefingPregunta.builder().idPregunta(102L).textoPregunta("¿Referencias?").numeroOrden(2).build();
+        return BriefingPlantilla.builder().idBriefingPlantilla(50L).nombrePlantilla("Briefing Logo")
+                .preguntas(List.of(p1, p2)).build();
+    }
+
+    @Test
+    @DisplayName("crearPedido — servicio con cuestionario y todas las respuestas crea el pedido y registra el briefing completado")
+    void crearPedido_conCuestionarioCompleto_registraBriefing() {
+        servicio.setBriefingPlantilla(plantillaBriefingDeDosPreguntas());
+        FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+
+        PeticionCrearPedido peticion = PeticionCrearPedido.builder().idServicio(1L)
+                .respuestasBriefing(List.of(
+                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build(),
+                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(102L).textoRespuesta("Ninguna en particular").build()
+                ))
+                .build();
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
+        given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(any())).willReturn(List.of());
+        given(briefingEnviadoRepository.save(any(BriefingEnviado.class))).willAnswer(inv -> {
+            BriefingEnviado be = inv.getArgument(0);
+            be.setIdBriefingEnviado(500L);
+            return be;
+        });
+
+        RespuestaPedido respuesta = pedidoServicio.crearPedido(1L, peticion);
+
+        assertThat(respuesta).isNotNull();
+        verify(briefingEnviadoRepository).save(argThat(be -> Boolean.TRUE.equals(be.getCompletado())));
+        verify(briefingRespuestaRepository, org.mockito.Mockito.times(2)).save(any());
+    }
+
+    @Test
+    @DisplayName("crearPedido — servicio con cuestionario y respuestas incompletas rechaza y no crea el pedido")
+    void crearPedido_conCuestionarioIncompleto_rechazaYNoPersisteNada() {
+        servicio.setBriefingPlantilla(plantillaBriefingDeDosPreguntas());
+        FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+
+        PeticionCrearPedido peticion = PeticionCrearPedido.builder().idServicio(1L)
+                .respuestasBriefing(List.of(
+                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build()
+                        // falta la respuesta a la pregunta 102
+                ))
+                .build();
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
+
+        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("Referencias");
+        verify(pedidoRepository, never()).save(any());
+        verifyNoInteractions(briefingEnviadoRepository, briefingRespuestaRepository);
+    }
+
+    @Test
+    @DisplayName("crearPedido — servicio con cuestionario y sin respuestas rechaza y no crea el pedido")
+    void crearPedido_conCuestionarioSinRespuestas_rechaza() {
+        servicio.setBriefingPlantilla(plantillaBriefingDeDosPreguntas());
+        FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+        PeticionCrearPedido peticion = PeticionCrearPedido.builder().idServicio(1L).build();
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
+
+        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("cuestionario");
+        verify(pedidoRepository, never()).save(any());
     }
 
     // ---------- proponerTerminos / aceptarPropuestaTerminos / rechazarPropuestaTerminos ----------

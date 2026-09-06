@@ -82,11 +82,11 @@ class ContratoServicioImplTest {
     }
 
     @Test
-    @DisplayName("generarContrato crea el contrato con el limite de revisiones del servicio")
+    @DisplayName("generarContrato usa la plantilla predeterminada cuando el servicio no tiene una propia")
     void generarContrato_creaContrato() {
         given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
-        given(plantillaContratoRepository.findFirstByOrderByIdPlantillaDesc()).willReturn(Optional.of(plantilla));
+        given(plantillaContratoRepository.findByEsPredeterminadaTrue()).willReturn(Optional.of(plantilla));
         given(contratoRepository.save(any(Contrato.class))).willAnswer(inv -> {
             Contrato c = inv.getArgument(0);
             c.setIdContrato(10L);
@@ -98,6 +98,30 @@ class ContratoServicioImplTest {
         assertThat(respuesta.getIdContrato()).isEqualTo(10L);
         assertThat(respuesta.getLimiteRevisiones()).isEqualTo(2);
         assertThat(respuesta.getContenidoHtml()).contains("Creador Uno").contains("Cliente Uno");
+    }
+
+    @Test
+    @DisplayName("REQ-F-017 ampliado: generarContrato usa la plantilla propia del servicio, sin consultar la predeterminada")
+    void generarContrato_usaPlantillaPropiaDelServicio() {
+        PlantillaContrato plantillaPropia = PlantillaContrato.builder().idPlantilla(2L).versionLegal("v-diseno")
+                .nombrePlantilla("Diseño gráfico")
+                .cuerpoHtmlPlantilla("<html><body>Plantilla propia: {{nombre_cliente}}</body></html>")
+                .build();
+        pedido.getServicio().setPlantillaContrato(plantillaPropia);
+
+        given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
+        given(contratoRepository.save(any(Contrato.class))).willAnswer(inv -> {
+            Contrato c = inv.getArgument(0);
+            c.setIdContrato(10L);
+            return c;
+        });
+
+        RespuestaContrato respuesta = contratoServicio.generarContrato(1L, ID_CLIENTE);
+
+        assertThat(respuesta.getVersionLegal()).isEqualTo("v-diseno");
+        assertThat(respuesta.getContenidoHtml()).contains("Plantilla propia");
+        org.mockito.Mockito.verifyNoInteractions(plantillaContratoRepository);
     }
 
     @Test
@@ -115,7 +139,7 @@ class ContratoServicioImplTest {
         autenticarComoAdmin();
         given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
-        given(plantillaContratoRepository.findFirstByOrderByIdPlantillaDesc()).willReturn(Optional.of(plantilla));
+        given(plantillaContratoRepository.findByEsPredeterminadaTrue()).willReturn(Optional.of(plantilla));
         given(contratoRepository.save(any(Contrato.class))).willAnswer(inv -> inv.getArgument(0));
 
         assertThat(contratoServicio.generarContrato(1L, ID_AJENO)).isNotNull();
@@ -141,11 +165,11 @@ class ContratoServicioImplTest {
     }
 
     @Test
-    @DisplayName("generarContrato lanza recurso no encontrado si no hay plantillas disponibles")
+    @DisplayName("generarContrato lanza recurso no encontrado si no hay plantilla predeterminada configurada")
     void generarContrato_sinPlantillas() {
         given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
-        given(plantillaContratoRepository.findFirstByOrderByIdPlantillaDesc()).willReturn(Optional.empty());
+        given(plantillaContratoRepository.findByEsPredeterminadaTrue()).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.generarContrato(1L, ID_CLIENTE))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);

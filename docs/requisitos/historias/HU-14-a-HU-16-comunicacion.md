@@ -50,19 +50,29 @@ Escenario: Suspensión por reincidencia
 
 ---
 
-## HU-16 — Formulario de briefing
+## HU-16 — Cuestionario (briefing) por servicio, respondido al crear el pedido
 **Trazabilidad:** REQ-F-016
-**Prueba de aceptación:** `BriefingServiceImplTest`
+**Prueba de aceptación:** `BriefingServiceImplTest` · `PedidoServicioImplTest`
 
 **As a** Creador,
-**I want** configurar un formulario de briefing con hasta 10 preguntas específicas de mi servicio,
-**so that** reciba toda la información necesaria del Cliente antes de empezar a trabajar.
+**I want** asignar a cada uno de mis servicios un cuestionario con hasta 10 preguntas específicas,
+**so that** reciba toda la información necesaria del Cliente antes de empezar a trabajar, sin depender de acordarme de enviarlo después de cada pedido.
 
-**INVEST:** Independiente porque cada Creador define su propio formulario sin depender de otros Creadores; negociable en el número máximo de preguntas (hoy 10) y en los tipos de campo soportados; valiosa porque reduce ida y vuelta antes de iniciar el trabajo; estimable y pequeña porque se limita a `BriefingServiceImpl` y su persistencia de respuestas; testable mediante el escenario de inmutabilidad de respuestas tras el envío.
+**INVEST:** Independiente porque cada Creador define y asigna sus propios cuestionarios sin depender de otros Creadores, y un servicio sin cuestionario asignado no altera el flujo de creación de pedido; negociable en el número máximo de preguntas (hoy 10) y en los tipos de campo soportados; valiosa porque garantiza que el Cliente aporte la información antes de que el pedido exista, en vez de depender de un envío manual que podía no llegar nunca; estimable y pequeña porque se limita a `BriefingServiceImpl` (gestión de plantillas), la relación `Servicio.briefingPlantilla` y la validación/persistencia en `PedidoServicioImpl.crearPedido`; testable mediante los escenarios de obligatoriedad al crear el pedido e inmutabilidad de las respuestas.
 
 ```gherkin
+Escenario: Servicio con cuestionario asignado
+  Given que el servicio elegido tiene un cuestionario asignado por el Creador
+  When el Cliente intenta crear el pedido sin responder todas las preguntas
+  Then el sistema rechaza la creación del pedido y no persiste nada
+
+Escenario: Servicio sin cuestionario asignado
+  Given que el servicio elegido no tiene ningún cuestionario asignado
+  When el Cliente crea el pedido
+  Then el sistema lo crea normalmente, sin pedir preguntas adicionales
+
 Escenario: Respuestas no editables tras el envío
-  Given que el Cliente completó y envió el formulario de briefing
+  Given que el Cliente respondió el cuestionario al crear el pedido
   When intenta modificar una respuesta ya enviada
   Then el sistema no permite la edición
 ```

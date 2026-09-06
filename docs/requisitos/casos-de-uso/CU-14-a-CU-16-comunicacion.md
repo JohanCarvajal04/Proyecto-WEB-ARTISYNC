@@ -54,26 +54,28 @@
 
 ---
 
-## CU-16: Completar el briefing del pedido
+## CU-16: Completar el cuestionario (briefing) al crear el pedido
 **Trazabilidad:** REQ-F-016 / HU-16
-**Prueba de integración:** `BriefingServiceImplTest`
+**Prueba de integración:** `BriefingServiceImplTest` · `PedidoServicioImplTest`
 
-**1. Actor principal y objetivo:** Cliente — responder el formulario de briefing configurado por el Creador.
+**1. Actor principal y objetivo:** Cliente — responder el cuestionario del servicio, si tiene uno asignado, como parte de la creación del pedido.
 
 **Nivel:** Meta de usuario
 
-**Precondición:** El Creador configuró un formulario de briefing para su servicio (hasta 10 preguntas).
+**Precondición:** El Creador, al crear o editar el servicio, le asignó uno de sus cuestionarios propios (hasta 10 preguntas). Si el servicio no tiene ninguno asignado, este caso de uso no aplica y el pedido se crea sin pedir preguntas adicionales (ver CU-11/CU-19 — creación del pedido).
 
-**Garantía de éxito:** Las respuestas quedan almacenadas y no editables, asociadas al pedido.
+**Garantía de éxito:** El pedido solo se crea si todas las preguntas del cuestionario quedan respondidas; las respuestas quedan almacenadas, no editables, asociadas al pedido.
 
 **2. Escenario principal de éxito:**
-1. El Cliente inicia un pedido y el sistema le muestra el formulario de briefing del servicio.
-2. El Cliente responde las preguntas.
-3. El Cliente envía el formulario.
-4. El sistema persiste las respuestas y las marca como no editables.
+1. El Cliente elige un servicio que tiene un cuestionario asignado y abre el formulario de creación de pedido.
+2. El sistema muestra, dentro del mismo formulario, las preguntas del cuestionario del servicio.
+3. El Cliente responde todas las preguntas y confirma la creación del pedido.
+4. El sistema valida que todas las preguntas tengan respuesta, crea el pedido y persiste las respuestas como completadas y no editables, en la misma operación.
 
 **3. Extensiones:**
-- 3a. El Cliente intenta modificar una respuesta ya enviada.
+- 3a. El Cliente confirma con una o más preguntas sin responder.
+- 3b. El Cliente intenta modificar una respuesta ya enviada, desde el detalle del pedido.
 
 **4. Manejo de extensiones:**
-- 3a1. El sistema rechaza la edición y muestra las respuestas en modo de solo lectura. Termina.
+- 3a1. El sistema rechaza la creación del pedido (no se persiste el pedido ni ninguna respuesta) e indica qué pregunta falta. Vuelve al paso 3.
+- 3b1. El sistema no ofrece edición: el detalle del pedido muestra las respuestas en modo de solo lectura. Termina.

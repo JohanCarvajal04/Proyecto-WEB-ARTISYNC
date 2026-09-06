@@ -6,18 +6,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingEnviado;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPregunta;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingRespuesta;
 import uteq.edu.ec.artisync.entity.pedido.*;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.*;
@@ -61,6 +68,8 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private final IServicioExportacion servicioExportacion;
     private final IVerificacionServicio verificacionServicio;
     private final IContratoServicio contratoServicio;
+    private final BriefingEnviadoRepository briefingEnviadoRepository;
+    private final BriefingRespuestaRepository briefingRespuestaRepository;
 
     @Override
     @Transactional
@@ -94,6 +103,16 @@ public class PedidoServicioImpl implements IPedidoServicio {
                     "El flujo '" + flujo.getNombreFlujo() + "' no tiene etapas configuradas");
         }
 
+        // REQ-F-016 ampliado: si el servicio tiene un cuestionario asignado,
+        // el cliente lo responde aquí mismo, antes de crear el pedido — no
+        // hay un envío manual posterior del creador. Se valida ANTES de
+        // guardar nada para que un cuestionario incompleto no deje un pedido
+        // a medias (el método completo sigue siendo @Transactional).
+        BriefingPlantilla plantillaBriefing = servicio.getBriefingPlantilla();
+        if (plantillaBriefing != null) {
+            validarRespuestasBriefingCompletas(plantillaBriefing, peticion.getRespuestasBriefing());
+        }
+
         // Crear el pedido
         Pedido pedido = Pedido.builder()
                 .usuarioCliente(cliente)
@@ -106,6 +125,10 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .build();
 
         pedido = pedidoRepository.save(pedido);
+
+        if (plantillaBriefing != null) {
+            registrarBriefingCompletado(pedido, plantillaBriefing, peticion.getRespuestasBriefing());
+        }
 
         // Registrar estado inicial (primera etapa del flujo)
         HistorialEstadoPedido estadoInicial = HistorialEstadoPedido.builder()
@@ -372,6 +395,64 @@ public class PedidoServicioImpl implements IPedidoServicio {
         return flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()
                 .orElseThrow(() -> new ExcepcionReglaNegocio(
                         "No hay flujos de trabajo configurados en el sistema"));
+    }
+
+    /**
+     * REQ-F-016 ampliado: exige una respuesta no vacía por cada pregunta de
+     * la plantilla, mismo criterio que ya aplicaba el frontend en el antiguo
+     * flujo de envío manual (BriefingPedidoComponent#todasRespondidas). Se
+     * llama antes de persistir el pedido para que un cuestionario incompleto
+     * rechace la creación completa, no solo el briefing.
+     */
+    private void validarRespuestasBriefingCompletas(BriefingPlantilla plantilla,
+                                                      List<PeticionResponderBriefing.RespuestaItem> respuestas) {
+        if (respuestas == null || respuestas.isEmpty()) {
+            throw new ExcepcionReglaNegocio(
+                    "Este servicio tiene un cuestionario: responde todas sus preguntas para crear el pedido");
+        }
+
+        Set<Long> idsRespondidos = respuestas.stream()
+                .filter(r -> r.getTextoRespuesta() != null && !r.getTextoRespuesta().isBlank())
+                .map(PeticionResponderBriefing.RespuestaItem::getIdPregunta)
+                .collect(Collectors.toSet());
+
+        for (BriefingPregunta pregunta : plantilla.getPreguntas()) {
+            if (!idsRespondidos.contains(pregunta.getIdPregunta())) {
+                throw new ExcepcionReglaNegocio(
+                        "Falta responder la pregunta del cuestionario: \"" + pregunta.getTextoPregunta() + "\"");
+            }
+        }
+    }
+
+    /**
+     * Crea el BriefingEnviado (ya completado) y sus BriefingRespuesta en la
+     * misma transacción que el pedido — reemplaza el antiguo camino en dos
+     * pasos (BriefingServiceImpl.enviarBriefing + responderBriefing), que
+     * dependía de que el creador lo disparara manualmente después.
+     */
+    private void registrarBriefingCompletado(Pedido pedido, BriefingPlantilla plantilla,
+                                              List<PeticionResponderBriefing.RespuestaItem> respuestas) {
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .pedido(pedido)
+                .plantilla(plantilla)
+                .completado(true)
+                .build();
+        enviado = briefingEnviadoRepository.save(enviado);
+
+        Map<Long, String> textoPorPregunta = respuestas.stream()
+                .collect(Collectors.toMap(
+                        PeticionResponderBriefing.RespuestaItem::getIdPregunta,
+                        PeticionResponderBriefing.RespuestaItem::getTextoRespuesta,
+                        (a, b) -> b));
+
+        for (BriefingPregunta pregunta : plantilla.getPreguntas()) {
+            BriefingRespuesta respuesta = BriefingRespuesta.builder()
+                    .briefingEnviado(enviado)
+                    .pregunta(pregunta)
+                    .textoRespuesta(textoPorPregunta.get(pregunta.getIdPregunta()))
+                    .build();
+            briefingRespuestaRepository.save(respuesta);
+        }
     }
 
     @Override

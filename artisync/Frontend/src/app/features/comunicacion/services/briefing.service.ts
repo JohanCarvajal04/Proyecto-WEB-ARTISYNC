@@ -4,18 +4,13 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { MessageResponse } from '../../../shared/models/common.model';
 import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
-import {
-  PeticionCrearBriefingPlantilla,
-  PeticionEnviarBriefing,
-  PeticionResponderBriefing,
-  RespuestaBriefing,
-  RespuestaItemBriefing
-} from '../models/comunicacion.model';
+import { PeticionCrearBriefingPlantilla, RespuestaBriefing } from '../models/comunicacion.model';
 
 /**
- * Briefing (RF-16). Cubre los dos lados:
- *  - Creador: gestiona sus plantillas y envía una a un pedido.
- *  - Cliente: consulta el formulario recibido y lo responde (inmutable).
+ * Briefing (REQ-F-016 ampliado). El cuestionario se asigna a un servicio
+ * (ver servicio-form) y el cliente lo responde al crear el pedido
+ * (pedido-crear), no con un envío manual del creador después — por eso este
+ * servicio ya no tiene enviarBriefing/responderBriefing.
  */
 @Injectable({ providedIn: 'root' })
 export class BriefingService {
@@ -23,19 +18,9 @@ export class BriefingService {
   private http = inject(HttpClient);
   private readonly API = `${environment.apiUrl}/v1`;
 
-  // ── Lado cliente ──────────────────────────────────────────────────────────
-
-  /**
-   * 404 mientras el creador no haya enviado briefing a este pedido: estado
-   * normal, lo maneja la vista y no el interceptor global.
-   */
+  /** Solo lectura: muestra el cuestionario ya respondido en el detalle del pedido. */
   obtenerBriefing(idPedido: number): Observable<RespuestaBriefing> {
     return this.http.get<RespuestaBriefing>(`${this.API}/pedidos/${idPedido}/briefing`, sinErrorGlobal());
-  }
-
-  responderBriefing(idPedido: number, respuestas: RespuestaItemBriefing[]): Observable<RespuestaBriefing> {
-    const peticion: PeticionResponderBriefing = { respuestas };
-    return this.http.post<RespuestaBriefing>(`${this.API}/pedidos/${idPedido}/briefing/responder`, peticion);
   }
 
   // ── Lado creador: plantillas ──────────────────────────────────────────────
@@ -55,11 +40,5 @@ export class BriefingService {
 
   eliminarPlantilla(idPlantilla: number): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(`${this.API}/briefing/plantillas/${idPlantilla}`);
-  }
-
-  /** Envía una plantilla al cliente de un pedido concreto. */
-  enviarBriefing(idPedido: number, idBriefingPlantilla: number): Observable<RespuestaBriefing> {
-    const peticion: PeticionEnviarBriefing = { idBriefingPlantilla };
-    return this.http.post<RespuestaBriefing>(`${this.API}/pedidos/${idPedido}/briefing`, peticion);
   }
 }

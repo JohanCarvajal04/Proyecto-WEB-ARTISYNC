@@ -10,8 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -21,7 +19,9 @@ import java.util.List;
 
 /**
  * Controlador de briefing interactivo.
- * RF-16: Formulario configurable de hasta 10 preguntas; respuestas inmutables.
+ * REQ-F-016 ampliado: el cuestionario se asigna a un servicio y el cliente lo
+ * responde al crear el pedido (POST /api/v1/pedidos); este controlador solo
+ * gestiona las plantillas del creador y la lectura de respuestas.
  */
 @Tag(name = "Briefing", description = "Formulario interactivo de briefing para pedidos")
 @RestController
@@ -41,7 +41,7 @@ public class BriefingControlador {
     public ResponseEntity<RespuestaBriefing> crearPlantilla(
             @Valid @RequestBody PeticionCrearBriefingPlantilla peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        // El idPerfilCreador se resuelve desde el JWT del usuario autenticado
+        // BriefingServiceImpl resuelve el PerfilCreador propio a partir de este idUsuario.
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));
     }
@@ -76,38 +76,17 @@ public class BriefingControlador {
     }
 
     // =========================================================================
-    // Envío y respuesta de briefing en pedidos
+    // Lectura del briefing respondido de un pedido
     // =========================================================================
+    // El cliente ya no responde aquí: las respuestas se dan al crear el
+    // pedido (POST /api/v1/pedidos, ver PedidoServicioImpl.crearPedido).
 
-    @Operation(summary = "Enviar briefing al cliente de un pedido (CREADOR)")
-    @PostMapping("/api/v1/pedidos/{idPedido}/briefing")
-    @PreAuthorize("isAuthenticated()")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<RespuestaBriefing> enviarBriefing(
-            @PathVariable Long idPedido,
-            @Valid @RequestBody PeticionEnviarBriefing peticion,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(briefingService.enviarBriefing(idPedido, peticion, userDetails.getIdUsuario()));
-    }
-
-    @Operation(summary = "Ver briefing enviado a un pedido")
+    @Operation(summary = "Ver el cuestionario respondido de un pedido")
     @GetMapping("/api/v1/pedidos/{idPedido}/briefing")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaBriefing> obtenerBriefing(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido, userDetails.getIdUsuario()));
-    }
-
-    @Operation(summary = "Responder briefing (CLIENTE) — respuestas inmutables")
-    @PostMapping("/api/v1/pedidos/{idPedido}/briefing/responder")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaBriefing> responderBriefing(
-            @PathVariable Long idPedido,
-            @Valid @RequestBody PeticionResponderBriefing peticion,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(
-                briefingService.responderBriefing(idPedido, peticion, userDetails.getIdUsuario()));
     }
 }

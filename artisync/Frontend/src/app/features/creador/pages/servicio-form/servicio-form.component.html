@@ -185,6 +185,68 @@
           <span class="cr-hint">Las etapas por las que pasará cada pedido de este servicio.</span>
         </div>
 
+        <!-- Plantilla de contrato (catálogo curado por ADMIN) -->
+        <div class="cr-field">
+          <label class="cr-label" for="idPlantillaContrato">Plantilla de contrato</label>
+          <select id="idPlantillaContrato" class="cr-select" formControlName="idPlantillaContrato">
+            <option [ngValue]="null">Usar la plantilla predeterminada</option>
+            @for (plantilla of plantillasContrato(); track plantilla.idPlantilla) {
+              <option [ngValue]="plantilla.idPlantilla">{{ plantilla.nombrePlantilla }}</option>
+            }
+          </select>
+          <span class="cr-hint">El texto legal del contrato que firmarán tú y tu cliente. Elige la que mejor describa este servicio.</span>
+        </div>
+
+        <!-- Cuestionario (briefing) para el cliente -->
+        <div class="cr-field">
+          <label class="cr-label" for="idBriefingPlantilla">Cuestionario para el cliente</label>
+          <div class="cr-form__row">
+            <select id="idBriefingPlantilla" class="cr-select" formControlName="idBriefingPlantilla">
+              <option [ngValue]="null">Sin cuestionario</option>
+              @for (cuestionario of cuestionarios(); track cuestionario.idPlantilla) {
+                <option [ngValue]="cuestionario.idPlantilla">{{ cuestionario.nombrePlantilla }} ({{ cuestionario.preguntas.length }} preguntas)</option>
+              }
+            </select>
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="abrirFormCuestionario()">
+              Crear nuevo cuestionario
+            </button>
+          </div>
+          <span class="cr-hint">Si eliges uno, el cliente deberá responderlo al crear el pedido para este servicio.</span>
+        </div>
+
+        @if (mostrarFormCuestionario()) {
+          <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Nombre del cuestionario" [(ngModel)]="formCuestionario.nombrePlantilla" [ngModelOptions]="{standalone: true}" />
+            </div>
+
+            @for (pregunta of formCuestionario.preguntas; track pregunta.numeroOrden; let i = $index) {
+              <div class="cr-form__row" style="align-items: center;">
+                <span class="cr-hint">{{ pregunta.numeroOrden }}. {{ pregunta.textoPregunta }}</span>
+                <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarPreguntaCuestionario(i)">Quitar</button>
+              </div>
+            }
+
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Escribe una pregunta"
+                [(ngModel)]="nuevaPreguntaCuestionario" [ngModelOptions]="{standalone: true}"
+                (keydown.enter)="$event.preventDefault(); agregarPreguntaCuestionario()" />
+              <button type="button" class="cr-btn cr-btn--outline cr-btn--sm"
+                [disabled]="formCuestionario.preguntas.length >= maxPreguntasCuestionario"
+                (click)="agregarPreguntaCuestionario()">Añadir pregunta</button>
+            </div>
+            <span class="cr-hint">{{ formCuestionario.preguntas.length }} / {{ maxPreguntasCuestionario }} preguntas</span>
+
+            <div class="cr-form__row" style="justify-content: flex-end;">
+              <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormCuestionario()">Cancelar</button>
+              <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoCuestionario()" (click)="guardarCuestionario()">
+                @if (creandoCuestionario()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                Guardar cuestionario
+              </button>
+            </div>
+          </div>
+        }
+
         @if (mostrarFormFlujo()) {
           <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
             <div class="cr-form__row">

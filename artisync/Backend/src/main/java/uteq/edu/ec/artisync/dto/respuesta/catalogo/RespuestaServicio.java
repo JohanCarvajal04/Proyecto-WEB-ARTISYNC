@@ -29,7 +29,23 @@ public class RespuestaServicio {
     private String nombreCreador;
     private Long idFlujo;
     private String nombreFlujo;
+    private Long idPlantillaContrato;
+    private String nombrePlantillaContrato;
+    private Long idBriefingPlantilla;
+    private String nombreBriefingPlantilla;
+    /** Preguntas del cuestionario asignado, para responderlas al crear el pedido. Vacía/null si no tiene uno. */
+    private List<PreguntaBriefingItem> preguntasBriefing;
     private List<RespuestaAtributo> atributos;
     private List<RespuestaEtiqueta> etiquetas;
     private LocalDateTime actualizadoEn;
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class PreguntaBriefingItem {
+        private Long idPregunta;
+        private String textoPregunta;
+        private Integer numeroOrden;
+    }
 }

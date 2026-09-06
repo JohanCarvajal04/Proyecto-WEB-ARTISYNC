@@ -8,8 +8,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -84,36 +82,12 @@ class BriefingControladorTest {
     }
 
     @Test
-    void enviarBriefing_devuelveCreated() {
-        CustomUserDetails user = mockUserDetails();
-        PeticionEnviarBriefing peticion = new PeticionEnviarBriefing();
-        RespuestaBriefing respuesta = new RespuestaBriefing();
-        when(briefingService.enviarBriefing(10L, peticion, 1L)).thenReturn(respuesta);
-
-        ResponseEntity<RespuestaBriefing> res = controlador.enviarBriefing(10L, peticion, user);
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(res.getBody()).isEqualTo(respuesta);
-    }
-
-    @Test
     void obtenerBriefing_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         RespuestaBriefing respuesta = new RespuestaBriefing();
         when(briefingService.obtenerBriefing(10L, 1L)).thenReturn(respuesta);
 
         ResponseEntity<RespuestaBriefing> res = controlador.obtenerBriefing(10L, user);
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody()).isEqualTo(respuesta);
-    }
-
-    @Test
-    void responderBriefing_devuelveOk() {
-        CustomUserDetails user = mockUserDetails();
-        PeticionResponderBriefing peticion = new PeticionResponderBriefing();
-        RespuestaBriefing respuesta = new RespuestaBriefing();
-        when(briefingService.responderBriefing(10L, peticion, 1L)).thenReturn(respuesta);
-
-        ResponseEntity<RespuestaBriefing> res = controlador.responderBriefing(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

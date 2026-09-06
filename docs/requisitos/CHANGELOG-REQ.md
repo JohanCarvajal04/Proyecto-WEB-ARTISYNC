@@ -2,6 +2,27 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [v1.1.0] - 2026-09-06 — Contratos personalizados por servicio y cuestionario obligatorio al crear el pedido
+
+### Changed
+
+| Requisito | Antes | Ahora | Motivo |
+| --- | --- | --- | --- |
+| REQ-F-016 | Formulario de briefing genérico del Creador (`briefing_plantillas.id_perfil`), enviado manualmente por el Creador desde el chat *después* de creado el pedido; el Cliente podía no llegar a responderlo nunca. | El cuestionario se asigna a un servicio concreto (`Servicio.briefingPlantilla`, nullable). Si el servicio tiene uno asignado, el Cliente lo responde dentro del mismo formulario de creación del pedido; el pedido no se crea si falta alguna respuesta. Un servicio sin cuestionario no pide nada extra (sin cambio de comportamiento respecto a hoy). Se retiraron los endpoints `POST /api/v1/pedidos/{idPedido}/briefing` y `POST /api/v1/pedidos/{idPedido}/briefing/responder`; `GET /api/v1/pedidos/{idPedido}/briefing` se mantiene, ahora de solo lectura. | El envío manual dependía de que el Creador se acordara de dispararlo, y el Cliente podía aceptar un pedido sin dar ninguna información del proyecto. Ligarlo al servicio y exigirlo en la creación garantiza que el Creador reciba el contexto que pidió, siempre. |
+| REQ-F-017 | Una única plantilla de contrato global (`plantillas_contrato`), sembrada por migración (`V13`), sin ningún endpoint de administración; `ContratoServicioImpl` tomaba siempre "la de mayor id". Todo servicio firmaba el mismo texto legal. | Catálogo de plantillas de contrato curado por ADMIN (`plantillas_contrato.nombre_plantilla/es_predeterminada/activa`, nuevo permiso `CONTRATO_PLANTILLA_GESTIONAR`, `PlantillaContratoAdminControlador`). El Creador elige, al crear/editar su servicio, cuál plantilla del catálogo aplica (`Servicio.plantillaContrato`, nullable); sin elegir ninguna, el contrato usa la marcada como predeterminada. El creador no escribe texto legal libre. | Un contrato de diseño gráfico y uno de desarrollo de software no deberían firmar exactamente las mismas cláusulas. Un catálogo curado por ADMIN permite personalizar el texto legal por tipo de servicio sin exponer a la plataforma a cláusulas no revisadas escritas por cualquier creador. |
+
+Ninguno de los dos requisitos cambió de prioridad (siguen Must) ni de estado (siguen `verificado`): las pruebas automatizadas se ampliaron junto con el código (`ContratoServicioImplTest`, nuevo `PlantillaContratoAdminServicioImplTest`, `PedidoServicioImplTest`, `BriefingServiceImplTest`), así que el estado sigue siendo cierto.
+
+### Added
+
+- Migraciones `V39__catalogo_plantillas_contrato.sql` y `V40__cuestionario_por_servicio.sql`.
+- `PlantillaContratoAdminControlador` (CRUD del catálogo, ADMIN) y `PlantillaContratoControlador` (lectura de plantillas activas, para el selector del creador).
+- Caso de uso `CU-17b: Administrar el catálogo de plantillas de contrato`.
+
+### Removed
+
+- Flujo manual de briefing: `enviarBriefing`/`responderBriefing` en `BriefingService`/`BriefingServiceImpl`/`BriefingControlador`, y el DTO `PeticionEnviarBriefing`. El botón "Enviar briefing" del panel del creador (`comision-detalle.component`) se retiró junto con él.
+
 ## [v1.0.1] - 2026-08-29 — REQ-F-010 implementado
 
 ### Changed

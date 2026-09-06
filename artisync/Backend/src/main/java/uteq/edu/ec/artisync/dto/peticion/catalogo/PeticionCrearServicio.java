@@ -47,5 +47,11 @@ public class PeticionCrearServicio {
     /** Opcional: uno de los flujos propios del creador. Si no se indica, los pedidos caen al flujo por defecto. */
     private Long idFlujo;
 
+    /** Opcional: una plantilla del catálogo curado por ADMIN. Si no se indica, el contrato usa la predeterminada. */
+    private Long idPlantillaContrato;
+
+    /** Opcional: uno de los cuestionarios propios del creador. Si no se indica, crear un pedido no pide preguntas extra. */
+    private Long idBriefingPlantilla;
+
     private List<Long> etiquetaIds;
 }

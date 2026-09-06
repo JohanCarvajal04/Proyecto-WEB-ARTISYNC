@@ -18,10 +18,14 @@ import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.*;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.*;
 import uteq.edu.ec.artisync.entity.catalogo.*;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
+import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.catalogo.*;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingPlantillaRepository;
+import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.catalogo.IServicioCatalogoServicio;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
@@ -49,6 +53,8 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private final ServicioSubcategoriaRepository servicioSubcategoriaRepository;
     private final IVerificacionServicio verificacionServicio;
     private final FlujoTrabajoRepository flujoTrabajoRepository;
+    private final PlantillaContratoRepository plantillaContratoRepository;
+    private final BriefingPlantillaRepository briefingPlantillaRepository;
     private final uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Override
@@ -81,6 +87,8 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .cargoRevisionAdicional(peticion.getCargoRevisionAdicional() != null ? peticion.getCargoRevisionAdicional() : BigDecimal.ZERO)
                 .limiteRevisionesBase(peticion.getLimiteRevisionesBase() != null ? peticion.getLimiteRevisionesBase() : 0)
                 .flujo(resolverFlujoPropio(peticion.getIdFlujo(), perfil))
+                .plantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato()))
+                .briefingPlantilla(resolverBriefingPlantillaPropia(peticion.getIdBriefingPlantilla(), perfil))
                 .build();
 
         Servicio guardado = servicioRepository.save(servicio);
@@ -139,6 +147,8 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());
         }
         servicio.setFlujo(resolverFlujoPropio(peticion.getIdFlujo(), servicio.getPerfil()));
+        servicio.setPlantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato()));
+        servicio.setBriefingPlantilla(resolverBriefingPlantillaPropia(peticion.getIdBriefingPlantilla(), servicio.getPerfil()));
 
         Servicio guardado = servicioRepository.save(servicio);
 
@@ -455,10 +465,28 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .nombreCreador(nombreCreador)
                 .idFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getIdFlujo() : null)
                 .nombreFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getNombreFlujo() : null)
+                .idPlantillaContrato(servicio.getPlantillaContrato() != null ? servicio.getPlantillaContrato().getIdPlantilla() : null)
+                .nombrePlantillaContrato(servicio.getPlantillaContrato() != null ? servicio.getPlantillaContrato().getNombrePlantilla() : null)
+                .idBriefingPlantilla(servicio.getBriefingPlantilla() != null ? servicio.getBriefingPlantilla().getIdBriefingPlantilla() : null)
+                .nombreBriefingPlantilla(servicio.getBriefingPlantilla() != null ? servicio.getBriefingPlantilla().getNombrePlantilla() : null)
+                .preguntasBriefing(mapearPreguntasBriefing(servicio.getBriefingPlantilla()))
                 .atributos(atributos)
                 .etiquetas(etiquetas)
                 .actualizadoEn(servicio.getActualizadoEn())
                 .build();
+    }
+
+    private List<RespuestaServicio.PreguntaBriefingItem> mapearPreguntasBriefing(BriefingPlantilla plantilla) {
+        if (plantilla == null) {
+            return List.of();
+        }
+        return plantilla.getPreguntas().stream()
+                .map(p -> RespuestaServicio.PreguntaBriefingItem.builder()
+                        .idPregunta(p.getIdPregunta())
+                        .textoPregunta(p.getTextoPregunta())
+                        .numeroOrden(p.getNumeroOrden())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private RespuestaSubcategoria mapearASubcategoriaRespuesta(ServicioSubcategoria ss) {
@@ -488,6 +516,41 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, perfil.getUsuario().getIdUsuario())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "Flujo de trabajo no encontrado con ID: " + idFlujo));
+    }
+
+    /**
+     * `null` es válido: el contrato cae a la plantilla predeterminada del
+     * catálogo (ver ContratoServicioImpl). No hay chequeo de propiedad porque
+     * el catálogo lo administra ADMIN, no el creador; solo se exige que la
+     * plantilla exista y siga activa.
+     */
+    private PlantillaContrato resolverPlantillaContratoActiva(Long idPlantillaContrato) {
+        if (idPlantillaContrato == null) {
+            return null;
+        }
+        PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantillaContrato)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                        "Plantilla de contrato no encontrada con ID: " + idPlantillaContrato));
+        if (!Boolean.TRUE.equals(plantilla.getActiva())) {
+            throw new ExcepcionReglaNegocio("La plantilla de contrato elegida ya no está activa");
+        }
+        return plantilla;
+    }
+
+    /**
+     * `null` es válido: el servicio queda sin cuestionario y crear un pedido
+     * no pide preguntas extra (ver PedidoServicioImpl.crearPedido). Un id que
+     * no existe, o que pertenece a otro creador, se rechaza: un creador solo
+     * puede asignarle a su servicio uno de sus propios cuestionarios.
+     */
+    private BriefingPlantilla resolverBriefingPlantillaPropia(Long idBriefingPlantilla, PerfilCreador perfil) {
+        if (idBriefingPlantilla == null) {
+            return null;
+        }
+        return briefingPlantillaRepository.findByIdBriefingPlantillaAndPerfilCreadorIdPerfil(
+                        idBriefingPlantilla, perfil.getIdPerfil())
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                        "Cuestionario de briefing no encontrado con ID: " + idBriefingPlantilla));
     }
 
     private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio) {

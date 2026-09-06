@@ -110,6 +110,12 @@ export const ADMINISTRACION_ROUTES: Routes = [
     loadComponent: () => import('./pages/reportes-contratos/reportes-contratos.component').then(m => m.ReportesContratosComponent)
   },
   {
+    path: 'plantillas-contrato',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.plantillasContrato },
+    loadComponent: () => import('./pages/plantillas-contrato/plantillas-contrato.component').then(m => m.PlantillasContratoComponent)
+  },
+  {
     path: 'pagos-garantia',
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.pagosGarantia },
