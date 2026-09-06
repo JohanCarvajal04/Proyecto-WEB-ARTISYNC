@@ -157,3 +157,33 @@ abiertamente. Las razones:
 **Compromiso hacia adelante:** las rutinas que se conecten a partir de ahora usarán `@Procedure`
 siempre que el tipo de retorno lo permita, para elevar el número de invocaciones que satisfacen la
 letra del requisito además de su espíritu.
+
+### Addendum (2026-09-05): qué pasó cuando se probó el compromiso hacia adelante
+
+Un commit del 2026-09-04 aplicó `@Procedure` directamente sobre las 7 `FUNCTION` de
+`UsuarioRepository`, sin convertirlas primero en `PROCEDURE` reales — contradiciendo el punto 1 de
+arriba ("`@Procedure` ... emite `{call ...}`; forzar ese camino sobre funciones ... es frágil").
+Resultado: rompió el login en producción (`ERROR: syntax error at or near "=>"`, Hibernate 7.4.1
+genera sintaxis de argumento nombrado de Postgres dentro del escape JDBC, que Postgres no puede
+parsear ahí). Se investigó la vía correcta — convertir las `FUNCTION` en `PROCEDURE` reales, tal
+como pedía el "compromiso hacia adelante" — y se probó **contra el stack real**, no solo en teoría:
+
+- **Rutinas cuyo caller ya descartaba el valor de retorno** (`restablecerContrasena`,
+  `cambiarContrasena`): se convirtieron a `PROCEDURE` con solo parámetros `IN` y método Java `void`
+  — mismo patrón que `sp_registrar_decision_verificacion` de la línea 135, que deja de ser el único
+  ejemplo. Funciona, confirmado con la suite completa y contra Postgres real.
+- **Rutinas cuyo caller necesita el valor devuelto** (las otras 5, incluida
+  `permisosEfectivos_usuario`, la que en la práctica bloqueaba todo login vía
+  `CustomUserDetailsService`): se probó `PROCEDURE` con un parámetro `OUT`. Con Hibernate 7.4.1, en
+  cuanto el método Java tiene un tipo de retorno no-`void`, Hibernate registra **todos** los
+  parámetros — incluido el propio `OUT` — con la misma sintaxis de argumento nombrado, así que el
+  error reaparece igual contra una `PROCEDURE` real que contra una `FUNCTION`. Se revirtieron a
+  `@Query(nativeQuery=true)`, la opción ya probada de este mismo ADR.
+
+**Conclusión revisada:** el punto 1 de la decisión original se sostiene, pero con una precisión
+importante — la limitación no es "`FUNCTION` vs `PROCEDURE`", sino "¿el método Java devuelve algo?".
+`@Procedure` en este proyecto es seguro únicamente cuando el método es `void` y la rutina no declara
+ningún `OUT`/`INOUT`. El "compromiso hacia adelante" de arriba se actualiza en ese sentido: aplica
+solo a rutinas sin valor de retorno; para las que sí devuelven algo, `@Query(nativeQuery=true)` sigue
+siendo la vía correcta, no un compromiso pendiente. Detalle completo en
+`docs/basedatos/CATALOGO-SP.md` §14.

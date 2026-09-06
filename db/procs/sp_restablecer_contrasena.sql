@@ -1,5 +1,5 @@
 -- =============================================================================
--- fn_restablecer_contrasena
+-- sp_restablecer_contrasena
 -- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-005
 -- =============================================================================
 -- Aplica un restablecimiento de contrasena a partir de un token de
@@ -18,21 +18,29 @@
 -- del mismo token.
 --
 -- El nuevo hash de contrasena se calcula en Java (BCrypt) y llega ya cifrado;
--- la funcion nunca ve la contrasena en texto plano. El hash del token en si
+-- la rutina nunca ve la contrasena en texto plano. El hash del token en si
 -- (SHA-256 del valor plano enviado por correo) tambien se calcula en Java
--- antes de invocar la funcion.
+-- antes de invocar la rutina.
 --
--- Devuelve el id_usuario cuya contrasena se actualizo. Lanza excepcion si el
--- token no existe, ya fue usado, o expiro.
+-- Por que PROCEDURE y no FUNCTION: Hibernate 7 + parametros @Param nombrados
+-- contra una FUNCTION escalar de Postgres genera la llamada con sintaxis de
+-- argumento nombrado (p_x => ?) dentro del escape JDBC {call ...}, que
+-- Postgres no puede parsear ahi (ERROR: syntax error at or near "=>"). El
+-- caller (AuthServiceImpl.resetPassword) ya descartaba el valor de retorno
+-- (el exito se infiere de que no se lance excepcion), asi que no hace falta
+-- ningun parametro OUT: PROCEDURE con solo parametros IN es el patron ya
+-- probado en este proyecto (ver sp_registrar_decision_verificacion).
+--
+-- No devuelve nada. Lanza excepcion si el token no existe, ya fue usado, o
+-- expiro.
 --
 -- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION fn_restablecer_contrasena(
+CREATE OR REPLACE PROCEDURE sp_restablecer_contrasena(
     p_hash_token           VARCHAR(255),
     p_nueva_contrasena_hash VARCHAR(255)
 )
-RETURNS BIGINT
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -41,7 +49,7 @@ DECLARE
     v_fecha_generacion TIMESTAMP;
 BEGIN
     IF p_hash_token IS NULL OR p_nueva_contrasena_hash IS NULL THEN
-        RAISE EXCEPTION 'fn_restablecer_contrasena: hash_token y nueva_contrasena_hash son obligatorios'
+        RAISE EXCEPTION 'sp_restablecer_contrasena: hash_token y nueva_contrasena_hash son obligatorios'
             USING ERRCODE = '22004';
     END IF;
 
@@ -69,10 +77,8 @@ BEGIN
     UPDATE tokens_recuperacion
        SET usado = TRUE
      WHERE id_token = v_id_token;
-
-    RETURN v_id_usuario;
 END;
 $$;
 
-COMMENT ON FUNCTION fn_restablecer_contrasena(VARCHAR, VARCHAR)
+COMMENT ON PROCEDURE sp_restablecer_contrasena(VARCHAR, VARCHAR)
     IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';

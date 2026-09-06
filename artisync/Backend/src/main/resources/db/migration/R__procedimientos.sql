@@ -13,7 +13,6 @@
 -- Rutinas incluidas (29):
 --   - V8__estructuras_para_procedimientos.sql
 --   - fn_actualizar_portada_creador.sql
---   - fn_cambiar_contrasena.sql
 --   - fn_cambiar_estado_cuenta.sql
 --   - fn_configurar_2fa.sql
 --   - fn_consumir_codigo_respaldo_2fa.sql
@@ -31,15 +30,16 @@
 --   - fn_registrar_usuario.sql
 --   - fn_reporte_comisiones_creador.sql
 --   - fn_resolver_estado_login.sql
---   - fn_restablecer_contrasena.sql
 --   - fn_revocar_sesiones_usuario.sql
 --   - fn_seguir_creador.sql
 --   - fn_seleccionar_ganadores_sorteo.sql
 --   - fn_sincronizar_permisos_rol.sql
 --   - fn_sincronizar_roles_usuario.sql
 --   - fn_solicitar_recuperacion.sql
+--   - sp_cambiar_contrasena.sql
 --   - sp_purgar_datos_seguridad.sql
 --   - sp_purgar_notificaciones.sql
+--   - sp_restablecer_contrasena.sql
 -- ===========================================================================
 
 
@@ -135,86 +135,6 @@ $$;
 
 COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
     IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_cambiar_contrasena.sql
--- ---------------------------------------------------------------------------
--- =============================================================================
--- fn_cambiar_contrasena
--- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
--- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §6 — corrige la anomalia A7.
--- =============================================================================
--- Aplica un cambio de contrasena de forma condicionada: solo si el hash
--- almacenado sigue siendo EXACTAMENTE el que Java verifico con BCrypt antes
--- de invocar esta funcion (compare-and-swap).
---
--- Sustituye a UserServiceImpl.changePassword (parte de escritura), que hacia
--- un UPDATE incondicional tras la verificacion: usuario.setContrasenaHash(...)
--- + save(). Si dos peticiones concurrentes cambiaban la contrasena del mismo
--- usuario (dos pestanas, un cliente reintentando tras un timeout aparente),
--- la segunda en escribir pisaba silenciosamente el resultado de la primera --
--- ninguna de las dos se enteraba de que "gano" la otra (actualizacion perdida).
---
--- BCrypt en si permanece fuera del motor (la comparacion de la contrasena
--- ACTUAL contra el hash se sigue haciendo en Java, con passwordEncoder.matches,
--- antes de invocar esta funcion): lo que se traslada al motor es la ESCRITURA
--- condicionada, usando el propio hash verificado como testigo de version. Si
--- el hash cambio entre la verificacion en Java y este UPDATE, el predicado
--- "contrasena_hash = p_hash_esperado" no coincide y la fila no se actualiza
--- (0 filas afectadas), sin necesidad de un SELECT ... FOR UPDATE previo.
---
--- Lanza excepcion (ERRCODE 40001, serialization_failure: el codigo estandar
--- de PostgreSQL para "otra transaccion se te adelanto") si 0 filas resultaron
--- afectadas, para que la capa Java pueda distinguir "contrasena actual
--- incorrecta" (validado antes, en Java) de "alguien mas cambio la contrasena
--- justo ahora" (aqui).
---
--- Devuelve TRUE si el cambio se aplico.
---
--- Seguridad: parametros formales tipados (los hashes BCrypt, nunca la
--- contrasena en texto plano); sin concatenacion ni EXECUTE.
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION fn_cambiar_contrasena(
-    p_id_usuario    BIGINT,
-    p_hash_esperado VARCHAR(255),
-    p_hash_nuevo    VARCHAR(255)
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_afectadas INTEGER;
-BEGIN
-    IF p_id_usuario IS NULL OR p_hash_esperado IS NULL OR p_hash_nuevo IS NULL THEN
-        RAISE EXCEPTION 'fn_cambiar_contrasena: todos los parametros son obligatorios'
-            USING ERRCODE = '22004';
-    END IF;
-
-    -- El predicado contrasena_hash = p_hash_esperado es el compare-and-swap:
-    -- bajo READ COMMITTED, si otra transaccion ya cambio la contrasena y
-    -- confirmo, PostgreSQL re-evalua este WHERE sobre esa version nueva
-    -- (EvalPlanQual) y el predicado deja de cumplirse -- ROW_COUNT queda en 0
-    -- sin que ninguna de las dos escrituras se pierda en silencio.
-    UPDATE usuarios
-       SET contrasena_hash = p_hash_nuevo
-     WHERE id_usuario = p_id_usuario
-       AND contrasena_hash = p_hash_esperado;
-
-    GET DIAGNOSTICS v_afectadas = ROW_COUNT;
-
-    IF v_afectadas = 0 THEN
-        RAISE EXCEPTION 'La contrasena fue modificada por otra sesion. Vuelve a intentarlo.'
-            USING ERRCODE = '40001';
-    END IF;
-
-    RETURN TRUE;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_cambiar_contrasena(BIGINT, VARCHAR, VARCHAR)
-    IS 'Fase 3 concurrencia - UPDATE condicionado (compare-and-swap sobre el hash) que aplica un cambio de contrasena solo si nadie mas la cambio primero, eliminando la actualizacion perdida (A7).';
 
 
 -- ---------------------------------------------------------------------------
@@ -1033,6 +953,24 @@ COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
 -- Devuelve NULL si el correo no existe (la capa Java lo traduce a
 -- UsernameNotFoundException, igual que antes).
 --
+-- [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+-- Esta es la rutina que en la practica bloqueaba TODO login (se ejecuta en
+-- loadUserByUsername, antes que fn_resolver_estado_login). Probado y
+-- descartado como PROCEDURE con parametro OUT (revision tecnica 2026-09-05):
+-- con Hibernate 7.4.1, en cuanto un metodo @Procedure tiene un tipo de
+-- retorno no-void (mapeado a un OUT), Hibernate registra TODOS los
+-- parametros -- incluido el propio OUT -- con sintaxis de argumento nombrado
+-- de Postgres, generando una llamada invalida dentro del escape JDBC:
+--   {call sp_permisos_efectivos_usuario(p_correo => ?, out => ?)}
+-- -- Postgres no puede parsear "=>" ahi (ERROR: syntax error at or near "=>"),
+-- confirmado end-to-end contra el stack local (docker logs pfc_backend, login
+-- real con admin@artisync.com). @Procedure aqui solo funciona de forma
+-- verificada cuando el metodo Java es void y no hay ningun OUT (ver
+-- sp_registrar_decision_verificacion, sp_restablecer_contrasena,
+-- sp_cambiar_contrasena). Para una FUNCTION escalar con valor de retorno,
+-- @Query(nativeQuery=true) (mecanismo ya usado en el resto de este archivo
+-- antes del intento fallido) es la opcion correcta y verificada.
+--
 -- Seguridad: parametro formal tipado; sin concatenacion ni EXECUTE.
 -- =============================================================================
 
@@ -1409,6 +1347,23 @@ COMMENT ON FUNCTION fn_reporte_comisiones_creador(BIGINT, TIMESTAMP, TIMESTAMP, 
 --     dosFactoresHabilitado, roles: [ "CLIENTE", ... ] }
 -- Devuelve NULL si el correo no existe (la capa de servicio lo traduce a 404).
 --
+-- [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+-- Esta rutina SI devuelve un valor que el caller necesita, asi que requiere un
+-- parametro OUT si se llama como PROCEDURE. Probado y descartado (revision
+-- tecnica 2026-09-05): con Hibernate 7.4.1, en cuanto un metodo @Procedure
+-- tiene un tipo de retorno no-void (mapeado a un OUT), Hibernate registra
+-- TODOS los parametros -- incluido el propio OUT -- con sintaxis de argumento
+-- nombrado de Postgres, generando una llamada invalida dentro del escape JDBC:
+--   {call sp_permisos_efectivos_usuario(p_correo => ?, out => ?)}
+-- -- Postgres no puede parsear "=>" ahi (ERROR: syntax error at or near "=>"),
+-- confirmado end-to-end contra el stack local (docker logs pfc_backend). Esto
+-- rompe TODO login, no solo esta rutina en particular: @Procedure aqui solo
+-- funciona de forma verificada cuando el metodo Java es void y no hay ningun
+-- OUT (ver sp_registrar_decision_verificacion, sp_restablecer_contrasena,
+-- sp_cambiar_contrasena). Para una FUNCTION escalar con valor de retorno,
+-- @Query(nativeQuery=true) (mecanismo ya usado en el resto de este archivo
+-- antes del intento fallido) es la opcion correcta y verificada.
+--
 -- Seguridad: parametro formal tipado; sin concatenacion ni EXECUTE.
 -- =============================================================================
 
@@ -1451,89 +1406,6 @@ $$;
 
 COMMENT ON FUNCTION fn_resolver_estado_login(VARCHAR)
     IS 'REQ-F-002 - Consulta multi-tabla: resuelve estado de cuenta, 2FA y roles de un usuario en una sola llamada para el flujo de login.';
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_restablecer_contrasena.sql
--- ---------------------------------------------------------------------------
--- =============================================================================
--- fn_restablecer_contrasena
--- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-005
--- =============================================================================
--- Aplica un restablecimiento de contrasena a partir de un token de
--- recuperacion: valida que el token exista, no haya sido usado y no haya
--- expirado (ventana de 60 minutos desde su generacion), y en tal caso
--- actualiza el hash de la contrasena del usuario y marca el token como usado,
--- en una unica transaccion atomica.
--- Sustituye a AuthServiceImpl.resetPassword, que hacia la busqueda del token,
--- la validacion de expiracion en Java (LocalDateTime.plusMinutes(60)) y dos
--- save() secuenciales (usuario, tokenRecuperacion).
---
--- Por que en el motor: entre la validacion del token y su marcado como usado
--- no debe existir ventana en la que una segunda peticion concurrente con el
--- mismo token pueda colarse y restablecer la contrasena dos veces. La fila del
--- token se toma con FOR UPDATE para serializar restablecimientos concurrentes
--- del mismo token.
---
--- El nuevo hash de contrasena se calcula en Java (BCrypt) y llega ya cifrado;
--- la funcion nunca ve la contrasena en texto plano. El hash del token en si
--- (SHA-256 del valor plano enviado por correo) tambien se calcula en Java
--- antes de invocar la funcion.
---
--- Devuelve el id_usuario cuya contrasena se actualizo. Lanza excepcion si el
--- token no existe, ya fue usado, o expiro.
---
--- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION fn_restablecer_contrasena(
-    p_hash_token           VARCHAR(255),
-    p_nueva_contrasena_hash VARCHAR(255)
-)
-RETURNS BIGINT
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_id_token   BIGINT;
-    v_id_usuario BIGINT;
-    v_fecha_generacion TIMESTAMP;
-BEGIN
-    IF p_hash_token IS NULL OR p_nueva_contrasena_hash IS NULL THEN
-        RAISE EXCEPTION 'fn_restablecer_contrasena: hash_token y nueva_contrasena_hash son obligatorios'
-            USING ERRCODE = '22004';
-    END IF;
-
-    SELECT id_token, id_usuario, fecha_generacion
-      INTO v_id_token, v_id_usuario, v_fecha_generacion
-      FROM tokens_recuperacion
-     WHERE hash_token = p_hash_token
-       AND usado = FALSE
-       FOR UPDATE;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Este enlace ya ha sido utilizado o ha expirado'
-            USING ERRCODE = '23514';
-    END IF;
-
-    IF v_fecha_generacion + INTERVAL '60 minutes' < CURRENT_TIMESTAMP THEN
-        RAISE EXCEPTION 'Este enlace ya ha sido utilizado o ha expirado'
-            USING ERRCODE = '23514';
-    END IF;
-
-    UPDATE usuarios
-       SET contrasena_hash = p_nueva_contrasena_hash
-     WHERE id_usuario = v_id_usuario;
-
-    UPDATE tokens_recuperacion
-       SET usado = TRUE
-     WHERE id_token = v_id_token;
-
-    RETURN v_id_usuario;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_restablecer_contrasena(VARCHAR, VARCHAR)
-    IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
 
 
 -- ---------------------------------------------------------------------------
@@ -2079,6 +1951,89 @@ COMMENT ON FUNCTION fn_solicitar_recuperacion(VARCHAR, VARCHAR)
 
 
 -- ---------------------------------------------------------------------------
+-- Origen: db/procs/sp_cambiar_contrasena.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- sp_cambiar_contrasena
+-- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
+-- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §6 — corrige la anomalia A7.
+-- =============================================================================
+-- Aplica un cambio de contrasena de forma condicionada: solo si el hash
+-- almacenado sigue siendo EXACTAMENTE el que Java verifico con BCrypt antes
+-- de invocar esta rutina (compare-and-swap).
+--
+-- Sustituye a UserServiceImpl.changePassword (parte de escritura), que hacia
+-- un UPDATE incondicional tras la verificacion: usuario.setContrasenaHash(...)
+-- + save(). Si dos peticiones concurrentes cambiaban la contrasena del mismo
+-- usuario (dos pestanas, un cliente reintentando tras un timeout aparente),
+-- la segunda en escribir pisaba silenciosamente el resultado de la primera --
+-- ninguna de las dos se enteraba de que "gano" la otra (actualizacion perdida).
+--
+-- BCrypt en si permanece fuera del motor (la comparacion de la contrasena
+-- ACTUAL contra el hash se sigue haciendo en Java, con passwordEncoder.matches,
+-- antes de invocar esta rutina): lo que se traslada al motor es la ESCRITURA
+-- condicionada, usando el propio hash verificado como testigo de version. Si
+-- el hash cambio entre la verificacion en Java y este UPDATE, el predicado
+-- "contrasena_hash = p_hash_esperado" no coincide y la fila no se actualiza
+-- (0 filas afectadas), sin necesidad de un SELECT ... FOR UPDATE previo.
+--
+-- Lanza excepcion (ERRCODE 40001, serialization_failure: el codigo estandar
+-- de PostgreSQL para "otra transaccion se te adelanto") si 0 filas resultaron
+-- afectadas, para que la capa Java pueda distinguir "contrasena actual
+-- incorrecta" (validado antes, en Java) de "alguien mas cambio la contrasena
+-- justo ahora" (aqui).
+--
+-- Por que PROCEDURE y no FUNCTION: mismo motivo que sp_restablecer_contrasena
+-- (ver ese archivo) — Hibernate 7 + @Param nombrados rompe la llamada contra
+-- una FUNCTION. El caller (UserServiceImpl.changePassword) ya descartaba el
+-- valor de retorno (exito = no lanzo excepcion), asi que PROCEDURE con solo
+-- parametros IN, sin OUT, es el patron ya probado en este proyecto.
+--
+-- No devuelve nada. Lanza excepcion si 0 filas se vieron afectadas.
+--
+-- Seguridad: parametros formales tipados (los hashes BCrypt, nunca la
+-- contrasena en texto plano); sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE PROCEDURE sp_cambiar_contrasena(
+    p_id_usuario    BIGINT,
+    p_hash_esperado VARCHAR(255),
+    p_hash_nuevo    VARCHAR(255)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_afectadas INTEGER;
+BEGIN
+    IF p_id_usuario IS NULL OR p_hash_esperado IS NULL OR p_hash_nuevo IS NULL THEN
+        RAISE EXCEPTION 'sp_cambiar_contrasena: todos los parametros son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    -- El predicado contrasena_hash = p_hash_esperado es el compare-and-swap:
+    -- bajo READ COMMITTED, si otra transaccion ya cambio la contrasena y
+    -- confirmo, PostgreSQL re-evalua este WHERE sobre esa version nueva
+    -- (EvalPlanQual) y el predicado deja de cumplirse -- ROW_COUNT queda en 0
+    -- sin que ninguna de las dos escrituras se pierda en silencio.
+    UPDATE usuarios
+       SET contrasena_hash = p_hash_nuevo
+     WHERE id_usuario = p_id_usuario
+       AND contrasena_hash = p_hash_esperado;
+
+    GET DIAGNOSTICS v_afectadas = ROW_COUNT;
+
+    IF v_afectadas = 0 THEN
+        RAISE EXCEPTION 'La contrasena fue modificada por otra sesion. Vuelve a intentarlo.'
+            USING ERRCODE = '40001';
+    END IF;
+END;
+$$;
+
+COMMENT ON PROCEDURE sp_cambiar_contrasena(BIGINT, VARCHAR, VARCHAR)
+    IS 'Fase 3 concurrencia - UPDATE condicionado (compare-and-swap sobre el hash) que aplica un cambio de contrasena solo si nadie mas la cambio primero, eliminando la actualizacion perdida (A7).';
+
+
+-- ---------------------------------------------------------------------------
 -- Origen: db/procs/sp_purgar_datos_seguridad.sql
 -- ---------------------------------------------------------------------------
 -- =============================================================================
@@ -2324,4 +2279,93 @@ BEGIN
     END IF;
 END
 $$;
+
+
+-- ---------------------------------------------------------------------------
+-- Origen: db/procs/sp_restablecer_contrasena.sql
+-- ---------------------------------------------------------------------------
+-- =============================================================================
+-- sp_restablecer_contrasena
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-005
+-- =============================================================================
+-- Aplica un restablecimiento de contrasena a partir de un token de
+-- recuperacion: valida que el token exista, no haya sido usado y no haya
+-- expirado (ventana de 60 minutos desde su generacion), y en tal caso
+-- actualiza el hash de la contrasena del usuario y marca el token como usado,
+-- en una unica transaccion atomica.
+-- Sustituye a AuthServiceImpl.resetPassword, que hacia la busqueda del token,
+-- la validacion de expiracion en Java (LocalDateTime.plusMinutes(60)) y dos
+-- save() secuenciales (usuario, tokenRecuperacion).
+--
+-- Por que en el motor: entre la validacion del token y su marcado como usado
+-- no debe existir ventana en la que una segunda peticion concurrente con el
+-- mismo token pueda colarse y restablecer la contrasena dos veces. La fila del
+-- token se toma con FOR UPDATE para serializar restablecimientos concurrentes
+-- del mismo token.
+--
+-- El nuevo hash de contrasena se calcula en Java (BCrypt) y llega ya cifrado;
+-- la rutina nunca ve la contrasena en texto plano. El hash del token en si
+-- (SHA-256 del valor plano enviado por correo) tambien se calcula en Java
+-- antes de invocar la rutina.
+--
+-- Por que PROCEDURE y no FUNCTION: Hibernate 7 + parametros @Param nombrados
+-- contra una FUNCTION escalar de Postgres genera la llamada con sintaxis de
+-- argumento nombrado (p_x => ?) dentro del escape JDBC {call ...}, que
+-- Postgres no puede parsear ahi (ERROR: syntax error at or near "=>"). El
+-- caller (AuthServiceImpl.resetPassword) ya descartaba el valor de retorno
+-- (el exito se infiere de que no se lance excepcion), asi que no hace falta
+-- ningun parametro OUT: PROCEDURE con solo parametros IN es el patron ya
+-- probado en este proyecto (ver sp_registrar_decision_verificacion).
+--
+-- No devuelve nada. Lanza excepcion si el token no existe, ya fue usado, o
+-- expiro.
+--
+-- Seguridad: parametros formales tipados; sin concatenacion ni EXECUTE.
+-- =============================================================================
+
+CREATE OR REPLACE PROCEDURE sp_restablecer_contrasena(
+    p_hash_token           VARCHAR(255),
+    p_nueva_contrasena_hash VARCHAR(255)
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_id_token   BIGINT;
+    v_id_usuario BIGINT;
+    v_fecha_generacion TIMESTAMP;
+BEGIN
+    IF p_hash_token IS NULL OR p_nueva_contrasena_hash IS NULL THEN
+        RAISE EXCEPTION 'sp_restablecer_contrasena: hash_token y nueva_contrasena_hash son obligatorios'
+            USING ERRCODE = '22004';
+    END IF;
+
+    SELECT id_token, id_usuario, fecha_generacion
+      INTO v_id_token, v_id_usuario, v_fecha_generacion
+      FROM tokens_recuperacion
+     WHERE hash_token = p_hash_token
+       AND usado = FALSE
+       FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Este enlace ya ha sido utilizado o ha expirado'
+            USING ERRCODE = '23514';
+    END IF;
+
+    IF v_fecha_generacion + INTERVAL '60 minutes' < CURRENT_TIMESTAMP THEN
+        RAISE EXCEPTION 'Este enlace ya ha sido utilizado o ha expirado'
+            USING ERRCODE = '23514';
+    END IF;
+
+    UPDATE usuarios
+       SET contrasena_hash = p_nueva_contrasena_hash
+     WHERE id_usuario = v_id_usuario;
+
+    UPDATE tokens_recuperacion
+       SET usado = TRUE
+     WHERE id_token = v_id_token;
+END;
+$$;
+
+COMMENT ON PROCEDURE sp_restablecer_contrasena(VARCHAR, VARCHAR)
+    IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
 

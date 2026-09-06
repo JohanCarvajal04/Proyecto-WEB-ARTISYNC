@@ -147,7 +147,8 @@ class UserServiceImplTest {
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
         when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
-        when(usuarioRepository.cambiarContrasena(1L, "hash", "nuevo-hash")).thenReturn(true);
+        // sp_cambiar_contrasena es void (PROCEDURE, no FUNCTION): el exito se
+        // infiere de que no lance excepcion, no hace falta stubear un retorno.
 
         RespuestaMensaje respuesta = userService.changePassword("user@example.com", request);
 
@@ -165,9 +166,9 @@ class UserServiceImplTest {
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
         when(passwordEncoder.matches("actual", "hash")).thenReturn(true);
         when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
-        when(usuarioRepository.cambiarContrasena(1L, "hash", "nuevo-hash"))
-                .thenThrow(new RuntimeException(new java.sql.SQLException(
-                        "La contrasena fue modificada por otra sesion. Vuelve a intentarlo.", "40001")));
+        doThrow(new RuntimeException(new java.sql.SQLException(
+                        "La contrasena fue modificada por otra sesion. Vuelve a intentarlo.", "40001")))
+                .when(usuarioRepository).cambiarContrasena(1L, "hash", "nuevo-hash");
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> userService.changePassword("user@example.com", request));

@@ -88,7 +88,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6):
-        // fn_cambiar_contrasena aplica el UPDATE solo si el hash sigue siendo
+        // sp_cambiar_contrasena aplica el UPDATE solo si el hash sigue siendo
         // el que se acaba de verificar con BCrypt (compare-and-swap), en vez
         // de un save() incondicional. Si otra sesion cambio la contrasena
         // justo entre la verificacion y este punto, la funcion lanza en vez
