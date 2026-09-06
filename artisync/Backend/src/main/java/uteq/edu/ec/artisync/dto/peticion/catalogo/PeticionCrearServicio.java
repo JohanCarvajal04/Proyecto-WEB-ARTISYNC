@@ -27,8 +27,8 @@ public class PeticionCrearServicio {
     @DecimalMin(value = "0.01", message = "El precio es un campo obligatorio y debe ser al menos 0.01 USD")
     private BigDecimal precioBase;
 
-    @NotNull(message = "El ID de la subcategoria es obligatorio")
-    private Long idSubcategoria;
+    @NotEmpty(message = "El servicio necesita al menos una subcategoria")
+    private List<Long> idsSubcategoria;
 
     @NotBlank(message = "El tipo de item es obligatorio")
     @Pattern(regexp = "PRODUCTO|SERVICIO", message = "El tipo de item debe ser PRODUCTO o SERVICIO")

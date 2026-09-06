@@ -17,4 +17,6 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Optional<Categoria> findByNombreCategoriaIgnoreCase(String nombreCategoria);
 
     boolean existsByNombreCategoriaIgnoreCase(String nombreCategoria);
+
+    List<Categoria> findByRevisadoFalseOrderByActualizadoEnDesc();
 }

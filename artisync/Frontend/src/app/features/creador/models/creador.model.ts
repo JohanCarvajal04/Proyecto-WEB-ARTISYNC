@@ -12,6 +12,10 @@ export interface RespuestaCategoria {
   idCategoria: number;
   nombreCategoria: string;
   estadoActiva: boolean;
+  /** null = la creó un admin/moderador. */
+  idUsuarioCreador?: number | null;
+  nombreCreador?: string | null;
+  revisado?: boolean;
   actualizadoEn?: string;
 }
 
@@ -20,7 +24,19 @@ export interface RespuestaSubcategoria {
   idCategoria: number;
   nombreCategoria: string;
   nombreSubcategoria: string;
+  idUsuarioCreador?: number | null;
+  nombreCreador?: string | null;
+  revisado?: boolean;
   actualizadoEn?: string;
+}
+
+export interface PeticionCrearCategoria {
+  nombreCategoria: string;
+}
+
+export interface PeticionCrearSubcategoria {
+  idCategoria: number;
+  nombreSubcategoria: string;
 }
 
 // ── Catálogo: servicios del creador ──
@@ -46,10 +62,7 @@ export interface RespuestaServicio {
   urlMiniatura: string | null;
   cargoRevisionAdicional: number | null;
   limiteRevisionesBase: number | null;
-  idSubcategoria: number;
-  nombreSubcategoria: string;
-  idCategoria: number;
-  nombreCategoria: string;
+  subcategorias: RespuestaSubcategoria[];
   idPerfilCreador: number;
   nombreCreador: string;
   idFlujo: number | null;
@@ -66,10 +79,7 @@ export interface RespuestaServicioResumido {
   tipoItem: TipoItem;
   estadoPublicacion: EstadoPublicacion;
   urlMiniatura: string | null;
-  idSubcategoria: number;
-  nombreSubcategoria: string;
-  idCategoria: number;
-  nombreCategoria: string;
+  subcategorias: RespuestaSubcategoria[];
   idPerfilCreador: number;
   nombreCreador: string;
   etiquetas: RespuestaEtiqueta[];
@@ -79,7 +89,7 @@ export interface PeticionCrearServicio {
   tituloServicio: string;
   descripcionDetallada: string;
   precioBase: number;
-  idSubcategoria: number;
+  idsSubcategoria: number[];
   tipoItem: TipoItem;
   urlMiniatura?: string | null;
   cargoRevisionAdicional?: number | null;

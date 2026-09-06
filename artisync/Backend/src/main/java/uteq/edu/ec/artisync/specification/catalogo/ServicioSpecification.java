@@ -6,6 +6,7 @@ import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.catalogo.ServicioEtiqueta;
+import uteq.edu.ec.artisync.entity.catalogo.ServicioSubcategoria;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -25,21 +26,27 @@ public class ServicioSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Por defecto o por parámetro filtrar por estado de publicación
+            // estadoPublicacion == null: sin filtrar por estado (lo usa la
+            // moderación de servicios, que necesita ver cualquier estado). El
+            // catálogo público sigue pasando "ACTIVO" explícito.
             if (estadoPublicacion != null && !estadoPublicacion.isBlank()) {
                 predicates.add(cb.equal(root.get("estadoPublicacion"), estadoPublicacion));
-            } else {
-                predicates.add(cb.equal(root.get("estadoPublicacion"), "ACTIVO"));
             }
 
             if (categoriaId != null) {
-                predicates.add(cb.equal(
-                        root.get("subcategoria").get("categoria").get("idCategoria"), categoriaId));
+                Subquery<Long> subquery = query.subquery(Long.class);
+                Root<ServicioSubcategoria> ssRoot = subquery.from(ServicioSubcategoria.class);
+                subquery.select(ssRoot.get("servicio").get("idServicio"))
+                        .where(cb.equal(ssRoot.get("subcategoria").get("categoria").get("idCategoria"), categoriaId));
+                predicates.add(root.get("idServicio").in(subquery));
             }
 
             if (subcategoriaId != null) {
-                predicates.add(cb.equal(
-                        root.get("subcategoria").get("idSubcategoria"), subcategoriaId));
+                Subquery<Long> subquery = query.subquery(Long.class);
+                Root<ServicioSubcategoria> ssRoot = subquery.from(ServicioSubcategoria.class);
+                subquery.select(ssRoot.get("servicio").get("idServicio"))
+                        .where(cb.equal(ssRoot.get("subcategoria").get("idSubcategoria"), subcategoriaId));
+                predicates.add(root.get("idServicio").in(subquery));
             }
 
             if (precioMin != null) {

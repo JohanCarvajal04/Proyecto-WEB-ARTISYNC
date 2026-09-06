@@ -45,12 +45,95 @@ export class ModCategoriasComponent implements OnInit {
     estadoActiva: true
   };
 
+  // Pendientes de revisión: categorías/subcategorías que crearon los propios
+  // creadores (autoservicio) y que el moderador todavía no revisó.
+  readonly categoriasPendientes = signal<Categoria[]>([]);
+  readonly subcategoriasPendientes = signal<Subcategoria[]>([]);
+  readonly revisandoId = signal<number | null>(null);
+
   ngOnInit(): void {
     this.loadCategorias();
+    this.loadPendientes();
     if (this.esAdmin) {
       this.loadSubcategorias();
       this.loadEtiquetas();
     }
+  }
+
+  // ── Pendientes de revisión ──────────────────────────────────────────────
+
+  loadPendientes(): void {
+    this.modService.listarCategoriasPendientesRevision().subscribe({
+      next: (data) => this.categoriasPendientes.set(data),
+      error: () => this.categoriasPendientes.set([])
+    });
+    this.modService.listarSubcategoriasPendientesRevision().subscribe({
+      next: (data) => this.subcategoriasPendientes.set(data),
+      error: () => this.subcategoriasPendientes.set([])
+    });
+  }
+
+  marcarCategoriaRevisada(cat: Categoria): void {
+    this.revisandoId.set(cat.idCategoria);
+    this.modService.marcarCategoriaRevisada(cat.idCategoria).subscribe({
+      next: () => {
+        this.revisandoId.set(null);
+        this.toastService.success(`Categoría «${cat.nombreCategoria}» marcada como revisada`);
+        this.loadPendientes();
+      },
+      error: (err) => {
+        this.revisandoId.set(null);
+        this.toastService.error(err.error?.message || 'No se pudo marcar como revisada');
+      }
+    });
+  }
+
+  eliminarCategoriaPendiente(cat: Categoria): void {
+    const motivo = prompt(`¿Por qué eliminas la categoría «${cat.nombreCategoria}»? Se le notificará a ${cat.nombreCreador}.`);
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      this.toastService.error('Debes indicar un motivo');
+      return;
+    }
+    this.modService.eliminarCategoria(cat.idCategoria, motivo.trim()).subscribe({
+      next: () => {
+        this.toastService.success('Categoría eliminada y creador notificado');
+        this.loadPendientes();
+        this.loadCategorias();
+      },
+      error: (err) => this.toastService.error(err.error?.message || 'No se pudo eliminar la categoría')
+    });
+  }
+
+  marcarSubcategoriaRevisada(sub: Subcategoria): void {
+    this.revisandoId.set(sub.idSubcategoria);
+    this.modService.marcarSubcategoriaRevisada(sub.idSubcategoria).subscribe({
+      next: () => {
+        this.revisandoId.set(null);
+        this.toastService.success(`Subcategoría «${sub.nombreSubcategoria}» marcada como revisada`);
+        this.loadPendientes();
+      },
+      error: (err) => {
+        this.revisandoId.set(null);
+        this.toastService.error(err.error?.message || 'No se pudo marcar como revisada');
+      }
+    });
+  }
+
+  eliminarSubcategoriaPendiente(sub: Subcategoria): void {
+    const motivo = prompt(`¿Por qué eliminas la subcategoría «${sub.nombreSubcategoria}»? Se le notificará a ${sub.nombreCreador}.`);
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      this.toastService.error('Debes indicar un motivo');
+      return;
+    }
+    this.modService.eliminarSubcategoria(sub.idSubcategoria, motivo.trim()).subscribe({
+      next: () => {
+        this.toastService.success('Subcategoría eliminada y creador notificado');
+        this.loadPendientes();
+      },
+      error: (err) => this.toastService.error(err.error?.message || 'No se pudo eliminar la subcategoría')
+    });
   }
 
   // ── Subcategorías ────────────────────────────────────────────────────────

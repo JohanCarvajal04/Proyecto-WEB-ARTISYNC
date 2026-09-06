@@ -17,5 +17,11 @@ public class RespuestaSubcategoria {
     private Long idCategoria;
     private String nombreCategoria;
     private String nombreSubcategoria;
+
+    /** null = la creó un admin/moderador. */
+    private Long idUsuarioCreador;
+    private String nombreCreador;
+    private Boolean revisado;
+
     private LocalDateTime actualizadoEn;
 }

@@ -40,7 +40,7 @@ class CategoriaControladorTest {
 
     @Test
     void eliminarCategoria_DebeRetornarOk() {
-        ResponseEntity<RespuestaMensaje> result = categoriaControlador.eliminarCategoria(1L);
+        ResponseEntity<RespuestaMensaje> result = categoriaControlador.eliminarCategoria(1L, null);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

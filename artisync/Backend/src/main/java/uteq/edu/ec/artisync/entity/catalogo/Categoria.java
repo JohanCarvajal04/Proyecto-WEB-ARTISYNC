@@ -28,6 +28,18 @@ public class Categoria {
     @Column(name = "estado_activa", nullable = false)
     private Boolean estadoActiva = true;
 
+    /**
+     * Dueño de autoservicio: null = la creó un admin/moderador (ya confiable).
+     * No nulo = la creó un creador; empieza sin revisar (ver {@link #revisado}).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creador")
+    private uteq.edu.ec.artisync.entity.seguridad.Usuario creador;
+
+    @Builder.Default
+    @Column(name = "revisado", nullable = false)
+    private Boolean revisado = true;
+
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "actualizado_en")
     private java.time.LocalDateTime actualizadoEn;

@@ -96,6 +96,10 @@ export const PAGE_PERMISSIONS = {
   // "Mis Servicios" es el CRUD propio del creador; SERVICIO_MODERAR pertenece a
   // la moderación del catálogo, que es otra pantalla y otro panel.
   servicios: ['SERVICIO_CREAR'],
+  // SERVICIO_MODERAR estaba definido desde hace tiempo pero ningún endpoint ni
+  // pantalla lo usaba; esta es la primera (quitar una subcategoría de
+  // cualquier servicio).
+  serviciosModeracion: ['SERVICIO_MODERAR'],
   comisiones: ['PEDIDO_GESTIONAR'],
   sorteos: ['SORTEO_CREAR'],
   portafolioPropio: ['PORTAFOLIO_CREAR'],
@@ -270,6 +274,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // Antes este ítem no declaraba permiso pero su ruta ya exigía
   // CATEGORIA_GESTIONAR: se veía en el menú y llevaba a /no-autorizado.
   { label: 'Categorías', icon: 'category', route: 'mod-categorias', panel: 'admin', permissions: PAGE_PERMISSIONS.categorias, crossPanel: true },
+  { label: 'Moderación de Servicios', icon: 'storefront', route: 'mod-servicios', panel: 'admin', permissions: PAGE_PERMISSIONS.serviciosModeracion, crossPanel: true },
   { label: 'Gestión de Países', icon: 'public', route: 'paises', panel: 'admin', permissions: PAGE_PERMISSIONS.paises, crossPanel: true },
   { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', panel: 'admin', permissions: PAGE_PERMISSIONS.rolesPermisos, crossPanel: true },
   { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones, crossPanel: true },
@@ -347,7 +352,7 @@ const EXTRA_PANEL_PERMISSIONS: Partial<Record<PanelId, readonly string[]>> = {
   admin: [
     'AUDITORIA_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR',
     'ROL_VER', 'PERMISO_VER', 'SESION_REVOCAR',
-    'SERVICIO_MODERAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR'
+    'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR'
   ]
 };
 

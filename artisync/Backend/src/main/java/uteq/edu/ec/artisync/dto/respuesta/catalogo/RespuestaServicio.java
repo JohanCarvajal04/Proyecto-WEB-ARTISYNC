@@ -24,10 +24,7 @@ public class RespuestaServicio {
     private String urlMiniatura;
     private BigDecimal cargoRevisionAdicional;
     private Integer limiteRevisionesBase;
-    private Long idSubcategoria;
-    private String nombreSubcategoria;
-    private Long idCategoria;
-    private String nombreCategoria;
+    private List<RespuestaSubcategoria> subcategorias;
     private Long idPerfilCreador;
     private String nombreCreador;
     private Long idFlujo;

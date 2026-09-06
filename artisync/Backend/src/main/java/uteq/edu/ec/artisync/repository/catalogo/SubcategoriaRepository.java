@@ -17,4 +17,6 @@ public interface SubcategoriaRepository extends JpaRepository<Subcategoria, Long
     Optional<Subcategoria> findByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(Long idCategoria, String nombreSubcategoria);
 
     boolean existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(Long idCategoria, String nombreSubcategoria);
+
+    List<Subcategoria> findByRevisadoFalseOrderByActualizadoEnDesc();
 }

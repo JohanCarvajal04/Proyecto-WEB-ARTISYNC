@@ -29,11 +29,6 @@ public class Servicio {
     @JoinColumn(name = "id_perfil", nullable = false)
     private PerfilCreador perfil;
 
-    @NotNull(message = "La subcategoria es obligatoria")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_subcategoria", nullable = false)
-    private Subcategoria subcategoria;
-
     @NotBlank(message = "El titulo del servicio es obligatorio")
     @Size(max = 150, message = "El titulo del servicio no puede superar los 150 caracteres")
     @Column(name = "titulo_servicio", nullable = false, length = 150)

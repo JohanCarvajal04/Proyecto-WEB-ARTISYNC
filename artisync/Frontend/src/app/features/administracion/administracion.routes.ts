@@ -60,6 +60,12 @@ export const ADMINISTRACION_ROUTES: Routes = [
     loadComponent: () => import('./pages/mod-categorias/mod-categorias.component').then(m => m.ModCategoriasComponent)
   },
   {
+    path: 'mod-servicios',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.serviciosModeracion },
+    loadComponent: () => import('./pages/mod-servicios/mod-servicios.component').then(m => m.ModServiciosComponent)
+  },
+  {
     path: 'paises',
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.paises },

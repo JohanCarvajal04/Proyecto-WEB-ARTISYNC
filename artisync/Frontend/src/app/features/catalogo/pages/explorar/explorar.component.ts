@@ -193,4 +193,9 @@ export class ExplorarComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  /** Categoría de la primera subcategoría del servicio, para la tarjeta de resultado. */
+  categoriaDe(servicio: RespuestaServicioResumido): string {
+    return servicio.subcategorias[0]?.nombreCategoria ?? '';
+  }
+
 }

@@ -56,7 +56,8 @@ export class MisServiciosComponent implements OnInit {
     return this.servicios().filter(s => {
       if (estado !== 'TODOS' && s.estadoPublicacion !== estado) return false;
       if (texto) {
-        const blob = `${s.tituloServicio} ${s.nombreCategoria} ${s.nombreSubcategoria}`.toLowerCase();
+        const nombresSubcategorias = s.subcategorias.map(sub => `${sub.nombreCategoria} ${sub.nombreSubcategoria}`).join(' ');
+        const blob = `${s.tituloServicio} ${nombresSubcategorias}`.toLowerCase();
         if (!blob.includes(texto)) return false;
       }
       return true;
@@ -127,7 +128,7 @@ export class MisServiciosComponent implements OnInit {
           tituloServicio: detalle.tituloServicio,
           descripcionDetallada: detalle.descripcionDetallada,
           precioBase: detalle.precioBase,
-          idSubcategoria: detalle.idSubcategoria,
+          idsSubcategoria: detalle.subcategorias.map(s => s.idSubcategoria),
           tipoItem: detalle.tipoItem,
           estadoPublicacion: nuevoEstado,
           urlMiniatura: detalle.urlMiniatura,
@@ -181,6 +182,11 @@ export class MisServiciosComponent implements OnInit {
         this.toast.error(mensajeError(err, 'No se pudo eliminar el servicio'));
       }
     });
+  }
+
+  /** "Categoría · Subcategoría, Categoría · Subcategoría" para la tarjeta del servicio. */
+  nombresSubcategorias(servicio: RespuestaServicioResumido): string {
+    return servicio.subcategorias.map(s => `${s.nombreCategoria} · ${s.nombreSubcategoria}`).join(', ');
   }
 
   formatPrice = formatPrice;

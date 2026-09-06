@@ -37,4 +37,13 @@ public interface IServicioCatalogoServicio {
     RespuestaAtributo actualizarAtributo(Long idServicio, Long idAtributo, PeticionActualizarAtributo peticion);
 
     void eliminarAtributo(Long idServicio, Long idAtributo);
+
+    /** @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el servicio se quedaría sin ninguna subcategoria. */
+    RespuestaServicio quitarSubcategoria(Long idServicio, Long idSubcategoria);
+
+    /** Para moderación: no filtra por estado de publicación (ve borradores, pausados, etc). */
+    Page<RespuestaServicioResumido> listarParaModeracion(String textoBusqueda, int page, int size);
+
+    /** @return la URL pública para usar como urlMiniatura del servicio. */
+    String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo);
 }

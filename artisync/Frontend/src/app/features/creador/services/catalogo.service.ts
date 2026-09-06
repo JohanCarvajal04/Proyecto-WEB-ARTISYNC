@@ -34,4 +34,16 @@ export class CatalogoService {
   crearEtiqueta(nombreEtiqueta: string): Observable<RespuestaEtiqueta> {
     return this.http.post<RespuestaEtiqueta>(`${this.API}/etiquetas`, { nombreEtiqueta });
   }
+
+  /**
+   * Autoservicio (CATEGORIA_CREAR): el creador crea directamente la categoría
+   * que le falte; queda sin revisar hasta que un moderador la revise.
+   */
+  crearCategoria(nombreCategoria: string): Observable<RespuestaCategoria> {
+    return this.http.post<RespuestaCategoria>(`${this.API}/categorias`, { nombreCategoria });
+  }
+
+  crearSubcategoria(idCategoria: number, nombreSubcategoria: string): Observable<RespuestaSubcategoria> {
+    return this.http.post<RespuestaSubcategoria>(`${this.API}/subcategorias`, { idCategoria, nombreSubcategoria });
+  }
 }

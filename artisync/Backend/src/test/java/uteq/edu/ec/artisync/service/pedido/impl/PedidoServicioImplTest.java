@@ -21,10 +21,8 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPedidoResumido;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
-import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
@@ -100,7 +98,6 @@ class PedidoServicioImplTest {
 
     private Usuario cliente;
     private Usuario creador;
-    private Categoria categoria;
     private FlujoTrabajo flujo;
     private Servicio servicio;
     private Pedido pedido;
@@ -112,10 +109,8 @@ class PedidoServicioImplTest {
         cliente = Usuario.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").build();
         creador = Usuario.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").build();
         flujo = FlujoTrabajo.builder().idFlujo(1L).nombreFlujo("Flujo estandar").build();
-        categoria = Categoria.builder().idCategoria(1L).nombreCategoria("Arte").build();
-        Subcategoria subcategoria = Subcategoria.builder().idSubcategoria(1L).categoria(categoria).build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
-        servicio = Servicio.builder().idServicio(1L).perfil(perfil).subcategoria(subcategoria)
+        servicio = Servicio.builder().idServicio(1L).perfil(perfil)
                 .tituloServicio("Ilustracion").precioBase(new BigDecimal("20.00")).flujo(flujo).build();
         pedido = Pedido.builder().idPedido(10L).usuarioCliente(cliente).servicio(servicio)
                 .flujo(flujo).precioPactado(new BigDecimal("20.00")).build();

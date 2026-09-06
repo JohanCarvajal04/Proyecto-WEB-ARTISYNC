@@ -9,10 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
-import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
@@ -68,7 +66,6 @@ class PedidoServicioImplFlujoTest {
 
     private Usuario cliente;
     private Servicio servicio;
-    private Categoria categoria;
     private FlujoTrabajo flujoDelServicio;
     private FlujoTrabajo flujoDelCreador;
     private FlujoTrabajo flujoPorDefecto;
@@ -81,22 +78,9 @@ class PedidoServicioImplFlujoTest {
         Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(creador).build();
 
-        categoria = Categoria.builder()
-                .idCategoria(5L)
-                .nombreCategoria("Ilustracion")
-                .estadoActiva(true)
-                .build();
-
-        Subcategoria subcategoria = Subcategoria.builder()
-                .idSubcategoria(7L)
-                .categoria(categoria)
-                .nombreSubcategoria("Personajes")
-                .build();
-
         servicio = Servicio.builder()
                 .idServicio(100L)
                 .perfil(perfil)
-                .subcategoria(subcategoria)
                 .precioBase(new BigDecimal("50.00"))
                 .build();
 

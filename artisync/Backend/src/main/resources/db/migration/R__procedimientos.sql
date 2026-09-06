@@ -84,9 +84,9 @@ COMMENT ON SEQUENCE seq_codigo_pedido
 -- Indices de apoyo a las rutinas
 -- -----------------------------------------------------------------------------
 -- fn_cerrar_pedidos_vencidos filtra por fecha de entrega y recorre el historial
--- por pedido; fn_reporte_comisiones_creador y fn_catalogo_filtrado navegan
--- servicios por perfil. Sin estos indices las rutinas degradan a seq scan y la
--- medicion k6 del Bloque C dejaria de ser representativa.
+-- por pedido; fn_reporte_comisiones_creador navega servicios por perfil. Sin
+-- estos indices las rutinas degradan a seq scan y la medicion k6 del Bloque C
+-- dejaria de ser representativa.
 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega_estimada
     ON pedidos (fecha_entrega_estimada)
     WHERE fecha_entrega_estimada IS NOT NULL;
@@ -97,8 +97,12 @@ CREATE INDEX IF NOT EXISTS idx_historial_pedido_fecha
 CREATE INDEX IF NOT EXISTS idx_servicios_perfil
     ON servicios (id_perfil);
 
-CREATE INDEX IF NOT EXISTS idx_servicios_subcategoria_estado
-    ON servicios (id_subcategoria, estado_publicacion);
+-- Servicio dejo de tener id_subcategoria propio (ahora es N:M via
+-- servicio_subcategorias, ver V37__servicio_multiples_subcategorias.sql, que ya
+-- indexa esa tabla por subcategoria); lo que sigue haciendo falta aqui es
+-- filtrar el catalogo por estado de publicacion.
+CREATE INDEX IF NOT EXISTS idx_servicios_estado_publicacion
+    ON servicios (estado_publicacion);
 
 
 -- ---------------------------------------------------------------------------

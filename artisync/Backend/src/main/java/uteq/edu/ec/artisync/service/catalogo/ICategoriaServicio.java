@@ -16,17 +16,27 @@ public interface ICategoriaServicio {
 
     RespuestaCategoria obtenerCategoriaPorId(Long idCategoria);
 
-    RespuestaCategoria crearCategoria(PeticionCrearCategoria peticion);
+    RespuestaCategoria crearCategoria(Long idUsuarioCreador, PeticionCrearCategoria peticion);
 
     RespuestaCategoria actualizarCategoria(Long idCategoria, PeticionActualizarCategoria peticion);
 
-    void eliminarCategoria(Long idCategoria);
+    /** @param motivo obligatorio si la categoria la creó un creador (se le notifica). */
+    void eliminarCategoria(Long idCategoria, String motivo);
 
     List<RespuestaSubcategoria> listarSubcategoriasPorCategoria(Long idCategoria);
 
     List<RespuestaSubcategoria> listarTodasLasSubcategorias();
 
-    RespuestaSubcategoria crearSubcategoria(PeticionCrearSubcategoria peticion);
+    RespuestaSubcategoria crearSubcategoria(Long idUsuarioCreador, PeticionCrearSubcategoria peticion);
 
-    void eliminarSubcategoria(Long idSubcategoria);
+    /** @param motivo obligatorio si la subcategoria la creó un creador (se le notifica). */
+    void eliminarSubcategoria(Long idSubcategoria, String motivo);
+
+    List<RespuestaCategoria> listarCategoriasPendientesRevision();
+
+    List<RespuestaSubcategoria> listarSubcategoriasPendientesRevision();
+
+    RespuestaCategoria marcarCategoriaRevisada(Long idCategoria);
+
+    RespuestaSubcategoria marcarSubcategoriaRevisada(Long idSubcategoria);
 }

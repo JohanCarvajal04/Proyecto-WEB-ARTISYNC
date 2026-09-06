@@ -15,6 +15,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -57,13 +58,17 @@ class CategoriaAutorizacionTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void autenticar(String... authorities) {
+    private CustomUserDetails autenticar(String... authorities) {
         var concedidas = java.util.Arrays.stream(authorities)
                 .map(SimpleGrantedAuthority::new)
                 .map(a -> (org.springframework.security.core.GrantedAuthority) a)
                 .toList();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("usuario", "x", concedidas));
+        // @PreAuthorize se evalúa con el SecurityContext de arriba; @AuthenticationPrincipal
+        // no se resuelve solo (no hay capa MVC en esta prueba), así que el mismo
+        // CustomUserDetails se pasa a mano como argumento del controlador.
+        return new CustomUserDetails(1L, "usuario", "x", true, true, true, true, concedidas);
     }
 
     private PeticionCrearCategoria peticion() {
@@ -72,23 +77,30 @@ class CategoriaAutorizacionTest {
 
     @Test
     void crearCategoria_moderadorConCategoriaGestionar_estaAutorizado() {
-        autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
+        var principal = autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
 
-        controlador.crearCategoria(peticion()); // no debe lanzar AccessDeniedException
+        controlador.crearCategoria(peticion(), principal); // no debe lanzar AccessDeniedException
     }
 
     @Test
     void crearCategoria_administrador_sigueAutorizado() {
-        autenticar("ROLE_ADMIN");
+        var principal = autenticar("ROLE_ADMIN");
 
-        controlador.crearCategoria(peticion());
+        controlador.crearCategoria(peticion(), principal);
+    }
+
+    @Test
+    void crearCategoria_creadorConCategoriaCrear_estaAutorizado() {
+        var principal = autenticar("ROLE_CREADOR", "CATEGORIA_CREAR");
+
+        controlador.crearCategoria(peticion(), principal);
     }
 
     @Test
     void crearCategoria_rolSinElPermiso_esRechazado() {
-        autenticar("ROLE_CREADOR");
+        var principal = autenticar("ROLE_CREADOR");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.crearCategoria(peticion()));
+        assertThrows(AccessDeniedException.class, () -> controlador.crearCategoria(peticion(), principal));
     }
 
     @Test
@@ -96,7 +108,7 @@ class CategoriaAutorizacionTest {
         autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
 
         controlador.actualizarCategoria(1L, new PeticionActualizarCategoria());
-        controlador.eliminarCategoria(1L);
+        controlador.eliminarCategoria(1L, null);
     }
 
     @Test

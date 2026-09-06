@@ -17,5 +17,10 @@ public class RespuestaCategoria {
     private String nombreCategoria;
     private Boolean estadoActiva;
 
+    /** null = la creó un admin/moderador. */
+    private Long idUsuarioCreador;
+    private String nombreCreador;
+    private Boolean revisado;
+
     private LocalDateTime actualizadoEn;
 }

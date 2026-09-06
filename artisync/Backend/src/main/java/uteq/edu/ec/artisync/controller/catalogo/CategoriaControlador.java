@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
@@ -12,6 +13,7 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
 import java.util.List;
@@ -42,10 +44,16 @@ public class CategoriaControlador {
         return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));
     }
 
+    // CATEGORIA_CREAR es autoservicio (cada creador crea las suyas, quedan sin
+    // revisar); CATEGORIA_GESTIONAR/ADMIN crean directamente como revisadas,
+    // igual que siempre.
     @PostMapping
-    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaCategoria> crearCategoria(@Valid @RequestBody PeticionCrearCategoria peticion) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(peticion));
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')")
+    public ResponseEntity<RespuestaCategoria> crearCategoria(
+            @Valid @RequestBody PeticionCrearCategoria peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long idUsuarioCreador = esModerador(userDetails) ? null : userDetails.getIdUsuario();
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(idUsuarioCreador, peticion));
     }
 
     @PutMapping("/{id}")
@@ -58,13 +66,32 @@ public class CategoriaControlador {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarCategoria(@PathVariable Long id) {
-        categoriaServicio.eliminarCategoria(id);
+    public ResponseEntity<RespuestaMensaje> eliminarCategoria(
+            @PathVariable Long id,
+            @RequestParam(required = false) String motivo) {
+        categoriaServicio.eliminarCategoria(id, motivo);
         return ResponseEntity.ok(new RespuestaMensaje("Categoria eliminada exitosamente"));
     }
 
     @GetMapping("/{id}/subcategorias")
     public ResponseEntity<List<RespuestaSubcategoria>> listarSubcategoriasPorCategoria(@PathVariable Long id) {
         return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));
+    }
+
+    @GetMapping("/pendientes-revision")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
+    public ResponseEntity<List<RespuestaCategoria>> listarPendientesRevision() {
+        return ResponseEntity.ok(categoriaServicio.listarCategoriasPendientesRevision());
+    }
+
+    @PatchMapping("/{id}/revisar")
+    @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
+    public ResponseEntity<RespuestaCategoria> marcarRevisada(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaServicio.marcarCategoriaRevisada(id));
+    }
+
+    private boolean esModerador(CustomUserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("CATEGORIA_GESTIONAR") || a.getAuthority().equals("ROLE_ADMIN"));
     }
 }
