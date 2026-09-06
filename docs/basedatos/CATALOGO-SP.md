@@ -621,6 +621,12 @@ concurrentes del mismo usuario; `ON CONFLICT (id_usuario, id_rol) DO NOTHING`, r
 restricción `uq_usuario_rol` (V14), cierra estructuralmente la lectura fantasma que antes permitía
 roles duplicados. Valida todos los roles nuevos antes de borrar los antiguos.
 
+Si el rol `CREADOR` queda entre los asignados, da de alta de forma perezosa e idempotente tanto el
+`perfil_creador` como su `portafolio` inicial (mismo tema JSON por defecto que usa
+`fn_registrar_usuario` en el auto-registro), para que un usuario creado o ascendido a `CREADOR`
+desde el panel de administración (`fn_crear_usuario_admin` o el endpoint de asignación de roles)
+quede con la misma cuenta completa que quien se auto-registró como `CREADOR`.
+
 | # | Nombre | Modo | Tipo | Significado |
 |---|---|---|---|---|
 | 1 | `p_id_usuario` | IN | `BIGINT` | Usuario a sincronizar |
@@ -637,7 +643,8 @@ roles duplicados. Valida todos los roles nuevos antes de borrar los antiguos.
 | Algún nombre de rol inexistente | `23514` |
 
 **Tablas implicadas:** `usuarios` (bloqueo `FOR UPDATE`), `roles` (lectura), `usuario_roles`
-(escritura `DELETE`+`INSERT`), `perfiles_creadores` (alta perezosa si se asigna `CREADOR`).
+(escritura `DELETE`+`INSERT`), `perfiles_creadores` y `portafolios` (alta perezosa de ambos si se
+asigna `CREADOR`).
 
 ### 15c. `fn_revocar_sesiones_usuario`
 
