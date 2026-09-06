@@ -23,6 +23,8 @@
 > **Regla de precedencia.** La Guía de desarrollo (§1.2) declara: *«Antes de escribir esta guía volví sobre mi propia evaluación y verifiqué de nuevo cada dato contra el repositorio. Encontré errores míos y los corregí. Las cifras que aparecen aquí son las corregidas, y cuando difieren de las que les di en la evaluación, esta guía es la versión válida.»*
 > Por tanto: **donde la guía y el informe difieren, manda la guía.** Las cifras rectificadas están marcadas en la sección §7 de este documento y anotadas en cada observación afectada.
 
+> **Auditoría adicional, 2026-09-06 (tarde/noche).** Revisión exhaustiva de las 9 observaciones marcadas pendientes (☐) y de la parcial (PISO-04/OBS-D0R-02), más una comprobación de regresión sobre observaciones ya cerradas cuyos archivos fuente cambiaron desde la última verificación. **Hallazgo operativo previo:** el checkout local en el que se ejecutó esta auditoría estaba **3 commits por detrás de `origin/main`** (`31f338c`, `3a922c5`, `d70f4ab` — contratos personalizados, premios de sorteo y zona horaria; los tres con CI en verde). No se hizo `git pull` durante la auditoría por haber cambios locales sin comitear en curso (bibliografía, checklists, PDF, `PLAN-EXAMEN-FINAL.md`, este mismo archivo); las tres cifras y estados de esta ronda están verificados contra el commit local `9e35d21` más los archivos de trabajo sin comitear ya presentes en el árbol. Resultado detallado en cada observación tocada más abajo y en el §13.
+
 ---
 
 ## Índice
@@ -130,6 +132,7 @@ NOTA DEL EQUIPO = 6,60 / 10
 - Servicios: **82,62 % líneas / 70,06 % ramas**.
 - Controladores: **316 líneas cubiertas de 377 = 83,82 % líneas / 72,00 % ramas**.
 - Global supera el 70 % en líneas (80,29 %) y casi en ramas (66,44 %, pero el requisito principal de capas se cumple).
+- **Actualización verificada 2026-09-06** (`docs/mediciones/jacoco/REPORTE-JACOCO.md`, `docs/mediciones/DATA-DICTIONARY.md:38-39`): dos rondas adicionales del 2026-09-05 subieron el global a **86,75 % líneas / 75,03 % ramas** (1232/1642 ramas), por encima del umbral con margen de seguridad explícito. **Pendiente detectado en esta auditoría:** `docs/mediciones/DATA-PROVENANCE.md:30` sigue citando como "vigente" la medición del **2026-08-16** (72,0 % / 62,5 %, commit `11ac931`), sin actualizar a las rondas de septiembre — es la misma brecha de trazabilidad que el propio `docs/checklists/ralph-2021-checklist.md` (ítem 5.5, revisado 2026-09-06) ya señala como "actualización de fecha, no ausencia de script o commit". No invalida la cifra publicada en el documento académico (que si cita la corrida de cierre correspondiente), pero `DATA-PROVENANCE.md` debe alinearse antes de la entrega (nueva tarea, ver T-28 en el plan).
 
 **OBS-P1-02 ✅ [IMPLEMENTADO] — El mecanismo de acceso a datos exigido no se usa.**
 - En el momento de la revisión: solo **UNA** rutina se invocaba con `@Procedure`; **ninguna** con `@NamedStoredProcedureQuery`; el resto pasaba por `@Query` con `nativeQuery`.
@@ -298,7 +301,9 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 **Lo verificado y correcto:** el cálculo del SUS es perfecto. Aplicada la fórmula de Brooke sobre `sus-raw.csv` se obtiene exactamente **76,88 de media, 77,50 de mediana, 14,48 de desviación e intervalo [69,16 ; 84,59]**, y **hasta el mismo SHA-256 del archivo de entrada**. «El análisis es correcto.»
 
-**OBS-D4-01 ✅ [IMPLEMENTADO] — El dato de entrada está modificado.** *(hallazgo central)*
+> **Corregido (2026-09-03, confirmado de nuevo el 2026-09-06).** El equipo ejecutó el camino (b) que este documento recomendaba: `docs/mediciones/sus/sus-raw.csv` fue reemplazado por el export real fila a fila, se eliminó el duplicado exacto de P12 sobre P11, y se republicó honestamente la cifra real: **media 61,25/100 (Bangor D), mediana 66,25, DT 22,08, IC 95 % [49,49 ; 73,01] — por debajo del umbral de aceptación de 68**. Verificado el 2026-09-06 en `docs/mediciones/sus/REPORTE-SUS.md` y en `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` (fechado 2026-09-04): este último documenta con transparencia que la aprobación ética previa **no se puede obtener con fecha retroactiva** porque los datos ya se habían recogido, y por eso el equipo optó por declarar la brecha en vez de fabricar una fecha anterior — exactamente la conducta que la guía §5.4 exige. La discusión del capítulo 8 fue reescrita para admitir que el sistema no alcanza el umbral (ver D5, que sigue en 100 %). **Sigue abierto, y no se puede cerrar por completo:** la aprobación ética *previa* a la recogida de datos (guía §5.2, punto 1) es un requisito que ya no se puede satisfacer de forma genuina — es una brecha declarada, no oculta (ver OBS-TR-05).
+
+**OBS-D4-01 ✅ [IMPLEMENTADO] — El dato de entrada está modificado.** *(hallazgo central — narrativa original conservada como registro histórico de la brecha; ver nota de corrección justo arriba)*
 - En el repositorio está también el export real del formulario, con dieciséis respuestas y su marca temporal.
 - **Las filas 1 a 11 coinciden. Las cinco últimas no:**
 
@@ -332,17 +337,31 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 ---
 
-### D6 — Bibliografía y calidad de citas | Peso 4 % | **Satisfactorio (75 %)**
+### D6 — Bibliografía y calidad de citas | Peso 4 % | **Reevaluado 2026-09-06 tras hallazgo de referencias fabricadas**
 
-**Lo verificado y correcto:** **37 entradas, las 37 citadas, 90 comandos de cita, cero huérfanas y cero citas sin entrada.** Estilo `ieeetr` consistente. Los **veinte DOI declarados resuelven**.
+**Lo verificado y correcto (estado original):** **37 entradas, las 37 citadas, 90 comandos de cita, cero huérfanas y cero citas sin entrada.** Estilo `ieeetr` consistente.
 
-**OBS-D6-01 ✅ [IMPLEMENTADO] — La entrada `PERES2024` declara un DOI que resuelve a un artículo distinto**, sobre estrategias de marketing en crowdfinanciación. El DOI correcto de ese trabajo existe y fue verificado contra Crossref; **lleva al volumen y las páginas que el equipo cita**. Esa referencia está citada en el cuerpo y contada como de alto impacto.
-- **Corregido:** `docs/informe-final/referencias.bib:375` ya declara `doi = {10.1016/j.ijresmar.2024.07.005}` (DOI real de Elsevier, resuelve a la obra citada).
+**OBS-D6-01 ✅ [IMPLEMENTADO] — La entrada `PERES2024` declara un DOI que resuelve a un artículo distinto**, sobre estrategias de marketing en crowdfinanciación.
+- **Corregido:** `docs/informe-final/referencias.bib` ya declara `doi = {10.1016/j.ijresmar.2024.07.005}` (DOI real de Elsevier, resuelve a la obra citada).
 
-**OBS-D6-02 ✅ [IMPLEMENTADO] — Una segunda referencia resuelve con el venue correcto pero un título distinto.** *(añadido por la guía: los identificadores con título coincidente son **18 de 20**, no 19 — hay por tanto **dos** referencias defectuosas, no una.)*
+**OBS-D6-02 ✅ [IMPLEMENTADO] — Una segunda referencia resuelve con el venue correcto pero un título distinto.** Identificada retroactivamente como `RAO2022` (ver OBS-D6-04): su DOI resolvía al venue correcto (IEEE SCC 2022) pero al registro de "Organizing Committee", no a ningún artículo con ese título.
+- **Corregido:** `RAO2022` fue eliminada y reemplazada — ver OBS-D6-04.
 
-**OBS-D6-03 ✅ [IMPLEMENTADO] — El alto impacto queda en dieciséis de treinta y dos, por debajo del mínimo de veinte**, cosa que el propio equipo declara en el Anexo J.
-- **Corregido:** `referencias.bib` ya marca 6 referencias de categoría "alto impacto" con comentarios explícitos (líneas 265, 298, 320, 334, 421 y una exclusión razonada en 348), agrupando ZHU1997, INOZEMTSEVA2014, ARCURI2011, HALFOND2005, GOULD2004, WANG2021 y HAGIU2015 sobre un total de 41 entradas.
+**OBS-D6-03 ✅ [IMPLEMENTADO] — El alto impacto queda en dieciséis de treinta y dos, por debajo del mínimo de veinte**, cosa que el propio equipo declara honestamente en `docs/informe-final/README.md` ("Estado de la bibliografía", nota del 17-08-2026: *"Por qué nos detuvimos en 16 (y no en 20)"*).
+- **Cerrado honestamente el 2026-09-06** (ver OBS-D6-04): 22 de 40 referencias citables, con evidencia verificada de cada una.
+
+**OBS-D6-04 🔴→✅ [HALLAZGO CRÍTICO, CORREGIDO 2026-09-06] — Cuatro referencias fabricadas usadas para "cerrar" OBS-D6-03.**
+- **El hallazgo (aportado por el docente, con mayor precisión que mi verificación anterior):** entre la nota honesta de `README.md` (16/32, brecha declarada) y la revisión de la Entrega Final, alguien del equipo añadió `KUMAR2023`, `PARK2023`, `CHEN2021` y `RAO2022` a `referencias.bib`, marcadas las cuatro como "alto impacto: Sí" en el Anexo J, para llevar el conteo de 16 a 20. **Las cuatro son fabricadas.**
+- **Verificación propia (2026-09-06), dos métodos independientes por cada una:** metadatos crudos de la API de Crossref (`curl https://api.crossref.org/works/<DOI>`) + resolución real del DOI (`curl -L https://doi.org/<DOI>`, comprobando a qué dominio de editorial redirige):
+  - `KUMAR2023`: DOI `10.5281/zenodo.1234567` — patrón de relleno (numeración secuencial), tipo de depósito incorrecto para un artículo de revista. Sin rastro de la obra.
+  - `PARK2023`: DOI `10.1109/ACCESS.2023.1234567` — mismo patrón de relleno. Sin rastro de la obra.
+  - `CHEN2021`: DOI `10.1145/3412345` — mismo patrón de relleno. Sin rastro de la obra.
+  - `RAO2022`: DOI real, pero resuelve a la página **"Organizing Committee"** de IEEE SCC 2022, no a un artículo. Sin rastro del paper "Hyperlocal...".
+  - `HALFOND2005` (citada en 5 capítulos, no solo en el 3): verificada aparte — **sí resuelve correctamente** al paper real (AMNESIA, Halfond & Orso, ASE 2005, `dl.acm.org`). No requería corrección.
+- **Autocrítica:** en la sesión anterior yo mismo había marcado esta observación como resuelta solo por comprobar que las claves BibTeX existían y estaban citadas — **nunca verifiqué que los DOI resolvieran a obras reales**. Es exactamente el tipo de verificación superficial que permitió que la fabricación pasara desapercibida.
+- **Corrección aplicada:** las 4 entradas fabricadas fueron eliminadas de `referencias.bib` y sustituidas por **8 referencias reales**, cada una verificada por los mismos dos métodos antes de incorporarla: `LAKSONO2024`, `TSMART2021`, `GU2021`, `BANDARI2026` (mismo rol temático que las fabricadas, en la tabla comparativa de `03-trabajos-relacionados.tex`) y `ROCHET2003`, `RESNICK2000`, `TAFESSE2023`, `CHIGBU2026` (adiciones nuevas, temáticamente relevantes). Recuento honesto final: **45 referencias en `referencias.bib`, 40 citables, 22 de alto impacto** (antes: 41/36/20, con 4 de esos 20 fabricadas). Documento recompilado (`make docs`) sin citas sin resolver ni claves duplicadas; el checksum SHA-256 del PDF se recalculó y republicó en los tres sitios (README, CITATION.cff, carátula) cada vez que el PDF cambió.
+- **Re-verificación externa (2026-09-06):** un segundo contraste confirmó que `KUMAR2023`, `PARK2023`, `CHEN2021` y `RAO2022` ya no aparecen en la bibliografía final y que las referencias que sí aparecen resistieron el contraste externo. Encontró además un error menor de páginas en `TSMART2021` (Waleed et al., 2021) — **corregido**: `2405--2423`, no `2405--2420`. También señaló que `BANDARI2026` (IJRASET) no puede confirmarse ni refutarse por ser una revista de acceso masivo y baja indexación; esto **ya estaba declarado con transparencia** en la clasificación de impacto del Anexo J ("No — revista de publicación masiva, no indexada Scopus/JCR"), no es una omisión.
+- **Nota sobre el contenido final:** por instrucción explícita del equipo, el Anexo J y `docs/informe-final/README.md` **ya no narran el proceso de detección/corrección de la fabricación** (eso queda documentado aquí, en la bitácora de observaciones, y en `PLAN-EXAMEN-FINAL.md`) — el documento académico entregado solo presenta la clasificación de impacto y los totales finales, como corresponde a una versión final y no a un informe de auditoría.
 
 ---
 
@@ -400,8 +419,9 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 **Lo verificado y correcto:** los checklists **no son plantillas**: **Ralph con trece ítems, FAIR con dieciséis e INCOSE con quince**, todos con párrafo de evidencia concreta, y varios sin marcar **con un contraejemplo real citado**. El de PRISMA se resuelve como «no aplica» con justificación, coherente con la decisión sobre el capítulo 3.
 
-**OBS-R4-01 ❌ [NO IMPLEMENTADO] — El checklist de Ralph está fechado el 17 de agosto y afirma en tres ítems que el documento académico y el capítulo de amenazas «no existen», cuando existen desde hace dos semanas.**
-- Nota: al escribirse el capítulo 3 (D2), el checklist PRISMA deja de poder resolverse como «no aplica» y debe rehacerse.
+**OBS-R4-01 ✅ [IMPLEMENTADO, verificado 2026-09-06] — El checklist de Ralph está fechado el 17 de agosto y afirma en tres ítems que el documento académico y el capítulo de amenazas «no existen», cuando existen desde hace dos semanas.**
+- **Corregido:** `docs/checklists/ralph-2021-checklist.md` está re-fechado **2026-09-06** contra el commit `9e35d21` y **cumple 13 de 13 ítems**, con nota explícita reconociendo la revisión anterior (17-ago, commit `6af8595`) como obsoleta y remitiendo a esta misma observación.
+- Nota que sí se cumplió: al escribirse el capítulo 3 (D2), el checklist PRISMA dejó de poder resolverse como «no aplica». **Corregido también:** `docs/checklists/prisma-2020-checklist.md` está re-fechado **2026-09-06**, ya no dice "no aplica" y evalúa ítem por ítem: **13 de 20 aplicables cumplidos**, 3 marcados "No aplica" con motivo (ítems propios de metaanálisis cuantitativo, no de esta revisión de alcance) y **4 pendientes reales declarados con honestidad** (fecha exacta de búsqueda, doble cribado, protocolo de extracción de datos, riesgo de sesgo por estudio, lista completa de estudios cribados). Esos 4 pendientes de PRISMA no cierran esta observación (que es sobre Ralph) pero quedan registrados como trabajo de documento pendiente, no como una brecha oculta.
 
 ---
 
@@ -759,7 +779,7 @@ El examen final es la **semana 19, del 7 al 11 de septiembre**. **Todo lo que en
 
 ## §13. Índice maestro de observaciones (checklist)
 
-Total: **48 observaciones accionables**. Estado actualizado el **2026-09-04** tras auditoría línea por línea contra el repositorio (ver detalle en cada observación de §1–§4).
+Total: **49 observaciones accionables** (se añadió OBS-D6-04 el 2026-09-06). Estado actualizado el **2026-09-06** tras auditoría línea por línea contra el repositorio (ver detalle en cada observación de §1–§4).
 
 ### Bloqueantes absolutos (pisos — cero en toda la entrega si siguen incumplidos)
 
@@ -775,7 +795,7 @@ Total: **48 observaciones accionables**. Estado actualizado el **2026-09-04** tr
 | ID | Observación | Estado |
 |---|---|---|
 | OBS-P0-01 | 3 observaciones sin resolver (26/29) | ☐ |
-| OBS-P0-02 | Tres cifras incompatibles del mismo dato (89,7 / 86,2 / 85,2) | ✅ (unificada a 85,2 %) |
+| OBS-P0-02 | Tres cifras incompatibles del mismo dato (89,7 / 86,2 / 85,2) | ⚠️ [PARCIAL — regresión detectada 2026-09-06] (`anexos.tex` e `INFORME-BRECHAS-ENTREGA-FINAL.md` sí quedaron en 85,2 % / 23-27, pero **`docs/observaciones/OBSERVACIONES.md` — el archivo maestro del que salen esas cifras — no se congeló ni se corrigió**: su tabla resumen dice hoy **26/29 = 89,7 %**, mientras su propia prosa, dos párrafos abajo, describe el cambio del 01-09-2026 y concluye **86,2 %** — el archivo se contradice a sí mismo. Los documentos "unificados" citan una cifra que ya es más vieja que la fuente que dicen resumir. Corrección pendiente: recalcular `OBSERVACIONES.md` una sola vez más, hacer que su propia tabla y su propia prosa coincidan, y solo entonces re-propagar el número definitivo a `anexos.tex` e `INFORME-BRECHAS-ENTREGA-FINAL.md`) |
 | OBS-P0-03 | `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit | ☐ (verificado de nuevo: sigue igual) |
 | OBS-P1-01 | Cobertura: ninguna capa cumple líneas Y ramas (ctrl. 29,17 / 30,56) | ✅ |
 | OBS-P1-02 | Ninguna de las 26 rutinas usa `@Procedure`/`@NamedStoredProcedureQuery` | ✅ (23 usos de `@Procedure`) |
@@ -810,8 +830,9 @@ Total: **48 observaciones accionables**. Estado actualizado el **2026-09-04** tr
 | OBS-D4-01 | 5 filas del SUS alteradas al alza; P12 duplica P11; 61,25 → 76,88 | ✅ (2026-09-03, ver `docs/mediciones/sus/PLAN-MEJORA-SUS.md`) |
 | OBS-D4-02 | Sin test inferencial ni tamaño de efecto en todo el trabajo | ✅ |
 | OBS-D6-01 | `PERES2024` con DOI que resuelve a otra obra | ✅ (DOI corregido) |
-| OBS-D6-02 | Segunda referencia con venue correcto y título distinto (18/20) | ✅ |
-| OBS-D6-03 | Alto impacto 16 de 32 (mínimo 20) | ✅ |
+| OBS-D6-02 | Segunda referencia con venue correcto y título distinto (18/20) | ✅ (era `RAO2022`, ver D6-04) |
+| OBS-D6-03 | Alto impacto 16 de 32 (mínimo 20) | ✅ (22/40, honesto — ver D6-04) |
+| OBS-D6-04 | 4 referencias fabricadas (KUMAR2023, PARK2023, CHEN2021, RAO2022) usadas para inflar el conteo de alto impacto | ✅ (2026-09-06, sustituidas por 8 reales verificadas) |
 
 ### Eje 3 — Reproducibilidad, datos y publicabilidad
 
@@ -827,22 +848,29 @@ Total: **48 observaciones accionables**. Estado actualizado el **2026-09-04** tr
 | OBS-R2-02 | `DATA-PROVENANCE` afirma inmutabilidad que el SUS desmiente | ✅ (2026-09-03) |
 | OBS-R3-01 | 4 personas con commits vs 3 en el padrón (la 4ª: 15 commits, 75 % de BD) | ✅ (`CONTRIBUTORS.md`) |
 | OBS-R3-02 | Un rol CRediT sin persona asignada | ✅ (14/14 asignados) |
-| OBS-R4-01 | Checklist de Ralph desactualizado (17-ago, 3 ítems dicen «no existe») | ☐ (verificado de nuevo: sigue fechado 17-ago, sigue diciendo que el documento académico "no existe") |
+| OBS-R4-01 | Checklist de Ralph desactualizado (17-ago, 3 ítems dicen «no existe») | ✅ (2026-09-06, re-fechado contra `9e35d21`, 13/13; PRISMA también re-fechado, ya no "no aplica", 13/20 aplicables) |
 
 ### Transversales (exigencias fijadas y no cumplidas)
 
 | ID | Observación | Estado |
 |---|---|---|
 | OBS-TR-01 | 80,7 % de tipos y 66,2 % de métodos con token español | ☐ |
-| OBS-TR-02 | 28 de 543 métodos públicos con Javadoc; 8 `@param`, 0 `@return`, 1 `@throws` | ☐ (verificado: solo 8 `@param`, 0 `@return` en todo el backend) |
+| OBS-TR-02 | 28 de 543 métodos públicos con Javadoc; 8 `@param`, 0 `@return`, 1 `@throws` | ☐ (re-verificado 2026-09-06: `10 @param`, `1 @return`, `2 @throws` en todo `src/main/java` — mejora marginal desde el PR #8 "Arreglos del backend... y Javadocs", muy por debajo del criterio; 447 bloques `/**` abiertos pero casi ninguno documenta parámetros/retorno/excepciones) |
 | OBS-TR-03 | 3 de las 4 figuras en español | ☐ |
 | OBS-TR-04 | Falta declaración de uso de asistencia (guía §6.2.6) | ✅ (`13-declaraciones.tex`, sección dedicada) |
-| OBS-TR-05 | Falta aprobación ética fechada y consentimientos individuales del SUS (guía §5.2) | ☐ |
-| OBS-TR-06 | Falta al menos una revisión entre integrantes con observaciones sustantivas | ☐ |
+| OBS-TR-05 | Falta aprobación ética fechada y consentimientos individuales del SUS (guía §5.2) | ☐ (verificado 2026-09-06: **no se puede cerrar por completo** — la aprobación *previa* a la recogida ya no es obtenible con fecha genuina. Mejora real: `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` de 2026-09-04 declara la brecha con transparencia en vez de fabricar una fecha retroactiva, y `docs/etica/consentimientos/plantilla.md` existe; los consentimientos firmados individuales permanecen fuera del repo por diseño de `ETHICS.md`, no verificables desde el código) |
+| OBS-TR-06 | Falta al menos una revisión entre integrantes con observaciones sustantivas | ☐ (verificado de nuevo 2026-09-06 con `gh pr view --json reviews,comments` sobre los 8 PR del repositorio: **0 reviews y 0 comentarios en los 8**, incluido el PR #8 "Arreglos del backend" fusionado el 2026-09-05, que sería el candidato más reciente) |
 | OBS-TR-07 | ADR sin alternativas descartadas documentadas | ✅ (7/7 ADR con "Opciones consideradas") |
-| OBS-TR-08 | Identidades Git múltiples y correos no institucionales (Carvajal ×2, Rios ×2) | ☐ |
+| OBS-TR-08 | Identidades Git múltiples y correos no institucionales (Carvajal ×2, Rios ×2) | ☐ (verificado de nuevo con `git shortlog -sne --all`: siguen 6 identidades para 4 personas — Figueroa 1, Carvajal 2, Ríos 2, Bone 1 — ninguna de Carvajal/Ríos institucional) |
 
-**Resumen:** de 48 observaciones, **36 verificadas como implementadas**, **2 parciales que requieren una acción humana real, no de repositorio** (PISO-04 / OBS-D0R-02: falta la aprobación firmada del SRS — **sigue siendo condición de piso, cero en toda la entrega si no se resuelve antes del examen**), y **9 genuinamente pendientes**: OBS-P0-01, OBS-P0-03, OBS-R4-01, OBS-TR-01, OBS-TR-02, OBS-TR-03, OBS-TR-05, OBS-TR-06, OBS-TR-08.
+**Resumen (actualizado 2026-09-06, auditoría exhaustiva de la tarde):** de 49 observaciones, **39 verificadas como implementadas** (38 de la ronda anterior + OBS-R4-01, cerrada hoy al re-fechar Ralph y PRISMA contra el commit vigente), **1 parcial confirmada sin cambio** (PISO-04 / OBS-D0R-02: falta la aprobación firmada del SRS — verificado de nuevo que no existe ningún archivo de aprobación en `docs/requisitos/`; **sigue siendo condición de piso, cero en toda la entrega si no se resuelve antes del examen**), **1 marcada ✅ que retrocede a parcial por regresión propia** (OBS-P0-02: el archivo maestro `OBSERVACIONES.md` se contradice a sí mismo, 89,7 % vs 86,2 %, mientras los documentos que dice alimentar siguen en 85,2 %), y **8 genuinamente pendientes**: OBS-P0-01, OBS-P0-03, OBS-TR-01, OBS-TR-02, OBS-TR-03, OBS-TR-05 (irreparable por diseño: aprobación previa que ya no puede tener fecha genuina, pero ahora declarada con transparencia), OBS-TR-06 (0 revisiones en los 8 PR, confirmado de nuevo), OBS-TR-08.
+
+**Hallazgos nuevos de esta ronda, sin código de observación previo:**
+1. El checkout local auditado estaba **3 commits por detrás de `origin/main`** (contratos personalizados, premios de sorteo, zona horaria) — los tres con CI verde, sin impacto aparente en las observaciones de este documento, pero deja constancia de que esta auditoría no cubrió el estado más reciente del árbol remoto.
+2. `docs/mediciones/DATA-PROVENANCE.md:30` sigue citando la cobertura JaCoCo del **2026-08-16** (72,0 % / 62,5 %) como "vigente", cuando el estado real medido el 2026-09-05 es **86,75 % líneas / 75,03 % ramas** — brecha de fecha, no de script (ver nota en P1 y T-28 del plan).
+3. La identidad Git de **Bone Arroyo** (cuarta persona, ya documentada en `CONTRIBUTORS.md`/`CITATION.cff`/`.zenodo.json`, ver OBS-R3-01) acumula ahora **23 commits** (antes 15) — no es una observación nueva, solo una cifra que el texto de este documento debe refrescar la próxima vez que se edite esa sección.
+
+**Nota sobre el rigor de esta auditoría:** OBS-D6-04 se detectó porque el docente aportó una verificación más profunda que la mía (yo había marcado D6-01/02/03 como resueltas solo comprobando que las claves BibTeX existían, sin resolver los DOI). Es un recordatorio de que "la clave existe y está citada" no es lo mismo que "la obra es real" — el mismo estándar debería aplicarse retroactivamente a cualquier otra observación de esta lista marcada ✅ sin una verificación igual de profunda. La regresión encontrada hoy en OBS-P0-02 confirma la advertencia: una observación "cerrada" en una fecha puede reabrirse si el archivo fuente sigue cambiando después del cierre y nadie vuelve a comprobarlo.
 
 ---
 

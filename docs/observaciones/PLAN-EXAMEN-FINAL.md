@@ -16,6 +16,8 @@
 
 **Iniciales de responsable:** **BF** = Figueroa · **JC** = Carvajal · **JK** = Ríos · **EQ** = los tres.
 
+> **Actualización 2026-09-06 (auditoría exhaustiva).** Re-verificación completa de cada observación pendiente contra el repositorio, con evidencia (`archivo:línea` o comando + salida). Resultado, tarea por tarea: **T-22 pasa a HECHA** (Ralph y PRISMA re-fechados 2026-09-06). **T-04/T-25 (SUS) ya estaban hechas de facto** pero sin el marcador `✅ HECHA` en su encabezado — corregido abajo. **T-26 (ética SUS) pasa a PARCIAL**: el equipo documentó la brecha con honestidad en vez de fabricar una aprobación retroactiva, pero el requisito de piso "aprobación previa a la recogida" ya no es alcanzable. **T-28 (DATA-PROVENANCE) se reabre**: el archivo sigue citando la medición JaCoCo de agosto como vigente. Nuevo hallazgo sin tarea previa: el checkout auditado estaba 3 commits detrás de `origin/main` (sin impacto en estas tareas, pero repetir T-49 debe hacerse sobre el HEAD real de `origin/main`, no sobre una copia desactualizada).
+
 ### Riesgo de nota si no se hace nada
 
 Los cuatro pisos (PISO-01…04) **no se sancionaron esta vez pero sí se aplican en el examen**. Si el 7 de septiembre siguen incumplidos, la calificación de toda la entrega es **cero**, independientemente del resto del plan. Por eso las tareas T-01 a T-07 son de máxima prioridad absoluta y van todas el lunes.
@@ -153,8 +155,10 @@ grep -rn "jwt.secret" artisync/Backend/src/test/resources/
 
 > **No se exige reescribir el historial** (`git filter-repo`) y no lo recomiendo esta semana: reescribir 358 commits invalidaría todos los hashes citados en `DATA-PROVENANCE`, en el Anexo A y en la portada — 29 hashes verificados que hoy son una fortaleza reconocida. **Rotar los valores en origen satisface el criterio literal sin destruir la trazabilidad.** Dejarlo argumentado por escrito en el ADR (T-47).
 
-### T-04 · Reunir y presentar el instrumento original del SUS
+### T-04 · Reunir y presentar el instrumento original del SUS — ✅ HECHA (2026-09-03/04, confirmado 2026-09-06)
 **Cubre:** OBS-D4-01, punto 1 de las exigencias del equipo y de Figueroa · **Responsable:** BF · **Duración:** 2 h · **Prioridad: máxima**
+
+> **Resultado:** camino (b) ejecutado — no había hojas firmadas que explicaran las cinco filas divergentes, así que `sus-raw.csv` fue reemplazado por el export real y se publicó la cifra real (61,25, por debajo del umbral). Ver `docs/mediciones/sus/REPORTE-SUS.md` y `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` (2026-09-04).
 
 Esta es la tarea que el docente pide **antes que ninguna otra** a Figueroa, y sobre la que exige una conversación presencial.
 
@@ -519,27 +523,28 @@ AND ("digital art" OR "creative content" OR "digital content")
 
 > El docente valoró expresamente la honestidad de no fabricarlo: *«Prefiero eso, con diferencia, a un capítulo inventado.»* **Eso significa que una tabla inventada ahora sería peor que la situación actual.** Hacer las búsquedas de verdad y anotar los números reales, aunque sean pocos.
 
-### T-19 · Corregir las dos referencias bibliográficas defectuosas — ✅ HECHA
-**Cubre:** OBS-D6-01, OBS-D6-02, punto 4 · **Responsable:** BF · **Duración:** 2 h
+### T-19 · Corregir las referencias bibliográficas defectuosas/fabricadas — ✅ HECHA (2026-09-06, alcance ampliado)
+**Cubre:** OBS-D6-01, OBS-D6-02, OBS-D6-03, **OBS-D6-04**, punto 4 · **Responsable:** BF · **Duración:** 2 h + 4 h adicionales (hallazgo de fabricación)
 
-Cifra rectificada por la guía: **18 de 20** DOI devuelven el título declarado, no 19. Hay **dos** entradas defectuosas.
+**El alcance original de esta tarea estaba subestimado.** No eran 2 referencias defectuosas: además de `PERES2024` (DOI corregido) y `RAO2022` (era la "segunda entrada" del punto 2 original — su DOI resolvía al venue correcto, IEEE SCC 2022, pero al registro de "Organizing Committee", no a un artículo real), el docente encontró que `KUMAR2023`, `PARK2023` y `CHEN2021` tienen **DOI de relleno fabricados** (patrón `...1234567`) sin rastro de que las obras existan. Las cuatro (`KUMAR2023`, `PARK2023`, `CHEN2021`, `RAO2022`) habían sido marcadas "alto impacto: Sí" en el Anexo J específicamente para llevar el conteo de 16 a 20 — inflando con citas fabricadas la brecha que `docs/informe-final/README.md` ya había declarado honestamente como real.
 
-**Pasos:**
-1. `PERES2024`: su DOI resuelve a un artículo sobre estrategias de marketing en crowdfinanciación. **El DOI correcto existe y lleva al volumen y páginas que el equipo cita** — localizarlo en Crossref y sustituirlo.
-2. Identificar la segunda entrada: la que **resuelve con el venue correcto pero un título distinto**.
-3. Verificar los **veinte** por negociación de contenido:
+**Pasos ejecutados:**
+1. Verificación de cada DOI sospechoso por dos métodos independientes:
 ```bash
-for doi in $(grep -oP 'doi\s*=\s*\{\K[^}]+' docs/informe-final/referencias.bib); do
-  echo -n "$doi -> "
-  curl -sLH "Accept: application/vnd.citationstyles.csl+json" "https://doi.org/$doi" \
-    | python -c "import sys,json; d=json.load(sys.stdin); print(d.get('title'), '|', d.get('container-title'))"
-done
+# Metadatos crudos de Crossref
+curl -s "https://api.crossref.org/works/<DOI>" | python3 -c "import json,sys; d=json.load(sys.stdin)['message']; print(d.get('title'), d.get('container-title'), d.get('publisher'))"
+# Resolución real del DOI (a qué dominio de editorial redirige)
+curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L "https://doi.org/<DOI>"
 ```
-4. Guardar la salida en `docs/informe-final/verificacion-doi.txt` como evidencia versionada.
+2. Búsqueda y verificación (mismos dos métodos) de 8 referencias reales de reemplazo/adición: `LAKSONO2024`, `TSMART2021`, `GU2021`, `BANDARI2026` (mismo rol temático que las 4 fabricadas) y `ROCHET2003`, `RESNICK2000`, `TAFESSE2023`, `CHIGBU2026` (adiciones que cierran honestamente el mínimo de alto impacto).
+3. Reemplazo en `referencias.bib`, actualización de la tabla comparativa y el párrafo de brecha en `03-trabajos-relacionados.tex`, y del Anexo J (`anexos.tex`) con nota de integridad explicando el hallazgo.
+4. Recompilación completa (`make docs`) — sin citas sin resolver ni claves duplicadas — y republicación del checksum SHA-256 del PDF (cambió al recompilar) en README, CITATION.cff y carátula.
 
-**Criterio de aceptación (guía §3.8):** *«Los veinte identificadores resuelven a la obra que el archivo bibliográfico declara.»*
+**Resultado:** 45 referencias en `referencias.bib` (antes 41), 40 citables (antes 36), **22 de alto impacto** (antes 20, de los cuales 4 eran fabricados; la cifra honesta previa era 16).
 
-> La guía §6.4 lista *«referencias bibliográficas cuyo identificador no resuelve o resuelve a otra obra»* entre las señales que **levantan sospecha de autoría**. Esto no es solo un punto de D6: toca la credibilidad general del trabajo.
+**Criterio de aceptación (guía §3.8):** *«Los identificadores resuelven a la obra que el archivo bibliográfico declara.»* — cumplido para las 45 entradas actuales.
+
+> La guía §6.4 lista *«referencias bibliográficas cuyo identificador no resuelve o resuelve a otra obra»* entre las señales que **levantan sospecha de autoría**, y la regla transversal 6 lleva el criterio a cero si la evidencia es fabricada. Lección aplicada: verificar que una clave BibTeX exista y esté citada **no es suficiente** — hay que resolver el DOI y confirmar que la obra es real.
 
 ### T-20 · Referenciar las 26 etiquetas huérfanas y los cuatro listados — ✅ HECHA
 **Cubre:** OBS-D1-04, OBS-D1-08, punto 12 · **Responsable:** BF · **Duración:** 3 h
@@ -573,8 +578,10 @@ pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | sed -n '/^Resumen/,/^P
 
 > Al recortar, **conservar las cifras clave** (72,02 % de cobertura, p95, la puntuación SUS ya corregida): un resumen sin números pierde más de lo que gana. Recortar los preámbulos contextuales, que es donde suele estar la grasa.
 
-### T-22 · Actualizar los checklists de estándares de reporte
+### T-22 · Actualizar los checklists de estándares de reporte — ✅ HECHA (2026-09-06)
 **Cubre:** OBS-R4-01 · **Responsable:** BF · **Duración:** 2 h
+
+> **Resultado:** `docs/checklists/ralph-2021-checklist.md` re-fechado 2026-09-06 contra `9e35d21`, 13/13 ítems cumplidos, con nota explícita sobre la revisión obsoleta del 17-ago. `docs/checklists/prisma-2020-checklist.md` reescrito por completo — ya no se resuelve como "no aplica" — con 13/20 ítems aplicables cumplidos y 4 pendientes reales declarados (fecha exacta de búsqueda, doble cribado, protocolo de extracción, riesgo de sesgo, lista de estudios cribados). FAIR e INCOSE no mostraron afirmaciones desactualizadas en esta revisión.
 
 El checklist de Ralph está fechado el **17 de agosto** y afirma en tres ítems que el documento académico y el capítulo de amenazas **«no existen»**, cuando existen desde hace dos semanas.
 
@@ -635,8 +642,10 @@ Hoy: **80,7 % de los tipos** y **66,2 % de los métodos** llevan token español;
 
 ## §6. Transversales — a lo largo de toda la semana
 
-### T-25 · Resolver el SUS en el documento
+### T-25 · Resolver el SUS en el documento — ✅ HECHA (2026-09-03, confirmado 2026-09-06)
 **Cubre:** OBS-D4-01, OBS-R2-02, punto 1 · **Responsable:** BF · **Duración:** 4 h · **Depende de T-04**
+
+> **Resultado:** los 8 pasos de esta tarea se ejecutaron — `sus-raw.csv` reemplazado, duplicado P12/P11 eliminado, `make sus` re-ejecutado (media 61,25, IC [49,49; 73,01] con t de Student), discusión del capítulo 8 reescrita admitiendo que no se alcanza el umbral de 68, y `DATA-PROVENANCE.md:6` ya no afirma inmutabilidad sin excepción (declara la excepción del SUS). Pendiente real distinto de esta tarea: la aprobación ética previa, ver T-26.
 
 Una vez tomada la decisión en T-04, ejecutarla:
 
@@ -652,8 +661,10 @@ Una vez tomada la decisión en T-04, ejecutarla:
 
 **Criterio de aceptación (guía §3.1):** *«El archivo que se analiza coincide fila a fila con el export del instrumento, el recálculo reproduce la cifra publicada, y existen aprobación y consentimientos según el capítulo 5.»*
 
-### T-26 · Aprobación ética y consentimientos del estudio SUS
+### T-26 · Aprobación ética y consentimientos del estudio SUS — ⚠️ PARCIAL, verificado 2026-09-06
 **Cubre:** OBS-TR-05, guía §5.2 · **Responsable:** BF · **Duración:** variable — **empezar el lunes**
+
+> **Estado real:** de los cinco requisitos de §9.2, tres están cubiertos: registro de sesiones y consentimiento por plantilla (`docs/etica/consentimientos/plantilla.md`, archivos firmados fuera del repo por diseño de `ETHICS.md`), anonimización razonable para n=16, y declaración honesta en `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` (2026-09-04) de que la aprobación *previa* ya no puede obtenerse con fecha genuina — el equipo decidió explícitamente **no fabricar una fecha retroactiva**, siguiendo la advertencia de la guía §5.4. **Esto no cierra la observación**: sigue faltando el documento de aprobación con fecha anterior a la recogida (2026-08-16), que es un requisito de piso no subsanable a estas alturas. Acción restante: llevar el informe de situación a la reunión con el docente-director y decidir si se acepta la mitigación documental o si el criterio D4/PISO queda en el nivel más bajo de todos modos.
 
 La guía §5.2 exige **cinco cosas** y el criterio de aceptación de T-25 no se cumple sin ellas:
 
@@ -685,8 +696,11 @@ Hoy documenta **21 variables agregadas** y deja fuera **~33 crudas**, incluidas 
 
 **Criterio de aceptación:** toda columna de todo CSV crudo del repositorio aparece en el diccionario.
 
-### T-28 · Verificar y completar `DATA-PROVENANCE`
-**Cubre:** OBS-R2-02, guía §4.6 · **Responsable:** BF · **Duración:** 2 h
+### T-28 · Verificar y completar `DATA-PROVENANCE` — ⚠️ REABIERTA (2026-09-06): la parte de OBS-R2-02 está hecha, falta refrescar JaCoCo
+**Cubre:** OBS-R2-02, guía §4.6 · **Responsable:** BF · **Duración:** 2 h (1 h ya usada; falta ~30 min)
+
+> **Lo que ya está hecho** (paso 1 de esta tarea, verificado 2026-09-06): `DATA-PROVENANCE.md:6` ya no afirma inmutabilidad sin excepción — declara la excepción del SUS.
+> **Lo que falta** (pasos 2-3, recién detectado en esta auditoría): `DATA-PROVENANCE.md:30` sigue citando la cobertura JaCoCo como "vigente" con la medición del **2026-08-16** (72,0 % líneas / 62,5 % ramas, commit `11ac931`), cuando la medición real más reciente (2026-09-05, ver `docs/mediciones/jacoco/REPORTE-JACOCO.md` y `DATA-DICTIONARY.md:38-39`) es **86,75 % / 75,03 %**. Actualizar esa fila con la fecha, el commit y la cifra de la corrida vigente antes de citar cualquier número de cobertura en el documento final.
 
 **Pasos:**
 1. Corregir la afirmación de inmutabilidad (ya en T-25).
@@ -700,8 +714,10 @@ done
 
 **Criterio de aceptación:** todos los hashes citados existen (`git cat-file -t` devuelve `commit`), y no hay figura ni tabla del documento sin fila de procedencia.
 
-### T-29 · Unificar las tres cifras de observaciones — ✅ HECHA (85,2 %)
-**Cubre:** OBS-P0-02, punto 13 · **Responsable:** BF · **Duración:** 1 h
+### T-29 · Unificar las tres cifras de observaciones — ⚠️ REABIERTA (2026-09-06): regresión en el archivo maestro
+**Cubre:** OBS-P0-02, punto 13 · **Responsable:** BF · **Duración:** 1 h (30 min adicionales para cerrar la regresión)
+
+> **Regresión detectada 2026-09-06:** `anexos.tex` e `INFORME-BRECHAS-ENTREGA-FINAL.md` quedaron correctamente fijados en 85,2 % (23/27), pero **`docs/observaciones/OBSERVACIONES.md` — el archivo del que sale ese número — no se corrigió y hoy se contradice a sí mismo**: su tabla resumen dice **26/29 = 89,7 %**, y dos párrafos más abajo su propia prosa narra el cambio del 01-09-2026 y concluye **86,2 %**. Antes de la entrega: recalcular una sola vez la tabla resumen de `OBSERVACIONES.md` para que sea consistente con su propia narrativa interna, y solo entonces decidir si el número que se propaga a `anexos.tex` sigue siendo 85,2 % o cambia.
 
 Hoy conviven tres cifras del mismo dato: **29/26 con 89,7 %**, **86,2 %** en una nota interna, y **27/23 con 85,2 %** en el Anexo A del PDF.
 
