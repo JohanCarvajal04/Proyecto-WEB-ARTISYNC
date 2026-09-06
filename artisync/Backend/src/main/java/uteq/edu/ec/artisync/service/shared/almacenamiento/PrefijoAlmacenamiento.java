@@ -13,6 +13,7 @@ public final class PrefijoAlmacenamiento {
     public static final String PORTAFOLIO = "portafolio";
     public static final String ENTREGABLES = "entregables";
     public static final String PERFILES = "perfiles";
+    public static final String SERVICIOS = "servicios";
 
     private PrefijoAlmacenamiento() {
     }
