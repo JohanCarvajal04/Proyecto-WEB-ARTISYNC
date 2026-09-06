@@ -96,9 +96,17 @@ export const PAGE_PERMISSIONS = {
   // "Mis Servicios" es el CRUD propio del creador; SERVICIO_MODERAR pertenece a
   // la moderación del catálogo, que es otra pantalla y otro panel.
   servicios: ['SERVICIO_CREAR'],
+  // SERVICIO_MODERAR estaba definido desde hace tiempo pero ningún endpoint ni
+  // pantalla lo usaba; esta es la primera (quitar una subcategoría de
+  // cualquier servicio).
+  serviciosModeracion: ['SERVICIO_MODERAR'],
   comisiones: ['PEDIDO_GESTIONAR'],
   sorteos: ['SORTEO_CREAR'],
   portafolioPropio: ['PORTAFOLIO_CREAR'],
+  // "Mis Retiros" (creador) y la cola de gestión (admin) llevan permisos
+  // distintos a propósito (V33__permisos_retiros.sql): mismo criterio que
+  // flujosPropios/flujosModeracion más arriba, cada uno abre solo SU pantalla.
+  retirosCreador: ['RETIROS_SOLICITAR'],
   pedidosCliente: ['PEDIDO_CREAR', 'PEDIDO_GESTIONAR'],
   pedidoCrear: ['PEDIDO_CREAR'],
   // Bitácora de auditoría transversal (V15__modulo_auditoria.sql). Exportar
@@ -115,7 +123,11 @@ export const PAGE_PERMISSIONS = {
   reportesContratos: ['TRANSACCION_VER'],
   // Supervisión de pagos en escrow. PAGO_AUDITAR estaba asignado a
   // AUDITOR_FINANCIERO desde el seed inicial sin ninguna pantalla que lo usara.
-  pagosGarantia: ['PAGO_AUDITAR']
+  pagosGarantia: ['PAGO_AUDITAR'],
+  // RETIROS_GESTIONAR se asigna a AUDITOR_FINANCIERO, no a ADMIN (mismo
+  // criterio que PAGO_AUDITAR/FONDOS_LIBERAR desde V32): el @PreAuthorize del
+  // controlador añade "or hasRole('ADMIN')" como comodín aparte.
+  retirosAdmin: ['RETIROS_GESTIONAR']
 } as const satisfies Record<string, readonly string[]>;
 
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
@@ -254,6 +266,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // AUDITOR_FINANCIERO antes de este punto en la lista, así que de otro modo
   // su página de aterrizaje sería "Gestión de Países" (más abajo).
   { label: 'Pagos y Garantías', icon: 'account_balance', route: 'pagos-garantia', panel: 'admin', permissions: PAGE_PERMISSIONS.pagosGarantia, crossPanel: true },
+  { label: 'Retiros', icon: 'account_balance_wallet', route: 'retiros', panel: 'admin', permissions: PAGE_PERMISSIONS.retirosAdmin, crossPanel: true },
   { label: 'Panel de Moderación', icon: 'dashboard', route: 'mod-overview', panel: 'admin', permissions: PAGE_PERMISSIONS.panelModeracion, crossPanel: true },
   { label: 'Verificaciones', icon: 'verified', route: 'verificaciones', panel: 'admin', permissions: PAGE_PERMISSIONS.verificaciones, crossPanel: true },
   { label: 'Portafolios', icon: 'palette', route: 'mod-portafolios', panel: 'admin', permissions: PAGE_PERMISSIONS.portafoliosModeracion, crossPanel: true },
@@ -261,6 +274,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // Antes este ítem no declaraba permiso pero su ruta ya exigía
   // CATEGORIA_GESTIONAR: se veía en el menú y llevaba a /no-autorizado.
   { label: 'Categorías', icon: 'category', route: 'mod-categorias', panel: 'admin', permissions: PAGE_PERMISSIONS.categorias, crossPanel: true },
+  { label: 'Moderación de Servicios', icon: 'storefront', route: 'mod-servicios', panel: 'admin', permissions: PAGE_PERMISSIONS.serviciosModeracion, crossPanel: true },
   { label: 'Gestión de Países', icon: 'public', route: 'paises', panel: 'admin', permissions: PAGE_PERMISSIONS.paises, crossPanel: true },
   { label: 'Roles y Permisos', icon: 'lock_person', route: 'roles-permissions', panel: 'admin', permissions: PAGE_PERMISSIONS.rolesPermisos, crossPanel: true },
   { label: 'Infracciones', icon: 'gavel', route: 'infracciones', panel: 'admin', permissions: PAGE_PERMISSIONS.infracciones, crossPanel: true },
@@ -279,6 +293,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'creador' },
   { label: 'Mis Servicios', icon: 'storefront', route: 'servicios', panel: 'creador', permissions: PAGE_PERMISSIONS.servicios, crossPanel: true },
   { label: 'Comisiones', icon: 'shopping_bag', route: 'comisiones', panel: 'creador', permissions: PAGE_PERMISSIONS.comisiones, crossPanel: true },
+  { label: 'Mis Retiros', icon: 'account_balance_wallet', route: 'retiros', panel: 'creador', permissions: PAGE_PERMISSIONS.retirosCreador, crossPanel: true },
   { label: 'Briefings', icon: 'assignment', route: 'briefings', panel: 'creador' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'creador' },
   { label: 'Reseñas', icon: 'rate_review', route: 'resenas', panel: 'creador' },
@@ -337,7 +352,7 @@ const EXTRA_PANEL_PERMISSIONS: Partial<Record<PanelId, readonly string[]>> = {
   admin: [
     'AUDITORIA_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR',
     'ROL_VER', 'PERMISO_VER', 'SESION_REVOCAR',
-    'SERVICIO_MODERAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR'
+    'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR'
   ]
 };
 

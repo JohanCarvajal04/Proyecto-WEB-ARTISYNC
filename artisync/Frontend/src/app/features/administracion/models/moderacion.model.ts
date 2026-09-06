@@ -51,6 +51,10 @@ export interface Subcategoria {
   idCategoria: number;
   nombreCategoria: string;
   nombreSubcategoria: string;
+  /** null = la creó un admin/moderador. */
+  idUsuarioCreador?: number | null;
+  nombreCreador?: string | null;
+  revisado?: boolean;
   actualizadoEn?: string;
 }
 
@@ -103,16 +107,16 @@ export interface Categoria {
   idCategoria: number;
   nombreCategoria: string;
   estadoActiva: boolean;
-  /** Flujo que heredan los pedidos de esta categoría (RF-19); null si no se asignó. */
-  idFlujo: number | null;
-  nombreFlujo: string | null;
+  /** null = la creó un admin/moderador. */
+  idUsuarioCreador?: number | null;
+  nombreCreador?: string | null;
+  revisado?: boolean;
   actualizadoEn: string;
 }
 
 export interface CrearCategoria {
   nombreCategoria: string;
   estadoActiva?: boolean;
-  idFlujo?: number | null;
 }
 
 /**
@@ -123,5 +127,9 @@ export interface CrearCategoria {
 export interface ActualizarCategoria {
   nombreCategoria: string;
   estadoActiva?: boolean;
-  idFlujo?: number | null;
 }
+
+// ─── Servicios (SERVICIO_MODERAR) — solo lectura + quitar subcategoría ───
+// El tipo vive en `features/creador/models/creador.model.ts` (dueño original
+// de la entidad); aquí solo se reexporta para no duplicarlo.
+export type { RespuestaServicioResumido } from '../../creador/models/creador.model';

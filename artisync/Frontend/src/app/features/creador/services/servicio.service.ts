@@ -35,6 +35,13 @@ export class ServicioService {
     return this.http.delete<MessageResponse>(`${this.API}/${idServicio}`);
   }
 
+  /** Sube la imagen de miniatura y devuelve la URL pública ya lista para usar en urlMiniatura. */
+  subirMiniatura(archivo: File): Observable<{ url: string }> {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    return this.http.post<{ url: string }>(`${this.API}/miniatura`, formData);
+  }
+
   listarPorCreador(idPerfilCreador: number, estadoPublicacion?: string): Observable<RespuestaServicioResumido[]> {
     let params = new HttpParams();
     if (estadoPublicacion) {

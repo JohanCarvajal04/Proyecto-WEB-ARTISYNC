@@ -66,6 +66,12 @@ export const CREADOR_ROUTES: Routes = [
     loadComponent: () => import('./pages/sorteos/sorteos.component').then(m => m.SorteosComponent)
   },
   {
+    path: 'retiros',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.retirosCreador },
+    loadComponent: () => import('./pages/retiros/retiros.component').then(m => m.RetirosComponent)
+  },
+  {
     path: 'briefings',
     loadComponent: () => import('./pages/briefings/briefings.component').then(m => m.BriefingsComponent)
   },

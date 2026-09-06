@@ -29,14 +29,16 @@ public class Categoria {
     private Boolean estadoActiva = true;
 
     /**
-     * Flujo de trabajo que heredan los pedidos de esta categoría (RF-19).
-     *
-     * Nullable a propósito: si queda sin asignar, el servicio de pedidos cae a
-     * un flujo por defecto en vez de bloquear la creación del encargo.
+     * Dueño de autoservicio: null = la creó un admin/moderador (ya confiable).
+     * No nulo = la creó un creador; empieza sin revisar (ver {@link #revisado}).
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_flujo")
-    private FlujoTrabajo flujo;
+    @JoinColumn(name = "id_usuario_creador")
+    private uteq.edu.ec.artisync.entity.seguridad.Usuario creador;
+
+    @Builder.Default
+    @Column(name = "revisado", nullable = false)
+    private Boolean revisado = true;
 
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "actualizado_en")

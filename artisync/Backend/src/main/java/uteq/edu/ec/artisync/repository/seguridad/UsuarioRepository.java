@@ -23,10 +23,18 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
 
     boolean existsByPaisIdPais(Long idPais);
 
-    
-
-    /** REQ-F-001 - fn_registrar_usuario: inserta usuario + usuario_roles + perfil de creador opcional. Devuelve el id_usuario generado. */
-    @Procedure(procedureName = "fn_registrar_usuario")
+    /**
+     * REQ-F-001 - fn_registrar_usuario: inserta usuario + usuario_roles +
+     * perfil de creador opcional. Devuelve el id_usuario generado.
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * Ver el comentario completo en permisosEfectivos: con Hibernate 7.4.1,
+     * @Procedure con un tipo de retorno no-void (que exige un parametro OUT
+     * en la PROCEDURE) genera una llamada invalida con sintaxis de argumento
+     * nombrado ("p_x => ?", "out => ?") que Postgres rechaza. Confirmado
+     * end-to-end contra el stack local (revision tecnica 2026-09-05).
+     */
+    @Query(value = "SELECT fn_registrar_usuario(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, :p_fecha_nacimiento, :p_nombre_rol)", nativeQuery = true)
     Long registrarUsuario(
             @Param("p_nombres") String nombres,
             @Param("p_apellidos") String apellidos,
@@ -35,13 +43,32 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_fecha_nacimiento") LocalDate fechaNacimiento,
             @Param("p_nombre_rol") String nombreRol);
 
-    /** REQ-F-002 - fn_resolver_estado_login: estado de cuenta, 2FA y roles en una sola llamada. Devuelve JSONB serializado como texto. */
-    @Procedure(procedureName = "fn_resolver_estado_login")
+    /**
+     * REQ-F-002 - fn_resolver_estado_login: estado de cuenta, 2FA y roles en
+     * una sola llamada. Devuelve JSONB serializado como texto.
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * Mismo motivo que permisosEfectivos (ver ahi el detalle completo):
+     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra
+     * Postgres.
+     */
+    @Query(value = "SELECT fn_resolver_estado_login(:p_correo)::text", nativeQuery = true)
     String resolverEstadoLogin(@Param("p_correo") String correo);
 
-    /** REQ-F-005 - fn_restablecer_contrasena: valida token de recuperacion y actualiza el hash de contrasena. Devuelve el id_usuario afectado. */
-    @Procedure(procedureName = "fn_restablecer_contrasena")
-    Long restablecerContrasena(
+    /**
+     * REQ-F-005 - sp_restablecer_contrasena: valida token de recuperacion y
+     * actualiza el hash de contrasena. PROCEDURE real (no FUNCTION): con
+     * Hibernate 7, @Procedure + @Param nombrados contra una FUNCTION escalar
+     * genera una llamada con sintaxis "p_x => ?" que Postgres no puede
+     * parsear dentro del escape JDBC {call ...}. El caller ya descartaba el
+     * valor de retorno (exito = no lanzo excepcion), asi que no hace falta
+     * ningun parametro OUT -- a diferencia de las rutinas de este archivo que
+     * SI necesitan devolver un valor (ver permisosEfectivos), este caso
+     * calza con el unico patron de @Procedure verificado en el proyecto
+     * (sp_registrar_decision_verificacion): solo parametros IN, metodo void.
+     */
+    @Procedure(procedureName = "sp_restablecer_contrasena")
+    void restablecerContrasena(
             @Param("p_hash_token") String hashToken,
             @Param("p_nueva_contrasena_hash") String nuevaContrasenaHash);
 
@@ -52,8 +79,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * SELECT ... FOR UPDATE sobre la misma transaccion. Cierra la actualizacion
      * perdida entre dos administradores operando el mismo usuario a la vez.
      * Devuelve las sesiones revocadas (vacio si no hubo transicion).
-     */
-        /**
+     *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery]
      * Esta rutina devuelve un result set (TABLE) complejo proyectado en una interfaz Spring Data (DTO).
      * El mecanismo @Procedure (o @NamedStoredProcedureQuery) en PostgreSQL exige la devolucion de un RefCursor
@@ -74,8 +100,27 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * findByUsuarioIdUsuario + un SELECT por rol via Rol.permisos EAGER),
      * ejecutado en CADA peticion autenticada. Devuelve JSONB serializado como
      * texto, NULL si el correo no existe.
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * Esta es la rutina que en la practica bloqueaba TODO login (se ejecuta
+     * en loadUserByUsername, antes que fn_resolver_estado_login). Se probo
+     * convertirla a PROCEDURE con un parametro OUT (revision tecnica
+     * 2026-09-05, ver commit de esa fecha): con Hibernate 7.4.1, en cuanto un
+     * metodo @Procedure tiene un tipo de retorno no-void (mapeado a un OUT),
+     * Hibernate registra TODOS los parametros -- incluido el propio OUT --
+     * con sintaxis de argumento nombrado de Postgres, generando una llamada
+     * invalida dentro del escape JDBC:
+     *   {call sp_permisos_efectivos_usuario(p_correo => ?, out => ?)}
+     * Postgres no puede parsear "=>" ahi (ERROR: syntax error at or near
+     * "=>"), confirmado end-to-end contra el stack local (docker logs
+     * pfc_backend, login real con admin@artisync.com). @Procedure en este
+     * proyecto solo funciona de forma verificada cuando el metodo Java es
+     * void y no hay ningun OUT (ver restablecerContrasena/cambiarContrasena
+     * mas abajo, y sp_registrar_decision_verificacion). Para una FUNCTION
+     * escalar con valor de retorno, @Query(nativeQuery=true) es la opcion
+     * correcta y verificada.
      */
-    @Procedure(procedureName = "fn_permisos_efectivos_usuario")
+    @Query(value = "SELECT fn_permisos_efectivos_usuario(:p_correo)::text", nativeQuery = true)
     String permisosEfectivos(@Param("p_correo") String correo);
 
     /**
@@ -84,21 +129,28 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * inserta el nuevo atomicamente bajo SELECT FOR UPDATE (A5). Devuelve
      * JSONB {idUsuario, nombres} serializado como texto, NULL si la cuenta no
      * existe o esta inactiva (respuesta indistinguible preservada en Java).
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * Mismo motivo que permisosEfectivos (ver ahi el detalle completo):
+     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra
+     * Postgres.
      */
-    @Procedure(procedureName = "fn_solicitar_recuperacion")
+    @Query(value = "SELECT fn_solicitar_recuperacion(:p_correo, :p_hash_token)::text", nativeQuery = true)
     String solicitarRecuperacion(
             @Param("p_correo") String correo,
             @Param("p_hash_token") String hashToken);
 
     /**
      * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??6) -
-     * fn_cambiar_contrasena: UPDATE condicionado (compare-and-swap sobre el
+     * sp_cambiar_contrasena: UPDATE condicionado (compare-and-swap sobre el
      * hash) que aplica el cambio solo si nadie mas la cambio primero, cerrando
-     * la actualizacion perdida (A7). Devuelve TRUE si se aplico; lanza
-     * excepcion (ERRCODE 40001) si el hash ya no coincidia.
+     * la actualizacion perdida (A7); lanza excepcion (ERRCODE 40001) si el
+     * hash ya no coincidia. PROCEDURE real (no FUNCTION), mismo motivo que
+     * sp_restablecer_contrasena de arriba: el caller ya descartaba el
+     * booleano de retorno, asi que no hace falta ningun parametro OUT.
      */
-    @Procedure(procedureName = "fn_cambiar_contrasena")
-    Boolean cambiarContrasena(
+    @Procedure(procedureName = "sp_cambiar_contrasena")
+    void cambiarContrasena(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_hash_esperado") String hashEsperado,
             @Param("p_hash_nuevo") String hashNuevo);
@@ -109,8 +161,13 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
      * una unica transaccion, capturando unique_violation sobre el correo en
      * vez de una comprobacion existsByCorreo no atomica (A3). Devuelve el
      * id_usuario generado.
+     *
+     * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+     * Mismo motivo que permisosEfectivos (ver ahi el detalle completo):
+     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra
+     * Postgres.
      */
-    @Procedure(procedureName = "fn_crear_usuario_admin")
+    @Query(value = "SELECT fn_crear_usuario_admin(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, :p_fecha_nacimiento, :p_id_pais, :p_estado_cuenta, :p_nombres_rol)", nativeQuery = true)
     Long crearUsuarioAdmin(
             @Param("p_nombres") String nombres,
             @Param("p_apellidos") String apellidos,
@@ -121,5 +178,3 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_estado_cuenta") Boolean estadoCuenta,
             @Param("p_nombres_rol") String[] nombresRol);
 }
-
-

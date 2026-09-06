@@ -10,7 +10,6 @@ import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
-import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.pedido.*;
@@ -334,27 +333,29 @@ public class PedidoServicioImpl implements IPedidoServicio {
     }
 
     /**
-     * Flujo que le corresponde al pedido (RF-19): el configurado en la
-     * categoría del servicio, siguiendo servicio → subcategoría → categoría.
+     * Flujo que le corresponde al pedido: el que el creador asignó a su
+     * servicio. Antes (RF-19) el flujo colgaba de la categoría del servicio;
+     * eso acoplaba mal el catálogo (una categoría solo clasifica el rubro) con
+     * la operación de pedidos, así que ahora cada servicio elige, entre los
+     * flujos propios de su creador, cuál usar.
      *
-     * <p>Antes se tomaba {@code findAll().get(0)}, es decir el primer flujo que
-     * devolviese Postgres sin ORDER BY: todos los pedidos compartían flujo y
-     * cuál era dependía del plan de ejecución.
-     *
-     * <p>Si la categoría no tiene flujo asignado se cae al flujo por defecto en
-     * lugar de rechazar el pedido: la columna es nullable y un catálogo a medio
-     * configurar no debe impedir vender.
+     * <p>Si el servicio no tiene flujo asignado no se rechaza el pedido: cae
+     * primero al flujo más antiguo del propio creador, y si el creador tampoco
+     * tiene ninguno, al flujo por defecto global. La columna es nullable a
+     * propósito para que un catálogo a medio configurar no impida vender.
      */
     private FlujoTrabajo resolverFlujoDelServicio(Servicio servicio) {
-        Categoria categoria = servicio.getSubcategoria().getCategoria();
-
-        if (categoria.getFlujo() != null) {
-            return categoria.getFlujo();
+        if (servicio.getFlujo() != null) {
+            return servicio.getFlujo();
         }
 
-        log.warn("La categoria '{}' no tiene flujo asignado; se usa el flujo por defecto",
-                categoria.getNombreCategoria());
-        return obtenerFlujoPorDefecto();
+        Long idCreador = servicio.getPerfil().getUsuario().getIdUsuario();
+        return flujoTrabajoRepository.findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(idCreador)
+                .orElseGet(() -> {
+                    log.warn("El servicio '{}' no tiene flujo asignado ni su creador tiene flujos propios; se usa el flujo por defecto",
+                            servicio.getTituloServicio());
+                    return obtenerFlujoPorDefecto();
+                });
     }
 
     /**

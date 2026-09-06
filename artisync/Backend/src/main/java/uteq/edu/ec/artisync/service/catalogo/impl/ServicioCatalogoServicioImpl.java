@@ -46,7 +46,10 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private final ServicioAtributoRepository servicioAtributoRepository;
     private final EtiquetaRepository etiquetaRepository;
     private final ServicioEtiquetaRepository servicioEtiquetaRepository;
+    private final ServicioSubcategoriaRepository servicioSubcategoriaRepository;
     private final IVerificacionServicio verificacionServicio;
+    private final FlujoTrabajoRepository flujoTrabajoRepository;
+    private final uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Override
     @Transactional
@@ -65,12 +68,10 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         validarPropiedadOAdmin(perfil);
         validarIdentidadVerificada(perfil);
 
-        Subcategoria subcategoria = subcategoriaRepository.findById(peticion.getIdSubcategoria())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + peticion.getIdSubcategoria()));
+        List<Subcategoria> subcategorias = resolverSubcategorias(peticion.getIdsSubcategoria());
 
         Servicio servicio = Servicio.builder()
                 .perfil(perfil)
-                .subcategoria(subcategoria)
                 .tituloServicio(peticion.getTituloServicio().trim())
                 .descripcionDetallada(peticion.getDescripcionDetallada().trim())
                 .precioBase(peticion.getPrecioBase())
@@ -79,10 +80,12 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .estadoPublicacion("ACTIVO")
                 .cargoRevisionAdicional(peticion.getCargoRevisionAdicional() != null ? peticion.getCargoRevisionAdicional() : BigDecimal.ZERO)
                 .limiteRevisionesBase(peticion.getLimiteRevisionesBase() != null ? peticion.getLimiteRevisionesBase() : 0)
+                .flujo(resolverFlujoPropio(peticion.getIdFlujo(), perfil))
                 .build();
 
         Servicio guardado = servicioRepository.save(servicio);
 
+        guardarSubcategoriasServicio(guardado, subcategorias);
         guardarEtiquetasServicio(guardado, peticion.getEtiquetaIds());
 
         return obtenerServicioPorId(guardado.getIdServicio());
@@ -104,10 +107,12 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
         validarPropiedadOAdmin(servicio.getPerfil());
 
-        if (peticion.getIdSubcategoria() != null && !peticion.getIdSubcategoria().equals(servicio.getSubcategoria().getIdSubcategoria())) {
-            Subcategoria subcategoria = subcategoriaRepository.findById(peticion.getIdSubcategoria())
-                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + peticion.getIdSubcategoria()));
-            servicio.setSubcategoria(subcategoria);
+        List<Subcategoria> nuevasSubcategorias = null;
+        if (peticion.getIdsSubcategoria() != null) {
+            if (peticion.getIdsSubcategoria().isEmpty()) {
+                throw new ExcepcionReglaNegocio("El servicio necesita al menos una subcategoria");
+            }
+            nuevasSubcategorias = resolverSubcategorias(peticion.getIdsSubcategoria());
         }
 
         if (peticion.getTituloServicio() != null && !peticion.getTituloServicio().isBlank()) {
@@ -133,8 +138,19 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         if (peticion.getLimiteRevisionesBase() != null) {
             servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());
         }
+        servicio.setFlujo(resolverFlujoPropio(peticion.getIdFlujo(), servicio.getPerfil()));
 
         Servicio guardado = servicioRepository.save(servicio);
+
+        if (nuevasSubcategorias != null) {
+            servicioSubcategoriaRepository.deleteByServicioIdServicio(idServicio);
+            // Flush obligatorio: Hibernate ordena inserciones antes que eliminaciones
+            // dentro del mismo flush, así que sin esto el INSERT de una subcategoria
+            // que ya estaba asociada choca con la fila vieja (todavía no borrada en la
+            // base) contra la restricción única id_servicio+id_subcategoria.
+            servicioSubcategoriaRepository.flush();
+            guardarSubcategoriasServicio(guardado, nuevasSubcategorias);
+        }
 
         if (peticion.getEtiquetaIds() != null) {
             servicioEtiquetaRepository.deleteByServicioIdServicio(idServicio);
@@ -164,7 +180,40 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         validarPropiedadOAdmin(servicio.getPerfil());
 
         servicioEtiquetaRepository.deleteByServicioIdServicio(idServicio);
+        servicioSubcategoriaRepository.deleteByServicioIdServicio(idServicio);
         servicioRepository.delete(servicio);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = "catalogo", allEntries = true)
+    @Auditable(accion = "SERVICIO_QUITAR_SUBCATEGORIA", modulo = ModuloAuditoria.CATALOGO,
+            entidad = "servicios", idEntidad = "#idServicio", detalle = "{idSubcategoria: #idSubcategoria}")
+    public RespuestaServicio quitarSubcategoria(Long idServicio, Long idSubcategoria) {
+        if (!servicioRepository.existsById(idServicio)) {
+            throw new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio);
+        }
+        if (servicioSubcategoriaRepository.countByServicioIdServicio(idServicio) <= 1) {
+            throw new ExcepcionReglaNegocio("Un servicio necesita al menos una subcategoria");
+        }
+        servicioSubcategoriaRepository.deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(idServicio, idSubcategoria);
+        return obtenerServicioPorId(idServicio);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RespuestaServicioResumido> listarParaModeracion(String textoBusqueda, int page, int size) {
+        Specification<Servicio> spec = ServicioSpecification.conFiltros(
+                null, null, null, null, null, textoBusqueda, null);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("idServicio").descending());
+        return servicioRepository.findAll(spec, pageable).map(this::mapearAServicioResumido);
+    }
+
+    @Override
+    public String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo) {
+        uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo.PERFIL.validar(archivo);
+        String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento.SERVICIOS);
+        return "/api/v1/servicios/miniatura/" + referencia;
     }
 
     @Override
@@ -220,6 +269,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .collect(Collectors.toList());
 
         Map<Long, List<RespuestaEtiqueta>> etiquetasPorServicio = new HashMap<>();
+        Map<Long, List<RespuestaSubcategoria>> subcategoriasPorServicio = new HashMap<>();
         if (!idsServicios.isEmpty()) {
             List<ServicioEtiqueta> todasEtiquetas = servicioEtiquetaRepository.findByServicioIdServicioIn(idsServicios);
             etiquetasPorServicio = todasEtiquetas.stream()
@@ -231,10 +281,20 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                                     .actualizadoEn(se.getEtiqueta().getActualizadoEn())
                                     .build(), Collectors.toList())
                     ));
+
+            List<ServicioSubcategoria> todasSubcategorias = servicioSubcategoriaRepository.findByServicioIdServicioIn(idsServicios);
+            subcategoriasPorServicio = todasSubcategorias.stream()
+                    .collect(Collectors.groupingBy(
+                            ss -> ss.getServicio().getIdServicio(),
+                            Collectors.mapping(this::mapearASubcategoriaRespuesta, Collectors.toList())
+                    ));
         }
 
         final Map<Long, List<RespuestaEtiqueta>> etiquetasFinales = etiquetasPorServicio;
-        return paginaServicios.map(s -> mapearAServicioResumido(s, etiquetasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));
+        final Map<Long, List<RespuestaSubcategoria>> subcategoriasFinales = subcategoriasPorServicio;
+        return paginaServicios.map(s -> mapearAServicioResumido(s,
+                etiquetasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList()),
+                subcategoriasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));
     }
 
     @Override
@@ -337,6 +397,24 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         }
     }
 
+    private List<Subcategoria> resolverSubcategorias(List<Long> idsSubcategoria) {
+        List<Subcategoria> subcategorias = subcategoriaRepository.findAllById(idsSubcategoria);
+        if (subcategorias.size() != new java.util.HashSet<>(idsSubcategoria).size()) {
+            throw new ExcepcionRecursoNoEncontrado("Una o más subcategorias indicadas no existen");
+        }
+        return subcategorias;
+    }
+
+    private void guardarSubcategoriasServicio(Servicio servicio, List<Subcategoria> subcategorias) {
+        for (Subcategoria sub : subcategorias) {
+            ServicioSubcategoria ss = ServicioSubcategoria.builder()
+                    .servicio(servicio)
+                    .subcategoria(sub)
+                    .build();
+            servicioSubcategoriaRepository.save(ss);
+        }
+    }
+
     private RespuestaServicio mapearAServicioRespuestaCompleta(Servicio servicio) {
         List<RespuestaAtributo> atributos = servicioAtributoRepository.findByServicioIdServicio(servicio.getIdServicio())
                 .stream()
@@ -350,6 +428,11 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                         .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())
                         .actualizadoEn(se.getEtiqueta().getActualizadoEn())
                         .build())
+                .collect(Collectors.toList());
+
+        List<RespuestaSubcategoria> subcategorias = servicioSubcategoriaRepository.findByServicioIdServicio(servicio.getIdServicio())
+                .stream()
+                .map(this::mapearASubcategoriaRespuesta)
                 .collect(Collectors.toList());
 
         String nombreCreador = "Creador";
@@ -367,16 +450,44 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .urlMiniatura(servicio.getUrlMiniatura())
                 .cargoRevisionAdicional(servicio.getCargoRevisionAdicional())
                 .limiteRevisionesBase(servicio.getLimiteRevisionesBase())
-                .idSubcategoria(servicio.getSubcategoria().getIdSubcategoria())
-                .nombreSubcategoria(servicio.getSubcategoria().getNombreSubcategoria())
-                .idCategoria(servicio.getSubcategoria().getCategoria().getIdCategoria())
-                .nombreCategoria(servicio.getSubcategoria().getCategoria().getNombreCategoria())
+                .subcategorias(subcategorias)
                 .idPerfilCreador(servicio.getPerfil().getIdPerfil())
                 .nombreCreador(nombreCreador)
+                .idFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getIdFlujo() : null)
+                .nombreFlujo(servicio.getFlujo() != null ? servicio.getFlujo().getNombreFlujo() : null)
                 .atributos(atributos)
                 .etiquetas(etiquetas)
                 .actualizadoEn(servicio.getActualizadoEn())
                 .build();
+    }
+
+    private RespuestaSubcategoria mapearASubcategoriaRespuesta(ServicioSubcategoria ss) {
+        Subcategoria sub = ss.getSubcategoria();
+        return RespuestaSubcategoria.builder()
+                .idSubcategoria(sub.getIdSubcategoria())
+                .idCategoria(sub.getCategoria().getIdCategoria())
+                .nombreCategoria(sub.getCategoria().getNombreCategoria())
+                .nombreSubcategoria(sub.getNombreSubcategoria())
+                .idUsuarioCreador(sub.getCreador() != null ? sub.getCreador().getIdUsuario() : null)
+                .nombreCreador(sub.getCreador() != null ? sub.getCreador().getNombres() + " " + sub.getCreador().getApellidos() : null)
+                .revisado(sub.getRevisado())
+                .actualizadoEn(sub.getActualizadoEn())
+                .build();
+    }
+
+    /**
+     * `null` es una respuesta válida: significa "sin flujo asignado", y el
+     * servicio de pedidos cae a un flujo por defecto en ese caso. Un id que no
+     * existe, o que existe pero pertenece a otro creador, se rechaza: un
+     * creador solo puede asignarle a su servicio uno de sus propios flujos.
+     */
+    private FlujoTrabajo resolverFlujoPropio(Long idFlujo, PerfilCreador perfil) {
+        if (idFlujo == null) {
+            return null;
+        }
+        return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, perfil.getUsuario().getIdUsuario())
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                        "Flujo de trabajo no encontrado con ID: " + idFlujo));
     }
 
     private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio) {
@@ -388,10 +499,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                         .actualizadoEn(se.getEtiqueta().getActualizadoEn())
                         .build())
                 .collect(Collectors.toList());
-        return mapearAServicioResumido(servicio, etiquetas);
+        List<RespuestaSubcategoria> subcategorias = servicioSubcategoriaRepository.findByServicioIdServicio(servicio.getIdServicio())
+                .stream()
+                .map(this::mapearASubcategoriaRespuesta)
+                .collect(Collectors.toList());
+        return mapearAServicioResumido(servicio, etiquetas, subcategorias);
     }
 
-    private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio, List<RespuestaEtiqueta> etiquetas) {
+    private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio, List<RespuestaEtiqueta> etiquetas, List<RespuestaSubcategoria> subcategorias) {
         String nombreCreador = "Creador";
         if (servicio.getPerfil().getUsuario() != null) {
             nombreCreador = servicio.getPerfil().getUsuario().getNombres() + " " + servicio.getPerfil().getUsuario().getApellidos();
@@ -404,10 +519,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .tipoItem(servicio.getTipoItem())
                 .estadoPublicacion(servicio.getEstadoPublicacion())
                 .urlMiniatura(servicio.getUrlMiniatura())
-                .idSubcategoria(servicio.getSubcategoria().getIdSubcategoria())
-                .nombreSubcategoria(servicio.getSubcategoria().getNombreSubcategoria())
-                .idCategoria(servicio.getSubcategoria().getCategoria().getIdCategoria())
-                .nombreCategoria(servicio.getSubcategoria().getCategoria().getNombreCategoria())
+                .subcategorias(subcategorias)
                 .idPerfilCreador(servicio.getPerfil().getIdPerfil())
                 .nombreCreador(nombreCreador)
                 .etiquetas(etiquetas)

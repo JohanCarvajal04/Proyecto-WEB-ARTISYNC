@@ -378,4 +378,9 @@ export class CreadorPublicoComponent implements OnInit {
     }
     return num.toString();
   }
+
+  /** Categoría de la primera subcategoría del servicio, para la tarjeta de resultado. */
+  categoriaDe(servicio: RespuestaServicioResumido): string {
+    return servicio.subcategorias[0]?.nombreCategoria ?? '';
+  }
 }

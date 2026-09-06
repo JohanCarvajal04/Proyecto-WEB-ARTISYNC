@@ -27,8 +27,8 @@ public class PeticionActualizarServicio {
     @DecimalMin(value = "0.01", message = "El precio es un campo obligatorio y debe ser al menos 0.01 USD")
     private BigDecimal precioBase;
 
-    @NotNull(message = "El ID de la subcategoria es obligatorio")
-    private Long idSubcategoria;
+    /** Opcional: si se envía, reemplaza el conjunto completo (no puede quedar vacío). */
+    private List<Long> idsSubcategoria;
 
     @NotBlank(message = "El tipo de item es obligatorio")
     @Pattern(regexp = "PRODUCTO|SERVICIO", message = "El tipo de item debe ser PRODUCTO o SERVICIO")
@@ -47,6 +47,9 @@ public class PeticionActualizarServicio {
     @Min(value = 0, message = "El limite de revisiones no puede ser negativo")
     @Max(value = 100, message = "El limite de revisiones no puede superar 100")
     private Integer limiteRevisionesBase;
+
+    /** Opcional: uno de los flujos propios del creador. Si no se indica, los pedidos caen al flujo por defecto. */
+    private Long idFlujo;
 
     private List<Long> etiquetaIds;
 }

@@ -21,10 +21,7 @@ public class RespuestaServicioResumido implements Serializable {
     private String tipoItem;
     private String estadoPublicacion;
     private String urlMiniatura;
-    private Long idSubcategoria;
-    private String nombreSubcategoria;
-    private Long idCategoria;
-    private String nombreCategoria;
+    private List<RespuestaSubcategoria> subcategorias;
     private Long idPerfilCreador;
     private String nombreCreador;
     private List<RespuestaEtiqueta> etiquetas;

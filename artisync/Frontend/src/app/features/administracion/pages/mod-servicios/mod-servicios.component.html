@@ -1,0 +1,84 @@
+<div class="flex flex-col gap-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800">Moderación de Servicios</h1>
+    <p class="text-sm text-slate-500 mt-1">Quita una subcategoría mal asignada de cualquier servicio.</p>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-slate-100">
+      <input type="text" [(ngModel)]="busqueda" (ngModelChange)="onBusqueda()"
+        placeholder="Buscar por título o descripción..."
+        class="w-full max-w-sm text-sm border-slate-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" />
+    </div>
+
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th class="px-6 py-4">Servicio</th>
+              <th class="px-6 py-4">Creador</th>
+              <th class="px-6 py-4 text-center">Estado</th>
+              <th class="px-6 py-4">Subcategorías</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (s of pagina().contenido; track s.idServicio) {
+              <tr class="hover:bg-slate-50/50 transition-colors align-top">
+                <td class="px-6 py-4 font-medium text-slate-800">{{ s.tituloServicio }}</td>
+                <td class="px-6 py-4 text-slate-500">{{ s.nombreCreador }}</td>
+                <td class="px-6 py-4 text-center">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">{{ s.estadoPublicacion }}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (sub of s.subcategorias; track sub.idSubcategoria) {
+                      <span class="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-50 text-slate-600 pl-3 pr-1.5 py-1.5 rounded-full border border-slate-200">
+                        {{ sub.nombreCategoria }} · {{ sub.nombreSubcategoria }}
+                        <button type="button" (click)="quitarSubcategoria(s, sub.idSubcategoria, sub.nombreSubcategoria)"
+                          [disabled]="quitandoId() === (s.idServicio + '-' + sub.idSubcategoria)"
+                          [attr.aria-label]="'Quitar ' + sub.nombreSubcategoria"
+                          class="w-4 h-4 rounded-full hover:bg-rose-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors disabled:opacity-40">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="px-6 py-12 text-center text-slate-500">
+                  <p>No se encontraron servicios.</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pagina().totalPaginas > 1) {
+        <div class="flex items-center justify-center gap-3 py-4 border-t border-slate-100">
+          <button type="button" (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Anterior
+          </button>
+          <span class="text-xs text-slate-400 font-mono">
+            Página {{ pagina().numero + 1 }} de {{ pagina().totalPaginas }} · {{ pagina().totalElementos }} registro(s)
+          </span>
+          <button type="button" (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Siguiente
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

@@ -129,7 +129,7 @@
 
             <div class="ms-card__body">
               <h3 class="ms-card__title">{{ s.tituloServicio }}</h3>
-              <p class="ms-card__path">{{ s.nombreCategoria }} · {{ s.nombreSubcategoria }}</p>
+              <p class="ms-card__path">{{ nombresSubcategorias(s) }}</p>
 
               @if (s.etiquetas?.length) {
                 <div class="ms-card__tags">

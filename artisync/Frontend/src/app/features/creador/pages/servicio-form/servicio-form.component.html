@@ -89,11 +89,13 @@
               }
             </select>
           </div>
+        </div>
 
-          <div class="cr-field">
-            <label class="cr-label" for="idSubcategoria">Subcategoría <span>*</span></label>
-            <select id="idSubcategoria" class="cr-select" formControlName="idSubcategoria"
-              [class.is-invalid]="invalido('idSubcategoria')">
+        <!-- Subcategorías: varias por servicio, con "+" -->
+        <div class="cr-field">
+          <label class="cr-label" for="subcategoriaParaAgregar">Subcategorías <span>*</span></label>
+          <div class="cr-form__row">
+            <select id="subcategoriaParaAgregar" class="cr-select" [(ngModel)]="subcategoriaParaAgregar" [ngModelOptions]="{standalone: true}">
               <option [ngValue]="null">Selecciona una subcategoría</option>
               @for (grupo of subcategoriasAgrupadas(); track grupo.categoria) {
                 <optgroup [label]="grupo.categoria">
@@ -103,11 +105,122 @@
                 </optgroup>
               }
             </select>
-            @if (invalido('idSubcategoria')) {
-              <span class="cr-error">Elige la subcategoría donde se listará el servicio.</span>
-            }
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" [disabled]="subcategoriaParaAgregar === null" (click)="agregarSubcategoria()">
+              +
+            </button>
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="abrirFormSubcategoria()">
+              Crear subcategoría nueva
+            </button>
+            <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="abrirFormCategoria()">
+              ¿No existe tu rubro? Crear categoría nueva
+            </button>
           </div>
+
+          @if (chipsSubcategorias().length === 0) {
+            <span class="cr-error">Elige al menos una subcategoría donde se listará el servicio.</span>
+          } @else {
+            <div class="sf-tags">
+              @for (sub of chipsSubcategorias(); track sub.idSubcategoria) {
+                <span class="cr-chip is-active">
+                  {{ sub.nombreCategoria }} · {{ sub.nombreSubcategoria }}
+                  <button type="button" (click)="quitarSubcategoriaElegida(sub.idSubcategoria)" [attr.aria-label]="'Quitar ' + sub.nombreSubcategoria">×</button>
+                </span>
+              }
+            </div>
+          }
         </div>
+
+        @if (mostrarFormSubcategoria()) {
+          <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="cr-form__row">
+              <select class="cr-select" [(ngModel)]="categoriaParaNuevaSubcategoria" [ngModelOptions]="{standalone: true}">
+                @for (cat of categorias(); track cat.idCategoria) {
+                  <option [ngValue]="cat.idCategoria">{{ cat.nombreCategoria }}</option>
+                }
+              </select>
+              <input type="text" class="cr-input" placeholder="Nombre de la subcategoría" maxlength="100"
+                [(ngModel)]="nuevaSubcategoriaNombre" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <div class="cr-form__row" style="justify-content: flex-end;">
+              <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormSubcategoria()">Cancelar</button>
+              <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoSubcategoria()" (click)="guardarSubcategoria()">
+                @if (creandoSubcategoria()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                Guardar subcategoría
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (mostrarFormCategoria()) {
+          <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Nombre de la categoría (rubro)" maxlength="100"
+                [(ngModel)]="nuevaCategoriaNombre" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <span class="cr-hint">Un moderador revisará esta categoría luego de creada.</span>
+            <div class="cr-form__row" style="justify-content: flex-end;">
+              <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormCategoria()">Cancelar</button>
+              <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoCategoria()" (click)="guardarCategoria()">
+                @if (creandoCategoria()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                Guardar categoría
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Flujo de trabajo -->
+        <div class="cr-field">
+          <label class="cr-label" for="idFlujo">Flujo de trabajo</label>
+          <div class="cr-form__row">
+            <select id="idFlujo" class="cr-select" formControlName="idFlujo">
+              <option [ngValue]="null">Sin flujo (se usará el flujo por defecto)</option>
+              @for (flujo of flujos(); track flujo.idFlujo) {
+                <option [ngValue]="flujo.idFlujo">{{ flujo.nombreFlujo }} ({{ flujo.etapas.length }} etapas)</option>
+              }
+            </select>
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="abrirFormFlujo()">
+              Crear nuevo flujo
+            </button>
+          </div>
+          <span class="cr-hint">Las etapas por las que pasará cada pedido de este servicio.</span>
+        </div>
+
+        @if (mostrarFormFlujo()) {
+          <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Nombre del flujo" [(ngModel)]="formFlujo.nombreFlujo" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Descripción (opcional)" [(ngModel)]="formFlujo.descripcionFlujo" [ngModelOptions]="{standalone: true}" />
+            </div>
+
+            @for (etapa of formFlujo.etapas; track etapa.numeroOrden; let i = $index) {
+              <div class="cr-form__row" style="align-items: center;">
+                <span class="cr-hint">{{ etapa.numeroOrden }}. {{ etapa.nombreEtapa }}</span>
+                <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarEtapaFlujo(i)">Quitar</button>
+              </div>
+            }
+
+            <div class="cr-form__row">
+              <input type="text" class="cr-input" placeholder="Nombre de la etapa" [(ngModel)]="nuevaEtapaFlujo.nombreEtapa" [ngModelOptions]="{standalone: true}" />
+              <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.esEtapaFinal" [ngModelOptions]="{standalone: true}" /> Final
+              </label>
+              <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.requiereEntregable" [ngModelOptions]="{standalone: true}" /> Exige entregable
+              </label>
+              <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarEtapaFlujo()">Añadir etapa</button>
+            </div>
+
+            <div class="cr-form__row" style="justify-content: flex-end;">
+              <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormFlujo()">Cancelar</button>
+              <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoFlujo()" (click)="guardarFlujo()">
+                @if (creandoFlujo()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                Guardar flujo
+              </button>
+            </div>
+          </div>
+        }
 
         <div class="cr-form__row cr-form__row--3">
           <div class="cr-field">
@@ -136,10 +249,24 @@
         </div>
 
         <div class="cr-field">
-          <label class="cr-label" for="urlMiniatura">URL de la miniatura</label>
-          <input id="urlMiniatura" type="url" class="cr-input" formControlName="urlMiniatura"
-            placeholder="https://..." maxlength="255" />
-          <span class="cr-hint">Imagen de portada que se muestra en el catálogo.</span>
+          <label class="cr-label">Miniatura</label>
+          <div class="cr-form__row" style="align-items: center;">
+            @if (previewMiniatura()) {
+              <img [src]="previewMiniatura()" alt="Miniatura del servicio"
+                style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--cr-border, #e2e8f0);" />
+            }
+            <input #miniaturaInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+              class="hidden" (change)="onMiniaturaSeleccionada($event)" />
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" [disabled]="subiendoMiniatura()"
+              (click)="miniaturaInput.click()">
+              @if (subiendoMiniatura()) { <span class="cr-spinner cr-spinner--sm"></span> }
+              {{ previewMiniatura() ? 'Cambiar imagen' : 'Elegir imagen' }}
+            </button>
+            @if (previewMiniatura()) {
+              <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarMiniatura()">Quitar</button>
+            }
+          </div>
+          <span class="cr-hint">JPG, PNG, WEBP o GIF, máx. 5 MB. Se muestra en el catálogo.</span>
         </div>
 
         <!-- Etiquetas -->

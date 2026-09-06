@@ -400,7 +400,7 @@ public class AuthServiceImpl implements AuthService {
     // correo disponible como parámetro.
     @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = ModuloAuditoria.SEGURIDAD)
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
-        // REQ-F-005: fn_restablecer_contrasena valida (con FOR UPDATE) que el
+        // REQ-F-005: sp_restablecer_contrasena valida (con FOR UPDATE) que el
         // token exista, no este usado y no haya expirado, y actualiza usuarios +
         // tokens_recuperacion de forma atomica, evitando la ventana de doble uso
         // concurrente que tenia la version en dos save() secuenciales.

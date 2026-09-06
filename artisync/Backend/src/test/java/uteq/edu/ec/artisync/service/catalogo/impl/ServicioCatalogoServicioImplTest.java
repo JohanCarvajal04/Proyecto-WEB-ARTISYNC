@@ -59,6 +59,7 @@ class ServicioCatalogoServicioImplTest {
     @Mock private ServicioAtributoRepository servicioAtributoRepository;
     @Mock private EtiquetaRepository etiquetaRepository;
     @Mock private ServicioEtiquetaRepository servicioEtiquetaRepository;
+    @Mock private ServicioSubcategoriaRepository servicioSubcategoriaRepository;
     @Mock private IVerificacionServicio verificacionServicio;
 
     @InjectMocks
@@ -79,7 +80,6 @@ class ServicioCatalogoServicioImplTest {
         servicio = Servicio.builder()
                 .idServicio(10L)
                 .perfil(perfil)
-                .subcategoria(subcategoria)
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
                 .precioBase(new BigDecimal("15.00"))
@@ -110,12 +110,12 @@ class ServicioCatalogoServicioImplTest {
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
                 .precioBase(new BigDecimal("15.00"))
-                .idSubcategoria(1L)
+                .idsSubcategoria(List.of(1L))
                 .tipoItem("SERVICIO")
                 .build();
 
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(subcategoria));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
         given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
@@ -190,7 +190,7 @@ class ServicioCatalogoServicioImplTest {
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
                 .precioBase(new BigDecimal("15.00"))
-                .idSubcategoria(1L)
+                .idsSubcategoria(List.of(1L))
                 .build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
@@ -206,9 +206,9 @@ class ServicioCatalogoServicioImplTest {
     @DisplayName("crearServicio lanza recurso no encontrado si la subcategoria no existe")
     void crearServicio_subcategoriaInexistente() {
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
-                .precioBase(new BigDecimal("10.00")).idSubcategoria(99L).build();
+                .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(99L)).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(subcategoriaRepository.findById(99L)).willReturn(Optional.empty());
+        given(subcategoriaRepository.findAllById(List.of(99L))).willReturn(List.of());
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
@@ -219,7 +219,7 @@ class ServicioCatalogoServicioImplTest {
     void crearServicio_rechazaUsuarioNoPropietario() {
         autenticarComo("otro@test.com");
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
-                .precioBase(new BigDecimal("10.00")).idSubcategoria(1L).build();
+                .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(1L)).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
@@ -233,9 +233,9 @@ class ServicioCatalogoServicioImplTest {
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
-                .precioBase(new BigDecimal("10.00")).idSubcategoria(1L).build();
+                .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(1L)).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(subcategoria));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
         given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
@@ -276,13 +276,13 @@ class ServicioCatalogoServicioImplTest {
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
                 .tituloServicio("Ilustracion digital")
                 .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
-                .precioBase(new BigDecimal("10.00")).idSubcategoria(1L)
+                .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(1L))
                 .etiquetaIds(List.of(5L))
                 .build();
         Etiqueta etiqueta = Etiqueta.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
 
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(subcategoria));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
         given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(etiquetaRepository.findAllById(List.of(5L))).willReturn(List.of(etiqueta));
@@ -399,22 +399,36 @@ class ServicioCatalogoServicioImplTest {
     }
 
     @Test
-    @DisplayName("actualizarServicio cambia de subcategoria cuando difiere de la actual")
-    void actualizarServicio_cambiaSubcategoria() {
+    @DisplayName("actualizarServicio reemplaza las subcategorias cuando la peticion las incluye")
+    void actualizarServicio_reemplazaSubcategorias() {
         Categoria otraCategoria = Categoria.builder().idCategoria(2L).nombreCategoria("Musica").build();
         Subcategoria otraSubcategoria = Subcategoria.builder().idSubcategoria(2L).categoria(otraCategoria).nombreSubcategoria("Produccion").build();
         PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
-                .precioBase(new BigDecimal("10.00")).idSubcategoria(2L).build();
+                .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(2L)).build();
 
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
-        given(subcategoriaRepository.findById(2L)).willReturn(Optional.of(otraSubcategoria));
+        given(subcategoriaRepository.findAllById(List.of(2L))).willReturn(List.of(otraSubcategoria));
         given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
         servicioCatalogoServicio.actualizarServicio(10L, peticion);
 
-        assertThat(servicio.getSubcategoria()).isEqualTo(otraSubcategoria);
+        verify(servicioSubcategoriaRepository).deleteByServicioIdServicio(10L);
+        verify(servicioSubcategoriaRepository).save(argThat(ss -> ss.getSubcategoria().equals(otraSubcategoria)));
+    }
+
+    @Test
+    @DisplayName("actualizarServicio rechaza una lista de subcategorias vacia")
+    void actualizarServicio_rechazaSubcategoriasVacias() {
+        PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
+                .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of()).build();
+
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+
+        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+        verify(servicioRepository, never()).save(any());
     }
 
     @Test
@@ -827,6 +841,33 @@ class ServicioCatalogoServicioImplTest {
         assertThatThrownBy(() -> servicioCatalogoServicio.eliminarAtributo(10L, 1L))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
         verify(servicioAtributoRepository, never()).delete(any());
+    }
+
+    // ---------- quitarSubcategoria ----------
+
+    @Test
+    @DisplayName("quitarSubcategoria borra la asociacion cuando el servicio tiene mas de una")
+    void quitarSubcategoria_borraCuandoQuedaAlMenosUna() {
+        given(servicioRepository.existsById(10L)).willReturn(true);
+        given(servicioSubcategoriaRepository.countByServicioIdServicio(10L)).willReturn(2L);
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        servicioCatalogoServicio.quitarSubcategoria(10L, 1L);
+
+        verify(servicioSubcategoriaRepository).deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(10L, 1L);
+    }
+
+    @Test
+    @DisplayName("quitarSubcategoria rechaza si el servicio se quedaria sin ninguna")
+    void quitarSubcategoria_rechazaSiQuedaSinNinguna() {
+        given(servicioRepository.existsById(10L)).willReturn(true);
+        given(servicioSubcategoriaRepository.countByServicioIdServicio(10L)).willReturn(1L);
+
+        assertThatThrownBy(() -> servicioCatalogoServicio.quitarSubcategoria(10L, 1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+        verify(servicioSubcategoriaRepository, never()).deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(any(), any());
     }
 
     private void autenticarComo(String correo, String... authorities) {

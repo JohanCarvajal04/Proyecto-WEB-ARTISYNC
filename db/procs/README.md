@@ -47,7 +47,7 @@ devuelto y tablas afectadas— está en
 | `fn_resolver_estado_login.sql` | Consultas multi-tabla | REQ-F-002 |
 | `fn_sincronizar_permisos_rol.sql` | Actualizaciones masivas | REQ-F-003 |
 | `fn_eliminar_rol.sql` | Validaciones cruzadas | REQ-F-004 |
-| `fn_restablecer_contrasena.sql` | Validaciones cruzadas + escritura multi-tabla | REQ-F-005 |
+| `sp_restablecer_contrasena.sql` | Validaciones cruzadas + escritura multi-tabla | REQ-F-005 |
 | `fn_seleccionar_ganadores_sorteo.sql` | Selección aleatoria + actualización masiva | REQ-F-023 |
 | `fn_registrar_infraccion.sql` | Cálculos agregados + validación cruzada | REQ-F-015 |
 | `fn_consumir_codigo_respaldo_2fa.sql` | Validaciones cruzadas (Fase 1 concurrencia) | actualización perdida |
@@ -58,7 +58,7 @@ devuelto y tablas afectadas— está en
 | `fn_configurar_2fa.sql` | Validaciones cruzadas + escritura multi-tabla (Fase 3 concurrencia) | estado a medias |
 | `fn_desactivar_2fa.sql` | Validaciones cruzadas + escritura multi-tabla (Fase 3 concurrencia) | código duplicado |
 | `fn_solicitar_recuperacion.sql` | Validaciones cruzadas + escritura multi-tabla (Fase 3 concurrencia) | acumulación no controlada |
-| `fn_cambiar_contrasena.sql` | Validaciones cruzadas (Fase 3 concurrencia) | actualización perdida |
+| `sp_cambiar_contrasena.sql` | Validaciones cruzadas (Fase 3 concurrencia) | actualización perdida |
 | `fn_crear_usuario_admin.sql` | Validaciones cruzadas + inserción multi-tabla (Fase 3 concurrencia) | lectura fantasma |
 | `fn_crear_rol.sql` | Validaciones cruzadas (Fase 3 concurrencia) | lectura fantasma |
 | `fn_guardar_pais.sql` | Validaciones cruzadas (Fase 3 concurrencia) | lectura fantasma |

@@ -17,9 +17,10 @@ public class RespuestaCategoria {
     private String nombreCategoria;
     private Boolean estadoActiva;
 
-    /** Flujo que heredan los pedidos de esta categoría; null si no se asignó. */
-    private Long idFlujo;
-    private String nombreFlujo;
+    /** null = la creó un admin/moderador. */
+    private Long idUsuarioCreador;
+    private String nombreCreador;
+    private Boolean revisado;
 
     private LocalDateTime actualizadoEn;
 }

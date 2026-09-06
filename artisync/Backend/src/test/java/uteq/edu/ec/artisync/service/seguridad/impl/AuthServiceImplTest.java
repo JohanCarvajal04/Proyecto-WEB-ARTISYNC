@@ -540,7 +540,9 @@ class AuthServiceImplTest {
     void resetPassword_ShouldUpdatePassword_WhenTokenValido() {
         ResetPasswordRequest request = ResetPasswordRequest.builder().token("token-plano").nuevaContrasena("NuevaClave123!").build();
         when(passwordEncoder.encode("NuevaClave123!")).thenReturn("nuevo-hash");
-        when(usuarioRepository.restablecerContrasena(anyString(), eq("nuevo-hash"))).thenReturn(1L);
+        // sp_restablecer_contrasena es void (PROCEDURE, no FUNCTION): el
+        // exito se infiere de que no lance excepcion, no hace falta stubear
+        // un retorno.
 
         RespuestaMensaje respuesta = authService.resetPassword(request);
 
@@ -552,8 +554,8 @@ class AuthServiceImplTest {
     void resetPassword_ShouldThrowBadRequest_WhenTokenNoExiste() {
         ResetPasswordRequest request = ResetPasswordRequest.builder().token("token-invalido").nuevaContrasena("NuevaClave123!").build();
         when(passwordEncoder.encode(anyString())).thenReturn("nuevo-hash");
-        when(usuarioRepository.restablecerContrasena(anyString(), anyString()))
-                .thenThrow(excepcionSql("23514", "Este enlace ya ha sido utilizado o ha expirado"));
+        doThrow(excepcionSql("23514", "Este enlace ya ha sido utilizado o ha expirado"))
+                .when(usuarioRepository).restablecerContrasena(anyString(), anyString());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.resetPassword(request));
@@ -564,8 +566,8 @@ class AuthServiceImplTest {
     void resetPassword_ShouldThrowBadRequest_WhenTokenExpirado() {
         ResetPasswordRequest request = ResetPasswordRequest.builder().token("token-viejo").nuevaContrasena("NuevaClave123!").build();
         when(passwordEncoder.encode(anyString())).thenReturn("nuevo-hash");
-        when(usuarioRepository.restablecerContrasena(anyString(), anyString()))
-                .thenThrow(excepcionSql("23514", "Este enlace ya ha sido utilizado o ha expirado"));
+        doThrow(excepcionSql("23514", "Este enlace ya ha sido utilizado o ha expirado"))
+                .when(usuarioRepository).restablecerContrasena(anyString(), anyString());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.resetPassword(request));

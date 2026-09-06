@@ -502,10 +502,32 @@ Estas dos rutinas del módulo de verificación asistida por IA nacieron **antes*
 un archivo de `db/procs/` concatenado por `sync-procs.sh`. Se documentan aquí porque, a diferencia de
 las rutinas 1–6 originales, **sí estaban conectadas end-to-end** desde antes de la ampliación del 16
 de agosto de 2026: `repository/perfil/CertificadoIaRepository.java` las invoca con `@Query` nativa
-(`fn_listar_cola_verificacion`) y `@Procedure` (`sp_registrar_decision_verificacion`) — el único
-ejemplo de `@Procedure` funcionando en todo el repositorio, y el motivo por el que la ampliación usa
-`@Query` nativa (no `@Procedure`) para las siete `FUNCTION` nuevas: `@Procedure` solo está verificado
-aquí contra un `CREATE PROCEDURE` real, no contra una `FUNCTION` invocada con la sintaxis de escape.
+(`fn_listar_cola_verificacion`) y `@Procedure` (`sp_registrar_decision_verificacion`).
+
+**Actualización (revisión técnica 2026-09-05):** un commit del 2026-09-04 migró las 7 `FUNCTION`
+escalares de `UsuarioRepository` (login, registro, recuperación de contraseña, etc.) a `@Procedure`
+contra la propia `FUNCTION`, ignorando esta misma nota — rompió el login en producción con
+`ERROR: syntax error at or near "=>"` (Hibernate 7.4.1 genera sintaxis de argumento nombrado de
+Postgres dentro del escape JDBC `{call ...}`, que Postgres no puede parsear ahí). Se investigó si el
+arreglo correcto era convertir esas `FUNCTION` en `PROCEDURE` reales (con parámetros `OUT` para las
+que devuelven un valor) en vez de revertir a `nativeQuery`, y se probó **contra el stack real**:
+
+- **Sin parámetro `OUT` (solo `IN`, método Java `void`)**: funciona. `sp_restablecer_contrasena` y
+  `sp_cambiar_contrasena` se convirtieron así — mismo patrón exacto que
+  `sp_registrar_decision_verificacion`, que deja de ser "el único ejemplo" de `@Procedure` funcionando.
+- **Con parámetro `OUT` (el caller necesita el valor devuelto)**: **no funciona**. Se probó
+  `sp_permisos_efectivos_usuario` con `OUT p_resultado TEXT` y el mismo error reapareció, esta vez
+  incluyendo también el propio `OUT` en la sintaxis inválida:
+  `{call sp_permisos_efectivos_usuario(p_correo => ?, out => ?)}`. Con Hibernate 7.4.1, en cuanto un
+  método `@Procedure` tiene un tipo de retorno no-`void`, Hibernate registra **todos** los parámetros
+  con sintaxis de argumento nombrado, sea `FUNCTION` o `PROCEDURE` real. Las 5 rutinas que necesitan
+  devolver un valor (`registrarUsuario`, `resolverEstadoLogin`, `solicitarRecuperacion`,
+  `crearUsuarioAdmin`, `permisosEfectivos`) se dejaron en `@Query(nativeQuery=true)`, confirmado funcionando end-to-end
+  (login real contra `admin@artisync.com`).
+
+Conclusión vigente: `@Procedure` en este proyecto solo es seguro cuando el método Java es `void` y la
+rutina no tiene ningún parámetro `OUT`/`INOUT`. Para cualquier rutina que deba devolver un valor
+escalar, `@Query(nativeQuery=true)` sigue siendo la opción correcta y verificada.
 
 ### 14a. `fn_listar_cola_verificacion` — consultas multi-tabla
 

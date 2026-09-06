@@ -29,11 +29,6 @@ public class Servicio {
     @JoinColumn(name = "id_perfil", nullable = false)
     private PerfilCreador perfil;
 
-    @NotNull(message = "La subcategoria es obligatoria")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_subcategoria", nullable = false)
-    private Subcategoria subcategoria;
-
     @NotBlank(message = "El titulo del servicio es obligatorio")
     @Size(max = 150, message = "El titulo del servicio no puede superar los 150 caracteres")
     @Column(name = "titulo_servicio", nullable = false, length = 150)
@@ -70,6 +65,15 @@ public class Servicio {
     @Builder.Default
     @Column(name = "limite_revisiones_base")
     private Integer limiteRevisionesBase = 0;
+
+    /**
+     * Flujo de trabajo elegido por el creador para este servicio, entre los
+     * suyos propios. Nullable a propósito: si queda sin asignar, el servicio
+     * de pedidos cae a un flujo por defecto en vez de bloquear el encargo.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_flujo")
+    private FlujoTrabajo flujo;
 
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "actualizado_en")

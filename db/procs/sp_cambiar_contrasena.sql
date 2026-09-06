@@ -1,11 +1,11 @@
 -- =============================================================================
--- fn_cambiar_contrasena
+-- sp_cambiar_contrasena
 -- Categoria funcional: validaciones cruzadas                    Requisito: REQ-NF (concurrencia)
 -- Fase 3 de docs/basedatos/PLAN-CONCURRENCIA-SP.md §6 — corrige la anomalia A7.
 -- =============================================================================
 -- Aplica un cambio de contrasena de forma condicionada: solo si el hash
 -- almacenado sigue siendo EXACTAMENTE el que Java verifico con BCrypt antes
--- de invocar esta funcion (compare-and-swap).
+-- de invocar esta rutina (compare-and-swap).
 --
 -- Sustituye a UserServiceImpl.changePassword (parte de escritura), que hacia
 -- un UPDATE incondicional tras la verificacion: usuario.setContrasenaHash(...)
@@ -16,7 +16,7 @@
 --
 -- BCrypt en si permanece fuera del motor (la comparacion de la contrasena
 -- ACTUAL contra el hash se sigue haciendo en Java, con passwordEncoder.matches,
--- antes de invocar esta funcion): lo que se traslada al motor es la ESCRITURA
+-- antes de invocar esta rutina): lo que se traslada al motor es la ESCRITURA
 -- condicionada, usando el propio hash verificado como testigo de version. Si
 -- el hash cambio entre la verificacion en Java y este UPDATE, el predicado
 -- "contrasena_hash = p_hash_esperado" no coincide y la fila no se actualiza
@@ -28,25 +28,30 @@
 -- incorrecta" (validado antes, en Java) de "alguien mas cambio la contrasena
 -- justo ahora" (aqui).
 --
--- Devuelve TRUE si el cambio se aplico.
+-- Por que PROCEDURE y no FUNCTION: mismo motivo que sp_restablecer_contrasena
+-- (ver ese archivo) — Hibernate 7 + @Param nombrados rompe la llamada contra
+-- una FUNCTION. El caller (UserServiceImpl.changePassword) ya descartaba el
+-- valor de retorno (exito = no lanzo excepcion), asi que PROCEDURE con solo
+-- parametros IN, sin OUT, es el patron ya probado en este proyecto.
+--
+-- No devuelve nada. Lanza excepcion si 0 filas se vieron afectadas.
 --
 -- Seguridad: parametros formales tipados (los hashes BCrypt, nunca la
 -- contrasena en texto plano); sin concatenacion ni EXECUTE.
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION fn_cambiar_contrasena(
+CREATE OR REPLACE PROCEDURE sp_cambiar_contrasena(
     p_id_usuario    BIGINT,
     p_hash_esperado VARCHAR(255),
     p_hash_nuevo    VARCHAR(255)
 )
-RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
 DECLARE
     v_afectadas INTEGER;
 BEGIN
     IF p_id_usuario IS NULL OR p_hash_esperado IS NULL OR p_hash_nuevo IS NULL THEN
-        RAISE EXCEPTION 'fn_cambiar_contrasena: todos los parametros son obligatorios'
+        RAISE EXCEPTION 'sp_cambiar_contrasena: todos los parametros son obligatorios'
             USING ERRCODE = '22004';
     END IF;
 
@@ -66,10 +71,8 @@ BEGIN
         RAISE EXCEPTION 'La contrasena fue modificada por otra sesion. Vuelve a intentarlo.'
             USING ERRCODE = '40001';
     END IF;
-
-    RETURN TRUE;
 END;
 $$;
 
-COMMENT ON FUNCTION fn_cambiar_contrasena(BIGINT, VARCHAR, VARCHAR)
+COMMENT ON PROCEDURE sp_cambiar_contrasena(BIGINT, VARCHAR, VARCHAR)
     IS 'Fase 3 concurrencia - UPDATE condicionado (compare-and-swap sobre el hash) que aplica un cambio de contrasena solo si nadie mas la cambio primero, eliminando la actualizacion perdida (A7).';

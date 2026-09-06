@@ -120,9 +120,12 @@ class AprobarEntregaConcurrenciaIT {
                 "INSERT INTO subcategorias (id_categoria, nombre_subcategoria) VALUES (?, ?) RETURNING id_subcategoria",
                 Long.class, idCategoria, "Subcategoria concurrencia escrow");
         idServicio = jdbcTemplate.queryForObject(
-                "INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, precio_base) " +
-                        "VALUES (?, ?, 'Servicio concurrencia escrow', 'Descripcion de prueba', 100.00) RETURNING id_servicio",
-                Long.class, idPerfil, idSubcategoria);
+                "INSERT INTO servicios (id_perfil, titulo_servicio, descripcion_detallada, precio_base) " +
+                        "VALUES (?, 'Servicio concurrencia escrow', 'Descripcion de prueba', 100.00) RETURNING id_servicio",
+                Long.class, idPerfil);
+        jdbcTemplate.update(
+                "INSERT INTO servicio_subcategorias (id_servicio, id_subcategoria) VALUES (?, ?)",
+                idServicio, idSubcategoria);
 
         idFlujo = jdbcTemplate.queryForObject(
                 "INSERT INTO flujos_trabajo (nombre_flujo, id_usuario_creador) VALUES (?, ?) RETURNING id_flujo",

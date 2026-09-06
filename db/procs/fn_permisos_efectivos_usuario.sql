@@ -32,6 +32,24 @@
 -- Devuelve NULL si el correo no existe (la capa Java lo traduce a
 -- UsernameNotFoundException, igual que antes).
 --
+-- [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
+-- Esta es la rutina que en la practica bloqueaba TODO login (se ejecuta en
+-- loadUserByUsername, antes que fn_resolver_estado_login). Probado y
+-- descartado como PROCEDURE con parametro OUT (revision tecnica 2026-09-05):
+-- con Hibernate 7.4.1, en cuanto un metodo @Procedure tiene un tipo de
+-- retorno no-void (mapeado a un OUT), Hibernate registra TODOS los
+-- parametros -- incluido el propio OUT -- con sintaxis de argumento nombrado
+-- de Postgres, generando una llamada invalida dentro del escape JDBC:
+--   {call sp_permisos_efectivos_usuario(p_correo => ?, out => ?)}
+-- -- Postgres no puede parsear "=>" ahi (ERROR: syntax error at or near "=>"),
+-- confirmado end-to-end contra el stack local (docker logs pfc_backend, login
+-- real con admin@artisync.com). @Procedure aqui solo funciona de forma
+-- verificada cuando el metodo Java es void y no hay ningun OUT (ver
+-- sp_registrar_decision_verificacion, sp_restablecer_contrasena,
+-- sp_cambiar_contrasena). Para una FUNCTION escalar con valor de retorno,
+-- @Query(nativeQuery=true) (mecanismo ya usado en el resto de este archivo
+-- antes del intento fallido) es la opcion correcta y verificada.
+--
 -- Seguridad: parametro formal tipado; sin concatenacion ni EXECUTE.
 -- =============================================================================
 

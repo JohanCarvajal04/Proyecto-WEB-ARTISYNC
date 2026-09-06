@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -7,8 +7,11 @@ import { CreadorContextoService } from '../../services/creador-contexto.service'
 import { ServicioService } from '../../services/servicio.service';
 import { CatalogoService } from '../../services/catalogo.service';
 import { PerfilRequeridoComponent } from '../../components/perfil-requerido.component';
+import { FlujoTrabajoService } from '../../../pedido/services/flujo-trabajo.service';
+import { RespuestaFlujoTrabajo, PeticionCrearFlujoTrabajo, PeticionEtapaConfig } from '../../../pedido/models/pedido.model';
 import {
   RespuestaServicio,
+  RespuestaCategoria,
   RespuestaSubcategoria,
   RespuestaEtiqueta,
   RespuestaAtributo,
@@ -19,10 +22,14 @@ import {
 } from '../../models/creador.model';
 import { mensajeError } from '../../utils/formato';
 
+/** Espejo de PoliticaArchivo.PERFIL (backend): solo imagen, sin SVG, 5 MB. */
+const TIPOS_MINIATURA_PERMITIDOS = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_BYTES_MINIATURA = 5 * 1024 * 1024;
+
 @Component({
   selector: 'app-servicio-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, PerfilRequeridoComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterLink, PerfilRequeridoComponent],
   templateUrl: './servicio-form.component.html',
   styleUrl: './servicio-form.component.css'
 })
@@ -35,17 +42,50 @@ export class ServicioFormComponent implements OnInit {
   private catalogoService = inject(CatalogoService);
   private contexto = inject(CreadorContextoService);
   private toast = inject(ToastService);
+  private flujoService = inject(FlujoTrabajoService);
 
   readonly idServicio = signal<number | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly isSaving = signal<boolean>(false);
   readonly error = signal<string>('');
 
+  readonly categorias = signal<RespuestaCategoria[]>([]);
   readonly subcategorias = signal<RespuestaSubcategoria[]>([]);
   readonly etiquetas = signal<RespuestaEtiqueta[]>([]);
   readonly etiquetasElegidas = signal<number[]>([]);
   readonly nuevaEtiqueta = signal<string>('');
   readonly creandoEtiqueta = signal<boolean>(false);
+
+  // Subcategorías del servicio: varias, elegidas con un "+" (no un solo <select>).
+  readonly subcategoriasElegidas = signal<number[]>([]);
+  subcategoriaParaAgregar: number | null = null;
+
+  // Categoría nueva: pantalla flotante propia, separada del selector de subcategorías.
+  readonly mostrarFormCategoria = signal<boolean>(false);
+  readonly creandoCategoria = signal<boolean>(false);
+  nuevaCategoriaNombre = '';
+
+  // Subcategoría nueva: alta liviana (solo nombre) dentro de este mismo formulario.
+  readonly mostrarFormSubcategoria = signal<boolean>(false);
+  readonly creandoSubcategoria = signal<boolean>(false);
+  categoriaParaNuevaSubcategoria: number | null = null;
+  nuevaSubcategoriaNombre = '';
+
+  // Flujo de trabajo: el creador elige uno de los suyos, o crea uno nuevo sin salir del formulario.
+  readonly flujos = signal<RespuestaFlujoTrabajo[]>([]);
+  readonly mostrarFormFlujo = signal<boolean>(false);
+  readonly creandoFlujo = signal<boolean>(false);
+  formFlujo: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
+  nuevaEtapaFlujo: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
+
+  // Miniatura: se sube el archivo y el campo del form solo guarda la URL resultante.
+  // La vista previa vive en un signal aparte (no en el valor del form) porque
+  // esta app es zoneless: un patchValue() dentro de un subscribe no dispara
+  // detección de cambios por sí solo, así que un <img [src]> atado
+  // directamente al form se quedaría con la miniatura vieja hasta el próximo
+  // evento de plantilla que sí la dispare.
+  readonly previewMiniatura = signal<string>('');
+  readonly subiendoMiniatura = signal<boolean>(false);
 
   // Atributos: solo disponibles al editar, porque cuelgan de un servicio existente.
   readonly atributos = signal<RespuestaAtributo[]>([]);
@@ -70,16 +110,22 @@ export class ServicioFormComponent implements OnInit {
     return Array.from(grupos, ([categoria, items]) => ({ categoria, items }));
   });
 
+  /** Subcategorías ya elegidas, con su nombre, para pintar los chips. */
+  chipsSubcategorias = computed(() => {
+    const elegidas = this.subcategoriasElegidas();
+    return this.subcategorias().filter(s => elegidas.includes(s.idSubcategoria));
+  });
+
   form: FormGroup = this.fb.group({
     tituloServicio: ['', [Validators.required, Validators.maxLength(150)]],
     descripcionDetallada: ['', [Validators.required, Validators.minLength(20), Validators.maxLength(2000)]],
     precioBase: [null as number | null, [Validators.required, Validators.min(0.01)]],
-    idSubcategoria: [null as number | null, [Validators.required]],
     tipoItem: ['SERVICIO' as TipoItem, [Validators.required]],
     estadoPublicacion: ['BORRADOR' as EstadoPublicacion, [Validators.required]],
     urlMiniatura: ['', [Validators.maxLength(255)]],
     cargoRevisionAdicional: [null as number | null, [Validators.min(0)]],
-    limiteRevisionesBase: [null as number | null, [Validators.min(0)]]
+    limiteRevisionesBase: [null as number | null, [Validators.min(0)]],
+    idFlujo: [null as number | null]
   });
 
   formAtributo: FormGroup = this.fb.group({
@@ -111,12 +157,16 @@ export class ServicioFormComponent implements OnInit {
 
   private cargarCatalogos(): void {
     forkJoin({
+      categorias: this.catalogoService.listarCategorias().pipe(catchError(() => of([] as RespuestaCategoria[]))),
       subcategorias: this.catalogoService.listarSubcategorias().pipe(catchError(() => of([] as RespuestaSubcategoria[]))),
-      etiquetas: this.catalogoService.listarEtiquetas().pipe(catchError(() => of([] as RespuestaEtiqueta[])))
+      etiquetas: this.catalogoService.listarEtiquetas().pipe(catchError(() => of([] as RespuestaEtiqueta[]))),
+      flujos: this.flujoService.listarFlujos().pipe(catchError(() => of([] as RespuestaFlujoTrabajo[])))
     }).subscribe({
-      next: ({ subcategorias, etiquetas }) => {
+      next: ({ categorias, subcategorias, etiquetas, flujos }) => {
+        this.categorias.set(categorias);
         this.subcategorias.set(subcategorias);
         this.etiquetas.set(etiquetas);
+        this.flujos.set(flujos);
 
         const id = this.idServicio();
         if (id) {
@@ -139,13 +189,15 @@ export class ServicioFormComponent implements OnInit {
           tituloServicio: servicio.tituloServicio,
           descripcionDetallada: servicio.descripcionDetallada,
           precioBase: servicio.precioBase,
-          idSubcategoria: servicio.idSubcategoria,
           tipoItem: servicio.tipoItem,
           estadoPublicacion: servicio.estadoPublicacion,
           urlMiniatura: servicio.urlMiniatura || '',
           cargoRevisionAdicional: servicio.cargoRevisionAdicional,
-          limiteRevisionesBase: servicio.limiteRevisionesBase
+          limiteRevisionesBase: servicio.limiteRevisionesBase,
+          idFlujo: servicio.idFlujo
         });
+        this.previewMiniatura.set(servicio.urlMiniatura || '');
+        this.subcategoriasElegidas.set((servicio.subcategorias || []).map(s => s.idSubcategoria));
         this.etiquetasElegidas.set((servicio.etiquetas || []).map(e => e.idEtiqueta));
         this.atributos.set(servicio.atributos || []);
         this.isLoading.set(false);
@@ -153,6 +205,90 @@ export class ServicioFormComponent implements OnInit {
       error: (err) => {
         this.error.set(mensajeError(err, 'No se pudo cargar el servicio'));
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  // ── Subcategorías del servicio ──
+
+  agregarSubcategoria(): void {
+    const id = this.subcategoriaParaAgregar;
+    if (id === null) return;
+    if (!this.subcategoriasElegidas().includes(id)) {
+      this.subcategoriasElegidas.update(lista => [...lista, id]);
+    }
+    this.subcategoriaParaAgregar = null;
+  }
+
+  quitarSubcategoriaElegida(id: number): void {
+    this.subcategoriasElegidas.update(lista => lista.filter(i => i !== id));
+  }
+
+  // ── Categoría nueva (pantalla flotante propia) ──
+
+  abrirFormCategoria(): void {
+    this.nuevaCategoriaNombre = '';
+    this.mostrarFormCategoria.set(true);
+  }
+
+  cancelarFormCategoria(): void {
+    this.mostrarFormCategoria.set(false);
+  }
+
+  guardarCategoria(): void {
+    const nombre = this.nuevaCategoriaNombre.trim();
+    if (!nombre) {
+      this.toast.error('Indica el nombre de la categoría');
+      return;
+    }
+
+    this.creandoCategoria.set(true);
+    this.catalogoService.crearCategoria(nombre).subscribe({
+      next: (categoria) => {
+        this.categorias.update(lista => [...lista, categoria]);
+        this.creandoCategoria.set(false);
+        this.mostrarFormCategoria.set(false);
+        this.toast.success(`Categoría «${categoria.nombreCategoria}» creada — un moderador la revisará pronto`);
+      },
+      error: (err) => {
+        this.creandoCategoria.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo crear la categoría'));
+      }
+    });
+  }
+
+  // ── Subcategoría nueva (alta liviana, dentro del mismo formulario) ──
+
+  abrirFormSubcategoria(): void {
+    this.categoriaParaNuevaSubcategoria = this.categorias()[0]?.idCategoria ?? null;
+    this.nuevaSubcategoriaNombre = '';
+    this.mostrarFormSubcategoria.set(true);
+  }
+
+  cancelarFormSubcategoria(): void {
+    this.mostrarFormSubcategoria.set(false);
+  }
+
+  guardarSubcategoria(): void {
+    const idCategoria = this.categoriaParaNuevaSubcategoria;
+    const nombre = this.nuevaSubcategoriaNombre.trim();
+    if (!idCategoria || !nombre) {
+      this.toast.error('Elige una categoría e indica el nombre de la subcategoría');
+      return;
+    }
+
+    this.creandoSubcategoria.set(true);
+    this.catalogoService.crearSubcategoria(idCategoria, nombre).subscribe({
+      next: (subcategoria) => {
+        this.subcategorias.update(lista => [...lista, subcategoria]);
+        this.subcategoriasElegidas.update(lista => [...lista, subcategoria.idSubcategoria]);
+        this.creandoSubcategoria.set(false);
+        this.mostrarFormSubcategoria.set(false);
+        this.toast.success(`Subcategoría «${subcategoria.nombreSubcategoria}» creada — un moderador la revisará pronto`);
+      },
+      error: (err) => {
+        this.creandoSubcategoria.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo crear la subcategoría'));
       }
     });
   }
@@ -203,6 +339,98 @@ export class ServicioFormComponent implements OnInit {
     });
   }
 
+  // ── Miniatura ──
+
+  onMiniaturaSeleccionada(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!TIPOS_MINIATURA_PERMITIDOS.includes(file.type)) {
+      this.toast.error(`Formato no soportado: ${file.type || 'desconocido'}. Se acepta JPG, PNG, WEBP o GIF.`);
+      input.value = '';
+      return;
+    }
+    if (file.size > MAX_BYTES_MINIATURA) {
+      this.toast.error('La imagen supera el máximo de 5 MB.');
+      input.value = '';
+      return;
+    }
+
+    this.subiendoMiniatura.set(true);
+    this.servicioService.subirMiniatura(file).subscribe({
+      next: (resp) => {
+        this.form.patchValue({ urlMiniatura: resp.url });
+        this.previewMiniatura.set(resp.url);
+        this.subiendoMiniatura.set(false);
+      },
+      error: (err) => {
+        this.subiendoMiniatura.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo subir la miniatura'));
+      }
+    });
+    input.value = '';
+  }
+
+  quitarMiniatura(): void {
+    this.form.patchValue({ urlMiniatura: '' });
+    this.previewMiniatura.set('');
+  }
+
+  // ── Flujo de trabajo ──
+
+  abrirFormFlujo(): void {
+    this.formFlujo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
+    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
+    this.mostrarFormFlujo.set(true);
+  }
+
+  cancelarFormFlujo(): void {
+    this.mostrarFormFlujo.set(false);
+  }
+
+  agregarEtapaFlujo(): void {
+    const nombre = this.nuevaEtapaFlujo.nombreEtapa.trim();
+    if (!nombre) return;
+
+    const yaExiste = this.formFlujo.etapas.some(
+      e => e.nombreEtapa.trim().toLowerCase() === nombre.toLowerCase());
+    if (yaExiste) {
+      this.toast.warning(`Ya agregaste una etapa llamada «${nombre}».`);
+      return;
+    }
+
+    this.formFlujo.etapas.push({ ...this.nuevaEtapaFlujo, nombreEtapa: nombre });
+    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: this.formFlujo.etapas.length + 1, esEtapaFinal: false, requiereEntregable: false };
+  }
+
+  quitarEtapaFlujo(index: number): void {
+    this.formFlujo.etapas.splice(index, 1);
+    this.formFlujo.etapas.forEach((e, i) => e.numeroOrden = i + 1);
+  }
+
+  guardarFlujo(): void {
+    if (!this.formFlujo.nombreFlujo.trim() || this.formFlujo.etapas.length === 0) {
+      this.toast.error('El flujo necesita un nombre y al menos una etapa.');
+      return;
+    }
+
+    this.creandoFlujo.set(true);
+    this.flujoService.crearFlujo(this.formFlujo).subscribe({
+      next: (flujo) => {
+        this.flujos.update(lista => [...lista, flujo]);
+        this.form.patchValue({ idFlujo: flujo.idFlujo });
+        this.creandoFlujo.set(false);
+        this.mostrarFormFlujo.set(false);
+        this.toast.success(`Flujo «${flujo.nombreFlujo}» creado`);
+      },
+      error: (err) => {
+        this.creandoFlujo.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo crear el flujo'));
+      }
+    });
+  }
+
   // ── Guardado del servicio ──
 
   invalido(campo: string): boolean {
@@ -211,8 +439,11 @@ export class ServicioFormComponent implements OnInit {
   }
 
   guardar(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.subcategoriasElegidas().length === 0) {
       this.form.markAllAsTouched();
+      if (this.subcategoriasElegidas().length === 0) {
+        this.toast.error('Elige al menos una subcategoría');
+      }
       return;
     }
     const perfil = this.contexto.perfil();
@@ -223,11 +454,12 @@ export class ServicioFormComponent implements OnInit {
       tituloServicio: val.tituloServicio!,
       descripcionDetallada: val.descripcionDetallada!,
       precioBase: Number(val.precioBase),
-      idSubcategoria: Number(val.idSubcategoria),
+      idsSubcategoria: this.subcategoriasElegidas(),
       tipoItem: val.tipoItem as TipoItem,
       urlMiniatura: val.urlMiniatura || null,
       cargoRevisionAdicional: val.cargoRevisionAdicional !== null ? Number(val.cargoRevisionAdicional) : null,
       limiteRevisionesBase: val.limiteRevisionesBase !== null ? Number(val.limiteRevisionesBase) : null,
+      idFlujo: val.idFlujo !== null ? Number(val.idFlujo) : null,
       etiquetaIds: this.etiquetasElegidas()
     };
 

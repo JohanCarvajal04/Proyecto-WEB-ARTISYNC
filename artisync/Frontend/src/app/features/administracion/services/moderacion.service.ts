@@ -5,7 +5,7 @@ import { environment } from '../../../../environments/environment';
 import {
   VerificacionCola, VerificacionDetalle, DecisionVerificacion,
   CertificadoIa, Portafolio, Categoria, CrearCategoria, ActualizarCategoria,
-  Subcategoria, CrearSubcategoria, Etiqueta, Comentario
+  Subcategoria, CrearSubcategoria, Etiqueta, Comentario, RespuestaServicioResumido
 } from '../models/moderacion.model';
 import { MessageResponse } from '../../../shared/models/common.model';
 import { Pagina, normalizarPagina } from '../../../shared/models/pagina.model';
@@ -135,8 +135,18 @@ export class ModeracionService {
     return this.http.put<Categoria>(`${environment.apiUrl}/v1/categorias/${id}`, data);
   }
 
-  eliminarCategoria(id: number): Observable<MessageResponse> {
-    return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/categorias/${id}`);
+  /** `motivo` es obligatorio si la categoria la creó un creador (se le notifica). */
+  eliminarCategoria(id: number, motivo?: string): Observable<MessageResponse> {
+    const params = motivo ? new HttpParams().set('motivo', motivo) : undefined;
+    return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/categorias/${id}`, { params });
+  }
+
+  listarCategoriasPendientesRevision(): Observable<Categoria[]> {
+    return this.http.get<Categoria[]>(`${environment.apiUrl}/v1/categorias/pendientes-revision`);
+  }
+
+  marcarCategoriaRevisada(id: number): Observable<Categoria> {
+    return this.http.patch<Categoria>(`${environment.apiUrl}/v1/categorias/${id}/revisar`, {});
   }
 
   // ─── Subcategorías y etiquetas (solo ADMIN) ───
@@ -149,8 +159,18 @@ export class ModeracionService {
     return this.http.post<Subcategoria>(`${environment.apiUrl}/v1/subcategorias`, data);
   }
 
-  eliminarSubcategoria(id: number): Observable<MessageResponse> {
-    return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/subcategorias/${id}`);
+  /** `motivo` es obligatorio si la subcategoria la creó un creador (se le notifica). */
+  eliminarSubcategoria(id: number, motivo?: string): Observable<MessageResponse> {
+    const params = motivo ? new HttpParams().set('motivo', motivo) : undefined;
+    return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/subcategorias/${id}`, { params });
+  }
+
+  listarSubcategoriasPendientesRevision(): Observable<Subcategoria[]> {
+    return this.http.get<Subcategoria[]>(`${environment.apiUrl}/v1/subcategorias/pendientes-revision`);
+  }
+
+  marcarSubcategoriaRevisada(id: number): Observable<Subcategoria> {
+    return this.http.patch<Subcategoria>(`${environment.apiUrl}/v1/subcategorias/${id}/revisar`, {});
   }
 
   listarEtiquetas(): Observable<Etiqueta[]> {
@@ -159,5 +179,19 @@ export class ModeracionService {
 
   eliminarEtiqueta(id: number): Observable<MessageResponse> {
     return this.http.delete<MessageResponse>(`${environment.apiUrl}/v1/etiquetas/${id}`);
+  }
+
+  // ─── Servicios (SERVICIO_MODERAR) ───
+
+  /** No filtra por estado de publicación: la moderación necesita ver borradores y pausados también. */
+  listarServiciosParaModeracion(texto = '', page = 0, size = 20): Observable<Pagina<RespuestaServicioResumido>> {
+    let params = new HttpParams().set('page', page).set('size', size);
+    if (texto) params = params.set('texto', texto);
+    return this.http.get(`${environment.apiUrl}/v1/admin/servicios`, { params })
+      .pipe(map(crudo => normalizarPagina<RespuestaServicioResumido>(crudo)));
+  }
+
+  quitarSubcategoriaDeServicio(idServicio: number, idSubcategoria: number): Observable<unknown> {
+    return this.http.delete(`${environment.apiUrl}/v1/admin/servicios/${idServicio}/subcategorias/${idSubcategoria}`);
   }
 }

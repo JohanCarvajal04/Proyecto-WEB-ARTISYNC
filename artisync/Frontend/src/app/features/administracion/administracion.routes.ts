@@ -60,6 +60,12 @@ export const ADMINISTRACION_ROUTES: Routes = [
     loadComponent: () => import('./pages/mod-categorias/mod-categorias.component').then(m => m.ModCategoriasComponent)
   },
   {
+    path: 'mod-servicios',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.serviciosModeracion },
+    loadComponent: () => import('./pages/mod-servicios/mod-servicios.component').then(m => m.ModServiciosComponent)
+  },
+  {
     path: 'paises',
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.paises },
@@ -108,5 +114,11 @@ export const ADMINISTRACION_ROUTES: Routes = [
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.pagosGarantia },
     loadComponent: () => import('./pages/pagos-garantia/pagos-garantia.component').then(m => m.PagosGarantiaComponent)
+  },
+  {
+    path: 'retiros',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.retirosAdmin },
+    loadComponent: () => import('./pages/retiros/retiros-admin.component').then(m => m.RetirosAdminComponent)
   }
 ];
