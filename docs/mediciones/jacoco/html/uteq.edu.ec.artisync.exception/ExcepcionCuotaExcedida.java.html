@@ -12,9 +12,9 @@ public class ExcepcionCuotaExcedida extends RuntimeException {
     private final long retryAfterSegundos;
 
     public ExcepcionCuotaExcedida(String mensaje, long retryAfterSegundos) {
-<span class="nc" id="L15">        super(mensaje);</span>
-<span class="nc" id="L16">        this.retryAfterSegundos = retryAfterSegundos;</span>
-<span class="nc" id="L17">    }</span>
+<span class="fc" id="L15">        super(mensaje);</span>
+<span class="fc" id="L16">        this.retryAfterSegundos = retryAfterSegundos;</span>
+<span class="fc" id="L17">    }</span>
 
     public long getRetryAfterSegundos() {
 <span class="nc" id="L20">        return retryAfterSegundos;</span>

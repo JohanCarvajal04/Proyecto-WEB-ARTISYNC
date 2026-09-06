@@ -128,6 +128,71 @@ class SorteoServiceImplTest {
                 .hasMessageContaining("posterior a la fecha de inicio");
     }
 
+    @Test
+    @DisplayName("crearSorteo — lanza recurso no encontrado si el usuario no tiene perfil de creador")
+    void crearSorteo_sinPerfilCreador_lanzaExcepcion() {
+        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
+                .fechaInicio(LocalDateTime.now().plusHours(1))
+                .fechaCierre(LocalDateTime.now().plusDays(2))
+                .build();
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sorteoService.crearSorteo(99L, peticion))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("actualizarSorteo — aplica la nueva fecha de cierre cuando no hay participantes")
+    void actualizarSorteo_sinParticipantes_aplicaFechaCierre() {
+        LocalDateTime nuevaFecha = sorteoActivo.getFechaCierre().plusDays(5);
+        var peticion = PeticionActualizarSorteo.builder().fechaCierre(nuevaFecha).build();
+
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
+        given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
+        given(sorteoRepository.save(any(Sorteo.class))).willReturn(sorteoActivo);
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
+
+        sorteoService.actualizarSorteo(100L, 1L, peticion);
+
+        assertThat(sorteoActivo.getFechaCierre()).isEqualTo(nuevaFecha);
+    }
+
+    @Test
+    @DisplayName("actualizarSorteo — lanza recurso no encontrado si el usuario no tiene perfil de creador")
+    void actualizarSorteo_sinPerfilCreador_lanzaExcepcion() {
+        var peticion = PeticionActualizarSorteo.builder().tituloSorteo("X").build();
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 99L, peticion))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("listarSorteosPorCreador — marca yoParticipo cuando el usuario actual esta inscrito")
+    void listarSorteosPorCreador_conUsuarioActual_marcaParticipacion() {
+        given(sorteoRepository.findByPerfilCreadorIdPerfil(10L)).willReturn(List.of(sorteoActivo));
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
+        given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(true);
+
+        List<RespuestaSorteo> resultado = sorteoService.listarSorteosPorCreador(10L, 2L);
+
+        assertThat(resultado.get(0).isYoParticipo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("listarSorteosActivos — marca yoParticipo=false cuando el usuario actual no esta inscrito")
+    void listarSorteosActivos_conUsuarioActual_sinParticipar() {
+        given(sorteoRepository.findByEstadoSorteo("Activo")).willReturn(List.of(sorteoActivo));
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
+        given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(false);
+
+        List<RespuestaSorteo> resultado = sorteoService.listarSorteosActivos(2L);
+
+        assertThat(resultado.get(0).isYoParticipo()).isFalse();
+    }
+
     // =========================================================================
     // participar
     // =========================================================================

@@ -347,6 +347,122 @@ class PedidoServicioImplTest {
         verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
     }
 
+    @Test
+    @DisplayName("rechazarPropuestaTerminos rechaza que quien propuso rechace su propia propuesta")
+    void rechazarPropuestaTerminos_rechazaAutoRechazo() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.rechazarPropuestaTerminos(10L, 7L, 1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("propia propuesta");
+        verify(propuestaTerminosPedidoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("cancelarPropuestaTerminos marca la propuesta cancelada cuando la cancela quien la propuso")
+    void cancelarPropuestaTerminos_marcaCancelada() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+        given(propuestaTerminosPedidoRepository.save(any(PropuestaTerminosPedido.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        RespuestaPropuestaTerminos respuesta = pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L);
+
+        assertThat(respuesta.getEstado()).isEqualTo(PropuestaTerminosPedido.CANCELADA);
+    }
+
+    @Test
+    @DisplayName("cancelarPropuestaTerminos rechaza a quien no propuso los terminos")
+    void cancelarPropuestaTerminos_rechazaNoPropietario() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 999L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("Solo quien propuso");
+        verify(propuestaTerminosPedidoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendienteDelPedido — propuesta inexistente lanza excepcion")
+    void propuestaTerminos_propuestaInexistente_lanzaExcepcion() {
+        given(propuestaTerminosPedidoRepository.findById(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 99L, 1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class)
+                .hasMessageContaining("Propuesta no encontrada");
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendienteDelPedido — propuesta de otro pedido lanza excepcion")
+    void propuestaTerminos_propuestaDeOtroPedido_lanzaExcepcion() {
+        Pedido otroPedido = Pedido.builder().idPedido(20L).build();
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(otroPedido).propuestoPor(cliente)
+                .estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class)
+                .hasMessageContaining("Propuesta no encontrada");
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendienteDelPedido — propuesta ya resuelta lanza excepcion")
+    void propuestaTerminos_propuestaYaResuelta_lanzaExcepcion() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .estado(PropuestaTerminosPedido.ACEPTADA).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("ya fue resuelta");
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendiente — devuelve la propuesta pendiente del pedido")
+    void obtenerPropuestaPendiente_devuelvePropuesta() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(10L, PropuestaTerminosPedido.PENDIENTE))
+                .willReturn(Optional.of(propuesta));
+
+        RespuestaPropuestaTerminos respuesta = pedidoServicio.obtenerPropuestaPendiente(10L, 1L);
+
+        assertThat(respuesta.getIdPropuesta()).isEqualTo(7L);
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendiente — sin propuesta pendiente lanza excepcion")
+    void obtenerPropuestaPendiente_sinPropuesta_lanzaExcepcion() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(10L, PropuestaTerminosPedido.PENDIENTE))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pedidoServicio.obtenerPropuestaPendiente(10L, 1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendiente — usuario ajeno al pedido recibe AccessDenied")
+    void obtenerPropuestaPendiente_usuarioAjeno_lanzaAccessDenied() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+
+        assertThatThrownBy(() -> pedidoServicio.obtenerPropuestaPendiente(10L, 999L))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
     // ---------- obtenerPedidoPorId (IDOR, OBS-08) ----------
 
     @Test

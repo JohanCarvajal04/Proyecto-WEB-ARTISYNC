@@ -87,6 +87,30 @@ class RolePermissionServiceImplTest {
     }
 
     @Test
+    void createRole_SinPermisosInicialesYRolSinPermisos_DevuelveListaVacia() {
+        CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", null);
+        Rol rolSinPermisos = Rol.builder().idRol(10L).nombreRol("SUPERVISOR").permisos(null).build();
+        when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0])).thenReturn(10L);
+        when(rolRepository.findById(10L)).thenReturn(Optional.of(rolSinPermisos));
+
+        RolResponse res = service.createRole(req);
+
+        assertNotNull(res);
+        assertEquals(List.of(), res.getPermisos());
+        verify(rolRepository).crearRol("SUPERVISOR", "Rol de supervisión", new String[0]);
+    }
+
+    @Test
+    void createRole_ThrowsInternalError_CuandoNoEncuentraElRolReciénCreado() {
+        CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", List.of());
+        when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0])).thenReturn(10L);
+        when(rolRepository.findById(10L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createRole(req));
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+    }
+
+    @Test
     void createRole_ConflictWhenRoleExists() {
         CreateRoleRequest req = new CreateRoleRequest("SUPERVISOR", "Rol de supervisión", List.of());
         when(rolRepository.crearRol("SUPERVISOR", "Rol de supervisión", new String[0]))
@@ -107,6 +131,16 @@ class RolePermissionServiceImplTest {
 
         assertNotNull(res);
         verify(rolRepository).save(any(Rol.class));
+    }
+
+    @Test
+    void updateRole_ThrowsNotFound_WhenRolNoExiste() {
+        when(rolRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.updateRole(99L, new UpdateRoleRequest("x")));
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(rolRepository, never()).save(any(Rol.class));
     }
 
     // ── deleteRole (REQ-F-004 / fn_eliminar_rol) ────────────────────────────
@@ -284,6 +318,28 @@ class RolePermissionServiceImplTest {
                 .thenThrow(excepcionSql("P0002", "Rol no encontrado: FANTASMA"));
 
         assertThrows(ResponseStatusException.class, () -> service.syncPermissions("fantasma", List.of()));
+    }
+
+    @Test
+    void syncPermissions_CapturaPermisosAntesDelCambio_CuandoRolExistenteTienePermisos() {
+        Permiso permiso = Permiso.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").build();
+        Rol rolConPermisos = Rol.builder()
+                .idRol(10L).nombreRol("SUPERVISOR")
+                .permisos(new HashSet<>(Set.of(permiso)))
+                .build();
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolConPermisos));
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class))).thenReturn(1);
+
+        assertDoesNotThrow(() -> service.syncPermissions("supervisor", List.of("catalogo_ver")));
+    }
+
+    @Test
+    void syncPermissions_CapturaListaVacia_CuandoRolExistenteSinPermisosAsignados() {
+        Rol rolSinPermisos = Rol.builder().idRol(10L).nombreRol("SUPERVISOR").permisos(null).build();
+        when(rolRepository.findByNombreRol("SUPERVISOR")).thenReturn(Optional.of(rolSinPermisos));
+        when(rolRepository.sincronizarPermisos(eq("SUPERVISOR"), any(String[].class))).thenReturn(1);
+
+        assertDoesNotThrow(() -> service.syncPermissions("supervisor", List.of("catalogo_ver")));
     }
 
     @Test

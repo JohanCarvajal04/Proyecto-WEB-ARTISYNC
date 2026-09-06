@@ -38,9 +38,14 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
+import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
+import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -67,6 +72,8 @@ class AdminUserServiceImplTest {
     private AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     @Mock
     private jakarta.persistence.EntityManager entityManager;
+    @Mock
+    private IServicioExportacion servicioExportacion;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
@@ -306,6 +313,22 @@ class AdminUserServiceImplTest {
     }
 
     @Test
+    void updateUser_ShouldUpdateApellidosAndFechaNacimiento() {
+        AdminUpdateUserRequest request = AdminUpdateUserRequest.builder()
+                .apellidos("Nuevos Apellidos")
+                .fechaNacimiento(java.time.LocalDate.of(1990, 6, 15))
+                .build();
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        adminUserService.updateUser(1L, request);
+
+        assertEquals("Nuevos Apellidos", usuario.getApellidos());
+        assertEquals(java.time.LocalDate.of(1990, 6, 15), usuario.getFechaNacimiento());
+    }
+
+    @Test
     void updateUser_ShouldClearPais_WhenIdPaisEsCero() {
         AdminUpdateUserRequest request = AdminUpdateUserRequest.builder().idPais(0L).build();
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
@@ -427,6 +450,36 @@ class AdminUserServiceImplTest {
     }
 
     @Test
+    void assignRoles_ShouldCapturarRolesAnteriores_CuandoUsuarioYaTeniaRoles() {
+        Rol rolAnterior = Rol.builder().idRol(3L).nombreRol("CLIENTE").build();
+        UsuarioRol usuarioRolAnterior = UsuarioRol.builder().rol(rolAnterior).build();
+        AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("CREADOR")).build();
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(usuarioRolAnterior));
+        when(usuarioRolRepository.sincronizarRoles(1L, new String[]{"CREADOR"})).thenReturn(1);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        UserResponse result = adminUserService.assignRoles(1L, request, 999L);
+
+        assertNotNull(result);
+        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+    }
+
+    @Test
+    void assignRoles_ShouldThrowBadRequest_WhenRolInexistente() {
+        AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("FANTASMA")).build();
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of());
+        when(usuarioRolRepository.sincronizarRoles(1L, new String[]{"FANTASMA"}))
+                .thenThrow(excepcionSql("23503", "Uno o mas roles son inexistentes"));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> adminUserService.assignRoles(1L, request, 999L));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(sessionRevocationService, never()).revocarSesionesUsuario(any());
+    }
+
+    @Test
     void assignRoles_ShouldThrowNotFound_WhenUsuarioNoExiste() {
         AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("CLIENTE")).build();
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
@@ -485,5 +538,81 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.existsById(99L)).thenReturn(false);
 
         assertThrows(ResponseStatusException.class, () -> adminUserService.revokeUserSessions(99L));
+    }
+
+    // ── exportar (USUARIO_EXPORTAR) ─────────────────────────────────────────
+
+    @Test
+    void exportar_ShouldThrowReglaNegocio_WhenExcedeTopeDeFilas() {
+        when(usuarioRepository.count(any(Specification.class))).thenReturn((long) FormatoReporte.CSV.topeFilas() + 1);
+
+        FiltroUsuario filtro = new FiltroUsuario();
+        assertThrows(uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio.class,
+                () -> adminUserService.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev"));
+        verify(usuarioRepository, never()).findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class));
+    }
+
+    @Test
+    void exportar_ShouldConstruirModeloConFiltrosCompletos() {
+        when(usuarioRepository.count(any(Specification.class))).thenReturn(1L);
+        Page<Usuario> pagina = new PageImpl<>(List.of(usuario));
+        when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(pagina);
+        when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
+        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "text/csv", "usuarios.csv");
+        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV)))
+                .thenReturn(esperado);
+
+        FiltroUsuario filtro = new FiltroUsuario();
+        filtro.setBusqueda("ana");
+        filtro.setRol("ADMIN");
+        filtro.setEstadoCuenta(true);
+
+        DocumentoGenerado resultado = adminUserService.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+
+        assertSame(esperado, resultado);
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        ModeloReporte<UserResponse> modelo = captor.getValue();
+        assertEquals(List.of(userResponse), modelo.getFilas());
+        assertEquals("admin@artisync.dev", modelo.getGeneradoPor());
+        assertEquals(Map.of("Búsqueda", "ana", "Rol", "ADMIN", "Estado", "Activo"), modelo.getFiltrosAplicados());
+    }
+
+    @Test
+    void exportar_ShouldReportarEstadoSuspendido_WhenEstadoCuentaEsFalse() {
+        when(usuarioRepository.count(any(Specification.class))).thenReturn(1L);
+        Page<Usuario> pagina = new PageImpl<>(List.of(usuario));
+        when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(pagina);
+        when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
+        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV)))
+                .thenReturn(new DocumentoGenerado(new byte[]{1}, "text/csv", "usuarios.csv"));
+
+        FiltroUsuario filtro = new FiltroUsuario();
+        filtro.setEstadoCuenta(false);
+
+        adminUserService.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        assertEquals("Suspendido", captor.getValue().getFiltrosAplicados().get("Estado"));
+    }
+
+    @Test
+    void exportar_ShouldConstruirModeloSinFiltros_WhenFiltroVacio() {
+        when(usuarioRepository.count(any(Specification.class))).thenReturn(1L);
+        Page<Usuario> pagina = new PageImpl<>(List.of(usuario));
+        when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(pagina);
+        when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
+        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV)))
+                .thenReturn(new DocumentoGenerado(new byte[]{1}, "text/csv", "usuarios.csv"));
+
+        adminUserService.exportar(new FiltroUsuario(), FormatoReporte.CSV, "admin@artisync.dev");
+
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        assertTrue(captor.getValue().getFiltrosAplicados().isEmpty());
     }
 }

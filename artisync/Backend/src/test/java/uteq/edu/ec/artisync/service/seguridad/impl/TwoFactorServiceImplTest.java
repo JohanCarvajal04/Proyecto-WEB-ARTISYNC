@@ -1,5 +1,7 @@
 package uteq.edu.ec.artisync.service.seguridad.impl;
 
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
 import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import uteq.edu.ec.artisync.entity.seguridad.Rol;
@@ -162,5 +165,100 @@ class TwoFactorServiceImplTest {
         verify(intentosAutenticacionService).limpiar("2fa-desactivar-cuenta", "creador@example.com");
         verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
         verify(autenticacionDosFactoresRepository).desactivar2Fa(1L);
+    }
+
+    @Test
+    void disable2Fa_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(usuarioRepository.findByCorreo("nadie@example.com")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.disable2Fa("nadie@example.com", "123456"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void disable2Fa_ShouldThrowBadRequest_When2FaNoConfigurado() {
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.disable2Fa("creador@example.com", "123456"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void disable2Fa_ShouldThrowBadRequest_WhenNoEstaActivo() {
+        AutenticacionDosFactores dosFactoresInactivo = AutenticacionDosFactores.builder()
+                .llaveSecreta("SECRETO").estaHabilitado(false).build();
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactoresInactivo));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.disable2Fa("creador@example.com", "123456"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(codigoRespaldo2FaRepository, never()).consumirCodigoRespaldo(anyLong(), anyString());
+    }
+
+    // ── confirm2Fa (activacion tras setup2Fa) ───────────────────────────────
+
+    @Test
+    void confirm2Fa_ShouldThrowNotFound_WhenUsuarioNoExiste() {
+        when(usuarioRepository.findByCorreo("nadie@example.com")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.confirm2Fa("nadie@example.com", "123456"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void confirm2Fa_ShouldThrowBadRequest_When2FaNoIniciado() {
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.confirm2Fa("creador@example.com", "123456"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void confirm2Fa_ShouldIncrementarCuota_WhenCodigoTotpInvalido() {
+        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+                .llaveSecreta("SECRETO").estaHabilitado(false).build();
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> twoFactorService.confirm2Fa("creador@example.com", "000000"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verify(intentosAutenticacionService).verificarCuota(
+                eq("2fa-confirmar-cuenta"), eq("creador@example.com"), anyInt(), any());
+        verify(autenticacionDosFactoresRepository, never()).save(any());
+    }
+
+    @Test
+    void confirm2Fa_ShouldActivar_WhenCodigoTotpValido() {
+        GoogleAuthenticator gAuth = new GoogleAuthenticator();
+        GoogleAuthenticatorKey key = gAuth.createCredentials();
+        String secreto = key.getKey();
+        String codigoValido = String.format("%06d", gAuth.getTotpPassword(secreto));
+
+        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+                .llaveSecreta(secreto).estaHabilitado(false).build();
+        when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
+        when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
+
+        RespuestaMensaje respuesta = twoFactorService.confirm2Fa("creador@example.com", codigoValido);
+
+        assertNotNull(respuesta);
+        assertTrue(dosFactores.getEstaHabilitado());
+        verify(intentosAutenticacionService).limpiar("2fa-confirmar-cuenta", "creador@example.com");
+        verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
+        verify(autenticacionDosFactoresRepository).save(dosFactores);
     }
 }

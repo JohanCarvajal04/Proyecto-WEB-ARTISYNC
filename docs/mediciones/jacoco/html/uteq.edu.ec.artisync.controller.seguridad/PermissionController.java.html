@@ -26,17 +26,17 @@ import java.util.List;
     @Operation(summary = &quot;Obtener códigos de permisos activos para el usuario autenticado (sin prefijo ROLE_)&quot;)
     @GetMapping(&quot;/me&quot;)
     public ResponseEntity&lt;List&lt;String&gt;&gt; getMyPermissions() {
-<span class="nc" id="L29">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="nc bnc" id="L30" title="All 4 branches missed.">        if (auth == null || !auth.isAuthenticated()) {</span>
-<span class="nc" id="L31">            return ResponseEntity.status(401).build();</span>
+<span class="fc" id="L29">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L30" title="All 4 branches covered.">        if (auth == null || !auth.isAuthenticated()) {</span>
+<span class="fc" id="L31">            return ResponseEntity.status(401).build();</span>
         }
 
-<span class="nc" id="L34">        List&lt;String&gt; permissions = auth.getAuthorities().stream()</span>
-<span class="nc" id="L35">                .map(GrantedAuthority::getAuthority)</span>
-<span class="nc bnc" id="L36" title="All 2 branches missed.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
-<span class="nc" id="L37">                .toList();</span>
+<span class="fc" id="L34">        List&lt;String&gt; permissions = auth.getAuthorities().stream()</span>
+<span class="fc" id="L35">                .map(GrantedAuthority::getAuthority)</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L37">                .toList();</span>
 
-<span class="nc" id="L39">        return ResponseEntity.ok(permissions);</span>
+<span class="fc" id="L39">        return ResponseEntity.ok(permissions);</span>
     }
 }
 

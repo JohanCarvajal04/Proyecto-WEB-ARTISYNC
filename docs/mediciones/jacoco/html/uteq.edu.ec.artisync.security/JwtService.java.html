@@ -61,11 +61,11 @@ public class JwtService {
 <span class="fc" id="L61">    }</span>
 
     public long getExpirationMs() {
-<span class="nc" id="L64">        return expirationMs;</span>
+<span class="fc" id="L64">        return expirationMs;</span>
     }
 
     public long getRefreshExpirationMs() {
-<span class="nc" id="L68">        return refreshExpirationMs;</span>
+<span class="fc" id="L68">        return refreshExpirationMs;</span>
     }
 
     public String generarToken(UserDetails userDetails) {
@@ -139,13 +139,13 @@ public class JwtService {
     }
 
     public String extraerJti(String token) {
-<span class="nc" id="L142">        return extraerTodosLosClaims(token).getId();</span>
+<span class="fc" id="L142">        return extraerTodosLosClaims(token).getId();</span>
     }
 
     public long extraerTiempoRestante(String token) {
-<span class="nc" id="L146">        Date expiracion = extraerTodosLosClaims(token).getExpiration();</span>
-<span class="nc" id="L147">        long restante = expiracion.getTime() - System.currentTimeMillis();</span>
-<span class="nc" id="L148">        return Math.max(0, restante);</span>
+<span class="fc" id="L146">        Date expiracion = extraerTodosLosClaims(token).getExpiration();</span>
+<span class="fc" id="L147">        long restante = expiracion.getTime() - System.currentTimeMillis();</span>
+<span class="fc" id="L148">        return Math.max(0, restante);</span>
     }
 
     /**
@@ -164,27 +164,27 @@ public class JwtService {
 <span class="pc bpc" id="L164" title="1 of 2 branches missed.">            return username != null</span>
 <span class="fc bfc" id="L165" title="All 2 branches covered.">                    &amp;&amp; username.equals(userDetails.getUsername())</span>
 <span class="fc bfc" id="L166" title="All 2 branches covered.">                    &amp;&amp; userDetails.isEnabled()</span>
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">                    &amp;&amp; userDetails.isAccountNonLocked();</span>
-<span class="nc" id="L168">        } catch (JwtException | IllegalArgumentException e) {</span>
-<span class="nc" id="L169">            return false;</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">                    &amp;&amp; userDetails.isAccountNonLocked();</span>
+<span class="fc" id="L168">        } catch (JwtException | IllegalArgumentException e) {</span>
+<span class="fc" id="L169">            return false;</span>
         }
     }
 
     public boolean esRefreshTokenValido(String token, UserDetails userDetails) {
 <span class="fc" id="L174">        String username = extraerUsername(token);</span>
 <span class="fc" id="L175">        Date expiracion = parsear(token).getPayload().getExpiration();</span>
-<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        return username.equals(userDetails.getUsername())</span>
-<span class="pc bpc" id="L177" title="1 of 2 branches missed.">                &amp;&amp; expiracion.after(new Date())</span>
-<span class="pc bpc" id="L178" title="1 of 2 branches missed.">                &amp;&amp; esRefreshToken(token)</span>
-<span class="pc bpc" id="L179" title="1 of 2 branches missed.">                &amp;&amp; userDetails.isEnabled()</span>
-<span class="pc bnc" id="L180" title="All 2 branches missed.">                &amp;&amp; userDetails.isAccountNonLocked();</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        return username.equals(userDetails.getUsername())</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">                &amp;&amp; expiracion.after(new Date())</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">                &amp;&amp; esRefreshToken(token)</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">                &amp;&amp; userDetails.isEnabled()</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">                &amp;&amp; userDetails.isAccountNonLocked();</span>
     }
 
     public boolean esRefreshToken(String token) {
         try {
 <span class="fc" id="L185">            return TIPO_REFRESH.equals(extraerTodosLosClaims(token).get(&quot;type&quot;));</span>
-<span class="nc" id="L186">        } catch (Exception e) {</span>
-<span class="nc" id="L187">            return false;</span>
+<span class="fc" id="L186">        } catch (Exception e) {</span>
+<span class="fc" id="L187">            return false;</span>
         }
     }
 

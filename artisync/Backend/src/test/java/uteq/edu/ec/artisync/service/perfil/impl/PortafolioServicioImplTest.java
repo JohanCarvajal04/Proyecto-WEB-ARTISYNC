@@ -169,6 +169,30 @@ class PortafolioServicioImplTest {
     }
 
     @Test
+    @DisplayName("actualizarPortafolio no modifica nada cuando ningun campo viene informado")
+    void actualizarPortafolio_sinCambios_mantieneValoresOriginales() {
+        given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
+        given(portafolioRepository.save(any(Portafolio.class))).willAnswer(inv -> inv.getArgument(0));
+
+        RespuestaPortafolio respuesta = portafolioServicio.actualizarPortafolio(
+                10L, new PeticionActualizarPortafolio(null, null), ID_USUARIO_DUENIO);
+
+        assertThat(respuesta.esPublico()).isTrue();
+    }
+
+    @Test
+    @DisplayName("obtenerPortafolioPorId usa idPerfil nulo cuando el portafolio no tiene perfil asociado")
+    void obtenerPortafolioPorId_sinPerfilAsociado_idPerfilNulo() {
+        Portafolio sinPerfil = Portafolio.builder().idPortafolio(11L).perfil(null).esPublico(true)
+                .totalVisitasAcumuladas(0).build();
+        given(portafolioRepository.findById(11L)).willReturn(Optional.of(sinPerfil));
+
+        RespuestaPortafolio respuesta = portafolioServicio.obtenerPortafolioPorId(11L);
+
+        assertThat(respuesta.idPerfil()).isNull();
+    }
+
+    @Test
     @DisplayName("actualizarPortafolio lanza recurso no encontrado si no existe")
     void actualizarPortafolio_inexistente() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());

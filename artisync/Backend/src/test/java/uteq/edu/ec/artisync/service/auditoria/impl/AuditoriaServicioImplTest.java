@@ -145,6 +145,71 @@ class AuditoriaServicioImplTest {
         assertThat(auditoriaServicio.listarAccionesDisponibles()).containsExactly("PAIS_CREAR", "USUARIO_CREAR");
     }
 
+    @Test
+    @DisplayName("exportar() incluye en filtrosAplicados todos los campos del filtro cuando vienen informados")
+    void exportar_FiltroCompleto_IncluyeTodosLosFiltrosLegibles() {
+        Page<EventoAuditoria> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
+        when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(pagina);
+        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.CSV)))
+                .thenReturn(new DocumentoGenerado(new byte[]{1}, "text/csv", "auditoria.csv"));
+
+        FiltroAuditoria filtro = new FiltroAuditoria();
+        filtro.setCorreoActor("ana@artisync.dev");
+        filtro.setAccion("PAIS_CREAR");
+        filtro.setModulo("SISTEMA");
+        filtro.setResultado("EXITO");
+        filtro.setEntidad("pais");
+        filtro.setDesde(LocalDateTime.of(2026, 1, 1, 0, 0));
+        filtro.setHasta(LocalDateTime.of(2026, 1, 31, 23, 59));
+
+        auditoriaServicio.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+
+        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.CSV));
+        Map<String, String> filtrosAplicados = captor.getValue().getFiltrosAplicados();
+        assertThat(filtrosAplicados)
+                .containsEntry("Actor", "ana@artisync.dev")
+                .containsEntry("Acción", "PAIS_CREAR")
+                .containsEntry("Módulo", "SISTEMA")
+                .containsEntry("Resultado", "EXITO")
+                .containsEntry("Entidad", "pais")
+                .containsKey("Desde")
+                .containsKey("Hasta");
+    }
+
+    @Test
+    @DisplayName("listar() ignora un orden por una columna sin índice y usa fechaEvento DESC")
+    void listar_OrdenNoPermitido_UsaOrdenSeguroPorDefecto() {
+        Page<EventoAuditoria> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
+        when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(pagina);
+        Pageable pageableInseguro = PageRequest.of(0, 20, org.springframework.data.domain.Sort.by("detalleCambio"));
+
+        auditoriaServicio.listar(new FiltroAuditoria(), pageableInseguro);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(eventoAuditoriaRepository).findAll(any(Specification.class), captor.capture());
+        assertThat(captor.getValue().getSort().getOrderFor("fechaEvento")).isNotNull();
+        assertThat(captor.getValue().getSort().getOrderFor("fechaEvento").getDirection())
+                .isEqualTo(org.springframework.data.domain.Sort.Direction.DESC);
+    }
+
+    @Test
+    @DisplayName("listar() respeta un orden permitido explícito")
+    void listar_OrdenPermitido_SeRespeta() {
+        Page<EventoAuditoria> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
+        when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(pagina);
+        Pageable pageableSeguro = PageRequest.of(0, 20, org.springframework.data.domain.Sort.by("correoActor"));
+
+        auditoriaServicio.listar(new FiltroAuditoria(), pageableSeguro);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(eventoAuditoriaRepository).findAll(any(Specification.class), captor.capture());
+        assertThat(captor.getValue().getSort().getOrderFor("correoActor")).isNotNull();
+    }
+
     private EventoAuditoria eventoDe(Long id, String accion) {
         return EventoAuditoria.builder()
                 .idEventoAuditoria(id)

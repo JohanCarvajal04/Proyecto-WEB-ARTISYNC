@@ -42,44 +42,44 @@ public class IntentosAutenticacionService {
      * costo de abuso (email potencialmente enviado) exista o no la cuenta.
      */
     public void verificarCuota(String ambito, String identificador, int limite, Duration ventana) {
-<span class="nc" id="L45">        String clave = construirClave(ambito, identificador);</span>
+<span class="fc" id="L45">        String clave = construirClave(ambito, identificador);</span>
         try {
-<span class="nc" id="L47">            Long intentos = redisTemplate.opsForValue().increment(clave);</span>
-<span class="nc bnc" id="L48" title="All 4 branches missed.">            if (intentos != null &amp;&amp; intentos == 1L) {</span>
-<span class="nc" id="L49">                redisTemplate.expire(clave, ventana);</span>
+<span class="fc" id="L47">            Long intentos = redisTemplate.opsForValue().increment(clave);</span>
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos == 1L) {</span>
+<span class="fc" id="L49">                redisTemplate.expire(clave, ventana);</span>
             }
 
-<span class="nc bnc" id="L52" title="All 4 branches missed.">            if (intentos != null &amp;&amp; intentos &gt; limite) {</span>
-<span class="nc" id="L53">                log.warn(&quot;Cuota de intentos por cuenta excedida para ámbito={}&quot;, ambito);</span>
-<span class="nc" id="L54">                throw new ExcepcionCuotaExcedida(</span>
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos &gt; limite) {</span>
+<span class="fc" id="L53">                log.warn(&quot;Cuota de intentos por cuenta excedida para ámbito={}&quot;, ambito);</span>
+<span class="fc" id="L54">                throw new ExcepcionCuotaExcedida(</span>
                         &quot;Demasiados intentos. Intenta nuevamente en unos minutos.&quot;,
-<span class="nc" id="L56">                        ventana.getSeconds());</span>
+<span class="fc" id="L56">                        ventana.getSeconds());</span>
             }
-<span class="nc" id="L58">        } catch (DataAccessException e) {</span>
-<span class="nc" id="L59">            log.warn(&quot;No se pudo contactar a Redis para la cuota de {}; se permite la solicitud (fail-open): {}&quot;,</span>
-<span class="nc" id="L60">                    ambito, e.getMessage());</span>
-<span class="nc" id="L61">        }</span>
-<span class="nc" id="L62">    }</span>
+<span class="fc" id="L58">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L59">            log.warn(&quot;No se pudo contactar a Redis para la cuota de {}; se permite la solicitud (fail-open): {}&quot;,</span>
+<span class="fc" id="L60">                    ambito, e.getMessage());</span>
+<span class="fc" id="L61">        }</span>
+<span class="fc" id="L62">    }</span>
 
     /** Limpia el contador de (ambito, identificador) — se llama tras un éxito. */
     public void limpiar(String ambito, String identificador) {
         try {
-<span class="nc" id="L67">            redisTemplate.delete(construirClave(ambito, identificador));</span>
-<span class="nc" id="L68">        } catch (DataAccessException e) {</span>
-<span class="nc" id="L69">            log.warn(&quot;No se pudo limpiar la cuota de {} en Redis: {}&quot;, ambito, e.getMessage());</span>
-<span class="nc" id="L70">        }</span>
-<span class="nc" id="L71">    }</span>
+<span class="fc" id="L67">            redisTemplate.delete(construirClave(ambito, identificador));</span>
+<span class="fc" id="L68">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L69">            log.warn(&quot;No se pudo limpiar la cuota de {} en Redis: {}&quot;, ambito, e.getMessage());</span>
+<span class="fc" id="L70">        }</span>
+<span class="fc" id="L71">    }</span>
 
     /** Hashea el identificador (correo) para que un volcado de Redis no sea una lista de usuarios. */
     private String construirClave(String ambito, String identificador) {
-<span class="nc" id="L75">        return &quot;rl:&quot; + ambito + &quot;:&quot; + hashSha256(identificador);</span>
+<span class="fc" id="L75">        return &quot;rl:&quot; + ambito + &quot;:&quot; + hashSha256(identificador);</span>
     }
 
     private String hashSha256(String input) {
         try {
-<span class="nc" id="L80">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
-<span class="nc" id="L81">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
-<span class="nc" id="L82">            return HexFormat.of().formatHex(encodedhash);</span>
+<span class="fc" id="L80">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="fc" id="L81">            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L82">            return HexFormat.of().formatHex(encodedhash);</span>
 <span class="nc" id="L83">        } catch (Exception e) {</span>
 <span class="nc" id="L84">            throw new RuntimeException(&quot;Error al generar hash SHA-256&quot;, e);</span>
         }

@@ -123,23 +123,23 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Transactional
     @Auditable(accion = &quot;SEGURIDAD_2FA_ACTIVAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, correoActor = &quot;#correo&quot;)
     public RespuestaMensaje confirm2Fa(String correo, String codigo) {
-<span class="nc" id="L126">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="nc" id="L127">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L126">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
+<span class="fc" id="L127">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="nc" id="L129">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="nc" id="L130">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se ha iniciado la configuración de 2FA&quot;));</span>
+<span class="fc" id="L129">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L130">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;No se ha iniciado la configuración de 2FA&quot;));</span>
 
-<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {</span>
-<span class="nc" id="L133">            intentosAutenticacionService.verificarCuota(</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {</span>
+<span class="fc" id="L133">            intentosAutenticacionService.verificarCuota(</span>
                     AMBITO_2FA_CONFIRM, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
-<span class="nc" id="L135">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Código inválido o expirado&quot;);</span>
+<span class="fc" id="L135">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Código inválido o expirado&quot;);</span>
         }
-<span class="nc" id="L137">        intentosAutenticacionService.limpiar(AMBITO_2FA_CONFIRM, correo);</span>
+<span class="fc" id="L137">        intentosAutenticacionService.limpiar(AMBITO_2FA_CONFIRM, correo);</span>
 
-<span class="nc" id="L139">        dosFactores.setEstaHabilitado(true);</span>
-<span class="nc" id="L140">        autenticacionDosFactoresRepository.save(dosFactores);</span>
+<span class="fc" id="L139">        dosFactores.setEstaHabilitado(true);</span>
+<span class="fc" id="L140">        autenticacionDosFactoresRepository.save(dosFactores);</span>
 
-<span class="nc" id="L142">        return new RespuestaMensaje(&quot;Autenticación de dos factores activada exitosamente&quot;);</span>
+<span class="fc" id="L142">        return new RespuestaMensaje(&quot;Autenticación de dos factores activada exitosamente&quot;);</span>
     }
 
     @Override
@@ -147,13 +147,13 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Auditable(accion = &quot;SEGURIDAD_2FA_DESACTIVAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, correoActor = &quot;#correo&quot;)
     public RespuestaMensaje disable2Fa(String correo, String codigo) {
 <span class="fc" id="L149">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
-<span class="pc" id="L150">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L150">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
 <span class="fc" id="L152">        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
-<span class="pc" id="L153">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no está configurado&quot;));</span>
+<span class="fc" id="L153">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no está configurado&quot;));</span>
 
-<span class="pc bpc" id="L155" title="1 of 2 branches missed.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
-<span class="nc" id="L156">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra activo&quot;);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {</span>
+<span class="fc" id="L156">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;El 2FA no se encuentra activo&quot;);</span>
         }
 
 <span class="fc bfc" id="L159" title="All 2 branches covered.">        if (!validarCodigoOBackup(correo, codigo)) {</span>
@@ -212,8 +212,8 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     private boolean validarTotp(String secreto, String codigo) {
         try {
-<span class="nc" id="L215">            int codigoInt = Integer.parseInt(codigo);</span>
-<span class="nc" id="L216">            return gAuth.authorize(secreto, codigoInt);</span>
+<span class="fc" id="L215">            int codigoInt = Integer.parseInt(codigo);</span>
+<span class="fc" id="L216">            return gAuth.authorize(secreto, codigoInt);</span>
 <span class="nc" id="L217">        } catch (NumberFormatException e) {</span>
 <span class="nc" id="L218">            return false;</span>
         }

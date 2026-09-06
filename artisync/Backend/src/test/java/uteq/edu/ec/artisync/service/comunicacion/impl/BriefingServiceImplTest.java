@@ -234,4 +234,216 @@ class BriefingServiceImplTest {
                 .hasMessageContaining("Ya se envió");
     }
 
+    @Test
+    @DisplayName("enviarBriefing — pedido inexistente lanza excepcion")
+    void enviarBriefing_pedidoInexistente_lanzaExcepcion() {
+        when(enviadoRepo.existsByPedidoIdPedido(10L)).thenReturn(false);
+        when(pedidoRepo.findById(10L)).thenReturn(Optional.empty());
+        var peticion = new uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing(1L);
+
+        assertThatThrownBy(() -> briefingService.enviarBriefing(10L, peticion, 1L))
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("enviarBriefing — plantilla inexistente lanza excepcion")
+    void enviarBriefing_plantillaInexistente_lanzaExcepcion() {
+        when(enviadoRepo.existsByPedidoIdPedido(10L)).thenReturn(false);
+        when(pedidoRepo.findById(10L)).thenReturn(Optional.of(pedido));
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.empty());
+        var peticion = new uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing(1L);
+
+        assertThatThrownBy(() -> briefingService.enviarBriefing(10L, peticion, 1L))
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("enviarBriefing — creador ajeno a la plantilla no puede usarla")
+    void enviarBriefing_creadorAjeno_lanzaExcepcion() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador).nombrePlantilla("X").build();
+        when(enviadoRepo.existsByPedidoIdPedido(10L)).thenReturn(false);
+        when(pedidoRepo.findById(10L)).thenReturn(Optional.of(pedido));
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
+        var peticion = new uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing(1L);
+
+        assertThatThrownBy(() -> briefingService.enviarBriefing(10L, peticion, 999L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("permiso");
+    }
+
+    @Test
+    @DisplayName("enviarBriefing — exito cuando el creador es el dueno de la plantilla")
+    void enviarBriefing_exito() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador).nombrePlantilla("X")
+                .preguntas(new ArrayList<>()).build();
+        BriefingEnviado guardado = BriefingEnviado.builder()
+                .idBriefingEnviado(30L).pedido(pedido).plantilla(plantilla).completado(false).build();
+        when(enviadoRepo.existsByPedidoIdPedido(10L)).thenReturn(false);
+        when(pedidoRepo.findById(10L)).thenReturn(Optional.of(pedido));
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
+        when(enviadoRepo.save(any(BriefingEnviado.class))).thenReturn(guardado);
+        when(respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(30L)).thenReturn(List.of());
+        var peticion = new uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing(1L);
+
+        RespuestaBriefing respuesta = briefingService.enviarBriefing(10L, peticion, 1L);
+
+        assertThat(respuesta.getIdBriefingEnviado()).isEqualTo(30L);
+    }
+
+    @Test
+    @DisplayName("responderBriefing — persiste las respuestas y marca el briefing como completado")
+    void responderBriefing_exito_persisteRespuestasYCompleta() {
+        BriefingPregunta pregunta = BriefingPregunta.builder()
+                .idPregunta(1L).textoPregunta("¿Colores?").numeroOrden(1).build();
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
+                .preguntas(List.of(pregunta)).build();
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .idBriefingEnviado(20L).pedido(pedido).plantilla(plantilla).completado(false).build();
+        PeticionResponderBriefing peticion = PeticionResponderBriefing.builder()
+                .respuestas(List.of(PeticionResponderBriefing.RespuestaItem.builder()
+                        .idPregunta(1L).textoRespuesta("Azul y blanco").build()))
+                .build();
+
+        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
+        when(preguntaRepo.findById(1L)).thenReturn(Optional.of(pregunta));
+        when(enviadoRepo.save(any(BriefingEnviado.class))).thenReturn(enviado);
+        when(respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(20L)).thenReturn(List.of());
+
+        briefingService.responderBriefing(10L, peticion, 2L);
+
+        verify(respuestaRepo).save(any(BriefingRespuesta.class));
+        assertThat(enviado.getCompletado()).isTrue();
+    }
+
+    @Test
+    @DisplayName("responderBriefing — pregunta inexistente lanza excepcion")
+    void responderBriefing_preguntaInexistente_lanzaExcepcion() {
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .idBriefingEnviado(20L).pedido(pedido).completado(false).build();
+        PeticionResponderBriefing peticion = PeticionResponderBriefing.builder()
+                .respuestas(List.of(PeticionResponderBriefing.RespuestaItem.builder()
+                        .idPregunta(99L).textoRespuesta("x").build()))
+                .build();
+        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
+        when(preguntaRepo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> briefingService.responderBriefing(10L, peticion, 2L))
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerBriefing — incluye las respuestas ya registradas")
+    void obtenerBriefing_incluyeRespuestasExistentes() {
+        BriefingPregunta pregunta = BriefingPregunta.builder()
+                .idPregunta(1L).textoPregunta("¿Colores?").numeroOrden(1).build();
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).preguntas(List.of(pregunta)).build();
+        BriefingEnviado enviado = BriefingEnviado.builder()
+                .idBriefingEnviado(20L).pedido(pedido).plantilla(plantilla).completado(true).build();
+        BriefingRespuesta respuestaGuardada = BriefingRespuesta.builder()
+                .idRespuesta(1L).pregunta(pregunta).textoRespuesta("Azul").build();
+
+        when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
+        when(respuestaRepo.findByBriefingEnviadoIdBriefingEnviado(20L)).thenReturn(List.of(respuestaGuardada));
+
+        RespuestaBriefing respuesta = briefingService.obtenerBriefing(10L, 2L);
+
+        assertThat(respuesta.getPreguntas()).hasSize(1);
+        assertThat(respuesta.getPreguntas().get(0).getTextoRespuesta()).isEqualTo("Azul");
+    }
+
+    // =========================================================================
+    // obtenerMisPlantillas / editarPlantilla / eliminarPlantilla
+    // =========================================================================
+
+    @Test
+    @DisplayName("obtenerMisPlantillas — lista las plantillas del creador")
+    void obtenerMisPlantillas_devuelveLista() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).nombrePlantilla("Logo").preguntas(new ArrayList<>()).build();
+        when(plantillaRepo.findByPerfilCreadorIdPerfil(5L)).thenReturn(List.of(plantilla));
+
+        assertThat(briefingService.obtenerMisPlantillas(5L)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("editarPlantilla — actualiza nombre y preguntas cuando el creador es el dueno")
+    void editarPlantilla_exito() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador).nombrePlantilla("Viejo")
+                .preguntas(new ArrayList<>(List.of(BriefingPregunta.builder().idPregunta(9L).build())))
+                .build();
+        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
+                .nombrePlantilla("Nuevo")
+                .preguntas(List.of(new PeticionCrearBriefingPlantilla.PreguntaRequest("¿Estilo?", 1)))
+                .build();
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
+        when(plantillaRepo.save(any(BriefingPlantilla.class))).thenReturn(plantilla);
+
+        RespuestaBriefing respuesta = briefingService.editarPlantilla(1L, 5L, peticion);
+
+        assertThat(respuesta.getNombrePlantilla()).isEqualTo("Nuevo");
+        verify(plantillaRepo).flush();
+    }
+
+    @Test
+    @DisplayName("editarPlantilla — rechaza a un creador que no es dueno de la plantilla")
+    void editarPlantilla_rechazaNoPropietario() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador).nombrePlantilla("Viejo").build();
+        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
+                .nombrePlantilla("Nuevo").preguntas(List.of()).build();
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
+
+        assertThatThrownBy(() -> briefingService.editarPlantilla(1L, 999L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("permiso");
+    }
+
+    @Test
+    @DisplayName("editarPlantilla — plantilla inexistente lanza excepcion")
+    void editarPlantilla_inexistente_lanzaExcepcion() {
+        when(plantillaRepo.findById(99L)).thenReturn(Optional.empty());
+        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
+                .nombrePlantilla("Nuevo").preguntas(List.of()).build();
+
+        assertThatThrownBy(() -> briefingService.editarPlantilla(99L, 5L, peticion))
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("eliminarPlantilla — elimina cuando el creador es el dueno")
+    void eliminarPlantilla_exito() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador).build();
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
+
+        briefingService.eliminarPlantilla(1L, 5L);
+
+        verify(plantillaRepo).delete(plantilla);
+    }
+
+    @Test
+    @DisplayName("eliminarPlantilla — rechaza a un creador que no es dueno")
+    void eliminarPlantilla_rechazaNoPropietario() {
+        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+                .idBriefingPlantilla(1L).perfilCreador(perfilCreador).build();
+        when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
+
+        assertThatThrownBy(() -> briefingService.eliminarPlantilla(1L, 999L))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+        verify(plantillaRepo, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("eliminarPlantilla — plantilla inexistente lanza excepcion")
+    void eliminarPlantilla_inexistente_lanzaExcepcion() {
+        when(plantillaRepo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> briefingService.eliminarPlantilla(99L, 5L))
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+    }
 }

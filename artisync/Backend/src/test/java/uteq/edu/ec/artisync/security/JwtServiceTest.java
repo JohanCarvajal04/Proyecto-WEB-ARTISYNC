@@ -171,4 +171,129 @@ class JwtServiceTest {
 
         assertFalse(jwtService.esRefreshTokenValido(refreshToken, deshabilitado));
     }
+
+    @Test
+    void getExpirationMs_ShouldReturnConfiguredValue() {
+        assertEquals(86_400_000L, jwtService.getExpirationMs());
+    }
+
+    @Test
+    void getRefreshExpirationMs_ShouldReturnConfiguredValue() {
+        assertEquals(604_800_000L, jwtService.getRefreshExpirationMs());
+    }
+
+    @Test
+    void extraerJti_ShouldReturnTokenId() {
+        String token = jwtService.generarToken(usuario);
+        String jti = jwtService.extraerJti(token);
+
+        assertNotNull(jti);
+        assertEquals(jwtService.extraerTodosLosClaims(token).getId(), jti);
+    }
+
+    @Test
+    void extraerTiempoRestante_ShouldReturnPositiveValue_ForFreshToken() {
+        String token = jwtService.generarToken(usuario);
+
+        long restante = jwtService.extraerTiempoRestante(token);
+
+        assertTrue(restante > 0 && restante <= 86_400_000L);
+    }
+
+    @Test
+    void extraerTiempoRestante_ShouldReturnZero_ForExpiredToken() {
+        // clockSkewSeconds=60 en el parser tolera hasta 60s de expiracion pasada
+        // (no lanza ExpiredJwtException); 30s de margen alcanza para que
+        // Math.max(0, restante) sea el 0 que se ejercita aqui.
+        SecretKey clave = Keys.hmacShaKeyFor(SECRETO_VALIDO.getBytes(StandardCharsets.UTF_8));
+        Date hace30Segundos = new Date(System.currentTimeMillis() - 30_000);
+        String tokenExpirado = Jwts.builder()
+                .subject("1")
+                .claim("email", "usuario@example.com")
+                .claim("type", "access")
+                .issuer("artisync-backend")
+                .audience().add("artisync-frontend").and()
+                .issuedAt(hace30Segundos)
+                .expiration(hace30Segundos)
+                .signWith(clave)
+                .compact();
+
+        assertEquals(0L, jwtService.extraerTiempoRestante(tokenExpirado));
+    }
+
+    @Test
+    void esAccessTokenValido_ShouldReturnFalse_WhenTokenEsMalformado() {
+        assertFalse(jwtService.esAccessTokenValido("token-malformado-no-jwt", usuario));
+    }
+
+    @Test
+    void esAccessTokenValido_ShouldReturnFalse_WhenAccountIsLocked() {
+        String token = jwtService.generarToken(usuario);
+        CustomUserDetails bloqueado = new CustomUserDetails(
+                1L, "usuario@example.com", "hash-irrelevante", true, true, true, false,
+                List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
+
+        assertFalse(jwtService.esAccessTokenValido(token, bloqueado));
+    }
+
+    @Test
+    void esRefreshToken_ShouldReturnFalse_WhenTokenEsMalformado() {
+        assertFalse(jwtService.esRefreshToken("token-malformado-no-jwt"));
+    }
+
+    @Test
+    void esRefreshTokenValido_ShouldReturnTrue_WhenTodoCoincide() {
+        String refreshToken = jwtService.generarRefreshToken(usuario);
+
+        assertTrue(jwtService.esRefreshTokenValido(refreshToken, usuario));
+    }
+
+    @Test
+    void esRefreshTokenValido_ShouldReturnFalse_WhenUsernameNoCoincide() {
+        String refreshToken = jwtService.generarRefreshToken(usuario);
+        CustomUserDetails otroUsuario = new CustomUserDetails(
+                2L, "otro@example.com", "hash-irrelevante", true, true, true, true,
+                List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
+
+        assertFalse(jwtService.esRefreshTokenValido(refreshToken, otroUsuario));
+    }
+
+    @Test
+    void esRefreshTokenValido_ShouldReturnFalse_WhenTokenEsDeAcceso() {
+        String accessToken = jwtService.generarToken(usuario);
+
+        assertFalse(jwtService.esRefreshTokenValido(accessToken, usuario));
+    }
+
+    @Test
+    void esRefreshTokenValido_ShouldReturnFalse_WhenAccountIsLocked() {
+        String refreshToken = jwtService.generarRefreshToken(usuario);
+        CustomUserDetails bloqueado = new CustomUserDetails(
+                1L, "usuario@example.com", "hash-irrelevante", true, true, true, false,
+                List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
+
+        assertFalse(jwtService.esRefreshTokenValido(refreshToken, bloqueado));
+    }
+
+    @Test
+    void esRefreshTokenValido_ShouldReturnFalse_WhenTokenEstaExpiradoDentroDeLaToleranciaDeReloj() {
+        // clockSkewSeconds=60 en el parser tolera una expiracion pasada de hasta
+        // 60s (no lanza ExpiredJwtException), por eso una expiracion de hace 30s
+        // SI llega al chequeo manual expiracion.after(new Date()) de
+        // esRefreshTokenValido, que es el que debe devolver false aqui.
+        SecretKey clave = Keys.hmacShaKeyFor(SECRETO_VALIDO.getBytes(StandardCharsets.UTF_8));
+        Date hace30Segundos = new Date(System.currentTimeMillis() - 30_000);
+        String refreshExpirado = Jwts.builder()
+                .claim("type", "refresh")
+                .claim("email", "usuario@example.com")
+                .subject("1")
+                .issuer("artisync-backend")
+                .audience().add("artisync-frontend").and()
+                .issuedAt(hace30Segundos)
+                .expiration(hace30Segundos)
+                .signWith(clave)
+                .compact();
+
+        assertFalse(jwtService.esRefreshTokenValido(refreshExpirado, usuario));
+    }
 }
