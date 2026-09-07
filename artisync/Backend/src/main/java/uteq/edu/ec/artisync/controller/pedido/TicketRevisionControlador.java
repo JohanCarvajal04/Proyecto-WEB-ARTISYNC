@@ -21,6 +21,16 @@ public class TicketRevisionControlador {
 
     private final ITicketRevisionServicio ticketRevisionServicio;
 
+    /**
+     * Crea un ticket de revisión (rechazo) para el entregable actual de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que crea el ticket
+     * @param peticion datos del ticket de revisión, incluyendo el motivo de rechazo
+     * @return el ticket de revisión creado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el pedido o el motivo de rechazo no existen
+     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido
+     */
     @PostMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaTicketRevision> crearTicket(
@@ -31,6 +41,14 @@ public class TicketRevisionControlador {
                 .body(ticketRevisionServicio.crearTicketRevision(idPedido, userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Lista los tickets de revisión asociados a un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta los tickets
+     * @return listado de tickets de revisión del pedido
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
+     */
     @GetMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<RespuestaTicketRevision>> listarTickets(
@@ -39,6 +57,15 @@ public class TicketRevisionControlador {
         return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Cambia el estado de un ticket de revisión.
+     *
+     * @param idTicket identificador del ticket de revisión
+     * @param userDetails usuario autenticado que solicita el cambio de estado
+     * @param nuevoEstado nuevo estado a asignar al ticket
+     * @return el ticket de revisión con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el ticket no existe
+     */
     @PutMapping("/tickets-revision/{idTicket}/estado")
     @PreAuthorize("hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaTicketRevision> cambiarEstado(
