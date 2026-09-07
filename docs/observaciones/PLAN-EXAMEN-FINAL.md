@@ -732,10 +732,10 @@ Hoy conviven tres cifras del mismo dato: **29/26 con 89,7 %**, **86,2 %** en una
 
 Hoy 26 resueltas de 29 (una parcial, dos pendientes). Cerrarlas lleva P0 de 75 % a 100 %.
 
-### T-31 · Deshacer el empate de etiquetas
+### T-31 · Deshacer el empate de etiquetas — ✅ RESUELTA DOCUMENTALMENTE (2026-09-07)
 **Cubre:** OBS-P0-03 · **Responsable:** JC · **Duración:** 15 min
 
-`v0.7.1` y `v0.9.0-rc` apuntan al mismo commit. Reasignar `v0.9.0-rc` al commit que efectivamente corresponde a esa fase, o documentar en `CHANGELOG.md` por qué coinciden.
+`v0.7.1` y `v0.9.0-rc` apuntan al mismo commit. Se optó por **documentar por qué coinciden** en vez de reasignar `v0.9.0-rc`: ambos tags se crearon el mismo día (30-07-2026) sobre el commit que cerraba las observaciones de Entregas 1A/1B y a la vez inauguraba la Tercera Entrega; el resto del contenido de `v0.9.0-rc` se agregó después sin re-etiquetar. No se reasignó porque el tag ya está empujado a `origin` y el DOI de Zenodo (`10.5281/zenodo.21730559`) fue emitido sobre el estado actual de `v0.9.0-rc` — mover el tag arriesgaba una segunda discrepancia (tag vs. DOI) en vez de resolver la primera. Ver nota en `CHANGELOG.md` bajo `## [v0.9.0-rc] - 2026-07-30` y `observaciones_para_el_examen.md` (OBS-P0-03).
 
 ### T-32 · Corregir el nombre de la clase de prueba en la matriz — ✅ HECHA (2026-09-04)
 **Cubre:** OBS-D0R-01 · **Responsable:** BF · **Duración:** 10 min
