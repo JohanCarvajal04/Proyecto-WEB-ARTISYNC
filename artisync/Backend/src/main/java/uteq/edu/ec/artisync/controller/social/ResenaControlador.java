@@ -28,6 +28,17 @@ public class ResenaControlador {
 
     private final ResenaService resenaService;
 
+    /**
+     * Crea una reseña para un pedido cuyo entregable ya fue liberado.
+     *
+     * @param idPedido identificador del pedido
+     * @param peticion calificación y texto de la reseña
+     * @param userDetails usuario autenticado (cliente del pedido) que crea la reseña
+     * @return la reseña creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws ExcepcionReglaNegocio si el entregable del pedido aún no fue liberado
+     * @throws ExcepcionRecursoDuplicado si ya existe una reseña para el pedido
+     */
     @Operation(summary = "Crear reseña de un pedido entregado (CLIENTE)")
     @PostMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
@@ -40,6 +51,13 @@ public class ResenaControlador {
                 .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Obtiene la reseña del usuario autenticado sobre un pedido, si existe.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado (cliente del pedido)
+     * @return la reseña del cliente, o estado 404 si no existe o no le pertenece
+     */
     @Operation(summary = "Obtener mi reseña de un pedido, si existe (CLIENTE)")
     @GetMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
@@ -50,6 +68,15 @@ public class ResenaControlador {
         return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();
     }
 
+    /**
+     * Edita la reseña del usuario autenticado sobre un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param peticion calificación y texto actualizados de la reseña
+     * @param userDetails usuario autenticado (cliente que dejó la reseña)
+     * @return la reseña actualizada
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     */
     @Operation(summary = "Editar mi reseña de un pedido (CLIENTE)")
     @PutMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
@@ -60,6 +87,13 @@ public class ResenaControlador {
         return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Elimina la reseña del usuario autenticado sobre un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado (cliente que dejó la reseña)
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     */
     @Operation(summary = "Eliminar mi reseña de un pedido (CLIENTE)")
     @DeleteMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
@@ -70,12 +104,24 @@ public class ResenaControlador {
         resenaService.eliminarResena(idPedido, userDetails.getIdUsuario());
     }
 
+    /**
+     * Lista las reseñas de un creador, de acceso público.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return listado de reseñas del creador
+     */
     @Operation(summary = "Listar reseñas de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas")
     public ResponseEntity<List<RespuestaResena>> listarResenas(@PathVariable Long idPerfil) {
         return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));
     }
 
+    /**
+     * Obtiene el promedio de calificaciones de un creador, de acceso público.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return el identificador del perfil y su calificación promedio
+     */
     @Operation(summary = "Promedio de calificaciones de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas/promedio")
     public ResponseEntity<Map<String, Object>> obtenerPromedio(@PathVariable Long idPerfil) {
