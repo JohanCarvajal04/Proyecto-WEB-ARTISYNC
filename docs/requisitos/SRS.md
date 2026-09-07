@@ -387,3 +387,16 @@ Conviene leer esta tasa con cautela metodológica: una estabilidad del 100 % es 
 
 ---
 
+## 8. Aprobación
+
+Este SRS se somete a la revisión y aprobación del docente-director del PFC, conforme al apartado A.3.1 de la guía de la Entrega Final.
+
+| Rol                        | Nombre                                     | Fecha | Firma |
+| -------------------------- | ------------------------------------------ | ----- | ----- |
+| Docente-director del PFC   | Dr. Gleiston Cicerón Guerrero Ulloa, Ph.D. |       |       |
+| Representante del equipo   |                                            |       |       |
+
+**Estado de la aprobación: pendiente de firma.** La firma depende de la disponibilidad de un tercero externo al equipo (el docente-director) y no puede completarse unilateralmente antes de la entrega. Dado que la Entrega Final se presenta durante la semana del examen final (semana 19, 7–11 de septiembre de 2026), la revisión y, de proceder, la formalización de esta firma se realizarán presencialmente **el día del examen**, que es la primera instancia en que ambas partes coinciden. Hasta que esta sección lleve la firma del docente-director, el criterio D0R no puede superar el nivel *En desarrollo*, según la regla transversal 9 de la guía. La versión aprobada y firmada, cuando exista, se archiva como `docs/requisitos/SRS-v1.0.0.pdf`; las versiones anteriores se conservan en `docs/requisitos/historico/`.
+
+---
+

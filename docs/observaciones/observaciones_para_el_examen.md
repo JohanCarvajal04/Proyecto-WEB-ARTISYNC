@@ -90,11 +90,12 @@ NOTA DEL EQUIPO = 6,60 / 10
 - En el momento de la revisión, el propio `DEPLOYMENT.md` del equipo declaraba que el sistema **no estaba desplegado**, y las dos URL de Render no devolvían un solo byte en noventa segundos.
 - **Corregido:** `render.yaml` en la raíz define los tres servicios (`artisync-db`, `artisync-redis`, `artisync-backend`), y [`docs/despliegue/DEPLOYMENT.md`](../despliegue/DEPLOYMENT.md) declara las URL públicas activas: `https://artisync-frontend.onrender.com` y `https://artisync-backend.onrender.com`. Los informes Lighthouse de producción (OBS-P4-01) confirman que el frontend responde en esa URL.
 
-### PISO-04 (Regla transversal 9) ⚠️ [PARCIAL — REQUIERE ACCIÓN HUMANA] — SRS sin firma
-**Estado original: SE CONFIRMA EL INCUMPLIMIENTO. Corrección textual hecha; aprobación real todavía no obtenida.**
+### PISO-04 (Regla transversal 9) ⚠️ [PARCIAL — REQUIERE ACCIÓN HUMANA, documentado para revisión el día del examen] — SRS sin firma
+**Estado original: SE CONFIRMA EL INCUMPLIMIENTO. Corrección textual hecha; aprobación real todavía no obtenida; ahora documentada honestamente.**
 - En el momento de la revisión, el SRS tenía doce páginas y su sección 8 decía literalmente: «Estado de la aprobación: pendiente de firma».
-- **Lo que se corrigió:** [`docs/requisitos/SRS.md`](../requisitos/SRS.md) fue reescrito y ya **no contiene** esa sección 8 ni la frase "pendiente de firma" (verificado línea por línea contra el archivo actual). Se buscó en todo `docs/requisitos/` y no existe ningún archivo de aprobación/firma independiente.
-- **Lo que sigue faltando:** eliminar la frase que delataba el incumplimiento **no es lo mismo que obtener la aprobación real**. No hay ningún documento (firmado, fechado, con número de expediente) que acredite que el SRS fue aprobado por el docente-director. Presentar el documento sin la sección de aprobación, en vez de con ella completada, puede leerse como **ocultar el incumplimiento en lugar de resolverlo** — es más grave, no menos. **Acción pendiente real:** conseguir la aprobación formal (T-06 del plan) y añadir de vuelta una sección de aprobación al SRS que la documente, con fecha anterior al examen.
+- **Hallazgo intermedio (commit `708c8f1`, 2026-09-04):** en vez de resolver la brecha, se **eliminó por completo** la sección 8 de [`docs/requisitos/SRS.md`](../requisitos/SRS.md). Quitar la frase que delataba el incumplimiento no es lo mismo que obtener la aprobación real, y presentar el documento sin la sección en vez de con ella resuelta podía leerse como **ocultar el incumplimiento en lugar de resolverlo** — más grave, no menos.
+- **Corregido (2026-09-07):** se restauró la sección 8 en `docs/requisitos/SRS.md` con la tabla de firma (aún en blanco) y una nota explícita y fechada: la firma del docente-director depende de un tercero externo al equipo y no puede obtenerse unilateralmente antes de la entrega; dado que la Entrega Final cae dentro de la semana del examen (semana 19, 7–11 de septiembre de 2026), **la aprobación se revisará y, de proceder, se formalizará presencialmente el día del examen**, que es la primera instancia en que coinciden ambas partes. El `Makefile` (`make srs`) sigue avisando de la misma condición al final de la compilación.
+- **Lo que sigue faltando:** la firma real. Esto **no se resuelve documentando**: solo el docente-director puede cerrarlo. Lo que este cambio logra es que el documento entregado sea honesto sobre el estado — pendiente de firma, con plan de revisión explícito — en vez de silencioso (versión eliminada) o falso (firma simulada). Ver T-06 en `PLAN-EXAMEN-FINAL.md`.
 
 ---
 
@@ -104,17 +105,18 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 **Lo verificado y correcto:**
 - Veintinueve observaciones únicas, **más que ningún otro equipo**, incluidas **trece autoimpuestas**.
-- Veintiséis resueltas, una parcial y dos pendientes: **89,66 %**.
+- Veintisiete resueltas, dos parciales, cero pendientes: **93,1 %** (actualizado 2026-09-07: sube de 26/29 al cerrarse OBS-05 por retiro del wireframe y reclasificarse OBS-14 a parcial — ver `OBSERVACIONES.md`).
 - Los treinta y dos tokens hexadecimales verificados con `git cat-file`: **los veintinueve que son hashes existen, ninguno inventado**. Los tres que fallan son los DOI de Zenodo y el `max-age` de HSTS, no hashes.
 - Las cuatro etiquetas exigidas existen, **aunque `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit**. El Anexo A está.
 
-**OBS-P0-01 ❌ [NO IMPLEMENTADO] — No se alcanza el 100 % de observaciones resueltas.** Quedan una parcial y dos pendientes.
+**OBS-P0-01 ❌ [NO IMPLEMENTADO] — No se alcanza el 100 % de observaciones resueltas.** Actualizado 2026-09-07: quedan dos parciales (OBS-AUTO-10, OBS-14) y cero pendientes sin avance — OBS-05 se cerró por retiro del wireframe. 93,1 % (27/29), no 100 %.
 
 **OBS-P0-02 ✅ [IMPLEMENTADO] — Tres cifras incompatibles del mismo dato en el mismo entregable.**
 - 29 sobre 26 con 89,7 % en la tabla.
 - 86,2 % en una nota interna.
 - 27 sobre 23 con 85,2 % en el Anexo A del PDF.
 - **Corregido (verificado 2026-09-07):** la cifra está **unificada en los tres documentos**: `OBSERVACIONES.md` (tabla línea 19 y prosa línea 92-98 coinciden en 26/29 = 89,7 %), `anexos.tex` (línea 32: 89,7 %), e `INFORME-BRECHAS-ENTREGA-FINAL.md` (líneas 7-9: nota que declara obsoleta la cifra anterior de 85,2 % y apunta a 89,7 %). La regresión detectada el 2026-09-06 está cerrada.
+- **Nota (más tarde el mismo 2026-09-07):** el número en sí se movió por una razón distinta a la regresión de arriba — se cerró OBS-05 (retiro del wireframe) y se reclasificó OBS-14 a parcial (la mitad `Secure` ya estaba resuelta desde `6b2d3ed`). La cifra unificada pasa de **26/29 = 89,7 %** a **27/29 = 93,1 %** en `OBSERVACIONES.md`, `anexos.tex` e `INFORME-BRECHAS-ENTREGA-FINAL.md`. La consistencia entre los tres documentos sigue intacta, solo cambió el valor que los tres comparten.
 
 **OBS-P0-03 🟡 [RESUELTO DOCUMENTALMENTE] — Dos etiquetas apuntan al mismo commit** (`v0.7.1` y `v0.9.0-rc`), lo que debilita la trazabilidad de versiones.
 - Verificado de nuevo el 2026-09-04: `git rev-list -n1 v0.7.1` y `git rev-list -n1 v0.9.0-rc` siguen devolviendo el mismo hash (`d292f7b...`).
@@ -223,7 +225,7 @@ NOTA DEL EQUIPO = 6,60 / 10
 - *(Cifra rectificada: son **34 clases distintas referenciadas por la matriz, de las que 33 existen** — no 38 de las que existen 36. El hallazgo de fondo, que una está mal escrita, es correcto.)*
 - **Corregido (2026-09-04):** `docs/trazabilidad/matriz.csv` (fila REQ-F-009) ya cita `SeguidorServicioImplTest`, coincidiendo con el archivo real `artisync/Backend/src/test/java/.../comunicacion/impl/SeguidorServicioImplTest.java`.
 
-**OBS-D0R-02 ⚠️ [PARCIAL — REQUIERE ACCIÓN HUMANA] — El SRS no está firmado** (ver PISO-04: el texto de incumplimiento ya no aparece, pero la aprobación real todavía no existe).
+**OBS-D0R-02 ⚠️ [PARCIAL — REQUIERE ACCIÓN HUMANA, documentado para revisión el día del examen] — El SRS no está firmado** (ver PISO-04: la sección 8 fue restaurada el 2026-09-07 con nota fechada de que la aprobación se revisará presencialmente el día del examen; la firma real todavía no existe).
 
 **OBS-D0R-03 ✅ [IMPLEMENTADO] — INVEST aparece en una sola de las veintitrés historias.**
 - **Corregido:** las 23 historias en `docs/requisitos/historias/HU-*.md` tienen ya su propio análisis `**INVEST:**` completo (Independiente, Negociable, Valiosa, Estimable, Pequeña, Testeable), verificado archivo por archivo (HU-01 a HU-23).
@@ -789,14 +791,14 @@ Total: **49 observaciones accionables** (se añadió OBS-D6-04 el 2026-09-06). E
 | PISO-01 | Carátula PDF de una página con URL en una línea | ✅ (2026-09-04, `docs/informe-final/caratula.tex` → `Caratula-v1.1.0.pdf`) |
 | PISO-02 | PDF versionado mal compilado (90 `[?]`, 3 índices vacíos, 69 vs 76 pág.) | ✅ |
 | PISO-03 | Sistema no desplegado / sin URL pública viva | ✅ (`render.yaml` + `DEPLOYMENT.md`) |
-| PISO-04 | SRS sin firma («pendiente de firma» en su §8) | ⚠️ (texto de incumplimiento eliminado; **aprobación real aún no obtenida** — sigue siendo condición de piso) |
+| PISO-04 | SRS sin firma («pendiente de firma» en su §8) | ⚠️ (§8 restaurada 2026-09-07 con nota fechada: revisión presencial el día del examen; **firma real aún no obtenida** — sigue siendo condición de piso) |
 
 ### Eje 1 — Producto software
 
 | ID | Observación | Estado |
 |---|---|---|
-| OBS-P0-01 | 3 observaciones sin resolver (26/29) | ☐ |
-| OBS-P0-02 | Tres cifras incompatibles del mismo dato (89,7 / 86,2 / 85,2) | ✅ (verificado 2026-09-07: `OBSERVACIONES.md` tabla y prosa coinciden en 26/29 = 89,7 %; `anexos.tex:32` dice 89,7 %; `INFORME-BRECHAS-ENTREGA-FINAL.md:7-9` declara obsoleta la cifra 85,2 % y apunta a 89,7 %. La regresión del 2026-09-06 está cerrada.) |
+| OBS-P0-01 | No se llega al 100 % (27/29 = 93,1 %, 2 parciales) | ☐ (actualizado 2026-09-07: sube de 26/29 al cerrar OBS-05 y reclasificar OBS-14; sigue sin llegar a 100 %) |
+| OBS-P0-02 | Tres cifras incompatibles del mismo dato (89,7 / 86,2 / 85,2) | ✅ (verificado 2026-09-07: `OBSERVACIONES.md` tabla y prosa coinciden en 27/29 = 93,1 %; `anexos.tex:32` dice 93,1 %; `INFORME-BRECHAS-ENTREGA-FINAL.md:7-9` actualizado a 93,1 %. La regresión del 2026-09-06 está cerrada; el valor cambió después por el cierre de OBS-05/OBS-14, no por una nueva inconsistencia.) |
 | OBS-P0-03 | `v0.7.1` y `v0.9.0-rc` apuntan al mismo commit | 🟡 (resuelto documentalmente 2026-09-07: nota causal en `CHANGELOG.md`; no se reasigna el tag por el mismo criterio que `v1.0.0`/`d07656b`) |
 | OBS-P1-01 | Cobertura: ninguna capa cumple líneas Y ramas (ctrl. 29,17 / 30,56) | ✅ |
 | OBS-P1-02 | Ninguna de las 26 rutinas usa `@Procedure`/`@NamedStoredProcedureQuery` | ✅ (23 usos de `@Procedure`) |
@@ -816,7 +818,7 @@ Total: **49 observaciones accionables** (se añadió OBS-D6-04 el 2026-09-06). E
 | ID | Observación | Estado |
 |---|---|---|
 | OBS-D0R-01 | `SeguidorServiceImplTest` → `SeguidorServicioImplTest` (nombre mal escrito) | ✅ (2026-09-04, `matriz.csv` corregido) |
-| OBS-D0R-02 | SRS sin firma | ⚠️ (ver PISO-04: falta la aprobación real) |
+| OBS-D0R-02 | SRS sin firma | ⚠️ (ver PISO-04: revisión documentada para el día del examen; falta la aprobación real) |
 | OBS-D0R-03 | INVEST en 1 de 23 historias | ✅ (23/23 con evaluación INVEST) |
 | OBS-D0R-04 | Solo 1 caso de uso trazable a diagrama de secuencia | ✅ (6/23: CU-02,03,04,13,17,20) |
 | OBS-D1-01 | Artefacto PDF roto (90 citas sin resolver, índices vacíos) | ✅ |

@@ -191,17 +191,19 @@ La cuarta identidad tiene **15 commits y el 75 % del trabajo de base de datos**,
 > grep -h "orcid" CITATION.cff CONTRIBUTORS.md .zenodo.json | sort -u
 > ```
 
-### T-06 · Firmar el SRS — ⚠️ PARCIAL: texto de incumplimiento eliminado, falta la aprobación real (sigue siendo PISO-04)
-**Cubre:** PISO-04, OBS-D0R-02 · **Responsable:** BF · **Duración:** depende del docente-director — **iniciar el lunes**
+### T-06 · Firmar el SRS — ⚠️ NO ACCIONABLE ANTES DEL EXAMEN: documentado que la firma se revisa el día del examen (sigue siendo PISO-04)
+**Cubre:** PISO-04, OBS-D0R-02 · **Responsable:** BF · **Duración:** depende del docente-director
 
-La sección 8 del SRS dice literalmente «Estado de la aprobación: pendiente de firma». El `Makefile` ya avisa de ello al final de `make srs`.
+La sección 8 del SRS (restaurada el 2026-09-07, ver `docs/requisitos/SRS.md`) dice literalmente «Estado de la aprobación: pendiente de firma». El `Makefile` ya avisa de ello al final de `make srs`.
+
+**Situación al 2026-09-07 (día del examen, dentro de la semana 19):** la firma exige la presencia y el criterio del docente-director, un tercero externo al equipo; no existe ninguna acción unilateral del equipo que la produzca antes de la revisión. Por eso se documenta explícitamente, en la sección 8 del SRS, que la aprobación se revisará y, de proceder, se formalizará **presencialmente el día del examen**, que es la primera oportunidad real en que coinciden el docente-director y el equipo.
 
 **Pasos:**
-1. Regenerar el SRS actualizado: `make srs`.
-2. **Solicitar la firma del docente-director esta misma semana** — es un trámite con terceros y es el único piso que no depende solo del equipo. Iniciarlo el lunes.
-3. Incorporar la firma (escaneada o digital) en la sección 8 y volver a generar el PDF.
+1. Regenerar el SRS actualizado: `make srs`. — ✅ hecho 2026-09-07, sección 8 restaurada con la nota de revisión el día del examen.
+2. **Solicitar la firma del docente-director en la revisión presencial del examen** — es un trámite con terceros y es el único piso que no depende solo del equipo.
+3. Si se obtiene ese día, incorporar la firma (escaneada o digital) en la sección 8 y volver a generar el PDF (`docs/requisitos/SRS-v1.0.0.pdf`).
 
-**Criterio de aceptación:** `docs/requisitos/SRS-v1.0.0.pdf` sección 8 muestra la aprobación firmada y fechada, no «pendiente de firma».
+**Criterio de aceptación (ajustado):** antes del examen, la sección 8 documenta con fecha y de forma honesta que la aprobación queda pendiente de revisión presencial ese mismo día — no se simula una firma inexistente. Si el docente-director firma durante el examen, `docs/requisitos/SRS-v1.0.0.pdf` se regenera con la aprobación firmada y fechada.
 
 ### T-07 · Convención de commits e identidades desde hoy
 **Cubre:** IND-JC-01, IND-JC-02, IND-JK-03, OBS-TR-08 · **Responsable:** JC + JK · **Duración:** 10 min
@@ -727,10 +729,10 @@ Hoy conviven tres cifras del mismo dato: **29/26 con 89,7 %**, **86,2 %** en una
 
 **Criterio de aceptación:** `grep -rn "89,7\|86,2\|85,2" docs/` devuelve una sola cifra coherente.
 
-### T-30 · Cerrar las tres observaciones acumuladas pendientes
+### T-30 · Cerrar las observaciones acumuladas restantes — 🟡 AVANZADA (2026-09-07)
 **Cubre:** OBS-P0-01 · **Responsable:** EQ · **Duración:** variable
 
-Hoy 26 resueltas de 29 (una parcial, dos pendientes). Cerrarlas lleva P0 de 75 % a 100 %.
+Se cerró OBS-05 (retiro del wireframe) y se reclasificó OBS-14 a parcial (la mitad `Secure` ya estaba resuelta). Hoy **27 resueltas de 29 (93,1 %), dos parciales, cero pendientes** — sube de 26/29 (89,7 %). Quedan las dos parciales (OBS-AUTO-10: requiere declaración del equipo sobre uso de IA; OBS-14: requiere decisión de riesgo sobre tocar el módulo de autenticación) para llegar al 100 %.
 
 ### T-31 · Deshacer el empate de etiquetas — ✅ RESUELTA DOCUMENTALMENTE (2026-09-07)
 **Cubre:** OBS-P0-03 · **Responsable:** JC · **Duración:** 15 min
