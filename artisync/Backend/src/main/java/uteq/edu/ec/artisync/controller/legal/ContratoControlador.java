@@ -20,6 +20,12 @@ public class ContratoControlador {
 
     private final IContratoServicio contratoServicio;
 
+    /**
+     * Genera el contrato formal de un pedido a partir de la plantilla elegida por el creador.
+     * @param idPedido identificador del pedido sobre el cual se formaliza el contrato
+     * @param userDetails usuario autenticado que solicita la generación del contrato
+     * @return el contrato recién generado, pendiente de firma
+     */
     @PostMapping("/pedido/{idPedido}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaContrato> generarContrato(
@@ -29,6 +35,12 @@ public class ContratoControlador {
                 .body(contratoServicio.generarContrato(idPedido, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Registra la firma del usuario autenticado sobre un contrato existente.
+     * @param id identificador del contrato a firmar
+     * @param userDetails usuario autenticado que firma (cliente o creador según su rol en el contrato)
+     * @return el contrato con el estado de firma actualizado
+     */
     @PostMapping("/{id}/firmar")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaContrato> firmarContrato(
@@ -37,6 +49,12 @@ public class ContratoControlador {
         return ResponseEntity.ok(contratoServicio.firmarContrato(id, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Obtiene el detalle de un contrato por su identificador, si el usuario autenticado es parte de él.
+     * @param id identificador del contrato solicitado
+     * @param userDetails usuario autenticado que consulta el contrato
+     * @return el detalle del contrato
+     */
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaContrato> obtenerContrato(
@@ -45,6 +63,12 @@ public class ContratoControlador {
         return ResponseEntity.ok(contratoServicio.obtenerContrato(id, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Obtiene el contrato asociado a un pedido específico.
+     * @param idPedido identificador del pedido cuyo contrato se busca
+     * @param userDetails usuario autenticado que consulta el contrato
+     * @return el contrato vinculado al pedido
+     */
     @GetMapping("/pedido/{idPedido}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaContrato> obtenerContratoPorPedido(

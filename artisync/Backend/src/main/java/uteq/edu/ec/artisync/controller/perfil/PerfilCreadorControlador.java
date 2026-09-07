@@ -23,6 +23,13 @@ public class PerfilCreadorControlador {
 
     private final IPerfilCreadorServicio perfilServicio;
 
+    /**
+     * Crea el perfil de creador del usuario autenticado (o de un tercero,
+     * cuando quien llama tiene rol ADMIN).
+     * @param peticion datos del perfil de creador a registrar
+     * @param autenticacion usuario autenticado que solicita la creación
+     * @return perfil de creador recién creado, con código 201
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPerfil> crearPerfil(
@@ -33,27 +40,54 @@ public class PerfilCreadorControlador {
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
+    /**
+     * Obtiene el perfil de creador identificado por su clave primaria.
+     * @param id identificador del perfil de creador
+     * @return perfil de creador correspondiente
+     */
     @GetMapping("/{id}")
     public ResponseEntity<RespuestaPerfil> obtenerPerfilPorId(@PathVariable Long id) {
         return ResponseEntity.ok(perfilServicio.obtenerPerfilPorId(id));
     }
 
+    /**
+     * Obtiene el perfil de creador asociado a una cuenta de usuario.
+     * @param idUsuario identificador del usuario dueño del perfil
+     * @return perfil de creador de ese usuario
+     */
     @GetMapping("/usuario/{idUsuario}")
     public ResponseEntity<RespuestaPerfil> obtenerPerfilPorUsuario(@PathVariable Long idUsuario) {
         return ResponseEntity.ok(perfilServicio.obtenerPerfilPorUsuario(idUsuario));
     }
 
+    /**
+     * Lista todos los perfiles de creador registrados en la plataforma.
+     * @return listado completo de perfiles de creador
+     */
     @GetMapping
     public ResponseEntity<List<RespuestaPerfil> > listarPerfiles() {
         return ResponseEntity.ok(perfilServicio.listarPerfiles());
     }
 
+    /**
+     * Lista los perfiles de creador con cuenta activa, para el directorio
+     * público de creadores.
+     * @return listado de perfiles de creadores activos
+     */
     @Operation(summary = "Directorio público de creadores con cuenta activa")
     @GetMapping("/activos")
     public ResponseEntity<List<RespuestaPerfil>> listarPerfilesActivos() {
         return ResponseEntity.ok(perfilServicio.listarPerfilesActivos());
     }
 
+    /**
+     * Actualiza los datos del perfil de creador indicado; solo el dueño del
+     * perfil o un ADMIN pueden hacerlo.
+     * @param id identificador del perfil a actualizar
+     * @param peticion datos actualizados del perfil
+     * @param autenticacion usuario autenticado que solicita el cambio
+     * @return perfil de creador ya actualizado
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPerfil> actualizarPerfil(
@@ -64,6 +98,11 @@ public class PerfilCreadorControlador {
                 id, peticion, autenticacion.getName(), esAdmin(autenticacion)));
     }
 
+    /**
+     * Elimina el perfil de creador indicado.
+     * @param id identificador del perfil a eliminar
+     * @return mensaje de confirmación de la eliminación
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarPerfil(@PathVariable Long id) {

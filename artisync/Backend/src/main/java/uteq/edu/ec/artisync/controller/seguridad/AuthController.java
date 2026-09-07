@@ -44,6 +44,11 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Registra un nuevo usuario en el sistema, validando que cumpla la mayoría de edad (RNF-12).
+     * @param request datos personales y credenciales del usuario a registrar
+     * @return el usuario recién creado, con estado HTTP 201
+     */
     @Operation(summary = "Registrar nuevo usuario con validación de mayoría de edad (RNF-12)")
     @PostMapping("/registro")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -51,6 +56,13 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
 
+    /**
+     * Autentica al usuario con sus credenciales y, según tenga 2FA habilitado, devuelve el
+     * token JWT de acceso o un ticket pre-auth para completar la verificación en dos pasos.
+     * @param request correo y contraseña del usuario que intenta iniciar sesión
+     * @param response respuesta HTTP en la que se escriben las cookies de refresh token y/o ticket pre-auth 2FA
+     * @return el token de acceso (y refresh) si la autenticación es completa, o los datos del reto 2FA pendiente
+     */
     @Operation(summary = "Iniciar sesión y obtener token JWT o requerimiento 2FA")
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
@@ -60,6 +72,13 @@ public class AuthController {
         return ResponseEntity.ok(tokenResponse);
     }
 
+    /**
+     * Completa el login verificando el código 2FA contra el ticket pre-auth emitido por {@code /login}.
+     * @param preAuthTicket ticket pre-auth de 2FA leído de la cookie {@code preAuth2fa}, emitido en el paso previo de login
+     * @param request código de verificación de doble factor ingresado por el usuario
+     * @param response respuesta HTTP en la que se escribe la cookie del refresh token y se limpia la cookie pre-auth 2FA
+     * @return el token JWT de acceso definitivo si el código es válido, o 401 si no hay ticket pre-auth vigente
+     */
     @Operation(summary = "Verificar código de autenticación de doble factor (2FA) usando el ticket pre-auth emitido por /login")
     @PostMapping("/2fa/verify")
     public ResponseEntity<TokenResponse> verify2Fa(
@@ -75,6 +94,14 @@ public class AuthController {
         return ResponseEntity.ok(tokenResponse);
     }
 
+    /**
+     * Emite un nuevo token de acceso a partir de un refresh token vigente, tomado de la cookie
+     * HttpOnly o, si no está presente, del cuerpo de la petición.
+     * @param refreshTokenCookie refresh token leído de la cookie HttpOnly {@code refreshToken}
+     * @param requestBody refresh token alternativo enviado en el cuerpo JSON, usado solo si no hay cookie
+     * @param response respuesta HTTP en la que se escribe la cookie con el refresh token renovado
+     * @return un nuevo token de acceso, o 401 si no se proporcionó ningún refresh token
+     */
     @Operation(summary = "Refrescar token de acceso utilizando Refresh Token en cookie HttpOnly o cuerpo JSON")
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(
@@ -93,6 +120,14 @@ public class AuthController {
         return ResponseEntity.ok(tokenResponse);
     }
 
+    /**
+     * Cierra la sesión del usuario invalidando su token JWT y su refresh token (blacklist en Redis y BD)
+     * y limpiando las cookies de sesión.
+     * @param request petición HTTP de la que se extrae el encabezado {@code Authorization} con el JWT activo
+     * @param refreshTokenCookie refresh token vigente leído de la cookie HttpOnly {@code refreshToken}
+     * @param response respuesta HTTP en la que se limpian las cookies de refresh token y de ticket pre-auth 2FA
+     * @return sin contenido (204) una vez invalidada la sesión
+     */
     @Operation(summary = "Cerrar sesión e invalidar token JWT y Refresh Token en Redis Blacklist y BD", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request, @CookieValue(name = COOKIE_REFRESH, required = false) String refreshTokenCookie, HttpServletResponse response) {
@@ -103,12 +138,22 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Genera y envía al correo del usuario un token de recuperación para restablecer su contraseña.
+     * @param request correo electrónico del usuario que solicita recuperar su contraseña
+     * @return mensaje de confirmación de que la solicitud fue procesada
+     */
     @Operation(summary = "Solicitar enlace/token de recuperación de contraseña")
     @PostMapping("/forgot-password")
     public ResponseEntity<RespuestaMensaje> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         return ResponseEntity.ok(authService.forgotPassword(request));
     }
 
+    /**
+     * Establece una nueva contraseña para el usuario a partir de un token de recuperación válido.
+     * @param request token de recuperación recibido por correo junto con la nueva contraseña a establecer
+     * @return mensaje de confirmación de que la contraseña fue actualizada
+     */
     @Operation(summary = "Reestablecer contraseña utilizando token válido")
     @PostMapping("/reset-password")
     public ResponseEntity<RespuestaMensaje> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {

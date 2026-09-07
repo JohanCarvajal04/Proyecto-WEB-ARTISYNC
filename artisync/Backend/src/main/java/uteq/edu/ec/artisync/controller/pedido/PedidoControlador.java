@@ -32,6 +32,12 @@ public class PedidoControlador {
 
     private final IPedidoServicio pedidoServicio;
 
+    /**
+     * Crea un nuevo pedido para el servicio solicitado por el usuario autenticado.
+     * @param userDetails usuario autenticado que actúa como cliente que solicita el pedido
+     * @param peticion datos del pedido a crear (servicio contratado, términos iniciales)
+     * @return el pedido recién creado, con estado 201 (Created)
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPedido> crearPedido(
@@ -41,6 +47,13 @@ public class PedidoControlador {
                 .body(pedidoServicio.crearPedido(userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Obtiene el detalle de un pedido específico, validando que el usuario autenticado
+     * tenga relación con él (como cliente o como creador).
+     * @param id identificador del pedido a consultar
+     * @param userDetails usuario autenticado que solicita el detalle
+     * @return el pedido con su detalle completo
+     */
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaPedido> obtenerPedido(
@@ -49,6 +62,11 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Lista los pedidos realizados por el usuario autenticado en su rol de cliente.
+     * @param userDetails usuario autenticado dueño de los pedidos a listar
+     * @return listado resumido de los pedidos del usuario
+     */
     @GetMapping("/mis-pedidos")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaPedidoResumido>> listarMisPedidos(
@@ -56,6 +74,11 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));
     }
 
+    /**
+     * Lista los pedidos que el usuario autenticado gestiona como creador (comisiones recibidas).
+     * @param userDetails usuario autenticado que actúa como creador del servicio contratado
+     * @return listado resumido de los pedidos que el creador debe gestionar
+     */
     @GetMapping("/mis-comisiones")
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<List<RespuestaPedidoResumido>> listarMisComisiones(
@@ -68,6 +91,18 @@ public class PedidoControlador {
      * de exportación aparte — a diferencia de auditoría/finanzas/contratos,
      * que son reportes administrativos y sí lo llevan.
      */
+    /**
+     * Exportación "propia": mismo @PreAuthorize que el listado, sin permiso
+     * de exportación aparte — a diferencia de auditoría/finanzas/contratos,
+     * que son reportes administrativos y sí lo llevan.
+     */
+    /**
+     * Exporta a un archivo descargable los pedidos del usuario autenticado como cliente.
+     * @param userDetails usuario autenticado dueño de los pedidos a exportar
+     * @param formato formato del documento de salida (por ejemplo PDF o Excel)
+     * @param authentication identidad autenticada usada para trazar quién generó el reporte
+     * @return el documento generado como arreglo de bytes descargable
+     */
     @GetMapping("/mis-pedidos/exportar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportarMisPedidos(
@@ -79,6 +114,15 @@ public class PedidoControlador {
         return RespuestaDocumento.de(documento);
     }
 
+    /**
+     * Exporta a un archivo descargable las comisiones (pedidos gestionados como creador)
+     * del usuario autenticado, opcionalmente filtradas por un subconjunto de pedidos.
+     * @param userDetails usuario autenticado que actúa como creador de los servicios contratados
+     * @param formato formato del documento de salida (por ejemplo PDF o Excel)
+     * @param idsPedido identificadores de los pedidos a incluir; si se omite, se exportan todos
+     * @param authentication identidad autenticada usada para trazar quién generó el reporte
+     * @return el documento generado como arreglo de bytes descargable
+     */
     @GetMapping("/mis-comisiones/exportar")
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportarMisComisiones(
@@ -91,6 +135,13 @@ public class PedidoControlador {
         return RespuestaDocumento.de(documento);
     }
 
+    /**
+     * Avanza el pedido a la siguiente etapa de su flujo de trabajo.
+     * @param id identificador del pedido a avanzar
+     * @param userDetails usuario autenticado que ejecuta el avance (normalmente el creador)
+     * @param peticion datos de la etapa destino y comentarios asociados al avance
+     * @return el pedido actualizado con su nueva etapa
+     */
     @PutMapping("/{id}/avanzar")
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPedido> avanzarEtapa(
@@ -100,6 +151,13 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Crea una propuesta de cambio de términos (alcance, precio o plazo) sobre un pedido existente.
+     * @param id identificador del pedido sobre el que se propone el cambio de términos
+     * @param userDetails usuario autenticado que origina la propuesta
+     * @param peticion datos de los nuevos términos propuestos
+     * @return la propuesta de términos creada, con estado 201 (Created)
+     */
     @PostMapping("/{id}/propuestas-terminos")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaPropuestaTerminos> proponerTerminos(
@@ -110,6 +168,12 @@ public class PedidoControlador {
                 .body(pedidoServicio.proponerTerminos(id, userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Obtiene la propuesta de términos pendiente de respuesta para un pedido, si existe.
+     * @param id identificador del pedido a consultar
+     * @param userDetails usuario autenticado que consulta la propuesta
+     * @return la propuesta de términos pendiente
+     */
     @GetMapping("/{id}/propuestas-terminos/pendiente")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaPropuestaTerminos> obtenerPropuestaPendiente(
@@ -118,6 +182,13 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.obtenerPropuestaPendiente(id, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Acepta una propuesta de cambio de términos, aplicando los nuevos términos al pedido.
+     * @param id identificador del pedido asociado a la propuesta
+     * @param idPropuesta identificador de la propuesta de términos a aceptar
+     * @param userDetails usuario autenticado que acepta la propuesta
+     * @return el pedido actualizado con los términos ya aplicados
+     */
     @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/aceptar")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaPedido> aceptarPropuestaTerminos(
@@ -127,6 +198,13 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.aceptarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Rechaza una propuesta de cambio de términos, dejando vigentes los términos actuales del pedido.
+     * @param id identificador del pedido asociado a la propuesta
+     * @param idPropuesta identificador de la propuesta de términos a rechazar
+     * @param userDetails usuario autenticado que rechaza la propuesta
+     * @return la propuesta de términos actualizada con su nuevo estado
+     */
     @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/rechazar")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaPropuestaTerminos> rechazarPropuestaTerminos(
@@ -136,6 +214,13 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.rechazarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Cancela una propuesta de cambio de términos antes de que sea respondida.
+     * @param id identificador del pedido asociado a la propuesta
+     * @param idPropuesta identificador de la propuesta de términos a cancelar
+     * @param userDetails usuario autenticado que cancela la propuesta (normalmente quien la creó)
+     * @return la propuesta de términos actualizada con su nuevo estado
+     */
     @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/cancelar")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaPropuestaTerminos> cancelarPropuestaTerminos(
@@ -145,6 +230,12 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.cancelarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Obtiene el historial cronológico de cambios de estado de un pedido.
+     * @param id identificador del pedido a consultar
+     * @param userDetails usuario autenticado que consulta el historial
+     * @return el listado de eventos de historial del pedido, en orden cronológico
+     */
     @GetMapping("/{id}/historial")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<RespuestaHistorialEstado>> obtenerHistorial(
@@ -153,6 +244,12 @@ public class PedidoControlador {
         return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Obtiene el estado de seguimiento consolidado de un pedido (etapa actual, avance y próximos hitos).
+     * @param id identificador del pedido a consultar
+     * @param userDetails usuario autenticado que consulta el seguimiento
+     * @return el resumen de seguimiento del pedido
+     */
     @GetMapping("/{id}/seguimiento")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaSeguimientoPedido> obtenerSeguimiento(
@@ -164,12 +261,24 @@ public class PedidoControlador {
     // ── Inmutabilidad del Historial (RNF-13) ─────────────────────────────────
     // Los registros de historial_estados_pedido NO pueden ser eliminados ni modificados
 
+    /**
+     * Bloquea explícitamente el borrado de registros de historial de un pedido, ya que son
+     * inmutables por requisito de auditoría (RNF-13).
+     * @param id identificador del pedido cuyo historial se intentó eliminar
+     * @return respuesta con estado 403 (Forbidden) y un mensaje explicativo
+     */
     @DeleteMapping("/{id}/historial")
     public ResponseEntity<RespuestaMensaje> bloquearDeleteHistorial(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new RespuestaMensaje("Operacion no permitida sobre registros de auditoria"));
     }
 
+    /**
+     * Bloquea explícitamente la modificación parcial de registros de historial de un pedido,
+     * ya que son inmutables por requisito de auditoría (RNF-13).
+     * @param id identificador del pedido cuyo historial se intentó modificar
+     * @return respuesta con estado 403 (Forbidden) y un mensaje explicativo
+     */
     @PatchMapping("/{id}/historial")
     public ResponseEntity<RespuestaMensaje> bloquearPatchHistorial(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

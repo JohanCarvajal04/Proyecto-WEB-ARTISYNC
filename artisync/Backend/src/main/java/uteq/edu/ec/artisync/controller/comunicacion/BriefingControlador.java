@@ -34,6 +34,12 @@ public class BriefingControlador {
     // Gestión de plantillas (CREADOR)
     // =========================================================================
 
+    /**
+     * Registra una nueva plantilla de cuestionario de briefing para el creador autenticado.
+     * @param peticion preguntas y configuración de la plantilla a crear
+     * @param userDetails identidad del creador autenticado, usada para resolver su perfil
+     * @return la plantilla de briefing recién creada
+     */
     @Operation(summary = "Crear plantilla de briefing")
     @PostMapping("/api/v1/briefing/plantillas")
     @PreAuthorize("isAuthenticated()")
@@ -46,6 +52,11 @@ public class BriefingControlador {
                 .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Obtiene todas las plantillas de briefing pertenecientes al creador autenticado.
+     * @param userDetails identidad del creador autenticado, usada para filtrar sus plantillas
+     * @return las plantillas de briefing del creador
+     */
     @Operation(summary = "Listar mis plantillas de briefing")
     @GetMapping("/api/v1/briefing/plantillas")
     @PreAuthorize("isAuthenticated()")
@@ -54,6 +65,13 @@ public class BriefingControlador {
         return ResponseEntity.ok(briefingService.obtenerMisPlantillas(userDetails.getIdUsuario()));
     }
 
+    /**
+     * Actualiza las preguntas y configuración de una plantilla de briefing existente del creador.
+     * @param idPlantilla identificador de la plantilla de briefing a editar
+     * @param peticion nuevos datos de preguntas y configuración de la plantilla
+     * @param userDetails identidad del creador autenticado, usada para validar la propiedad de la plantilla
+     * @return la plantilla de briefing con los cambios aplicados
+     */
     @Operation(summary = "Editar plantilla de briefing")
     @PutMapping("/api/v1/briefing/plantillas/{idPlantilla}")
     @PreAuthorize("isAuthenticated()")
@@ -65,6 +83,12 @@ public class BriefingControlador {
                 briefingService.editarPlantilla(idPlantilla, userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Elimina definitivamente una plantilla de briefing propiedad del creador autenticado.
+     * @param idPlantilla identificador de la plantilla de briefing a eliminar
+     * @param userDetails identidad del creador autenticado, usada para validar la propiedad de la plantilla
+     * @return mensaje de confirmación de la eliminación
+     */
     @Operation(summary = "Eliminar plantilla de briefing")
     @DeleteMapping("/api/v1/briefing/plantillas/{idPlantilla}")
     @PreAuthorize("isAuthenticated()")
@@ -81,6 +105,12 @@ public class BriefingControlador {
     // El cliente ya no responde aquí: las respuestas se dan al crear el
     // pedido (POST /api/v1/pedidos, ver PedidoServicioImpl.crearPedido).
 
+    /**
+     * Recupera las respuestas del cuestionario de briefing asociado a un pedido específico.
+     * @param idPedido identificador del pedido cuyo briefing respondido se desea consultar
+     * @param userDetails identidad del usuario autenticado, usada para validar que puede ver ese pedido
+     * @return el briefing con las respuestas registradas al crear el pedido
+     */
     @Operation(summary = "Ver el cuestionario respondido de un pedido")
     @GetMapping("/api/v1/pedidos/{idPedido}/briefing")
     @PreAuthorize("isAuthenticated()")
