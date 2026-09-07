@@ -33,6 +33,16 @@ public class VerificacionControlador {
 
     private final IVerificacionServicio verificacionServicio;
 
+    /**
+     * Solicita una verificación de identidad o de certificado, subiendo el documento correspondiente.
+     *
+     * @param tipo tipo de documento de verificación a subir
+     * @param documento archivo del documento a verificar
+     * @param userDetails usuario autenticado que solicita la verificación
+     * @return la verificación creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el usuario solicitante no existe
+     * @throws ExcepcionReglaNegocio si el usuario ya tiene una solicitud de este tipo en curso, o el documento no puede leerse
+     */
     @Operation(summary = "Solicitar una verificación de identidad o certificado")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
@@ -44,6 +54,12 @@ public class VerificacionControlador {
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
+    /**
+     * Obtiene el estado de identidad del usuario autenticado, que gatea la publicación de servicios y la creación de pedidos.
+     *
+     * @param userDetails usuario autenticado
+     * @return el estado de identidad del usuario
+     */
     @Operation(summary = "Estado de identidad del usuario autenticado (gatea publicar servicios y crear pedidos)")
     @GetMapping("/mi-estado")
     @PreAuthorize("isAuthenticated()")
@@ -52,6 +68,14 @@ public class VerificacionControlador {
         return ResponseEntity.ok(verificacionServicio.obtenerEstadoIdentidad(userDetails.getIdUsuario()));
     }
 
+    /**
+     * Lista la cola de verificaciones pendientes de revisión.
+     *
+     * @param estado estado por el cual filtrar la cola (opcional)
+     * @param limite cantidad máxima de resultados a devolver
+     * @param offset cantidad de resultados a saltar, para paginación
+     * @return listado de verificaciones en cola
+     */
     @Operation(summary = "Cola de verificaciones pendientes de revisión")
     @GetMapping
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -62,6 +86,14 @@ public class VerificacionControlador {
         return ResponseEntity.ok(verificacionServicio.listarCola(estado, limite, offset));
     }
 
+    /**
+     * Obtiene el detalle de una verificación.
+     *
+     * @param id identificador de la verificación
+     * @param userDetails usuario autenticado que consulta la verificación
+     * @return el detalle de la verificación
+     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     */
     @Operation(summary = "Detalle de una verificación")
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
@@ -73,6 +105,13 @@ public class VerificacionControlador {
         return ResponseEntity.ok(verificacionServicio.obtenerPorId(id, userDetails.getIdUsuario(), esRevisor));
     }
 
+    /**
+     * Descarga el documento original de una verificación, para su revisión.
+     *
+     * @param id identificador de la verificación
+     * @return el contenido binario del documento en formato JPEG
+     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     */
     @Operation(summary = "Descargar el documento original para revisión")
     @GetMapping("/{id}/documento")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -81,6 +120,15 @@ public class VerificacionControlador {
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(documento);
     }
 
+    /**
+     * Pide a la IA un dictamen orientativo sobre una verificación; el dictamen no decide el estado final.
+     *
+     * @param id identificador de la verificación
+     * @return la verificación con el dictamen de la IA
+     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     * @throws ExcepcionReglaNegocio si el documento de la verificación ya fue eliminado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible si el servicio de IA no está disponible
+     */
     @Operation(summary = "Pedir a la IA un dictamen orientativo (no decide)")
     @PostMapping("/{id}/analisis-ia")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -88,6 +136,15 @@ public class VerificacionControlador {
         return ResponseEntity.ok(verificacionServicio.analizarConIa(id));
     }
 
+    /**
+     * Registra la decisión del moderador sobre una verificación; es el único punto que cambia su estado final.
+     *
+     * @param id identificador de la verificación
+     * @param peticion decisión del moderador, con el nuevo estado y una nota opcional
+     * @param userDetails moderador autenticado que registra la decisión
+     * @return la verificación con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la verificación o el estado de verificación indicado no existen
+     */
     @Operation(summary = "Registrar la decisión del moderador (único punto que cambia el estado)")
     @PatchMapping("/{id}/decision")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")

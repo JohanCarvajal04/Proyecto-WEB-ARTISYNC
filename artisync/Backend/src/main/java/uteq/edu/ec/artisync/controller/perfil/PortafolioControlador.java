@@ -23,6 +23,16 @@ public class PortafolioControlador {
 
     private final IPortafolioServicio portafolioServicio;
 
+    /**
+     * Crea el portafolio de un perfil de creador.
+     *
+     * @param peticion datos del portafolio a crear
+     * @param userDetails usuario autenticado que crea el portafolio
+     * @return el portafolio creado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si el perfil de creador ya cuenta con un portafolio registrado
+     * @throws ExcepcionRecursoNoEncontrado si el perfil de creador no existe
+     * @throws ExcepcionReglaNegocio si el usuario no tiene permisos para crear un portafolio para ese perfil
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPortafolio> crearPortafolio(
@@ -32,21 +42,50 @@ public class PortafolioControlador {
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
+    /**
+     * Obtiene un portafolio por su identificador.
+     *
+     * @param id identificador del portafolio
+     * @return el portafolio solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     */
     @GetMapping("/{id}")
     public ResponseEntity<RespuestaPortafolio> obtenerPortafolioPorId(@PathVariable Long id) {
         return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));
     }
 
+    /**
+     * Obtiene el portafolio asociado a un perfil de creador.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return el portafolio del perfil
+     * @throws ExcepcionRecursoNoEncontrado si no existe portafolio para el perfil
+     */
     @GetMapping("/perfil/{idPerfil}")
     public ResponseEntity<RespuestaPortafolio> obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
         return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));
     }
 
+    /**
+     * Lista todos los portafolios del sistema.
+     *
+     * @return listado de portafolios
+     */
     @GetMapping
     public ResponseEntity<List<RespuestaPortafolio> > listarPortafolios() {
         return ResponseEntity.ok(portafolioServicio.listarPortafolios());
     }
 
+    /**
+     * Actualiza los datos de un portafolio existente.
+     *
+     * @param id identificador del portafolio a actualizar
+     * @param peticion datos actualizados del portafolio
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el portafolio actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ExcepcionReglaNegocio si el usuario no tiene permisos para modificar el portafolio
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaPortafolio> actualizarPortafolio(
@@ -56,6 +95,14 @@ public class PortafolioControlador {
         return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Registra una visita al portafolio, incrementando su contador de visitas.
+     *
+     * @param id identificador del portafolio visitado
+     * @param userDetails usuario autenticado que registra la visita
+     * @return mensaje de confirmación del registro de la visita
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     */
     @PostMapping("/{id}/visita")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaMensaje> registrarVisita(
@@ -65,6 +112,13 @@ public class PortafolioControlador {
         return ResponseEntity.ok(new RespuestaMensaje("Visita al portafolio incrementada"));
     }
 
+    /**
+     * Elimina un portafolio como acción de moderación.
+     *
+     * @param id identificador del portafolio a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarPortafolio(@PathVariable Long id) {

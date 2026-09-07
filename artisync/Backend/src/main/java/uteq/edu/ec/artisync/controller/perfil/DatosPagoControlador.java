@@ -23,6 +23,12 @@ public class DatosPagoControlador {
 
     private final IDatosPagoServicio datosPagoServicio;
 
+    /**
+     * Obtiene los datos de pago (correo de PayPal) del creador autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return los datos de pago del creador
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
     public ResponseEntity<RespuestaDatosPago> obtenerMisDatosPago(
@@ -30,6 +36,13 @@ public class DatosPagoControlador {
         return ResponseEntity.ok(datosPagoServicio.obtenerMisDatosPago(userDetails.getIdUsuario()));
     }
 
+    /**
+     * Actualiza el correo de PayPal del creador autenticado para recibir retiros.
+     *
+     * @param userDetails usuario autenticado
+     * @param peticion nuevo correo de PayPal
+     * @return los datos de pago actualizados
+     */
     @PutMapping
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
     public ResponseEntity<RespuestaDatosPago> actualizarCorreoPaypal(
