@@ -34,6 +34,16 @@ public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
+    /**
+     * Lista todos los usuarios de forma paginada, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el listado de usuarios
+     * @param page número de página solicitada (base 0)
+     * @param size tamaño de la página
+     * @param sortBy campo por el cual ordenar el resultado
+     * @param direction dirección del orden ("asc" o "desc")
+     * @return página con los usuarios que cumplen el filtro
+     */
     @Operation(summary = "Listar todos los usuarios paginados")
     @GetMapping
     @PreAuthorize("hasAuthority('USUARIO_VER') or hasRole('ADMIN')")
@@ -49,6 +59,14 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.getAllUsers(filtro, pageable));
     }
 
+    /**
+     * Exporta el listado de usuarios filtrado en el formato solicitado.
+     *
+     * @param filtro criterios opcionales para filtrar el listado de usuarios
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del administrador que solicita la exportación
+     * @return el documento generado con el listado de usuarios
+     */
     @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
@@ -58,6 +76,12 @@ public class AdminUserController {
         return RespuestaDocumento.de(documento);
     }
 
+    /**
+     * Obtiene el detalle de un usuario por su identificador.
+     *
+     * @param id identificador del usuario
+     * @return el usuario solicitado
+     */
     @Operation(summary = "Obtener usuario por ID")
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_VER') or hasRole('ADMIN')")
@@ -65,6 +89,12 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.getUserById(id));
     }
 
+    /**
+     * Crea un nuevo usuario desde el panel administrativo.
+     *
+     * @param request datos del usuario a crear
+     * @return el usuario creado, con estado 201
+     */
     @Operation(summary = "Crear nuevo usuario desde el panel administrativo")
     @PostMapping
     @PreAuthorize("hasAuthority('USUARIO_CREAR') or hasRole('ADMIN')")
@@ -72,6 +102,13 @@ public class AdminUserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(adminUserService.createUser(request));
     }
 
+    /**
+     * Actualiza la información y configuración de un usuario.
+     *
+     * @param id identificador del usuario a actualizar
+     * @param request datos actualizados del usuario
+     * @return el usuario actualizado
+     */
     @Operation(summary = "Actualizar información y configuración de un usuario")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')")
@@ -79,6 +116,15 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.updateUser(id, request));
     }
 
+    /**
+     * Activa, desactiva o suspende la cuenta de un usuario.
+     *
+     * @param id identificador del usuario
+     * @param request nuevo estado a aplicar sobre la cuenta
+     * @param userDetails administrador autenticado que realiza el cambio
+     * @return el usuario con su estado actualizado
+     * @throws ExcepcionReglaNegocio si el administrador intenta desactivar su propia cuenta
+     */
     @Operation(summary = "Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)")
     @PatchMapping("/{id}/estado")
     @PreAuthorize("hasAuthority('USUARIO_SUSPENDER') or hasAuthority('USUARIO_ELIMINAR') or hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')")
@@ -87,6 +133,15 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.changeEstado(id, request, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Asigna roles a un usuario.
+     *
+     * @param id identificador del usuario
+     * @param request roles a asignar
+     * @param userDetails administrador autenticado que realiza la asignación
+     * @return el usuario con sus roles actualizados
+     * @throws ExcepcionReglaNegocio si el administrador intenta cambiar sus propios roles
+     */
     @Operation(summary = "Asignar roles a un usuario")
     @PutMapping("/{id}/roles")
     @PreAuthorize("hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')")
@@ -95,6 +150,12 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.assignRoles(id, request, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Revoca inmediatamente todas las sesiones activas de un usuario.
+     *
+     * @param id identificador del usuario cuyas sesiones se revocan
+     * @return mensaje de confirmación de la revocación
+     */
     @Operation(summary = "Revocar inmediatamente todas las sesiones activas de un usuario")
     @DeleteMapping("/{id}/sesiones")
     @PreAuthorize("hasAuthority('SESION_REVOCAR') or hasRole('ADMIN')")
@@ -102,6 +163,14 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.revokeUserSessions(id));
     }
 
+    /**
+     * Elimina lógicamente a un usuario (soft delete).
+     *
+     * @param id identificador del usuario a eliminar
+     * @param userDetails administrador autenticado que solicita la eliminación
+     * @return respuesta vacía con estado 204
+     * @throws ExcepcionReglaNegocio si el administrador intenta eliminar su propia cuenta
+     */
     @Operation(summary = "Eliminar lógicamente a un usuario (Soft Delete)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
