@@ -10,7 +10,7 @@ por el apartado **A.2.1** de la Guía de la Entrega Final.
 
 ## Resumen
 
-El sistema declara **veintiocho rutinas activas** en `db/procs/`. De las seis originales de la
+El sistema declara **veintiséis rutinas activas** en `db/procs/` (el archivo `V8__estructuras_para_procedimientos.sql` del mismo directorio es DDL de soporte, no una rutina, y no se cuenta aquí; conteo corregido el 2026-09-06 — el commit `7abf937` retiró `fn_actualizar_portada_creador` y `fn_listar_creadores_seguidos_novedades` del módulo de seguidores pero solo actualizó sus filas y secciones, no este resumen). De las seis originales de la
 Tercera Entrega (una por categoría funcional del apartado A.2.2), **cinco se retiraron del
 catálogo** el 01-09-2026 por no tener nunca un consumidor real desde código Java (`fn_catalogo_filtrado`,
 `fn_calificacion_promedio_creador`, `fn_cerrar_pedidos_vencidos`, `fn_liberar_fondos_escrow`,
@@ -57,10 +57,10 @@ desde antes de esta ampliación: `fn_listar_cola_verificacion` (`FUNCTION`, `STA
 
 ### Nota sobre modos de parámetro y cursores
 
-Veintiséis de las veintiocho rutinas activas (ocho anteriores + las cuatro de la Fase 1 de
-concurrencia + la de la Fase 2 de rendimiento + las siete de la Fase 3 de concurrencia + las seis
+Veinticuatro de las veintiséis rutinas activas (ocho anteriores + las cuatro de la Fase 1 de
+concurrencia + la de la Fase 2 de rendimiento + las siete de la Fase 3 de concurrencia + las cuatro
 del módulo de seguidores, sección 20) se declaran como **funciones** de PostgreSQL con valor de
-retorno escalar, `JSONB` o `TABLE`. En consecuencia, para esas veintiséis:
+retorno escalar, `JSONB` o `TABLE`. En consecuencia, para esas veinticuatro:
 
 - **Todos los parámetros son de modo `IN`.** No hay parámetros `OUT` ni `INOUT` en ninguna rutina:
   el resultado viaja siempre por el valor de retorno.
@@ -79,7 +79,7 @@ devuelve nada y ambas se invocan con `CALL`, nunca con `SELECT`.
 
 ### Postura de seguridad
 
-Ninguna de las veintiocho rutinas activas construye SQL por concatenación. No aparece `EXECUTE
+Ninguna de las veintiséis rutinas activas construye SQL por concatenación. No aparece `EXECUTE
 IMMEDIATE`, `sp_executesql`, `EXECUTE format(...)` ni `EXECUTE <variable>` en ningún archivo. Toda
 entrada externa llega como **parámetro formal tipado**, y los filtros opcionales se neutralizan con
 el patrón `(p_x IS NULL OR columna = p_x)` en lugar de armar el predicado por texto. Esto satisface
