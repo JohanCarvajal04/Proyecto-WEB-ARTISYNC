@@ -33,6 +33,16 @@ public class ChatControlador {
 
     private final ChatService chatService;
 
+    /**
+     * Obtiene el historial paginado de mensajes de la sala de chat de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param pageable configuración de paginación
+     * @param userDetails usuario autenticado que solicita el historial
+     * @return página con los mensajes de la sala de chat
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido
+     */
     @Operation(summary = "Historial de mensajes de un pedido (paginado)")
     @GetMapping("/mensajes")
     @PreAuthorize("isAuthenticated()")
@@ -43,6 +53,16 @@ public class ChatControlador {
         return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, userDetails.getIdUsuario(), pageable));
     }
 
+    /**
+     * Envía un mensaje al chat de un pedido por REST, como alternativa al canal WebSocket.
+     *
+     * @param idPedido identificador del pedido
+     * @param peticion cuerpo del mensaje a enviar
+     * @param userDetails usuario autenticado que envía el mensaje
+     * @return el mensaje enviado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido, la sala está cerrada o el mensaje contiene datos de contacto
+     */
     @Operation(summary = "Enviar mensaje por REST (fallback sin WebSocket)")
     @PostMapping("/mensajes")
     @PreAuthorize("isAuthenticated()")
@@ -55,6 +75,15 @@ public class ChatControlador {
         return ResponseEntity.ok(respuesta);
     }
 
+    /**
+     * Obtiene el estado actual de la sala de chat de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta el estado
+     * @return el estado de la sala de chat
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido
+     */
     @Operation(summary = "Estado actual de la sala de chat de un pedido")
     @GetMapping("/estado")
     @PreAuthorize("isAuthenticated()")
@@ -71,6 +100,11 @@ public class ChatControlador {
     /**
      * Endpoint STOMP: el cliente envía a /app/chat.enviar con el idPedido y cuerpo del mensaje.
      * La respuesta se publica automáticamente en /topic/sala.{idSala} desde ChatServiceImpl.
+     *
+     * @param peticion mensaje entrante con el identificador del pedido y el cuerpo del mensaje
+     * @param userDetails usuario autenticado que envía el mensaje
+     * @throws ExcepcionReglaNegocio si no se indica el identificador del pedido, el usuario no participa en él,
+     *      la sala está cerrada o el mensaje contiene datos de contacto
      */
     @MessageMapping("/chat.enviar")
     public void enviarMensajeWs(

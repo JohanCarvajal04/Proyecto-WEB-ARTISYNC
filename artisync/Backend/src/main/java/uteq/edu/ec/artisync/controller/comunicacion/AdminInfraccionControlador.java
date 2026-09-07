@@ -25,6 +25,12 @@ public class AdminInfraccionControlador {
 
     private final InfraccionService infraccionService;
 
+    /**
+     * Lista todas las infracciones registradas en el sistema.
+     *
+     * @param pageable configuración de paginación
+     * @return página con las infracciones del sistema
+     */
     @Operation(summary = "Listar todas las infracciones del sistema")
     @GetMapping("/infracciones")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
@@ -32,6 +38,13 @@ public class AdminInfraccionControlador {
         return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));
     }
 
+    /**
+     * Obtiene el historial de infracciones de un usuario específico.
+     *
+     * @param idUsuario identificador del usuario
+     * @param pageable configuración de paginación
+     * @return página con el historial de infracciones del usuario
+     */
     @Operation(summary = "Historial de infracciones de un usuario específico")
     @GetMapping("/infracciones/usuario/{idUsuario}")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
@@ -41,6 +54,13 @@ public class AdminInfraccionControlador {
         return ResponseEntity.ok(infraccionService.historialPorUsuario(idUsuario, pageable));
     }
 
+    /**
+     * Revierte la suspensión de la cuenta de un usuario.
+     *
+     * @param idUsuario identificador del usuario cuya suspensión se revierte
+     * @return mensaje de confirmación de la reactivación
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     */
     @Operation(summary = "Revertir suspensión de un usuario")
     @DeleteMapping("/suspensiones/{idUsuario}")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")

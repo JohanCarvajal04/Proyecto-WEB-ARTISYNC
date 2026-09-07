@@ -23,6 +23,15 @@ public class LikePortafolioControlador {
 
     private final LikePortafolioService likeService;
 
+    /**
+     * Da "me gusta" a un ítem de portafolio en nombre del usuario autenticado.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param userDetails usuario autenticado que da el like
+     * @return el estado de likes actualizado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si el usuario ya le dio like al ítem
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     */
     @Operation(summary = "Dar like a un ítem de portafolio")
     @PostMapping("/{idItemPortafolio}/likes")
     @PreAuthorize("isAuthenticated()")
@@ -34,6 +43,14 @@ public class LikePortafolioControlador {
                 .body(likeService.darLike(idItemPortafolio, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Quita el "me gusta" del usuario autenticado sobre un ítem de portafolio.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param userDetails usuario autenticado que quita el like
+     * @return el estado de likes actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no le había dado like al ítem
+     */
     @Operation(summary = "Quitar el like de un ítem de portafolio")
     @DeleteMapping("/{idItemPortafolio}/likes")
     @PreAuthorize("isAuthenticated()")
@@ -43,6 +60,14 @@ public class LikePortafolioControlador {
         return ResponseEntity.ok(likeService.quitarLike(idItemPortafolio, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Obtiene el estado de likes de un ítem de portafolio, de acceso público.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el estado de likes del ítem, incluyendo si el usuario actual ya dio like
+     * @throws ExcepcionRecursoNoEncontrado si el ítem de portafolio no existe
+     */
     @Operation(summary = "Estado de likes de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/likes")
     public ResponseEntity<RespuestaEstadoLike> obtenerEstado(
