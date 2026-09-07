@@ -1,6 +1,6 @@
 -- =============================================================================
 -- sp_restablecer_contrasena
--- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-005
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-004
 -- =============================================================================
 -- Aplica un restablecimiento de contrasena a partir de un token de
 -- recuperacion: valida que el token exista, no haya sido usado y no haya
@@ -81,4 +81,4 @@ END;
 $$;
 
 COMMENT ON PROCEDURE sp_restablecer_contrasena(VARCHAR, VARCHAR)
-    IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
+    IS 'REQ-F-004 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';

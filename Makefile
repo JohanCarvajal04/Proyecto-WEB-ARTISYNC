@@ -23,9 +23,9 @@ COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.en
 PANDOC_IMAGE ?= pandoc/latex:3.1
 
 # Opciones de pandoc compartidas por el target srs.
-SRS_PANDOC_OPTS ?= --toc --number-sections --pdf-engine=xelatex \
+SRS_PANDOC_OPTS ?= --toc --pdf-engine=xelatex \
                    -V lang=es -V geometry:margin=2.5cm -V documentclass=report \
-                   --metadata title="SRS - Artisync v1.0.0"
+                   --metadata title="SRS - Artisync v1.2.0"
 
 ## Reproduccion end-to-end en un solo comando (Bloque D.1): levanta el stack
 ## completo (Flyway aplica migraciones y postgres aplica db/seed.sql al
@@ -397,7 +397,7 @@ srs:
 			exit 1; \
 		}; \
 		pandoc docs/requisitos/.srs-build.md \
-			-o docs/requisitos/SRS-v1.0.0.pdf $(SRS_PANDOC_OPTS); \
+			-o docs/requisitos/SRS-v1.2.0.pdf $(SRS_PANDOC_OPTS); \
 	else \
 		command -v docker >/dev/null 2>&1 || { \
 			echo "ERROR: se necesita Docker (o PANDOC_LOCAL=1 con pandoc instalado)."; \
@@ -406,9 +406,9 @@ srs:
 		}; \
 		MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/data" -w /data $(PANDOC_IMAGE) \
 			docs/requisitos/.srs-build.md \
-			-o docs/requisitos/SRS-v1.0.0.pdf $(SRS_PANDOC_OPTS); \
+			-o docs/requisitos/SRS-v1.2.0.pdf $(SRS_PANDOC_OPTS); \
 	fi
 	@rm -f docs/requisitos/.srs-build.md
-	@echo "OK: docs/requisitos/SRS-v1.0.0.pdf generado."
+	@echo "OK: docs/requisitos/SRS-v1.2.0.pdf generado."
 	@echo "    Recuerda: el PDF solo cierra el criterio D0R cuando lleva la firma"
 	@echo "    de aprobacion del docente-director (seccion 8 del SRS)."
