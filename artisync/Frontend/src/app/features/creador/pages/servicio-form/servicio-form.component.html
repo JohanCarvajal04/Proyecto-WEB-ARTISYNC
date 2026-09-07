@@ -167,39 +167,65 @@
           </div>
 
           @if (mostrarFormSubcategoria()) {
-            <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-              <div class="cr-form__row">
-                <select class="cr-select" [(ngModel)]="categoriaParaNuevaSubcategoria" [ngModelOptions]="{standalone: true}">
-                  @for (cat of categorias(); track cat.idCategoria) {
-                    <option [ngValue]="cat.idCategoria">{{ cat.nombreCategoria }}</option>
-                  }
-                </select>
-                <input type="text" class="cr-input" placeholder="Nombre de la subcategoría" maxlength="100"
-                  [(ngModel)]="nuevaSubcategoriaNombre" [ngModelOptions]="{standalone: true}" />
-              </div>
-              <div class="cr-form__row" style="justify-content: flex-end;">
-                <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormSubcategoria()">Cancelar</button>
-                <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoSubcategoria()" (click)="guardarSubcategoria()">
-                  @if (creandoSubcategoria()) { <span class="cr-spinner cr-spinner--sm"></span> }
-                  Guardar subcategoría
-                </button>
+            <div class="cr-modal" role="dialog" aria-modal="true">
+              <button type="button" class="cr-modal__backdrop" aria-label="Cerrar" (click)="cancelarFormSubcategoria()"></button>
+              <div class="cr-modal__panel">
+                <div class="cr-card__head">
+                  <div>
+                    <h2 class="cr-card__title">Nueva subcategoría</h2>
+                    <p class="cr-card__hint">Un moderador la revisará luego de creada</p>
+                  </div>
+                </div>
+                <div class="cr-card__body cr-form">
+                  <div class="cr-field">
+                    <label class="cr-label">Categoría</label>
+                    <select class="cr-select" [(ngModel)]="categoriaParaNuevaSubcategoria" [ngModelOptions]="{standalone: true}">
+                      @for (cat of categorias(); track cat.idCategoria) {
+                        <option [ngValue]="cat.idCategoria">{{ cat.nombreCategoria }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="cr-field">
+                    <label class="cr-label">Nombre de la subcategoría</label>
+                    <input type="text" class="cr-input" placeholder="Ej. Retratos" maxlength="100"
+                      [(ngModel)]="nuevaSubcategoriaNombre" [ngModelOptions]="{standalone: true}" />
+                  </div>
+                </div>
+                <div class="cr-card__foot">
+                  <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormSubcategoria()">Cancelar</button>
+                  <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoSubcategoria()" (click)="guardarSubcategoria()">
+                    @if (creandoSubcategoria()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                    Guardar subcategoría
+                  </button>
+                </div>
               </div>
             </div>
           }
 
           @if (mostrarFormCategoria()) {
-            <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-              <div class="cr-form__row">
-                <input type="text" class="cr-input" placeholder="Nombre de la categoría (rubro)" maxlength="100"
-                  [(ngModel)]="nuevaCategoriaNombre" [ngModelOptions]="{standalone: true}" />
-              </div>
-              <span class="cr-hint">Un moderador revisará esta categoría luego de creada.</span>
-              <div class="cr-form__row" style="justify-content: flex-end;">
-                <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormCategoria()">Cancelar</button>
-                <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoCategoria()" (click)="guardarCategoria()">
-                  @if (creandoCategoria()) { <span class="cr-spinner cr-spinner--sm"></span> }
-                  Guardar categoría
-                </button>
+            <div class="cr-modal" role="dialog" aria-modal="true">
+              <button type="button" class="cr-modal__backdrop" aria-label="Cerrar" (click)="cancelarFormCategoria()"></button>
+              <div class="cr-modal__panel">
+                <div class="cr-card__head">
+                  <div>
+                    <h2 class="cr-card__title">Nueva categoría</h2>
+                    <p class="cr-card__hint">Un moderador la revisará luego de creada</p>
+                  </div>
+                </div>
+                <div class="cr-card__body cr-form">
+                  <div class="cr-field">
+                    <label class="cr-label">Nombre de la categoría (rubro)</label>
+                    <input type="text" class="cr-input" placeholder="Ej. Ilustración" maxlength="100"
+                      [(ngModel)]="nuevaCategoriaNombre" [ngModelOptions]="{standalone: true}" />
+                  </div>
+                </div>
+                <div class="cr-card__foot">
+                  <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormCategoria()">Cancelar</button>
+                  <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoCategoria()" (click)="guardarCategoria()">
+                    @if (creandoCategoria()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                    Guardar categoría
+                  </button>
+                </div>
               </div>
             </div>
           }
@@ -252,38 +278,48 @@
           </div>
 
           @if (mostrarFormFlujo()) {
-            <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-              <div class="cr-form__row">
-                <input type="text" class="cr-input" placeholder="Nombre del flujo" [(ngModel)]="formFlujo.nombreFlujo" [ngModelOptions]="{standalone: true}" />
-              </div>
-              <div class="cr-form__row">
-                <input type="text" class="cr-input" placeholder="Descripción (opcional)" [(ngModel)]="formFlujo.descripcionFlujo" [ngModelOptions]="{standalone: true}" />
-              </div>
-
-              @for (etapa of formFlujo.etapas; track etapa.numeroOrden; let i = $index) {
-                <div class="cr-form__row" style="align-items: center;">
-                  <span class="cr-hint">{{ etapa.numeroOrden }}. {{ etapa.nombreEtapa }}</span>
-                  <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarEtapaFlujo(i)">Quitar</button>
+            <div class="cr-modal" role="dialog" aria-modal="true">
+              <button type="button" class="cr-modal__backdrop" aria-label="Cerrar" (click)="cancelarFormFlujo()"></button>
+              <div class="cr-modal__panel cr-modal__panel--wide">
+                <div class="cr-card__head">
+                  <div>
+                    <h2 class="cr-card__title">Nuevo flujo de trabajo</h2>
+                    <p class="cr-card__hint">Las etapas por las que pasará cada pedido de este servicio</p>
+                  </div>
                 </div>
-              }
+                <div class="cr-card__body cr-form">
+                  <div class="cr-form__row">
+                    <input type="text" class="cr-input" placeholder="Nombre del flujo" [(ngModel)]="formFlujo.nombreFlujo" [ngModelOptions]="{standalone: true}" />
+                  </div>
+                  <div class="cr-form__row">
+                    <input type="text" class="cr-input" placeholder="Descripción (opcional)" [(ngModel)]="formFlujo.descripcionFlujo" [ngModelOptions]="{standalone: true}" />
+                  </div>
 
-              <div class="cr-form__row">
-                <input type="text" class="cr-input" placeholder="Nombre de la etapa" [(ngModel)]="nuevaEtapaFlujo.nombreEtapa" [ngModelOptions]="{standalone: true}" />
-                <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.esEtapaFinal" [ngModelOptions]="{standalone: true}" /> Final
-                </label>
-                <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.requiereEntregable" [ngModelOptions]="{standalone: true}" /> Exige entregable
-                </label>
-                <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarEtapaFlujo()">Añadir etapa</button>
-              </div>
+                  @for (etapa of formFlujo.etapas; track etapa.numeroOrden; let i = $index) {
+                    <div class="cr-form__row" style="align-items: center;">
+                      <span class="cr-hint">{{ etapa.numeroOrden }}. {{ etapa.nombreEtapa }}</span>
+                      <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarEtapaFlujo(i)">Quitar</button>
+                    </div>
+                  }
 
-              <div class="cr-form__row" style="justify-content: flex-end;">
-                <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormFlujo()">Cancelar</button>
-                <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoFlujo()" (click)="guardarFlujo()">
-                  @if (creandoFlujo()) { <span class="cr-spinner cr-spinner--sm"></span> }
-                  Guardar flujo
-                </button>
+                  <div class="cr-form__row">
+                    <input type="text" class="cr-input" placeholder="Nombre de la etapa" [(ngModel)]="nuevaEtapaFlujo.nombreEtapa" [ngModelOptions]="{standalone: true}" />
+                    <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                      <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.esEtapaFinal" [ngModelOptions]="{standalone: true}" /> Final
+                    </label>
+                    <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                      <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.requiereEntregable" [ngModelOptions]="{standalone: true}" /> Exige entregable
+                    </label>
+                    <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarEtapaFlujo()">Añadir etapa</button>
+                  </div>
+                </div>
+                <div class="cr-card__foot">
+                  <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormFlujo()">Cancelar</button>
+                  <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoFlujo()" (click)="guardarFlujo()">
+                    @if (creandoFlujo()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                    Guardar flujo
+                  </button>
+                </div>
               </div>
             </div>
           }
@@ -318,34 +354,44 @@
           </div>
 
           @if (mostrarFormCuestionario()) {
-            <div class="cr-field" style="border: 1px solid var(--cr-border, #e2e8f0); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-              <div class="cr-form__row">
-                <input type="text" class="cr-input" placeholder="Nombre del cuestionario" [(ngModel)]="formCuestionario.nombrePlantilla" [ngModelOptions]="{standalone: true}" />
-              </div>
-
-              @for (pregunta of formCuestionario.preguntas; track pregunta.numeroOrden; let i = $index) {
-                <div class="cr-form__row" style="align-items: center;">
-                  <span class="cr-hint">{{ pregunta.numeroOrden }}. {{ pregunta.textoPregunta }}</span>
-                  <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarPreguntaCuestionario(i)">Quitar</button>
+            <div class="cr-modal" role="dialog" aria-modal="true">
+              <button type="button" class="cr-modal__backdrop" aria-label="Cerrar" (click)="cancelarFormCuestionario()"></button>
+              <div class="cr-modal__panel cr-modal__panel--wide">
+                <div class="cr-card__head">
+                  <div>
+                    <h2 class="cr-card__title">Nuevo cuestionario</h2>
+                    <p class="cr-card__hint">El cliente lo responderá al crear el pedido de este servicio</p>
+                  </div>
                 </div>
-              }
+                <div class="cr-card__body cr-form">
+                  <div class="cr-form__row">
+                    <input type="text" class="cr-input" placeholder="Nombre del cuestionario" [(ngModel)]="formCuestionario.nombrePlantilla" [ngModelOptions]="{standalone: true}" />
+                  </div>
 
-              <div class="cr-form__row">
-                <input type="text" class="cr-input" placeholder="Escribe una pregunta"
-                  [(ngModel)]="nuevaPreguntaCuestionario" [ngModelOptions]="{standalone: true}"
-                  (keydown.enter)="$event.preventDefault(); agregarPreguntaCuestionario()" />
-                <button type="button" class="cr-btn cr-btn--outline cr-btn--sm"
-                  [disabled]="formCuestionario.preguntas.length >= maxPreguntasCuestionario"
-                  (click)="agregarPreguntaCuestionario()">Añadir pregunta</button>
-              </div>
-              <span class="cr-hint">{{ formCuestionario.preguntas.length }} / {{ maxPreguntasCuestionario }} preguntas</span>
+                  @for (pregunta of formCuestionario.preguntas; track pregunta.numeroOrden; let i = $index) {
+                    <div class="cr-form__row" style="align-items: center;">
+                      <span class="cr-hint">{{ pregunta.numeroOrden }}. {{ pregunta.textoPregunta }}</span>
+                      <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarPreguntaCuestionario(i)">Quitar</button>
+                    </div>
+                  }
 
-              <div class="cr-form__row" style="justify-content: flex-end;">
-                <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormCuestionario()">Cancelar</button>
-                <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoCuestionario()" (click)="guardarCuestionario()">
-                  @if (creandoCuestionario()) { <span class="cr-spinner cr-spinner--sm"></span> }
-                  Guardar cuestionario
-                </button>
+                  <div class="cr-form__row">
+                    <input type="text" class="cr-input" placeholder="Escribe una pregunta"
+                      [(ngModel)]="nuevaPreguntaCuestionario" [ngModelOptions]="{standalone: true}"
+                      (keydown.enter)="$event.preventDefault(); agregarPreguntaCuestionario()" />
+                    <button type="button" class="cr-btn cr-btn--outline cr-btn--sm"
+                      [disabled]="formCuestionario.preguntas.length >= maxPreguntasCuestionario"
+                      (click)="agregarPreguntaCuestionario()">Añadir pregunta</button>
+                  </div>
+                  <span class="cr-hint">{{ formCuestionario.preguntas.length }} / {{ maxPreguntasCuestionario }} preguntas</span>
+                </div>
+                <div class="cr-card__foot">
+                  <button type="button" class="cr-btn cr-btn--ghost" (click)="cancelarFormCuestionario()">Cancelar</button>
+                  <button type="button" class="cr-btn cr-btn--primary" [disabled]="creandoCuestionario()" (click)="guardarCuestionario()">
+                    @if (creandoCuestionario()) { <span class="cr-spinner cr-spinner--sm"></span> }
+                    Guardar cuestionario
+                  </button>
+                </div>
               </div>
             </div>
           }
