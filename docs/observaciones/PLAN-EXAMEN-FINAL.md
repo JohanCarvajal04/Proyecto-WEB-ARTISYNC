@@ -598,7 +598,9 @@ El checklist de Ralph está fechado el **17 de agosto** y afirma en tres ítems 
 
 Hoy: de **543 métodos públicos solo 28 tienen Javadoc**, y en todo el backend hay **8 `@param`, 0 `@return` y 1 `@throws`**.
 
-**Alcance realista:** el criterio de aceptación de la guía §3.10 acota a *«los métodos públicos de servicios y controladores»*, no a los 543. Eso es alcanzable en una semana.
+**Alcance realista:** el criterio de aceptación de la guía §3.10 acota a *«los métodos públicos de servicios y controladores»*, no a los 543 (denominador acordado: 438 = 220 métodos de controladores + 218 métodos de interfaces de servicio). Eso es alcanzable en una semana con dos personas; con una sola, se prioriza controladores como meta mínima.
+
+**Avance 2026-09-06 (ejecución con una sola persona):** ✅ **capa de controladores completa — 44/44 archivos, 220/220 métodos endpoint** documentados con `@param`/`@return`/`@throws` verificados contra el `*Impl` real, en 8 commits (uno por bloque de módulo), `mvn compile` en verde tras cada uno. Conteo total en `src/main/java` sube de `10 @param / 1 @return / 2 @throws` a **`397 @param / 216 @return / 152 @throws`**. ☐ **Interfaces de servicio (35 archivos, ~218 métodos) siguen en 0/218** — brecha declarada, pendiente por falta de tiempo; no se documentaron los `*Impl` (Java hereda el Javadoc de la interfaz, así que documentarlos ahí sería trabajo duplicado sin beneficio). `service/shared/**` (~261 métodos de adaptadores de infraestructura: `EmailService`, `PayPalClient`, etc.) queda fuera del alcance obligatorio por no ser capa de dominio.
 
 ```java
 /**
