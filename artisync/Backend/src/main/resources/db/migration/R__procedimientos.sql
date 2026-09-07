@@ -10,9 +10,8 @@
 -- Migracion REPETIBLE: Flyway la reaplica cada vez que cambia su checksum.
 -- Todas las rutinas usan CREATE OR REPLACE, por lo que reaplicarla es inocuo.
 --
--- Rutinas incluidas (29):
+-- Rutinas incluidas (27):
 --   - V8__estructuras_para_procedimientos.sql
---   - fn_actualizar_portada_creador.sql
 --   - fn_cambiar_estado_cuenta.sql
 --   - fn_configurar_2fa.sql
 --   - fn_consumir_codigo_respaldo_2fa.sql
@@ -24,7 +23,6 @@
 --   - fn_eliminar_rol.sql
 --   - fn_es_seguidor.sql
 --   - fn_guardar_pais.sql
---   - fn_listar_creadores_seguidos_novedades.sql
 --   - fn_permisos_efectivos_usuario.sql
 --   - fn_registrar_infraccion.sql
 --   - fn_registrar_usuario.sql
@@ -103,42 +101,6 @@ CREATE INDEX IF NOT EXISTS idx_servicios_perfil
 -- filtrar el catalogo por estado de publicacion.
 CREATE INDEX IF NOT EXISTS idx_servicios_estado_publicacion
     ON servicios (estado_publicacion);
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_actualizar_portada_creador.sql
--- ---------------------------------------------------------------------------
--- =============================================================================
--- fn_actualizar_portada_creador
--- Categoria funcional: actualizaciones
--- =============================================================================
--- Actualiza la URL de portada y el titulo profesional de un perfil de creador.
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION fn_actualizar_portada_creador(
-    p_id_perfil BIGINT,
-    p_url_portada VARCHAR(500),
-    p_titulo_profesional VARCHAR(150)
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    IF p_id_perfil IS NULL THEN
-        RAISE EXCEPTION 'El id de perfil es obligatorio';
-    END IF;
-
-    UPDATE perfiles_creadores
-       SET url_portada = COALESCE(p_url_portada, url_portada),
-           titulo_profesional = COALESCE(p_titulo_profesional, titulo_profesional)
-     WHERE id_perfil = p_id_perfil;
-
-    RETURN FOUND;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
-    IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
 
 
 -- ---------------------------------------------------------------------------
@@ -865,59 +827,6 @@ $$;
 
 COMMENT ON FUNCTION fn_guardar_pais(BIGINT, VARCHAR)
     IS 'Fase 3 concurrencia - Crea o renombra un pais capturando unique_violation en vez de una comprobacion findByNombrePais no atomica (A9).';
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_listar_creadores_seguidos_novedades.sql
--- ---------------------------------------------------------------------------
--- =============================================================================
--- fn_listar_creadores_seguidos_novedades
--- Categoria funcional: consultas multi-tabla / reportes
--- =============================================================================
--- Devuelve los creadores que el usuario sigue junto a su resumen de novedades.
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION fn_listar_creadores_seguidos_novedades(
-    p_id_usuario_seguidor BIGINT
-)
-RETURNS TABLE (
-    id_perfil BIGINT,
-    id_usuario BIGINT,
-    nombres_usuario VARCHAR,
-    apellidos_usuario VARCHAR,
-    handle VARCHAR,
-    url_foto_perfil VARCHAR,
-    titulo_profesional VARCHAR,
-    resumen_novedad TEXT,
-    tipo_novedad VARCHAR,
-    fecha_novedad TIMESTAMP
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        pc.id_perfil,
-        u.id_usuario,
-        u.nombres_usuario,
-        u.apellidos_usuario,
-        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
-        u.url_foto_perfil,
-        pc.titulo_profesional,
-        'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
-        'GENERAL'::VARCHAR AS tipo_novedad,
-        s.fecha_seguimiento::TIMESTAMP AS fecha_novedad
-    FROM seguidores s
-    JOIN perfiles_creadores pc ON pc.id_perfil = s.id_perfil_creador
-    JOIN usuarios u ON u.id_usuario = pc.id_usuario
-    WHERE s.id_usuario_seguidor = p_id_usuario_seguidor
-    ORDER BY s.fecha_seguimiento DESC;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
-    IS 'Devuelve los creadores seguidos por el usuario con su resumen de novedades.';
 
 
 -- ---------------------------------------------------------------------------
