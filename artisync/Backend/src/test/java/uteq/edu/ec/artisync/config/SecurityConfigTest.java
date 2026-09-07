@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
-    "JWT_SECRET=d5d0f9946b0a3804c562579f9ad06d66dd9ed91c4a5d7787cf7a139fd34ad834",
+    "JWT_SECRET=test-fake-jwt-secret-do-not-use-in-production-0000000000",
     // Redis y el SMTP real no están disponibles en este test (no es un IT
     // contra el stack real); sin esto /actuator/health responde 503 y el
     // test no puede distinguir "el endpoint es público" de "está DOWN".

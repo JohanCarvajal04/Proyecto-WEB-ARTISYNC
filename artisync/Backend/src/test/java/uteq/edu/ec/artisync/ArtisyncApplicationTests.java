@@ -8,7 +8,7 @@ import uteq.edu.ec.artisync.service.shared.EmailService;
 
 @SpringBootTest
 @TestPropertySource(properties = {
-    "JWT_SECRET=d5d0f9946b0a3804c562579f9ad06d66dd9ed91c4a5d7787cf7a139fd34ad834"
+    "JWT_SECRET=test-fake-jwt-secret-do-not-use-in-production-0000000000"
 })
 class ArtisyncApplicationTests {
 

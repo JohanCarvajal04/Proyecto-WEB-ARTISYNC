@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class JwtServiceTest {
 
     private static final String SECRETO_VALIDO =
-            "d5d0f9946b0a3804c562579f9ad06d66dd9ed91c4a5d7787cf7a139fd34ad834"; // 64 bytes
+            "test-fake-jwt-secret-do-not-use-in-production-0000000000"; // 56 bytes
 
     private JwtService jwtService;
     private CustomUserDetails usuario;
