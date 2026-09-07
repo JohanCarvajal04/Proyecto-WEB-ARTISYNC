@@ -292,7 +292,7 @@ El digest SHA-256 del PDF final permite verificar que el artefacto descargado (r
 
 ```
 sha256sum docs/informe-final/Informe-Final-v1.0.0.pdf
-9e563d4db4a6dce1737b0ffae4d534b6a50f56c21b76ca87041b34ed61c0a28d  Informe-Final-v1.0.0.pdf
+76e4f86fd7514a8d4721d73ceba98f1640b0886def6228c38fa9d082f6292b73  Informe-Final-v1.0.0.pdf
 ```
 
 ---

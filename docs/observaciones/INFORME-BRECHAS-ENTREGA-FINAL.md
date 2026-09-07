@@ -6,7 +6,11 @@
 
 > ## ⚠ Actualización — 06 de septiembre de 2026: la cifra de 85,2 % (23/27) quedó obsoleta
 >
-> `docs/observaciones/OBSERVACIONES.md` (fuente de verdad de este dato) corrigió el 06-09-2026 un error aritmético en sus párrafos de encabezado que había hecho circular tres porcentajes de transición distintos (72 % → 85,2 % → 86,2 %) para el mismo recuento. La cifra vigente, verificada fila por fila contra la tabla de "Resumen" de esa bitácora, es **26 de 29 observaciones resueltas (89,7 %)**, con 1 parcial y 2 pendientes — no 85,2 % (23/27), que este informe seguía citando más abajo (Bloque 0) sin que su propia fuente ya la sostuviera.
+> `docs/observaciones/OBSERVACIONES.md` (fuente de verdad de este dato) corrigió el 06-09-2026 un error aritmético en sus párrafos de encabezado que había hecho circular tres porcentajes de transición distintos (72 % → 85,2 % → 86,2 %) para el mismo recuento. La cifra vigente en ese momento, verificada fila por fila contra la tabla de "Resumen" de esa bitácora, era **26 de 29 observaciones resueltas (89,7 %)**, con 1 parcial y 2 pendientes — no 85,2 % (23/27), que este informe seguía citando más abajo (Bloque 0) sin que su propia fuente ya la sostuviera.
+>
+> ## ⚠ Actualización — 07 de septiembre de 2026: sube a 93,1 % (27/29)
+>
+> Con posterioridad a la corrección de arriba, se cerró **OBS-05** (retiro del wireframe genérico `Pantalla_principal.jpg`, sin reemplazo de dominio). La cifra vigente ahora es **27 de 29 observaciones resueltas (93,1 %)**, con 1 parcial (OBS-AUTO-10) y 1 pendiente (OBS-14).
 
 > ## ⚠ Actualización — 18 de agosto de 2026: el Bloque 0 de este informe está superado
 >

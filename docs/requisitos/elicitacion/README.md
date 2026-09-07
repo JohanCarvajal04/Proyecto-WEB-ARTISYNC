@@ -16,7 +16,7 @@ Esta carpeta documenta las técnicas de elicitación que produjeron el corpus de
 | Cuestionarios de elicitación     | No          | —                                                                                                          |
 | Workshops con stakeholders       | No          | —                                                                                                          |
 
-Sobre el prototipado: cinco de los seis wireframes corresponden al dominio de Artisync (catálogo, escrow y entrega, perfil de creador, pipeline de pedido, sala de operaciones). El sexto, `Pantalla_principal.jpg`, es una plantilla genérica de gestión de agencia que no corresponde al dominio; está registrado como observación abierta **OBS-05** en [`../../observaciones/OBSERVACIONES.md`](../../observaciones/OBSERVACIONES.md) y no debe leerse como evidencia de elicitación válida.
+Sobre el prototipado: los cinco wireframes vigentes corresponden al dominio de Artisync (catálogo, escrow y entrega, perfil de creador, pipeline de pedido, sala de operaciones). Existió un sexto, `Pantalla_principal.jpg`, una plantilla genérica de gestión de agencia que no correspondía al dominio; fue retirado el 2026-09-07 en vez de presentarse como evidencia de elicitación válida — ver **OBS-05** en [`../../observaciones/OBSERVACIONES.md`](../../observaciones/OBSERVACIONES.md).
 
 ## Limitación y su efecto sobre la validez
 
