@@ -23,6 +23,11 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public class PermissionController {
 
+    /**
+     * Obtiene los códigos de los permisos (authorities) activos del usuario autenticado, sin incluir los roles (prefijo ROLE_).
+     *
+     * @return listado de códigos de permisos del usuario autenticado, o estado 401 si no hay sesión autenticada
+     */
     @Operation(summary = "Obtener códigos de permisos activos para el usuario autenticado (sin prefijo ROLE_)")
     @GetMapping("/me")
     public ResponseEntity<List<String>> getMyPermissions() {
