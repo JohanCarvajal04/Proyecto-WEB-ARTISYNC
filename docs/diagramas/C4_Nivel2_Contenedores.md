@@ -117,47 +117,47 @@ Rel(backend, storage, "Gestiona subida y URLs seguras para archivos multimedia",
 
 ```mermaid
 flowchart TB
-    subgraph Users["👤 Actores del Sistema"]
-        C["👨‍💻 Cliente / Buscador de Talento"]
-        A["🎨 Artista / Creador de Contenido"]
-        ADM["🛡️ Administrador del Sistema"]
+    subgraph Users["👤 System Actors"]
+        C["👨‍💻 Client / Talent Seeker"]
+        A["🎨 Artist / Content Creator"]
+        ADM["🛡️ Platform Administrator"]
     end
 
-    subgraph Artisync["🏢 Plataforma Artisync (Límite del Sistema - Docker Compose)"]
+    subgraph Artisync["🏢 Artisync Platform (System Boundary - Docker Compose)"]
         direction TB
-        FE["🌐 Aplicación Web SPA (Frontend)<br>----------------------------------------<br>Angular 22 / TypeScript / Nginx<br>Puerto: 4200 / 80"]
+        FE["🌐 Web SPA Application (Frontend)<br>----------------------------------------<br>Angular 22 / TypeScript / Nginx<br>Port: 4200 / 80"]
         
-        BE["⚙️ Servidor API REST (Backend)<br>----------------------------------------<br>Java 21 / Spring Boot 4.1.0 / Security 6<br>Puerto: 8080 (REST JSON)"]
+        BE["⚙️ REST API Server (Backend)<br>----------------------------------------<br>Java 21 / Spring Boot 4.1.0 / Security 6<br>Port: 8080 (REST JSON)"]
         
-        subgraph DataTier["Persistencia & Caché de Alta Velocidad"]
-            DB[("🗄️ Base de Datos Relacional<br>-------------------------<br>PostgreSQL 16 (pfc_postgres)<br>Puerto: 5432 / Flyway")]
-            REDIS[("⚡ Caché & Blacklist JTI<br>-------------------------<br>Redis 7 Alpine (pfc_redis)<br>Puerto: 6379 / TTL O(1)")]
+        subgraph DataTier["High-Speed Persistence & Cache"]
+            DB[("🗄️ Relational Database<br>-------------------------<br>PostgreSQL 16 (pfc_postgres)<br>Port: 5432 / Flyway")]
+            REDIS[("⚡ Cache & JTI Blacklist<br>-------------------------<br>Redis 7 Alpine (pfc_redis)<br>Port: 6379 / TTL O(1)")]
         end
     end
 
-    subgraph External["🌐 Sistemas Externos"]
-        SMTP["📧 Correo Transaccional (SMTP TLS 587)"]
+    subgraph External["🌐 External Systems"]
+        SMTP["📧 Transactional Email (SMTP TLS 587)"]
         PAY["💳 PayPal API v2 & Webhooks (Escrow)"]
-        CLOUD["☁️ Cloud Storage / CDN Multimedia"]
+        CLOUD["☁️ Cloud Storage / Media CDN"]
     end
 
-    %% Relaciones Usuario -> Frontend
-    C -- "HTTPS / 4200<br>Solicita y aprueba pedidos" --> FE
-    A -- "HTTPS / 4200<br>Gestiona portafolio y entregables" --> FE
-    ADM -- "HTTPS / 4200<br>Modera y resuelve tickets" --> FE
+    %% User -> Frontend relationships
+    C -- "HTTPS / 4200<br>Requests and approves orders" --> FE
+    A -- "HTTPS / 4200<br>Manages portfolio and deliverables" --> FE
+    ADM -- "HTTPS / 4200<br>Moderates and resolves tickets" --> FE
 
-    %% Relación Frontend -> Backend
+    %% Frontend -> Backend relationship
     FE -- "HTTPS / REST JSON<br>Authorization: Bearer <JWT>" --> BE
 
-    %% Relaciones Backend -> Datos
-    BE -- "JDBC / Hibernate JPA<br>Transacciones ACID (@Transactional)" --> DB
-    BE -- "RESP Protocol / RedisTemplate<br>Consulta Blacklist y Cache-Aside" --> REDIS
+    %% Backend -> Data relationships
+    BE -- "JDBC / Hibernate JPA<br>ACID transactions (@Transactional)" --> DB
+    BE -- "RESP Protocol / RedisTemplate<br>Checks blacklist and cache-aside" --> REDIS
 
-    %% Relaciones Backend -> Externos
-    BE -- "SMTP / TLS 587<br>Envío de correos (@Async)" --> SMTP
-    BE -- "HTTPS / REST API v2<br>Creación de órdenes Escrow" --> PAY
-    PAY -- "HTTPS Webhook POST<br>Notificación de pagos" --> BE
-    BE -- "HTTPS / REST API<br>Subida de archivos multimedia" --> CLOUD
+    %% Backend -> External relationships
+    BE -- "SMTP / TLS 587<br>Sends emails (@Async)" --> SMTP
+    BE -- "HTTPS / REST API v2<br>Creates escrow orders" --> PAY
+    PAY -- "HTTPS Webhook POST<br>Payment notification" --> BE
+    BE -- "HTTPS / REST API<br>Uploads media files" --> CLOUD
 
     style FE fill:#2b5c8f,stroke:#1b3d5f,stroke-width:2px,color:#fff
     style BE fill:#1168bd,stroke:#08427b,stroke-width:3px,color:#fff
