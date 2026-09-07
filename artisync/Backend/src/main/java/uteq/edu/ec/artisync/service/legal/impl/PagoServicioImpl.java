@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,7 +104,16 @@ public class PagoServicioImpl implements IPagoServicio {
             pago.setIdOrdenPaypal(orderId);
             pago.setMontoRetenido(montoFinal);
             pago.setEstadoFondos(FONDOS_PENDIENTE);
-            pago = pagoGarantiaRepository.save(pago);
+            try {
+                pago = pagoGarantiaRepository.save(pago);
+            } catch (DataIntegrityViolationException e) {
+                // Carrera entre el findByContratoIdContrato de arriba y este
+                // insert/update: id_contrato es UNIQUE, así que dos clics casi
+                // simultáneos sobre el mismo contrato no pueden colar dos filas
+                // en pagos_garantia. Mismo patrón que
+                // SolicitudRetiroServicioImpl.solicitar.
+                throw new ExcepcionReglaNegocio("Este pedido ya tiene un pago en curso");
+            }
 
             log.info("Orden PayPal {} creada para pedido {} por ${}", orderId, idPedido, montoFinal);
 

@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.service.legal.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,6 +40,15 @@ public class EntregableServicioImpl implements IEntregableServicio {
     private final AlmacenamientoDocumentos almacenamiento;
     private final ChatService chatService;
     private final NotificacionService notificacionService;
+
+    /**
+     * Fuente unica con ReporteFinancieroServicioImpl: antes era un literal
+     * 0.10 aqui y, por separado, el default de fn_reporte_comisiones_creador
+     * en SQL -- dos constantes que podian divergir si se cambiaba una sin la
+     * otra.
+     */
+    @Value("${plataforma.comision-tasa:0.10}")
+    private BigDecimal tasaComision;
 
     @Override
     @Transactional
@@ -144,8 +154,9 @@ public class EntregableServicioImpl implements IEntregableServicio {
             pago.setEstadoFondos("Liberado");
             pagoGarantiaRepository.save(pago);
 
-            // Registrar transacciones: egreso al creador y comisión plataforma (10%)
-            BigDecimal comision = pago.getMontoRetenido().multiply(BigDecimal.valueOf(0.10));
+            // Registrar transacciones: egreso al creador y comisión plataforma
+            // (tasaComision, misma fuente que usa ReporteFinancieroServicioImpl)
+            BigDecimal comision = pago.getMontoRetenido().multiply(tasaComision);
             BigDecimal pagoCreador = pago.getMontoRetenido().subtract(comision);
 
             transaccionPagoRepository.save(TransaccionPago.builder()

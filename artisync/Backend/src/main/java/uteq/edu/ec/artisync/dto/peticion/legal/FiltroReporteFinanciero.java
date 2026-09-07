@@ -13,6 +13,6 @@ public class FiltroReporteFinanciero extends FiltroRangoFechas {
 
     private Long idPerfil;
 
-    /** Opcional: si se omite, fn_reporte_comisiones_creador usa su default (10%). */
+    /** Opcional: si se omite, ReporteFinancieroServicioImpl usa `plataforma.comision-tasa`. */
     private BigDecimal tasaComision;
 }

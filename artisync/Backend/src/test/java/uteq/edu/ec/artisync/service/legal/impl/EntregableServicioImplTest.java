@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEntregable;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
@@ -69,6 +70,11 @@ class EntregableServicioImplTest {
         pedido.setIdPedido(ID_PEDIDO);
         pedido.setServicio(servicioCatalogo);
         pedido.setUsuarioCliente(cliente);
+
+        // @Value no lo rellena @InjectMocks (no es parte del constructor de
+        // Lombok al no ser final); mismo patron que
+        // SolicitudRetiroServicioImplTest con montoMinimo.
+        ReflectionTestUtils.setField(servicio, "tasaComision", new java.math.BigDecimal("0.10"));
     }
 
     private MockMultipartFile imagen(String nombre) {
@@ -292,6 +298,37 @@ class EntregableServicioImplTest {
 
         verify(transaccionPagoRepository, times(2)).save(any());
         verify(entregableRepository).save(any());
+    }
+
+    /** La tasa ya no es un literal 0.10: confirma que usa la propiedad configurada. */
+    @Test
+    void aprobarEntrega_usaLaTasaDeComisionConfigurada() {
+        ReflectionTestUtils.setField(servicio, "tasaComision", new java.math.BigDecimal("0.20"));
+
+        when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
+        when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
+                .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+
+        uteq.edu.ec.artisync.entity.legal.Contrato contrato = new uteq.edu.ec.artisync.entity.legal.Contrato();
+        contrato.setIdContrato(1L);
+        when(contratoRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.of(contrato));
+
+        uteq.edu.ec.artisync.entity.legal.PagoGarantia pago = new uteq.edu.ec.artisync.entity.legal.PagoGarantia();
+        pago.setMontoRetenido(new java.math.BigDecimal("100.00"));
+        when(pagoGarantiaRepository.findByContratoIdContrato(1L)).thenReturn(Optional.of(pago));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(
+                uteq.edu.ec.artisync.entity.legal.TransaccionPago.class);
+
+        servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE);
+
+        verify(transaccionPagoRepository, times(2)).save(captor.capture());
+        var porTipo = captor.getAllValues().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        uteq.edu.ec.artisync.entity.legal.TransaccionPago::getTipoTransaccion,
+                        uteq.edu.ec.artisync.entity.legal.TransaccionPago::getMonto));
+        assertThat(porTipo.get("Comision")).isEqualByComparingTo("20.00");
+        assertThat(porTipo.get("Egreso")).isEqualByComparingTo("80.00");
     }
 
     @Test

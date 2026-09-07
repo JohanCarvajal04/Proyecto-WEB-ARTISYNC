@@ -164,6 +164,21 @@ class PagoServicioImplCrearOrdenTest {
                 .isInstanceOf(ExcepcionReglaNegocio.class);
     }
 
+    @Test
+    @DisplayName("crearOrdenPayPal traduce la carrera de id_contrato UNIQUE a un mensaje de negocio limpio")
+    void crearOrden_traduceCarreraDeContratoUnico() {
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
+        given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.empty());
+        conRespuestasPayPal("""
+                {"id":"ORDER-999","links":[]}""");
+        given(pagoGarantiaRepository.save(any(PagoGarantia.class)))
+                .willThrow(new org.springframework.dao.DataIntegrityViolationException("uq_pagos_garantia_contrato"));
+
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessage("Este pedido ya tiene un pago en curso");
+    }
+
     // ---------- obtenerEstadoPago ----------
 
     @Test

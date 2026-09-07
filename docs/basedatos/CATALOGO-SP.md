@@ -128,6 +128,13 @@ obligaba a agregar en Java.
 La comisión se **parametriza** en lugar de fijarse en la rutina, para que el reporte pueda
 recalcularse históricamente si la tasa cambia sin versionar una función nueva.
 
+**Corrección (revisión técnica 2026-09-06):** `montoBruto` solo suma las transacciones de tipo
+`Ingreso` (`SUM(...) FILTER (WHERE tipo_transaccion = 'Ingreso')`). Antes sumaba las tres filas que
+`EntregableServicioImpl.aprobarEntrega` registra por cada pago liberado (`Ingreso` + `Egreso` +
+`Comision`, el desglose del mismo monto en vez de montos adicionales), lo que triplicaba
+`montoBruto`, `comision` y `montoNeto`. El `detalle[]` no se filtra: sigue mostrando las tres filas
+por pago como historial de auditoría completo; solo el agregado se corrigió.
+
 ### Parámetros
 
 | # | Nombre | Modo | Tipo | Por defecto | Significado |

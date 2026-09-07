@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import uteq.edu.ec.artisync.dto.peticion.legal.FiltroReporteFinanciero;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DetalleComision;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaReporteComisiones;
@@ -96,6 +97,39 @@ class ReporteFinancieroServicioImplTest {
         assertThat(segunda.idPedido()).isNull();
         assertThat(segunda.servicio()).isNull();
         assertThat(segunda.monto()).isEqualByComparingTo("200.00");
+    }
+
+    @Test
+    @DisplayName("obtenerReporteComisiones() usa plataforma.comision-tasa cuando el filtro no trae una tasa explicita")
+    void obtenerReporteComisiones_SinTasaEnFiltro_UsaLaConfigurada() {
+        when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
+        servicio = crearServicio();
+        ReflectionTestUtils.setField(servicio, "tasaComisionPorDefecto", new BigDecimal("0.15"));
+
+        FiltroReporteFinanciero filtro = new FiltroReporteFinanciero();
+        filtro.setIdPerfil(7L);
+        servicio.obtenerReporteComisiones(filtro);
+
+        ArgumentCaptor<BigDecimal> tasaCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(transaccionPagoRepository).reporteComisionesJson(eq(7L), any(), any(), tasaCaptor.capture());
+        assertThat(tasaCaptor.getValue()).isEqualByComparingTo("0.15");
+    }
+
+    @Test
+    @DisplayName("obtenerReporteComisiones() respeta la tasa explicita del filtro por encima del default")
+    void obtenerReporteComisiones_ConTasaEnFiltro_IgnoraElDefault() {
+        when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
+        servicio = crearServicio();
+        ReflectionTestUtils.setField(servicio, "tasaComisionPorDefecto", new BigDecimal("0.15"));
+
+        FiltroReporteFinanciero filtro = new FiltroReporteFinanciero();
+        filtro.setIdPerfil(7L);
+        filtro.setTasaComision(new BigDecimal("0.25"));
+        servicio.obtenerReporteComisiones(filtro);
+
+        ArgumentCaptor<BigDecimal> tasaCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(transaccionPagoRepository).reporteComisionesJson(eq(7L), any(), any(), tasaCaptor.capture());
+        assertThat(tasaCaptor.getValue()).isEqualByComparingTo("0.25");
     }
 
     @Test

@@ -1194,7 +1194,13 @@ BEGIN
            AND (p_fecha_desde IS NULL OR t.fecha_ejecucion >= p_fecha_desde)
            AND (p_fecha_hasta IS NULL OR t.fecha_ejecucion <= p_fecha_hasta)
     )
-    SELECT COALESCE(SUM(m.monto), 0),
+    -- v_bruto solo suma 'Ingreso': es la unica fila que representa el monto
+    -- bruto real cobrado al cliente por pedido. 'Egreso' y 'Comision' son el
+    -- desglose posterior de ese mismo bruto (90%/10% del mismo pago), no
+    -- montos adicionales -- sumarlas junto a 'Ingreso' triplicaba el bruto.
+    -- El detalle (jsonb_agg) sigue sin filtrar: conserva las tres filas por
+    -- pago como historial de auditoria completo.
+    SELECT COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_transaccion = 'Ingreso'), 0),
            COUNT(DISTINCT m.id_pedido),
            COUNT(*),
            COALESCE(
