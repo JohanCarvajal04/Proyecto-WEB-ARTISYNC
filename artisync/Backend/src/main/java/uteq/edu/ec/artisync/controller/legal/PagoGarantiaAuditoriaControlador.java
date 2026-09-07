@@ -31,6 +31,13 @@ public class PagoGarantiaAuditoriaControlador {
 
     private final IPagoGarantiaAuditoriaServicio pagoGarantiaAuditoriaServicio;
 
+    /**
+     * Lista los pagos en garantía (escrow) de forma paginada, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el listado
+     * @param pageable configuración de paginación
+     * @return página con los pagos en garantía que cumplen el filtro
+     */
     @Operation(summary = "Listado paginado y filtrado de pagos en garantía (escrow)")
     @GetMapping
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")
@@ -38,6 +45,13 @@ public class PagoGarantiaAuditoriaControlador {
         return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.listar(filtro, pageable));
     }
 
+    /**
+     * Obtiene el detalle de un pago en garantía junto con su historial de transacciones.
+     *
+     * @param idPago identificador del pago en garantía
+     * @return el detalle del pago en garantía
+     * @throws ExcepcionRecursoNoEncontrado si el pago en garantía no existe
+     */
     @Operation(summary = "Detalle de un pago en garantía, con su historial de transacciones")
     @GetMapping("/{idPago}")
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")
@@ -45,6 +59,11 @@ public class PagoGarantiaAuditoriaControlador {
         return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerDetalle(idPago));
     }
 
+    /**
+     * Obtiene el resumen agregado de fondos en garantía: cantidad y monto total por estado.
+     *
+     * @return listado con el resumen de fondos en escrow por estado
+     */
     @Operation(summary = "Resumen agregado: cantidad y monto total de fondos por estado")
     @GetMapping("/resumen")
     @PreAuthorize("hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')")

@@ -31,6 +31,12 @@ public class ReporteFinancieroControlador {
 
     private final IReporteFinancieroServicio reporteFinancieroServicio;
 
+    /**
+     * Obtiene el reporte de comisiones de un creador: monto bruto, comisión, neto y detalle de transacciones.
+     *
+     * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
+     * @return el reporte de comisiones solicitado
+     */
     @Operation(summary = "Reporte de comisiones de un creador: bruto, comisión, neto y detalle de transacciones")
     @GetMapping
     @PreAuthorize("hasAuthority('TRANSACCION_VER') or hasRole('ADMIN')")
@@ -38,6 +44,15 @@ public class ReporteFinancieroControlador {
         return ResponseEntity.ok(reporteFinancieroServicio.obtenerReporteComisiones(filtro));
     }
 
+    /**
+     * Exporta el reporte de comisiones de un creador en el formato solicitado.
+     *
+     * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del usuario que solicita la exportación
+     * @return el documento generado con el reporte de comisiones
+     * @throws ExcepcionReglaNegocio si el número de transacciones del reporte excede el tope de filas admitido por el formato
+     */
     @Operation(summary = "Exportar el reporte de comisiones en CSV, XLSX o PDF")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")

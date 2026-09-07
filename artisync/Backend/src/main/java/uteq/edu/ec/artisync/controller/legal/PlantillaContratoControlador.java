@@ -19,6 +19,11 @@ public class PlantillaContratoControlador {
 
     private final IPlantillaContratoAdminServicio plantillaContratoAdminServicio;
 
+    /**
+     * Lista las plantillas de contrato activas, disponibles para que el creador elija una al crear o editar su servicio.
+     *
+     * @return listado resumido de las plantillas de contrato activas
+     */
     @GetMapping("/activas")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<RespuestaPlantillaContratoResumen>> listarActivas() {

@@ -19,6 +19,15 @@ public class PayPalWebhookControlador {
      * Endpoint público para recibir notificaciones de PayPal.
      * No requiere autenticación JWT (configurado en SecurityConfig).
      * PayPal envía headers de verificación de firma.
+     *
+     * @param payload cuerpo del evento enviado por PayPal
+     * @param transmissionId identificador de transmisión del webhook, usado en la verificación de firma
+     * @param transmissionTime marca de tiempo de la transmisión del webhook
+     * @param transmissionSig firma de la transmisión del webhook
+     * @param certUrl URL del certificado usado para verificar la firma
+     * @param authAlgo algoritmo de firma utilizado
+     * @param authVersion versión del esquema de autenticación utilizado
+     * @return respuesta de confirmación "OK" para PayPal
      */
     @PostMapping("/paypal")
     public ResponseEntity<String> recibirWebhook(

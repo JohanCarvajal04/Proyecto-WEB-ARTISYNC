@@ -22,6 +22,12 @@ public class SolicitudRetiroControlador {
 
     private final ISolicitudRetiroServicio solicitudRetiroServicio;
 
+    /**
+     * Obtiene el saldo disponible para retiro del creador autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return el saldo disponible del creador
+     */
     @GetMapping("/saldo")
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
     public ResponseEntity<RespuestaSaldoCreador> obtenerSaldo(
@@ -29,6 +35,16 @@ public class SolicitudRetiroControlador {
         return ResponseEntity.ok(solicitudRetiroServicio.obtenerSaldo(userDetails.getIdUsuario()));
     }
 
+    /**
+     * Registra una nueva solicitud de retiro para el creador autenticado.
+     *
+     * @param userDetails usuario autenticado que solicita el retiro
+     * @param peticion datos de la solicitud de retiro
+     * @return la solicitud de retiro creada
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     * @throws ExcepcionReglaNegocio si el creador no ha configurado su correo de PayPal, ya tiene una solicitud
+     *      en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
     public ResponseEntity<RespuestaSolicitudRetiro> solicitar(
@@ -37,6 +53,12 @@ public class SolicitudRetiroControlador {
         return ResponseEntity.ok(solicitudRetiroServicio.solicitar(userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Lista el historial de solicitudes de retiro del creador autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return listado de solicitudes de retiro del creador
+     */
     @GetMapping("/mis-solicitudes")
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
     public ResponseEntity<List<RespuestaSolicitudRetiro>> misSolicitudes(

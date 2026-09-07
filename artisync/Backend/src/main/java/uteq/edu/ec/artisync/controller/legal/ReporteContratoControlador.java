@@ -34,6 +34,14 @@ public class ReporteContratoControlador {
 
     private final IReporteContratoServicio reporteContratoServicio;
 
+    /**
+     * Lista de forma paginada los contratos formalizados, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el reporte
+     * @param page número de página solicitada (base 0)
+     * @param size tamaño de la página
+     * @return página con las filas del reporte de contratos
+     */
     @Operation(summary = "Listado paginado y filtrado de contratos formalizados")
     @GetMapping
     @PreAuthorize("hasAuthority('TRANSACCION_VER') or hasRole('ADMIN')")
@@ -44,6 +52,14 @@ public class ReporteContratoControlador {
         return ResponseEntity.ok(reporteContratoServicio.listar(filtro, page, size));
     }
 
+    /**
+     * Exporta el reporte de contratos formalizados en el formato solicitado.
+     *
+     * @param filtro criterios opcionales para filtrar el reporte
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del usuario que solicita la exportación
+     * @return el documento generado con el reporte de contratos
+     */
     @Operation(summary = "Exportar el reporte de contratos en CSV, XLSX o PDF")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")

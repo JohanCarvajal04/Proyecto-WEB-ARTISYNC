@@ -26,11 +26,27 @@ public class PlantillaContratoAdminControlador {
 
     private final IPlantillaContratoAdminServicio plantillaContratoAdminServicio;
 
+    /**
+     * Crea una nueva plantilla de contrato en el catálogo curado por administración.
+     *
+     * @param peticion datos de la plantilla a crear
+     * @return la plantilla creada, con estado 201
+     * @throws ExcepcionReglaNegocio si ya existe una plantilla con la misma versión legal
+     */
     @PostMapping
     public ResponseEntity<RespuestaPlantillaContrato> crear(@Valid @RequestBody PeticionCrearPlantillaContrato peticion) {
         return ResponseEntity.status(HttpStatus.CREATED).body(plantillaContratoAdminServicio.crear(peticion));
     }
 
+    /**
+     * Edita una plantilla de contrato existente.
+     *
+     * @param id identificador de la plantilla a editar
+     * @param peticion datos actualizados de la plantilla
+     * @return la plantilla actualizada
+     * @throws ExcepcionRecursoNoEncontrado si la plantilla no existe
+     * @throws ExcepcionReglaNegocio si la plantilla no puede editarse en su estado actual
+     */
     @PutMapping("/{id}")
     public ResponseEntity<RespuestaPlantillaContrato> editar(
             @PathVariable Long id,
@@ -38,11 +54,24 @@ public class PlantillaContratoAdminControlador {
         return ResponseEntity.ok(plantillaContratoAdminServicio.editar(id, peticion));
     }
 
+    /**
+     * Lista todas las plantillas de contrato del catálogo, activas e inactivas.
+     *
+     * @return listado completo de plantillas de contrato
+     */
     @GetMapping
     public ResponseEntity<List<RespuestaPlantillaContrato>> listarTodas() {
         return ResponseEntity.ok(plantillaContratoAdminServicio.listarTodas());
     }
 
+    /**
+     * Desactiva una plantilla de contrato del catálogo.
+     *
+     * @param id identificador de la plantilla a desactivar
+     * @return mensaje de confirmación de la desactivación
+     * @throws ExcepcionRecursoNoEncontrado si la plantilla no existe
+     * @throws ExcepcionReglaNegocio si la plantilla no puede desactivarse en su estado actual
+     */
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<RespuestaMensaje> desactivar(@PathVariable Long id) {
         return ResponseEntity.ok(plantillaContratoAdminServicio.desactivar(id));
