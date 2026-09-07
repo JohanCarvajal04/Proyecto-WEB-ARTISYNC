@@ -120,6 +120,25 @@ export class ServicioFormComponent implements OnInit {
   readonly estados: EstadoPublicacion[] = ['BORRADOR', 'ACTIVO', 'PAUSADO'];
   readonly tiposDato = ['TEXTO', 'NUMERO', 'BOOLEANO', 'FECHA'];
 
+  // ── Formulario por secciones ──
+  // El form reactivo sigue siendo uno solo (una sola llamada al backend al
+  // guardar); esto solo controla qué sección se muestra.
+  readonly pasos = [
+    { titulo: 'Información básica', hint: 'Título, descripción y precio' },
+    { titulo: 'Categoría y etiquetas', hint: 'Dónde aparecerá en el catálogo' },
+    { titulo: 'Flujo y contrato', hint: 'Etapas, contrato y cuestionario' },
+    { titulo: 'Revisiones y estado', hint: 'Ajustes finales' }
+  ];
+  private readonly camposPorPaso: string[][] = [
+    ['tituloServicio', 'descripcionDetallada', 'precioBase', 'tipoItem', 'urlMiniatura'],
+    [],
+    ['idFlujo', 'idPlantillaContrato', 'idBriefingPlantilla'],
+    ['limiteRevisionesBase', 'cargoRevisionAdicional', 'estadoPublicacion']
+  ];
+  readonly pasoActual = signal(0);
+  readonly esPrimerPaso = computed(() => this.pasoActual() === 0);
+  readonly esUltimoPaso = computed(() => this.pasoActual() === this.pasos.length - 1);
+
   /** Subcategorías agrupadas por categoría para el `<optgroup>` del selector. */
   subcategoriasAgrupadas = computed(() => {
     const grupos = new Map<string, RespuestaSubcategoria[]>();
@@ -524,6 +543,37 @@ export class ServicioFormComponent implements OnInit {
     });
   }
 
+  // ── Navegación entre secciones ──
+
+  private pasoValido(paso: number): boolean {
+    const campos = this.camposPorPaso[paso];
+    const camposOk = campos.every(c => this.form.get(c)?.valid ?? true);
+    return paso === 1 ? camposOk && this.subcategoriasElegidas().length > 0 : camposOk;
+  }
+
+  private marcarPasoTocado(paso: number): void {
+    this.camposPorPaso[paso].forEach(c => this.form.get(c)?.markAsTouched());
+    if (paso === 1 && this.subcategoriasElegidas().length === 0) {
+      this.toast.error('Elige al menos una subcategoría antes de continuar');
+    }
+  }
+
+  irAPaso(paso: number): void {
+    this.pasoActual.set(paso);
+  }
+
+  pasoAnterior(): void {
+    this.pasoActual.update(p => Math.max(0, p - 1));
+  }
+
+  pasoSiguiente(): void {
+    if (!this.pasoValido(this.pasoActual())) {
+      this.marcarPasoTocado(this.pasoActual());
+      return;
+    }
+    this.pasoActual.update(p => Math.min(this.pasos.length - 1, p + 1));
+  }
+
   // ── Guardado del servicio ──
 
   invalido(campo: string): boolean {
@@ -532,11 +582,11 @@ export class ServicioFormComponent implements OnInit {
   }
 
   guardar(): void {
-    if (this.form.invalid || this.subcategoriasElegidas().length === 0) {
+    const pasoInvalido = this.pasos.findIndex((_, i) => !this.pasoValido(i));
+    if (pasoInvalido !== -1) {
       this.form.markAllAsTouched();
-      if (this.subcategoriasElegidas().length === 0) {
-        this.toast.error('Elige al menos una subcategoría');
-      }
+      this.pasoActual.set(pasoInvalido);
+      this.marcarPasoTocado(pasoInvalido);
       return;
     }
     const perfil = this.contexto.perfil();
