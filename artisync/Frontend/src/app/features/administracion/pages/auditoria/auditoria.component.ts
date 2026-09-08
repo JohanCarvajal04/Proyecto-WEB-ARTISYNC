@@ -138,4 +138,18 @@ export class AuditoriaComponent implements OnInit {
       default: return 'bg-slate-50 text-slate-600';
     }
   }
+
+  claseModulo(modulo: string): string {
+    switch (modulo) {
+      case 'SEGURIDAD':    return 'bg-purple-100 text-purple-700 ring-1 ring-purple-200';
+      case 'SISTEMA':      return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
+      case 'PORTAFOLIO':   return 'bg-blue-100 text-blue-700 ring-1 ring-blue-200';
+      case 'CATALOGO':     return 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200';
+      case 'PEDIDOS':      return 'bg-orange-100 text-orange-700 ring-1 ring-orange-200';
+      case 'FINANZAS':     return 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200';
+      case 'COMUNICACION': return 'bg-sky-100 text-sky-700 ring-1 ring-sky-200';
+      case 'SOCIAL':       return 'bg-pink-100 text-pink-700 ring-1 ring-pink-200';
+      default:             return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
+    }
+  }
 }
