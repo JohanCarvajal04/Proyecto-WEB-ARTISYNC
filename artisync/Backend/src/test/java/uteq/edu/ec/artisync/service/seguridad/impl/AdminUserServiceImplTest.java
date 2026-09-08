@@ -652,5 +652,4 @@ class AdminUserServiceImplTest {
         verify(generadorGraficaReporte).generarGraficaPais(any());
         verify(servicioExportacion).exportar(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte.PDF));
     }
-    }
 }
