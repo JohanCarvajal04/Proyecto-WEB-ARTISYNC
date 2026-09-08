@@ -25,7 +25,8 @@ PANDOC_IMAGE ?= pandoc/latex:3.1
 # Opciones de pandoc compartidas por el target srs.
 SRS_PANDOC_OPTS ?= --toc --pdf-engine=xelatex \
                    -V lang=es -V geometry:margin=2.5cm -V documentclass=report \
-                   --metadata title="SRS - Artisync v1.2.0"
+                   --metadata title="SRS - Artisync v1.2.0" \
+                   --metadata author="Repositorio: https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC"
 
 ## Reproduccion end-to-end en un solo comando (Bloque D.1): levanta el stack
 ## completo (Flyway aplica migraciones y postgres aplica db/seed.sql al
