@@ -3,7 +3,7 @@
 -- tablas del esquema, respetando integridad referencial y restricciones UNIQUE.
 --
 -- Prerequisitos:
---   • Las migraciones Flyway V1..V31 ya aplicadas
+--   • Las migraciones Flyway V1..V42 ya aplicadas
 --   • El seed base (seed.sql) ya ejecutado (países, roles, permisos, admin)
 --   • seed-medicion-referencia.sql ya ejecutado (categorías, subcategorías,
 --     flujos, etapas)
@@ -120,7 +120,7 @@ ON CONFLICT (nombre_estado) DO NOTHING;
 -- ==============================================================================
 -- 1. USUARIOS (50,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando 50,000 usuarios...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando 50,000 usuarios...'; END $$;
 
 INSERT INTO usuarios (nombres, apellidos, correo, contrasena_hash, id_pais, fecha_nacimiento, estado_cuenta)
 SELECT
@@ -156,7 +156,7 @@ ON CONFLICT DO NOTHING;
 -- ==============================================================================
 -- 2. PERFILES DE CREADORES (10,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando perfiles de creadores...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando perfiles de creadores...'; END $$;
 
 INSERT INTO perfiles_creadores (id_usuario, biografia, url_red_social, titulo_profesional)
 SELECT 
@@ -182,20 +182,26 @@ ON CONFLICT (id_usuario) DO NOTHING;
 -- ==============================================================================
 -- 3. PORTAFOLIOS (10,000) + ITEMS (50,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando portafolios e items...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando portafolios e items...'; END $$;
 
-INSERT INTO portafolios (id_perfil, es_publico, color_plantilla, total_visitas_acumuladas)
-SELECT 
+INSERT INTO portafolios (id_perfil, es_publico, opciones_personalizacion, total_visitas_acumuladas)
+SELECT
   pc.id_perfil,
   CASE WHEN pc.id_perfil % 10 = 0 THEN FALSE ELSE TRUE END,
-  CASE (pc.id_perfil % 6)
-    WHEN 0 THEN '#1A1A2E'
-    WHEN 1 THEN '#16213E'
-    WHEN 2 THEN '#0F3460'
-    WHEN 3 THEN '#E94560'
-    WHEN 4 THEN '#533483'
-    ELSE '#2B2D42'
-  END,
+  jsonb_build_object(
+    'primary', CASE (pc.id_perfil % 6)
+      WHEN 0 THEN '#1A1A2E'
+      WHEN 1 THEN '#16213E'
+      WHEN 2 THEN '#0F3460'
+      WHEN 3 THEN '#E94560'
+      WHEN 4 THEN '#533483'
+      ELSE '#2B2D42'
+    END,
+    'secondary', '#6c757d',
+    'bg', '#f8f9fa',
+    'text', '#212529',
+    'surface', '#ffffff'
+  ),
   (pc.id_perfil * 7 % 10000)
 FROM perfiles_creadores pc
 WHERE EXISTS (
@@ -229,7 +235,7 @@ WHERE EXISTS (
 -- ==============================================================================
 -- 4. HABILIDADES DE CREADORES (30,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando habilidades de creadores...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando habilidades de creadores...'; END $$;
 
 INSERT INTO creador_habilidades (id_perfil, id_habilidad, nivel_dominio)
 SELECT DISTINCT ON (pc.id_perfil, h.id_habilidad)
@@ -255,14 +261,14 @@ WHERE EXISTS (
 -- ==============================================================================
 -- 5. SERVICIOS (30,000) + ETIQUETAS + ATRIBUTOS
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando servicios...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando servicios...'; END $$;
 
--- Necesitamos saber los IDs de subcategorías
-INSERT INTO servicios (id_perfil, id_subcategoria, titulo_servicio, descripcion_detallada, 
+-- Nota: desde V37 un servicio se asocia a subcategorías via la tabla puente
+-- servicio_subcategorias (N:M), no por una columna id_subcategoria directa.
+INSERT INTO servicios (id_perfil, titulo_servicio, descripcion_detallada,
                        precio_base, tipo_item, estado_publicacion, limite_revisiones_base, url_miniatura)
-SELECT 
+SELECT
   pc.id_perfil,
-  (SELECT id_subcategoria FROM subcategorias ORDER BY id_subcategoria OFFSET (serv_num + pc.id_perfil) % (SELECT COUNT(*) FROM subcategorias) LIMIT 1),
   CASE serv_num
     WHEN 1 THEN 'Diseño ' || pc.id_perfil || '-A'
     WHEN 2 THEN 'Ilustración ' || pc.id_perfil || '-B'
@@ -277,11 +283,25 @@ SELECT
 FROM perfiles_creadores pc
 CROSS JOIN generate_series(1, 3) AS serv_num
 WHERE EXISTS (
-  SELECT 1 FROM usuarios u 
+  SELECT 1 FROM usuarios u
   WHERE u.id_usuario = pc.id_usuario AND u.correo LIKE '%@artisync-seed.test'
 );
 
-RAISE NOTICE '>>> Insertando etiquetas de servicios...';
+DO $$ BEGIN RAISE NOTICE '>>> Asignando subcategorías a servicios...'; END $$;
+
+-- Cada servicio se asigna a 1 subcategoría (modelo N:M desde V37)
+INSERT INTO servicio_subcategorias (id_servicio, id_subcategoria)
+SELECT s.id_servicio,
+  (SELECT id_subcategoria FROM subcategorias ORDER BY id_subcategoria OFFSET s.id_servicio % (SELECT COUNT(*) FROM subcategorias) LIMIT 1)
+FROM servicios s
+WHERE EXISTS (
+  SELECT 1 FROM perfiles_creadores pc
+  JOIN usuarios u ON u.id_usuario = pc.id_usuario
+  WHERE pc.id_perfil = s.id_perfil AND u.correo LIKE '%@artisync-seed.test'
+)
+ON CONFLICT (id_servicio, id_subcategoria) DO NOTHING;
+
+DO $$ BEGIN RAISE NOTICE '>>> Insertando etiquetas de servicios...'; END $$;
 
 -- Etiquetas de servicios (2 por servicio = ~60,000)
 INSERT INTO servicio_etiquetas (id_servicio, id_etiqueta)
@@ -298,7 +318,7 @@ WHERE EXISTS (
   WHERE pc.id_perfil = s.id_perfil AND u.correo LIKE '%@artisync-seed.test'
 );
 
-RAISE NOTICE '>>> Insertando atributos de servicios...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando atributos de servicios...'; END $$;
 
 -- Atributos de servicios (1 por servicio = ~30,000)
 INSERT INTO servicio_atributos (id_servicio, id_atributo, valor_asignado)
@@ -322,7 +342,7 @@ WHERE EXISTS (
 -- ==============================================================================
 -- 6. FLUJOS DE TRABAJO POR CREADOR (necesario por V28)
 -- ==============================================================================
-RAISE NOTICE '>>> Asegurando flujos de trabajo por creador...';
+DO $$ BEGIN RAISE NOTICE '>>> Asegurando flujos de trabajo por creador...'; END $$;
 
 -- Cada creador necesita al menos un flujo (V28: uk_flujos_trabajo_creador_nombre)
 -- Usamos el flujo estándar existente como referencia y creamos uno por creador
@@ -356,42 +376,49 @@ ON CONFLICT ON CONSTRAINT uk_flujo_etapas_config_unica DO NOTHING;
 -- ==============================================================================
 -- 7. PEDIDOS (100,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando 100,000 pedidos...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando 100,000 pedidos...'; END $$;
 
--- Clientes hacen pedidos a servicios de creadores
+-- Clientes hacen pedidos a servicios de creadores.
+-- Nota de rendimiento: se precalculan arrays una sola vez (CTEs) y se indexan
+-- por posicion en O(1). La version anterior usaba ORDER BY ... OFFSET dentro
+-- de un LATERAL evaluado 100,000 veces, con OFFSET de hasta 40,000 -- un
+-- patron O(n*m) que en la practica no terminaba en un tiempo razonable
+-- contra una base remota.
+WITH pool_clientes AS (
+  SELECT array_agg(id_usuario ORDER BY id_usuario) AS ids
+  FROM usuarios
+  WHERE correo LIKE '%@artisync-seed.test' AND id_usuario % 5 != 0
+),
+pool_servicios AS (
+  SELECT
+    array_agg(s.id_servicio ORDER BY s.id_servicio) AS ids_servicio,
+    array_agg(s.precio_base ORDER BY s.id_servicio) AS precios,
+    array_agg(
+      (SELECT ft.id_flujo FROM flujos_trabajo ft
+       WHERE ft.id_usuario_creador = pc.id_usuario LIMIT 1)
+      ORDER BY s.id_servicio
+    ) AS ids_flujo
+  FROM servicios s
+  JOIN perfiles_creadores pc ON pc.id_perfil = s.id_perfil
+  JOIN usuarios u ON u.id_usuario = pc.id_usuario
+  WHERE u.correo LIKE '%@artisync-seed.test'
+)
 INSERT INTO pedidos (id_usuario_cliente, id_servicio, id_flujo, fecha_inicio, fecha_entrega_estimada, precio_pactado)
-SELECT 
-  cliente.id_usuario,
-  serv.id_servicio,
-  (SELECT ft.id_flujo FROM flujos_trabajo ft 
-   JOIN perfiles_creadores pc2 ON ft.id_usuario_creador = pc2.id_usuario
-   WHERE pc2.id_perfil = serv.id_perfil
-   LIMIT 1),
-  NOW() - (i * 3 + cliente.id_usuario % 30) * INTERVAL '1 hour',
+SELECT
+  pcli.ids[1 + (i % array_length(pcli.ids, 1))],
+  pser.ids_servicio[1 + (i % array_length(pser.ids_servicio, 1))],
+  pser.ids_flujo[1 + (i % array_length(pser.ids_flujo, 1))],
+  NOW() - (i * 3 + pcli.ids[1 + (i % array_length(pcli.ids, 1))] % 30) * INTERVAL '1 hour',
   NOW() + (7 + i % 30) * INTERVAL '1 day',
-  serv.precio_base + (i % 200)
+  pser.precios[1 + (i % array_length(pser.precios, 1))] + (i % 200)
 FROM generate_series(1, 100000) AS i
-CROSS JOIN LATERAL (
-  SELECT id_usuario FROM usuarios 
-  WHERE correo LIKE '%@artisync-seed.test' AND id_usuario % 5 != 0  -- solo clientes, no creadores
-  ORDER BY id_usuario
-  OFFSET i % 40000 LIMIT 1
-) cliente
-CROSS JOIN LATERAL (
-  SELECT s.id_servicio, s.id_perfil, s.precio_base FROM servicios s
-  WHERE EXISTS (
-    SELECT 1 FROM perfiles_creadores pc
-    JOIN usuarios u ON u.id_usuario = pc.id_usuario
-    WHERE pc.id_perfil = s.id_perfil AND u.correo LIKE '%@artisync-seed.test'
-  )
-  ORDER BY s.id_servicio
-  OFFSET i % 29000 LIMIT 1
-) serv;
+CROSS JOIN pool_clientes pcli
+CROSS JOIN pool_servicios pser;
 
 -- ==============================================================================
 -- 8. HISTORIAL DE ESTADOS DE PEDIDO (300,000 — 3 por pedido)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando historial de estados de pedido...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando historial de estados de pedido...'; END $$;
 
 INSERT INTO historial_estados_pedido (id_pedido, id_etapa, fecha_transicion, observacion)
 SELECT 
@@ -407,7 +434,7 @@ WHERE p.id_pedido > (SELECT MIN(id_pedido) FROM pedidos)  -- evitar el primero p
 -- ==============================================================================
 -- 9. CONTRATOS (80,000) + PAGOS + TRANSACCIONES
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando contratos...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando contratos...'; END $$;
 
 -- Necesitamos la plantilla de contrato
 INSERT INTO contratos (id_pedido, id_plantilla, hash_firma_cliente, hash_firma_creador, limite_revisiones)
@@ -421,7 +448,7 @@ FROM pedidos p
 WHERE p.id_pedido % 5 IN (0, 1, 2, 3)  -- ~80% de los pedidos
 ON CONFLICT (id_pedido) DO NOTHING;
 
-RAISE NOTICE '>>> Insertando pagos en garantía...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando pagos en garantía...'; END $$;
 
 INSERT INTO pagos_garantia (id_contrato, id_orden_paypal, monto_retenido, estado_fondos)
 SELECT 
@@ -438,7 +465,7 @@ FROM contratos c
 JOIN pedidos p ON p.id_pedido = c.id_pedido
 ON CONFLICT (id_contrato) DO NOTHING;
 
-RAISE NOTICE '>>> Insertando transacciones de pago...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando transacciones de pago...'; END $$;
 
 INSERT INTO transacciones_pago (id_pago, tipo_transaccion, monto, fecha_ejecucion)
 SELECT 
@@ -455,7 +482,7 @@ FROM pagos_garantia pg;
 -- ==============================================================================
 -- 10. SALAS DE CHAT (100,000) + MENSAJES (100,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando salas de chat y mensajes...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando salas de chat y mensajes...'; END $$;
 
 INSERT INTO salas_chat (id_pedido, sala_activa)
 SELECT p.id_pedido, CASE WHEN p.id_pedido % 10 = 0 THEN FALSE ELSE TRUE END
@@ -482,54 +509,65 @@ JOIN pedidos p ON p.id_pedido = sc.id_pedido;
 -- ==============================================================================
 -- 11. NOTIFICACIONES (50,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando notificaciones del sistema...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando notificaciones del sistema...'; END $$;
 
+WITH pool_usuarios AS (
+  SELECT array_agg(id_usuario ORDER BY id_usuario) AS ids
+  FROM usuarios WHERE correo LIKE '%@artisync-seed.test'
+),
+pool_tipos AS (
+  SELECT array_agg(id_tipo_notificacion ORDER BY id_tipo_notificacion) AS ids
+  FROM tipos_notificacion
+)
 INSERT INTO notificaciones_sistema (id_usuario, id_tipo_notificacion, esta_leida)
-SELECT 
-  u.id_usuario,
-  (SELECT id_tipo_notificacion FROM tipos_notificacion ORDER BY id_tipo_notificacion OFFSET (i % (SELECT COUNT(*) FROM tipos_notificacion)) LIMIT 1),
+SELECT
+  pu.ids[1 + (i % array_length(pu.ids, 1))],
+  pt.ids[1 + (i % array_length(pt.ids, 1))],
   CASE WHEN i % 3 = 0 THEN TRUE ELSE FALSE END
 FROM generate_series(1, 50000) AS i
-CROSS JOIN LATERAL (
-  SELECT id_usuario FROM usuarios
-  WHERE correo LIKE '%@artisync-seed.test'
-  ORDER BY id_usuario
-  OFFSET i % 49000 LIMIT 1
-) u;
+CROSS JOIN pool_usuarios pu
+CROSS JOIN pool_tipos pt;
 
 -- ==============================================================================
 -- 12. SEGUIDORES (50,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando seguidores...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando seguidores...'; END $$;
 
+WITH pool_seguidores AS (
+  SELECT array_agg(id_usuario ORDER BY id_usuario) AS ids
+  FROM usuarios WHERE correo LIKE '%@artisync-seed.test' AND id_usuario % 5 != 0
+),
+pool_creadores AS (
+  SELECT array_agg(id_perfil ORDER BY id_perfil) AS ids
+  FROM perfiles_creadores
+)
 INSERT INTO seguidores (id_usuario_seguidor, id_perfil_creador, notificaciones_activas)
-SELECT DISTINCT ON (seguidor.id_usuario, creador.id_perfil)
-  seguidor.id_usuario,
-  creador.id_perfil,
+SELECT DISTINCT ON (ps.ids[1 + (i % array_length(ps.ids, 1))], pc.ids[1 + (i % array_length(pc.ids, 1))])
+  ps.ids[1 + (i % array_length(ps.ids, 1))],
+  pc.ids[1 + (i % array_length(pc.ids, 1))],
   CASE WHEN i % 4 = 0 THEN FALSE ELSE TRUE END
 FROM generate_series(1, 50000) AS i
-CROSS JOIN LATERAL (
-  SELECT id_usuario FROM usuarios
-  WHERE correo LIKE '%@artisync-seed.test' AND id_usuario % 5 != 0  -- clientes
-  ORDER BY id_usuario
-  OFFSET i % 39000 LIMIT 1
-) seguidor
-CROSS JOIN LATERAL (
-  SELECT id_perfil FROM perfiles_creadores
-  ORDER BY id_perfil
-  OFFSET i % 9000 LIMIT 1
-) creador
+CROSS JOIN pool_seguidores ps
+CROSS JOIN pool_creadores pc
 ON CONFLICT (id_usuario_seguidor, id_perfil_creador) DO NOTHING;
 
 -- ==============================================================================
 -- 13. COMENTARIOS Y LIKES EN PORTAFOLIO (60,000 total)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando comentarios y likes...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando comentarios y likes...'; END $$;
 
+WITH pool_items AS (
+  SELECT array_agg(id_item_portafolio ORDER BY id_item_portafolio) AS ids
+  FROM portafolio_items
+),
+pool_usuarios AS (
+  SELECT array_agg(id_usuario ORDER BY id_usuario) AS ids
+  FROM usuarios WHERE correo LIKE '%@artisync-seed.test'
+)
 INSERT INTO comentarios_portafolio (id_item_portafolio, id_usuario_autor, texto_comentario, estado_moderacion)
-SELECT 
-  item.id_item_portafolio,
-  usr.id_usuario,
+SELECT
+  pi.ids[1 + (i % array_length(pi.ids, 1))],
+  pu.ids[1 + (i % array_length(pu.ids, 1))],
   CASE i % 8
     WHEN 0 THEN '¡Increíble trabajo! Me encanta la composición.'
     WHEN 1 THEN 'Los colores son espectaculares, gran técnica.'
@@ -542,40 +580,30 @@ SELECT
   END,
   CASE WHEN i % 50 = 0 THEN 'Censurado' ELSE 'Activo' END
 FROM generate_series(1, 30000) AS i
-CROSS JOIN LATERAL (
-  SELECT id_item_portafolio FROM portafolio_items
-  ORDER BY id_item_portafolio
-  OFFSET i % (SELECT COUNT(*) FROM portafolio_items WHERE id_item_portafolio > 0) LIMIT 1
-) item
-CROSS JOIN LATERAL (
-  SELECT id_usuario FROM usuarios
-  WHERE correo LIKE '%@artisync-seed.test'
-  ORDER BY id_usuario
-  OFFSET i % 49000 LIMIT 1
-) usr;
+CROSS JOIN pool_items pi
+CROSS JOIN pool_usuarios pu;
 
+WITH pool_items AS (
+  SELECT array_agg(id_item_portafolio ORDER BY id_item_portafolio) AS ids
+  FROM portafolio_items
+),
+pool_usuarios AS (
+  SELECT array_agg(id_usuario ORDER BY id_usuario) AS ids
+  FROM usuarios WHERE correo LIKE '%@artisync-seed.test'
+)
 INSERT INTO likes_portafolio (id_item_portafolio, id_usuario)
-SELECT DISTINCT ON (item.id_item_portafolio, usr.id_usuario)
-  item.id_item_portafolio,
-  usr.id_usuario
+SELECT DISTINCT ON (pi.ids[1 + (i % array_length(pi.ids, 1))], pu.ids[1 + ((i * 7) % array_length(pu.ids, 1))])
+  pi.ids[1 + (i % array_length(pi.ids, 1))],
+  pu.ids[1 + ((i * 7) % array_length(pu.ids, 1))]
 FROM generate_series(1, 30000) AS i
-CROSS JOIN LATERAL (
-  SELECT id_item_portafolio FROM portafolio_items
-  ORDER BY id_item_portafolio
-  OFFSET i % (SELECT COUNT(*) FROM portafolio_items WHERE id_item_portafolio > 0) LIMIT 1
-) item
-CROSS JOIN LATERAL (
-  SELECT id_usuario FROM usuarios
-  WHERE correo LIKE '%@artisync-seed.test'
-  ORDER BY id_usuario
-  OFFSET (i * 7) % 49000 LIMIT 1
-) usr
+CROSS JOIN pool_items pi
+CROSS JOIN pool_usuarios pu
 ON CONFLICT (id_item_portafolio, id_usuario) DO NOTHING;
 
 -- ==============================================================================
 -- 14. RESEÑAS DE SERVICIOS (50,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando reseñas de servicios...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando reseñas de servicios...'; END $$;
 
 INSERT INTO resenas_servicios (id_pedido, calificacion_estrellas, texto_resena)
 SELECT 
@@ -595,11 +623,13 @@ ON CONFLICT (id_pedido) DO NOTHING;
 -- ==============================================================================
 -- 15. SORTEOS (1,000) + PARTICIPANTES (20,000)
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando sorteos y participantes...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando sorteos y participantes...'; END $$;
 
-INSERT INTO sorteos (id_perfil_creador, titulo_sorteo, descripcion_premios, cantidad_ganadores,
+-- Nota: desde V41 el premio es una entidad individual (premios_sorteo), no un
+-- campo de texto libre en sorteos.
+INSERT INTO sorteos (id_perfil_creador, titulo_sorteo, cantidad_ganadores,
                      fecha_inicio, fecha_cierre, estado_sorteo, requiere_seguidor)
-SELECT 
+SELECT
   pc.id_perfil,
   'Sorteo ' || ROW_NUMBER() OVER (ORDER BY pc.id_perfil) || ' - ' ||
     CASE (pc.id_perfil % 5)
@@ -609,7 +639,6 @@ SELECT
       WHEN 3 THEN 'Mentoría 1-a-1'
       ELSE 'Descuento exclusivo'
     END,
-  'Premio: servicio digital valorado en $' || (50 + pc.id_perfil % 500) || ' USD.',
   1 + pc.id_perfil % 3,
   NOW() - (pc.id_perfil % 60) * INTERVAL '1 day',
   NOW() + (30 + pc.id_perfil % 90) * INTERVAL '1 day',
@@ -617,31 +646,48 @@ SELECT
   CASE WHEN pc.id_perfil % 3 = 0 THEN TRUE ELSE FALSE END
 FROM perfiles_creadores pc
 WHERE EXISTS (
-  SELECT 1 FROM usuarios u 
+  SELECT 1 FROM usuarios u
   WHERE u.id_usuario = pc.id_usuario AND u.correo LIKE '%@artisync-seed.test'
 )
 AND pc.id_perfil % 10 = 0  -- ~10% de los creadores tienen sorteo = ~1,000
 ;
 
+DO $$ BEGIN RAISE NOTICE '>>> Insertando premios de sorteo...'; END $$;
+
+-- Un premio individual por cada "ganador" configurado (modelo desde V41).
+-- Se excluyen sorteos que ya tuvieran premios (preexistentes antes del seed,
+-- p.ej. datos de demo) para no chocar con su UNIQUE (id_sorteo, orden).
+INSERT INTO premios_sorteo (id_sorteo, descripcion_premio, orden)
+SELECT s.id_sorteo,
+  'Premio: servicio digital valorado en $' || (50 + s.id_perfil_creador % 500) || ' USD.',
+  gs.orden
+FROM sorteos s
+CROSS JOIN LATERAL generate_series(1, s.cantidad_ganadores) AS gs(orden)
+WHERE NOT EXISTS (SELECT 1 FROM premios_sorteo ps WHERE ps.id_sorteo = s.id_sorteo);
+
+WITH pool_usuarios AS (
+  SELECT array_agg(id_usuario ORDER BY id_usuario) AS ids
+  FROM usuarios WHERE correo LIKE '%@artisync-seed.test' AND id_usuario % 5 != 0
+)
 INSERT INTO participantes_sorteo (id_sorteo, id_usuario, es_ganador)
-SELECT DISTINCT ON (s.id_sorteo, usr.id_usuario)
+SELECT DISTINCT ON (s.id_sorteo, pu.ids[1 + ((s.id_sorteo * 7 + i) % array_length(pu.ids, 1))])
   s.id_sorteo,
-  usr.id_usuario,
+  pu.ids[1 + ((s.id_sorteo * 7 + i) % array_length(pu.ids, 1))],
   CASE WHEN i <= s.cantidad_ganadores THEN TRUE ELSE FALSE END
 FROM sorteos s
 CROSS JOIN generate_series(1, 20) AS i
-CROSS JOIN LATERAL (
-  SELECT id_usuario FROM usuarios
-  WHERE correo LIKE '%@artisync-seed.test' AND id_usuario % 5 != 0
-  ORDER BY id_usuario
-  OFFSET (s.id_sorteo * 7 + i) % 39000 LIMIT 1
-) usr
+CROSS JOIN pool_usuarios pu
+WHERE EXISTS (
+  SELECT 1 FROM perfiles_creadores pc
+  JOIN usuarios u ON u.id_usuario = pc.id_usuario
+  WHERE pc.id_perfil = s.id_perfil_creador AND u.correo LIKE '%@artisync-seed.test'
+)
 ON CONFLICT (id_sorteo, id_usuario) DO NOTHING;
 
 -- ==============================================================================
 -- 16. ENTREGABLES FINALES
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando entregables finales...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando entregables finales...'; END $$;
 
 INSERT INTO entregables_finales (id_pedido, url_version_marca_agua, url_version_limpia, esta_liberado)
 SELECT 
@@ -655,7 +701,7 @@ WHERE p.id_pedido % 4 IN (0, 1);  -- ~50% de los pedidos tienen entregable
 -- ==============================================================================
 -- 17. TICKETS DE REVISIÓN
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando tickets de revisión...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando tickets de revisión...'; END $$;
 
 INSERT INTO tickets_revision (id_pedido, id_motivo, descripcion_cliente, costo_adicional_generado, estado_ticket)
 SELECT 
@@ -674,7 +720,7 @@ WHERE p.id_pedido % 8 = 0;  -- ~12.5% de los pedidos tienen ticket
 -- ==============================================================================
 -- 18. INFRACCIONES DE MENSAJE
 -- ==============================================================================
-RAISE NOTICE '>>> Insertando infracciones de mensaje...';
+DO $$ BEGIN RAISE NOTICE '>>> Insertando infracciones de mensaje...'; END $$;
 
 INSERT INTO infracciones_mensaje (id_usuario, id_pedido, mensaje_original, patron_detectado)
 SELECT 
@@ -693,7 +739,7 @@ WHERE p.id_pedido % 100 = 0;  -- ~1% de los pedidos generan infracción
 -- ==============================================================================
 -- VERIFICACIÓN FINAL: CONTEO DE REGISTROS
 -- ==============================================================================
-RAISE NOTICE '>>> Conteo final de registros:';
+DO $$ BEGIN RAISE NOTICE '>>> Conteo final de registros:'; END $$;
 
 DO $$
 DECLARE
@@ -736,4 +782,4 @@ END $$;
 
 COMMIT;
 
-RAISE NOTICE '✅ Seed masivo completado exitosamente.';
+DO $$ BEGIN RAISE NOTICE '✅ Seed masivo completado exitosamente.'; END $$;

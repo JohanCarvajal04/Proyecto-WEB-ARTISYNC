@@ -19,8 +19,17 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # No sobreescribimos la URL, Usuario y Contraseña para que tome
-      # directamente los de Azure que están definidos en el archivo .env
+      # docker-compose.yml (base) fija DB_URL/DB_USER/DB_PASSWORD apuntando al
+      # contenedor postgres local dentro de su propio bloque `environment`, y
+      # ese bloque tiene prioridad sobre env_file sin importar en que archivo
+      # -f este declarado (Compose mezcla los `environment` de todos los -f
+      # en un solo mapa antes de aplicar env_file). Sin redeclararlas aqui, el
+      # backend se conecta silenciosamente al postgres local en vez de Azure.
+      DB_URL: ${DB_URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_APP_USER: ${DB_APP_USER}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       # Pasamos las demás variables que estaban explícitas, aunque env_file ya las carga
