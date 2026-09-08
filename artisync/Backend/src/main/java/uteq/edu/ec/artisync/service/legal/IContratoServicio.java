@@ -5,15 +5,66 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
 
 public interface IContratoServicio {
 
+    /**
+     * Genera el contrato de un pedido a partir de la plantilla legal asignada al servicio.
+     *
+     * @param idPedido             id del pedido a contratar
+     * @param idUsuarioSolicitante id del usuario que solicita la generación
+     * @return el contrato recién generado, sin firmas
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe un contrato para este pedido
+     */
     RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante);
 
+    /**
+     * Registra la firma del cliente o del creador sobre un contrato.
+     *
+     * @param idContrato id del contrato a firmar
+     * @param idUsuario  id del usuario que firma, debe ser el cliente o el creador del pedido
+     * @return el contrato con la firma ya registrada
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si esa parte ya había firmado el contrato
+     * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es parte del contrato
+     */
     RespuestaContrato firmarContrato(Long idContrato, Long idUsuario);
 
+    /**
+     * Obtiene el detalle de un contrato por su id.
+     *
+     * @param idContrato           id del contrato
+     * @param idUsuarioSolicitante id del usuario que consulta
+     * @return el detalle del contrato
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     */
     RespuestaContrato obtenerContrato(Long idContrato, Long idUsuarioSolicitante);
 
+    /**
+     * Obtiene el contrato asociado a un pedido.
+     *
+     * @param idPedido             id del pedido
+     * @param idUsuarioSolicitante id del usuario que consulta
+     * @return el contrato del pedido
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene contrato
+     */
     RespuestaContrato obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante);
 
+    /**
+     * Obtiene el estado de firma de un contrato (quién ha firmado y quién falta).
+     *
+     * @param idContrato           id del contrato
+     * @param idUsuarioSolicitante id del usuario que consulta
+     * @return el estado de firma del contrato
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     */
     RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante);
 
+    /**
+     * Genera el PDF del contrato, con su hash de integridad si ya está firmado por ambas partes.
+     *
+     * @param idContrato           id del contrato
+     * @param idUsuarioSolicitante id del usuario que solicita el PDF
+     * @return los bytes del PDF generado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     */
     byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante);
 }

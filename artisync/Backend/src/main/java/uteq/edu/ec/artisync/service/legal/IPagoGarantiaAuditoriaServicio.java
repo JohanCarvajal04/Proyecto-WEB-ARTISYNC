@@ -17,9 +17,28 @@ import java.util.List;
  */
 public interface IPagoGarantiaAuditoriaServicio {
 
+    /**
+     * Lista los pagos en garantía que cumplen el filtro indicado, paginados.
+     *
+     * @param filtro   criterios de filtrado (estado, rango de fechas, etc.)
+     * @param pageable configuración de paginación y orden
+     * @return la página de pagos que cumplen el filtro
+     */
     Page<RespuestaPagoGarantia> listar(FiltroPagoGarantia filtro, Pageable pageable);
 
+    /**
+     * Obtiene el detalle de un pago en garantía.
+     *
+     * @param idPago id del pago
+     * @return el detalle del pago
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pago no existe
+     */
     RespuestaPagoGarantiaDetalle obtenerDetalle(Long idPago);
 
+    /**
+     * Obtiene el resumen agregado de fondos en garantía (escrow), por estado.
+     *
+     * @return el resumen de escrow
+     */
     List<RespuestaResumenEscrow> obtenerResumen();
 }
