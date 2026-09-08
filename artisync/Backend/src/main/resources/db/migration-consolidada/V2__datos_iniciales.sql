@@ -5,14 +5,17 @@
 -- PROPUESTA. No se ejecuta: spring.flyway.locations apunta a classpath:db/migration.
 -- Ver README.md de esta carpeta.
 --
--- Reemplaza al seed de V1 más los permisos que hoy llegan sueltos en V10 y V12,
--- y al seed de estados_verificacion de V7. Va separado de V1__esquema.sql
--- porque el catálogo de datos cambia mucho más a menudo que el DDL: así una
--- alta de permiso no obliga a tocar el archivo del esquema.
+-- Reemplaza al seed de V1 más los permisos que hoy llegan sueltos en V10, V12,
+-- V19, V20, V29, V33 y V39, y al seed de estados_verificacion de V7. Va
+-- separado de V1__esquema.sql porque el catálogo de datos cambia mucho más a
+-- menudo que el DDL: así una alta de permiso no obliga a tocar el archivo del
+-- esquema.
 --
--- Catálogo final: 6 roles y 40 permisos. CONFIGURACION_GESTIONAR (creado por
+-- Catálogo final: 6 roles y 48 permisos. CONFIGURACION_GESTIONAR (creado por
 -- V10 y retirado por V11 al eliminarse la pantalla admin/settings) sencillamente
--- no se crea, con lo que V11 deja de tener razón de existir.
+-- no se crea, con lo que V11 deja de tener razón de existir. La restricción de
+-- permisos operativos sobre ADMIN (V32) se aplica como exclusión en el paso 3,
+-- en vez de nacer con todo y luego perder permisos.
 --
 -- Todos los INSERT son idempotentes (ON CONFLICT): esta migración se puede
 -- reejecutar sobre una base ya sembrada sin duplicar nada.
@@ -82,6 +85,8 @@ VALUES
     -- Bitácora de auditoría transversal (ver V15__modulo_auditoria.sql)
     ('AUDITORIA_VER', 'SEGURIDAD'),
     ('AUDITORIA_EXPORTAR', 'SEGURIDAD'),
+    -- Exportación del listado de usuarios (ver V20__permiso_exportacion_usuarios.sql)
+    ('USUARIO_EXPORTAR', 'SEGURIDAD'),
 
     -- SISTEMA / PAISES
     ('PAIS_VER', 'SISTEMA'),
@@ -95,7 +100,13 @@ VALUES
     ('PANEL_MODERACION_VER', 'SISTEMA'),
     ('INFRACCION_GESTIONAR', 'SISTEMA'),
     ('FLUJO_GESTIONAR', 'SISTEMA'),
-    
+    -- FLUJO_GESTIONAR es "gestiona TUS flujos" (V28); FLUJO_MODERAR es "todos
+    -- los flujos" (ver V29__permiso_flujo_moderar.sql).
+    ('FLUJO_MODERAR', 'SISTEMA'),
+    -- Catálogo de plantillas de contrato, curado por ADMIN (ver
+    -- V39__catalogo_plantillas_contrato.sql).
+    ('CONTRATO_PLANTILLA_GESTIONAR', 'SISTEMA'),
+
     -- PORTAFOLIO
     ('PORTAFOLIO_CREAR', 'PORTAFOLIO'),
     ('PORTAFOLIO_MODERAR', 'PORTAFOLIO'),
@@ -119,27 +130,51 @@ VALUES
     ('PAGO_AUDITAR', 'FINANZAS'),
     ('FONDOS_LIBERAR', 'FINANZAS'),
     ('TRANSACCION_VER', 'FINANZAS'),
-    
+    -- Exportación de reportes financieros/contratos (ver V19__permisos_reportes.sql)
+    ('REPORTE_FINANCIERO_EXPORTAR', 'FINANZAS'),
+    ('REPORTE_CONTRATO_EXPORTAR', 'FINANZAS'),
+    -- Retiros/payouts del creador (ver V33__permisos_retiros.sql, REQ-F-024)
+    ('RETIROS_SOLICITAR', 'FINANZAS'),
+    ('RETIROS_GESTIONAR', 'FINANZAS'),
+
     -- COMUNICACION
     ('SALA_VER', 'COMUNICACION'),
     ('MENSAJE_ENVIAR', 'COMUNICACION'),
     ('MENSAJE_MODERAR', 'COMUNICACION'),
     ('NOTIFICACION_ENVIAR', 'COMUNICACION'),
-    
+
     -- SOCIAL
     ('COMENTARIO_MODERAR', 'SOCIAL'),
     ('SORTEO_CREAR', 'SOCIAL')
-ON CONFLICT (nombre_permiso) DO UPDATE 
+ON CONFLICT (nombre_permiso) DO UPDATE
 SET modulo_aplicacion = EXCLUDED.modulo_aplicacion;
 
--- 3. Asignar TODOS LOS PERMISOS automáticamente al rol ADMIN
+-- 3. Asignar permisos automáticamente al rol ADMIN, EXCEPTO los operativos y
+-- de negocio (origen V32__ajuste_permisos_admin_moderador.sql): ADMIN queda
+-- restringido a aspectos del sistema y configuración técnica; lo operativo lo
+-- llevan los roles especializados (MODERADOR, AUDITOR_FINANCIERO, CREADOR...).
+-- Los controladores igual añaden "or hasRole('ADMIN')" como comodín en varios
+-- endpoints (mismo patrón que PagoGarantiaAuditoriaControlador), así que ADMIN
+-- sigue teniendo acceso sin necesitar la fila de permiso.
 INSERT INTO rol_permisos (id_rol, id_permiso)
 SELECT r.id_rol, p.id_permiso
 FROM roles r, permisos p
 WHERE r.nombre_rol = 'ADMIN'
+  AND p.nombre_permiso NOT IN (
+      'PANEL_MODERACION_VER', 'INFRACCION_GESTIONAR', 'FLUJO_GESTIONAR', 'FLUJO_MODERAR',
+      'PORTAFOLIO_CREAR', 'PORTAFOLIO_MODERAR', 'CERTIFICADO_REVISAR',
+      'SERVICIO_CREAR', 'SERVICIO_MODERAR',
+      'PEDIDO_CREAR', 'PEDIDO_GESTIONAR', 'TICKET_REVISAR', 'TICKET_RESOLVER',
+      'CONTRATO_VER', 'CONTRATO_FIRMAR', 'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
+      'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR',
+      'SALA_VER', 'MENSAJE_ENVIAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR',
+      'COMENTARIO_MODERAR', 'SORTEO_CREAR'
+  )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 
 -- 4. Asignar Permisos Específicos al MODERADOR
+-- INFRACCION_GESTIONAR, FLUJO_MODERAR, TICKET_REVISAR y TICKET_RESOLVER son la
+-- moderación extendida que V32 le añadió al retirársela a ADMIN.
 INSERT INTO rol_permisos (id_rol, id_permiso)
 SELECT r.id_rol, p.id_permiso
 FROM roles r, permisos p
@@ -147,7 +182,8 @@ WHERE r.nombre_rol = 'MODERADOR'
   AND p.nombre_permiso IN (
       'PORTAFOLIO_MODERAR', 'CERTIFICADO_REVISAR', 'CATEGORIA_GESTIONAR',
       'SERVICIO_MODERAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'COMENTARIO_MODERAR',
-      'PAIS_VER', 'ROL_VER', 'PANEL_MODERACION_VER'
+      'PAIS_VER', 'ROL_VER', 'PANEL_MODERACION_VER',
+      'INFRACCION_GESTIONAR', 'FLUJO_MODERAR', 'TICKET_REVISAR', 'TICKET_RESOLVER'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 
@@ -159,22 +195,26 @@ WHERE r.nombre_rol = 'SOPORTE'
   AND p.nombre_permiso IN (
       'USUARIO_VER', 'USUARIO_SUSPENDER', 'ROL_VER', 'PERMISO_VER', 'SESION_REVOCAR',
       'TICKET_REVISAR', 'TICKET_RESOLVER', 'SALA_VER', 'NOTIFICACION_ENVIAR', 'PAIS_VER',
-      'AUDITORIA_VER'
+      'AUDITORIA_VER', 'USUARIO_EXPORTAR'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 
 -- 6. Asignar Permisos Específicos al AUDITOR_FINANCIERO
+-- REPORTE_FINANCIERO_EXPORTAR/REPORTE_CONTRATO_EXPORTAR (V19) y
+-- RETIROS_GESTIONAR (V33, REQ-F-024): revisa y aprueba/rechaza retiros.
 INSERT INTO rol_permisos (id_rol, id_permiso)
 SELECT r.id_rol, p.id_permiso
 FROM roles r, permisos p
 WHERE r.nombre_rol = 'AUDITOR_FINANCIERO'
   AND p.nombre_permiso IN (
       'CONTRATO_VER', 'PAGO_AUDITAR', 'FONDOS_LIBERAR', 'TRANSACCION_VER',
-      'PAIS_VER', 'ROL_VER', 'AUDITORIA_VER', 'AUDITORIA_EXPORTAR'
+      'PAIS_VER', 'ROL_VER', 'AUDITORIA_VER', 'AUDITORIA_EXPORTAR',
+      'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'RETIROS_GESTIONAR'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 
 -- 7. Asignar Permisos Específicos al CREADOR
+-- RETIROS_SOLICITAR (V33, REQ-F-024): pedir el retiro de fondos liberados.
 INSERT INTO rol_permisos (id_rol, id_permiso)
 SELECT r.id_rol, p.id_permiso
 FROM roles r, permisos p
@@ -182,7 +222,7 @@ WHERE r.nombre_rol = 'CREADOR'
   AND p.nombre_permiso IN (
       'PORTAFOLIO_CREAR', 'SERVICIO_CREAR', 'PEDIDO_GESTIONAR', 'TICKET_REVISAR',
       'CONTRATO_VER', 'CONTRATO_FIRMAR', 'SALA_VER', 'MENSAJE_ENVIAR', 'SORTEO_CREAR',
-      'FLUJO_GESTIONAR', 'CATEGORIA_CREAR'
+      'FLUJO_GESTIONAR', 'CATEGORIA_CREAR', 'RETIROS_SOLICITAR'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 
@@ -196,6 +236,50 @@ WHERE r.nombre_rol = 'CLIENTE'
       'SALA_VER', 'MENSAJE_ENVIAR'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
+
+-- ------------------------------------------------------------------------------
+-- 12. Plantilla de contrato por defecto (origen V13, corregida en sitio por
+-- V30 y marcada predeterminada del catálogo por V39)
+-- ------------------------------------------------------------------------------
+-- ContratoServicioImpl.generarContrato() exige al menos una fila en
+-- plantillas_contrato; sin ella, TODO el flujo contrato -> firma -> chat ->
+-- pago queda bloqueado de fábrica. El <meta charset="UTF-8"/> ya nace
+-- autocerrado (V30: openhtmltopdf exige XHTML estrictamente bien formado y
+-- rechazaba la plantilla original con un SAXParseException).
+INSERT INTO plantillas_contrato (version_legal, nombre_plantilla, es_predeterminada, cuerpo_html_plantilla)
+VALUES (
+    'v1.0',
+    'General (predeterminada)',
+    TRUE,
+    '<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"/><title>Contrato de Prestación de Servicios</title></head>
+<body>
+  <h1>Contrato de Prestación de Servicios Creativos</h1>
+  <p>Entre <strong>{{nombre_creador}}</strong> ("el Creador") y
+     <strong>{{nombre_cliente}}</strong> ("el Cliente"), suscrito el {{fecha_actual}}.</p>
+
+  <h2>1. Objeto del contrato</h2>
+  <p>{{descripcion_servicio}}</p>
+
+  <h2>2. Precio pactado</h2>
+  <p>El Cliente pagará al Creador la suma de {{precio_pactado}} USD, retenida
+     en garantía hasta la aprobación de la entrega.</p>
+
+  <h2>3. Revisiones incluidas</h2>
+  <p>El Cliente tiene derecho a {{limite_revisiones}} revisión(es) sin costo
+     adicional sobre el entregable.</p>
+
+  <h2>4. Fecha de entrega estimada</h2>
+  <p>{{fecha_entrega}}</p>
+
+  <h2>5. Firmas</h2>
+  <p>Ambas partes aceptan los términos anteriores al firmar electrónicamente
+     este documento dentro de la plataforma ARTISYNC.</p>
+</body>
+</html>'
+)
+ON CONFLICT (version_legal) DO NOTHING;
 
 -- 9. Insertar el Usuario Administrador Inicial
 INSERT INTO usuarios (nombres, apellidos, correo, contrasena_hash, fecha_nacimiento, estado_cuenta)

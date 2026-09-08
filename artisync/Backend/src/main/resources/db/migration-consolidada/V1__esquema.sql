@@ -5,19 +5,25 @@
 -- PROPUESTA. No se ejecuta: spring.flyway.locations apunta a classpath:db/migration.
 -- Ver README.md de esta carpeta para el mapa de equivalencias y cómo probarla.
 --
--- Este archivo reemplaza a V1..V13 de db/migration/ creando cada tabla YA en su
--- forma final, sin los ALTER que hoy la corrigen a posteriori. Los cuatro casos
--- de "crear y deshacer" del historial actual desaparecen por construcción:
+-- Este archivo reemplaza a V1..V43 de db/migration/ creando cada tabla YA en su
+-- forma final, sin los ALTER que hoy la corrigen a posteriori. Los casos de
+-- "crear y deshacer" del historial actual desaparecen por construcción:
 --
 --   * portafolios.color_plantilla (V1) que V6 borraba  -> nace opciones_personalizacion
 --   * sesiones_usuario.token_jwt   (V1) que V8 borraba  -> nace sólo con jti
 --   * permiso CONFIGURACION_GESTIONAR (V10) que V11 borraba -> nunca se crea
---   * pais.estado, categorias.id_flujo, servicios.*, certificados_ia.* ... -> inline
+--   * certificados_ia.id_perfil (V1) que V21 cambiaba por id_usuario -> nace con id_usuario
+--   * categorias.id_flujo (V9) que V35 borraba -> el flujo nace en servicios.id_flujo
+--   * servicios.id_subcategoria (V1) que V37 borraba -> nace la N:M servicio_subcategorias
+--   * sorteos.descripcion_premios (V1) que V41 borraba -> nace la tabla premios_sorteo
+--   * flujos_trabajo.id_usuario_creador (V28, con backfill) -> nace NOT NULL desde el origen
+--   * pais.estado, servicios.*, ... -> inline
 --
 -- Además rescata el DDL que hoy vive dentro de la migración REPETIBLE
--- R__procedimientos.sql (pedidos.codigo_pedido, seq_codigo_pedido y 4 índices,
--- procedentes de db/procs/V8__estructuras_para_procedimientos.sql): una
--- repetible se reaplica cada vez que cambia su checksum y no debe llevar DDL.
+-- R__procedimientos.sql (pedidos.codigo_pedido, seq_codigo_pedido e índices de
+-- servicios/pedidos/historial, procedentes de db/procs/V8__estructuras_para_
+-- procedimientos.sql y de V43): una repetible se reaplica cada vez que cambia
+-- su checksum y no debe llevar DDL.
 --
 -- Orden del archivo: funciones de infraestructura -> tablas por módulo ->
 -- rutinas de verificación -> privilegios.
@@ -104,11 +110,23 @@ CREATE TRIGGER trg_usuarios_actualizado_en
     FOR EACH ROW
     EXECUTE FUNCTION set_actualizado_en();
 
+-- Origen V17: respalda UsuarioRepository.existsByPaisIdPais, invocado antes
+-- de desactivar un país.
+CREATE INDEX idx_usuarios_id_pais ON usuarios (id_pais);
+
+-- uq_usuario_rol (origen V17): impide roles duplicados por usuario y respalda
+-- el ON CONFLICT (id_usuario, id_rol) de fn_sincronizar_roles_usuario.
 CREATE TABLE usuario_roles (
     id_usuario_rol BIGSERIAL PRIMARY KEY,
     id_usuario BIGINT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    id_rol BIGINT NOT NULL REFERENCES roles(id_rol) ON DELETE CASCADE
+    id_rol BIGINT NOT NULL REFERENCES roles(id_rol) ON DELETE CASCADE,
+    CONSTRAINT uq_usuario_rol UNIQUE (id_usuario, id_rol)
 );
+
+-- Origen V17: recorridas en CADA petición autenticada (loadUserByUsername vía
+-- JwtAuthenticationFilter) y por fn_permisos_efectivos_usuario/fn_eliminar_rol.
+CREATE INDEX idx_usuario_roles_id_usuario ON usuario_roles (id_usuario);
+CREATE INDEX idx_usuario_roles_id_rol ON usuario_roles (id_rol);
 
 -- §2.5 / OBS-AUTO-06 (origen V8): se guarda ÚNICAMENTE el jti, nunca el JWT
 -- completo. Guardar el token íntegro convertía cualquier lectura de esta tabla
@@ -142,6 +160,10 @@ CREATE TABLE tokens_recuperacion (
     usado BOOLEAN DEFAULT FALSE
 );
 
+-- Origen V17: fn_restablecer_contrasena hace SELECT ... FOR UPDATE filtrando
+-- por hash_token; sin índice, el bloqueo visitaba filas de más.
+CREATE INDEX idx_tokens_recuperacion_hash ON tokens_recuperacion (hash_token);
+
 CREATE TABLE autenticacion_dos_factores (
     id_2fa BIGSERIAL PRIMARY KEY,
     id_usuario BIGINT UNIQUE NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
@@ -158,17 +180,31 @@ CREATE TABLE codigos_respaldo_2fa (
 
 CREATE INDEX idx_codigos_respaldo_usuario ON codigos_respaldo_2fa(id_usuario);
 
+-- Origen V17: respalda fn_consumir_codigo_respaldo_2fa (localiza la fila por
+-- índice en vez de recorrer todos los códigos del usuario) y garantiza que
+-- "un código" designe a lo sumo una fila por usuario.
+CREATE UNIQUE INDEX uq_codigo_respaldo_usuario_hash
+    ON codigos_respaldo_2fa (id_usuario, codigo_hash);
+
 
 -- ==============================================================================
 -- MÓDULO 2: PERFILES, VERIFICACIÓN Y PORTAFOLIO
 -- ==============================================================================
 
+-- url_portada / titulo_profesional: origen V18.
 CREATE TABLE perfiles_creadores (
     id_perfil BIGSERIAL PRIMARY KEY,
     id_usuario BIGINT UNIQUE NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
     biografia TEXT,
-    url_red_social VARCHAR(255)
+    url_red_social VARCHAR(255),
+    url_portada VARCHAR(500),
+    titulo_profesional VARCHAR(150)
 );
+
+COMMENT ON COLUMN perfiles_creadores.url_portada
+    IS 'URL de la imagen de portada/banner del perfil de creador';
+COMMENT ON COLUMN perfiles_creadores.titulo_profesional
+    IS 'Titulo o especialidad principal del creador (ej. Ilustradora & Directora de Arte)';
 
 CREATE TABLE estados_verificacion (
     id_estado_verificacion BIGSERIAL PRIMARY KEY,
@@ -180,9 +216,13 @@ CREATE TABLE estados_verificacion (
 -- (veredicto_ia, razon_ia, fecha_dictamen_ia) está separado de la decisión
 -- humana (id_moderador, fecha_decision, nota_moderador) y el estado final sólo
 -- lo escribe sp_registrar_decision_verificacion.
+--
+-- id_usuario (origen V21, no id_perfil): un Cliente también puede verificar su
+-- identidad y no tiene perfil de creador. Para un Creador, su perfil se sigue
+-- derivando con un JOIN contra perfiles_creadores.id_usuario cuando haga falta.
 CREATE TABLE certificados_ia (
     id_certificado BIGSERIAL PRIMARY KEY,
-    id_perfil BIGINT NOT NULL REFERENCES perfiles_creadores(id_perfil) ON DELETE CASCADE,
+    id_usuario BIGINT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
     id_estado_verificacion BIGINT NOT NULL REFERENCES estados_verificacion(id_estado_verificacion),
     url_documento_s3 VARCHAR(255) NOT NULL,
     puntaje_confianza_ia DECIMAL(5,2),
@@ -203,6 +243,7 @@ CREATE TABLE certificados_ia (
 
 CREATE INDEX idx_certificados_ia_hash ON certificados_ia(hash_documento);
 CREATE INDEX idx_certificados_ia_estado ON certificados_ia(id_estado_verificacion);
+CREATE INDEX idx_certificados_ia_usuario ON certificados_ia(id_usuario);
 
 CREATE TABLE habilidades (
     id_habilidad BIGSERIAL PRIMARY KEY,
@@ -243,34 +284,48 @@ CREATE TABLE portafolio_items (
     fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Origen V43: PortafolioItemRepository.findByPortafolioIdPortafolioOrderByFechaSubidaDesc
+-- y countByPortafolioIdPortafolio (listado del portafolio de un creador).
+CREATE INDEX idx_portafolio_items_id_portafolio
+    ON portafolio_items (id_portafolio, fecha_subida DESC);
+
 
 -- ==============================================================================
 -- MÓDULO 3: CATÁLOGO DINÁMICO DE SERVICIOS
 -- ==============================================================================
 
--- id_flujo (origen V9, RF-19): las etapas de un pedido se configuran según la
--- categoría del servicio. Nullable a propósito — una categoría sin flujo cae a
--- un flujo de respaldo en el servicio en vez de impedir crear el pedido.
--- La FK se añade en el Módulo 4, donde nace flujos_trabajo.
+-- id_usuario_creador / revisado (origen V36): un creador puede autoservirse
+-- una categoría/subcategoría cuando su rubro no está en el catálogo.
+-- id_usuario_creador NULL = la creó un admin/moderador (confiable de por sí,
+-- revisado=true). El flujo de trabajo YA NO cuelga de la categoría (ver V9 en
+-- el historial real): pertenece al servicio concreto, ver Módulo 4 (V35).
 CREATE TABLE categorias (
     id_categoria BIGSERIAL PRIMARY KEY,
     nombre_categoria VARCHAR(100) NOT NULL UNIQUE,
     estado_activa BOOLEAN DEFAULT TRUE,
-    id_flujo BIGINT,
-    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    id_usuario_creador BIGINT REFERENCES usuarios(id_usuario),
+    revisado BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+CREATE INDEX idx_categorias_revisado ON categorias (revisado) WHERE revisado = FALSE;
 
 CREATE TRIGGER trg_categorias_actualizado_en
     BEFORE UPDATE ON categorias
     FOR EACH ROW
     EXECUTE FUNCTION set_actualizado_en();
 
+-- id_usuario_creador / revisado: origen V36, mismo criterio que categorias.
 CREATE TABLE subcategorias (
     id_subcategoria BIGSERIAL PRIMARY KEY,
     id_categoria BIGINT NOT NULL REFERENCES categorias(id_categoria) ON DELETE CASCADE,
     nombre_subcategoria VARCHAR(100) NOT NULL,
-    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    id_usuario_creador BIGINT REFERENCES usuarios(id_usuario),
+    revisado BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+CREATE INDEX idx_subcategorias_revisado ON subcategorias (revisado) WHERE revisado = FALSE;
 
 CREATE TRIGGER trg_subcategorias_actualizado_en
     BEFORE UPDATE ON subcategorias
@@ -279,10 +334,16 @@ CREATE TRIGGER trg_subcategorias_actualizado_en
 
 -- tipo_item / estado_publicacion / cargo_revision_adicional /
 -- limite_revisiones_base: origen V3 (Guía Módulo 3).
+--
+-- id_subcategoria YA NO vive aquí (origen V37): un servicio puede listarse en
+-- varias subcategorías, ver la tabla puente servicio_subcategorias más abajo.
+-- id_flujo / id_plantilla_contrato / id_briefing_plantilla (origen V35/V39/V40)
+-- nacen sin FK inline porque sus tablas (flujos_trabajo, plantillas_contrato,
+-- briefing_plantillas) se crean en módulos posteriores; la FK se añade donde
+-- corresponde, mismo patrón que categorias.id_flujo usaba antes de V35.
 CREATE TABLE servicios (
     id_servicio BIGSERIAL PRIMARY KEY,
     id_perfil BIGINT NOT NULL REFERENCES perfiles_creadores(id_perfil) ON DELETE CASCADE,
-    id_subcategoria BIGINT NOT NULL REFERENCES subcategorias(id_subcategoria),
     titulo_servicio VARCHAR(150) NOT NULL,
     descripcion_detallada TEXT NOT NULL,
     precio_base DECIMAL(10,2) NOT NULL,
@@ -291,6 +352,9 @@ CREATE TABLE servicios (
     estado_publicacion VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
     cargo_revision_adicional DECIMAL(10,2) DEFAULT 0.00,
     limite_revisiones_base INT DEFAULT 0,
+    id_flujo BIGINT,
+    id_plantilla_contrato BIGINT,
+    id_briefing_plantilla BIGINT,
     actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -300,13 +364,30 @@ CREATE TRIGGER trg_servicios_actualizado_en
     EXECUTE FUNCTION set_actualizado_en();
 
 -- Rescatado de R__procedimientos.sql: fn_reporte_comisiones_creador navega
--- servicios por perfil y por subcategoría+estado (fn_catalogo_filtrado se
--- retiró del catálogo por no tener consumidor real, ver ADR-006; los índices
--- siguen siendo útiles para las consultas ORM equivalentes).
+-- servicios por perfil (fn_catalogo_filtrado se retiró del catálogo por no
+-- tener consumidor real, ver ADR-006). idx_servicios_estado_publicacion
+-- (origen V37, reemplaza al índice compuesto con id_subcategoria que dejó de
+-- existir) respalda el filtro por estado del catálogo público.
 CREATE INDEX idx_servicios_perfil
     ON servicios (id_perfil);
-CREATE INDEX idx_servicios_subcategoria_estado
-    ON servicios (id_subcategoria, estado_publicacion);
+CREATE INDEX idx_servicios_estado_publicacion
+    ON servicios (estado_publicacion);
+CREATE INDEX idx_servicios_id_flujo ON servicios (id_flujo);
+CREATE INDEX idx_servicios_id_plantilla_contrato ON servicios (id_plantilla_contrato);
+CREATE INDEX idx_servicios_id_briefing_plantilla ON servicios (id_briefing_plantilla);
+
+-- servicio_subcategorias (origen V37): relación N:M, mismo patrón que
+-- servicio_etiquetas. Reemplaza al servicios.id_subcategoria de "uno solo".
+CREATE TABLE servicio_subcategorias (
+    id_servicio_subcategoria BIGSERIAL PRIMARY KEY,
+    id_servicio BIGINT NOT NULL REFERENCES servicios(id_servicio) ON DELETE CASCADE,
+    id_subcategoria BIGINT NOT NULL REFERENCES subcategorias(id_subcategoria),
+    actualizado_en TIMESTAMP,
+    UNIQUE (id_servicio, id_subcategoria)
+);
+
+CREATE INDEX idx_servicio_subcategorias_servicio ON servicio_subcategorias (id_servicio);
+CREATE INDEX idx_servicio_subcategorias_subcategoria ON servicio_subcategorias (id_subcategoria);
 
 CREATE TABLE atributos_dinamicos (
     id_atributo BIGSERIAL PRIMARY KEY,
@@ -327,6 +408,10 @@ CREATE TABLE servicio_atributos (
     valor_asignado VARCHAR(255) NOT NULL,
     actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Origen V43: ServicioAtributoRepository.findByServicioIdServicio y
+-- countByServicioIdServicio.
+CREATE INDEX idx_servicio_atributos_id_servicio ON servicio_atributos (id_servicio);
 
 CREATE TRIGGER trg_servicio_atributos_actualizado_en
     BEFORE UPDATE ON servicio_atributos
@@ -351,6 +436,9 @@ CREATE TABLE servicio_etiquetas (
     actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Origen V43: ServicioEtiquetaRepository.findByServicioIdServicio(In).
+CREATE INDEX idx_servicio_etiquetas_id_servicio ON servicio_etiquetas (id_servicio);
+
 CREATE TRIGGER trg_servicio_etiquetas_actualizado_en
     BEFORE UPDATE ON servicio_etiquetas
     FOR EACH ROW
@@ -361,22 +449,25 @@ CREATE TRIGGER trg_servicio_etiquetas_actualizado_en
 -- MÓDULO 4: MOTOR DE FLUJOS DE TRABAJO Y PEDIDOS
 -- ==============================================================================
 
+-- id_usuario_creador (origen V28): cada flujo es propiedad de un creador; el
+-- selector de "todos los flujos" (asignar uno a un servicio ajeno) lo cubre
+-- FLUJO_MODERAR (origen V29), no un id_usuario_creador NULL.
 CREATE TABLE flujos_trabajo (
     id_flujo BIGSERIAL PRIMARY KEY,
     nombre_flujo VARCHAR(100) NOT NULL,
-    descripcion_flujo TEXT
+    descripcion_flujo TEXT,
+    id_usuario_creador BIGINT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    CONSTRAINT uk_flujos_trabajo_creador_nombre UNIQUE (id_usuario_creador, nombre_flujo)
 );
 
--- Cierra la relación categoría -> flujo declarada en el Módulo 3. Va aquí y no
--- inline en categorias porque flujos_trabajo se crea después; mantener el orden
--- de módulos importa para la documentación del PFC.
-ALTER TABLE categorias
-    ADD CONSTRAINT fk_categorias_flujo
+-- Cierra la relación servicio -> flujo declarada en el Módulo 3 (origen V35,
+-- reemplaza a la relación categoría -> flujo de V9: el flujo lo elige el
+-- propio creador para el servicio concreto, no la categoría bajo la que lo
+-- publicó). Va aquí y no inline en servicios porque flujos_trabajo se crea
+-- después; mantener el orden de módulos importa para la documentación del PFC.
+ALTER TABLE servicios
+    ADD CONSTRAINT fk_servicios_flujo
     FOREIGN KEY (id_flujo) REFERENCES flujos_trabajo(id_flujo);
-
--- Acelera la resolución servicio -> subcategoría -> categoría -> flujo al crear
--- un pedido.
-CREATE INDEX idx_categorias_id_flujo ON categorias (id_flujo);
 
 CREATE TABLE etapas_flujo (
     id_etapa BIGSERIAL PRIMARY KEY,
@@ -389,7 +480,9 @@ CREATE TABLE flujo_etapas_config (
     id_etapa BIGINT NOT NULL REFERENCES etapas_flujo(id_etapa) ON DELETE CASCADE,
     numero_orden INT NOT NULL,
     es_etapa_final BOOLEAN DEFAULT FALSE,
-    requiere_entregable BOOLEAN NOT NULL DEFAULT FALSE
+    requiere_entregable BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Origen V28: el mismo flujo no puede repetir la misma etapa dos veces.
+    CONSTRAINT uk_flujo_etapas_config_unica UNIQUE (id_flujo, id_etapa)
 );
 
 -- codigo_pedido (REQ-F-018) rescatado de R__procedimientos.sql. Nullable: se
@@ -454,6 +547,10 @@ CREATE TABLE tickets_revision (
     estado_ticket VARCHAR(50) DEFAULT 'Abierto'
 );
 
+-- Origen V43: TicketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc
+-- y countByPedidoIdPedido.
+CREATE INDEX idx_tickets_revision_id_pedido ON tickets_revision (id_pedido);
+
 -- Origen V27 (db/migration): propuestas de cambio de precio/fecha de entrega
 -- con consentimiento mutuo. El cambio solo se aplica al pedido cuando la
 -- CONTRAPARTE del proponente acepta (PedidoServicioImpl#aceptarPropuestaTerminos),
@@ -482,11 +579,30 @@ CREATE INDEX idx_propuestas_terminos_pedido ON propuestas_terminos_pedido(id_ped
 -- MÓDULO 5: LEGAL, ENTREGABLES Y FINANZAS (ESCROW)
 -- ==============================================================================
 
+-- nombre_plantilla / es_predeterminada / activa: origen V39. El catálogo lo
+-- cura ADMIN (no un editor libre por creador, para no exponer a la plataforma
+-- a cláusulas legales no revisadas); el creador elige cuál aplica a su
+-- servicio y, si no elige ninguna, se usa la marcada como predeterminada.
 CREATE TABLE plantillas_contrato (
     id_plantilla BIGSERIAL PRIMARY KEY,
     version_legal VARCHAR(50) NOT NULL UNIQUE,
-    cuerpo_html_plantilla TEXT NOT NULL
+    cuerpo_html_plantilla TEXT NOT NULL,
+    nombre_plantilla VARCHAR(150) NOT NULL DEFAULT 'General',
+    es_predeterminada BOOLEAN NOT NULL DEFAULT FALSE,
+    activa BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+-- Solo una plantilla puede ser la predeterminada a la vez.
+CREATE UNIQUE INDEX ux_plantilla_contrato_predeterminada
+    ON plantillas_contrato (es_predeterminada)
+    WHERE es_predeterminada = TRUE;
+
+-- Cierra la relación servicio -> plantilla de contrato declarada en el
+-- Módulo 3 (origen V39). Nullable: sin plantilla asignada, cae a la
+-- predeterminada en ContratoServicioImpl.
+ALTER TABLE servicios
+    ADD CONSTRAINT fk_servicios_plantilla_contrato
+    FOREIGN KEY (id_plantilla_contrato) REFERENCES plantillas_contrato(id_plantilla);
 
 CREATE TABLE contratos (
     id_contrato BIGSERIAL PRIMARY KEY,
@@ -515,6 +631,10 @@ CREATE TABLE pagos_garantia (
     estado_fondos VARCHAR(50) DEFAULT 'Retenido'
 );
 
+-- Origen V43: PagoGarantiaRepository.findByIdOrdenPaypal, único punto de
+-- entrada del webhook público de PayPal (RNF-14).
+CREATE INDEX idx_pagos_garantia_id_orden_paypal ON pagos_garantia (id_orden_paypal);
+
 CREATE TABLE transacciones_pago (
     id_transaccion BIGSERIAL PRIMARY KEY,
     id_pago BIGINT NOT NULL REFERENCES pagos_garantia(id_pago) ON DELETE CASCADE,
@@ -522,6 +642,58 @@ CREATE TABLE transacciones_pago (
     monto DECIMAL(10,2) NOT NULL,
     fecha_ejecucion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Origen V43: TransaccionPagoRepository.findByPagoIdPagoOrderByFechaEjecucionDesc.
+CREATE INDEX idx_transacciones_pago_id_pago ON transacciones_pago (id_pago, fecha_ejecucion DESC);
+
+-- ------------------------------------------------------------------------------
+-- Módulo de retiros / payouts para creadores (origen V34, REQ-F-024).
+-- ------------------------------------------------------------------------------
+-- Hasta la aprobación de una entrega, transacciones_pago solo registraba un
+-- "Egreso" contable a favor del creador: el dinero real quedaba en la cuenta
+-- PayPal Business de la plataforma, sin mecanismo para que el creador lo
+-- solicitara o recibiera. Estas dos tablas cierran ese ciclo.
+
+-- Datos de cobro del creador (correo de PayPal). Tabla separada de
+-- perfiles_creadores a propósito: ese perfil es público (GET /api/v1/perfiles/*,
+-- sin auth), así que un dato de cobro no debe vivir ahí por el riesgo de que
+-- un futuro DTO lo exponga por descuido.
+CREATE TABLE datos_pago_creador (
+    id_datos_pago       BIGSERIAL PRIMARY KEY,
+    id_usuario          BIGINT NOT NULL UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+    correo_paypal       VARCHAR(150) NOT NULL,
+    fecha_actualizacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE solicitudes_retiro (
+    id_solicitud            BIGSERIAL PRIMARY KEY,
+    id_usuario_creador      BIGINT NOT NULL REFERENCES usuarios(id_usuario),
+    monto_solicitado        NUMERIC(10,2) NOT NULL CHECK (monto_solicitado > 0),
+    -- Copia inmutable del correo al momento de solicitar: si el creador cambia
+    -- su correo de PayPal después, no debe alterar un retiro ya en curso.
+    correo_paypal_destino   VARCHAR(150) NOT NULL,
+    -- 'Pendiente' | 'Aprobado' | 'Pagado' | 'Rechazado' | 'Fallido'
+    estado                  VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
+    id_payout_paypal        VARCHAR(100),
+    id_item_payout_paypal   VARCHAR(100),
+    nota_admin              TEXT,
+    mensaje_error           TEXT,
+    fecha_solicitud         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_decision          TIMESTAMP,
+    fecha_pago              TIMESTAMP,
+    id_admin_decisor        BIGINT REFERENCES usuarios(id_usuario)
+);
+
+CREATE INDEX idx_solicitudes_retiro_usuario ON solicitudes_retiro(id_usuario_creador);
+CREATE INDEX idx_solicitudes_retiro_estado ON solicitudes_retiro(estado);
+
+-- Como máximo una solicitud "en curso" (Pendiente o Aprobado) por creador a la
+-- vez, a nivel de BD (no solo en Java): una condición de carrera entre el
+-- SELECT de validación y el INSERT no debe poder colar una segunda solicitud
+-- sobre el mismo dinero.
+CREATE UNIQUE INDEX uq_solicitud_retiro_pendiente_por_creador
+    ON solicitudes_retiro (id_usuario_creador)
+    WHERE estado IN ('Pendiente', 'Aprobado');
 
 
 -- ==============================================================================
@@ -558,10 +730,15 @@ CREATE TABLE tipos_notificacion (
     formato_mensaje TEXT
 );
 
+-- mensaje (origen V14): cada notificación guarda su propio texto en vez de
+-- depender de tipos_notificacion.formato_mensaje (compartido por todas las
+-- notificaciones del mismo evento, lo que hacía que el listado paginado
+-- mostrara siempre el texto de la PRIMERA notificación de ese tipo).
 CREATE TABLE notificaciones_sistema (
     id_notificacion BIGSERIAL PRIMARY KEY,
     id_usuario BIGINT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
     id_tipo_notificacion BIGINT NOT NULL REFERENCES tipos_notificacion(id_tipo_notificacion),
+    mensaje TEXT,
     fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     esta_leida BOOLEAN DEFAULT FALSE
 );
@@ -585,6 +762,13 @@ CREATE TABLE briefing_plantillas (
     nombre_plantilla      VARCHAR(150) NOT NULL,
     fecha_creacion        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Cierra la relación servicio -> cuestionario declarada en el Módulo 3 (origen
+-- V40). Nullable: un servicio sin cuestionario asignado no bloquea el pedido;
+-- cuando sí lo tiene, el cliente responde al crearlo (ver PedidoServicioImpl).
+ALTER TABLE servicios
+    ADD CONSTRAINT fk_servicios_briefing_plantilla
+    FOREIGN KEY (id_briefing_plantilla) REFERENCES briefing_plantillas(id_briefing_plantilla);
 
 CREATE TABLE briefing_preguntas (
     id_pregunta           BIGSERIAL PRIMARY KEY,
@@ -626,6 +810,11 @@ CREATE TABLE seguidores (
     UNIQUE (id_usuario_seguidor, id_perfil_creador)
 );
 
+-- Origen V18: rendimiento de fn_conteo_seguidores/fn_es_seguidor y del
+-- recorrido inverso (perfiles que sigue un usuario).
+CREATE INDEX idx_seguidores_perfil_creador ON seguidores (id_perfil_creador);
+CREATE INDEX idx_seguidores_usuario_seguidor ON seguidores (id_usuario_seguidor);
+
 CREATE TABLE comentarios_portafolio (
     id_comentario BIGSERIAL PRIMARY KEY,
     id_item_portafolio BIGINT NOT NULL REFERENCES portafolio_items(id_item_portafolio) ON DELETE CASCADE,
@@ -634,6 +823,11 @@ CREATE TABLE comentarios_portafolio (
     fecha_publicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     estado_moderacion VARCHAR(50) DEFAULT 'Activo'
 );
+
+-- Origen V43: ComentarioPortafolioRepository.findByItemPortafolioIdItemPortafolioAndEstadoModeracion
+-- (listado público paginado) y countByItemPortafolioIdItemPortafolioAndEstadoModeracion.
+CREATE INDEX idx_comentarios_portafolio_item_estado
+    ON comentarios_portafolio (id_item_portafolio, estado_moderacion);
 
 CREATE TABLE likes_portafolio (
     id_like BIGSERIAL PRIMARY KEY,
@@ -651,18 +845,33 @@ CREATE TABLE resenas_servicios (
     fecha_resena TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- requiere_seguidor: origen V5 (RF-23).
+-- requiere_seguidor: origen V5 (RF-23). descripcion_premios YA NO vive aquí
+-- (origen V41, REQ-F-023): "premio" nace como concepto individual en
+-- premios_sorteo, en vez de un único campo de texto libre sin forma de
+-- validar que la cantidad de ganadores coincidiera con la de premios.
 CREATE TABLE sorteos (
     id_sorteo BIGSERIAL PRIMARY KEY,
     id_perfil_creador BIGINT NOT NULL REFERENCES perfiles_creadores(id_perfil) ON DELETE CASCADE,
     titulo_sorteo VARCHAR(150) NOT NULL,
-    descripcion_premios TEXT NOT NULL,
     cantidad_ganadores INT NOT NULL DEFAULT 1,
     fecha_inicio TIMESTAMP NOT NULL,
     fecha_cierre TIMESTAMP NOT NULL,
     estado_sorteo VARCHAR(50) DEFAULT 'Activo',
     requiere_seguidor BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- premios_sorteo (origen V41): premios individuales de un sorteo, uno por
+-- fila con su propio texto y orden.
+CREATE TABLE premios_sorteo (
+    id_premio          BIGSERIAL PRIMARY KEY,
+    id_sorteo          BIGINT NOT NULL REFERENCES sorteos(id_sorteo) ON DELETE CASCADE,
+    descripcion_premio VARCHAR(255) NOT NULL,
+    orden              INT NOT NULL CHECK (orden >= 1),
+    UNIQUE (id_sorteo, orden)
+);
+
+COMMENT ON TABLE premios_sorteo IS
+    'REQ-F-023 - Premios individuales de un sorteo. Reemplaza a sorteos.descripcion_premios (texto libre unico).';
 
 CREATE TABLE participantes_sorteo (
     id_participacion BIGSERIAL PRIMARY KEY,
@@ -671,8 +880,11 @@ CREATE TABLE participantes_sorteo (
     fecha_inscripcion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     es_ganador BOOLEAN DEFAULT FALSE,
     fecha_notificacion_premio TIMESTAMP,
+    id_premio BIGINT REFERENCES premios_sorteo(id_premio) ON DELETE SET NULL,
     UNIQUE (id_sorteo, id_usuario)
 );
+
+CREATE INDEX idx_participantes_sorteo_id_premio ON participantes_sorteo(id_premio);
 
 
 -- ==============================================================================
@@ -777,6 +989,8 @@ CREATE TRIGGER trg_auditoria_eventos_no_truncate
 -- este cambio. Moverlas es una mejora independiente y opcional (ver README).
 
 -- Cola de revisión. tipo_acceso=SP en la matriz de trazabilidad (ADR-006).
+-- Origen V21: une contra usuarios directo (ya no pasa por perfiles_creadores,
+-- que no aplica para un certificado de un Cliente sin perfil de creador).
 CREATE OR REPLACE FUNCTION fn_listar_cola_verificacion(
     p_estado  VARCHAR,
     p_limite  INT,
@@ -784,8 +998,8 @@ CREATE OR REPLACE FUNCTION fn_listar_cola_verificacion(
 )
 RETURNS TABLE (
     id_certificado        BIGINT,
-    id_perfil             BIGINT,
-    nombre_creador        VARCHAR,
+    id_usuario            BIGINT,
+    nombre_usuario        VARCHAR,
     tipo_documento        VARCHAR,
     nombre_estado         VARCHAR,
     veredicto_ia          VARCHAR,
@@ -798,7 +1012,7 @@ BEGIN
     RETURN QUERY
     SELECT
         c.id_certificado,
-        c.id_perfil,
+        c.id_usuario,
         (u.nombres || ' ' || u.apellidos)::VARCHAR,
         c.tipo_documento,
         ev.nombre_estado,
@@ -806,8 +1020,7 @@ BEGIN
         c.puntaje_confianza_ia,
         c.fecha_analisis
     FROM certificados_ia c
-    JOIN perfiles_creadores pc ON pc.id_perfil = c.id_perfil
-    JOIN usuarios u ON u.id_usuario = pc.id_usuario
+    JOIN usuarios u ON u.id_usuario = c.id_usuario
     JOIN estados_verificacion ev ON ev.id_estado_verificacion = c.id_estado_verificacion
     WHERE p_estado IS NULL OR ev.nombre_estado = p_estado
     ORDER BY c.fecha_analisis ASC
@@ -833,10 +1046,16 @@ DECLARE
     v_nombre_estado_actual VARCHAR;
     v_nombre_estado_nuevo  VARCHAR;
 BEGIN
+    -- FOR UPDATE OF c (origen V31): serializa dos decisiones concurrentes
+    -- sobre el mismo certificado. Sin el bloqueo, ambos SELECT podían leer
+    -- PENDIENTE antes de que cualquiera confirmara, y el segundo UPDATE
+    -- sobrescribía silenciosamente la decisión ya tomada en vez de lanzar la
+    -- excepción esperada de "no está en PENDIENTE".
     SELECT ev.nombre_estado INTO v_nombre_estado_actual
     FROM certificados_ia c
     JOIN estados_verificacion ev ON ev.id_estado_verificacion = c.id_estado_verificacion
-    WHERE c.id_certificado = p_id_certificado;
+    WHERE c.id_certificado = p_id_certificado
+    FOR UPDATE OF c;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Certificado de verificación % no existe', p_id_certificado;
