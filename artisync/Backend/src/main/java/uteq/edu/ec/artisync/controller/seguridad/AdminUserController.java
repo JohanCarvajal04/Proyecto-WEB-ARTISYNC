@@ -49,12 +49,15 @@ public class AdminUserController {
         return ResponseEntity.ok(adminUserService.getAllUsers(filtro, pageable));
     }
 
-    @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF")
+    @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF con gráficas opcionales")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(FiltroUsuario filtro, @RequestParam FormatoReporte formato,
-                                            Authentication authentication) {
-        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, authentication.getName());
+    public ResponseEntity<byte[]> exportar(
+            FiltroUsuario filtro,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false, defaultValue = "AMBAS") uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte grafica,
+            Authentication authentication) {
+        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, grafica, authentication.getName());
         return RespuestaDocumento.de(documento);
     }
 

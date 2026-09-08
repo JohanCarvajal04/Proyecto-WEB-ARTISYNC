@@ -43,6 +43,8 @@ import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +67,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final EntityManager entityManager;
     private final IServicioExportacion servicioExportacion;
+    private final uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorGraficaReporte generadorGraficaReporte;
 
     @Override
     @Transactional(readOnly = true)
@@ -283,6 +286,16 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato}")
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante) {
+        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, correoSolicitante);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
+            detalle = "{formato: #formato, grafica: #tipoGrafica}")
+    public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato,
+                                      uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+                                      String correoSolicitante) {
         Specification<Usuario> spec = UsuarioSpecification.conFiltros(
                 filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());
 
@@ -297,10 +310,63 @@ public class AdminUserServiceImpl implements AdminUserService {
                 spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, "idUsuario")));
         List<UserResponse> filas = usuarioMapper.toUserResponseList(pagina.getContent());
 
+        // Calcular métricas (KPIs) y datos agregados para las gráficas
+        uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte graficaElegida =
+                tipoGrafica != null ? tipoGrafica : uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS;
+        List<uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte> graficas = new ArrayList<>();
+        List<uteq.edu.ec.artisync.service.shared.reporte.KpiReporte> kpis = new ArrayList<>();
+
+        if (!filas.isEmpty() && (formato == FormatoReporte.PDF || formato == FormatoReporte.XLSX)) {
+            Map<String, Long> conteoRoles = new LinkedHashMap<>();
+            Map<String, Long> conteoPaises = new LinkedHashMap<>();
+            long activos = 0;
+
+            for (UserResponse u : filas) {
+                if (Boolean.TRUE.equals(u.getEstadoCuenta())) {
+                    activos++;
+                }
+
+                if (u.getRoles() != null && !u.getRoles().isEmpty()) {
+                    for (String rol : u.getRoles()) {
+                        conteoRoles.put(rol, conteoRoles.getOrDefault(rol, 0L) + 1);
+                    }
+                } else {
+                    conteoRoles.put("SIN_ROL", conteoRoles.getOrDefault("SIN_ROL", 0L) + 1);
+                }
+
+                String pais = (u.getNombrePais() != null && !u.getNombrePais().isBlank())
+                        ? u.getNombrePais() : "Sin especificar";
+                conteoPaises.put(pais, conteoPaises.getOrDefault(pais, 0L) + 1);
+            }
+
+            // KPIs
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Total Usuarios", String.valueOf(filas.size()), "Registrados en listado"));
+            double pctActivos = ((double) activos / filas.size()) * 100.0;
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Usuarios Activos", String.format("%d (%.0f%%)", activos, pctActivos), "Cuentas habilitadas"));
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Roles Representados", String.valueOf(conteoRoles.size()), "Roles distintos"));
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Países", String.valueOf(conteoPaises.size()), "Distribución geográfica"));
+
+            // Gráficas estadísticas
+            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.ROL
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS) {
+                byte[] imgRol = generadorGraficaReporte.generarGraficaRol(conteoRoles);
+                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte("Distribución de Usuarios por Rol",
+                        "Proporción de usuarios según su rol asignado", imgRol, conteoRoles));
+            }
+            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.PAIS
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS) {
+                byte[] imgPais = generadorGraficaReporte.generarGraficaPais(conteoPaises);
+                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte("Distribución de Usuarios por País",
+                        "Concentración geográfica de los usuarios registrados", imgPais, conteoPaises));
+            }
+        }
+
         ModeloReporte<UserResponse> modelo = ModeloReporte.<UserResponse>builder()
                 .titulo("Usuarios")
                 .subtitulo("Listado administrativo de usuarios")
                 .filtrosAplicados(filtrosLegibles(filtro))
+                .kpis(kpis)
+                .graficas(graficas)
                 .columnas(List.of(
                         ColumnaReporte.entero("Id", UserResponse::getIdUsuario),
                         ColumnaReporte.texto("Nombres", UserResponse::getNombres),

@@ -1,6 +1,6 @@
 services:
   postgres:
-    # Pinado por digest (no solo tag) para evitar derivas silenciosas entre
+    # P inado por digest (no solo tag) para evitar derivas silenciosas entre
     # reconstrucciones — Bloque B.1 de la guia de la Tercera Entrega.
     # Tag de referencia: postgres:16. Renovar con:
     #   docker pull postgres:16 && docker inspect --format='{{index .RepoDigests 0}}' postgres:16

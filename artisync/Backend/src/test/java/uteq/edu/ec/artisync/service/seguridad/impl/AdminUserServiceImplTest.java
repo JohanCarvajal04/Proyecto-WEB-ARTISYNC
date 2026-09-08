@@ -67,6 +67,10 @@ class AdminUserServiceImplTest {
     private AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     @Mock
     private jakarta.persistence.EntityManager entityManager;
+    @Mock
+    private uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion servicioExportacion;
+    @Mock
+    private uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorGraficaReporte generadorGraficaReporte;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
@@ -485,5 +489,40 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.existsById(99L)).thenReturn(false);
 
         assertThrows(ResponseStatusException.class, () -> adminUserService.revokeUserSessions(99L));
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("exportar con TipoGraficaReporte genera métricas y gráficas esperadas")
+    void exportar_ConGraficas_GeneraModeloConGraficas() {
+        when(usuarioRepository.count(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<Usuario>>any())).thenReturn(2L);
+
+        Usuario u1 = Usuario.builder().idUsuario(1L).correo("admin@test.com").estadoCuenta(true).build();
+        Usuario u2 = Usuario.builder().idUsuario(2L).correo("creador@test.com").estadoCuenta(true).build();
+        org.springframework.data.domain.Page<Usuario> pagina = new org.springframework.data.domain.PageImpl<>(List.of(u1, u2));
+        when(usuarioRepository.findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<Usuario>>any(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(pagina);
+
+        UserResponse r1 = UserResponse.builder().idUsuario(1L).correo("admin@test.com").estadoCuenta(true).roles(List.of("ADMIN")).nombrePais("Chile").build();
+        UserResponse r2 = UserResponse.builder().idUsuario(2L).correo("creador@test.com").estadoCuenta(true).roles(List.of("CREADOR")).nombrePais("Colombia").build();
+        when(usuarioMapper.toUserResponseList(any())).thenReturn(List.of(r1, r2));
+
+        when(generadorGraficaReporte.generarGraficaRol(any())).thenReturn(new byte[]{1, 2, 3});
+        when(generadorGraficaReporte.generarGraficaPais(any())).thenReturn(new byte[]{4, 5, 6});
+
+        uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado esperado =
+                new uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado(new byte[]{1}, "application/pdf", "usuarios.pdf");
+        when(servicioExportacion.exportar(any(), any())).thenReturn(esperado);
+
+        uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario filtro = new uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario();
+        uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado resultado =
+                adminUserService.exportar(filtro, uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte.PDF,
+                        uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, "admin@artisync.com");
+
+        assertNotNull(resultado);
+        verify(generadorGraficaReporte).generarGraficaRol(any());
+        verify(generadorGraficaReporte).generarGraficaPais(any());
+        verify(servicioExportacion).exportar(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte.PDF));
     }
 }

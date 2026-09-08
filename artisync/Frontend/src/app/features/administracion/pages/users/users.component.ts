@@ -12,7 +12,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
 import { UserFormModalComponent } from '../../../../shared/components/user-form-modal/user-form-modal.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
-import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { FormatoReporte, TipoGraficaReporte, OPCIONES_GRAFICA_REPORTE, FORMATOS_REPORTE } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 @Component({
@@ -99,12 +99,37 @@ export class UsersComponent implements OnInit {
     this.aplicarFiltros();
   }
 
-  exportar(formato: FormatoReporte): void {
+  // Modal de exportación enriquecida
+  readonly isExportModalOpen = signal<boolean>(false);
+  readonly exportFormato = signal<FormatoReporte>('PDF');
+  readonly exportGrafica = signal<TipoGraficaReporte>('AMBAS');
+  readonly opcionesGrafica = OPCIONES_GRAFICA_REPORTE;
+  readonly formatosReporte = FORMATOS_REPORTE;
+
+  iniciarExportacion(formato: FormatoReporte): void {
+    this.exportFormato.set(formato);
+    this.isExportModalOpen.set(true);
+  }
+
+  cerrarModalExportar(): void {
+    this.isExportModalOpen.set(false);
+  }
+
+  confirmarExportacion(): void {
+    const formato = this.exportFormato();
+    const grafica = this.exportGrafica();
+    this.cerrarModalExportar();
+    this.exportar(formato, grafica);
+  }
+
+  exportar(formato: FormatoReporte, grafica?: TipoGraficaReporte): void {
     this.exportando.set(true);
-    this.adminUserService.exportar(this.filtroAplicado(), formato).subscribe({
+    const graficaElegida = grafica ?? (formato === 'CSV' ? 'NINGUNA' : this.exportGrafica());
+    this.adminUserService.exportar(this.filtroAplicado(), formato, graficaElegida).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
         descargarRespuesta(respuesta, `usuarios.${formato.toLowerCase()}`);
+        this.toastService.success(`Reporte de usuarios exportado exitosamente en ${formato}`);
       },
       error: async (err) => {
         this.exportando.set(false);

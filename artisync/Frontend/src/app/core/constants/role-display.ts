@@ -11,16 +11,16 @@ export interface RoleDisplay {
   classes: string;
 }
 
-const CLASES_NEUTRAS = 'bg-surface-container-highest text-on-surface font-medium';
+const CLASES_NEUTRAS = 'bg-slate-100 text-slate-700 font-medium';
 
 const ROLE_DISPLAY: Record<string, RoleDisplay> = {
-  ADMINISTRADOR: { label: 'Administrador', classes: 'bg-error-container text-on-error-container font-medium' },
-  ADMIN: { label: 'Administrador', classes: 'bg-error-container text-on-error-container font-medium' },
-  MODERADOR: { label: 'Moderador', classes: 'bg-primary-container text-on-primary-container font-medium' },
-  SOPORTE: { label: 'Soporte Técnico', classes: 'bg-tertiary-container text-on-tertiary-container font-medium' },
-  AUDITOR_FINANCIERO: { label: 'Auditor Financiero', classes: CLASES_NEUTRAS },
-  CREADOR: { label: 'Creador', classes: 'bg-secondary-container text-on-secondary-container font-medium' },
-  CLIENTE: { label: 'Cliente', classes: 'bg-surface-container-high text-on-surface-variant' }
+  ADMINISTRADOR: { label: 'Administrador', classes: 'bg-fuchsia-100 text-fuchsia-700 font-bold' },
+  ADMIN: { label: 'Administrador', classes: 'bg-fuchsia-100 text-fuchsia-700 font-bold' },
+  MODERADOR: { label: 'Moderador', classes: 'bg-purple-100 text-purple-700 font-bold' },
+  SOPORTE: { label: 'Soporte Técnico', classes: 'bg-cyan-100 text-cyan-700 font-bold' },
+  AUDITOR_FINANCIERO: { label: 'Auditor Financiero', classes: 'bg-emerald-100 text-emerald-700 font-bold' },
+  CREADOR: { label: 'Creador', classes: 'bg-amber-100 text-amber-700 font-bold' },
+  CLIENTE: { label: 'Cliente', classes: 'bg-indigo-100 text-indigo-700 font-bold' }
 };
 
 /** Quita el prefijo `ROLE_` y normaliza a mayúsculas. */

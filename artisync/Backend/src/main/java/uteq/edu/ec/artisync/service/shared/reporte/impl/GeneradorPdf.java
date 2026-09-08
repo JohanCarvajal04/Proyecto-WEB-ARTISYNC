@@ -72,6 +72,16 @@ public class GeneradorPdf implements GeneradorReporte {
                 .toList();
         contexto.setVariable("totales", totales);
 
+        List<GraficaConDataUri> graficas = modelo.getGraficas().stream()
+                .filter(g -> g.imagenPng() != null && g.imagenPng().length > 0)
+                .map(g -> new GraficaConDataUri(
+                        g.titulo(),
+                        g.subtitulo(),
+                        "data:image/png;base64," + Base64.getEncoder().encodeToString(g.imagenPng())))
+                .toList();
+        contexto.setVariable("graficas", graficas);
+        contexto.setVariable("kpis", modelo.getKpis());
+
         String html = templateEngine.process("reportes/tabla", contexto);
         byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);
         return new DocumentoGenerado(pdf, formato().contentType(), null);
@@ -91,5 +101,9 @@ public class GeneradorPdf implements GeneradorReporte {
 
     /** Vista de {@link TotalReporte} con el valor ya formateado a texto para la plantilla. */
     public record TotalConTexto(String etiqueta, String valorTexto) {
+    }
+
+    /** Vista de gráfica estadística convertida a Data URI para incrustación directa en HTML/PDF. */
+    public record GraficaConDataUri(String titulo, String subtitulo, String dataUri) {
     }
 }

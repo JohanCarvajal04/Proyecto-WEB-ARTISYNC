@@ -2,22 +2,23 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title th:text="${titulo}">Reporte</title>
+    <title th:text="${titulo}">Reporte ArtiSync</title>
     <style>
         @page {
             size: A4 landscape;
-            margin: 18mm 14mm;
+            margin: 14mm 12mm;
         }
         body {
             font-family: Helvetica, Arial, sans-serif;
             color: #1E0F38;
-            font-size: 9pt;
+            font-size: 8.5pt;
+            line-height: 1.35;
         }
         .encabezado {
             display: table;
             width: 100%;
-            margin-bottom: 10mm;
-            border-bottom: 2px solid #7B39B2;
+            margin-bottom: 6mm;
+            border-bottom: 2.5px solid #7B39B2;
             padding-bottom: 4mm;
         }
         .encabezado-logo, .encabezado-titulo {
@@ -25,63 +26,193 @@
             vertical-align: middle;
         }
         .encabezado-logo {
-            width: 40mm;
+            width: 42mm;
         }
         .encabezado-logo img {
-            height: 12mm;
+            height: 14mm;
+            max-width: 40mm;
         }
         h1 {
-            font-size: 15pt;
-            margin: 0 0 2mm 0;
+            font-size: 16pt;
+            margin: 0 0 1.5mm 0;
             color: #1E0F38;
+            font-weight: bold;
+            letter-spacing: -0.3px;
         }
         .subtitulo {
             font-size: 9pt;
-            color: #555;
+            color: #64748B;
             margin: 0;
         }
         .filtros {
             font-size: 8pt;
-            color: #555;
-            margin: 2mm 0 6mm 0;
+            color: #475569;
+            background-color: #F8F5FB;
+            border: 1px solid #EDE9FE;
+            border-radius: 4px;
+            padding: 2mm 3mm;
+            margin-bottom: 5mm;
         }
         .filtros span {
-            margin-right: 6mm;
+            margin-right: 5mm;
         }
+        .filtros strong {
+            color: #7B39B2;
+        }
+
+        /* Tarjetas de KPIs */
+        .kpis-contenedor {
+            display: table;
+            width: 100%;
+            margin-bottom: 6mm;
+        }
+        .kpi-tarjeta {
+            display: table-cell;
+            background-color: #FAF5FF;
+            border: 1px solid #E9D5FF;
+            border-top: 3px solid #7B39B2;
+            border-radius: 4px;
+            padding: 2.5mm 3.5mm;
+            text-align: left;
+            width: 25%;
+            margin-right: 3mm;
+        }
+        .kpi-etiqueta {
+            font-size: 7pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #7B39B2;
+            letter-spacing: 0.5px;
+            margin-bottom: 1mm;
+        }
+        .kpi-valor {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #1E0F38;
+        }
+        .kpi-descripcion {
+            font-size: 7pt;
+            color: #64748B;
+            margin-top: 0.5mm;
+        }
+
+        /* Sección de Gráficas */
+        .seccion-graficas {
+            margin-bottom: 6mm;
+            page-break-inside: avoid;
+        }
+        .seccion-titulo {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1E0F38;
+            margin: 0 0 3mm 0;
+            border-left: 3px solid #7B39B2;
+            padding-left: 2mm;
+        }
+        .graficas-tabla {
+            display: table;
+            width: 100%;
+        }
+        .grafica-celda {
+            display: table-cell;
+            vertical-align: top;
+            text-align: center;
+            width: 50%;
+            padding: 0 2mm;
+        }
+        .grafica-imagen {
+            width: 100%;
+            max-height: 65mm;
+            border-radius: 6px;
+        }
+
+        /* Badges de Roles */
+        .rol-badge {
+            display: inline-block;
+            padding: 1mm 1.5mm;
+            border-radius: 4px;
+            font-size: 6.5pt;
+            font-weight: bold;
+            margin-right: 1mm;
+            text-transform: uppercase;
+            /* Neutro por defecto (slate) */
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+        .rol-administrador, .rol-admin, .rol-role_admin {
+            background-color: #fae8ff !important;
+            color: #a21caf !important;
+        }
+        .rol-moderador, .rol-role_moderador {
+            background-color: #f3e8ff !important;
+            color: #7e22ce !important;
+        }
+        .rol-soporte, .rol-role_soporte {
+            background-color: #cffafe !important;
+            color: #0e7490 !important;
+        }
+        .rol-auditor_financiero, .rol-role_auditor_financiero {
+            background-color: #d1fae5 !important;
+            color: #047857 !important;
+        }
+        .rol-creador, .rol-role_creador {
+            background-color: #fef3c7 !important;
+            color: #b45309 !important;
+        }
+        .rol-cliente, .rol-role_cliente {
+            background-color: #e0e7ff !important;
+            color: #4338ca !important;
+        }
+
+        /* Tabla de Datos */
         table.datos {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 2mm;
         }
         table.datos th {
             background-color: #7B39B2;
-            color: #fff;
+            color: #FFFFFF;
             text-align: left;
-            padding: 2mm;
-            font-size: 8.5pt;
+            padding: 2mm 2.5mm;
+            font-size: 8pt;
+            font-weight: bold;
+            letter-spacing: 0.3px;
         }
         table.datos td {
-            border-bottom: 1px solid #e5e5e5;
-            padding: 1.8mm 2mm;
-            font-size: 8.5pt;
+            border-bottom: 1px solid #E2E8F0;
+            padding: 1.8mm 2.5mm;
+            font-size: 8pt;
+            color: #334155;
         }
         table.datos tr:nth-child(even) td {
-            background-color: #f8f5fb;
+            background-color: #F8F5FB;
         }
+
         table.totales {
-            width: 50%;
-            margin-top: 6mm;
+            width: 45%;
+            margin-top: 5mm;
             border-collapse: collapse;
+            float: right;
         }
         table.totales td {
             padding: 1.5mm 2mm;
-            font-size: 9pt;
+            font-size: 8.5pt;
             font-weight: bold;
-            border-top: 1px solid #7B39B2;
+            border-top: 1.5px solid #7B39B2;
+            color: #1E0F38;
         }
+
         .pie {
-            margin-top: 8mm;
-            font-size: 7.5pt;
-            color: #888;
+            clear: both;
+            margin-top: 7mm;
+            font-size: 7pt;
+            color: #94A3B8;
+            border-top: 1px solid #E2E8F0;
+            padding-top: 2.5mm;
+        }
+        .pie strong {
+            color: #7B39B2;
         }
     </style>
 </head>
@@ -96,6 +227,7 @@
         </div>
     </div>
 
+    <!-- Filtros aplicados -->
     <div class="filtros" th:if="${not #maps.isEmpty(filtrosAplicados)}">
         <span th:each="entrada : ${filtrosAplicados}">
             <strong th:text="${entrada.key} + ': '">Filtro:</strong>
@@ -103,6 +235,26 @@
         </span>
     </div>
 
+    <!-- Indicadores clave (KPIs) -->
+    <div class="kpis-contenedor" th:if="${kpis != null and not #lists.isEmpty(kpis)}">
+        <div class="kpi-tarjeta" th:each="kpi : ${kpis}">
+            <div class="kpi-etiqueta" th:text="${kpi.etiqueta()}">Métrica</div>
+            <div class="kpi-valor" th:text="${kpi.valor()}">0</div>
+            <div class="kpi-descripcion" th:if="${kpi.descripcion()}" th:text="${kpi.descripcion()}">Detalle</div>
+        </div>
+    </div>
+
+    <!-- Gráficas Estadísticas -->
+    <div class="seccion-graficas" th:if="${graficas != null and not #lists.isEmpty(graficas)}">
+        <div class="seccion-titulo">Análisis y Distribución Visual</div>
+        <div class="graficas-tabla">
+            <div class="grafica-celda" th:each="grafica : ${graficas}">
+                <img class="grafica-imagen" th:src="${grafica.dataUri()}" th:alt="${grafica.titulo()}"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Principal de Datos -->
     <table class="datos">
         <thead>
             <tr>
@@ -111,22 +263,36 @@
         </thead>
         <tbody>
             <tr th:each="fila : ${filas}">
-                <td th:each="valor : ${fila}" th:text="${valor}">valor</td>
+                <td th:each="valor, stat : ${fila}">
+                    <!-- Si la columna se llama 'Roles', partimos el texto para renderizar badges -->
+                    <th:block th:if="${encabezados[stat.index] == 'Roles' and valor != null and valor != ''}">
+                        <span th:each="rolStr : ${#strings.listSplit(valor, ',')}"
+                              th:with="rolName=${#strings.trim(rolStr)}"
+                              th:class="'rol-badge rol-' + ${#strings.toLowerCase(rolName)}"
+                              th:text="${rolName}"></span>
+                    </th:block>
+                    <!-- De lo contrario, texto normal -->
+                    <th:block th:unless="${encabezados[stat.index] == 'Roles' and valor != null and valor != ''}">
+                        <span th:text="${valor}"></span>
+                    </th:block>
+                </td>
             </tr>
         </tbody>
     </table>
 
+    <!-- Totales -->
     <table class="totales" th:if="${not #lists.isEmpty(totales)}">
         <tr th:each="total : ${totales}">
             <td th:text="${total.etiqueta}">Etiqueta</td>
-            <td th:text="${total.valorTexto}">Valor</td>
+            <td style="text-align: right;" th:text="${total.valorTexto}">Valor</td>
         </tr>
     </table>
 
+    <!-- Pie de página -->
     <p class="pie">
-        Generado por <span th:text="${generadoPor}">usuario</span>
+        <strong>ArtiSync</strong> · Generado por <span th:text="${generadoPor}">usuario</span>
         el <span th:text="${generadoEn}">fecha</span>
-        — <span th:text="${filas.size()}">0</span> filas.
+        — <span th:text="${filas.size()}">0</span> filas registradas.
     </p>
 </body>
 </html>

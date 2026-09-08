@@ -1,39 +1,35 @@
 package uteq.edu.ec.artisync.service.shared.reporte.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.streaming.SXSSFCell;
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.GeneradorReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.TipoColumna;
-import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
- * XLSX real vía Apache POI {@link SXSSFWorkbook} (streaming, memoria acotada — no
- * mantiene todas las filas en memoria como el XSSFWorkbook clásico). Hoja "Datos"
- * con tipos de celda reales (fecha, moneda, entero) + hoja "Info" con título,
- * filtros aplicados y quién/cuándo lo generó.
+ * Generador XLSX vía Apache POI {@link SXSSFWorkbook} con branding de Artisync:
+ * - Color morado corporativo (#7B39B2 / RGB: 123, 57, 178) en encabezados y acentos.
+ * - Hoja "Datos" con tipos de celda nativos (fecha, moneda, número).
+ * - Hoja "Resumen" (cuando el reporte incluye gráficas o KPIs) con tablas de distribución y gráficas incrustadas.
+ * - Hoja "Info" con metadatos de auditoría y filtros aplicados.
  */
 @Slf4j
 @Component
@@ -41,6 +37,12 @@ public class GeneradorXlsx implements GeneradorReporte {
 
     private static final int FILAS_EN_MEMORIA = 100;
     private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String RUTA_LOGO = "reportes/logo-artisync.png";
+
+    // RGB Morado Artisync #7B39B2
+    private static final byte[] RGB_MORADO_ARTISYNC = new byte[]{(byte) 123, (byte) 57, (byte) 178};
+    // RGB Morado Oscuro #5B21B6
+    private static final byte[] RGB_MORADO_OSCURO = new byte[]{(byte) 91, (byte) 33, (byte) 182};
 
     @Override
     public FormatoReporte formato() {
@@ -55,15 +57,25 @@ public class GeneradorXlsx implements GeneradorReporte {
                 CellStyle estiloEncabezado = crearEstiloEncabezado(libro);
                 CellStyle estiloTotal = crearEstiloTotal(libro);
 
+                // Si el reporte incluye gráficas o métricas clave, creamos primero la hoja "Resumen" para que sea visible de inmediato
+                if (!modelo.getGraficas().isEmpty() || !modelo.getKpis().isEmpty()) {
+                    escribirHojaResumen(libro, modelo, estiloEncabezado);
+                }
+
+                // Hoja Datos
                 escribirHojaDatos(libro, modelo, estiloEncabezado, estilosPorTipo, estiloTotal);
+
+                // Hoja Info con metadatos
                 escribirHojaInfo(libro, modelo, estiloEncabezado);
+
+                // Activar siempre la primera hoja
+                libro.setActiveSheet(0);
+                libro.setSelectedTab(0);
 
                 ByteArrayOutputStream salida = new ByteArrayOutputStream();
                 libro.write(salida);
                 return new DocumentoGenerado(salida.toByteArray(), formato().contentType(), null);
             } finally {
-                // SXSSFWorkbook escribe filas fuera de memoria en archivos temporales;
-                // sin dispose() esos temporales quedan huérfanos en disco.
                 libro.dispose();
             }
         } catch (IOException e) {
@@ -77,6 +89,7 @@ public class GeneradorXlsx implements GeneradorReporte {
         List<ColumnaReporte<T>> columnas = modelo.getColumnas();
 
         SXSSFRow filaEncabezado = hoja.createRow(0);
+        filaEncabezado.setHeightInPoints(24);
         for (int c = 0; c < columnas.size(); c++) {
             SXSSFCell celda = filaEncabezado.createCell(c);
             celda.setCellValue(columnas.get(c).encabezado());
@@ -84,8 +97,7 @@ public class GeneradorXlsx implements GeneradorReporte {
             hoja.setColumnWidth(c, columnas.get(c).anchoCaracteres() * 256);
         }
         hoja.createFreezePane(0, 1);
-        hoja.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(
-                0, 0, 0, Math.max(0, columnas.size() - 1)));
+        hoja.setAutoFilter(new CellRangeAddress(0, 0, 0, Math.max(0, columnas.size() - 1)));
 
         int numeroFila = 1;
         for (T fila : modelo.getFilas()) {
@@ -112,6 +124,106 @@ public class GeneradorXlsx implements GeneradorReporte {
                 celdaValor.setCellStyle(estiloTotal);
             }
         }
+    }
+
+    private <T> void escribirHojaResumen(SXSSFWorkbook libro, ModeloReporte<T> modelo, CellStyle estiloEncabezado) {
+        SXSSFSheet hoja = libro.createSheet(WorkbookUtil.createSafeSheetName("Resumen"));
+        int filaActual = 0;
+
+        // Estilo título resumen
+        CellStyle estiloTitulo = crearEstiloTitulo(libro);
+        SXSSFRow filaTitulo = hoja.createRow(filaActual++);
+        filaTitulo.setHeightInPoints(28);
+        SXSSFCell celdaTit = filaTitulo.createCell(0);
+        celdaTit.setCellValue("ArtiSync — Resumen Ejecutivo y Estadísticas");
+        celdaTit.setCellStyle(estiloTitulo);
+
+        // Subtítulo
+        SXSSFRow filaSub = hoja.createRow(filaActual++);
+        filaSub.createCell(0).setCellValue("Reporte generado el " + modelo.getGeneradoEn().format(FORMATO_FECHA_HORA)
+                + " por " + modelo.getGeneradoPor());
+
+        filaActual++; // Espacio
+
+        // Sección KPIs si existen
+        if (!modelo.getKpis().isEmpty()) {
+            SXSSFRow filaKpiHeader = hoja.createRow(filaActual++);
+            SXSSFCell cKpi = filaKpiHeader.createCell(0);
+            cKpi.setCellValue("INDICADORES CLAVE (KPIs)");
+            cKpi.setCellStyle(estiloEncabezado);
+
+            CellStyle estiloKpiEtiqueta = libro.createCellStyle();
+            Font fuenteBold = libro.createFont();
+            fuenteBold.setBold(true);
+            estiloKpiEtiqueta.setFont(fuenteBold);
+
+            for (KpiReporte kpi : modelo.getKpis()) {
+                SXSSFRow r = hoja.createRow(filaActual++);
+                SXSSFCell c1 = r.createCell(0);
+                c1.setCellValue(kpi.etiqueta());
+                c1.setCellStyle(estiloKpiEtiqueta);
+
+                SXSSFCell c2 = r.createCell(1);
+                c2.setCellValue(kpi.valor());
+
+                if (kpi.descripcion() != null) {
+                    r.createCell(2).setCellValue(kpi.descripcion());
+                }
+            }
+            filaActual++; // Espacio
+        }
+
+        // Sección Gráficas y tablas de desglose
+        if (!modelo.getGraficas().isEmpty()) {
+            Drawing<?> drawing = hoja.createDrawingPatriarch();
+
+            for (GraficaReporte grafica : modelo.getGraficas()) {
+                SXSSFRow filaSec = hoja.createRow(filaActual++);
+                filaSec.setHeightInPoints(20);
+                SXSSFCell cSec = filaSec.createCell(0);
+                cSec.setCellValue(grafica.titulo().toUpperCase());
+                cSec.setCellStyle(estiloEncabezado);
+
+                // Tabla de datos de la gráfica a la izquierda
+                if (grafica.datos() != null && !grafica.datos().isEmpty()) {
+                    long totalDatos = grafica.datos().values().stream().mapToLong(Long::longValue).sum();
+
+                    SXSSFRow rHead = hoja.createRow(filaActual++);
+                    rHead.createCell(0).setCellValue("Categoría");
+                    rHead.createCell(1).setCellValue("Cantidad");
+                    rHead.createCell(2).setCellValue("Porcentaje");
+
+                    for (Map.Entry<String, Long> entry : grafica.datos().entrySet()) {
+                        SXSSFRow rDato = hoja.createRow(filaActual++);
+                        rDato.createCell(0).setCellValue(entry.getKey());
+                        rDato.createCell(1).setCellValue(entry.getValue());
+                        double pct = totalDatos > 0 ? ((double) entry.getValue() / totalDatos) * 100.0 : 0.0;
+                        rDato.createCell(2).setCellValue(String.format("%.1f%%", pct));
+                    }
+                }
+
+                // Incrustar imagen de la gráfica a la derecha
+                if (grafica.imagenPng() != null && grafica.imagenPng().length > 0) {
+                    try {
+                        int pictureIdx = libro.addPicture(grafica.imagenPng(), Workbook.PICTURE_TYPE_PNG);
+                        ClientAnchor anchor = libro.getCreationHelper().createClientAnchor();
+                        anchor.setCol1(4); // Columna E
+                        anchor.setRow1(Math.max(0, filaActual - 10));
+                        anchor.setCol2(11); // Columna L
+                        anchor.setRow2(filaActual + 6);
+                        drawing.createPicture(anchor, pictureIdx);
+                    } catch (Exception e) {
+                        log.warn("No se pudo incrustar imagen de la gráfica en Excel", e);
+                    }
+                }
+
+                filaActual += 3; // Espaciado entre gráficas
+            }
+        }
+
+        hoja.setColumnWidth(0, 30 * 256);
+        hoja.setColumnWidth(1, 16 * 256);
+        hoja.setColumnWidth(2, 16 * 256);
     }
 
     private void escribirValorCelda(Cell celda, Object valor, TipoColumna tipo) {
@@ -182,8 +294,37 @@ public class GeneradorXlsx implements GeneradorReporte {
         fuente.setColor(IndexedColors.WHITE.getIndex());
         CellStyle estilo = libro.createCellStyle();
         estilo.setFont(fuente);
-        estilo.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());
-        estilo.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+        estilo.setAlignment(HorizontalAlignment.LEFT);
+        estilo.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        // Color morado característico Artisync (#7B39B2)
+        if (estilo instanceof XSSFCellStyle xssfEstilo) {
+            XSSFColor moradoArtisync = new XSSFColor(RGB_MORADO_ARTISYNC, new DefaultIndexedColorMap());
+            xssfEstilo.setFillForegroundColor(moradoArtisync);
+        } else {
+            estilo.setFillForegroundColor(IndexedColors.VIOLET.getIndex());
+        }
+        estilo.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return estilo;
+    }
+
+    private CellStyle crearEstiloTitulo(SXSSFWorkbook libro) {
+        Font fuente = libro.createFont();
+        fuente.setBold(true);
+        fuente.setFontHeightInPoints((short) 14);
+        fuente.setColor(IndexedColors.WHITE.getIndex());
+        CellStyle estilo = libro.createCellStyle();
+        estilo.setFont(fuente);
+        estilo.setAlignment(HorizontalAlignment.LEFT);
+        estilo.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        if (estilo instanceof XSSFCellStyle xssfEstilo) {
+            XSSFColor moradoOscuro = new XSSFColor(RGB_MORADO_OSCURO, new DefaultIndexedColorMap());
+            xssfEstilo.setFillForegroundColor(moradoOscuro);
+        } else {
+            estilo.setFillForegroundColor(IndexedColors.INDIGO.getIndex());
+        }
+        estilo.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         return estilo;
     }
 
@@ -192,6 +333,11 @@ public class GeneradorXlsx implements GeneradorReporte {
         fuente.setBold(true);
         CellStyle estilo = libro.createCellStyle();
         estilo.setFont(fuente);
+        estilo.setBorderTop(BorderStyle.MEDIUM);
+        if (estilo instanceof XSSFCellStyle xssfEstilo) {
+            XSSFColor morado = new XSSFColor(RGB_MORADO_ARTISYNC, new DefaultIndexedColorMap());
+            xssfEstilo.setTopBorderColor(morado);
+        }
         return estilo;
     }
 

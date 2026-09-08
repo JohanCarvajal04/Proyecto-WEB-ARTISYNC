@@ -18,3 +18,18 @@ export const FORMATOS_REPORTE: readonly OpcionFormatoReporte[] = [
   { valor: 'XLSX', etiqueta: 'Excel', acento: 'bg-emerald-50 text-emerald-600' },
   { valor: 'PDF', etiqueta: 'PDF', acento: 'bg-rose-50 text-rose-600' }
 ] as const satisfies readonly OpcionFormatoReporte[];
+
+export type TipoGraficaReporte = 'ROL' | 'PAIS' | 'AMBAS' | 'NINGUNA';
+
+export interface OpcionGraficaReporte {
+  valor: TipoGraficaReporte;
+  etiqueta: string;
+  descripcion: string;
+}
+
+export const OPCIONES_GRAFICA_REPORTE: readonly OpcionGraficaReporte[] = [
+  { valor: 'AMBAS', etiqueta: 'Ambas gráficas', descripcion: 'Por Rol y País (Informe analítico completo)' },
+  { valor: 'ROL', etiqueta: 'Por Rol', descripcion: 'Distribución según roles de usuario' },
+  { valor: 'PAIS', etiqueta: 'Por País', descripcion: 'Concentración geográfica por país' },
+  { valor: 'NINGUNA', etiqueta: 'Solo lista', descripcion: 'Exportación tradicional sin gráficos' }
+] as const;

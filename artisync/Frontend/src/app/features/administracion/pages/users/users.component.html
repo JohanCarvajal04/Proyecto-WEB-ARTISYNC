@@ -7,7 +7,7 @@
     </div>
 
     <div class="flex items-center gap-3 self-start sm:self-auto">
-      <app-boton-exportar permiso="USUARIO_EXPORTAR" [cargando]="exportando()" (exportar)="exportar($event)" />
+      <app-boton-exportar permiso="USUARIO_EXPORTAR" [cargando]="exportando()" (exportar)="iniciarExportacion($event)" />
 
       <button *appHasPermission="'USUARIO_CREAR'" (click)="openCreateModal()"
         class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-95 text-white font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
@@ -134,7 +134,7 @@
                 <!-- Role Col -->
                 <td class="py-4 px-6">
                   @let badge = formatRoleBadge(user.roles[0] || 'CLIENTE');
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#F5E6FF] text-[#A845C8]">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs {{ badge.classes }}">
                     {{ badge.label }}
                   </span>
                 </td>
@@ -230,3 +230,126 @@
   (onConfirm)="executeConfirmAction()"
   (onCancel)="isConfirmOpen.set(false)"
 />
+
+<!-- Modal de Opciones de Exportación Enriquecida (Logo Artisync, Color Morado y Gráficas) -->
+@if (isExportModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden transform transition-all">
+      <!-- Header del Modal -->
+      <div class="bg-gradient-to-r from-[#7B39B2] to-[#9C5CC5] px-6 py-5 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold">Exportar Reporte de Usuarios</h2>
+            <p class="text-xs text-purple-100">Personaliza el formato y el análisis visual del reporte</p>
+          </div>
+        </div>
+        <button type="button" (click)="cerrarModalExportar()" class="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <!-- Formato -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Formato de Salida</label>
+          <div class="grid grid-cols-3 gap-2.5">
+            @for (fmt of formatosReporte; track fmt.valor) {
+              <button type="button"
+                (click)="exportFormato.set(fmt.valor)"
+                [class.ring-2]="exportFormato() === fmt.valor"
+                [class.ring-[#7B39B2]]="exportFormato() === fmt.valor"
+                [class.bg-purple-50]="exportFormato() === fmt.valor"
+                [class.border-[#7B39B2]]="exportFormato() === fmt.valor"
+                class="p-3 rounded-2xl border border-slate-200 hover:border-purple-300 transition-all text-left flex flex-col items-center justify-center gap-1.5 group">
+                <span class="text-sm font-bold" [class.text-[#7B39B2]]="exportFormato() === fmt.valor" [class.text-slate-700]="exportFormato() !== fmt.valor">
+                  {{ fmt.etiqueta }}
+                </span>
+                <span class="text-[10px] text-slate-400">
+                  {{ fmt.valor === 'PDF' ? 'Con diseño visual' : (fmt.valor === 'XLSX' ? 'Excel con gráficos' : 'Datos brutos') }}
+                </span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Opciones de Gráfica -->
+        @if (exportFormato() !== 'CSV') {
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                Gráfica y Análisis Visual
+              </label>
+              <span class="text-[11px] font-semibold text-[#7B39B2] bg-purple-50 px-2.5 py-0.5 rounded-full">
+                Colores ArtiSync
+              </span>
+            </div>
+            <div class="space-y-2">
+              @for (opc of opcionesGrafica; track opc.valor) {
+                <label 
+                  (click)="exportGrafica.set(opc.valor)"
+                  [class.border-[#7B39B2]]="exportGrafica() === opc.valor"
+                  [class.bg-purple-50/50]="exportGrafica() === opc.valor"
+                  class="flex items-center justify-between p-3 rounded-2xl border border-slate-200 hover:border-purple-300 transition-all cursor-pointer">
+                  <div class="flex items-center gap-3">
+                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all"
+                      [class.border-[#7B39B2]]="exportGrafica() === opc.valor"
+                      [class.border-slate-300]="exportGrafica() !== opc.valor">
+                      @if (exportGrafica() === opc.valor) {
+                        <div class="w-2 h-2 rounded-full bg-[#7B39B2]"></div>
+                      }
+                    </div>
+                    <div>
+                      <p class="text-sm font-bold text-slate-800 leading-none">{{ opc.etiqueta }}</p>
+                      <p class="text-xs text-slate-400 mt-0.5">{{ opc.descripcion }}</p>
+                    </div>
+                  </div>
+                  @if (opc.valor === 'AMBAS') {
+                    <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-[#F5E6FF] text-[#7B39B2]">
+                      Recomendado
+                    </span>
+                  }
+                </label>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>El formato CSV es texto plano delimitado; las gráficas e imágenes institucionales están disponibles para exportaciones en <strong>PDF</strong> y <strong>Excel</strong>.</span>
+          </div>
+        }
+
+        <!-- Resumen de filtros -->
+        <div class="bg-slate-50 rounded-2xl p-3 text-xs text-slate-500 border border-slate-100 flex items-center justify-between">
+          <span>Se exportarán los usuarios según los filtros activos:</span>
+          <span class="font-bold text-slate-700">{{ users().length }} de {{ totalElements() }} usuarios</span>
+        </div>
+      </div>
+
+      <!-- Footer del Modal -->
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+        <button type="button" (click)="cerrarModalExportar()"
+          class="px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors">
+          Cancelar
+        </button>
+        <button type="button" (click)="confirmarExportacion()"
+          class="px-6 py-2.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-95 shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>Descargar {{ exportFormato() }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

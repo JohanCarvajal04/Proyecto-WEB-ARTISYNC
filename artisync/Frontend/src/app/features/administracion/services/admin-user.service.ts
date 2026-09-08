@@ -9,7 +9,7 @@ import {
 } from '../models/admin.model';
 import { PagedResponse, MessageResponse } from '../../../shared/models/common.model';
 import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
-import { FormatoReporte } from '../../../shared/models/formato-reporte.model';
+import { FormatoReporte, TipoGraficaReporte } from '../../../shared/models/formato-reporte.model';
 import { paramsDesdeFiltro } from '../../../shared/utils/params-desde-filtro';
 
 @Injectable({
@@ -61,8 +61,11 @@ export class AdminUserService {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/${id}/sesiones`);
   }
 
-  exportar(filtro: FiltroUsuario, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
-    const params = paramsDesdeFiltro(filtro).set('formato', formato);
+  exportar(filtro: FiltroUsuario, formato: FormatoReporte, grafica?: TipoGraficaReporte): Observable<HttpResponse<Blob>> {
+    let params = paramsDesdeFiltro(filtro).set('formato', formato);
+    if (grafica) {
+      params = params.set('grafica', grafica);
+    }
     return this.http.get(`${this.apiUrl}/exportar`, {
       ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });

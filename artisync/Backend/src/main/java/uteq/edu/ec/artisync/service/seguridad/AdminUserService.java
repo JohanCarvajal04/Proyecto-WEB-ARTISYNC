@@ -10,6 +10,7 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte;
 
 public interface AdminUserService {
     PagedResponse<UserResponse> getAllUsers(FiltroUsuario filtro, Pageable pageable);
@@ -21,5 +22,5 @@ public interface AdminUserService {
     RespuestaMensaje revokeUserSessions(Long id);
     void deleteUser(Long id, Long idAdminActual);
     DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante);
+    DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, String correoSolicitante);
 }
-

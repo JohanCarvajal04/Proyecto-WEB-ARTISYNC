@@ -25,6 +25,10 @@ public class ModeloReporte<T> {
     private final List<T> filas;
     @Builder.Default
     private final List<TotalReporte> totales = List.of();
+    @Builder.Default
+    private final List<GraficaReporte> graficas = List.of();
+    @Builder.Default
+    private final List<KpiReporte> kpis = List.of();
     private final String generadoPor;
     @Builder.Default
     private final LocalDateTime generadoEn = LocalDateTime.now();
