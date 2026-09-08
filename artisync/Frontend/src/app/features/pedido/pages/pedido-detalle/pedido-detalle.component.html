@@ -359,8 +359,8 @@
         }
       </section>
 
-      <!-- Briefing (M6): el cliente responde, el creador lo lee -->
-      <app-briefing-pedido [idPedido]="pedidoId" [puedeResponder]="esCliente" />
+      <!-- Cuestionario (briefing): respondido por el cliente al crear el pedido -->
+      <app-briefing-pedido [idPedido]="pedidoId" />
 
       <!-- Reseña (M7): solo el cliente y solo tras aprobar la entrega -->
       @if (esCliente && entregaAprobada) {

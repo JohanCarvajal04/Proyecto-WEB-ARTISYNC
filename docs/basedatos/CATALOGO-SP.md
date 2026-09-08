@@ -10,7 +10,7 @@ por el apartado **A.2.1** de la Guía de la Entrega Final.
 
 ## Resumen
 
-El sistema declara **veintiocho rutinas activas** en `db/procs/`. De las seis originales de la
+El sistema declara **veintiséis rutinas activas** en `db/procs/` (el archivo `V8__estructuras_para_procedimientos.sql` del mismo directorio es DDL de soporte, no una rutina, y no se cuenta aquí; conteo corregido el 2026-09-06 — el commit `7abf937` retiró `fn_actualizar_portada_creador` y `fn_listar_creadores_seguidos_novedades` del módulo de seguidores pero solo actualizó sus filas y secciones, no este resumen). De las seis originales de la
 Tercera Entrega (una por categoría funcional del apartado A.2.2), **cinco se retiraron del
 catálogo** el 01-09-2026 por no tener nunca un consumidor real desde código Java (`fn_catalogo_filtrado`,
 `fn_calificacion_promedio_creador`, `fn_cerrar_pedidos_vencidos`, `fn_liberar_fondos_escrow`,
@@ -28,12 +28,11 @@ actualización perdida y lectura fantasma en los flujos de 2FA, recuperación de
 cambio de contraseña, alta de usuarios/roles y países); una de la **Fase 4 de mantenimiento**
 (sección 18) — el único `PROCEDURE` de todo `db/procs/` hasta ese momento — que purga por lotes lo
 que las tres fases anteriores dejaban crecer sin límite; una de **retención de notificaciones**
-(sección 19, H-08), segundo `PROCEDURE` del directorio; y **seis del módulo de seguidores**
+(sección 19, H-08), segundo `PROCEDURE` del directorio; y **cuatro del módulo de seguidores**
 (sección 20), incorporadas el 24-08-2026 para la funcionalidad social de seguir creadores
-(`fn_seguir_creador`, `fn_dejar_de_seguir_creador`, `fn_es_seguidor`, `fn_conteo_seguidores`,
-`fn_listar_creadores_seguidos_novedades`, `fn_actualizar_portada_creador`). Todas las rutinas
-activas posteriores a la original se verificaron conectadas end-to-end (repositorio Spring Data +
-servicio Java que las invoca), no solo declaradas en SQL.
+(`fn_seguir_creador`, `fn_dejar_de_seguir_creador`, `fn_es_seguidor`, `fn_conteo_seguidores`).
+Todas las rutinas activas posteriores a la original se verificaron conectadas end-to-end
+(repositorio Spring Data + servicio Java que las invoca), no solo declaradas en SQL.
 
 | # | Rutina | Categoría funcional | Requisito | Tipo | Volatilidad | Escribe |
 |---|---|---|---|---|---|---|
@@ -58,10 +57,10 @@ desde antes de esta ampliación: `fn_listar_cola_verificacion` (`FUNCTION`, `STA
 
 ### Nota sobre modos de parámetro y cursores
 
-Veintiséis de las veintiocho rutinas activas (ocho anteriores + las cuatro de la Fase 1 de
-concurrencia + la de la Fase 2 de rendimiento + las siete de la Fase 3 de concurrencia + las seis
+Veinticuatro de las veintiséis rutinas activas (ocho anteriores + las cuatro de la Fase 1 de
+concurrencia + la de la Fase 2 de rendimiento + las siete de la Fase 3 de concurrencia + las cuatro
 del módulo de seguidores, sección 20) se declaran como **funciones** de PostgreSQL con valor de
-retorno escalar, `JSONB` o `TABLE`. En consecuencia, para esas veintiséis:
+retorno escalar, `JSONB` o `TABLE`. En consecuencia, para esas veinticuatro:
 
 - **Todos los parámetros son de modo `IN`.** No hay parámetros `OUT` ni `INOUT` en ninguna rutina:
   el resultado viaja siempre por el valor de retorno.
@@ -80,7 +79,7 @@ devuelve nada y ambas se invocan con `CALL`, nunca con `SELECT`.
 
 ### Postura de seguridad
 
-Ninguna de las veintiocho rutinas activas construye SQL por concatenación. No aparece `EXECUTE
+Ninguna de las veintiséis rutinas activas construye SQL por concatenación. No aparece `EXECUTE
 IMMEDIATE`, `sp_executesql`, `EXECUTE format(...)` ni `EXECUTE <variable>` en ningún archivo. Toda
 entrada externa llega como **parámetro formal tipado**, y los filtros opcionales se neutralizan con
 el patrón `(p_x IS NULL OR columna = p_x)` en lugar de armar el predicado por texto. Esto satisface
@@ -128,6 +127,13 @@ obligaba a agregar en Java.
 
 La comisión se **parametriza** en lugar de fijarse en la rutina, para que el reporte pueda
 recalcularse históricamente si la tasa cambia sin versionar una función nueva.
+
+**Corrección (revisión técnica 2026-09-06):** `montoBruto` solo suma las transacciones de tipo
+`Ingreso` (`SUM(...) FILTER (WHERE tipo_transaccion = 'Ingreso')`). Antes sumaba las tres filas que
+`EntregableServicioImpl.aprobarEntrega` registra por cada pago liberado (`Ingreso` + `Egreso` +
+`Comision`, el desglose del mismo monto en vez de montos adicionales), lo que triplicaba
+`montoBruto`, `comision` y `montoNeto`. El `detalle[]` no se filtra: sigue mostrando las tres filas
+por pago como historial de auditoría completo; solo el agregado se corrigió.
 
 ### Parámetros
 
@@ -1033,11 +1039,11 @@ días). Sin FKs entrantes ni triggers — segura de purgar sin efectos colateral
 
 ## 20. Módulo de seguidores (feature social, 24-08-2026)
 
-Seis rutinas incorporadas el 24-08-2026 para la funcionalidad social de seguir creadores. A
+Cuatro rutinas incorporadas el 24-08-2026 para la funcionalidad social de seguir creadores. A
 diferencia de las secciones 15/17 (concurrencia) y 16 (rendimiento), su motivación primaria es
-funcional: modelan el ciclo completo de la relación "seguir" (crear, verificar, contar, listar con
-novedades) más un ajuste de perfil asociado a la vista de un creador. Todas están conectadas
-end-to-end desde `service/comunicacion/impl/SeguidorServicioImpl.java`, vía
+funcional: modelan el ciclo completo de la relación "seguir" (crear, dejar de seguir, verificar,
+contar). Todas están conectadas end-to-end desde
+`service/comunicacion/impl/SeguidorServicioImpl.java`, vía
 `repository/comunicacion/SeguidorRepository.java`.
 
 | # | Rutina | Categoría funcional | Tipo | Volatilidad | Escribe |
@@ -1046,8 +1052,6 @@ end-to-end desde `service/comunicacion/impl/SeguidorServicioImpl.java`, vía
 | 29 | `fn_dejar_de_seguir_creador` | Actualizaciones masivas / eliminación | `FUNCTION` | `VOLATILE` | Sí |
 | 30 | `fn_es_seguidor` | Consultas multi-tabla / validaciones | `FUNCTION` | `STABLE` | No |
 | 31 | `fn_conteo_seguidores` | Cálculos agregados | `FUNCTION` | `STABLE` | No |
-| 32 | `fn_listar_creadores_seguidos_novedades` | Consultas multi-tabla / reportes | `FUNCTION` | `STABLE` | No |
-| 33 | `fn_actualizar_portada_creador` | Actualizaciones | `FUNCTION` | `VOLATILE` | Sí |
 
 ### 20a. `fn_seguir_creador`
 
@@ -1120,42 +1124,3 @@ página pública.
 `NULL`.
 
 **Tablas implicadas:** `seguidores` (lectura, `COUNT(*)`).
-
-### 20e. `fn_listar_creadores_seguidos_novedades`
-
-**Archivo:** [`db/procs/fn_listar_creadores_seguidos_novedades.sql`](../../db/procs/fn_listar_creadores_seguidos_novedades.sql)
-
-Devuelve, para un usuario, los creadores que sigue junto con un resumen de novedades por creador,
-ordenado por fecha de seguimiento descendente. Une `seguidores` con `perfiles_creadores` y
-`usuarios` para componer el handle y los datos de presentación de cada creador seguido.
-
-| # | Nombre | Modo | Tipo | Significado |
-|---|---|---|---|---|
-| 1 | `p_id_usuario_seguidor` | IN | `BIGINT` | Usuario cuyos creadores seguidos se listan |
-
-**Retorno:** `TABLE (id_perfil, id_usuario, nombres_usuario, apellidos_usuario, handle,
-url_foto_perfil, titulo_profesional, resumen_novedad, tipo_novedad, fecha_novedad)`. El resumen y
-el tipo de novedad son actualmente valores fijos (`'Actividad reciente en su perfil'`,
-`'GENERAL'`) — la rutina deja el contrato listo para un feed de novedades real sin romper
-consumidores si esa lógica se implementa después.
-
-**Tablas implicadas:** `seguidores` (lectura), `perfiles_creadores` (JOIN), `usuarios` (JOIN).
-
-### 20f. `fn_actualizar_portada_creador`
-
-**Archivo:** [`db/procs/fn_actualizar_portada_creador.sql`](../../db/procs/fn_actualizar_portada_creador.sql)
-
-Actualiza la URL de portada y/o el título profesional de un perfil de creador. Usa `COALESCE`
-sobre cada campo para permitir actualizaciones parciales (pasar `NULL` conserva el valor actual).
-
-| # | Nombre | Modo | Tipo | Significado |
-|---|---|---|---|---|
-| 1 | `p_id_perfil` | IN | `BIGINT` | Perfil de creador a actualizar. **Obligatorio** |
-| 2 | `p_url_portada` | IN | `VARCHAR(500)` | Nueva URL de portada; `NULL` conserva la actual |
-| 3 | `p_titulo_profesional` | IN | `VARCHAR(150)` | Nuevo título profesional; `NULL` conserva el actual |
-
-**Retorno:** `BOOLEAN` — `FOUND` (`TRUE` si el perfil existía y se actualizó).
-
-**Excepciones:** `p_id_perfil IS NULL` → `RAISE EXCEPTION` sin `SQLSTATE` explícito (`P0001`).
-
-**Tablas implicadas:** `perfiles_creadores` (escritura, `UPDATE`).

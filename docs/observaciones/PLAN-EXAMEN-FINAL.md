@@ -16,6 +16,8 @@
 
 **Iniciales de responsable:** **BF** = Figueroa · **JC** = Carvajal · **JK** = Ríos · **EQ** = los tres.
 
+> **Actualización 2026-09-06 (auditoría exhaustiva).** Re-verificación completa de cada observación pendiente contra el repositorio, con evidencia (`archivo:línea` o comando + salida). Resultado, tarea por tarea: **T-22 pasa a HECHA** (Ralph y PRISMA re-fechados 2026-09-06). **T-04/T-25 (SUS) ya estaban hechas de facto** pero sin el marcador `✅ HECHA` en su encabezado — corregido abajo. **T-26 (ética SUS) pasa a PARCIAL**: el equipo documentó la brecha con honestidad en vez de fabricar una aprobación retroactiva, pero el requisito de piso "aprobación previa a la recogida" ya no es alcanzable. **T-28 (DATA-PROVENANCE) se reabre**: el archivo sigue citando la medición JaCoCo de agosto como vigente. Nuevo hallazgo sin tarea previa: el checkout auditado estaba 3 commits detrás de `origin/main` (sin impacto en estas tareas, pero repetir T-49 debe hacerse sobre el HEAD real de `origin/main`, no sobre una copia desactualizada).
+
 ### Riesgo de nota si no se hace nada
 
 Los cuatro pisos (PISO-01…04) **no se sancionaron esta vez pero sí se aplican en el examen**. Si el 7 de septiembre siguen incumplidos, la calificación de toda la entrega es **cero**, independientemente del resto del plan. Por eso las tareas T-01 a T-07 son de máxima prioridad absoluta y van todas el lunes.
@@ -108,7 +110,7 @@ make docs && pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | grep -c '
 
 > **Esta es la corrección de mayor retorno por minuto invertido de todo el plan.** Desbloquea PISO-02 y sube D1 de 50 % a 75 %.
 
-### T-02 · Producir la carátula PDF de una página
+### T-02 · Producir la carátula PDF de una página — ✅ HECHA (2026-09-04)
 **Cubre:** PISO-01 · **Responsable:** JC · **Duración:** 30 min
 
 **Pasos:**
@@ -119,10 +121,12 @@ make docs && pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | grep -c '
 
 > Ojo: el hash corto que declare la carátula debe ser **el commit que efectivamente se defiende**, no `d07656b`. Actualizarlo en T-48 al cerrar la semana.
 
-### T-03 · Rotar el `JWT_SECRET` y las dos contraseñas de base de datos
+### T-03 · Rotar el `JWT_SECRET` y las dos contraseñas de base de datos — ⚠️ PARCIAL: repositorio limpio, falta rotar en Render
 **Cubre:** OBS-P3-04, PISO adyacente · **Responsable:** JC + JK · **Duración:** 1 h · **Prioridad: máxima**
 
 Cifras rectificadas por la guía: `JWT_SECRET` en **358 commits desde el 20 de junio**; `DB_PASSWORD` y `DB_APP_PASSWORD` en **264 y 260 commits desde el 7 de agosto**.
+
+**Verificado 2026-09-04:** el árbol actual ya no tiene secretos en texto plano — toda la configuración usa `${VAR:default}` con defaults genéricos (`changeme`, `changeme_app`), y los `application-test*.properties` no traen el secreto real. **Falta:** confirmar que el valor real expuesto en el historial fue efectivamente rotado en el proveedor de despliegue (Render) — es una acción operativa fuera del repositorio, no verificable desde el código.
 
 **Pasos — en este orden:**
 1. **Generar tres valores nuevos** (no reutilizar, no derivar de los antiguos):
@@ -151,8 +155,10 @@ grep -rn "jwt.secret" artisync/Backend/src/test/resources/
 
 > **No se exige reescribir el historial** (`git filter-repo`) y no lo recomiendo esta semana: reescribir 358 commits invalidaría todos los hashes citados en `DATA-PROVENANCE`, en el Anexo A y en la portada — 29 hashes verificados que hoy son una fortaleza reconocida. **Rotar los valores en origen satisface el criterio literal sin destruir la trazabilidad.** Dejarlo argumentado por escrito en el ADR (T-47).
 
-### T-04 · Reunir y presentar el instrumento original del SUS
+### T-04 · Reunir y presentar el instrumento original del SUS — ✅ HECHA (2026-09-03/04, confirmado 2026-09-06)
 **Cubre:** OBS-D4-01, punto 1 de las exigencias del equipo y de Figueroa · **Responsable:** BF · **Duración:** 2 h · **Prioridad: máxima**
+
+> **Resultado:** camino (b) ejecutado — no había hojas firmadas que explicaran las cinco filas divergentes, así que `sus-raw.csv` fue reemplazado por el export real y se publicó la cifra real (61,25, por debajo del umbral). Ver `docs/mediciones/sus/REPORTE-SUS.md` y `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` (2026-09-04).
 
 Esta es la tarea que el docente pide **antes que ninguna otra** a Figueroa, y sobre la que exige una conversación presencial.
 
@@ -167,7 +173,7 @@ Esta es la tarea que el docente pide **antes que ninguna otra** a Figueroa, y so
 
 > Recomendación explícita, y la mantengo aunque incomode: **salvo que existan las hojas firmadas de las cinco sesiones, el camino (b) es el correcto.** El docente lo ha escrito tres veces con las mismas palabras: *«un 61,25 declarado vale infinitamente más que un 76,88 que no se sostiene»*, y en la guía §5.4 añade que ajustar datos es *«la única falta de este curso que no tiene arreglo posterior»*. La nota no baja por publicar 61,25; el criterio D4 sube de 25 % a 100 % **precisamente por publicarlo**.
 
-### T-05 · Aclarar por escrito la composición del equipo
+### T-05 · Aclarar por escrito la composición del equipo — ✅ HECHA (`CONTRIBUTORS.md`)
 **Cubre:** OBS-R3-01, OBS-R3-02, punto 15 · **Responsable:** JC · **Duración:** 1 h
 
 La cuarta identidad tiene **15 commits y el 75 % del trabajo de base de datos**, y no figura en el padrón del curso.
@@ -185,17 +191,19 @@ La cuarta identidad tiene **15 commits y el 75 % del trabajo de base de datos**,
 > grep -h "orcid" CITATION.cff CONTRIBUTORS.md .zenodo.json | sort -u
 > ```
 
-### T-06 · Firmar el SRS
-**Cubre:** PISO-04, OBS-D0R-02 · **Responsable:** BF · **Duración:** depende del docente-director — **iniciar el lunes**
+### T-06 · Firmar el SRS — ⚠️ NO ACCIONABLE ANTES DEL EXAMEN: documentado que la firma se revisa el día del examen (sigue siendo PISO-04)
+**Cubre:** PISO-04, OBS-D0R-02 · **Responsable:** BF · **Duración:** depende del docente-director
 
-La sección 8 del SRS dice literalmente «Estado de la aprobación: pendiente de firma». El `Makefile` ya avisa de ello al final de `make srs`.
+La sección 8 del SRS (restaurada el 2026-09-07, ver `docs/requisitos/SRS.md`) dice literalmente «Estado de la aprobación: pendiente de firma». El `Makefile` ya avisa de ello al final de `make srs`.
+
+**Situación al 2026-09-07 (día del examen, dentro de la semana 19):** la firma exige la presencia y el criterio del docente-director, un tercero externo al equipo; no existe ninguna acción unilateral del equipo que la produzca antes de la revisión. Por eso se documenta explícitamente, en la sección 8 del SRS, que la aprobación se revisará y, de proceder, se formalizará **presencialmente el día del examen**, que es la primera oportunidad real en que coinciden el docente-director y el equipo.
 
 **Pasos:**
-1. Regenerar el SRS actualizado: `make srs`.
-2. **Solicitar la firma del docente-director esta misma semana** — es un trámite con terceros y es el único piso que no depende solo del equipo. Iniciarlo el lunes.
-3. Incorporar la firma (escaneada o digital) en la sección 8 y volver a generar el PDF.
+1. Regenerar el SRS actualizado: `make srs`. — ✅ hecho 2026-09-07, sección 8 restaurada con la nota de revisión el día del examen.
+2. **Solicitar la firma del docente-director en la revisión presencial del examen** — es un trámite con terceros y es el único piso que no depende solo del equipo.
+3. Si se obtiene ese día, incorporar la firma (escaneada o digital) en la sección 8 y volver a generar el PDF (`docs/requisitos/SRS-v1.0.0.pdf`).
 
-**Criterio de aceptación:** `docs/requisitos/SRS-v1.0.0.pdf` sección 8 muestra la aprobación firmada y fechada, no «pendiente de firma».
+**Criterio de aceptación (ajustado):** antes del examen, la sección 8 documenta con fecha y de forma honesta que la aprobación queda pendiente de revisión presencial ese mismo día — no se simula una firma inexistente. Si el docente-director firma durante el examen, `docs/requisitos/SRS-v1.0.0.pdf` se regenera con la aprobación firmada y fechada.
 
 ### T-07 · Convención de commits e identidades desde hoy
 **Cubre:** IND-JC-01, IND-JC-02, IND-JK-03, OBS-TR-08 · **Responsable:** JC + JK · **Duración:** 10 min
@@ -219,7 +227,7 @@ Jhon Kevin Rios Cuyabazo <jrriosc@uteq.edu.ec> <jhonrios_180@hotmail.com>
 
 ## §3. MARTES Y MIÉRCOLES — El producto
 
-### T-08 · Ejecutar el despliegue en Render
+### T-08 · Ejecutar el despliegue en Render — ✅ HECHA (`render.yaml` + `DEPLOYMENT.md`)
 **Cubre:** PISO-03, OBS-P5-01, punto 10 · **Responsable:** JC · **Duración:** 3 h · **Prioridad: máxima**
 
 Todo el material existe: `render.yaml` en la raíz, la rama de despliegue y un `RENDER.md` de 219 líneas. **Solo falta ejecutarlo.**
@@ -242,7 +250,7 @@ curl -sS https://<url-publica>/actuator/health
 
 > Este es el criterio **completo** P5, hoy en 25 %. Y desbloquea T-29 (Lighthouse público) y T-30 (ZAP autenticado), que hoy son imposibles.
 
-### T-09 · Cabeceras de seguridad en el nginx del frontend
+### T-09 · Cabeceras de seguridad en el nginx del frontend — ✅ HECHA (`nginx.conf`: CSP + X-Frame-Options)
 **Cubre:** OBS-P3-02, punto 8 · **Responsable:** JC · **Duración:** 1 h
 
 El backend ya las configura; el frontend —**el único punto público**— no emite ninguna. Ahí es donde ZAP levanta las dos alertas medias.
@@ -267,7 +275,7 @@ curl -sI https://<url-publica>/ | grep -iE 'content-security-policy|x-frame-opti
 
 > Verificar en el navegador que la CSP no rompe la aplicación Angular. Si `script-src 'self'` bloquea algo, ajustar con nonce, **nunca con `unsafe-inline` en `script-src`** — eso invalidaría el propósito de la cabecera.
 
-### T-10 · Activar `secure` en la cookie de refresco
+### T-10 · Activar `secure` en la cookie de refresco — ✅ HECHA (`AuthController.cookieSecure` default `true`)
 **Cubre:** OBS-P3-03, punto 8 · **Responsable:** JC · **Duración:** 30 min
 
 **Archivo:** el emisor de la cookie de refresco en el backend (buscar con `grep -rn "refresh" --include=*.java artisync/Backend/src/main/java | grep -i cookie`).
@@ -286,7 +294,7 @@ Para que el desarrollo local en HTTP siga funcionando, externalizarlo: `.secure(
 
 **Criterio de aceptación:** `curl -sI` sobre el login público muestra `Set-Cookie: … Secure; HttpOnly; SameSite=Strict`.
 
-### T-11 · Convertir los procedimientos al mecanismo formal
+### T-11 · Convertir los procedimientos al mecanismo formal — ✅ HECHA (23 usos de `@Procedure`)
 **Cubre:** OBS-P1-02, OBS-D1-05, punto 6 · **Responsable:** JK (asignación individual explícita) + JC · **Duración:** 6 h · **Es un criterio completo**
 
 Hoy: 28 rutinas versionadas, 26 invocadas, **ninguna de esas 26 usa el mecanismo formal**; la única anotación `@Procedure` del proyecto corresponde a una rutina que no está entre las 28.
@@ -342,7 +350,7 @@ El catálogo declara **21 rutinas activas cuando son 28**. Además hay seis ruti
 
 **Criterio de aceptación:** el número del catálogo coincide con `ls db/procs/*.sql | wc -l`, y `make sync-procs-check` termina en 0.
 
-### T-13 · Subir la cobertura de controladores
+### T-13 · Subir la cobertura de controladores — ✅ HECHA (83,82 % líneas / 72,00 % ramas)
 **Cubre:** OBS-P1-01, punto 7 · **Responsable:** JK + BF · **Duración:** 8 h · **Es medio criterio**
 
 Estado: **controladores 29,17 % líneas (84/288) y 30,56 % ramas**; servicios 78,37 / 66,67; global 72,02 / 62,49.
@@ -448,7 +456,7 @@ from scipy.stats import mannwhitneyu, ttest_ind
 
 **Criterio de aceptación (guía §4.3):** un script versionado, ejecutado sobre los archivos crudos, **imprime exactamente las cifras del documento**, incluidos el estadístico del test, **el valor p en notación científica** y el tamaño de efecto.
 
-### T-16 · Rehacer Lighthouse contra la URL pública y sobre varias rutas
+### T-16 · Rehacer Lighthouse contra la URL pública y sobre varias rutas — ✅ HECHA (3 rutas × onrender.com)
 **Cubre:** OBS-P4-01 · **Responsable:** JC · **Duración:** 2 h · **Depende de T-08**
 
 P4 es hoy un **100 %**, pero con la reserva de que se auditó localhost y solo la portada. Con el despliegue vivo se convierte en un 100 % sin reservas — y, más importante, **la guía §4.5 exige `requestedUrl` apuntando a la URL pública**: si esto no se rehace, el criterio podría bajar.
@@ -464,7 +472,7 @@ P4 es hoy un **100 %**, pero con la reserva de que se auditó localhost y solo l
 grep -o '"requestedUrl":"[^"]*"' docs/mediciones/lighthouse/*.json | sort -u
 ```
 
-### T-17 · Completar la evidencia OWASP y el reescaneo ZAP autenticado
+### T-17 · Completar la evidencia OWASP y el reescaneo ZAP autenticado — ✅ HECHA (6/6 controles con `curl`)
 **Cubre:** OBS-P3-01, OBS-P3-02 · **Responsable:** JC + JK · **Duración:** 3 h · **Depende de T-08, T-09**
 
 Hoy: solo **1 de 6** controles OWASP tiene el `curl` literalmente transcrito, y el propio equipo marca **A07 como OBSOLETA**.
@@ -489,7 +497,7 @@ HTTP/1.1 403 Forbidden
 
 ## §5. VIERNES — El documento
 
-### T-18 · Escribir el capítulo de trabajos relacionados
+### T-18 · Escribir el capítulo de trabajos relacionados — ✅ HECHA (2026-09-04, PRISMA 2020 + tabla de 8 filas)
 **Cubre:** OBS-D2-01 a OBS-D2-06, punto 3 · **Responsable:** BF · **Duración:** 10 h · **La tarea más costosa del plan**
 
 Hoy vale **25 %** con peso 5 %. Bien hecho vale 100 %: **+0,375 puntos de nota de equipo**, la mayor ganancia unitaria del plan.
@@ -517,29 +525,30 @@ AND ("digital art" OR "creative content" OR "digital content")
 
 > El docente valoró expresamente la honestidad de no fabricarlo: *«Prefiero eso, con diferencia, a un capítulo inventado.»* **Eso significa que una tabla inventada ahora sería peor que la situación actual.** Hacer las búsquedas de verdad y anotar los números reales, aunque sean pocos.
 
-### T-19 · Corregir las dos referencias bibliográficas defectuosas
-**Cubre:** OBS-D6-01, OBS-D6-02, punto 4 · **Responsable:** BF · **Duración:** 2 h
+### T-19 · Corregir las referencias bibliográficas defectuosas/fabricadas — ✅ HECHA (2026-09-06, alcance ampliado)
+**Cubre:** OBS-D6-01, OBS-D6-02, OBS-D6-03, **OBS-D6-04**, punto 4 · **Responsable:** BF · **Duración:** 2 h + 4 h adicionales (hallazgo de fabricación)
 
-Cifra rectificada por la guía: **18 de 20** DOI devuelven el título declarado, no 19. Hay **dos** entradas defectuosas.
+**El alcance original de esta tarea estaba subestimado.** No eran 2 referencias defectuosas: además de `PERES2024` (DOI corregido) y `RAO2022` (era la "segunda entrada" del punto 2 original — su DOI resolvía al venue correcto, IEEE SCC 2022, pero al registro de "Organizing Committee", no a un artículo real), el docente encontró que `KUMAR2023`, `PARK2023` y `CHEN2021` tienen **DOI de relleno fabricados** (patrón `...1234567`) sin rastro de que las obras existan. Las cuatro (`KUMAR2023`, `PARK2023`, `CHEN2021`, `RAO2022`) habían sido marcadas "alto impacto: Sí" en el Anexo J específicamente para llevar el conteo de 16 a 20 — inflando con citas fabricadas la brecha que `docs/informe-final/README.md` ya había declarado honestamente como real.
 
-**Pasos:**
-1. `PERES2024`: su DOI resuelve a un artículo sobre estrategias de marketing en crowdfinanciación. **El DOI correcto existe y lleva al volumen y páginas que el equipo cita** — localizarlo en Crossref y sustituirlo.
-2. Identificar la segunda entrada: la que **resuelve con el venue correcto pero un título distinto**.
-3. Verificar los **veinte** por negociación de contenido:
+**Pasos ejecutados:**
+1. Verificación de cada DOI sospechoso por dos métodos independientes:
 ```bash
-for doi in $(grep -oP 'doi\s*=\s*\{\K[^}]+' docs/informe-final/referencias.bib); do
-  echo -n "$doi -> "
-  curl -sLH "Accept: application/vnd.citationstyles.csl+json" "https://doi.org/$doi" \
-    | python -c "import sys,json; d=json.load(sys.stdin); print(d.get('title'), '|', d.get('container-title'))"
-done
+# Metadatos crudos de Crossref
+curl -s "https://api.crossref.org/works/<DOI>" | python3 -c "import json,sys; d=json.load(sys.stdin)['message']; print(d.get('title'), d.get('container-title'), d.get('publisher'))"
+# Resolución real del DOI (a qué dominio de editorial redirige)
+curl -s -o /dev/null -w "%{http_code} %{url_effective}\n" -L "https://doi.org/<DOI>"
 ```
-4. Guardar la salida en `docs/informe-final/verificacion-doi.txt` como evidencia versionada.
+2. Búsqueda y verificación (mismos dos métodos) de 8 referencias reales de reemplazo/adición: `LAKSONO2024`, `TSMART2021`, `GU2021`, `BANDARI2026` (mismo rol temático que las 4 fabricadas) y `ROCHET2003`, `RESNICK2000`, `TAFESSE2023`, `CHIGBU2026` (adiciones que cierran honestamente el mínimo de alto impacto).
+3. Reemplazo en `referencias.bib`, actualización de la tabla comparativa y el párrafo de brecha en `03-trabajos-relacionados.tex`, y del Anexo J (`anexos.tex`) con nota de integridad explicando el hallazgo.
+4. Recompilación completa (`make docs`) — sin citas sin resolver ni claves duplicadas — y republicación del checksum SHA-256 del PDF (cambió al recompilar) en README, CITATION.cff y carátula.
 
-**Criterio de aceptación (guía §3.8):** *«Los veinte identificadores resuelven a la obra que el archivo bibliográfico declara.»*
+**Resultado:** 45 referencias en `referencias.bib` (antes 41), 40 citables (antes 36), **22 de alto impacto** (antes 20, de los cuales 4 eran fabricados; la cifra honesta previa era 16).
 
-> La guía §6.4 lista *«referencias bibliográficas cuyo identificador no resuelve o resuelve a otra obra»* entre las señales que **levantan sospecha de autoría**. Esto no es solo un punto de D6: toca la credibilidad general del trabajo.
+**Criterio de aceptación (guía §3.8):** *«Los identificadores resuelven a la obra que el archivo bibliográfico declara.»* — cumplido para las 45 entradas actuales.
 
-### T-20 · Referenciar las 26 etiquetas huérfanas y los cuatro listados
+> La guía §6.4 lista *«referencias bibliográficas cuyo identificador no resuelve o resuelve a otra obra»* entre las señales que **levantan sospecha de autoría**, y la regla transversal 6 lleva el criterio a cero si la evidencia es fabricada. Lección aplicada: verificar que una clave BibTeX exista y esté citada **no es suficiente** — hay que resolver el DOI y confirmar que la obra es real.
+
+### T-20 · Referenciar las 26 etiquetas huérfanas y los cuatro listados — ✅ HECHA
 **Cubre:** OBS-D1-04, OBS-D1-08, punto 12 · **Responsable:** BF · **Duración:** 3 h
 
 **Pasos:**
@@ -571,8 +580,10 @@ pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | sed -n '/^Resumen/,/^P
 
 > Al recortar, **conservar las cifras clave** (72,02 % de cobertura, p95, la puntuación SUS ya corregida): un resumen sin números pierde más de lo que gana. Recortar los preámbulos contextuales, que es donde suele estar la grasa.
 
-### T-22 · Actualizar los checklists de estándares de reporte
+### T-22 · Actualizar los checklists de estándares de reporte — ✅ HECHA (2026-09-06)
 **Cubre:** OBS-R4-01 · **Responsable:** BF · **Duración:** 2 h
+
+> **Resultado:** `docs/checklists/ralph-2021-checklist.md` re-fechado 2026-09-06 contra `9e35d21`, 13/13 ítems cumplidos, con nota explícita sobre la revisión obsoleta del 17-ago. `docs/checklists/prisma-2020-checklist.md` reescrito por completo — ya no se resuelve como "no aplica" — con 13/20 ítems aplicables cumplidos y 4 pendientes reales declarados (fecha exacta de búsqueda, doble cribado, protocolo de extracción, riesgo de sesgo, lista de estudios cribados). FAIR e INCOSE no mostraron afirmaciones desactualizadas en esta revisión.
 
 El checklist de Ralph está fechado el **17 de agosto** y afirma en tres ítems que el documento académico y el capítulo de amenazas **«no existen»**, cuando existen desde hace dos semanas.
 
@@ -589,7 +600,11 @@ El checklist de Ralph está fechado el **17 de agosto** y afirma en tres ítems 
 
 Hoy: de **543 métodos públicos solo 28 tienen Javadoc**, y en todo el backend hay **8 `@param`, 0 `@return` y 1 `@throws`**.
 
-**Alcance realista:** el criterio de aceptación de la guía §3.10 acota a *«los métodos públicos de servicios y controladores»*, no a los 543. Eso es alcanzable en una semana.
+**Alcance realista:** el criterio de aceptación de la guía §3.10 acota a *«los métodos públicos de servicios y controladores»*, no a los 543 (denominador acordado: 438 = 220 métodos de controladores + 218 métodos de interfaces de servicio). Eso es alcanzable en una semana con dos personas; con una sola, se prioriza controladores como meta mínima.
+
+**Avance 2026-09-06 (ejecución con una sola persona):** ✅ **capa de controladores completa — 44/44 archivos, 220/220 métodos endpoint** documentados con `@param`/`@return`/`@throws` verificados contra el `*Impl` real, en 8 commits (uno por bloque de módulo), `mvn compile` en verde tras cada uno. Conteo total en `src/main/java` sube de `10 @param / 1 @return / 2 @throws` a **`397 @param / 216 @return / 152 @throws`**. ☐ **Interfaces de servicio (35 archivos, ~218 métodos) siguen en 0/218** — brecha declarada, pendiente por falta de tiempo; no se documentaron los `*Impl` (Java hereda el Javadoc de la interfaz, así que documentarlos ahí sería trabajo duplicado sin beneficio). `service/shared/**` (~261 métodos de adaptadores de infraestructura: `EmailService`, `PayPalClient`, etc.) queda fuera del alcance obligatorio por no ser capa de dominio.
+
+**Avance 2026-09-07 (segunda pasada):** ✅ **T-23 completa — 38/38 interfaces de servicio en alcance** (el recuento real por `grep "^public interface"` da 42 interfaces totales; se excluyen las 4 de `service/shared/**` ya declaradas fuera de alcance arriba, no 35 como se había estimado el día anterior) **ya documentadas con `@param`/`@return`/`@throws`**, redactado método por método contra el comportamiento real de cada `*Impl` (qué excepción lanza cada validación, no solo qué parámetros recibe la firma) para no repetir el error de verificación superficial de OBS-D6-04. Conteo total en `src/main/java`: **772 `@param`, 404 `@return`, 363 `@throws`**. `mvn compile` en verde. Denominador cerrado: 44 controladores + 38 interfaces de servicio = 82 archivos, 100 % documentados.
 
 ```java
 /**
@@ -633,8 +648,10 @@ Hoy: **80,7 % de los tipos** y **66,2 % de los métodos** llevan token español;
 
 ## §6. Transversales — a lo largo de toda la semana
 
-### T-25 · Resolver el SUS en el documento
+### T-25 · Resolver el SUS en el documento — ✅ HECHA (2026-09-03, confirmado 2026-09-06)
 **Cubre:** OBS-D4-01, OBS-R2-02, punto 1 · **Responsable:** BF · **Duración:** 4 h · **Depende de T-04**
+
+> **Resultado:** los 8 pasos de esta tarea se ejecutaron — `sus-raw.csv` reemplazado, duplicado P12/P11 eliminado, `make sus` re-ejecutado (media 61,25, IC [49,49; 73,01] con t de Student), discusión del capítulo 8 reescrita admitiendo que no se alcanza el umbral de 68, y `DATA-PROVENANCE.md:6` ya no afirma inmutabilidad sin excepción (declara la excepción del SUS). Pendiente real distinto de esta tarea: la aprobación ética previa, ver T-26.
 
 Una vez tomada la decisión en T-04, ejecutarla:
 
@@ -650,8 +667,10 @@ Una vez tomada la decisión en T-04, ejecutarla:
 
 **Criterio de aceptación (guía §3.1):** *«El archivo que se analiza coincide fila a fila con el export del instrumento, el recálculo reproduce la cifra publicada, y existen aprobación y consentimientos según el capítulo 5.»*
 
-### T-26 · Aprobación ética y consentimientos del estudio SUS
+### T-26 · Aprobación ética y consentimientos del estudio SUS — ⚠️ PARCIAL, verificado 2026-09-06
 **Cubre:** OBS-TR-05, guía §5.2 · **Responsable:** BF · **Duración:** variable — **empezar el lunes**
+
+> **Estado real:** de los cinco requisitos de §9.2, tres están cubiertos: registro de sesiones y consentimiento por plantilla (`docs/etica/consentimientos/plantilla.md`, archivos firmados fuera del repo por diseño de `ETHICS.md`), anonimización razonable para n=16, y declaración honesta en `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` (2026-09-04) de que la aprobación *previa* ya no puede obtenerse con fecha genuina — el equipo decidió explícitamente **no fabricar una fecha retroactiva**, siguiendo la advertencia de la guía §5.4. **Esto no cierra la observación**: sigue faltando el documento de aprobación con fecha anterior a la recogida (2026-08-16), que es un requisito de piso no subsanable a estas alturas. Acción restante: llevar el informe de situación a la reunión con el docente-director y decidir si se acepta la mitigación documental o si el criterio D4/PISO queda en el nivel más bajo de todos modos.
 
 La guía §5.2 exige **cinco cosas** y el criterio de aceptación de T-25 no se cumple sin ellas:
 
@@ -683,8 +702,11 @@ Hoy documenta **21 variables agregadas** y deja fuera **~33 crudas**, incluidas 
 
 **Criterio de aceptación:** toda columna de todo CSV crudo del repositorio aparece en el diccionario.
 
-### T-28 · Verificar y completar `DATA-PROVENANCE`
-**Cubre:** OBS-R2-02, guía §4.6 · **Responsable:** BF · **Duración:** 2 h
+### T-28 · Verificar y completar `DATA-PROVENANCE` — ⚠️ REABIERTA (2026-09-06): la parte de OBS-R2-02 está hecha, falta refrescar JaCoCo
+**Cubre:** OBS-R2-02, guía §4.6 · **Responsable:** BF · **Duración:** 2 h (1 h ya usada; falta ~30 min)
+
+> **Lo que ya está hecho** (paso 1 de esta tarea, verificado 2026-09-06): `DATA-PROVENANCE.md:6` ya no afirma inmutabilidad sin excepción — declara la excepción del SUS.
+> **Lo que falta** (pasos 2-3, recién detectado en esta auditoría): `DATA-PROVENANCE.md:30` sigue citando la cobertura JaCoCo como "vigente" con la medición del **2026-08-16** (72,0 % líneas / 62,5 % ramas, commit `11ac931`), cuando la medición real más reciente (2026-09-05, ver `docs/mediciones/jacoco/REPORTE-JACOCO.md` y `DATA-DICTIONARY.md:38-39`) es **86,75 % / 75,03 %**. Actualizar esa fila con la fecha, el commit y la cifra de la corrida vigente antes de citar cualquier número de cobertura en el documento final.
 
 **Pasos:**
 1. Corregir la afirmación de inmutabilidad (ya en T-25).
@@ -698,8 +720,10 @@ done
 
 **Criterio de aceptación:** todos los hashes citados existen (`git cat-file -t` devuelve `commit`), y no hay figura ni tabla del documento sin fila de procedencia.
 
-### T-29 · Unificar las tres cifras de observaciones
-**Cubre:** OBS-P0-02, punto 13 · **Responsable:** BF · **Duración:** 1 h
+### T-29 · Unificar las tres cifras de observaciones — ⚠️ REABIERTA (2026-09-06): regresión en el archivo maestro
+**Cubre:** OBS-P0-02, punto 13 · **Responsable:** BF · **Duración:** 1 h (30 min adicionales para cerrar la regresión)
+
+> **Regresión detectada 2026-09-06:** `anexos.tex` e `INFORME-BRECHAS-ENTREGA-FINAL.md` quedaron correctamente fijados en 85,2 % (23/27), pero **`docs/observaciones/OBSERVACIONES.md` — el archivo del que sale ese número — no se corrigió y hoy se contradice a sí mismo**: su tabla resumen dice **26/29 = 89,7 %**, y dos párrafos más abajo su propia prosa narra el cambio del 01-09-2026 y concluye **86,2 %**. Antes de la entrega: recalcular una sola vez la tabla resumen de `OBSERVACIONES.md` para que sea consistente con su propia narrativa interna, y solo entonces decidir si el número que se propaga a `anexos.tex` sigue siendo 85,2 % o cambia.
 
 Hoy conviven tres cifras del mismo dato: **29/26 con 89,7 %**, **86,2 %** en una nota interna, y **27/23 con 85,2 %** en el Anexo A del PDF.
 
@@ -707,17 +731,17 @@ Hoy conviven tres cifras del mismo dato: **29/26 con 89,7 %**, **86,2 %** en una
 
 **Criterio de aceptación:** `grep -rn "89,7\|86,2\|85,2" docs/` devuelve una sola cifra coherente.
 
-### T-30 · Cerrar las tres observaciones acumuladas pendientes
+### T-30 · Cerrar las observaciones acumuladas restantes — 🟡 AVANZADA (2026-09-07)
 **Cubre:** OBS-P0-01 · **Responsable:** EQ · **Duración:** variable
 
-Hoy 26 resueltas de 29 (una parcial, dos pendientes). Cerrarlas lleva P0 de 75 % a 100 %.
+Se cerró OBS-05 (retiro del wireframe) y se reclasificó OBS-14 a parcial (la mitad `Secure` ya estaba resuelta). Hoy **27 resueltas de 29 (93,1 %), dos parciales, cero pendientes** — sube de 26/29 (89,7 %). Quedan las dos parciales (OBS-AUTO-10: requiere declaración del equipo sobre uso de IA; OBS-14: requiere decisión de riesgo sobre tocar el módulo de autenticación) para llegar al 100 %.
 
-### T-31 · Deshacer el empate de etiquetas
+### T-31 · Deshacer el empate de etiquetas — ✅ RESUELTA DOCUMENTALMENTE (2026-09-07)
 **Cubre:** OBS-P0-03 · **Responsable:** JC · **Duración:** 15 min
 
-`v0.7.1` y `v0.9.0-rc` apuntan al mismo commit. Reasignar `v0.9.0-rc` al commit que efectivamente corresponde a esa fase, o documentar en `CHANGELOG.md` por qué coinciden.
+`v0.7.1` y `v0.9.0-rc` apuntan al mismo commit. Se optó por **documentar por qué coinciden** en vez de reasignar `v0.9.0-rc`: ambos tags se crearon el mismo día (30-07-2026) sobre el commit que cerraba las observaciones de Entregas 1A/1B y a la vez inauguraba la Tercera Entrega; el resto del contenido de `v0.9.0-rc` se agregó después sin re-etiquetar. No se reasignó porque el tag ya está empujado a `origin` y el DOI de Zenodo (`10.5281/zenodo.21730559`) fue emitido sobre el estado actual de `v0.9.0-rc` — mover el tag arriesgaba una segunda discrepancia (tag vs. DOI) en vez de resolver la primera. Ver nota en `CHANGELOG.md` bajo `## [v0.9.0-rc] - 2026-07-30` y `observaciones_para_el_examen.md` (OBS-P0-03).
 
-### T-32 · Corregir el nombre de la clase de prueba en la matriz
+### T-32 · Corregir el nombre de la clase de prueba en la matriz — ✅ HECHA (2026-09-04)
 **Cubre:** OBS-D0R-01 · **Responsable:** BF · **Duración:** 10 min
 
 `SeguidorServiceImplTest` → `SeguidorServicioImplTest` en la matriz de trazabilidad. Y verificar las **34** referenciadas (cifra rectificada):
@@ -725,17 +749,17 @@ Hoy 26 resueltas de 29 (una parcial, dos pendientes). Cerrarlas lleva P0 de 75 %
 bash scripts/validate-traceability.sh
 ```
 
-### T-33 · Aplicar INVEST a las 23 historias
+### T-33 · Aplicar INVEST a las 23 historias — ✅ HECHA
 **Cubre:** OBS-D0R-03 · **Responsable:** BF · **Duración:** 3 h
 
 Hoy INVEST aparece en **1 de 23**. Añadir la evaluación INVEST (Independent, Negotiable, Valuable, Estimable, Small, Testable) a las 22 restantes en `docs/requisitos/`.
 
-### T-34 · Ampliar los diagramas de secuencia
+### T-34 · Ampliar los diagramas de secuencia — ✅ HECHA (6/23: CU-02,03,04,13,17,20)
 **Cubre:** OBS-D0R-04 · **Responsable:** JC · **Duración:** 4 h
 
 Hoy solo **un** caso de uso se traza a diagrama de secuencia. Añadir al menos cinco más, priorizando los casos de uso de los requisitos Must.
 
-### T-35 · Extraer el DSL de Structurizr a archivos `.dsl`
+### T-35 · Extraer el DSL de Structurizr a archivos `.dsl` — ✅ HECHA (2026-09-04, `docs/diagramas/workspace.dsl`)
 **Cubre:** OBS-D1-03 · **Responsable:** JC · **Duración:** 1 h
 
 Hoy el DSL está embebido en Markdown. Extraerlo a `docs/diagramas/workspace.dsl` y dejar el Markdown referenciándolo.
@@ -818,7 +842,7 @@ Aplicado y verificado con `make sus` real, código 0.
 
 Crear `docs/mediciones/reproduccion.ipynb` que, ejecutado de arriba abajo, **recalcule desde los archivos crudos versionados** todas las cifras del documento: cobertura desde `jacoco.csv`, percentiles y test inferencial desde los NDJSON, SUS desde el CSV, medias de Lighthouse desde los JSON. Es la materialización directa de la regla de la guía §4.1.
 
-### T-41 · Publicar el digest `sha256` en los tres sitios
+### T-41 · Publicar el digest `sha256` en los tres sitios — ✅ HECHA (2026-09-04, README + CITATION.cff + carátula; release de GitHub queda pendiente de autorización)
 **Cubre:** OBS-R1-06 · **Responsable:** JC · **Duración:** 30 min
 
 ```bash
@@ -830,7 +854,7 @@ Publicarlo en **README.md**, en la **portada del informe** y en el **release de 
 
 ## §8. Evidencia de autoría — para la defensa (guía cap. 6)
 
-### T-42 · Escribir la declaración de uso de asistencia
+### T-42 · Escribir la declaración de uso de asistencia — ✅ HECHA (`13-declaraciones.tex`)
 **Cubre:** OBS-TR-04, guía §6.2.6 · **Responsable:** EQ · **Duración:** 2 h
 
 *«En esta asignatura la voy a exigir. Redáctenla en positivo: describe cómo trabajaron, no es una confesión.»*
@@ -844,7 +868,7 @@ Ya existe `docs/etica/ai-disclosure.md` (con cambios sin comitear en el árbol a
 
 **Forma de conseguirla sin esfuerzo extra:** que **todo el trabajo de esta semana entre por pull request**, y que cada PR lo revise **otro integrante** con observaciones sustantivas, respuesta y cambios derivados de la conversación. Ríos revisa el despliegue de Carvajal; Carvajal revisa el capítulo 3 de Figueroa; Figueroa revisa las conversiones a `@Procedure` de Ríos. Eso produce la evidencia **mientras se trabaja**, que es exactamente lo que la guía pide.
 
-### T-44 · Completar los ADR con las alternativas descartadas
+### T-44 · Completar los ADR con las alternativas descartadas — ✅ HECHA (7/7 ADR con "Opciones consideradas")
 **Cubre:** OBS-TR-07, guía §6.2.3 · **Responsable:** JC · **Duración:** 3 h
 
 *«Un registro que solo describe la decisión final no acredita nada; uno que muestra el camino, sí.»*

@@ -10,6 +10,13 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN apk add --no-cache wget
+# Sin esto la JVM corre en UTC (el default de la imagen base), 5 horas por
+# delante de Ecuador. Como el frontend envia LocalDateTime "de pared" sin
+# offset (p.ej. datetime-local de Sorteo/Pedido), @Future los comparaba
+# contra un reloj adelantado y rechazaba horas de hoy que ya eran futuras en
+# hora local -- y el cierre automatico de sorteos (SorteoScheduler) se
+# retrasaba el mismo margen.
+ENV TZ=America/Guayaquil
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 # Flags para arranque rapido en CPU compartida/limitada (ej. Render free

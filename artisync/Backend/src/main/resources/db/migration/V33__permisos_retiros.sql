@@ -2,7 +2,7 @@
 -- MIGRACIÓN V33: PERMISOS DEL MÓDULO DE RETIROS (PAYOUTS)
 -- ==============================================================================
 -- El creador solicita el retiro de sus fondos liberados; un auditor financiero
--- revisa la cola y aprueba/rechaza (RF-20, continuación de escrow con PayPal).
+-- revisa la cola y aprueba/rechaza (REQ-F-024, continuación de escrow con PayPal).
 --
 -- RETIROS_GESTIONAR se asigna a AUDITOR_FINANCIERO y no a ADMIN, siguiendo el
 -- mismo criterio que V32__ajuste_permisos_admin_moderador.sql ya estableció

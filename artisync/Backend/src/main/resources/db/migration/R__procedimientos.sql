@@ -10,9 +10,8 @@
 -- Migracion REPETIBLE: Flyway la reaplica cada vez que cambia su checksum.
 -- Todas las rutinas usan CREATE OR REPLACE, por lo que reaplicarla es inocuo.
 --
--- Rutinas incluidas (29):
+-- Rutinas incluidas (27):
 --   - V8__estructuras_para_procedimientos.sql
---   - fn_actualizar_portada_creador.sql
 --   - fn_cambiar_estado_cuenta.sql
 --   - fn_configurar_2fa.sql
 --   - fn_consumir_codigo_respaldo_2fa.sql
@@ -24,7 +23,6 @@
 --   - fn_eliminar_rol.sql
 --   - fn_es_seguidor.sql
 --   - fn_guardar_pais.sql
---   - fn_listar_creadores_seguidos_novedades.sql
 --   - fn_permisos_efectivos_usuario.sql
 --   - fn_registrar_infraccion.sql
 --   - fn_registrar_usuario.sql
@@ -103,42 +101,6 @@ CREATE INDEX IF NOT EXISTS idx_servicios_perfil
 -- filtrar el catalogo por estado de publicacion.
 CREATE INDEX IF NOT EXISTS idx_servicios_estado_publicacion
     ON servicios (estado_publicacion);
-
-
--- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_actualizar_portada_creador.sql
--- ---------------------------------------------------------------------------
--- =============================================================================
--- fn_actualizar_portada_creador
--- Categoria funcional: actualizaciones
--- =============================================================================
--- Actualiza la URL de portada y el titulo profesional de un perfil de creador.
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION fn_actualizar_portada_creador(
-    p_id_perfil BIGINT,
-    p_url_portada VARCHAR(500),
-    p_titulo_profesional VARCHAR(150)
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    IF p_id_perfil IS NULL THEN
-        RAISE EXCEPTION 'El id de perfil es obligatorio';
-    END IF;
-
-    UPDATE perfiles_creadores
-       SET url_portada = COALESCE(p_url_portada, url_portada),
-           titulo_profesional = COALESCE(p_titulo_profesional, titulo_profesional)
-     WHERE id_perfil = p_id_perfil;
-
-    RETURN FOUND;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_actualizar_portada_creador(BIGINT, VARCHAR, VARCHAR)
-    IS 'Actualiza la imagen de portada y especialidad profesional de un perfil de creador.';
 
 
 -- ---------------------------------------------------------------------------
@@ -868,59 +830,6 @@ COMMENT ON FUNCTION fn_guardar_pais(BIGINT, VARCHAR)
 
 
 -- ---------------------------------------------------------------------------
--- Origen: db/procs/fn_listar_creadores_seguidos_novedades.sql
--- ---------------------------------------------------------------------------
--- =============================================================================
--- fn_listar_creadores_seguidos_novedades
--- Categoria funcional: consultas multi-tabla / reportes
--- =============================================================================
--- Devuelve los creadores que el usuario sigue junto a su resumen de novedades.
--- =============================================================================
-
-CREATE OR REPLACE FUNCTION fn_listar_creadores_seguidos_novedades(
-    p_id_usuario_seguidor BIGINT
-)
-RETURNS TABLE (
-    id_perfil BIGINT,
-    id_usuario BIGINT,
-    nombres_usuario VARCHAR,
-    apellidos_usuario VARCHAR,
-    handle VARCHAR,
-    url_foto_perfil VARCHAR,
-    titulo_profesional VARCHAR,
-    resumen_novedad TEXT,
-    tipo_novedad VARCHAR,
-    fecha_novedad TIMESTAMP
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        pc.id_perfil,
-        u.id_usuario,
-        u.nombres_usuario,
-        u.apellidos_usuario,
-        COALESCE('@' || LOWER(REPLACE(u.nombres_usuario, ' ', '')), '@creador')::VARCHAR AS handle,
-        u.url_foto_perfil,
-        pc.titulo_profesional,
-        'Actividad reciente en su perfil'::TEXT AS resumen_novedad,
-        'GENERAL'::VARCHAR AS tipo_novedad,
-        s.fecha_seguimiento::TIMESTAMP AS fecha_novedad
-    FROM seguidores s
-    JOIN perfiles_creadores pc ON pc.id_perfil = s.id_perfil_creador
-    JOIN usuarios u ON u.id_usuario = pc.id_usuario
-    WHERE s.id_usuario_seguidor = p_id_usuario_seguidor
-    ORDER BY s.fecha_seguimiento DESC;
-END;
-$$;
-
-COMMENT ON FUNCTION fn_listar_creadores_seguidos_novedades(BIGINT)
-    IS 'Devuelve los creadores seguidos por el usuario con su resumen de novedades.';
-
-
--- ---------------------------------------------------------------------------
 -- Origen: db/procs/fn_permisos_efectivos_usuario.sql
 -- ---------------------------------------------------------------------------
 -- =============================================================================
@@ -1285,7 +1194,13 @@ BEGIN
            AND (p_fecha_desde IS NULL OR t.fecha_ejecucion >= p_fecha_desde)
            AND (p_fecha_hasta IS NULL OR t.fecha_ejecucion <= p_fecha_hasta)
     )
-    SELECT COALESCE(SUM(m.monto), 0),
+    -- v_bruto solo suma 'Ingreso': es la unica fila que representa el monto
+    -- bruto real cobrado al cliente por pedido. 'Egreso' y 'Comision' son el
+    -- desglose posterior de ese mismo bruto (90%/10% del mismo pago), no
+    -- montos adicionales -- sumarlas junto a 'Ingreso' triplicaba el bruto.
+    -- El detalle (jsonb_agg) sigue sin filtrar: conserva las tres filas por
+    -- pago como historial de auditoria completo.
+    SELECT COALESCE(SUM(m.monto) FILTER (WHERE m.tipo_transaccion = 'Ingreso'), 0),
            COUNT(DISTINCT m.id_pedido),
            COUNT(*),
            COALESCE(
@@ -1547,15 +1462,23 @@ COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
 -- sorteo se toma con FOR UPDATE, de modo que dos disparos simultaneos del
 -- scheduler sobre el mismo sorteo se serializan y el segundo ve el sorteo ya
 -- en estado distinto de 'Activo'. ORDER BY random() LIMIT n resuelve la
--- seleccion y la actualizacion de todos los ganadores en una unica sentencia,
--- en vez de N idas y vueltas a la base.
+-- seleccion de ganadores en una unica sentencia, en vez de N idas y vueltas a
+-- la base.
+--
+-- REQ-F-023 (V41__sorteo_premios): cada sorteo tiene una lista de premios
+-- individuales en premios_sorteo, no un unico texto libre. La cantidad de
+-- premios (no sorteos.cantidad_ganadores) es la fuente de verdad de cuantos
+-- ganadores se sortean, y cada ganador queda emparejado 1 a 1 con un premio
+-- distinto via participantes_sorteo.id_premio -- asi el frontend puede
+-- mostrar cada premio con su propio ganador en vez de agruparlos todos.
 --
 -- La notificacion en tiempo real (WebSocket) permanece en Java: no es
 -- responsabilidad del motor de datos. La funcion devuelve el listado de
--- ganadores para que el scheduler los notifique despues de confirmar la
--- transaccion.
+-- ganadores (con su premio) para que el scheduler los notifique despues de
+-- confirmar la transaccion.
 --
--- Devuelve JSONB: { idSorteo, tituloSorteo, estado, ganadores: [ { idParticipacion, idUsuario } ] }.
+-- Devuelve JSONB: { idSorteo, tituloSorteo, estado,
+--   ganadores: [ { idParticipacion, idUsuario, idPremio, descripcionPremio } ] }.
 -- Si el sorteo ya no esta 'Activo' (segunda ejecucion concurrente o manual),
 -- devuelve el estado actual con ganadores: [] sin volver a sortear
 -- (idempotencia). Si no hay participantes, marca el sorteo como
@@ -1571,10 +1494,10 @@ RETURNS JSONB
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_cantidad_ganadores  INTEGER;
     v_titulo              VARCHAR(150);
     v_estado_actual       VARCHAR(50);
     v_total_participantes INTEGER;
+    v_cantidad_premios    INTEGER;
     v_ganadores           JSONB;
 BEGIN
     IF p_id_sorteo IS NULL THEN
@@ -1582,8 +1505,8 @@ BEGIN
             USING ERRCODE = '22004';
     END IF;
 
-    SELECT cantidad_ganadores, titulo_sorteo, estado_sorteo
-      INTO v_cantidad_ganadores, v_titulo, v_estado_actual
+    SELECT titulo_sorteo, estado_sorteo
+      INTO v_titulo, v_estado_actual
       FROM sorteos
      WHERE id_sorteo = p_id_sorteo
        FOR UPDATE;
@@ -1605,6 +1528,15 @@ BEGIN
         );
     END IF;
 
+    SELECT COUNT(*) INTO v_cantidad_premios
+      FROM premios_sorteo
+     WHERE id_sorteo = p_id_sorteo;
+
+    IF v_cantidad_premios = 0 THEN
+        RAISE EXCEPTION 'El sorteo % no tiene premios configurados', p_id_sorteo
+            USING ERRCODE = 'P0001';
+    END IF;
+
     SELECT COUNT(*) INTO v_total_participantes
       FROM participantes_sorteo
      WHERE id_sorteo = p_id_sorteo
@@ -1622,23 +1554,47 @@ BEGIN
         );
     END IF;
 
-    WITH seleccionados AS (
+    -- Empareja cada ganador elegido al azar con un premio distinto: rn de la
+    -- seleccion aleatoria contra rn de los premios ordenados por "orden".
+    WITH candidatos AS (
         SELECT id_participacion, id_usuario
           FROM participantes_sorteo
          WHERE id_sorteo = p_id_sorteo
            AND es_ganador = FALSE
          ORDER BY random()
-         LIMIT LEAST(v_cantidad_ganadores, v_total_participantes)
+         LIMIT LEAST(v_cantidad_premios, v_total_participantes)
+    ),
+    seleccionados AS (
+        SELECT id_participacion, id_usuario,
+               ROW_NUMBER() OVER () AS rn
+          FROM candidatos
+    ),
+    premios_ordenados AS (
+        SELECT id_premio, descripcion_premio,
+               ROW_NUMBER() OVER (ORDER BY orden) AS rn
+          FROM premios_sorteo
+         WHERE id_sorteo = p_id_sorteo
+    ),
+    asignaciones AS (
+        SELECT s.id_participacion, s.id_usuario, p.id_premio, p.descripcion_premio
+          FROM seleccionados s
+          JOIN premios_ordenados p ON p.rn = s.rn
     ),
     actualizados AS (
-        UPDATE participantes_sorteo p
+        UPDATE participantes_sorteo pt
            SET es_ganador = TRUE,
+               id_premio = a.id_premio,
                fecha_notificacion_premio = CURRENT_TIMESTAMP
-          FROM seleccionados s
-         WHERE p.id_participacion = s.id_participacion
-        RETURNING p.id_participacion, p.id_usuario
+          FROM asignaciones a
+         WHERE pt.id_participacion = a.id_participacion
+        RETURNING pt.id_participacion, pt.id_usuario, a.id_premio, a.descripcion_premio
     )
-    SELECT jsonb_agg(jsonb_build_object('idParticipacion', id_participacion, 'idUsuario', id_usuario))
+    SELECT jsonb_agg(jsonb_build_object(
+               'idParticipacion', id_participacion,
+               'idUsuario', id_usuario,
+               'idPremio', id_premio,
+               'descripcionPremio', descripcion_premio
+           ))
       INTO v_ganadores
       FROM actualizados;
 
@@ -2317,7 +2273,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- =============================================================================
 -- sp_restablecer_contrasena
--- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-005
+-- Categoria funcional: validaciones cruzadas + escritura multi-tabla  Requisito: REQ-F-004
 -- =============================================================================
 -- Aplica un restablecimiento de contrasena a partir de un token de
 -- recuperacion: valida que el token exista, no haya sido usado y no haya
@@ -2398,5 +2354,5 @@ END;
 $$;
 
 COMMENT ON PROCEDURE sp_restablecer_contrasena(VARCHAR, VARCHAR)
-    IS 'REQ-F-005 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
+    IS 'REQ-F-004 - Validacion cruzada + escritura multi-tabla: valida token de recuperacion (no usado, no expirado) y actualiza usuarios + tokens_recuperacion atomicamente.';
 

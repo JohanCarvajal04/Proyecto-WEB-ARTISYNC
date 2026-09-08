@@ -135,7 +135,7 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
       },
       error: (err) => {
         this.guardandoDatos.set(false);
-        this.toastService.error(err.error?.message || 'No se pudieron guardar los cambios');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudieron guardar los cambios');
       }
     });
   }

@@ -311,3 +311,47 @@ siguiente corrida de `make lighthouse` confirmar si el audit pasa a verde.
 - Corridas intermedias (`lhci-20260904-1416-*`, `lhci-20260904-1443-*`), tomadas mientras los
   commits de remediación se iban desplegando, se conservan como evidencia del proceso pero no se
   citan como el resultado final — ver `lhci-20260904-1545-*` arriba.
+
+## Confirmación final (2026-09-05 21:50) — cierre del hallazgo `color-contrast`
+
+El commit `f38ee3b` (`text-teal-600` → `text-teal-700` en `explorar.component.html` y
+`creadores.component.html`) quedó mergeado a `main` el mismo 2026-09-04 pero sin re-medir contra el
+despliegue público, según quedó documentado arriba. Esta sección cierra ese pendiente: se corrió
+`make lighthouse` completo (2 perfiles × 3 rutas × 3 corridas = 18 auditorías) contra
+`https://artisync-frontend.onrender.com` con el fix ya desplegado. `lhci autorun` terminó con
+**código de salida 0 en ambos perfiles** ("All results processed!").
+
+### Resultados — mobile (`lhci-20260905-2150-mobile-prod-*-run{1,2,3}`)
+
+| Ruta | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| `/explorar` | 93 / 79 / 88 ✅ | **100 / 100 / 100 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/explorar/creadores` | 91 / 93 / 93 ✅ | **100 / 100 / 100 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/auth/login` | 92 / 92 / 94 ✅ | 93 / 93 / 93 ✅ | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+
+### Resultados — desktop (`lhci-20260905-2150-desktop-prod-*-run{1,2,3}`)
+
+| Ruta | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| `/explorar` | **92 / 92 / 93 ✅ (≥80)** | **100 / 100 / 100 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/explorar/creadores` | 99 / 99 / 99 ✅ | **100 / 100 / 100 ✅** | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+| `/auth/login` | 100 / 100 / 99 ✅ | 93 / 93 / 93 ✅ | 96 / 96 / 96 ✅ | 100 / 100 / 100 ✅ |
+
+Accessibility en `/explorar` y `/explorar/creadores` subió de 92-93 (corrida de las 15:45) a
+**100/100** en ambos perfiles — el audit `color-contrast` pasa a score 1 en las 18 auditorías
+(verificado en el JSON crudo, no solo en el score de categoría), junto con `heading-order` e
+`image-redundant-alt`, ambos también en 1. Performance desktop de `/explorar` se mantiene
+holgadamente sobre el umbral (92-93, contra el ≥80 exigido), y CLS quedó en 0.000 en las 4
+combinaciones ruta×perfil verificadas (`/explorar` y `/explorar/creadores`, mobile y desktop).
+
+**Con esta corrida, los dos umbrales de la observación quedan cumplidos y confirmados con evidencia
+fresca de producción**: Accessibility ≥ 90 en `/explorar` y `/explorar/creadores` (ambos en 100) y
+Performance desktop ≥ 80 en `/explorar` (92-93). El hallazgo de `color-contrast` documentado en la
+sección anterior queda cerrado — no es una hipótesis, está confirmado en el audit individual del
+reporte, no solo en el score agregado de categoría.
+
+### Reportes archivados
+
+- Mobile: `lhci-20260905-2150-mobile-prod-{explorar,explorar_creadores,auth_login}-run{1,2,3}.report.{json,html}`
+- Desktop: `lhci-20260905-2150-desktop-prod-{explorar,explorar_creadores,auth_login}-run{1,2,3}.report.{json,html}`
+- Manifiestos: `lhci-20260905-2150-{mobile,desktop}-prod-manifest.json`

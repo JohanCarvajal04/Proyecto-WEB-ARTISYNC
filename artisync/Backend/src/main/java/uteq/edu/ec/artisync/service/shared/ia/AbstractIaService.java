@@ -61,12 +61,12 @@ public abstract class AbstractIaService {
     protected String cargarPrompt(String nombreArchivo, Object... args) {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("IA/" + nombreArchivo)) {
             if (is == null) {
-                throw new IllegalStateException("Prompt no encontrado: " + nombreArchivo);
+                throw new RuntimeException("Prompt no encontrado: " + nombreArchivo);
             }
             String plantilla = new String(is.readAllBytes(), StandardCharsets.UTF_8);
             return args.length > 0 ? String.format(plantilla, args) : plantilla;
         } catch (IOException e) {
-            throw new IllegalStateException("Error al cargar prompt: " + nombreArchivo, e);
+            throw new RuntimeException("Error al cargar prompt: " + nombreArchivo, e);
         }
     }
 

@@ -52,7 +52,7 @@ export class ServicioDetalleComponent implements OnInit {
         this.cargarReputacion(servicio.idPerfilCreador);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo cargar el servicio');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo cargar el servicio');
         this.isLoading.set(false);
       }
     });

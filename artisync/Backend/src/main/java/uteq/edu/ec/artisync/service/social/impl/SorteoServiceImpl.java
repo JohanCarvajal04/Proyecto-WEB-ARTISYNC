@@ -13,8 +13,10 @@ import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
+import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaPremio;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
 import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
+import uteq.edu.ec.artisync.entity.social.PremioSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
@@ -28,8 +30,11 @@ import uteq.edu.ec.artisync.repository.social.SorteoRepository;
 import uteq.edu.ec.artisync.service.social.SorteoService;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -66,20 +71,43 @@ public class SorteoServiceImpl implements SorteoService {
                     "La fecha de cierre debe ser posterior a la fecha de inicio");
         }
 
+        validarCantidadPremios(peticion.getPremios().size(), peticion.getCantidadGanadores());
+
         Sorteo sorteo = Sorteo.builder()
                 .perfilCreador(perfil)
                 .tituloSorteo(peticion.getTituloSorteo())
-                .descripcionPremios(peticion.getDescripcionPremios())
                 .cantidadGanadores(peticion.getCantidadGanadores())
                 .fechaInicio(peticion.getFechaInicio())
                 .fechaCierre(peticion.getFechaCierre())
                 .requiereSeguidor(peticion.isRequiereSeguidor())
                 .estadoSorteo("Activo")
                 .build();
+        sorteo.setPremios(construirPremios(sorteo, peticion.getPremios()));
 
         sorteo = sorteoRepository.save(sorteo);
         log.info("Sorteo '{}' creado por usuario {}", sorteo.getTituloSorteo(), idUsuario);
         return mapToResponse(sorteo, null, 0L, false);
+    }
+
+    /** REQ-F-023: la cantidad de ganadores debe coincidir exactamente con la cantidad de premios definidos. */
+    private void validarCantidadPremios(int cantidadPremios, int cantidadGanadores) {
+        if (cantidadPremios != cantidadGanadores) {
+            throw new ExcepcionReglaNegocio(
+                    "La cantidad de ganadores (" + cantidadGanadores
+                            + ") debe coincidir con la cantidad de premios definidos (" + cantidadPremios + ")");
+        }
+    }
+
+    private List<PremioSorteo> construirPremios(Sorteo sorteo, List<String> descripciones) {
+        List<PremioSorteo> premios = new ArrayList<>();
+        for (int i = 0; i < descripciones.size(); i++) {
+            premios.add(PremioSorteo.builder()
+                    .sorteo(sorteo)
+                    .descripcionPremio(descripciones.get(i))
+                    .orden(i + 1)
+                    .build());
+        }
+        return premios;
     }
 
     @Override
@@ -90,13 +118,22 @@ public class SorteoServiceImpl implements SorteoService {
         boolean yoParticipo = idUsuarioActual != null &&
                 participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuarioActual);
 
-        List<RespuestaGanador> ganadores = null;
-        if ("Finalizado".equals(sorteo.getEstadoSorteo())) {
-            ganadores = participanteSorteoRepository
-                    .findBySorteoIdSorteoAndEsGanadorTrue(idSorteo)
-                    .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());
-        }
+        List<RespuestaGanador> ganadores = obtenerGanadoresSiFinalizado(sorteo);
         return mapToResponse(sorteo, ganadores, total, yoParticipo);
+    }
+
+    /**
+     * Solo hay ganadores despues del cierre del sorteo. Se usa tanto en el detalle
+     * como en los listados, para que las tarjetas de la lista muestren el premio
+     * de cada quien sin depender de abrir el detalle del sorteo.
+     */
+    private List<RespuestaGanador> obtenerGanadoresSiFinalizado(Sorteo sorteo) {
+        if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {
+            return null;
+        }
+        return participanteSorteoRepository
+                .findBySorteoIdSorteoAndEsGanadorTrue(sorteo.getIdSorteo())
+                .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -110,6 +147,10 @@ public class SorteoServiceImpl implements SorteoService {
         if (tieneParticipantes) {
             if (peticion.getCantidadGanadores() != null &&
                     !peticion.getCantidadGanadores().equals(sorteo.getCantidadGanadores())) {
+                throw new ExcepcionReglaNegocio(
+                        "No se puede modificar este campo una vez iniciadas las inscripciones");
+            }
+            if (peticion.getPremios() != null) {
                 throw new ExcepcionReglaNegocio(
                         "No se puede modificar este campo una vez iniciadas las inscripciones");
             }
@@ -131,11 +172,15 @@ public class SorteoServiceImpl implements SorteoService {
         }
 
         if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());
-        if (peticion.getDescripcionPremios() != null) sorteo.setDescripcionPremios(peticion.getDescripcionPremios());
         if (!tieneParticipantes && peticion.getCantidadGanadores() != null)
             sorteo.setCantidadGanadores(peticion.getCantidadGanadores());
         if (!tieneParticipantes && peticion.getFechaCierre() != null)
             sorteo.setFechaCierre(peticion.getFechaCierre());
+        if (!tieneParticipantes && peticion.getPremios() != null) {
+            validarCantidadPremios(peticion.getPremios().size(), sorteo.getCantidadGanadores());
+            sorteo.getPremios().clear();
+            sorteo.getPremios().addAll(construirPremios(sorteo, peticion.getPremios()));
+        }
 
         sorteo = sorteoRepository.save(sorteo);
         long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();
@@ -167,7 +212,7 @@ public class SorteoServiceImpl implements SorteoService {
                     boolean yoParticipo = idUsuarioActual != null &&
                             participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(
                                     s.getIdSorteo(), idUsuarioActual);
-                    return mapToResponse(s, null, total, yoParticipo);
+                    return mapToResponse(s, obtenerGanadoresSiFinalizado(s), total, yoParticipo);
                 })
                 .collect(Collectors.toList());
     }
@@ -182,7 +227,7 @@ public class SorteoServiceImpl implements SorteoService {
                     boolean yoParticipo = idUsuarioActual != null &&
                             participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(
                                     s.getIdSorteo(), idUsuarioActual);
-                    return mapToResponse(s, null, total, yoParticipo);
+                    return mapToResponse(s, obtenerGanadoresSiFinalizado(s), total, yoParticipo);
                 })
                 .collect(Collectors.toList());
     }
@@ -299,7 +344,6 @@ public class SorteoServiceImpl implements SorteoService {
         return RespuestaSorteo.builder()
                 .idSorteo(sorteo.getIdSorteo())
                 .tituloSorteo(sorteo.getTituloSorteo())
-                .descripcionPremios(sorteo.getDescripcionPremios())
                 .cantidadGanadores(sorteo.getCantidadGanadores())
                 .fechaInicio(sorteo.getFechaInicio())
                 .fechaCierre(sorteo.getFechaCierre())
@@ -311,7 +355,28 @@ public class SorteoServiceImpl implements SorteoService {
                 .totalParticipantes(total)
                 .yoParticipo(yoParticipo)
                 .ganadores(ganadores)
+                .premios(mapToPremiosResponse(sorteo, ganadores))
                 .build();
+    }
+
+    /** Cruza cada premio del sorteo con su ganador (si ya hubo sorteo y ese premio fue asignado). */
+    private List<RespuestaPremio> mapToPremiosResponse(Sorteo sorteo, List<RespuestaGanador> ganadores) {
+        Map<Long, RespuestaGanador> ganadorPorPremio = new HashMap<>();
+        if (ganadores != null) {
+            for (RespuestaGanador g : ganadores) {
+                if (g.getIdPremio() != null) {
+                    ganadorPorPremio.put(g.getIdPremio(), g);
+                }
+            }
+        }
+        return sorteo.getPremios().stream()
+                .map(p -> RespuestaPremio.builder()
+                        .idPremio(p.getIdPremio())
+                        .descripcionPremio(p.getDescripcionPremio())
+                        .orden(p.getOrden())
+                        .ganador(ganadorPorPremio.get(p.getIdPremio()))
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private RespuestaParticipante mapToParticipanteResponse(ParticipanteSorteo p) {
@@ -330,6 +395,8 @@ public class SorteoServiceImpl implements SorteoService {
                 .idUsuario(p.getUsuario().getIdUsuario())
                 .nombreUsuario(p.getUsuario().getNombres() + " " + p.getUsuario().getApellidos())
                 .fechaNotificacionPremio(p.getFechaNotificacionPremio())
+                .idPremio(p.getPremio() != null ? p.getPremio().getIdPremio() : null)
+                .descripcionPremio(p.getPremio() != null ? p.getPremio().getDescripcionPremio() : null)
                 .build();
     }
 }

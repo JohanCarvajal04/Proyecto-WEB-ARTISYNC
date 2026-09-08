@@ -36,7 +36,7 @@ export class SorteosClienteComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudieron cargar los sorteos');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudieron cargar los sorteos');
         this.isLoading.set(false);
       }
     });
@@ -69,7 +69,7 @@ export class SorteosClienteComponent implements OnInit {
       },
       error: (err) => {
         this.enCurso.set(null);
-        this.toast.error(err.error?.message || 'No se pudo completar la operación');
+        this.toast.error(err.error?.detail || err.error?.message || 'No se pudo completar la operación');
       }
     });
   }

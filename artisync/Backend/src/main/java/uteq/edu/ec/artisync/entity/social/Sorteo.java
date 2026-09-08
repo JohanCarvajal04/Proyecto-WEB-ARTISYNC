@@ -9,6 +9,8 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "sorteos")
@@ -34,14 +36,16 @@ public class Sorteo {
     @Column(name = "titulo_sorteo", nullable = false, length = 150)
     private String tituloSorteo;
 
-    @NotBlank(message = "La descripcion de los premios es obligatoria")
-    @Column(name = "descripcion_premios", nullable = false, columnDefinition = "TEXT")
-    private String descripcionPremios;
-
     @Builder.Default
     @Min(value = 1, message = "La cantidad de ganadores debe ser al menos 1")
     @Column(name = "cantidad_ganadores", nullable = false)
     private Integer cantidadGanadores = 1;
+
+    /** Premios individuales del sorteo, uno por ganador. REQ-F-023 (V39). */
+    @Builder.Default
+    @OneToMany(mappedBy = "sorteo", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orden ASC")
+    private List<PremioSorteo> premios = new ArrayList<>();
 
     @NotNull(message = "La fecha de inicio es obligatoria")
     @Column(name = "fecha_inicio", nullable = false)

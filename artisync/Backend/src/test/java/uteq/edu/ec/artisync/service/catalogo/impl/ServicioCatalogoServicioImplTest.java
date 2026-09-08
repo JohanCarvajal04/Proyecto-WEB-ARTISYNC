@@ -149,6 +149,41 @@ class ServicioCatalogoServicioImplTest {
     }
 
     @Test
+    @DisplayName("crearServicio rechaza publicar si el perfil no tiene usuario asociado")
+    void crearServicio_perfilSinUsuario_lanzaExcepcionReglaNegocio() {
+        PerfilCreador perfilSinUsuario = PerfilCreador.builder().idPerfil(2L).usuario(null).build();
+        PeticionCrearServicio peticion = PeticionCrearServicio.builder()
+                .tituloServicio("X").descripcionDetallada("Descripcion de mas de veinte caracteres")
+                .precioBase(new BigDecimal("15.00")).idsSubcategoria(List.of(1L)).build();
+        given(perfilRepository.findById(2L)).willReturn(Optional.of(perfilSinUsuario));
+
+        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(2L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("verificar tu identidad");
+    }
+
+    @Test
+    @DisplayName("crearServicio permite gestionar cuando la autenticacion no esta autenticada (p.ej. anonima)")
+    void crearServicio_autenticacionNoAutenticada_noRechaza() {
+        var authNoAutenticado = new UsernamePasswordAuthenticationToken("nadie@test.com", "N/A");
+        authNoAutenticado.setAuthenticated(false);
+        SecurityContextHolder.getContext().setAuthentication(authNoAutenticado);
+
+        PeticionCrearServicio peticion = PeticionCrearServicio.builder()
+                .tituloServicio("Ilustracion digital")
+                .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
+                .precioBase(new BigDecimal("15.00")).idsSubcategoria(List.of(1L)).build();
+        given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
+        given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        assertThat(servicioCatalogoServicio.crearServicio(1L, peticion)).isNotNull();
+    }
+
+    @Test
     @DisplayName("crearServicio rechaza publicar si el creador no tiene la identidad verificada")
     void crearServicio_identidadNoVerificada_lanzaExcepcionReglaNegocio() {
         PeticionCrearServicio peticion = PeticionCrearServicio.builder()
@@ -207,6 +242,32 @@ class ServicioCatalogoServicioImplTest {
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
         assertThat(servicioCatalogoServicio.crearServicio(1L, peticion)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("crearServicio aplica los valores por defecto cuando tipoItem, cargoRevisionAdicional y limiteRevisionesBase no vienen informados")
+    void crearServicio_camposOpcionalesNulos_aplicaValoresPorDefecto() {
+        PeticionCrearServicio peticion = PeticionCrearServicio.builder()
+                .tituloServicio("Ilustracion digital")
+                .descripcionDetallada("Descripcion detallada de ejemplo con mas de veinte caracteres")
+                .precioBase(new BigDecimal("15.00"))
+                .idsSubcategoria(List.of(1L))
+                .build();
+
+        given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
+        given(subcategoriaRepository.findAllById(List.of(1L))).willReturn(List.of(subcategoria));
+        given(servicioRepository.save(any(Servicio.class))).willAnswer(inv -> inv.getArgument(0));
+        given(servicioRepository.findById(any())).willReturn(Optional.of(servicio));
+        given(servicioAtributoRepository.findByServicioIdServicio(any())).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(any())).willReturn(List.of());
+
+        ArgumentCaptor<Servicio> captor = ArgumentCaptor.forClass(Servicio.class);
+        servicioCatalogoServicio.crearServicio(1L, peticion);
+
+        verify(servicioRepository).save(captor.capture());
+        assertThat(captor.getValue().getTipoItem()).isEqualTo("SERVICIO");
+        assertThat(captor.getValue().getCargoRevisionAdicional()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(captor.getValue().getLimiteRevisionesBase()).isEqualTo(0);
     }
 
     @Test
@@ -276,6 +337,49 @@ class ServicioCatalogoServicioImplTest {
     }
 
     @Test
+    @DisplayName("actualizarServicio mantiene titulo, descripcion, tipoItem y estadoPublicacion cuando no vienen informados")
+    void actualizarServicio_camposOpcionalesNulos_mantieneOriginales() {
+        PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
+                .precioBase(new BigDecimal("20.00"))
+                .build();
+
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+
+        assertThat(servicio.getTituloServicio()).isEqualTo("Ilustracion digital");
+        assertThat(servicio.getTipoItem()).isEqualTo("SERVICIO");
+        assertThat(servicio.getEstadoPublicacion()).isEqualTo("ACTIVO");
+    }
+
+    @Test
+    @DisplayName("actualizarServicio ignora titulo, descripcion, tipoItem y estadoPublicacion en blanco")
+    void actualizarServicio_camposEnBlanco_seIgnoran() {
+        PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
+                .precioBase(new BigDecimal("20.00"))
+                .tituloServicio("   ")
+                .descripcionDetallada("")
+                .tipoItem("  ")
+                .estadoPublicacion("")
+                .build();
+
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+
+        assertThat(servicio.getTituloServicio()).isEqualTo("Ilustracion digital");
+        assertThat(servicio.getTipoItem()).isEqualTo("SERVICIO");
+        assertThat(servicio.getEstadoPublicacion()).isEqualTo("ACTIVO");
+        verify(verificacionServicio, never()).estaIdentidadVerificada(any());
+    }
+
+    @Test
     @DisplayName("actualizarServicio rechaza precio invalido")
     void actualizarServicio_rechazaPrecioInvalido() {
         PeticionActualizarServicio peticion = PeticionActualizarServicio.builder().precioBase(null).build();
@@ -328,6 +432,47 @@ class ServicioCatalogoServicioImplTest {
     }
 
     @Test
+    @DisplayName("actualizarServicio aplica tipoItem, cargoRevisionAdicional y limiteRevisionesBase cuando vienen informados")
+    void actualizarServicio_aplicaCamposAdicionales() {
+        PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
+                .precioBase(new BigDecimal("10.00"))
+                .tipoItem("PRODUCTO")
+                .cargoRevisionAdicional(new BigDecimal("5.00"))
+                .limiteRevisionesBase(3)
+                .build();
+
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+
+        assertThat(servicio.getTipoItem()).isEqualTo("PRODUCTO");
+        assertThat(servicio.getCargoRevisionAdicional()).isEqualByComparingTo("5.00");
+        assertThat(servicio.getLimiteRevisionesBase()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("actualizarServicio reactiva (ACTIVO) exitosamente cuando el creador si tiene la identidad verificada")
+    void actualizarServicio_reactivaConIdentidadVerificada() {
+        servicio.setEstadoPublicacion("PAUSADO");
+        PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
+                .precioBase(new BigDecimal("10.00"))
+                .estadoPublicacion("ACTIVO")
+                .build();
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioRepository.save(any(Servicio.class))).willReturn(servicio);
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+
+        assertThat(servicio.getEstadoPublicacion()).isEqualTo("ACTIVO");
+        verify(verificacionServicio).estaIdentidadVerificada(1L);
+    }
+
+    @Test
     @DisplayName("actualizarServicio reemplaza las etiquetas cuando la peticion las incluye")
     void actualizarServicio_reemplazaEtiquetas() {
         PeticionActualizarServicio peticion = PeticionActualizarServicio.builder()
@@ -352,6 +497,37 @@ class ServicioCatalogoServicioImplTest {
 
         assertThatThrownBy(() -> servicioCatalogoServicio.obtenerServicioPorId(10L))
                 .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerServicioPorId usa 'Creador' como nombre por defecto si el perfil no tiene usuario asociado")
+    void obtenerServicioPorId_perfilSinUsuario_usaNombrePorDefecto() {
+        PerfilCreador perfilSinUsuario = PerfilCreador.builder().idPerfil(2L).usuario(null).build();
+        Servicio servicioSinUsuario = Servicio.builder()
+                .idServicio(20L).perfil(perfilSinUsuario)
+                .tituloServicio("X").precioBase(BigDecimal.TEN).build();
+        given(servicioRepository.findById(20L)).willReturn(Optional.of(servicioSinUsuario));
+        given(servicioAtributoRepository.findByServicioIdServicio(20L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(20L)).willReturn(List.of());
+
+        RespuestaServicio respuesta = servicioCatalogoServicio.obtenerServicioPorId(20L);
+
+        assertThat(respuesta.getNombreCreador()).isEqualTo("Creador");
+    }
+
+    @Test
+    @DisplayName("obtenerServicioPorId incluye las etiquetas asociadas")
+    void obtenerServicioPorId_incluyeEtiquetas() {
+        Etiqueta etiqueta = Etiqueta.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
+        ServicioEtiqueta se = ServicioEtiqueta.builder().servicio(servicio).etiqueta(etiqueta).build();
+        given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
+        given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of(se));
+
+        RespuestaServicio respuesta = servicioCatalogoServicio.obtenerServicioPorId(10L);
+
+        assertThat(respuesta.getEtiquetas()).hasSize(1);
+        assertThat(respuesta.getEtiquetas().get(0).getNombreEtiqueta()).isEqualTo("Digital");
     }
 
     @Test
@@ -392,6 +568,17 @@ class ServicioCatalogoServicioImplTest {
     }
 
     @Test
+    @DisplayName("listarServiciosPorCreador lista todos cuando el estado viene en blanco")
+    void listarServiciosPorCreador_estadoEnBlanco() {
+        given(perfilRepository.existsById(1L)).willReturn(true);
+        given(servicioRepository.findByPerfilIdPerfil(1L)).willReturn(List.of(servicio));
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
+
+        assertThat(servicioCatalogoServicio.listarServiciosPorCreador(1L, "   ")).hasSize(1);
+        verify(servicioRepository, never()).findByPerfilIdPerfilAndEstadoPublicacion(any(), any());
+    }
+
+    @Test
     @DisplayName("listarServiciosPorCreador lista todos cuando no se indica estado")
     void listarServiciosPorCreador_sinFiltro() {
         given(perfilRepository.existsById(1L)).willReturn(true);
@@ -399,6 +586,21 @@ class ServicioCatalogoServicioImplTest {
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
         assertThat(servicioCatalogoServicio.listarServiciosPorCreador(1L, null)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("listarServiciosPorCreador incluye las etiquetas de cada servicio")
+    void listarServiciosPorCreador_incluyeEtiquetas() {
+        Etiqueta etiqueta = Etiqueta.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
+        ServicioEtiqueta se = ServicioEtiqueta.builder().servicio(servicio).etiqueta(etiqueta).build();
+        given(perfilRepository.existsById(1L)).willReturn(true);
+        given(servicioRepository.findByPerfilIdPerfil(1L)).willReturn(List.of(servicio));
+        given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of(se));
+
+        List<RespuestaServicioResumido> resultado = servicioCatalogoServicio.listarServiciosPorCreador(1L, null);
+
+        assertThat(resultado.get(0).getEtiquetas()).hasSize(1);
+        assertThat(resultado.get(0).getEtiquetas().get(0).getNombreEtiqueta()).isEqualTo("Digital");
     }
 
     @Test
@@ -436,6 +638,48 @@ class ServicioCatalogoServicioImplTest {
                 1L, 1L, BigDecimal.ONE, BigDecimal.TEN, List.of(5L), "ilustracion", null, 0, 10);
 
         assertThat(resultado.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("buscarCatalogoServicios aplica orden por precio descendente")
+    void buscarCatalogoServicios_ordenaPorPrecioDesc() {
+        Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
+        given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
+
+        Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+                null, null, null, null, null, null, "precioDesc", 0, 10);
+
+        assertThat(resultado.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("buscarCatalogoServicios aplica orden por titulo ascendente")
+    void buscarCatalogoServicios_ordenaPorTitulo() {
+        Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
+        given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
+
+        Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+                null, null, null, null, null, null, "tituloServicio,asc", 0, 10);
+
+        assertThat(resultado.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("buscarCatalogoServicios incluye las etiquetas de cada servicio de la pagina")
+    void buscarCatalogoServicios_incluyeEtiquetas() {
+        Etiqueta etiqueta = Etiqueta.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
+        ServicioEtiqueta se = ServicioEtiqueta.builder().servicio(servicio).etiqueta(etiqueta).build();
+        Page<Servicio> pagina = new PageImpl<>(List.of(servicio));
+        given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
+        given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of(se));
+
+        Page<RespuestaServicioResumido> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+                null, null, null, null, null, null, null, 0, 10);
+
+        assertThat(resultado.getContent().get(0).getEtiquetas()).hasSize(1);
+        assertThat(resultado.getContent().get(0).getEtiquetas().get(0).getNombreEtiqueta()).isEqualTo("Digital");
     }
 
     // ---------- Atributos dinamicos ----------

@@ -82,7 +82,7 @@ export class ModServiciosComponent implements OnInit {
       },
       error: (err) => {
         this.quitandoId.set(null);
-        this.toastService.error(err.error?.message || 'No se pudo quitar la subcategoría');
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo quitar la subcategoría');
       }
     });
   }

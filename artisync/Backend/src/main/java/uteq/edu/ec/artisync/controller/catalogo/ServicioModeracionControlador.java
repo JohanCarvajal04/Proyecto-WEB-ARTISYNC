@@ -22,6 +22,14 @@ public class ServicioModeracionControlador {
 
     private final IServicioCatalogoServicio servicioCatalogoServicio;
 
+    /**
+     * Lista los servicios para su revisión en el panel de moderación, con búsqueda de texto y paginación.
+     *
+     * @param texto texto de búsqueda opcional para filtrar servicios
+     * @param page número de página solicitada (base 0)
+     * @param size tamaño de la página
+     * @return página con los servicios resumidos disponibles para moderación
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')")
     public ResponseEntity<Page<RespuestaServicioResumido>> listarParaModeracion(
@@ -31,6 +39,15 @@ public class ServicioModeracionControlador {
         return ResponseEntity.ok(servicioCatalogoServicio.listarParaModeracion(texto, page, size));
     }
 
+    /**
+     * Quita una subcategoría de un servicio ajeno como acción de moderación.
+     *
+     * @param idServicio identificador del servicio
+     * @param idSubcategoria identificador de la subcategoría a quitar
+     * @return el servicio actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws ExcepcionReglaNegocio si el servicio quedaría sin subcategorías tras la operación
+     */
     @DeleteMapping("/{idServicio}/subcategorias/{idSubcategoria}")
     @PreAuthorize("hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaServicio> quitarSubcategoria(

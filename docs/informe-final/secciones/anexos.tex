@@ -11,7 +11,7 @@ fuente de verdad es \texttt{docs/observaciones/OBSERVACIONES.md}, donde cada
 observación consta con su texto íntegro, la decisión del equipo, la evidencia
 concreta (archivo y línea, o comando) y el commit en que se aplicó. Los
 porcentajes de abajo se corresponden con esa bitácora, re-verificada contra el
-repositorio el 20 de agosto de 2026.
+repositorio el 7 de septiembre de 2026.
 
 \begin{table}[H]
 \centering
@@ -23,28 +23,23 @@ repositorio el 20 de agosto de 2026.
 \textbf{Origen} & \textbf{Total} & \textbf{Resueltas} & \textbf{Parciales} &
 \textbf{Pendientes} & \textbf{\% resuelto} \\
 \midrule
-Entrega 1A (09-06-2026)      & 5  & 4  & 0 & 1 & 80,0\,\% \\
+Entrega 1A (09-06-2026)      & 5  & 5  & 0 & 0 & 100,0\,\% \\
 Entrega 1B (29-06-2026)      & 7  & 7  & 0 & 0 & 100,0\,\% \\
 Tercera Entrega              & 4  & 3  & 0 & 1 & 75,0\,\% \\
-Auto-detectadas (rev. téc.)  & 11 & 9  & 2 & 0 & 81,8\,\% \\
+Auto-detectadas (rev. téc.)  & 13 & 12 & 1 & 0 & 92,3\,\% \\
 \midrule
-\textbf{Total}               & \textbf{27} & \textbf{23} & \textbf{2} &
-\textbf{2} & \textbf{85,2\,\%} \\
+\textbf{Total}               & \textbf{29} & \textbf{27} & \textbf{1} &
+\textbf{1} & \textbf{93,1\,\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section*{Razones de las no resueltas}
+\section*{Razones de las no resueltas por completo}
 
-Cuatro observaciones siguen sin resolución completa, y ninguna se presenta
+Tres observaciones siguen sin resolución completa, y ninguna se presenta
 como cerrada sin serlo:
 
 \begin{itemize}
-  \item \textbf{OBS-05} (wireframe genérico, Entrega 1A). La imagen
-    \texttt{Pantalla\_principal.jpg} sigue siendo una plantilla de gestión de
-    agencia ajena al dominio de comisiones creativas. Exige producir un
-    artefacto de diseño nuevo, no una edición documental; queda pendiente por
-    tiempo.
   \item \textbf{OBS-14} (access-token en cookie \texttt{HttpOnly}, Tercera
     Entrega). \emph{Pendiente justificada}: el cambio toca el módulo de
     autenticación, respaldado por 522 pruebas, a muy poca distancia del cierre,
@@ -66,6 +61,12 @@ como cerrada sin serlo:
     6 restantes cubren una categoría funcional cada una, por lo que la vía
     correcta es conectarlas y no retirarlas del catálogo.
 \end{itemize}
+
+OBS-05 (wireframe genérico, Entrega 1A) quedó cerrada el 7 de septiembre de
+2026: ante la falta de tiempo para producir un wireframe de dominio de
+reemplazo, se retiró la imagen \texttt{Pantalla\_principal.jpg} de
+\texttt{docs/diagramas/wireframes/} en vez de seguir presentándola como
+evidencia de elicitación.
 
 Conviene señalar el sentido de la revisión del 20 de agosto: tres
 observaciones que la versión anterior de la bitácora daba por pendientes o
@@ -164,10 +165,14 @@ PEFFERS2007    & J. of Management Information Systems 24(3) & Sí & JCR Q1/Q2 (S
 HAGIU2015      & Int. J. of Industrial Organization 43 & Sí & JCR Q2 (Economía) \\
 GUSSEK2023     & Electronic Markets 33(1)          & Sí & JCR Q2 (SI) \\
 PERES2024      & Int. J. of Research in Marketing 41(3) & Sí & JCR Q1 (Marketing) \\
-CHEN2021       & ACM TOSEM 30(2)                   & Sí & JCR Q1 (SE) \\
-PARK2023       & IEEE Access 11                    & Sí & JCR Q1 \\
-KUMAR2023      & IJRTI 8(4)                        & Sí & JCR Q2 \\
-RAO2022        & IEEE SCC 2022                     & Sí & JCR Q2 \\
+GU2021         & Management Science 67(2)          & Sí & JCR Q1 (Gestión/OR, INFORMS) \\
+TSMART2021     & J. Theoretical and Applied Electronic Commerce Research 16(6) & Sí & JCR Q2 (MDPI, precedente: MONSALVE2023) \\
+ROCHET2003     & J. of the European Economic Association 1(4) & Sí & JCR Q1 (Economía) \\
+RESNICK2000    & Communications of the ACM 43(12)  & Sí & JCR Q1 \\
+TAFESSE2023    & J. of Retailing and Consumer Services 73 & Sí & JCR Q1 (Marketing) \\
+CHIGBU2026     & Frontiers in Sociology 11          & Sí & JCR Q2 (Sociología) \\
+LAKSONO2024    & SMATIKA Jurnal 14(1)              & No & Revista institucional, no indexada Scopus/JCR \\
+BANDARI2026    & IJRASET 14(4)                     & No & Revista de publicación masiva, no indexada Scopus/JCR \\
 MONSALVE2023   & Applied Sciences (MDPI) 13(14)    & Sí & JCR Q2 \\
 KITCHENHAM2007 & EBSE Technical Report             & No & Informe técnico, no journal/conferencia \\
 RALPH2021      & ACM SIGSOFT Software Eng. Notes 46(1) & No & Boletín, no journal JCR \\
@@ -184,10 +189,8 @@ ISO29148, ISO25010, JWT2015, OWASP2021, OWASPSQLI & Estándares/RFC & N/A & Cate
 \end{tabular}
 \end{table}
 
-\textbf{Totales:} 41 referencias en \texttt{referencias.bib}; 36
+\textbf{Totales:} 45 referencias en \texttt{referencias.bib}; 40
 corresponden a literatura académica/técnica citable como parte del
-mínimo de 30 (excluye los 5 estándares/RFC, contados aparte); de esas 36,
-\textbf{20 se clasifican como ``alto impacto''} según el criterio
-estricto de la guía --- cumpliendo satisfactoriamente el mínimo de 20 exigido.
-Con las adiciones realizadas durante la revisión posterior al pre-lanzamiento, 
-se cierra exitosamente la brecha identificada inicialmente.
+mínimo de 30 (excluye los 5 estándares/RFC, contados aparte); de esas 40,
+\textbf{22 se clasifican como ``alto impacto''} según el criterio
+estricto de la guía --- cumpliendo el mínimo de 20 exigido.

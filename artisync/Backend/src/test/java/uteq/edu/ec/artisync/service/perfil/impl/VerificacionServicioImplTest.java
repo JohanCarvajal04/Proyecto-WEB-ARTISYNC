@@ -347,4 +347,42 @@ class VerificacionServicioImplTest {
 
         assertThat(new String(resultado)).isEqualTo("contenido");
     }
+
+    @Test
+    void estaIdentidadVerificada_delegaEnElRepositorio() {
+        when(certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
+                1L, "IDENTIDAD", "APROBADO")).thenReturn(true);
+
+        assertThat(servicio.estaIdentidadVerificada(1L)).isTrue();
+    }
+
+    @Test
+    void obtenerEstadoIdentidad_conCertificadoExistente_devuelveEstadoActual() {
+        EstadoVerificacion aprobado = EstadoVerificacion.builder().idEstadoVerificacion(2L).nombreEstado("APROBADO").build();
+        CertificadoIa certificado = CertificadoIa.builder()
+                .idCertificado(1L).usuario(usuario).estadoVerificacion(aprobado)
+                .tipoDocumento("IDENTIDAD").build();
+        when(certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
+                1L, "IDENTIDAD", "APROBADO")).thenReturn(true);
+        when(certificadoIaRepository.findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(1L, "IDENTIDAD"))
+                .thenReturn(Optional.of(certificado));
+
+        var respuesta = servicio.obtenerEstadoIdentidad(1L);
+
+        assertThat(respuesta.verificado()).isTrue();
+        assertThat(respuesta.estadoActual()).isEqualTo("APROBADO");
+    }
+
+    @Test
+    void obtenerEstadoIdentidad_sinCertificado_devuelveEstadoActualNulo() {
+        when(certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
+                1L, "IDENTIDAD", "APROBADO")).thenReturn(false);
+        when(certificadoIaRepository.findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(1L, "IDENTIDAD"))
+                .thenReturn(Optional.empty());
+
+        var respuesta = servicio.obtenerEstadoIdentidad(1L);
+
+        assertThat(respuesta.verificado()).isFalse();
+        assertThat(respuesta.estadoActual()).isNull();
+    }
 }

@@ -224,8 +224,8 @@ public class PedidoServicioImpl implements IPedidoServicio {
 <span class="pc" id="L224">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
 <span class="fc" id="L225">        PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);</span>
 
-<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
-<span class="nc" id="L228">            throw new ExcepcionReglaNegocio(&quot;No puedes rechazar tu propia propuesta; debe hacerlo la otra parte&quot;);</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
+<span class="fc" id="L228">            throw new ExcepcionReglaNegocio(&quot;No puedes rechazar tu propia propuesta; debe hacerlo la otra parte&quot;);</span>
         }
 <span class="fc" id="L230">        obtenerParteDelPedido(pedido, idUsuario, &quot;No tienes permiso para rechazar esta propuesta&quot;);</span>
 
@@ -244,43 +244,43 @@ public class PedidoServicioImpl implements IPedidoServicio {
     @Override
     @Transactional
     public RespuestaPropuestaTerminos cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
-<span class="nc" id="L247">        PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);</span>
+<span class="fc" id="L247">        PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);</span>
 
-<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (!propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
-<span class="nc" id="L250">            throw new ExcepcionReglaNegocio(&quot;Solo quien propuso los términos puede cancelar la propuesta&quot;);</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">        if (!propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {</span>
+<span class="fc" id="L250">            throw new ExcepcionReglaNegocio(&quot;Solo quien propuso los términos puede cancelar la propuesta&quot;);</span>
         }
 
-<span class="nc" id="L253">        propuesta.setEstado(PropuestaTerminosPedido.CANCELADA);</span>
-<span class="nc" id="L254">        propuesta.setFechaResolucion(LocalDateTime.now());</span>
-<span class="nc" id="L255">        propuesta = propuestaTerminosPedidoRepository.save(propuesta);</span>
+<span class="fc" id="L253">        propuesta.setEstado(PropuestaTerminosPedido.CANCELADA);</span>
+<span class="fc" id="L254">        propuesta.setFechaResolucion(LocalDateTime.now());</span>
+<span class="fc" id="L255">        propuesta = propuestaTerminosPedidoRepository.save(propuesta);</span>
 
-<span class="nc" id="L257">        log.info(&quot;Pedido {} canceló propuesta de términos {} (usuario {})&quot;, idPedido, idPropuesta, idUsuario);</span>
+<span class="fc" id="L257">        log.info(&quot;Pedido {} canceló propuesta de términos {} (usuario {})&quot;, idPedido, idPropuesta, idUsuario);</span>
 
-<span class="nc" id="L259">        return mapPropuesta(propuesta);</span>
+<span class="fc" id="L259">        return mapPropuesta(propuesta);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPropuestaTerminos obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante) {
-<span class="nc" id="L265">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
-<span class="nc" id="L266">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
-<span class="nc" id="L267">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
+<span class="fc" id="L265">        Pedido pedido = pedidoRepository.findById(idPedido)</span>
+<span class="pc" id="L266">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Pedido no encontrado&quot;));</span>
+<span class="fc" id="L267">        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);</span>
 
-<span class="nc" id="L269">        PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository</span>
-<span class="nc" id="L270">                .findByPedidoIdPedidoAndEstado(idPedido, PropuestaTerminosPedido.PENDIENTE)</span>
-<span class="nc" id="L271">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay ninguna propuesta de términos pendiente para el pedido con ID: &quot; + idPedido));</span>
+<span class="fc" id="L269">        PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository</span>
+<span class="fc" id="L270">                .findByPedidoIdPedidoAndEstado(idPedido, PropuestaTerminosPedido.PENDIENTE)</span>
+<span class="fc" id="L271">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No hay ninguna propuesta de términos pendiente para el pedido con ID: &quot; + idPedido));</span>
 
-<span class="nc" id="L273">        return mapPropuesta(propuesta);</span>
+<span class="fc" id="L273">        return mapPropuesta(propuesta);</span>
     }
 
     private PropuestaTerminosPedido obtenerPropuestaPendienteDelPedido(Long idPedido, Long idPropuesta) {
 <span class="fc" id="L277">        PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository.findById(idPropuesta)</span>
-<span class="pc" id="L278">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Propuesta no encontrada&quot;));</span>
-<span class="pc bpc" id="L279" title="1 of 2 branches missed.">        if (!propuesta.getPedido().getIdPedido().equals(idPedido)) {</span>
-<span class="nc" id="L280">            throw new ExcepcionRecursoNoEncontrado(&quot;Propuesta no encontrada&quot;);</span>
+<span class="fc" id="L278">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Propuesta no encontrada&quot;));</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">        if (!propuesta.getPedido().getIdPedido().equals(idPedido)) {</span>
+<span class="fc" id="L280">            throw new ExcepcionRecursoNoEncontrado(&quot;Propuesta no encontrada&quot;);</span>
         }
-<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (!PropuestaTerminosPedido.PENDIENTE.equals(propuesta.getEstado())) {</span>
-<span class="nc" id="L283">            throw new ExcepcionReglaNegocio(&quot;Esta propuesta ya fue resuelta&quot;);</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">        if (!PropuestaTerminosPedido.PENDIENTE.equals(propuesta.getEstado())) {</span>
+<span class="fc" id="L283">            throw new ExcepcionReglaNegocio(&quot;Esta propuesta ya fue resuelta&quot;);</span>
         }
 <span class="fc" id="L285">        return propuesta;</span>
     }

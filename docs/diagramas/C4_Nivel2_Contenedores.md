@@ -29,69 +29,37 @@ En este nivel se abre la caja negra del sistema para mostrar los **contenedores 
 
 ## 2. Código DSL para Structurizr Lite
 
-El siguiente código DSL modela el contenedor para **Structurizr Lite**:
+El modelo formal en DSL de Structurizr (contexto y contenedores) ya **no está embebido en este Markdown**: vive como archivo fuente independiente en [`docs/diagramas/workspace.dsl`](workspace.dsl) (vista `container`), listo para cargarse directamente en Structurizr Lite (`docker run -p 8080:8080 -v ./docs/diagramas:/usr/local/structurizr structurizr/lite`). El bloque siguiente es una copia de solo lectura, a título ilustrativo, de esa misma fuente:
 
 ```groovy
-workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Diagrama C4 Nivel 2: Contenedores de Software" {
-
+workspace "Artisync - Plataforma para Artistas y Creadores de Contenido" "Modelo C4 (Structurizr DSL): Nivel 1 Contexto y Nivel 2 Contenedores." {
     model {
-        cliente = person "Cliente / Buscador de Talento" "Usuario que busca servicios creativos, aprueba hitos y realiza depósitos en garantía." "Person"
-        artista = person "Artista / Creador de Contenido" "Profesional que ofrece sus servicios, publica portafolio y gestiona pedidos." "Person"
-        admin = person "Administrador del Sistema" "Supervisa la seguridad, roles granulares, modera catálogos y resuelve disputas legales." "Admin"
+        cliente = person "Cliente / Buscador de Talento" "..."
+        artista = person "Artista / Creador de Contenido" "..."
+        admin = person "Administrador de la Plataforma" "..."
 
-        smtpSystem = softwareSystem "Servicio de Correo Transaccional" "Servidor SMTP saliente (Gmail / SendGrid) para correos 2FA, verificación y alertas." "External System"
-        paypalSystem = softwareSystem "Pasarela de Pagos (PayPal API v2)" "Plataforma externa para procesamiento transaccional, retención Escrow y notificaciones por Webhook." "External System"
-        cloudStorageSystem = softwareSystem "Almacenamiento Cloud / CDN" "Servicio en nube para persistencia y streaming de recursos multimedia pesados." "External System"
+        smtpSystem = softwareSystem "Servicio de Correo Transaccional" "..." "External System"
+        paypalSystem = softwareSystem "Pasarela de Pagos (PayPal API v2)" "..." "External System"
+        cloudStorageSystem = softwareSystem "Almacenamiento Cloud / CDN" "..." "External System"
 
-        artisyncSystem = softwareSystem "Plataforma Artisync (PFC)" "Sistema integral de gestión para artistas y clientes con hitos, pagos en garantía y comunidad." "System" {
-            
-            webApp = container "Aplicación Web SPA (Frontend)" "Proporciona la interfaz gráfica interactiva, responsiva y orientada a componentes para todos los perfiles de usuario." "Angular 22 / TypeScript / Nginx" "WebBrowser"
-            
-            apiServer = container "Servicio API REST (Backend)" "Orquesta la lógica de negocio modular, autenticación JWT, seguridad e integración externa." "Java 21 / Spring Boot 4.1.0 / Spring Security 6" "Backend"
-            
-            db = container "Base de Datos Relacional" "Almacena los esquemas relacionales, datos de usuarios, pedidos, hitos y contratos migradas con Flyway." "PostgreSQL 16" "Database"
-            
-            cache = container "Almacén en Memoria / Blacklist" "Mantiene la lista de revocación de tokens JWT (JTI) en tiempo real con TTL y caché rápida de catálogos (Cache-Aside)." "Redis 7 Alpine" "Cache"
+        artisyncSystem = softwareSystem "Plataforma Artisync (PFC)" "..." "System" {
+            webApp = container "Aplicación Web SPA (Frontend)" "..." "Angular 22 / TypeScript / Nginx" "WebBrowser"
+            apiServer = container "Servidor API REST (Backend)" "..." "Java 21 / Spring Boot 4.1.0 / Spring Security 6" "Backend"
+            db = container "Base de Datos Relacional" "..." "PostgreSQL 16" "Database"
+            cache = container "Almacén en Memoria / Caché" "..." "Redis 7 Alpine" "Cache"
         }
-
-        // Interacciones Usuarios -> Frontend
-        cliente -> webApp "Accede a portafolio, cotiza pedidos, paga y aprueba hitos" "HTTPS / Puerto 4200/443"
-        artista -> webApp "Gestiona catálogo, sube avances de hitos y cobra por proyectos" "HTTPS / Puerto 4200/443"
-        admin -> webApp "Modera catálogos, asigna permisos y resuelve disputas" "HTTPS / Puerto 4200/443"
-
-        // Interacciones Frontend -> Backend API
-        webApp -> apiServer "Consume servicios REST, autentica con JWT Bearer e invoca comandos transaccionales" "HTTPS / REST JSON / Puerto 8080"
-
-        // Interacciones Backend API -> Contenedores de Datos
-        apiServer -> db "Lee y escribe entidades de dominio transaccionales (ACID) y ejecuta migraciones Flyway" "JDBC / TCP / Puerto 5432"
-        apiServer -> cache "Consulta y almacena JTI en blacklist, sesiones revocadas y caché de catálogos" "Redis Protocol (RESP) / TCP / Puerto 6379"
-
-        // Interacciones Backend API -> Sistemas Externos
-        apiServer -> smtpSystem "Envía correos asíncronos (@Async) con plantillas Thymeleaf" "SMTP / TLS / Puerto 587"
-        apiServer -> paypalSystem "Crea órdenes y gestiona depósitos de garantía Escrow" "HTTPS / REST JSON v2"
-        paypalSystem -> apiServer "Envía notificaciones de pago confirmadas o disputadas" "HTTPS / Webhooks (POST)"
-        apiServer -> cloudStorageSystem "Sube y genera URLs pre-firmadas para recursos multimedia" "HTTPS / REST Azure"
+        // ... interacciones de contexto y de contenedor: ver workspace.dsl
     }
 
     views {
-        container artisyncSystem "C4_Containers_Artisync" {
-            include *
-            autoLayout topBottom
-            description "Diagrama C4 Nivel 2 (Contenedores) que muestra la arquitectura distribuida de la plataforma Artisync."
-        }
-
-        styles {
-            element "Person" { shape Person; background #08427b; color #ffffff; fontSize 20; }
-            element "Admin" { shape Person; background #990000; color #ffffff; fontSize 20; }
-            element "WebBrowser" { shape WebBrowser; background #2b5c8f; color #ffffff; fontSize 18; }
-            element "Backend" { shape RoundedBox; background #1168bd; color #ffffff; fontSize 18; fontStyle bold; }
-            element "Database" { shape Cylinder; background #387c2b; color #ffffff; fontSize 18; }
-            element "Cache" { shape Cylinder; background #c12c2c; color #ffffff; fontSize 18; }
-            element "External System" { shape RoundedBox; background #999999; color #ffffff; fontSize 18; }
-        }
+        systemContext artisyncSystem "C4_Context_Artisync" { include *; autoLayout topBottom }
+        container artisyncSystem "C4_Containers_Artisync" { include *; autoLayout topBottom }
+        styles { /* ver workspace.dsl para la definición completa de estilos */ }
     }
 }
 ```
+
+**Fuente completa y autoritativa:** [`docs/diagramas/workspace.dsl`](workspace.dsl).
 
 ---
 
@@ -149,47 +117,47 @@ Rel(backend, storage, "Gestiona subida y URLs seguras para archivos multimedia",
 
 ```mermaid
 flowchart TB
-    subgraph Users["👤 Actores del Sistema"]
-        C["👨‍💻 Cliente / Buscador de Talento"]
-        A["🎨 Artista / Creador de Contenido"]
-        ADM["🛡️ Administrador del Sistema"]
+    subgraph Users["👤 System Actors"]
+        C["👨‍💻 Client / Talent Seeker"]
+        A["🎨 Artist / Content Creator"]
+        ADM["🛡️ Platform Administrator"]
     end
 
-    subgraph Artisync["🏢 Plataforma Artisync (Límite del Sistema - Docker Compose)"]
+    subgraph Artisync["🏢 Artisync Platform (System Boundary - Docker Compose)"]
         direction TB
-        FE["🌐 Aplicación Web SPA (Frontend)<br>----------------------------------------<br>Angular 22 / TypeScript / Nginx<br>Puerto: 4200 / 80"]
+        FE["🌐 Web SPA Application (Frontend)<br>----------------------------------------<br>Angular 22 / TypeScript / Nginx<br>Port: 4200 / 80"]
         
-        BE["⚙️ Servidor API REST (Backend)<br>----------------------------------------<br>Java 21 / Spring Boot 4.1.0 / Security 6<br>Puerto: 8080 (REST JSON)"]
+        BE["⚙️ REST API Server (Backend)<br>----------------------------------------<br>Java 21 / Spring Boot 4.1.0 / Security 6<br>Port: 8080 (REST JSON)"]
         
-        subgraph DataTier["Persistencia & Caché de Alta Velocidad"]
-            DB[("🗄️ Base de Datos Relacional<br>-------------------------<br>PostgreSQL 16 (pfc_postgres)<br>Puerto: 5432 / Flyway")]
-            REDIS[("⚡ Caché & Blacklist JTI<br>-------------------------<br>Redis 7 Alpine (pfc_redis)<br>Puerto: 6379 / TTL O(1)")]
+        subgraph DataTier["High-Speed Persistence & Cache"]
+            DB[("🗄️ Relational Database<br>-------------------------<br>PostgreSQL 16 (pfc_postgres)<br>Port: 5432 / Flyway")]
+            REDIS[("⚡ Cache & JTI Blacklist<br>-------------------------<br>Redis 7 Alpine (pfc_redis)<br>Port: 6379 / TTL O(1)")]
         end
     end
 
-    subgraph External["🌐 Sistemas Externos"]
-        SMTP["📧 Correo Transaccional (SMTP TLS 587)"]
+    subgraph External["🌐 External Systems"]
+        SMTP["📧 Transactional Email (SMTP TLS 587)"]
         PAY["💳 PayPal API v2 & Webhooks (Escrow)"]
-        CLOUD["☁️ Cloud Storage / CDN Multimedia"]
+        CLOUD["☁️ Cloud Storage / Media CDN"]
     end
 
-    %% Relaciones Usuario -> Frontend
-    C -- "HTTPS / 4200<br>Solicita y aprueba pedidos" --> FE
-    A -- "HTTPS / 4200<br>Gestiona portafolio y entregables" --> FE
-    ADM -- "HTTPS / 4200<br>Modera y resuelve tickets" --> FE
+    %% User -> Frontend relationships
+    C -- "HTTPS / 4200<br>Requests and approves orders" --> FE
+    A -- "HTTPS / 4200<br>Manages portfolio and deliverables" --> FE
+    ADM -- "HTTPS / 4200<br>Moderates and resolves tickets" --> FE
 
-    %% Relación Frontend -> Backend
+    %% Frontend -> Backend relationship
     FE -- "HTTPS / REST JSON<br>Authorization: Bearer <JWT>" --> BE
 
-    %% Relaciones Backend -> Datos
-    BE -- "JDBC / Hibernate JPA<br>Transacciones ACID (@Transactional)" --> DB
-    BE -- "RESP Protocol / RedisTemplate<br>Consulta Blacklist y Cache-Aside" --> REDIS
+    %% Backend -> Data relationships
+    BE -- "JDBC / Hibernate JPA<br>ACID transactions (@Transactional)" --> DB
+    BE -- "RESP Protocol / RedisTemplate<br>Checks blacklist and cache-aside" --> REDIS
 
-    %% Relaciones Backend -> Externos
-    BE -- "SMTP / TLS 587<br>Envío de correos (@Async)" --> SMTP
-    BE -- "HTTPS / REST API v2<br>Creación de órdenes Escrow" --> PAY
-    PAY -- "HTTPS Webhook POST<br>Notificación de pagos" --> BE
-    BE -- "HTTPS / REST API<br>Subida de archivos multimedia" --> CLOUD
+    %% Backend -> External relationships
+    BE -- "SMTP / TLS 587<br>Sends emails (@Async)" --> SMTP
+    BE -- "HTTPS / REST API v2<br>Creates escrow orders" --> PAY
+    PAY -- "HTTPS Webhook POST<br>Payment notification" --> BE
+    BE -- "HTTPS / REST API<br>Uploads media files" --> CLOUD
 
     style FE fill:#2b5c8f,stroke:#1b3d5f,stroke-width:2px,color:#fff
     style BE fill:#1168bd,stroke:#08427b,stroke-width:3px,color:#fff

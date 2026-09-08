@@ -61,15 +61,6 @@ export interface RespuestaBriefing {
   preguntas: PreguntaRespuestaItem[];
 }
 
-export interface RespuestaItemBriefing {
-  idPregunta: number;
-  textoRespuesta: string;
-}
-
-export interface PeticionResponderBriefing {
-  respuestas: RespuestaItemBriefing[];
-}
-
 // ── Briefing: plantillas del creador ──
 export interface PreguntaPlantilla {
   textoPregunta: string;
@@ -79,10 +70,6 @@ export interface PreguntaPlantilla {
 export interface PeticionCrearBriefingPlantilla {
   nombrePlantilla: string;
   preguntas: PreguntaPlantilla[];
-}
-
-export interface PeticionEnviarBriefing {
-  idBriefingPlantilla: number;
 }
 
 /** Topes declarados por @Size en PeticionCrearBriefingPlantilla (RF-16). */

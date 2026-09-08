@@ -1,5 +1,56 @@
 /* Formulario de creación / edición de servicios. */
 
+/* ── Indicador de secciones ── */
+
+.sf-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem 0;
+}
+
+.sf-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem 0.5rem 0.5rem;
+  border: 1px solid var(--cr-border-strong);
+  border-radius: var(--cr-radius-pill);
+  background: var(--cr-surface);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cr-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sf-step:hover { border-color: var(--cr-teal); color: var(--cr-teal-strong); }
+
+.sf-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: var(--cr-surface-alt);
+  color: var(--cr-text-muted);
+  font-size: 0.6875rem;
+  flex-shrink: 0;
+}
+
+.sf-step.is-active {
+  border-color: var(--cr-teal);
+  background: var(--cr-teal-soft);
+  color: var(--cr-teal-strong);
+}
+
+.sf-step.is-active .sf-step__num { background: var(--cr-teal); color: #ffffff; }
+
+.sf-step.is-done { color: var(--cr-text); }
+.sf-step.is-done .sf-step__num { background: var(--cr-ok); color: #ffffff; }
+
 .sf-counter {
   display: flex;
   align-items: center;

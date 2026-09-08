@@ -5,17 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
-import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
 import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
@@ -27,7 +23,9 @@ import java.util.stream.Collectors;
 
 /**
  * Implementación del servicio de briefing.
- * RF-16: Formulario interactivo de hasta 10 preguntas; respuestas inmutables.
+ * REQ-F-016 ampliado: la plantilla se asigna a un servicio y sus respuestas
+ * se registran al crear el pedido (ver PedidoServicioImpl); este servicio
+ * conserva la gestión de plantillas del creador y la lectura de respuestas.
  */
 @Slf4j
 @Service
@@ -37,11 +35,9 @@ public class BriefingServiceImpl implements BriefingService {
     private static final int MAX_PREGUNTAS = 10;
 
     private final BriefingPlantillaRepository plantillaRepo;
-    private final BriefingPreguntaRepository  preguntaRepo;
     private final BriefingEnviadoRepository   enviadoRepo;
     private final BriefingRespuestaRepository respuestaRepo;
     private final PerfilCreadorRepository     perfilRepo;
-    private final PedidoRepository            pedidoRepo;
 
     // =========================================================================
     // Gestión de plantillas (CREADOR)
@@ -49,9 +45,8 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional
-    public RespuestaBriefing crearPlantilla(Long idPerfilCreador, PeticionCrearBriefingPlantilla peticion) {
-        PerfilCreador perfil = perfilRepo.findById(idPerfilCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil creador no encontrado: " + idPerfilCreador));
+    public RespuestaBriefing crearPlantilla(Long idUsuario, PeticionCrearBriefingPlantilla peticion) {
+        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
 
         validarCantidadPreguntas(peticion.getPreguntas().size());
 
@@ -65,14 +60,15 @@ public class BriefingServiceImpl implements BriefingService {
         agregarPreguntas(plantilla, peticion.getPreguntas());
         plantilla = plantillaRepo.save(plantilla);
 
-        log.info("Plantilla de briefing '{}' creada para perfil {}", peticion.getNombrePlantilla(), idPerfilCreador);
+        log.info("Plantilla de briefing '{}' creada para perfil {}", peticion.getNombrePlantilla(), perfil.getIdPerfil());
         return mapPlantillaToResponse(plantilla, null);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RespuestaBriefing> obtenerMisPlantillas(Long idPerfilCreador) {
-        return plantillaRepo.findByPerfilCreadorIdPerfil(idPerfilCreador)
+    public List<RespuestaBriefing> obtenerMisPlantillas(Long idUsuario) {
+        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
+        return plantillaRepo.findByPerfilCreadorIdPerfil(perfil.getIdPerfil())
                 .stream()
                 .map(p -> mapPlantillaToResponse(p, null))
                 .toList();
@@ -80,12 +76,13 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional
-    public RespuestaBriefing editarPlantilla(Long idPlantilla, Long idPerfilCreador,
+    public RespuestaBriefing editarPlantilla(Long idPlantilla, Long idUsuario,
                                              PeticionCrearBriefingPlantilla peticion) {
+        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla no encontrada: " + idPlantilla));
 
-        if (!plantilla.getPerfilCreador().getIdPerfil().equals(idPerfilCreador)) {
+        if (!plantilla.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
             throw new ExcepcionReglaNegocio("No tienes permiso para editar esta plantilla");
         }
 
@@ -104,11 +101,12 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional
-    public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idPerfilCreador) {
+    public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idUsuario) {
+        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla no encontrada: " + idPlantilla));
 
-        if (!plantilla.getPerfilCreador().getIdPerfil().equals(idPerfilCreador)) {
+        if (!plantilla.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
             throw new ExcepcionReglaNegocio("No tienes permiso para eliminar esta plantilla");
         }
 
@@ -117,39 +115,28 @@ public class BriefingServiceImpl implements BriefingService {
         return new RespuestaMensaje("Plantilla eliminada correctamente");
     }
 
-    // =========================================================================
-    // Envío y respuesta de briefing
-    // =========================================================================
-
-    @Override
-    @Transactional
-    public RespuestaBriefing enviarBriefing(Long idPedido, PeticionEnviarBriefing peticion, Long idCreador) {
-        if (enviadoRepo.existsByPedidoIdPedido(idPedido)) {
-            throw new ExcepcionReglaNegocio("Ya se envió un briefing para este pedido");
-        }
-
-        Pedido pedido = pedidoRepo.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado: " + idPedido));
-
-        BriefingPlantilla plantilla = plantillaRepo.findById(peticion.getIdBriefingPlantilla())
+    /**
+     * id_perfil y id_usuario son secuencias independientes (PerfilCreador.idPerfil
+     * es su propio IDENTITY, no comparte clave con Usuario) — resolver el
+     * PerfilCreador propio SIEMPRE pasa por esta búsqueda por id_usuario, nunca
+     * por un findById(idUsuario) directo sobre PerfilCreadorRepository (ese fue
+     * el bug: buscaba una fila de perfil con el id de usuario como si fueran
+     * el mismo id, y fallaba con "Perfil creador no encontrado" para cualquier
+     * cuenta cuyos ids no coincidieran por casualidad).
+     */
+    private PerfilCreador resolverPerfilPropio(Long idUsuario) {
+        return perfilRepo.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
-                        "Plantilla no encontrada: " + peticion.getIdBriefingPlantilla()));
-
-        // Verificar que la plantilla pertenece al creador del servicio
-        if (!plantilla.getPerfilCreador().getUsuario().getIdUsuario().equals(idCreador)) {
-            throw new ExcepcionReglaNegocio("No tienes permiso para usar esta plantilla");
-        }
-
-        BriefingEnviado enviado = BriefingEnviado.builder()
-                .pedido(pedido)
-                .plantilla(plantilla)
-                .completado(false)
-                .build();
-        enviado = enviadoRepo.save(enviado);
-
-        log.info("Briefing enviado al pedido {} con plantilla '{}'", idPedido, plantilla.getNombrePlantilla());
-        return mapEnviadoToResponse(enviado);
+                        "No tienes un perfil de creador configurado"));
     }
+
+    // =========================================================================
+    // Lectura del briefing respondido (solo lectura)
+    // =========================================================================
+    // El envío y la respuesta ya no son endpoints propios: REQ-F-016 ampliado
+    // los colapsó en PedidoServicioImpl.crearPedido (validarRespuestasBriefingCompletas
+    // + registrarBriefingCompletado), porque el cuestionario ahora cuelga del
+    // servicio (Servicio.briefingPlantilla) y se responde al crear el pedido.
 
     @Override
     @Transactional(readOnly = true)
@@ -160,53 +147,6 @@ public class BriefingServiceImpl implements BriefingService {
         // Evita que cualquier autenticado lea el briefing (datos de
         // presupuesto/proyecto) de un pedido ajeno.
         ValidadorPertenenciaPedido.validarPertenenciaOAdmin(enviado.getPedido(), idUsuarioSolicitante);
-        return mapEnviadoToResponse(enviado);
-    }
-
-    @Override
-    @Transactional
-    public RespuestaBriefing responderBriefing(Long idPedido, PeticionResponderBriefing peticion, Long idCliente) {
-        BriefingEnviado enviado = enviadoRepo.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
-                        "No existe briefing para el pedido " + idPedido));
-
-        // RF-16: Inmutabilidad — no se puede responder dos veces
-        if (Boolean.TRUE.equals(enviado.getCompletado())) {
-            throw new ExcepcionReglaNegocio(
-                    "Las respuestas del briefing no pueden modificarse una vez enviadas");
-        }
-
-        // Verificar que el cliente es el propietario del pedido
-        if (!enviado.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
-            throw new ExcepcionReglaNegocio("No tienes permiso para responder este briefing");
-        }
-
-        // Persistir cada respuesta
-        for (PeticionResponderBriefing.RespuestaItem item : peticion.getRespuestas()) {
-            BriefingPregunta pregunta = preguntaRepo.findById(item.getIdPregunta())
-                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
-                            "Pregunta no encontrada: " + item.getIdPregunta()));
-
-            BriefingRespuesta respuesta = BriefingRespuesta.builder()
-                    .briefingEnviado(enviado)
-                    .pregunta(pregunta)
-                    .textoRespuesta(item.getTextoRespuesta())
-                    .build();
-            respuestaRepo.save(respuesta);
-        }
-
-        enviado.setCompletado(true);
-        enviado = enviadoRepo.save(enviado);
-
-        log.info("Briefing del pedido {} completado por el cliente {}", idPedido, idCliente);
-
-        // RF-17 no se resolvió generando el contrato automáticamente aquí: cliente
-        // y creador todavía negocian precio/fecha por chat después del briefing
-        // (ver "Negociar términos" en PedidoDetalleComponent), y el contrato se
-        // genera recién cuando ese acuerdo cierra, con el botón "Generar contrato"
-        // del chat (ChatPedidoComponent.generarContrato -> POST /contratos/pedido/
-        // {idPedido}). Generarlo aquí saltaría esa negociación.
-
         return mapEnviadoToResponse(enviado);
     }
 

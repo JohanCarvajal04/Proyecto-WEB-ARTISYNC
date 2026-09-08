@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
@@ -25,10 +25,9 @@ import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IPagoServicio;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
-import java.util.Base64;
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -47,42 +46,19 @@ public class PagoServicioImpl implements IPagoServicio {
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final NotificacionService notificacionService;
+    private final PayPalClient payPalClient;
 
     /**
-     * Mapper propio, no el del contexto: la app no expone un bean ObjectMapper
-     * (otros componentes ya lo inyectan con required=false), y además el
-     * contrato con PayPal no debe verse afectado por personalizaciones de
-     * serialización de la aplicación.
+     * Mapper propio, no el del contexto: el contrato con PayPal no debe verse
+     * afectado por personalizaciones de serialización de la aplicación.
      */
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    /**
-     * No es `final` para que las pruebas puedan sustituirlo: el camino de
-     * verificación y captura es el que mueve dinero y conviene poder ejercitarlo
-     * sin salir a la red.
-     */
-    private RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${paypal.client-id:sandbox_client_id}")
-    private String paypalClientId;
-
-    @Value("${paypal.client-secret:sandbox_client_secret}")
-    private String paypalClientSecret;
-
-    @Value("${paypal.mode:sandbox}")
-    private String paypalMode;
 
     @Value("${paypal.webhook-id:}")
     private String paypalWebhookId;
 
     @Value("${app.frontend.url:http://localhost:4200}")
     private String frontendUrl;
-
-    private String getPayPalBaseUrl() {
-        return "sandbox".equalsIgnoreCase(paypalMode)
-                ? "https://api-m.sandbox.paypal.com"
-                : "https://api-m.paypal.com";
-    }
 
     // ── Creación de la orden ─────────────────────────────────────────────────
 
@@ -128,7 +104,16 @@ public class PagoServicioImpl implements IPagoServicio {
             pago.setIdOrdenPaypal(orderId);
             pago.setMontoRetenido(montoFinal);
             pago.setEstadoFondos(FONDOS_PENDIENTE);
-            pago = pagoGarantiaRepository.save(pago);
+            try {
+                pago = pagoGarantiaRepository.save(pago);
+            } catch (DataIntegrityViolationException e) {
+                // Carrera entre el findByContratoIdContrato de arriba y este
+                // insert/update: id_contrato es UNIQUE, así que dos clics casi
+                // simultáneos sobre el mismo contrato no pueden colar dos filas
+                // en pagos_garantia. Mismo patrón que
+                // SolicitudRetiroServicioImpl.solicitar.
+                throw new ExcepcionReglaNegocio("Este pedido ya tiene un pago en curso");
+            }
 
             log.info("Orden PayPal {} creada para pedido {} por ${}", orderId, idPedido, montoFinal);
 
@@ -168,7 +153,7 @@ public class PagoServicioImpl implements IPagoServicio {
                 .put("return_url", retorno)
                 .put("cancel_url", retorno);
 
-        return llamarPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
+        return payPalClient.llamarPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
     }
 
     private String extraerApprovalUrl(JsonNode orden) {
@@ -304,7 +289,7 @@ public class PagoServicioImpl implements IPagoServicio {
             peticion.put("webhook_id", paypalWebhookId);
             peticion.set("webhook_event", evento);
 
-            JsonNode respuesta = llamarPayPal("/v1/notifications/verify-webhook-signature",
+            JsonNode respuesta = payPalClient.llamarPayPal("/v1/notifications/verify-webhook-signature",
                     HttpMethod.POST, peticion);
 
             return "SUCCESS".equals(respuesta.path("verification_status").asText());
@@ -322,7 +307,7 @@ public class PagoServicioImpl implements IPagoServicio {
      */
     private boolean capturarOrden(String orderId) {
         try {
-            JsonNode respuesta = llamarPayPal("/v2/checkout/orders/" + orderId + "/capture",
+            JsonNode respuesta = payPalClient.llamarPayPal("/v2/checkout/orders/" + orderId + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());
             String estado = respuesta.path("status").asText();
             if (!"COMPLETED".equals(estado)) {
@@ -373,39 +358,4 @@ public class PagoServicioImpl implements IPagoServicio {
                 .build();
     }
 
-    // ── Cliente HTTP de PayPal ───────────────────────────────────────────────
-
-    /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
-    private JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(obtenerAccessToken());
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<String> peticion = new HttpEntity<>(cuerpo != null ? cuerpo.toString() : null, headers);
-
-        ResponseEntity<String> respuesta = restTemplate.exchange(
-                getPayPalBaseUrl() + ruta, metodo, peticion, String.class);
-
-        try {
-            return objectMapper.readTree(respuesta.getBody());
-        } catch (Exception e) {
-            throw new ExcepcionReglaNegocio("Respuesta ilegible de PayPal en " + ruta);
-        }
-    }
-
-    private String obtenerAccessToken() {
-        HttpHeaders headers = new HttpHeaders();
-        String credentials = Base64.getEncoder().encodeToString(
-                (paypalClientId + ":" + paypalClientSecret).getBytes());
-        headers.set("Authorization", "Basic " + credentials);
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                getPayPalBaseUrl() + "/v1/oauth2/token",
-                HttpMethod.POST, request, Map.class);
-
-        return (String) response.getBody().get("access_token");
-    }
 }

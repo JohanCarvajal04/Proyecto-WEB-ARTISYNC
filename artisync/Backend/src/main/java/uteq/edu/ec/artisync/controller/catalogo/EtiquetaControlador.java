@@ -20,16 +20,35 @@ public class EtiquetaControlador {
 
     private final IEtiquetaServicio etiquetaServicio;
 
+    /**
+     * Lista todas las etiquetas disponibles en el catálogo.
+     *
+     * @return listado de etiquetas
+     */
     @GetMapping
     public ResponseEntity<List<RespuestaEtiqueta>> listarEtiquetas() {
         return ResponseEntity.ok(etiquetaServicio.listarEtiquetas());
     }
 
+    /**
+     * Obtiene una etiqueta por su identificador.
+     *
+     * @param id identificador de la etiqueta
+     * @return la etiqueta solicitada
+     * @throws ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     */
     @GetMapping("/{id}")
     public ResponseEntity<RespuestaEtiqueta> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(etiquetaServicio.obtenerPorId(id));
     }
 
+    /**
+     * Crea una nueva etiqueta en el catálogo.
+     *
+     * @param peticion datos de la etiqueta a crear
+     * @return la etiqueta creada, con estado 201
+     * @throws ExcepcionReglaNegocio si ya existe una etiqueta con el mismo nombre
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaEtiqueta> crearEtiqueta(@Valid @RequestBody PeticionCrearEtiqueta peticion) {
@@ -39,6 +58,13 @@ public class EtiquetaControlador {
     // Mismo criterio que CategoriaControlador: MODERADOR administra el
     // catálogo completo (categorías, subcategorías y etiquetas) vía el
     // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
+    /**
+     * Elimina una etiqueta del catálogo.
+     *
+     * @param id identificador de la etiqueta a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> eliminarEtiqueta(@PathVariable Long id) {

@@ -57,16 +57,16 @@ public class UserServiceImpl implements UserService {
 <span class="fc" id="L57">        Usuario usuario = usuarioRepository.findByCorreo(correo)</span>
 <span class="pc" id="L58">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="pc bpc" id="L60" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
+<span class="fc bfc" id="L60" title="All 4 branches covered.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
 <span class="fc" id="L61">            usuario.setNombres(request.getNombres());</span>
         }
-<span class="pc bpc" id="L63" title="3 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
-<span class="nc" id="L64">            usuario.setApellidos(request.getApellidos());</span>
+<span class="fc bfc" id="L63" title="All 4 branches covered.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="fc" id="L64">            usuario.setApellidos(request.getApellidos());</span>
         }
-<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
-<span class="nc" id="L67">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="fc" id="L67">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
         }
-<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (request.getIdPais() != null) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
 <span class="fc" id="L70">            Pais pais = paisRepository.findById(request.getIdPais())</span>
 <span class="fc" id="L71">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
 <span class="fc" id="L72">            usuario.setPais(pais);</span>

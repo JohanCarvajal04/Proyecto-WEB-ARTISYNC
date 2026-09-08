@@ -58,7 +58,7 @@ public class SorteoServiceImpl implements SorteoService {
             detalle = &quot;{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}&quot;)
     public RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion) {
 <span class="fc" id="L60">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
-<span class="pc" id="L61">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+<span class="fc" id="L61">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
                         &quot;No tienes un perfil de creador activo&quot;));
 
 <span class="fc bfc" id="L64" title="All 2 branches covered.">        if (peticion.getFechaCierre().isBefore(peticion.getFechaInicio())) {</span>
@@ -125,17 +125,17 @@ public class SorteoServiceImpl implements SorteoService {
         // anterior a la fechaInicio original dejaba el sorteo en un estado
         // imposible — participar() rechaza tanto &quot;aún no ha comenzado&quot; como
         // &quot;el periodo de inscripción ha finalizado&quot; para cualquier instante.
-<span class="pc bpc" id="L128" title="1 of 4 branches missed.">        if (peticion.getFechaCierre() != null &amp;&amp; peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {</span>
+<span class="fc bfc" id="L128" title="All 4 branches covered.">        if (peticion.getFechaCierre() != null &amp;&amp; peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {</span>
 <span class="fc" id="L129">            throw new ExcepcionReglaNegocio(</span>
                     &quot;La fecha de cierre debe ser posterior a la fecha de inicio del sorteo&quot;);
         }
 
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());</span>
 <span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (peticion.getDescripcionPremios() != null) sorteo.setDescripcionPremios(peticion.getDescripcionPremios());</span>
-<span class="pc bpc" id="L135" title="2 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getCantidadGanadores() != null)</span>
+<span class="pc bpc" id="L135" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getCantidadGanadores() != null)</span>
 <span class="fc" id="L136">            sorteo.setCantidadGanadores(peticion.getCantidadGanadores());</span>
-<span class="pc bpc" id="L137" title="2 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getFechaCierre() != null)</span>
-<span class="nc" id="L138">            sorteo.setFechaCierre(peticion.getFechaCierre());</span>
+<span class="pc bpc" id="L137" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getFechaCierre() != null)</span>
+<span class="fc" id="L138">            sorteo.setFechaCierre(peticion.getFechaCierre());</span>
 
 <span class="fc" id="L140">        sorteo = sorteoRepository.save(sorteo);</span>
 <span class="fc" id="L141">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
@@ -164,9 +164,9 @@ public class SorteoServiceImpl implements SorteoService {
 <span class="fc" id="L164">                .stream()</span>
 <span class="fc" id="L165">                .map(s -&gt; {</span>
 <span class="fc" id="L166">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
-<span class="pc bpc" id="L167" title="1 of 2 branches missed.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
-<span class="pc bnc" id="L168" title="All 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
-<span class="nc" id="L169">                                    s.getIdSorteo(), idUsuarioActual);</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
+<span class="fc" id="L169">                                    s.getIdSorteo(), idUsuarioActual);</span>
 <span class="fc" id="L170">                    return mapToResponse(s, null, total, yoParticipo);</span>
                 })
 <span class="fc" id="L172">                .collect(Collectors.toList());</span>
@@ -179,9 +179,9 @@ public class SorteoServiceImpl implements SorteoService {
 <span class="fc" id="L179">                .stream()</span>
 <span class="fc" id="L180">                .map(s -&gt; {</span>
 <span class="fc" id="L181">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
-<span class="pc bpc" id="L182" title="1 of 2 branches missed.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
-<span class="pc bnc" id="L183" title="All 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
-<span class="nc" id="L184">                                    s.getIdSorteo(), idUsuarioActual);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
+<span class="fc" id="L184">                                    s.getIdSorteo(), idUsuarioActual);</span>
 <span class="fc" id="L185">                    return mapToResponse(s, null, total, yoParticipo);</span>
                 })
 <span class="fc" id="L187">                .collect(Collectors.toList());</span>
@@ -286,7 +286,7 @@ public class SorteoServiceImpl implements SorteoService {
     private Sorteo verificarPropietario(Long idSorteo, Long idUsuario) {
 <span class="fc" id="L287">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
 <span class="fc" id="L288">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
-<span class="pc" id="L289">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No tienes perfil de creador&quot;));</span>
+<span class="fc" id="L289">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No tienes perfil de creador&quot;));</span>
 <span class="fc bfc" id="L290" title="All 2 branches covered.">        if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {</span>
 <span class="fc" id="L291">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
                     &quot;No tienes permiso para modificar este sorteo&quot;);

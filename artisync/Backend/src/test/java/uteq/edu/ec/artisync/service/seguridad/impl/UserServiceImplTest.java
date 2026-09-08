@@ -110,6 +110,39 @@ class UserServiceImplTest {
     }
 
     @Test
+    void updateCurrentUser_ShouldUpdateApellidosAndFechaNacimiento() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setApellidos("Gomez Ríos");
+        request.setFechaNacimiento(java.time.LocalDate.of(1995, 4, 20));
+
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        userService.updateCurrentUser("user@example.com", request);
+
+        assertEquals("Gomez Ríos", usuario.getApellidos());
+        assertEquals(java.time.LocalDate.of(1995, 4, 20), usuario.getFechaNacimiento());
+        verify(paisRepository, never()).findById(any());
+    }
+
+    @Test
+    void updateCurrentUser_ShouldIgnoreBlankNombresYApellidos() {
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setNombres("   ");
+        request.setApellidos("");
+
+        when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
+
+        userService.updateCurrentUser("user@example.com", request);
+
+        assertEquals("Ana", usuario.getNombres());
+        assertEquals("Gomez", usuario.getApellidos());
+    }
+
+    @Test
     void deleteOwnAccount_ShouldRevokeSessionsAndDeleteUser() {
         // Fase 1 concurrencia: deleteOwnAccount delega la desactivacion +
         // revocacion atomica en fn_cambiar_estado_cuenta (SessionRevocationService

@@ -80,7 +80,7 @@ export class ContratoVistaComponent implements OnInit {
         if (this.modo === 'pedido' && err.status === 404) {
           this.sinTerminosAcordados = true;
         } else {
-          this.error = err.error?.message || 'Error al cargar el contrato';
+          this.error = err.error?.detail || err.error?.message || 'Error al cargar el contrato';
         }
         this.loading = false;
         this.cdr.markForCheck();
@@ -123,7 +123,7 @@ export class ContratoVistaComponent implements OnInit {
         setTimeout(() => { this.successMsg = ''; this.cdr.markForCheck(); }, 4000);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Error al firmar el contrato';
+        this.error = err.error?.detail || err.error?.message || 'Error al firmar el contrato';
         this.firmando = false;
         this.cdr.markForCheck();
       }

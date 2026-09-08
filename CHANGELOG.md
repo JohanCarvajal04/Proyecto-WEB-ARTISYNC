@@ -75,6 +75,24 @@ sustituye ni altera el artefacto evaluado como Entrega Final.
   router de almacenamiento los envíe al volumen local en vez de a Azure.
 
 ## [v0.9.0-rc] - 2026-07-30
+
+> **Nota sobre `v0.9.0-rc` == `v0.7.1` (OBS-P0-03, verificado 2026-09-07).** Los tags `v0.7.1` y `v0.9.0-rc`
+> apuntan al mismo commit (`d292f7b`, "docs: consolidación de artefactos") porque ambos se crearon el mismo
+> día (30-07-2026) sobre el mismo cierre de trabajo: `v0.7.1` cerraba la aplicación de observaciones de las
+> Entregas 1A/1B y, en el mismo commit, se inauguró la rama de trabajo de la Tercera Entrega etiquetándola de
+> inmediato como `v0.9.0-rc` según exige `docs/VERSIONING.md`. El resto de los ítems `### Added`/`### Changed`
+> listados bajo este encabezado (Makefile, `scripts/validate-traceability.sh`, `SRS.pdf`, evidencias de
+> mediciones) se añadió en los días siguientes (31-07 a 06-08-2026) **sin re-etiquetar**, por lo que el tag
+> `v0.9.0-rc` no refleja el commit final del release candidate, solo su punto de partida.
+>
+> Se documenta así, en vez de reasignar el tag, siguiendo el mismo criterio ya aplicado al caso análogo
+> `v1.0.0` / `d07656b` (ver `docs/observaciones/OBSERVACIONES.md`, sección "Etiquetado"): mover un tag ya
+> empujado a `origin` es una operación destructiva sobre una referencia pública, y el DOI de Zenodo
+> (`10.5281/zenodo.21730559`, ver `CITATION.cff`) fue emitido a partir del estado actual de `v0.9.0-rc` — sin
+> confirmar si el snapshot de Zenodo es independiente del puntero del tag, reasignarlo arriesga introducir una
+> segunda discrepancia (tag vs. DOI) en vez de resolver la primera (tag vs. tag). Queda como limitación
+> conocida y trazada, no como error sin diagnosticar.
+
 ### Added
 - Evidencias de mediciones empíricas cuantitativas (rendimiento, seguridad, cobertura).
 - Archivos de gestión y publicabilidad (`LICENSE`, `CITATION.cff`, `CONTRIBUTORS.md`, `CHANGELOG.md`).

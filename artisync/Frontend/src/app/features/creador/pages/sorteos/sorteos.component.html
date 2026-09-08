@@ -101,26 +101,25 @@
             </div>
 
             <div class="cr-card__body">
-              <p class="so-premios">{{ s.descripcionPremios }}</p>
               <div class="so-meta">
                 <span class="cr-tag">{{ s.cantidadGanadores }} ganador(es)</span>
                 <span class="cr-tag">{{ s.totalParticipantes }} participante(s)</span>
                 @if (s.requiereSeguidor) { <span class="cr-tag">Solo seguidores</span> }
               </div>
 
-              @if (s.ganadores?.length) {
-                <div class="so-ganadores">
-                  <p class="cr-label">Ganadores</p>
-                  <ul>
-                    @for (g of s.ganadores; track g.idParticipacion) {
-                      <li>
-                        <span>🏆 {{ g.nombreUsuario }}</span>
-                        <small>{{ formatDateTime(g.fechaNotificacionPremio) }}</small>
-                      </li>
+              <div class="so-premios-grid">
+                @for (p of s.premios; track p.idPremio) {
+                  <div class="so-premio-card">
+                    <p class="so-premio-card__desc">{{ p.descripcionPremio }}</p>
+                    @if (p.ganador) {
+                      <p class="so-premio-card__ganador">🏆 {{ p.ganador.nombreUsuario }}</p>
+                      <small>{{ formatDateTime(p.ganador.fechaNotificacionPremio) }}</small>
+                    } @else {
+                      <p class="so-premio-card__pendiente">Pendiente de sorteo</p>
                     }
-                  </ul>
-                </div>
-              }
+                  </div>
+                }
+              </div>
 
               @if (detalleAbierto() === s.idSorteo) {
                 <div class="so-participantes">
@@ -163,13 +162,15 @@
                         <thead>
                           <tr>
                             <th>Ganador</th>
-                            <th>Premio notificado</th>
+                            <th>Premio</th>
+                            <th>Fecha</th>
                           </tr>
                         </thead>
                         <tbody>
                           @for (g of ganadores(); track g.idParticipacion) {
                             <tr>
                               <td class="cr-td-strong">{{ g.nombreUsuario }}</td>
+                              <td class="cr-td-faint">{{ g.descripcionPremio || '—' }}</td>
                               <td class="cr-td-faint">
                                 {{ g.fechaNotificacionPremio ? formatDateTime(g.fechaNotificacionPremio) : 'Pendiente' }}
                               </td>
@@ -221,20 +222,26 @@
           </div>
 
           <div class="cr-field">
-            <label class="cr-label" for="descripcionPremios">Premios <span>*</span></label>
-            <textarea id="descripcionPremios" class="cr-textarea" formControlName="descripcionPremios"
-              [class.is-invalid]="invalido('descripcionPremios')"
-              placeholder="Describe qué se llevan los ganadores y cómo se entrega."></textarea>
-            @if (invalido('descripcionPremios')) { <span class="cr-error">Describe los premios.</span> }
+            <label class="cr-label">
+              Premios <span>*</span>
+              <span class="cr-hint">Un premio por ganador — se sortearán {{ premiosArray.length }} ganador(es).</span>
+            </label>
+            <div class="so-premios-form" formArrayName="premios">
+              @for (premio of premiosArray.controls; track $index) {
+                <div class="so-premios-form__row">
+                  <input type="text" class="cr-input" [formControlName]="$index"
+                    [class.is-invalid]="invalidoPremio($index)"
+                    [placeholder]="'Premio ' + ($index + 1)" maxlength="255" />
+                  <button type="button" class="cr-btn cr-btn--ghost cr-btn--sm" (click)="quitarPremio($index)"
+                    [disabled]="premiosArray.length <= 1" aria-label="Quitar premio">✕</button>
+                </div>
+                @if (invalidoPremio($index)) { <span class="cr-error">Describe este premio.</span> }
+              }
+            </div>
+            <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarPremio()">+ Añadir premio</button>
           </div>
 
-          <div class="cr-form__row cr-form__row--3">
-            <div class="cr-field">
-              <label class="cr-label" for="cantidadGanadores">Ganadores <span>*</span></label>
-              <input id="cantidadGanadores" type="number" min="1" step="1" class="cr-input" formControlName="cantidadGanadores"
-                [class.is-invalid]="invalido('cantidadGanadores')" />
-              @if (invalido('cantidadGanadores')) { <span class="cr-error">Al menos 1.</span> }
-            </div>
+          <div class="cr-form__row cr-form__row--2">
             <div class="cr-field">
               <label class="cr-label" for="fechaInicio">Inicio <span>*</span></label>
               <input id="fechaInicio" type="datetime-local" class="cr-input" formControlName="fechaInicio"

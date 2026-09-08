@@ -25,6 +25,12 @@ public class AdminComentarioControlador {
 
     private final ComentarioPortafolioService comentarioService;
 
+    /**
+     * Lista todos los comentarios del sistema de forma paginada para su moderación.
+     *
+     * @param pageable configuración de paginación
+     * @return página con los comentarios del sistema
+     */
     @Operation(summary = "Listar todos los comentarios del sistema")
     @GetMapping
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
@@ -33,6 +39,13 @@ public class AdminComentarioControlador {
         return ResponseEntity.ok(comentarioService.listarParaModeracion(pageable));
     }
 
+    /**
+     * Oculta un comentario como acción de moderación.
+     *
+     * @param idComentario identificador del comentario a ocultar
+     * @return el comentario con su estado de moderación actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     */
     @Operation(summary = "Ocultar un comentario (moderación)")
     @PatchMapping("/{idComentario}/ocultar")
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
@@ -40,6 +53,13 @@ public class AdminComentarioControlador {
         return ResponseEntity.ok(comentarioService.ocultarComentario(idComentario));
     }
 
+    /**
+     * Reactiva un comentario previamente oculto.
+     *
+     * @param idComentario identificador del comentario a reactivar
+     * @return el comentario con su estado de moderación actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     */
     @Operation(summary = "Reactivar un comentario previamente oculto")
     @PatchMapping("/{idComentario}/reactivar")
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
@@ -47,6 +67,12 @@ public class AdminComentarioControlador {
         return ResponseEntity.ok(comentarioService.reactivarComentario(idComentario));
     }
 
+    /**
+     * Elimina definitivamente un comentario del sistema como acción de moderación.
+     *
+     * @param idComentario identificador del comentario a eliminar
+     * @return respuesta vacía con estado 204
+     */
     @Operation(summary = "Eliminar definitivamente un comentario (moderación)")
     @DeleteMapping("/{idComentario}")
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")

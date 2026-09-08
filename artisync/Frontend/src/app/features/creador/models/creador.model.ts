@@ -67,9 +67,23 @@ export interface RespuestaServicio {
   nombreCreador: string;
   idFlujo: number | null;
   nombreFlujo: string | null;
+  /** Plantilla de contrato asignada (catálogo curado por ADMIN); null = usa la predeterminada. */
+  idPlantillaContrato: number | null;
+  nombrePlantillaContrato: string | null;
+  /** Cuestionario asignado, entre los propios del creador; null = crear un pedido no pide preguntas. */
+  idBriefingPlantilla: number | null;
+  nombreBriefingPlantilla: string | null;
+  /** Preguntas del cuestionario asignado, para responderlas al crear el pedido. */
+  preguntasBriefing: PreguntaBriefingServicio[] | null;
   atributos: RespuestaAtributo[];
   etiquetas: RespuestaEtiqueta[];
   actualizadoEn: string;
+}
+
+export interface PreguntaBriefingServicio {
+  idPregunta: number;
+  textoPregunta: string;
+  numeroOrden: number;
 }
 
 export interface RespuestaServicioResumido {
@@ -95,6 +109,10 @@ export interface PeticionCrearServicio {
   cargoRevisionAdicional?: number | null;
   limiteRevisionesBase?: number | null;
   idFlujo?: number | null;
+  /** Opcional: una plantilla del catálogo curado por ADMIN. Sin elegir, el contrato usa la predeterminada. */
+  idPlantillaContrato?: number | null;
+  /** Opcional: uno de los cuestionarios propios del creador. Sin elegir, crear un pedido no pide preguntas. */
+  idBriefingPlantilla?: number | null;
   etiquetaIds?: number[];
 }
 
@@ -172,6 +190,16 @@ export interface RespuestaGanador {
   idUsuario: number;
   nombreUsuario: string;
   fechaNotificacionPremio: string | null;
+  idPremio: number | null;
+  descripcionPremio: string | null;
+}
+
+/** Un premio individual del sorteo, con su ganador si ya se sorteó. */
+export interface RespuestaPremio {
+  idPremio: number;
+  descripcionPremio: string;
+  orden: number;
+  ganador: RespuestaGanador | null;
 }
 
 export interface RespuestaParticipante {
@@ -185,7 +213,6 @@ export interface RespuestaParticipante {
 export interface RespuestaSorteo {
   idSorteo: number;
   tituloSorteo: string;
-  descripcionPremios: string;
   cantidadGanadores: number;
   fechaInicio: string;
   fechaCierre: string;
@@ -196,11 +223,13 @@ export interface RespuestaSorteo {
   totalParticipantes: number;
   yoParticipo: boolean;
   ganadores: RespuestaGanador[] | null;
+  premios: RespuestaPremio[];
 }
 
 export interface PeticionCrearSorteo {
   tituloSorteo: string;
-  descripcionPremios: string;
+  /** Uno por ganador; cantidadGanadores debe ser igual a premios.length. */
+  premios: string[];
   cantidadGanadores: number;
   fechaInicio: string;
   fechaCierre: string;
@@ -209,7 +238,7 @@ export interface PeticionCrearSorteo {
 
 export interface PeticionActualizarSorteo {
   tituloSorteo?: string;
-  descripcionPremios?: string;
+  premios?: string[];
   cantidadGanadores?: number;
   fechaCierre?: string;
 }

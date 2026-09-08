@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, FormControl, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CreadorContextoService } from '../../services/creador-contexto.service';
 import { SorteoService } from '../../services/sorteo.service';
@@ -46,12 +46,29 @@ export class SorteosComponent implements OnInit {
 
   form: FormGroup = this.fb.group({
     tituloSorteo: ['', [Validators.required, Validators.maxLength(150)]],
-    descripcionPremios: ['', [Validators.required]],
-    cantidadGanadores: [1, [Validators.required, Validators.min(1)]],
+    premios: this.fb.array([this.nuevoPremioControl()], [Validators.required]),
     fechaInicio: ['', [Validators.required]],
     fechaCierre: ['', [Validators.required]],
     requiereSeguidor: [false]
   }, { validators: this.rangoFechasValidator });
+
+  get premiosArray(): FormArray<FormControl<string>> {
+    return this.form.get('premios') as FormArray<FormControl<string>>;
+  }
+
+  private nuevoPremioControl(valor = ''): FormControl<string> {
+    return this.fb.control(valor, { nonNullable: true, validators: [Validators.required, Validators.maxLength(255)] });
+  }
+
+  agregarPremio(): void {
+    this.premiosArray.push(this.nuevoPremioControl());
+  }
+
+  quitarPremio(indice: number): void {
+    if (this.premiosArray.length > 1) {
+      this.premiosArray.removeAt(indice);
+    }
+  }
 
   /** min del input fechaInicio: bloquea fechas pasadas en el selector nativo,
    * igual que minFechaEntrega en pedido-crear.component.ts. El backend igual
@@ -114,12 +131,12 @@ export class SorteosComponent implements OnInit {
     this.sorteoEnEdicion.set(null);
     this.form.reset({
       tituloSorteo: '',
-      descripcionPremios: '',
-      cantidadGanadores: 1,
       fechaInicio: '',
       fechaCierre: '',
       requiereSeguidor: false
     });
+    this.premiosArray.clear();
+    this.premiosArray.push(this.nuevoPremioControl());
     this.form.get('fechaInicio')?.enable();
     this.modalAbierto.set(true);
   }
@@ -128,12 +145,17 @@ export class SorteosComponent implements OnInit {
     this.sorteoEnEdicion.set(sorteo);
     this.form.patchValue({
       tituloSorteo: sorteo.tituloSorteo,
-      descripcionPremios: sorteo.descripcionPremios,
-      cantidadGanadores: sorteo.cantidadGanadores,
       fechaInicio: this.aValorInput(sorteo.fechaInicio),
       fechaCierre: this.aValorInput(sorteo.fechaCierre),
       requiereSeguidor: sorteo.requiereSeguidor
     });
+    this.premiosArray.clear();
+    for (const p of sorteo.premios) {
+      this.premiosArray.push(this.nuevoPremioControl(p.descripcionPremio));
+    }
+    if (this.premiosArray.length === 0) {
+      this.premiosArray.push(this.nuevoPremioControl());
+    }
     // La fecha de inicio no se puede mover una vez creado el sorteo.
     this.form.get('fechaInicio')?.disable();
     this.modalAbierto.set(true);
@@ -149,6 +171,11 @@ export class SorteosComponent implements OnInit {
     return !!control && control.invalid && (control.dirty || control.touched);
   }
 
+  invalidoPremio(indice: number): boolean {
+    const control = this.premiosArray.at(indice);
+    return !!control && control.invalid && (control.dirty || control.touched);
+  }
+
   guardar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -156,14 +183,15 @@ export class SorteosComponent implements OnInit {
     }
 
     const val = this.form.getRawValue();
+    const premios: string[] = val.premios!;
     this.guardando.set(true);
 
     const enEdicion = this.sorteoEnEdicion();
     if (enEdicion) {
       const peticion: PeticionActualizarSorteo = {
         tituloSorteo: val.tituloSorteo!,
-        descripcionPremios: val.descripcionPremios!,
-        cantidadGanadores: Number(val.cantidadGanadores),
+        premios,
+        cantidadGanadores: premios.length,
         fechaCierre: this.aIsoLocal(val.fechaCierre!)
       };
       this.sorteoService.actualizar(enEdicion.idSorteo, peticion).subscribe({
@@ -181,8 +209,8 @@ export class SorteosComponent implements OnInit {
     } else {
       const peticion: PeticionCrearSorteo = {
         tituloSorteo: val.tituloSorteo!,
-        descripcionPremios: val.descripcionPremios!,
-        cantidadGanadores: Number(val.cantidadGanadores),
+        premios,
+        cantidadGanadores: premios.length,
         fechaInicio: this.aIsoLocal(val.fechaInicio!),
         fechaCierre: this.aIsoLocal(val.fechaCierre!),
         requiereSeguidor: !!val.requiereSeguidor

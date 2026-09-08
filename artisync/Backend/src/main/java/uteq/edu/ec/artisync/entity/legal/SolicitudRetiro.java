@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Solicitud de un creador para retirar sus fondos ya liberados (RF-20). El
+ * Solicitud de un creador para retirar sus fondos ya liberados (REQ-F-024). El
  * dinero real se transfiere vía PayPal Payouts al aprobar
  * (SolicitudRetiroServicioImpl); esta fila es el registro de todo el ciclo,
  * desde que se pide hasta que PayPal confirma el pago.

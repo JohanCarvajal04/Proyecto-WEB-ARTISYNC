@@ -6,7 +6,7 @@ Este archivo satisface el apartado B.15 de la guía de la Entrega Final ("Declar
 
 | Herramienta | Versión | Fase(s) del proyecto | Propósito | Alcance de lo generado |
 | ----------- | ------- | --------------------- | --------- | ----------------------- |
-| Claude Code | Última | Revisión, Despliegue y Mejoras | Revisar el código para asegurar que se cumpla con lo requerido, asistir en el despliegue de la aplicación y obtener observaciones para la mejora del proyecto | Revisión general de archivos fuente, apoyo en la creación/ajuste de configuraciones de despliegue y análisis para mejoras continuas |
+| Claude Code | Última | Pruebas, Revisión, Despliegue y Mejoras | Ejecutar y apoyar pruebas del proyecto, revisar el código para asegurar que se cumpla con lo requerido, asistir en el despliegue de la aplicación y documentar observaciones de lo encontrado durante las pruebas y revisiones para la mejora del proyecto | Ejecución y análisis de pruebas, revisión general de archivos fuente, apoyo en la creación/ajuste de configuraciones de despliegue, y redacción de observaciones (ver `docs/observaciones/OBSERVACIONES.md`) a partir de lo detectado en pruebas y revisiones |
 
 ## Qué no se generó con IA
 

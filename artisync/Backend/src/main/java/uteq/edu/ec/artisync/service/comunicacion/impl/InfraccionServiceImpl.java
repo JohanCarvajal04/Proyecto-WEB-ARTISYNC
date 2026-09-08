@@ -89,7 +89,7 @@ public class InfraccionServiceImpl implements InfraccionService {
         try {
             return objectMapper.readTree(json);
         } catch (Exception e) {
-            throw new IllegalStateException("Error al interpretar el resultado de fn_registrar_infraccion", e);
+            throw new RuntimeException("Error al interpretar el resultado de fn_registrar_infraccion", e);
         }
     }
 

@@ -44,4 +44,9 @@ public class ParticipanteSorteo {
 
     @Column(name = "fecha_notificacion_premio")
     private LocalDateTime fechaNotificacionPremio;
+
+    /** Premio ganado. Nulo mientras no sea ganador o si el sorteo aun no se ha cerrado. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_premio")
+    private PremioSorteo premio;
 }

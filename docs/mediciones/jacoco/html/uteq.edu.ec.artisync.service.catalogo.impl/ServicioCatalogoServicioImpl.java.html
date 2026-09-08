@@ -110,28 +110,28 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 <span class="fc" id="L110">            servicio.setSubcategoria(subcategoria);</span>
         }
 
-<span class="pc bpc" id="L113" title="1 of 4 branches missed.">        if (peticion.getTituloServicio() != null &amp;&amp; !peticion.getTituloServicio().isBlank()) {</span>
+<span class="fc bfc" id="L113" title="All 4 branches covered.">        if (peticion.getTituloServicio() != null &amp;&amp; !peticion.getTituloServicio().isBlank()) {</span>
 <span class="fc" id="L114">            servicio.setTituloServicio(peticion.getTituloServicio().trim());</span>
         }
-<span class="pc bpc" id="L116" title="1 of 4 branches missed.">        if (peticion.getDescripcionDetallada() != null &amp;&amp; !peticion.getDescripcionDetallada().isBlank()) {</span>
+<span class="fc bfc" id="L116" title="All 4 branches covered.">        if (peticion.getDescripcionDetallada() != null &amp;&amp; !peticion.getDescripcionDetallada().isBlank()) {</span>
 <span class="fc" id="L117">            servicio.setDescripcionDetallada(peticion.getDescripcionDetallada().trim());</span>
         }
 <span class="fc" id="L119">        servicio.setPrecioBase(peticion.getPrecioBase());</span>
-<span class="pc bpc" id="L120" title="3 of 4 branches missed.">        if (peticion.getTipoItem() != null &amp;&amp; !peticion.getTipoItem().isBlank()) {</span>
-<span class="nc" id="L121">            servicio.setTipoItem(peticion.getTipoItem());</span>
+<span class="fc bfc" id="L120" title="All 4 branches covered.">        if (peticion.getTipoItem() != null &amp;&amp; !peticion.getTipoItem().isBlank()) {</span>
+<span class="fc" id="L121">            servicio.setTipoItem(peticion.getTipoItem());</span>
         }
-<span class="pc bpc" id="L123" title="1 of 4 branches missed.">        if (peticion.getEstadoPublicacion() != null &amp;&amp; !peticion.getEstadoPublicacion().isBlank()) {</span>
+<span class="fc bfc" id="L123" title="All 4 branches covered.">        if (peticion.getEstadoPublicacion() != null &amp;&amp; !peticion.getEstadoPublicacion().isBlank()) {</span>
 <span class="fc bfc" id="L124" title="All 2 branches covered.">            if (&quot;ACTIVO&quot;.equals(peticion.getEstadoPublicacion())) {</span>
-<span class="nc" id="L125">                validarIdentidadVerificada(servicio.getPerfil());</span>
+<span class="fc" id="L125">                validarIdentidadVerificada(servicio.getPerfil());</span>
             }
 <span class="fc" id="L127">            servicio.setEstadoPublicacion(peticion.getEstadoPublicacion());</span>
         }
 <span class="fc" id="L129">        servicio.setUrlMiniatura(peticion.getUrlMiniatura());</span>
-<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        if (peticion.getCargoRevisionAdicional() != null) {</span>
-<span class="nc" id="L131">            servicio.setCargoRevisionAdicional(peticion.getCargoRevisionAdicional());</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (peticion.getCargoRevisionAdicional() != null) {</span>
+<span class="fc" id="L131">            servicio.setCargoRevisionAdicional(peticion.getCargoRevisionAdicional());</span>
         }
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (peticion.getLimiteRevisionesBase() != null) {</span>
-<span class="nc" id="L134">            servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (peticion.getLimiteRevisionesBase() != null) {</span>
+<span class="fc" id="L134">            servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());</span>
         }
 
 <span class="fc" id="L137">        Servicio guardado = servicioRepository.save(servicio);</span>
@@ -174,7 +174,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 <span class="fc" id="L174">            throw new ExcepcionRecursoNoEncontrado(&quot;Perfil creador no encontrado con ID: &quot; + idPerfilCreador);</span>
         }
         List&lt;Servicio&gt; servicios;
-<span class="pc bpc" id="L177" title="1 of 4 branches missed.">        if (estadoPublicacion != null &amp;&amp; !estadoPublicacion.isBlank()) {</span>
+<span class="fc bfc" id="L177" title="All 4 branches covered.">        if (estadoPublicacion != null &amp;&amp; !estadoPublicacion.isBlank()) {</span>
 <span class="fc" id="L178">            servicios = servicioRepository.findByPerfilIdPerfilAndEstadoPublicacion(idPerfilCreador, estadoPublicacion);</span>
         } else {
 <span class="fc" id="L180">            servicios = servicioRepository.findByPerfilIdPerfil(idPerfilCreador);</span>
@@ -203,12 +203,12 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
 <span class="fc" id="L204">        Sort sort = Sort.by(&quot;idServicio&quot;).descending();</span>
 <span class="pc bpc" id="L205" title="1 of 4 branches missed.">        if (sortParam != null &amp;&amp; !sortParam.isBlank()) {</span>
-<span class="pc bpc" id="L206" title="2 of 4 branches missed.">            if (&quot;precioBase,asc&quot;.equalsIgnoreCase(sortParam) || &quot;precioAsc&quot;.equalsIgnoreCase(sortParam)) {</span>
+<span class="pc bpc" id="L206" title="1 of 4 branches missed.">            if (&quot;precioBase,asc&quot;.equalsIgnoreCase(sortParam) || &quot;precioAsc&quot;.equalsIgnoreCase(sortParam)) {</span>
 <span class="fc" id="L207">                sort = Sort.by(&quot;precioBase&quot;).ascending();</span>
-<span class="nc bnc" id="L208" title="All 4 branches missed.">            } else if (&quot;precioBase,desc&quot;.equalsIgnoreCase(sortParam) || &quot;precioDesc&quot;.equalsIgnoreCase(sortParam)) {</span>
-<span class="nc" id="L209">                sort = Sort.by(&quot;precioBase&quot;).descending();</span>
-<span class="nc bnc" id="L210" title="All 2 branches missed.">            } else if (&quot;tituloServicio,asc&quot;.equalsIgnoreCase(sortParam)) {</span>
-<span class="nc" id="L211">                sort = Sort.by(&quot;tituloServicio&quot;).ascending();</span>
+<span class="pc bpc" id="L208" title="1 of 4 branches missed.">            } else if (&quot;precioBase,desc&quot;.equalsIgnoreCase(sortParam) || &quot;precioDesc&quot;.equalsIgnoreCase(sortParam)) {</span>
+<span class="fc" id="L209">                sort = Sort.by(&quot;precioBase&quot;).descending();</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">            } else if (&quot;tituloServicio,asc&quot;.equalsIgnoreCase(sortParam)) {</span>
+<span class="fc" id="L211">                sort = Sort.by(&quot;tituloServicio&quot;).ascending();</span>
             }
         }
 
@@ -224,12 +224,12 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 <span class="fc" id="L224">            List&lt;ServicioEtiqueta&gt; todasEtiquetas = servicioEtiquetaRepository.findByServicioIdServicioIn(idsServicios);</span>
 <span class="fc" id="L225">            etiquetasPorServicio = todasEtiquetas.stream()</span>
 <span class="fc" id="L226">                    .collect(Collectors.groupingBy(</span>
-<span class="nc" id="L227">                            se -&gt; se.getServicio().getIdServicio(),</span>
-<span class="pc" id="L228">                            Collectors.mapping(se -&gt; RespuestaEtiqueta.builder()</span>
-<span class="nc" id="L229">                                    .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
-<span class="nc" id="L230">                                    .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
-<span class="nc" id="L231">                                    .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
-<span class="pc" id="L232">                                    .build(), Collectors.toList())</span>
+<span class="fc" id="L227">                            se -&gt; se.getServicio().getIdServicio(),</span>
+<span class="fc" id="L228">                            Collectors.mapping(se -&gt; RespuestaEtiqueta.builder()</span>
+<span class="fc" id="L229">                                    .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
+<span class="fc" id="L230">                                    .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
+<span class="fc" id="L231">                                    .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
+<span class="fc" id="L232">                                    .build(), Collectors.toList())</span>
                     ));
         }
 
@@ -345,15 +345,15 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
 <span class="fc" id="L346">        List&lt;RespuestaEtiqueta&gt; etiquetas = servicioEtiquetaRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
 <span class="fc" id="L347">                .stream()</span>
-<span class="pc" id="L348">                .map(se -&gt; RespuestaEtiqueta.builder()</span>
-<span class="nc" id="L349">                        .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
-<span class="nc" id="L350">                        .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
-<span class="nc" id="L351">                        .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
-<span class="nc" id="L352">                        .build())</span>
+<span class="fc" id="L348">                .map(se -&gt; RespuestaEtiqueta.builder()</span>
+<span class="fc" id="L349">                        .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
+<span class="fc" id="L350">                        .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
+<span class="fc" id="L351">                        .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
+<span class="fc" id="L352">                        .build())</span>
 <span class="fc" id="L353">                .collect(Collectors.toList());</span>
 
 <span class="fc" id="L355">        String nombreCreador = &quot;Creador&quot;;</span>
-<span class="pc bpc" id="L356" title="1 of 2 branches missed.">        if (servicio.getPerfil().getUsuario() != null) {</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">        if (servicio.getPerfil().getUsuario() != null) {</span>
 <span class="fc" id="L357">            nombreCreador = servicio.getPerfil().getUsuario().getNombres() + &quot; &quot; + servicio.getPerfil().getUsuario().getApellidos();</span>
         }
 
@@ -382,11 +382,11 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private RespuestaServicioResumido mapearAServicioResumido(Servicio servicio) {
 <span class="fc" id="L383">        List&lt;RespuestaEtiqueta&gt; etiquetas = servicioEtiquetaRepository.findByServicioIdServicio(servicio.getIdServicio())</span>
 <span class="fc" id="L384">                .stream()</span>
-<span class="pc" id="L385">                .map(se -&gt; RespuestaEtiqueta.builder()</span>
-<span class="nc" id="L386">                        .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
-<span class="nc" id="L387">                        .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
-<span class="nc" id="L388">                        .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
-<span class="nc" id="L389">                        .build())</span>
+<span class="fc" id="L385">                .map(se -&gt; RespuestaEtiqueta.builder()</span>
+<span class="fc" id="L386">                        .idEtiqueta(se.getEtiqueta().getIdEtiqueta())</span>
+<span class="fc" id="L387">                        .nombreEtiqueta(se.getEtiqueta().getNombreEtiqueta())</span>
+<span class="fc" id="L388">                        .actualizadoEn(se.getEtiqueta().getActualizadoEn())</span>
+<span class="fc" id="L389">                        .build())</span>
 <span class="fc" id="L390">                .collect(Collectors.toList());</span>
 <span class="fc" id="L391">        return mapearAServicioResumido(servicio, etiquetas);</span>
     }
@@ -432,8 +432,8 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * verificada aquí es exigirla para publicar, tal como pide el requisito.
      */
     private void validarIdentidadVerificada(PerfilCreador perfil) {
-<span class="pc bpc" id="L435" title="1 of 2 branches missed.">        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;</span>
-<span class="pc bpc" id="L436" title="1 of 4 branches missed.">        if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {</span>
+<span class="fc bfc" id="L435" title="All 2 branches covered.">        Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;</span>
+<span class="fc bfc" id="L436" title="All 4 branches covered.">        if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {</span>
 <span class="fc" id="L437">            throw new ExcepcionReglaNegocio(</span>
                     &quot;Debes verificar tu identidad antes de publicar un servicio. Sube tu documento de identidad desde tu perfil.&quot;);
         }
@@ -441,7 +441,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     private void validarPropiedadOAdmin(PerfilCreador perfil) {
 <span class="fc" id="L443">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="pc bpc" id="L444" title="2 of 6 branches missed.">        if (auth != null &amp;&amp; auth.isAuthenticated() &amp;&amp; !&quot;anonymousUser&quot;.equals(auth.getPrincipal())) {</span>
+<span class="pc bpc" id="L444" title="1 of 6 branches missed.">        if (auth != null &amp;&amp; auth.isAuthenticated() &amp;&amp; !&quot;anonymousUser&quot;.equals(auth.getPrincipal())) {</span>
 <span class="fc" id="L445">            boolean esAdmin = auth.getAuthorities().stream()</span>
 <span class="fc" id="L446">                    .anyMatch(a -&gt; a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
 <span class="pc bpc" id="L447" title="1 of 4 branches missed.">            if (!esAdmin &amp;&amp; perfil.getUsuario() != null) {</span>

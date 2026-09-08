@@ -62,6 +62,7 @@ docs/informe-final/*.bbl
 docs/informe-final/*.blg
 docs/informe-final/*.toc
 docs/informe-final/*.lof
+docs/informe-final/*.lol
 docs/informe-final/*.lot
 docs/informe-final/*.out
 docs/informe-final/*.glo

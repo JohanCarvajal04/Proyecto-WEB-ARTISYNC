@@ -43,7 +43,7 @@ export class CreadoresComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo cargar el directorio de creadores');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo cargar el directorio de creadores');
         this.isLoading.set(false);
       }
     });

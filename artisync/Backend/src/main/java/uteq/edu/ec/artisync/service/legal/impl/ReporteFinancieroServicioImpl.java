@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -51,6 +52,15 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
     private final IServicioExportacion servicioExportacion;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Fuente unica con EntregableServicioImpl.tasaComision: si el filtro no
+     * trae una tasa explicita, se usa esta en vez de dejar que
+     * fn_reporte_comisiones_creador aplique su propio default 0.1000
+     * independiente en SQL.
+     */
+    @Value("${plataforma.comision-tasa:0.10}")
+    private BigDecimal tasaComisionPorDefecto;
+
     @Override
     @Transactional(readOnly = true)
     public RespuestaReporteComisiones obtenerReporteComisiones(FiltroReporteFinanciero filtro) {
@@ -94,8 +104,9 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
     }
 
     private String consultar(FiltroReporteFinanciero filtro) {
+        BigDecimal tasa = filtro.getTasaComision() != null ? filtro.getTasaComision() : tasaComisionPorDefecto;
         String json = transaccionPagoRepository.reporteComisionesJson(
-                filtro.getIdPerfil(), filtro.getDesde(), filtro.getHasta(), filtro.getTasaComision());
+                filtro.getIdPerfil(), filtro.getDesde(), filtro.getHasta(), tasa);
         log.info("Reporte de comisiones consultado para perfil {}", filtro.getIdPerfil());
         return json;
     }
@@ -105,7 +116,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
         try {
             nodo = objectMapper.readTree(json);
         } catch (Exception e) {
-            throw new IllegalStateException("No se pudo interpretar el reporte de comisiones: " + e.getMessage(), e);
+            throw new RuntimeException("No se pudo interpretar el reporte de comisiones: " + e.getMessage(), e);
         }
 
         List<DetalleComision> detalle = new ArrayList<>();

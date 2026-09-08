@@ -121,6 +121,9 @@ export const PAGE_PERMISSIONS = {
   // así que abriría esta pantalla admin a cualquiera con un contrato propio.
   reportesFinanzas: ['TRANSACCION_VER'],
   reportesContratos: ['TRANSACCION_VER'],
+  // Catálogo de plantillas de contrato (REQ-F-017 ampliado): el creador elige
+  // entre estas al crear/editar su servicio, pero solo ADMIN las gestiona.
+  plantillasContrato: ['CONTRATO_PLANTILLA_GESTIONAR'],
   // Supervisión de pagos en escrow. PAGO_AUDITAR estaba asignado a
   // AUDITOR_FINANCIERO desde el seed inicial sin ninguna pantalla que lo usara.
   pagosGarantia: ['PAGO_AUDITAR'],
@@ -284,6 +287,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria, crossPanel: true },
   { label: 'Reporte financiero', icon: 'account_balance', route: 'reportes-finanzas', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesFinanzas, crossPanel: true },
   { label: 'Reporte de contratos', icon: 'description', route: 'reportes-contratos', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesContratos, crossPanel: true },
+  { label: 'Plantillas de Contrato', icon: 'gavel', route: 'plantillas-contrato', panel: 'admin', permissions: PAGE_PERMISSIONS.plantillasContrato, crossPanel: true },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
   // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
   // misma página que ven creador y cliente — ver NavItem.basePath.

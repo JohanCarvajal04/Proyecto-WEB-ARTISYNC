@@ -78,7 +78,7 @@ export class SolicitudVerificacionComponent {
         this.toast.success('Documento enviado. Un moderador lo revisará.');
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo enviar el documento');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo enviar el documento');
         this.enviando.set(false);
       }
     });

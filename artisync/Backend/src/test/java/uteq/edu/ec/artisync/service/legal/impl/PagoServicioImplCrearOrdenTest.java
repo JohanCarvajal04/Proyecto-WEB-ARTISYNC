@@ -1,5 +1,7 @@
 package uteq.edu.ec.artisync.service.legal.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,11 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
@@ -26,9 +24,9 @@ import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,10 +45,20 @@ class PagoServicioImplCrearOrdenTest {
     @Mock private PagoGarantiaRepository pagoGarantiaRepository;
     @Mock private ContratoRepository contratoRepository;
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
-    @Mock private RestTemplate restTemplate;
+    @Mock private PayPalClient payPalClient;
 
     @InjectMocks
     private PagoServicioImpl pagoServicio;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static JsonNode json(String texto) {
+        try {
+            return MAPPER.readTree(texto);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private static final Long ID_CLIENTE = 100L;
     private static final Long ID_CREADOR = 200L;
@@ -68,8 +76,6 @@ class PagoServicioImplCrearOrdenTest {
                 .usuarioCliente(cliente).servicio(servicio).build();
         contratoFirmado = Contrato.builder().idContrato(5L).pedido(pedido)
                 .hashFirmaCreador("hash-c").hashFirmaCliente("hash-k").build();
-
-        ReflectionTestUtils.setField(pagoServicio, "restTemplate", restTemplate);
     }
 
     @Test
@@ -151,11 +157,26 @@ class PagoServicioImplCrearOrdenTest {
     void crearOrden_envuelveErrorDeComunicacion() {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.empty());
-        given(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(Map.class)))
+        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any(JsonNode.class)))
                 .willThrow(new RuntimeException("timeout"));
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
                 .isInstanceOf(ExcepcionReglaNegocio.class);
+    }
+
+    @Test
+    @DisplayName("crearOrdenPayPal traduce la carrera de id_contrato UNIQUE a un mensaje de negocio limpio")
+    void crearOrden_traduceCarreraDeContratoUnico() {
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
+        given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.empty());
+        conRespuestasPayPal("""
+                {"id":"ORDER-999","links":[]}""");
+        given(pagoGarantiaRepository.save(any(PagoGarantia.class)))
+                .willThrow(new org.springframework.dao.DataIntegrityViolationException("uq_pagos_garantia_contrato"));
+
+        assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessage("Este pedido ya tiene un pago en curso");
     }
 
     // ---------- obtenerEstadoPago ----------
@@ -215,10 +236,7 @@ class PagoServicioImplCrearOrdenTest {
     }
 
     private void conRespuestasPayPal(String cuerpoOrden) {
-        given(restTemplate.exchange(contains("/v1/oauth2/token"), any(HttpMethod.class),
-                any(HttpEntity.class), eq(Map.class)))
-                .willReturn(ResponseEntity.ok(Map.of("access_token", "token-de-prueba")));
-        given(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
-                .willReturn(ResponseEntity.ok(cuerpoOrden));
+        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any(JsonNode.class)))
+                .willReturn(json(cuerpoOrden));
     }
 }

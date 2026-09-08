@@ -8,14 +8,14 @@ import java.util.function.Function;
 <span class="nc" id="L8">public class PagedResponseBuilder {</span>
 
     public static &lt;T&gt; PagedResponse&lt;T&gt; build(Page&lt;T&gt; page) {
-<span class="nc" id="L11">        return PagedResponse.&lt;T&gt;builder()</span>
-<span class="nc" id="L12">                .content(page.getContent())</span>
-<span class="nc" id="L13">                .pageNumber(page.getNumber())</span>
-<span class="nc" id="L14">                .pageSize(page.getSize())</span>
-<span class="nc" id="L15">                .totalElements(page.getTotalElements())</span>
-<span class="nc" id="L16">                .totalPages(page.getTotalPages())</span>
-<span class="nc" id="L17">                .last(page.isLast())</span>
-<span class="nc" id="L18">                .build();</span>
+<span class="fc" id="L11">        return PagedResponse.&lt;T&gt;builder()</span>
+<span class="fc" id="L12">                .content(page.getContent())</span>
+<span class="fc" id="L13">                .pageNumber(page.getNumber())</span>
+<span class="fc" id="L14">                .pageSize(page.getSize())</span>
+<span class="fc" id="L15">                .totalElements(page.getTotalElements())</span>
+<span class="fc" id="L16">                .totalPages(page.getTotalPages())</span>
+<span class="fc" id="L17">                .last(page.isLast())</span>
+<span class="fc" id="L18">                .build();</span>
     }
 
     public static &lt;T, R&gt; PagedResponse&lt;R&gt; buildAndMap(Page&lt;T&gt; page, Function&lt;T, R&gt; mapper) {

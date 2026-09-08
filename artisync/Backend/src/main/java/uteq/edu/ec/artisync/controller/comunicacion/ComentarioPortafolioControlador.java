@@ -30,6 +30,15 @@ public class ComentarioPortafolioControlador {
 
     private final ComentarioPortafolioService comentarioService;
 
+    /**
+     * Crea un comentario sobre un ítem de portafolio.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio comentado
+     * @param peticion contenido del comentario
+     * @param userDetails usuario autenticado que comenta
+     * @return el comentario creado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el ítem de portafolio o el usuario autor no existen
+     */
     @Operation(summary = "Comentar un ítem de portafolio")
     @PostMapping("/{idItemPortafolio}/comentarios")
     @PreAuthorize("isAuthenticated()")
@@ -42,6 +51,13 @@ public class ComentarioPortafolioControlador {
                 .body(comentarioService.crearComentario(idItemPortafolio, peticion, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Lista los comentarios activos de un ítem de portafolio, de acceso público.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param pageable configuración de paginación
+     * @return página con los comentarios activos del ítem
+     */
     @Operation(summary = "Listar comentarios activos de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/comentarios")
     public ResponseEntity<Page<RespuestaComentario>> listarComentarios(
@@ -50,6 +66,12 @@ public class ComentarioPortafolioControlador {
         return ResponseEntity.ok(comentarioService.listarComentarios(idItemPortafolio, pageable));
     }
 
+    /**
+     * Cuenta los comentarios de un ítem de portafolio, de acceso público.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @return el identificador del ítem y el total de comentarios
+     */
     @Operation(summary = "Contar comentarios de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/comentarios/conteo")
     public ResponseEntity<Map<String, Object>> contarComentarios(@PathVariable Long idItemPortafolio) {
@@ -59,6 +81,13 @@ public class ComentarioPortafolioControlador {
         ));
     }
 
+    /**
+     * Elimina un comentario propio, del dueño del portafolio comentado, o como administrador.
+     *
+     * @param idComentario identificador del comentario a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     */
     @Operation(summary = "Eliminar un comentario propio, del portafolio, o como ADMIN")
     @DeleteMapping("/comentarios/{idComentario}")
     @PreAuthorize("isAuthenticated()")

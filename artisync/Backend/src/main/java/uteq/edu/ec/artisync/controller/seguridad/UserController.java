@@ -33,36 +33,75 @@ public class UserController {
     private final UserService userService;
     private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
+    /**
+     * Obtiene el perfil completo del usuario autenticado actual.
+     *
+     * @param principal usuario autenticado
+     * @return el perfil del usuario autenticado
+     */
     @Operation(summary = "Obtener el perfil completo del usuario autenticado actual")
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Principal principal) {
         return ResponseEntity.ok(userService.getCurrentUser(principal.getName()));
     }
 
+    /**
+     * Actualiza la información personal del usuario autenticado actual.
+     *
+     * @param principal usuario autenticado
+     * @param request datos actualizados del usuario
+     * @return el usuario actualizado
+     */
     @Operation(summary = "Actualizar información personal del usuario autenticado actual")
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(Principal principal, @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateCurrentUser(principal.getName(), request));
     }
 
+    /**
+     * Cambia la contraseña del usuario autenticado actual.
+     *
+     * @param principal usuario autenticado
+     * @param request contraseña actual y nueva contraseña
+     * @return mensaje de confirmación del cambio de contraseña
+     */
     @Operation(summary = "Cambiar la contraseña del usuario autenticado actual")
     @PutMapping("/me/password")
     public ResponseEntity<RespuestaMensaje> changePassword(Principal principal, @Valid @RequestBody ChangePasswordRequest request) {
         return ResponseEntity.ok(userService.changePassword(principal.getName(), request));
     }
 
+    /**
+     * Desactiva la cuenta del usuario autenticado actual.
+     *
+     * @param principal usuario autenticado
+     * @return mensaje de confirmación de la desactivación
+     */
     @Operation(summary = "Desactivar la cuenta del usuario autenticado actual")
     @DeleteMapping("/me")
     public ResponseEntity<RespuestaMensaje> deleteOwnAccount(Principal principal) {
         return ResponseEntity.ok(userService.deleteOwnAccount(principal.getName()));
     }
 
+    /**
+     * Cierra todas las sesiones activas del usuario autenticado actual.
+     *
+     * @param principal usuario autenticado
+     * @return mensaje de confirmación del cierre de sesiones
+     */
     @Operation(summary = "Cerrar todas las sesiones activas del usuario actual")
     @DeleteMapping("/me/sesiones")
     public ResponseEntity<RespuestaMensaje> revokeAllMySessions(Principal principal) {
         return ResponseEntity.ok(userService.revokeAllMySessions(principal.getName()));
     }
 
+    /**
+     * Sube o actualiza la foto de perfil del usuario autenticado actual.
+     *
+     * @param principal usuario autenticado
+     * @param foto archivo de imagen a subir
+     * @return el usuario con su foto de perfil actualizada
+     */
     @Operation(summary = "Subir o actualizar la foto de perfil del usuario actual")
     @PostMapping(value = "/me/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> uploadProfilePicture(Principal principal, @RequestParam("foto") org.springframework.web.multipart.MultipartFile foto) {
@@ -78,6 +117,10 @@ public class UserController {
      * filtro, cualquiera podría pedir "verificacion/..." o "entregables/..." y
      * leer documentos privados (cédulas, títulos, entregables) sin autenticarse,
      * saltándose los @PreAuthorize de sus propios controladores.
+     *
+     * @param request petición HTTP, de la cual se extrae la referencia de la foto solicitada
+     * @return el contenido binario de la foto con su tipo de contenido y cabecera de caché
+     * @throws ExcepcionRecursoNoEncontrado si la referencia no corresponde a una foto bajo el prefijo "perfiles/"
      */
     @Operation(summary = "Servir la foto de perfil de un usuario (público)")
     @GetMapping("/foto/**")

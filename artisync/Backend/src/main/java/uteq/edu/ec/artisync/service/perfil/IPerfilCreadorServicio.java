@@ -13,22 +13,68 @@ public interface IPerfilCreadorServicio {
      * si el solicitante es ADMIN; para el resto el perfil se crea siempre a
      * nombre del usuario autenticado, porque el @PreAuthorize del controlador
      * comprueba el rol pero no de quién es el recurso.
+     *
+     * @param peticion          datos del perfil a crear, incluyendo el usuario destino si lo crea un ADMIN
+     * @param correoSolicitante correo del usuario autenticado que solicita la creación
+     * @param esAdmin           si el solicitante tiene rol de administrador
+     * @return el perfil recién creado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el usuario destino ya tiene un perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario destino no existe
      */
     RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion, String correoSolicitante, boolean esAdmin);
 
+    /**
+     * Obtiene un perfil de creador por su id.
+     *
+     * @param idPerfil id del perfil
+     * @return el perfil encontrado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no existe
+     */
     RespuestaPerfil obtenerPerfilPorId(Long idPerfil);
+
+    /**
+     * Obtiene el perfil de creador asociado a un usuario.
+     *
+     * @param idUsuario id del usuario
+     * @return el perfil del usuario
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no tiene perfil de creador
+     */
     RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario);
+
+    /**
+     * Lista todos los perfiles de creador registrados.
+     *
+     * @return todos los perfiles
+     */
     List<RespuestaPerfil> listarPerfiles();
 
-    /** Directorio público de creadores con cuenta activa (no suspendida). */
+    /**
+     * Directorio público de creadores con cuenta activa (no suspendida).
+     *
+     * @return los perfiles con cuenta activa
+     */
     List<RespuestaPerfil> listarPerfilesActivos();
 
     /**
      * Actualiza un perfil. Salvo que el solicitante sea ADMIN, debe ser el
      * propietario del perfil: el rol CREADOR por sí solo no autoriza a editar el
      * perfil de otro creador.
+     *
+     * @param idPerfil          id del perfil a actualizar
+     * @param peticion          campos a modificar
+     * @param correoSolicitante correo del usuario autenticado que solicita la actualización
+     * @param esAdmin           si el solicitante tiene rol de administrador
+     * @return el perfil ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no existe
+     * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es el dueño del perfil ni administrador
      */
     RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion, String correoSolicitante, boolean esAdmin);
 
+    /**
+     * Elimina un perfil de creador.
+     *
+     * @param idPerfil id del perfil a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no existe
+     */
     void eliminarPerfil(Long idPerfil);
 }

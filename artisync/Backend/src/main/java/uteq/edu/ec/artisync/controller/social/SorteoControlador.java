@@ -35,6 +35,14 @@ public class SorteoControlador {
     // CRUD de Sorteos
     // =========================================================================
 
+    /**
+     * Crea un nuevo sorteo para el creador autenticado.
+     *
+     * @param peticion datos del sorteo a crear
+     * @param userDetails usuario autenticado que crea el sorteo
+     * @return el sorteo creado, con estado 201
+     * @throws ExcepcionReglaNegocio si los datos del sorteo violan alguna regla de negocio
+     */
     @Operation(summary = "Crear un nuevo sorteo (CREADOR)")
     @PostMapping("/api/v1/sorteos")
     @PreAuthorize("isAuthenticated()")
@@ -46,6 +54,14 @@ public class SorteoControlador {
                 .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Obtiene el detalle público de un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el detalle del sorteo solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     */
     @Operation(summary = "Obtener detalle de un sorteo (público)")
     @GetMapping("/api/v1/sorteos/{idSorteo}")
     public ResponseEntity<RespuestaSorteo> obtenerSorteo(
@@ -55,6 +71,16 @@ public class SorteoControlador {
         return ResponseEntity.ok(sorteoService.obtenerSorteo(idSorteo, idUsuarioActual));
     }
 
+    /**
+     * Edita un sorteo existente, sujeto a las restricciones de edición del negocio.
+     *
+     * @param idSorteo identificador del sorteo a editar
+     * @param peticion datos actualizados del sorteo
+     * @param userDetails usuario autenticado que solicita la edición
+     * @return el sorteo actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo no puede editarse en su estado actual
+     */
     @Operation(summary = "Editar un sorteo (CREADOR, con restricciones)")
     @PutMapping("/api/v1/sorteos/{idSorteo}")
     @PreAuthorize("isAuthenticated()")
@@ -66,6 +92,15 @@ public class SorteoControlador {
                 sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));
     }
 
+    /**
+     * Elimina un sorteo que aún no tiene participantes.
+     *
+     * @param idSorteo identificador del sorteo a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo ya tiene participantes
+     */
     @Operation(summary = "Eliminar un sorteo sin participantes (CREADOR)")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}")
     @PreAuthorize("isAuthenticated()")
@@ -75,6 +110,13 @@ public class SorteoControlador {
         return ResponseEntity.ok(sorteoService.eliminarSorteo(idSorteo, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Lista los sorteos de un creador.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de sorteos del creador
+     */
     @Operation(summary = "Listar sorteos de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/sorteos")
     public ResponseEntity<List<RespuestaSorteo>> listarSorteosPorCreador(
@@ -84,6 +126,12 @@ public class SorteoControlador {
         return ResponseEntity.ok(sorteoService.listarSorteosPorCreador(idPerfil, idUsuarioActual));
     }
 
+    /**
+     * Lista los sorteos actualmente activos.
+     *
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de sorteos activos
+     */
     @Operation(summary = "Listar sorteos activos (público)")
     @GetMapping("/api/v1/sorteos/activos")
     public ResponseEntity<List<RespuestaSorteo>> listarSorteosActivos(
@@ -96,6 +144,16 @@ public class SorteoControlador {
     // Participación
     // =========================================================================
 
+    /**
+     * Inscribe al usuario autenticado como participante en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado que se inscribe
+     * @return la participación creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo no está activo, aún no ha comenzado o el periodo de inscripción ha finalizado
+     * @throws ExcepcionRecursoDuplicado si el usuario ya está inscrito en el sorteo
+     */
     @Operation(summary = "Inscribirse en un sorteo")
     @PostMapping("/api/v1/sorteos/{idSorteo}/participar")
     @PreAuthorize("isAuthenticated()")
@@ -107,6 +165,15 @@ public class SorteoControlador {
                 .body(sorteoService.participar(idSorteo, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Cancela la inscripción del usuario autenticado en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado que cancela su inscripción
+     * @return mensaje de confirmación de la cancelación
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo ya ha finalizado
+     */
     @Operation(summary = "Cancelar inscripción en un sorteo")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}/participar")
     @PreAuthorize("isAuthenticated()")
@@ -117,6 +184,13 @@ public class SorteoControlador {
                 sorteoService.cancelarParticipacion(idSorteo, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Lista los participantes inscritos en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @return listado de participantes del sorteo
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     */
     @Operation(summary = "Listar participantes de un sorteo")
     @GetMapping("/api/v1/sorteos/{idSorteo}/participantes")
     public ResponseEntity<List<RespuestaParticipante>> listarParticipantes(
@@ -124,6 +198,13 @@ public class SorteoControlador {
         return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));
     }
 
+    /**
+     * Lista los ganadores de un sorteo, disponible solo después del cierre.
+     *
+     * @param idSorteo identificador del sorteo
+     * @return listado de ganadores del sorteo
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     */
     @Operation(summary = "Ver ganadores del sorteo (solo post-cierre)")
     @GetMapping("/api/v1/sorteos/{idSorteo}/ganadores")
     public ResponseEntity<List<RespuestaGanador>> listarGanadores(

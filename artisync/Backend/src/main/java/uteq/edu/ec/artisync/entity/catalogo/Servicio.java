@@ -1,6 +1,8 @@
 package uteq.edu.ec.artisync.entity.catalogo;
 
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -74,6 +76,26 @@ public class Servicio {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_flujo")
     private FlujoTrabajo flujo;
+
+    /**
+     * Plantilla de contrato elegida por el creador entre el catálogo curado
+     * por ADMIN. Nullable a propósito: si queda sin asignar,
+     * ContratoServicioImpl cae a la plantilla marcada como predeterminada en
+     * vez de bloquear la generación del contrato.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_plantilla_contrato")
+    private PlantillaContrato plantillaContrato;
+
+    /**
+     * Cuestionario que el cliente debe responder al crear un pedido para este
+     * servicio, entre las plantillas propias del creador. Nullable a
+     * propósito: un servicio sin cuestionario asignado no pide nada extra al
+     * crear el pedido (ver PedidoServicioImpl.crearPedido).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_briefing_plantilla")
+    private BriefingPlantilla briefingPlantilla;
 
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "actualizado_en")

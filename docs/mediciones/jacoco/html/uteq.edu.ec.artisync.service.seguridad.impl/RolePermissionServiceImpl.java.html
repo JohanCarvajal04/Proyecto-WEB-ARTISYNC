@@ -97,9 +97,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // esa decisión la sigue tomando exclusivamente sincronizarPermisos()
         // más abajo, vía StoredProcedureExceptionTranslator.
 <span class="fc" id="L99">        rolRepository.findByNombreRol(nombreRolUpper).ifPresent(rol -&gt;</span>
-<span class="nc" id="L100">                ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(&quot;permisos&quot;,</span>
-<span class="nc bnc" id="L101" title="All 2 branches missed.">                        rol.getPermisos() == null ? List.of()</span>
-<span class="nc" id="L102">                                : rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())));</span>
+<span class="fc" id="L100">                ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(&quot;permisos&quot;,</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">                        rol.getPermisos() == null ? List.of()</span>
+<span class="fc" id="L102">                                : rol.getPermisos().stream().map(Permiso::getNombrePermiso).toList())));</span>
 
 <span class="pc bpc" id="L104" title="1 of 2 branches missed.">        String[] codigos = permissionCodes != null ? permissionCodes.toArray(new String[0]) : new String[0];</span>
         Integer totalAsignado;
@@ -163,9 +163,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     // fn_sincronizar_permisos_rol (REQ-F-003) para los permisos iniciales.
     public RolResponse createRole(CreateRoleRequest request) {
 <span class="fc" id="L165">        String nombreRolUpper = request.getNombreRol().trim().toUpperCase();</span>
-<span class="pc bpc" id="L166" title="1 of 2 branches missed.">        String[] codigos = request.getPermisosIniciales() != null</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        String[] codigos = request.getPermisosIniciales() != null</span>
 <span class="fc" id="L167">                ? request.getPermisosIniciales().stream().map(String::toUpperCase).toArray(String[]::new)</span>
-<span class="pc" id="L168">                : new String[0];</span>
+<span class="fc" id="L168">                : new String[0];</span>
 
         Long idRol;
         try {
@@ -175,14 +175,14 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 <span class="fc" id="L175">        }</span>
 
 <span class="fc" id="L177">        Rol nuevoRol = rolRepository.findById(idRol)</span>
-<span class="pc" id="L178">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el rol&quot;));</span>
+<span class="fc" id="L178">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el rol&quot;));</span>
 <span class="fc" id="L179">        log.info(&quot;Rol personalizado creado exitosamente: {}&quot;, nombreRolUpper);</span>
 
 <span class="fc" id="L181">        return RolResponse.builder()</span>
 <span class="fc" id="L182">                .idRol(nuevoRol.getIdRol())</span>
 <span class="fc" id="L183">                .nombreRol(nuevoRol.getNombreRol())</span>
 <span class="fc" id="L184">                .descripcionRol(nuevoRol.getDescripcionRol())</span>
-<span class="pc bpc" id="L185" title="1 of 2 branches missed.">                .permisos(nuevoRol.getPermisos() != null ? nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">                .permisos(nuevoRol.getPermisos() != null ? nuevoRol.getPermisos().stream().map(Permiso::getNombrePermiso).toList() : List.of())</span>
 <span class="fc" id="L186">                .build();</span>
     }
 
@@ -193,7 +193,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             detalle = &quot;{descripcionRol: #request.descripcionRol}&quot;)
     public RolResponse updateRole(Long idRol, UpdateRoleRequest request) {
 <span class="fc" id="L195">        Rol rol = rolRepository.findById(idRol)</span>
-<span class="pc" id="L196">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
+<span class="fc" id="L196">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Rol no encontrado con ID: &quot; + idRol));</span>
 
 <span class="pc bpc" id="L198" title="1 of 2 branches missed.">        if (request.getDescripcionRol() != null) {</span>
 <span class="fc" id="L199">            rol.setDescripcionRol(request.getDescripcionRol());</span>

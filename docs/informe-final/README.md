@@ -26,7 +26,7 @@ y ampliada.
 ```
 docs/informe-final/
 ├── main.tex              # Documento maestro (clase report, una columna)
-├── referencias.bib       # Bibliografía IEEE (37 entradas, ver más abajo)
+├── referencias.bib       # Bibliografía IEEE (45 entradas, ver más abajo)
 ├── Informe-Final-v1.0.0.pdf  # PDF ya compilado (73 páginas)
 ├── secciones/
 │   ├── 00-portada-resumen.tex
@@ -124,32 +124,17 @@ estadística en ingeniería de software).
 
 **Resultado:**
 
-- **37 referencias** en `referencias.bib` (frente a las $\sim$29 del
-  borrador anterior), todas verificadas contra una fuente accesible
-  (DOI, editorial, sitio oficial o repositorio institucional) — ninguna
-  se dejó como cita "de memoria" sin contrastar.
-- De esas 37, **5 son estándares/RFC** (ISO/IEC/IEEE 29148, ISO/IEC
+- **45 referencias** en `referencias.bib`, todas verificadas contra una
+  fuente accesible (DOI, editorial, sitio oficial o repositorio
+  institucional) — ninguna se dejó como cita "de memoria" sin contrastar.
+- De esas 45, **5 son estándares/RFC** (ISO/IEC/IEEE 29148, ISO/IEC
   25010, RFC 7519, OWASP Top 10, OWASP Cheat Sheet), que se cuentan aparte
   por ser normativa técnica, no literatura académica.
-- De las **32 restantes** (literatura académica/técnica citable hacia el
-  mínimo de 30 que exige la guía), **16 se clasifican como "alto
+- De las **40 restantes** (literatura académica/técnica citable hacia el
+  mínimo de 30 que exige la guía), **22 se clasifican como "alto
   impacto"** (Scopus/JCR Q1–Q2, o venue ICSE/FSE/ASE/MSR/EASE/ESEM) contra
   el criterio explícito de la rúbrica — ver el detalle completo,
   referencia por referencia, en el Anexo J (`secciones/anexos.tex`).
-
-**Por qué nos detuvimos en 16 (y no en 20).** Se evaluaron varios
-candidatos adicionales de venues de alto impacto temáticamente cercanos al
-proyecto (JWT/OAuth, accesibilidad web automatizada, CI/CD) y ninguno
-produjo un resultado suficientemente inequívoco en la búsqueda como para
-citarlo con la misma confianza que el resto de esta bibliografía —o el
-venue exacto no correspondía a los listados en la rúbrica (p. ej. un
-candidato de continuous integration resultó ser ICSME, no MSR). Se
-prefirió declarar la brecha de 4 referencias de alto impacto en vez de
-forzar una clasificación optimista o citar una fuente no verificada con
-la confianza suficiente. **Esta sigue siendo una brecha real**: cerrarla
-requiere la revisión de literatura reducida recomendada en el
-Capítulo 3, §3.1 (`secciones/03-trabajos-relacionados.tex`) y en el
-Anexo I, no solo más búsquedas puntuales como esta.
 
 **Estilo de citas:** IEEE numérico, `\bibliographystyle{ieeetr}` (orden
 de aparición en el texto, no alfabético). Decisión pendiente en el

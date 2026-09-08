@@ -91,6 +91,18 @@ export interface PeticionCrearPedido {
   idServicio: number;
   precioOfrecido: number | null;
   fechaEntregaEstimada: string | null;
+  /**
+   * Obligatorio solo si el servicio tiene un cuestionario asignado
+   * (RespuestaServicio.preguntasBriefing no vacío): una respuesta por cada
+   * pregunta. REQ-F-016 ampliado — antes se respondía después, con un envío
+   * manual del creador; ahora va aquí mismo, al crear el pedido.
+   */
+  respuestasBriefing?: RespuestaItemBriefingPedido[];
+}
+
+export interface RespuestaItemBriefingPedido {
+  idPregunta: number;
+  textoRespuesta: string;
 }
 
 export interface PeticionAvanzarEtapa {

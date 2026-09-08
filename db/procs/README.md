@@ -35,14 +35,20 @@ La documentación funcional completa —categoría, propósito, parámetros con 
 devuelto y tablas afectadas— está en
 [`docs/basedatos/CATALOGO-SP.md`](../../docs/basedatos/CATALOGO-SP.md).
 
+Las cinco filas tachadas se **retiraron del catálogo el 01-09-2026** por no tener nunca un
+consumidor real desde código Java; sus archivos `.sql` ya no existen en este directorio. Detalle
+completo de cada retiro en
+[`docs/basedatos/CATALOGO-SP.md`](../../docs/basedatos/CATALOGO-SP.md) y en
+[`docs/adr/adr-006-estrategia-acceso-datos.md`](../../docs/adr/adr-006-estrategia-acceso-datos.md#rutinas-retiradas).
+
 | Archivo | Categoría funcional (A.2.2 Entrega 3) | Requisito |
 | --- | --- | --- |
-| `fn_catalogo_filtrado.sql` | Consultas multi-tabla | REQ-F-013 |
-| `fn_calificacion_promedio_creador.sql` | Cálculos agregados | REQ-F-009 |
+| ~~`fn_catalogo_filtrado.sql`~~ | — | Retirada, ver [CATALOGO-SP.md §1](../../docs/basedatos/CATALOGO-SP.md#1-fn_catalogo_filtrado-retirada) |
+| ~~`fn_calificacion_promedio_creador.sql`~~ | — | Retirada, ver [CATALOGO-SP.md §2](../../docs/basedatos/CATALOGO-SP.md#2-fn_calificacion_promedio_creador-retirada) |
 | `fn_reporte_comisiones_creador.sql` | Reportes | REQ-NF-013 |
-| `fn_cerrar_pedidos_vencidos.sql` | Actualizaciones masivas | REQ-F-019 |
-| `fn_liberar_fondos_escrow.sql` | Validaciones cruzadas | REQ-F-021 |
-| `fn_generar_codigo_pedido.sql` | Generación de códigos secuenciales | REQ-F-018 |
+| ~~`fn_cerrar_pedidos_vencidos.sql`~~ | — | Retirada, ver [CATALOGO-SP.md §4](../../docs/basedatos/CATALOGO-SP.md#4-fn_cerrar_pedidos_vencidos-retirada) |
+| ~~`fn_liberar_fondos_escrow.sql`~~ | — | Retirada, ver [CATALOGO-SP.md §5](../../docs/basedatos/CATALOGO-SP.md#5-fn_liberar_fondos_escrow-retirada) |
+| ~~`fn_generar_codigo_pedido.sql`~~ | — | Retirada, ver [CATALOGO-SP.md §6](../../docs/basedatos/CATALOGO-SP.md#6-fn_generar_codigo_pedido-retirada) |
 | `fn_registrar_usuario.sql` | Validaciones cruzadas + inserción multi-tabla | REQ-F-001 |
 | `fn_resolver_estado_login.sql` | Consultas multi-tabla | REQ-F-002 |
 | `fn_sincronizar_permisos_rol.sql` | Actualizaciones masivas | REQ-F-003 |

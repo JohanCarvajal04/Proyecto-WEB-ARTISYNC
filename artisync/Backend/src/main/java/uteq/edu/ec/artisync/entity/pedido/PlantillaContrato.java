@@ -27,4 +27,19 @@ public class PlantillaContrato {
     @NotBlank(message = "El cuerpo HTML de la plantilla es obligatorio")
     @Column(name = "cuerpo_html_plantilla", nullable = false, columnDefinition = "TEXT")
     private String cuerpoHtmlPlantilla;
+
+    @NotBlank(message = "El nombre de la plantilla es obligatorio")
+    @Size(max = 150, message = "El nombre de la plantilla no puede superar los 150 caracteres")
+    @Column(name = "nombre_plantilla", nullable = false, length = 150)
+    private String nombrePlantilla;
+
+    /** Fallback de ContratoServicioImpl cuando el servicio del pedido no tiene una plantilla propia asignada. */
+    @Builder.Default
+    @Column(name = "es_predeterminada", nullable = false)
+    private Boolean esPredeterminada = false;
+
+    /** Soft delete: no se borra físicamente porque Contrato.plantilla la referencia con FK. */
+    @Builder.Default
+    @Column(name = "activa", nullable = false)
+    private Boolean activa = true;
 }

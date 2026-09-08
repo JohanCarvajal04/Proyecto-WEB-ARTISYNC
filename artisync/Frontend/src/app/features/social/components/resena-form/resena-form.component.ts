@@ -102,7 +102,7 @@ export class ResenaFormComponent implements OnInit {
         this.toast.success(esEdicion ? 'Reseña actualizada' : '¡Gracias por tu reseña!');
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo publicar la reseña');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo publicar la reseña');
         this.enviando.set(false);
       }
     });
@@ -122,7 +122,7 @@ export class ResenaFormComponent implements OnInit {
         this.toast.success('Reseña eliminada');
       },
       error: (err) => {
-        this.toast.error(err.error?.message || 'No se pudo eliminar la reseña');
+        this.toast.error(err.error?.detail || err.error?.message || 'No se pudo eliminar la reseña');
         this.eliminando.set(false);
       }
     });

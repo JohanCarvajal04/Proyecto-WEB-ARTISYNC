@@ -54,9 +54,16 @@ public class ContratoServicioImpl implements IContratoServicio {
             throw new ExcepcionReglaNegocio("Ya existe un contrato para este pedido");
         }
 
-        // Obtener plantilla activa (la más reciente)
-        PlantillaContrato plantilla = plantillaContratoRepository.findFirstByOrderByIdPlantillaDesc()
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay plantillas de contrato disponibles en el sistema"));
+        // REQ-F-017 ampliado: la plantilla ya no es única y global. Se usa la
+        // que el creador asignó a su servicio (catálogo curado por ADMIN,
+        // ver PlantillaContratoAdminControlador); si no asignó ninguna, se
+        // cae a la marcada como predeterminada, para no bloquear el contrato.
+        PlantillaContrato plantilla = pedido.getServicio().getPlantillaContrato();
+        if (plantilla == null) {
+            plantilla = plantillaContratoRepository.findByEsPredeterminadaTrue()
+                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                            "No hay una plantilla de contrato predeterminada configurada en el sistema"));
+        }
 
         // Crear contrato
         Contrato contrato = Contrato.builder()

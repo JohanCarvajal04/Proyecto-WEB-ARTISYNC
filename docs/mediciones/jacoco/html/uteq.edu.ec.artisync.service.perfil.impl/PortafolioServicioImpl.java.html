@@ -71,8 +71,8 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     @Transactional(readOnly = true)
     public RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio) {
 <span class="fc" id="L73">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
-<span class="pc" id="L74">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
-<span class="nc" id="L75">        return mapearARespuesta(portafolio);</span>
+<span class="fc" id="L74">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+<span class="fc" id="L75">        return mapearARespuesta(portafolio);</span>
     }
 
     @Override
@@ -105,10 +105,10 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 <span class="fc" id="L105">            throw new ExcepcionReglaNegocio(&quot;No tiene permisos para modificar este portafolio.&quot;);</span>
         }
 
-<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (peticion.esPublico() != null) {</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (peticion.esPublico() != null) {</span>
 <span class="fc" id="L109">            portafolio.setEsPublico(peticion.esPublico());</span>
         }
-<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (peticion.opcionesPersonalizacion() != null) {</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (peticion.opcionesPersonalizacion() != null) {</span>
 <span class="fc" id="L112">            portafolio.setOpcionesPersonalizacion(peticion.opcionesPersonalizacion());</span>
         }
 
@@ -163,7 +163,7 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     private RespuestaPortafolio mapearARespuesta(Portafolio portafolio) {
 <span class="fc" id="L164">        return RespuestaPortafolio.builder()</span>
 <span class="fc" id="L165">                .idPortafolio(portafolio.getIdPortafolio())</span>
-<span class="pc bpc" id="L166" title="1 of 2 branches missed.">                .idPerfil(portafolio.getPerfil() != null ? portafolio.getPerfil().getIdPerfil() : null)</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">                .idPerfil(portafolio.getPerfil() != null ? portafolio.getPerfil().getIdPerfil() : null)</span>
 <span class="fc" id="L167">                .fechaCreacion(portafolio.getFechaCreacion())</span>
 <span class="fc" id="L168">                .totalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas())</span>
 <span class="fc" id="L169">                .esPublico(portafolio.getEsPublico())</span>

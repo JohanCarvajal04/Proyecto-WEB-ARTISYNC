@@ -143,11 +143,11 @@ public class AdminUserServiceImpl implements AdminUserService {
 <span class="pc bpc" id="L143" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
 <span class="fc" id="L144">            usuario.setNombres(request.getNombres());</span>
         }
-<span class="pc bpc" id="L146" title="3 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
-<span class="nc" id="L147">            usuario.setApellidos(request.getApellidos());</span>
+<span class="pc bpc" id="L146" title="1 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="fc" id="L147">            usuario.setApellidos(request.getApellidos());</span>
         }
-<span class="pc bpc" id="L149" title="1 of 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
-<span class="nc" id="L150">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="fc" id="L150">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
         }
 <span class="fc bfc" id="L152" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
 <span class="fc bfc" id="L153" title="All 2 branches covered.">            if (request.getIdPais() &lt;= 0) {</span>
@@ -248,7 +248,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
 <span class="fc" id="L249">        ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(&quot;roles&quot;,</span>
 <span class="fc" id="L250">                usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
-<span class="pc" id="L251">                        .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L251">                        .map(ur -&gt; ur.getRol().getNombreRol())</span>
 <span class="fc" id="L252">                        .toList()));</span>
 
 <span class="fc" id="L254">        actualizarRoles(usuario, request.getRoles());</span>
@@ -283,52 +283,52 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = &quot;USUARIO_EXPORTAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, entidad = &quot;usuarios&quot;,
             detalle = &quot;{formato: #formato}&quot;)
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante) {
-<span class="nc" id="L286">        Specification&lt;Usuario&gt; spec = UsuarioSpecification.conFiltros(</span>
-<span class="nc" id="L287">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
+<span class="fc" id="L286">        Specification&lt;Usuario&gt; spec = UsuarioSpecification.conFiltros(</span>
+<span class="fc" id="L287">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
 
-<span class="nc" id="L289">        long total = usuarioRepository.count(spec);</span>
-<span class="nc bnc" id="L290" title="All 2 branches missed.">        if (total &gt; formato.topeFilas()) {</span>
-<span class="nc" id="L291">            throw new ExcepcionReglaNegocio(</span>
-<span class="nc" id="L292">                    &quot;El listado filtrado tiene &quot; + total + &quot; usuarios, más de los &quot; + formato.topeFilas()</span>
+<span class="fc" id="L289">        long total = usuarioRepository.count(spec);</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">        if (total &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L291">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L292">                    &quot;El listado filtrado tiene &quot; + total + &quot; usuarios, más de los &quot; + formato.topeFilas()</span>
                             + &quot; que admite una exportación en &quot; + formato + &quot;.&quot;);
         }
 
-<span class="nc" id="L296">        Page&lt;Usuario&gt; pagina = usuarioRepository.findAll(</span>
-<span class="nc" id="L297">                spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
-<span class="nc" id="L298">        List&lt;UserResponse&gt; filas = usuarioMapper.toUserResponseList(pagina.getContent());</span>
+<span class="fc" id="L296">        Page&lt;Usuario&gt; pagina = usuarioRepository.findAll(</span>
+<span class="fc" id="L297">                spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
+<span class="fc" id="L298">        List&lt;UserResponse&gt; filas = usuarioMapper.toUserResponseList(pagina.getContent());</span>
 
-<span class="nc" id="L300">        ModeloReporte&lt;UserResponse&gt; modelo = ModeloReporte.&lt;UserResponse&gt;builder()</span>
-<span class="nc" id="L301">                .titulo(&quot;Usuarios&quot;)</span>
-<span class="nc" id="L302">                .subtitulo(&quot;Listado administrativo de usuarios&quot;)</span>
-<span class="nc" id="L303">                .filtrosAplicados(filtrosLegibles(filtro))</span>
-<span class="nc" id="L304">                .columnas(List.of(</span>
-<span class="nc" id="L305">                        ColumnaReporte.entero(&quot;Id&quot;, UserResponse::getIdUsuario),</span>
-<span class="nc" id="L306">                        ColumnaReporte.texto(&quot;Nombres&quot;, UserResponse::getNombres),</span>
-<span class="nc" id="L307">                        ColumnaReporte.texto(&quot;Apellidos&quot;, UserResponse::getApellidos),</span>
-<span class="nc" id="L308">                        ColumnaReporte.texto(&quot;Correo&quot;, UserResponse::getCorreo),</span>
-<span class="nc" id="L309">                        ColumnaReporte.texto(&quot;País&quot;, UserResponse::getNombrePais),</span>
-<span class="nc" id="L310">                        ColumnaReporte.fechaHora(&quot;Registrado&quot;, UserResponse::getFechaRegistro),</span>
-<span class="nc" id="L311">                        ColumnaReporte.booleano(&quot;Activo&quot;, UserResponse::getEstadoCuenta),</span>
-<span class="nc bnc" id="L312" title="All 2 branches missed.">                        ColumnaReporte.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
-<span class="nc" id="L313">                .filas(filas)</span>
-<span class="nc" id="L314">                .generadoPor(correoSolicitante)</span>
-<span class="nc" id="L315">                .build();</span>
+<span class="fc" id="L300">        ModeloReporte&lt;UserResponse&gt; modelo = ModeloReporte.&lt;UserResponse&gt;builder()</span>
+<span class="fc" id="L301">                .titulo(&quot;Usuarios&quot;)</span>
+<span class="fc" id="L302">                .subtitulo(&quot;Listado administrativo de usuarios&quot;)</span>
+<span class="fc" id="L303">                .filtrosAplicados(filtrosLegibles(filtro))</span>
+<span class="fc" id="L304">                .columnas(List.of(</span>
+<span class="fc" id="L305">                        ColumnaReporte.entero(&quot;Id&quot;, UserResponse::getIdUsuario),</span>
+<span class="fc" id="L306">                        ColumnaReporte.texto(&quot;Nombres&quot;, UserResponse::getNombres),</span>
+<span class="fc" id="L307">                        ColumnaReporte.texto(&quot;Apellidos&quot;, UserResponse::getApellidos),</span>
+<span class="fc" id="L308">                        ColumnaReporte.texto(&quot;Correo&quot;, UserResponse::getCorreo),</span>
+<span class="fc" id="L309">                        ColumnaReporte.texto(&quot;País&quot;, UserResponse::getNombrePais),</span>
+<span class="fc" id="L310">                        ColumnaReporte.fechaHora(&quot;Registrado&quot;, UserResponse::getFechaRegistro),</span>
+<span class="fc" id="L311">                        ColumnaReporte.booleano(&quot;Activo&quot;, UserResponse::getEstadoCuenta),</span>
+<span class="pc bnc" id="L312" title="All 2 branches missed.">                        ColumnaReporte.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
+<span class="fc" id="L313">                .filas(filas)</span>
+<span class="fc" id="L314">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L315">                .build();</span>
 
-<span class="nc" id="L317">        return servicioExportacion.exportar(modelo, formato);</span>
+<span class="fc" id="L317">        return servicioExportacion.exportar(modelo, formato);</span>
     }
 
     private Map&lt;String, String&gt; filtrosLegibles(FiltroUsuario filtro) {
-<span class="nc" id="L321">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
-<span class="nc bnc" id="L322" title="All 4 branches missed.">        if (filtro.getBusqueda() != null &amp;&amp; !filtro.getBusqueda().isBlank()) {</span>
-<span class="nc" id="L323">            filtros.put(&quot;Búsqueda&quot;, filtro.getBusqueda());</span>
+<span class="fc" id="L321">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L322" title="1 of 4 branches missed.">        if (filtro.getBusqueda() != null &amp;&amp; !filtro.getBusqueda().isBlank()) {</span>
+<span class="fc" id="L323">            filtros.put(&quot;Búsqueda&quot;, filtro.getBusqueda());</span>
         }
-<span class="nc bnc" id="L325" title="All 4 branches missed.">        if (filtro.getRol() != null &amp;&amp; !filtro.getRol().isBlank()) {</span>
-<span class="nc" id="L326">            filtros.put(&quot;Rol&quot;, filtro.getRol());</span>
+<span class="pc bpc" id="L325" title="1 of 4 branches missed.">        if (filtro.getRol() != null &amp;&amp; !filtro.getRol().isBlank()) {</span>
+<span class="fc" id="L326">            filtros.put(&quot;Rol&quot;, filtro.getRol());</span>
         }
-<span class="nc bnc" id="L328" title="All 2 branches missed.">        if (filtro.getEstadoCuenta() != null) {</span>
-<span class="nc bnc" id="L329" title="All 2 branches missed.">            filtros.put(&quot;Estado&quot;, filtro.getEstadoCuenta() ? &quot;Activo&quot; : &quot;Suspendido&quot;);</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">        if (filtro.getEstadoCuenta() != null) {</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">            filtros.put(&quot;Estado&quot;, filtro.getEstadoCuenta() ? &quot;Activo&quot; : &quot;Suspendido&quot;);</span>
         }
-<span class="nc" id="L331">        return filtros;</span>
+<span class="fc" id="L331">        return filtros;</span>
     }
 
     @Override
@@ -357,8 +357,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 <span class="fc" id="L357">            usuarioRolRepository.sincronizarRoles(</span>
 <span class="fc" id="L358">                    usuario.getIdUsuario(),</span>
 <span class="fc" id="L359">                    nuevosRoles.stream().map(String::toUpperCase).toArray(String[]::new));</span>
-<span class="nc" id="L360">        } catch (RuntimeException e) {</span>
-<span class="nc" id="L361">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L360">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L361">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
 <span class="fc" id="L362">        }</span>
 <span class="fc" id="L363">    }</span>
 }

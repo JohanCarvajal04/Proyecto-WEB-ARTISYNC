@@ -24,24 +24,48 @@ public class PaisController {
 
     private final PaisService paisService;
 
+    /**
+     * Lista todos los países del catálogo, ordenados alfabéticamente.
+     *
+     * @return listado de países
+     */
     @Operation(summary = "Listar todos los países ordenados alfabéticamente")
     @GetMapping
     public ResponseEntity<List<PaisResponse>> getAllPaises() {
         return ResponseEntity.ok(paisService.getAllPaises());
     }
 
+    /**
+     * Lista solo los países activos del catálogo, ordenados alfabéticamente.
+     *
+     * @return listado de países activos
+     */
     @Operation(summary = "Listar solo los países activos ordenados alfabéticamente")
     @GetMapping("/activos")
     public ResponseEntity<List<PaisResponse>> getPaisesActivos() {
         return ResponseEntity.ok(paisService.getPaisesActivos());
     }
 
+    /**
+     * Obtiene un país por su identificador.
+     *
+     * @param id identificador del país
+     * @return el país solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el país no existe
+     */
     @Operation(summary = "Obtener un país por su ID")
     @GetMapping("/{id}")
     public ResponseEntity<PaisResponse> getPaisById(@PathVariable Long id) {
         return ResponseEntity.ok(paisService.getPaisById(id));
     }
 
+    /**
+     * Crea un nuevo país en el catálogo.
+     *
+     * @param request datos del país a crear
+     * @return el país creado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si ya existe un país con el mismo nombre
+     */
     @Operation(summary = "Crear un nuevo país", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_CREAR') or hasRole('ADMIN')")
     @PostMapping
@@ -49,6 +73,15 @@ public class PaisController {
         return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));
     }
 
+    /**
+     * Actualiza el nombre de un país existente.
+     *
+     * @param id identificador del país a actualizar
+     * @param request datos actualizados del país
+     * @return el país actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el país no existe
+     * @throws ExcepcionRecursoDuplicado si ya existe otro país con el mismo nombre
+     */
     @Operation(summary = "Actualizar el nombre de un país existente", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')")
     @PutMapping("/{id}")
@@ -56,6 +89,13 @@ public class PaisController {
         return ResponseEntity.ok(paisService.updatePais(id, request));
     }
 
+    /**
+     * Activa o desactiva un país del catálogo.
+     *
+     * @param id identificador del país
+     * @return mensaje de confirmación con el nuevo estado del país
+     * @throws ExcepcionRecursoNoEncontrado si el país no existe
+     */
     @Operation(summary = "Eliminar un país si no tiene usuarios asociados", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')")
     @DeleteMapping("/{id}")

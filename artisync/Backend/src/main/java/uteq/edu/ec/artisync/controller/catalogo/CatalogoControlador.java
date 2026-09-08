@@ -17,6 +17,20 @@ public class CatalogoControlador {
 
     private final IServicioCatalogoServicio servicioCatalogoServicio;
 
+    /**
+     * Busca servicios publicados en el catálogo aplicando filtros combinables
+     * de categoría, subcategoría, rango de precio, etiquetas y texto libre.
+     * @param categoria identificador de la categoría a filtrar
+     * @param subcategoria identificador de la subcategoría a filtrar
+     * @param precioMin precio mínimo aceptado para los servicios devueltos
+     * @param precioMax precio máximo aceptado para los servicios devueltos
+     * @param etiquetas identificadores de etiquetas que el servicio debe tener
+     * @param q término de búsqueda libre sobre nombre/descripción del servicio
+     * @param sort campo y dirección de ordenamiento, formato "campo,asc|desc"
+     * @param page número de página solicitada (base 0)
+     * @param size cantidad de resultados por página
+     * @return página de servicios resumidos que cumplen los filtros indicados
+     */
     @GetMapping
     public ResponseEntity<Page<RespuestaServicioResumido>> buscarCatalogo(
             @RequestParam(required = false) Long categoria,

@@ -99,7 +99,7 @@ export class SeguimientoComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo cargar el seguimiento de este pedido');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo cargar el seguimiento de este pedido');
         this.isLoading.set(false);
       }
     });

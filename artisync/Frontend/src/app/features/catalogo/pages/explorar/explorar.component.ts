@@ -113,7 +113,7 @@ export class ExplorarComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'No se pudo cargar el catálogo');
+        this.error.set(err.error?.detail || err.error?.message || 'No se pudo cargar el catálogo');
         this.pagina.set(paginaVacia());
         this.isLoading.set(false);
       }

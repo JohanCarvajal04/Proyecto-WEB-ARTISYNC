@@ -17,7 +17,6 @@ public class RespuestaSorteo {
 
     private Long idSorteo;
     private String tituloSorteo;
-    private String descripcionPremios;
     private Integer cantidadGanadores;
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaCierre;
@@ -36,4 +35,7 @@ public class RespuestaSorteo {
 
     /** Lista de ganadores — solo se incluye si estadoSorteo = 'Finalizado'. */
     private List<RespuestaGanador> ganadores;
+
+    /** Premios individuales del sorteo, en orden. Cada uno con su ganador si ya está definido. */
+    private List<RespuestaPremio> premios;
 }

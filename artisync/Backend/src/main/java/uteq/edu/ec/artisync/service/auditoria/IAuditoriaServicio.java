@@ -13,15 +13,49 @@ import java.util.List;
 
 public interface IAuditoriaServicio {
 
-    /** REQUIRES_NEW: ver AuditoriaServicioImpl para el razonamiento completo. */
+    /**
+     * Registra un evento de auditoría. Se ejecuta en una transacción nueva
+     * (REQUIRES_NEW) para que el registro persista aunque la transacción que
+     * lo originó termine haciendo rollback; ver {@code AuditoriaServicioImpl}
+     * para el razonamiento completo.
+     *
+     * @param datos datos del evento a registrar
+     */
     void registrar(DatosEventoAuditoria datos);
 
+    /**
+     * Lista los eventos de auditoría que cumplen el filtro indicado, paginados.
+     *
+     * @param filtro   criterios de filtrado (acción, usuario, rango de fechas, etc.)
+     * @param pageable configuración de paginación y orden
+     * @return la página de eventos que cumplen el filtro
+     */
     PagedResponse<RespuestaEventoAuditoriaResumen> listar(FiltroAuditoria filtro, Pageable pageable);
 
+    /**
+     * Obtiene el detalle de un evento de auditoría por su id.
+     *
+     * @param idEvento id del evento
+     * @return el detalle del evento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el evento no existe
+     */
     RespuestaEventoAuditoria obtenerPorId(Long idEvento);
 
-    /** Lanza ExcepcionReglaNegocio si el filtro devuelve más filas que el tope del formato pedido. */
+    /**
+     * Genera un documento con los eventos de auditoría que cumplen el filtro indicado.
+     *
+     * @param filtro            criterios de filtrado a exportar
+     * @param formato           formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con los eventos filtrados
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el filtro devuelve más filas que el tope admitido por el formato
+     */
     DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante);
 
+    /**
+     * Lista los nombres de las acciones de auditoría ya registradas, distintos, para poblar filtros.
+     *
+     * @return los nombres de acción disponibles
+     */
     List<String> listarAccionesDisponibles();
 }

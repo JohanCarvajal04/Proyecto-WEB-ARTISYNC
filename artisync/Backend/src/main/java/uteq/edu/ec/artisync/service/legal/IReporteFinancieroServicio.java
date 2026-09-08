@@ -7,8 +7,22 @@ import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 
 public interface IReporteFinancieroServicio {
 
+    /**
+     * Calcula el reporte de comisiones (bruto, comisión de plataforma y neto) que cumple el filtro indicado.
+     *
+     * @param filtro criterios de filtrado (rango de fechas, creador, etc.)
+     * @return el reporte de comisiones agregado y su detalle
+     */
     RespuestaReporteComisiones obtenerReporteComisiones(FiltroReporteFinanciero filtro);
 
-    /** Lanza ExcepcionReglaNegocio si el detalle supera el tope de filas del formato pedido. */
+    /**
+     * Genera un documento con el detalle del reporte de comisiones que cumple el filtro indicado.
+     *
+     * @param filtro            criterios de filtrado a exportar
+     * @param formato           formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el detalle filtrado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el detalle supera el tope de filas del formato pedido
+     */
     DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante);
 }

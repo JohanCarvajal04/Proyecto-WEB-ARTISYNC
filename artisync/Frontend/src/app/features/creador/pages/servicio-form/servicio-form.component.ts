@@ -9,6 +9,10 @@ import { CatalogoService } from '../../services/catalogo.service';
 import { PerfilRequeridoComponent } from '../../components/perfil-requerido.component';
 import { FlujoTrabajoService } from '../../../pedido/services/flujo-trabajo.service';
 import { RespuestaFlujoTrabajo, PeticionCrearFlujoTrabajo, PeticionEtapaConfig } from '../../../pedido/models/pedido.model';
+import { PlantillaContratoService } from '../../../legal/services/plantilla-contrato.service';
+import { RespuestaPlantillaContratoResumen } from '../../../legal/models/legal.model';
+import { BriefingService } from '../../../comunicacion/services/briefing.service';
+import { MAX_PREGUNTAS_PLANTILLA, PeticionCrearBriefingPlantilla, RespuestaBriefing } from '../../../comunicacion/models/comunicacion.model';
 import {
   RespuestaServicio,
   RespuestaCategoria,
@@ -43,6 +47,8 @@ export class ServicioFormComponent implements OnInit {
   private contexto = inject(CreadorContextoService);
   private toast = inject(ToastService);
   private flujoService = inject(FlujoTrabajoService);
+  private plantillaContratoService = inject(PlantillaContratoService);
+  private briefingService = inject(BriefingService);
 
   readonly idServicio = signal<number | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -78,6 +84,21 @@ export class ServicioFormComponent implements OnInit {
   formFlujo: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
   nuevaEtapaFlujo: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
 
+  // Plantilla de contrato: catálogo curado por ADMIN (REQ-F-017 ampliado).
+  // Opcional; sin elegir, el contrato del pedido usa la predeterminada.
+  readonly plantillasContrato = signal<RespuestaPlantillaContratoResumen[]>([]);
+
+  // Cuestionario (briefing): entre los propios del creador (REQ-F-016
+  // ampliado). Opcional; sin elegir, crear un pedido no pide preguntas.
+  // Igual que el flujo de trabajo, se puede crear uno nuevo sin salir de
+  // este formulario en vez de ir primero a "Mis Cuestionarios".
+  readonly cuestionarios = signal<RespuestaBriefing[]>([]);
+  readonly mostrarFormCuestionario = signal<boolean>(false);
+  readonly creandoCuestionario = signal<boolean>(false);
+  readonly maxPreguntasCuestionario = MAX_PREGUNTAS_PLANTILLA;
+  formCuestionario: PeticionCrearBriefingPlantilla = { nombrePlantilla: '', preguntas: [] };
+  nuevaPreguntaCuestionario = '';
+
   // Miniatura: se sube el archivo y el campo del form solo guarda la URL resultante.
   // La vista previa vive en un signal aparte (no en el valor del form) porque
   // esta app es zoneless: un patchValue() dentro de un subscribe no dispara
@@ -98,6 +119,25 @@ export class ServicioFormComponent implements OnInit {
   readonly tiposItem: TipoItem[] = ['SERVICIO', 'PRODUCTO'];
   readonly estados: EstadoPublicacion[] = ['BORRADOR', 'ACTIVO', 'PAUSADO'];
   readonly tiposDato = ['TEXTO', 'NUMERO', 'BOOLEANO', 'FECHA'];
+
+  // ── Formulario por secciones ──
+  // El form reactivo sigue siendo uno solo (una sola llamada al backend al
+  // guardar); esto solo controla qué sección se muestra.
+  readonly pasos = [
+    { titulo: 'Información básica', hint: 'Título, descripción y precio' },
+    { titulo: 'Categoría y etiquetas', hint: 'Dónde aparecerá en el catálogo' },
+    { titulo: 'Flujo y contrato', hint: 'Etapas, contrato y cuestionario' },
+    { titulo: 'Revisiones y estado', hint: 'Ajustes finales' }
+  ];
+  private readonly camposPorPaso: string[][] = [
+    ['tituloServicio', 'descripcionDetallada', 'precioBase', 'tipoItem', 'urlMiniatura'],
+    [],
+    ['idFlujo', 'idPlantillaContrato', 'idBriefingPlantilla'],
+    ['limiteRevisionesBase', 'cargoRevisionAdicional', 'estadoPublicacion']
+  ];
+  readonly pasoActual = signal(0);
+  readonly esPrimerPaso = computed(() => this.pasoActual() === 0);
+  readonly esUltimoPaso = computed(() => this.pasoActual() === this.pasos.length - 1);
 
   /** Subcategorías agrupadas por categoría para el `<optgroup>` del selector. */
   subcategoriasAgrupadas = computed(() => {
@@ -125,7 +165,9 @@ export class ServicioFormComponent implements OnInit {
     urlMiniatura: ['', [Validators.maxLength(255)]],
     cargoRevisionAdicional: [null as number | null, [Validators.min(0)]],
     limiteRevisionesBase: [null as number | null, [Validators.min(0)]],
-    idFlujo: [null as number | null]
+    idFlujo: [null as number | null],
+    idPlantillaContrato: [null as number | null],
+    idBriefingPlantilla: [null as number | null]
   });
 
   formAtributo: FormGroup = this.fb.group({
@@ -160,13 +202,17 @@ export class ServicioFormComponent implements OnInit {
       categorias: this.catalogoService.listarCategorias().pipe(catchError(() => of([] as RespuestaCategoria[]))),
       subcategorias: this.catalogoService.listarSubcategorias().pipe(catchError(() => of([] as RespuestaSubcategoria[]))),
       etiquetas: this.catalogoService.listarEtiquetas().pipe(catchError(() => of([] as RespuestaEtiqueta[]))),
-      flujos: this.flujoService.listarFlujos().pipe(catchError(() => of([] as RespuestaFlujoTrabajo[])))
+      flujos: this.flujoService.listarFlujos().pipe(catchError(() => of([] as RespuestaFlujoTrabajo[]))),
+      plantillasContrato: this.plantillaContratoService.listarActivas().pipe(catchError(() => of([] as RespuestaPlantillaContratoResumen[]))),
+      cuestionarios: this.briefingService.listarMisPlantillas().pipe(catchError(() => of([] as RespuestaBriefing[])))
     }).subscribe({
-      next: ({ categorias, subcategorias, etiquetas, flujos }) => {
+      next: ({ categorias, subcategorias, etiquetas, flujos, plantillasContrato, cuestionarios }) => {
         this.categorias.set(categorias);
         this.subcategorias.set(subcategorias);
         this.etiquetas.set(etiquetas);
         this.flujos.set(flujos);
+        this.plantillasContrato.set(plantillasContrato);
+        this.cuestionarios.set(cuestionarios);
 
         const id = this.idServicio();
         if (id) {
@@ -194,7 +240,9 @@ export class ServicioFormComponent implements OnInit {
           urlMiniatura: servicio.urlMiniatura || '',
           cargoRevisionAdicional: servicio.cargoRevisionAdicional,
           limiteRevisionesBase: servicio.limiteRevisionesBase,
-          idFlujo: servicio.idFlujo
+          idFlujo: servicio.idFlujo,
+          idPlantillaContrato: servicio.idPlantillaContrato,
+          idBriefingPlantilla: servicio.idBriefingPlantilla
         });
         this.previewMiniatura.set(servicio.urlMiniatura || '');
         this.subcategoriasElegidas.set((servicio.subcategorias || []).map(s => s.idSubcategoria));
@@ -422,13 +470,108 @@ export class ServicioFormComponent implements OnInit {
         this.form.patchValue({ idFlujo: flujo.idFlujo });
         this.creandoFlujo.set(false);
         this.mostrarFormFlujo.set(false);
-        this.toast.success(`Flujo «${flujo.nombreFlujo}» creado`);
+        // Mismo aviso que en guardarCuestionario(): queda elegido en el
+        // <select>, pero la asignación se persiste recién al guardar este
+        // formulario del servicio.
+        this.toast.success(`Flujo «${flujo.nombreFlujo}» creado y seleccionado — no olvides guardar el servicio para aplicarlo`);
       },
       error: (err) => {
         this.creandoFlujo.set(false);
         this.toast.error(mensajeError(err, 'No se pudo crear el flujo'));
       }
     });
+  }
+
+  // ── Cuestionario (briefing): crear uno nuevo sin salir de este formulario ──
+
+  abrirFormCuestionario(): void {
+    this.formCuestionario = { nombrePlantilla: '', preguntas: [] };
+    this.nuevaPreguntaCuestionario = '';
+    this.mostrarFormCuestionario.set(true);
+  }
+
+  cancelarFormCuestionario(): void {
+    this.mostrarFormCuestionario.set(false);
+  }
+
+  agregarPreguntaCuestionario(): void {
+    const texto = this.nuevaPreguntaCuestionario.trim();
+    if (!texto) return;
+
+    if (this.formCuestionario.preguntas.length >= this.maxPreguntasCuestionario) {
+      this.toast.warning(`Un cuestionario admite como máximo ${this.maxPreguntasCuestionario} preguntas.`);
+      return;
+    }
+
+    this.formCuestionario.preguntas.push({
+      textoPregunta: texto,
+      numeroOrden: this.formCuestionario.preguntas.length + 1
+    });
+    this.nuevaPreguntaCuestionario = '';
+  }
+
+  quitarPreguntaCuestionario(index: number): void {
+    this.formCuestionario.preguntas.splice(index, 1);
+    this.formCuestionario.preguntas.forEach((p, i) => p.numeroOrden = i + 1);
+  }
+
+  guardarCuestionario(): void {
+    if (!this.formCuestionario.nombrePlantilla.trim() || this.formCuestionario.preguntas.length === 0) {
+      this.toast.error('El cuestionario necesita un nombre y al menos una pregunta.');
+      return;
+    }
+
+    this.creandoCuestionario.set(true);
+    this.briefingService.crearPlantilla(this.formCuestionario).subscribe({
+      next: (plantilla) => {
+        this.cuestionarios.update(lista => [...lista, plantilla]);
+        this.form.patchValue({ idBriefingPlantilla: plantilla.idPlantilla });
+        this.creandoCuestionario.set(false);
+        this.mostrarFormCuestionario.set(false);
+        // El cuestionario ya existe y quedó elegido en el <select>, pero la
+        // asignación al servicio recién se persiste cuando se guarda ESTE
+        // formulario — sin este aviso, un creador puede leer "creado" como
+        // "ya quedó aplicado" y salir sin guardar (regresión real reportada:
+        // el cuestionario se creó una hora después del último guardado del
+        // servicio y nunca llegó a asociarse).
+        this.toast.success(`Cuestionario «${plantilla.nombrePlantilla}» creado y seleccionado — no olvides guardar el servicio para aplicarlo`);
+      },
+      error: (err) => {
+        this.creandoCuestionario.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo crear el cuestionario'));
+      }
+    });
+  }
+
+  // ── Navegación entre secciones ──
+
+  private pasoValido(paso: number): boolean {
+    const campos = this.camposPorPaso[paso];
+    const camposOk = campos.every(c => this.form.get(c)?.valid ?? true);
+    return paso === 1 ? camposOk && this.subcategoriasElegidas().length > 0 : camposOk;
+  }
+
+  private marcarPasoTocado(paso: number): void {
+    this.camposPorPaso[paso].forEach(c => this.form.get(c)?.markAsTouched());
+    if (paso === 1 && this.subcategoriasElegidas().length === 0) {
+      this.toast.error('Elige al menos una subcategoría antes de continuar');
+    }
+  }
+
+  irAPaso(paso: number): void {
+    this.pasoActual.set(paso);
+  }
+
+  pasoAnterior(): void {
+    this.pasoActual.update(p => Math.max(0, p - 1));
+  }
+
+  pasoSiguiente(): void {
+    if (!this.pasoValido(this.pasoActual())) {
+      this.marcarPasoTocado(this.pasoActual());
+      return;
+    }
+    this.pasoActual.update(p => Math.min(this.pasos.length - 1, p + 1));
   }
 
   // ── Guardado del servicio ──
@@ -439,11 +582,11 @@ export class ServicioFormComponent implements OnInit {
   }
 
   guardar(): void {
-    if (this.form.invalid || this.subcategoriasElegidas().length === 0) {
+    const pasoInvalido = this.pasos.findIndex((_, i) => !this.pasoValido(i));
+    if (pasoInvalido !== -1) {
       this.form.markAllAsTouched();
-      if (this.subcategoriasElegidas().length === 0) {
-        this.toast.error('Elige al menos una subcategoría');
-      }
+      this.pasoActual.set(pasoInvalido);
+      this.marcarPasoTocado(pasoInvalido);
       return;
     }
     const perfil = this.contexto.perfil();
@@ -460,6 +603,8 @@ export class ServicioFormComponent implements OnInit {
       cargoRevisionAdicional: val.cargoRevisionAdicional !== null ? Number(val.cargoRevisionAdicional) : null,
       limiteRevisionesBase: val.limiteRevisionesBase !== null ? Number(val.limiteRevisionesBase) : null,
       idFlujo: val.idFlujo !== null ? Number(val.idFlujo) : null,
+      idPlantillaContrato: val.idPlantillaContrato !== null ? Number(val.idPlantillaContrato) : null,
+      idBriefingPlantilla: val.idBriefingPlantilla !== null ? Number(val.idBriefingPlantilla) : null,
       etiquetaIds: this.etiquetasElegidas()
     };
 

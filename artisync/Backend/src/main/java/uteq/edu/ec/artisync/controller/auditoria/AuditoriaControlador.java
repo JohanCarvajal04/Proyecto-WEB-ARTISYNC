@@ -38,6 +38,13 @@ public class AuditoriaControlador {
 
     private final IAuditoriaServicio auditoriaServicio;
 
+    /**
+     * Lista de forma paginada la bitácora de auditoría, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar los eventos
+     * @param pageable configuración de paginación
+     * @return página con los eventos de auditoría que cumplen el filtro
+     */
     @Operation(summary = "Listado paginado y filtrado de la bitácora de auditoría")
     @GetMapping
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
@@ -46,6 +53,13 @@ public class AuditoriaControlador {
         return ResponseEntity.ok(auditoriaServicio.listar(filtro, pageable));
     }
 
+    /**
+     * Obtiene el detalle completo de un evento de auditoría, incluido el JSON del cambio.
+     *
+     * @param idEvento identificador del evento de auditoría
+     * @return el detalle del evento de auditoría
+     * @throws ExcepcionRecursoNoEncontrado si el evento no existe
+     */
     @Operation(summary = "Detalle completo de un evento, incluido el JSON del cambio")
     @GetMapping("/{idEvento}")
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
@@ -53,6 +67,11 @@ public class AuditoriaControlador {
         return ResponseEntity.ok(auditoriaServicio.obtenerPorId(idEvento));
     }
 
+    /**
+     * Lista el catálogo de acciones distintas registradas en la bitácora, para poblar el filtro.
+     *
+     * @return listado de nombres de acciones registradas
+     */
     @Operation(summary = "Catálogo de acciones distintas registradas, para poblar el filtro")
     @GetMapping("/acciones")
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
@@ -60,6 +79,15 @@ public class AuditoriaControlador {
         return ResponseEntity.ok(auditoriaServicio.listarAccionesDisponibles());
     }
 
+    /**
+     * Exporta los eventos de auditoría que coinciden con el filtro, en el formato solicitado.
+     *
+     * @param filtro criterios opcionales para filtrar los eventos
+     * @param formato formato del documento a generar (CSV, XLSX o PDF), cada uno con su propio tope de filas
+     * @param authentication autenticación del usuario que solicita la exportación
+     * @return el documento generado con los eventos de auditoría
+     * @throws ExcepcionReglaNegocio si el número de eventos excede el tope de filas admitido por el formato
+     */
     @Operation(summary = "Exportar los eventos que coinciden con el filtro en CSV, XLSX o PDF "
             + "(cada formato tiene su propio tope de filas)")
     @GetMapping("/exportar")

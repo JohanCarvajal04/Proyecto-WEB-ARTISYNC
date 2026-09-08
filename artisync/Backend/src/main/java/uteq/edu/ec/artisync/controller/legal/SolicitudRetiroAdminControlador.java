@@ -27,12 +27,28 @@ public class SolicitudRetiroAdminControlador {
 
     private final ISolicitudRetiroServicio solicitudRetiroServicio;
 
+    /**
+     * Lista de forma paginada la cola de solicitudes de retiro, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar la cola de solicitudes
+     * @param pageable configuración de paginación
+     * @return página con las solicitudes de retiro que cumplen el filtro
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<Page<RespuestaSolicitudRetiro>> listar(FiltroSolicitudRetiro filtro, Pageable pageable) {
         return ResponseEntity.ok(solicitudRetiroServicio.listarCola(filtro, pageable));
     }
 
+    /**
+     * Aprueba una solicitud de retiro pendiente y ejecuta el pago vía PayPal Payouts.
+     *
+     * @param idSolicitud identificador de la solicitud de retiro
+     * @param userDetails administrador autenticado que aprueba la solicitud
+     * @return la solicitud de retiro con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
+     * @throws ExcepcionReglaNegocio si la solicitud no está en estado pendiente
+     */
     @PostMapping("/{idSolicitud}/aprobar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaSolicitudRetiro> aprobar(
@@ -41,6 +57,16 @@ public class SolicitudRetiroAdminControlador {
         return ResponseEntity.ok(solicitudRetiroServicio.aprobar(idSolicitud, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Rechaza una solicitud de retiro pendiente.
+     *
+     * @param idSolicitud identificador de la solicitud de retiro
+     * @param userDetails administrador autenticado que rechaza la solicitud
+     * @param peticion nota administrativa con el motivo del rechazo
+     * @return la solicitud de retiro con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
+     * @throws ExcepcionReglaNegocio si no se indica motivo de rechazo, o la solicitud no está en estado pendiente
+     */
     @PostMapping("/{idSolicitud}/rechazar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaSolicitudRetiro> rechazar(
@@ -51,7 +77,15 @@ public class SolicitudRetiroAdminControlador {
                 idSolicitud, userDetails.getIdUsuario(), peticion.getNotaAdmin()));
     }
 
-    /** Solo tiene efecto sobre una solicitud en estado "Fallido" (ver ISolicitudRetiroServicio.reintentar). */
+    /**
+     * Solo tiene efecto sobre una solicitud en estado "Fallido" (ver ISolicitudRetiroServicio.reintentar).
+     *
+     * @param idSolicitud identificador de la solicitud de retiro
+     * @param userDetails administrador autenticado que reintenta la solicitud
+     * @return la solicitud de retiro con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
+     * @throws ExcepcionReglaNegocio si la solicitud no está en estado fallido
+     */
     @PostMapping("/{idSolicitud}/reintentar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaSolicitudRetiro> reintentar(

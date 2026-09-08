@@ -12,6 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPropuestaTerminos;
@@ -23,6 +24,9 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaPropuestaTerminos;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaSeguimientoPedido;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingEnviado;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingPregunta;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
@@ -31,6 +35,8 @@ import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PropuestaTerminosPedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.PropuestaTerminosPedidoRepository;
@@ -59,6 +65,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -92,6 +99,8 @@ class PedidoServicioImplTest {
     @Mock private IServicioExportacion servicioExportacion;
     @Mock private IVerificacionServicio verificacionServicio;
     @Mock private IContratoServicio contratoServicio;
+    @Mock private BriefingEnviadoRepository briefingEnviadoRepository;
+    @Mock private BriefingRespuestaRepository briefingRespuestaRepository;
 
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
@@ -191,6 +200,87 @@ class PedidoServicioImplTest {
                 .isInstanceOf(ExcepcionReglaNegocio.class)
                 .hasMessageContaining("verificar tu identidad");
         verifyNoInteractions(servicioRepository);
+    }
+
+    // ---------- crearPedido: cuestionario (briefing) por servicio, REQ-F-016 ampliado ----------
+
+    private BriefingPlantilla plantillaBriefingDeDosPreguntas() {
+        BriefingPregunta p1 = BriefingPregunta.builder().idPregunta(101L).textoPregunta("¿Colores preferidos?").numeroOrden(1).build();
+        BriefingPregunta p2 = BriefingPregunta.builder().idPregunta(102L).textoPregunta("¿Referencias?").numeroOrden(2).build();
+        return BriefingPlantilla.builder().idBriefingPlantilla(50L).nombrePlantilla("Briefing Logo")
+                .preguntas(List.of(p1, p2)).build();
+    }
+
+    @Test
+    @DisplayName("crearPedido — servicio con cuestionario y todas las respuestas crea el pedido y registra el briefing completado")
+    void crearPedido_conCuestionarioCompleto_registraBriefing() {
+        servicio.setBriefingPlantilla(plantillaBriefingDeDosPreguntas());
+        FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+
+        PeticionCrearPedido peticion = PeticionCrearPedido.builder().idServicio(1L)
+                .respuestasBriefing(List.of(
+                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build(),
+                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(102L).textoRespuesta("Ninguna en particular").build()
+                ))
+                .build();
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
+        given(pedidoRepository.save(any(Pedido.class))).willAnswer(inv -> inv.getArgument(0));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(any())).willReturn(List.of());
+        given(briefingEnviadoRepository.save(any(BriefingEnviado.class))).willAnswer(inv -> {
+            BriefingEnviado be = inv.getArgument(0);
+            be.setIdBriefingEnviado(500L);
+            return be;
+        });
+
+        RespuestaPedido respuesta = pedidoServicio.crearPedido(1L, peticion);
+
+        assertThat(respuesta).isNotNull();
+        verify(briefingEnviadoRepository).save(argThat(be -> Boolean.TRUE.equals(be.getCompletado())));
+        verify(briefingRespuestaRepository, org.mockito.Mockito.times(2)).save(any());
+    }
+
+    @Test
+    @DisplayName("crearPedido — servicio con cuestionario y respuestas incompletas rechaza y no crea el pedido")
+    void crearPedido_conCuestionarioIncompleto_rechazaYNoPersisteNada() {
+        servicio.setBriefingPlantilla(plantillaBriefingDeDosPreguntas());
+        FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+
+        PeticionCrearPedido peticion = PeticionCrearPedido.builder().idServicio(1L)
+                .respuestasBriefing(List.of(
+                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build()
+                        // falta la respuesta a la pregunta 102
+                ))
+                .build();
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
+
+        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("Referencias");
+        verify(pedidoRepository, never()).save(any());
+        verifyNoInteractions(briefingEnviadoRepository, briefingRespuestaRepository);
+    }
+
+    @Test
+    @DisplayName("crearPedido — servicio con cuestionario y sin respuestas rechaza y no crea el pedido")
+    void crearPedido_conCuestionarioSinRespuestas_rechaza() {
+        servicio.setBriefingPlantilla(plantillaBriefingDeDosPreguntas());
+        FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial).numeroOrden(1).build();
+        PeticionCrearPedido peticion = PeticionCrearPedido.builder().idServicio(1L).build();
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
+        given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
+
+        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("cuestionario");
+        verify(pedidoRepository, never()).save(any());
     }
 
     // ---------- proponerTerminos / aceptarPropuestaTerminos / rechazarPropuestaTerminos ----------
@@ -340,6 +430,122 @@ class PedidoServicioImplTest {
         assertThat(respuesta.getEstado()).isEqualTo(PropuestaTerminosPedido.RECHAZADA);
         verify(pedidoRepository, never()).save(any());
         verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("rechazarPropuestaTerminos rechaza que quien propuso rechace su propia propuesta")
+    void rechazarPropuestaTerminos_rechazaAutoRechazo() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.rechazarPropuestaTerminos(10L, 7L, 1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("propia propuesta");
+        verify(propuestaTerminosPedidoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("cancelarPropuestaTerminos marca la propuesta cancelada cuando la cancela quien la propuso")
+    void cancelarPropuestaTerminos_marcaCancelada() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+        given(propuestaTerminosPedidoRepository.save(any(PropuestaTerminosPedido.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        RespuestaPropuestaTerminos respuesta = pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L);
+
+        assertThat(respuesta.getEstado()).isEqualTo(PropuestaTerminosPedido.CANCELADA);
+    }
+
+    @Test
+    @DisplayName("cancelarPropuestaTerminos rechaza a quien no propuso los terminos")
+    void cancelarPropuestaTerminos_rechazaNoPropietario() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 999L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("Solo quien propuso");
+        verify(propuestaTerminosPedidoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendienteDelPedido — propuesta inexistente lanza excepcion")
+    void propuestaTerminos_propuestaInexistente_lanzaExcepcion() {
+        given(propuestaTerminosPedidoRepository.findById(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 99L, 1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class)
+                .hasMessageContaining("Propuesta no encontrada");
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendienteDelPedido — propuesta de otro pedido lanza excepcion")
+    void propuestaTerminos_propuestaDeOtroPedido_lanzaExcepcion() {
+        Pedido otroPedido = Pedido.builder().idPedido(20L).build();
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(otroPedido).propuestoPor(cliente)
+                .estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class)
+                .hasMessageContaining("Propuesta no encontrada");
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendienteDelPedido — propuesta ya resuelta lanza excepcion")
+    void propuestaTerminos_propuestaYaResuelta_lanzaExcepcion() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .estado(PropuestaTerminosPedido.ACEPTADA).build();
+        given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
+
+        assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("ya fue resuelta");
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendiente — devuelve la propuesta pendiente del pedido")
+    void obtenerPropuestaPendiente_devuelvePropuesta() {
+        PropuestaTerminosPedido propuesta = PropuestaTerminosPedido.builder()
+                .idPropuesta(7L).pedido(pedido).propuestoPor(cliente)
+                .precioPropuesto(new BigDecimal("35.00")).estado(PropuestaTerminosPedido.PENDIENTE).build();
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(10L, PropuestaTerminosPedido.PENDIENTE))
+                .willReturn(Optional.of(propuesta));
+
+        RespuestaPropuestaTerminos respuesta = pedidoServicio.obtenerPropuestaPendiente(10L, 1L);
+
+        assertThat(respuesta.getIdPropuesta()).isEqualTo(7L);
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendiente — sin propuesta pendiente lanza excepcion")
+    void obtenerPropuestaPendiente_sinPropuesta_lanzaExcepcion() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(10L, PropuestaTerminosPedido.PENDIENTE))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pedidoServicio.obtenerPropuestaPendiente(10L, 1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("obtenerPropuestaPendiente — usuario ajeno al pedido recibe AccessDenied")
+    void obtenerPropuestaPendiente_usuarioAjeno_lanzaAccessDenied() {
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+
+        assertThatThrownBy(() -> pedidoServicio.obtenerPropuestaPendiente(10L, 999L))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     // ---------- obtenerPedidoPorId (IDOR, OBS-08) ----------

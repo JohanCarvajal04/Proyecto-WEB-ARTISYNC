@@ -19,6 +19,7 @@ import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
+import uteq.edu.ec.artisync.entity.social.PremioSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
@@ -73,13 +74,16 @@ class SorteoServiceImplTest {
                 .idSorteo(100L)
                 .perfilCreador(perfilCreador)
                 .tituloSorteo("Sorteo de prueba")
-                .descripcionPremios("Un premio especial")
                 .cantidadGanadores(2)
                 .fechaInicio(LocalDateTime.now().minusHours(1))
                 .fechaCierre(LocalDateTime.now().plusDays(1))
                 .estadoSorteo("Activo")
                 .requiereSeguidor(false)
                 .build();
+        sorteoActivo.setPremios(List.of(
+                PremioSorteo.builder().idPremio(1L).sorteo(sorteoActivo).descripcionPremio("Premio A").orden(1).build(),
+                PremioSorteo.builder().idPremio(2L).sorteo(sorteoActivo).descripcionPremio("Premio B").orden(2).build()
+        ));
     }
 
     // =========================================================================
@@ -91,7 +95,7 @@ class SorteoServiceImplTest {
     void crearSorteo_datosValidos_creaCorrectamente() {
         PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
                 .tituloSorteo("Sorteo test")
-                .descripcionPremios("Premio test")
+                .premios(List.of("Premio test"))
                 .cantidadGanadores(1)
                 .fechaInicio(LocalDateTime.now().plusHours(1))
                 .fechaCierre(LocalDateTime.now().plusDays(2))
@@ -114,7 +118,7 @@ class SorteoServiceImplTest {
     void crearSorteo_fechaCierreAntesInicio_lanzaExcepcion() {
         PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
                 .tituloSorteo("Mal sorteo")
-                .descripcionPremios("Premio")
+                .premios(List.of("Premio"))
                 .cantidadGanadores(1)
                 .fechaInicio(LocalDateTime.now().plusDays(2))
                 .fechaCierre(LocalDateTime.now().plusDays(1)) // cierre ANTES de inicio
@@ -126,6 +130,124 @@ class SorteoServiceImplTest {
         assertThatThrownBy(() -> sorteoService.crearSorteo(1L, peticion))
                 .isInstanceOf(ExcepcionReglaNegocio.class)
                 .hasMessageContaining("posterior a la fecha de inicio");
+    }
+
+    @Test
+    @DisplayName("crearSorteo — lanza ExcepcionReglaNegocio si la cantidad de premios no coincide con cantidadGanadores")
+    void crearSorteo_premiosNoCoincidenConCantidadGanadores_lanzaExcepcion() {
+        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
+                .tituloSorteo("Sorteo desalineado")
+                .premios(List.of("Premio único"))
+                .cantidadGanadores(3) // 1 premio, pero pide 3 ganadores
+                .fechaInicio(LocalDateTime.now().plusHours(1))
+                .fechaCierre(LocalDateTime.now().plusDays(2))
+                .requiereSeguidor(false)
+                .build();
+
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(1L))
+                .willReturn(Optional.of(perfilCreador));
+
+        assertThatThrownBy(() -> sorteoService.crearSorteo(1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("debe coincidir con la cantidad de premios");
+        verify(sorteoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("actualizarSorteo — lanza ExcepcionReglaNegocio si los premios enviados no coinciden con cantidadGanadores")
+    void actualizarSorteo_premiosNoCoincidenConCantidadGanadores_lanzaExcepcion() {
+        var peticion = PeticionActualizarSorteo.builder()
+                .premios(List.of("Solo un premio")) // sorteoActivo tiene cantidadGanadores=2
+                .build();
+
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
+        given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
+
+        assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("debe coincidir con la cantidad de premios");
+    }
+
+    @Test
+    @DisplayName("actualizarSorteo — rechaza cambiar los premios una vez iniciadas las inscripciones")
+    void actualizarSorteo_cambiarPremiosConParticipantes_lanzaExcepcion() {
+        var peticion = PeticionActualizarSorteo.builder()
+                .premios(List.of("Premio A", "Premio B"))
+                .build();
+
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
+        given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(true);
+
+        assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
+                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .hasMessageContaining("No se puede modificar este campo");
+    }
+
+    @Test
+    @DisplayName("crearSorteo — lanza recurso no encontrado si el usuario no tiene perfil de creador")
+    void crearSorteo_sinPerfilCreador_lanzaExcepcion() {
+        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
+                .fechaInicio(LocalDateTime.now().plusHours(1))
+                .fechaCierre(LocalDateTime.now().plusDays(2))
+                .build();
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sorteoService.crearSorteo(99L, peticion))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("actualizarSorteo — aplica la nueva fecha de cierre cuando no hay participantes")
+    void actualizarSorteo_sinParticipantes_aplicaFechaCierre() {
+        LocalDateTime nuevaFecha = sorteoActivo.getFechaCierre().plusDays(5);
+        var peticion = PeticionActualizarSorteo.builder().fechaCierre(nuevaFecha).build();
+
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
+        given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
+        given(sorteoRepository.save(any(Sorteo.class))).willReturn(sorteoActivo);
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
+
+        sorteoService.actualizarSorteo(100L, 1L, peticion);
+
+        assertThat(sorteoActivo.getFechaCierre()).isEqualTo(nuevaFecha);
+    }
+
+    @Test
+    @DisplayName("actualizarSorteo — lanza recurso no encontrado si el usuario no tiene perfil de creador")
+    void actualizarSorteo_sinPerfilCreador_lanzaExcepcion() {
+        var peticion = PeticionActualizarSorteo.builder().tituloSorteo("X").build();
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 99L, peticion))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("listarSorteosPorCreador — marca yoParticipo cuando el usuario actual esta inscrito")
+    void listarSorteosPorCreador_conUsuarioActual_marcaParticipacion() {
+        given(sorteoRepository.findByPerfilCreadorIdPerfil(10L)).willReturn(List.of(sorteoActivo));
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
+        given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(true);
+
+        List<RespuestaSorteo> resultado = sorteoService.listarSorteosPorCreador(10L, 2L);
+
+        assertThat(resultado.get(0).isYoParticipo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("listarSorteosActivos — marca yoParticipo=false cuando el usuario actual no esta inscrito")
+    void listarSorteosActivos_conUsuarioActual_sinParticipar() {
+        given(sorteoRepository.findByEstadoSorteo("Activo")).willReturn(List.of(sorteoActivo));
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
+        given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(false);
+
+        List<RespuestaSorteo> resultado = sorteoService.listarSorteosActivos(2L);
+
+        assertThat(resultado.get(0).isYoParticipo()).isFalse();
     }
 
     // =========================================================================
@@ -248,6 +370,30 @@ class SorteoServiceImplTest {
 
         assertThat(resultado.getGanadores()).hasSize(1);
         assertThat(resultado.isYoParticipo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("obtenerSorteo — cada premio queda con su propio ganador, no todos agrupados")
+    void obtenerSorteo_finalizado_cadaPremioConSuGanador() {
+        sorteoActivo.setEstadoSorteo("Finalizado");
+        Usuario ganador1 = Usuario.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
+        Usuario ganador2 = Usuario.builder().idUsuario(3L).nombres("Ana").apellidos("Diaz").build();
+        PremioSorteo premioA = sorteoActivo.getPremios().get(0);
+        PremioSorteo premioB = sorteoActivo.getPremios().get(1);
+        ParticipanteSorteo p1 = ParticipanteSorteo.builder()
+                .idParticipacion(1L).sorteo(sorteoActivo).usuario(ganador1).esGanador(true).premio(premioA).build();
+        ParticipanteSorteo p2 = ParticipanteSorteo.builder()
+                .idParticipacion(2L).sorteo(sorteoActivo).usuario(ganador2).esGanador(true).premio(premioB).build();
+
+        given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
+        given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of(p1, p2));
+        given(participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(100L)).willReturn(List.of(p1, p2));
+
+        RespuestaSorteo resultado = sorteoService.obtenerSorteo(100L, null);
+
+        assertThat(resultado.getPremios()).hasSize(2);
+        assertThat(resultado.getPremios().get(0).getGanador().getNombreUsuario()).isEqualTo("Juan Perez");
+        assertThat(resultado.getPremios().get(1).getGanador().getNombreUsuario()).isEqualTo("Ana Diaz");
     }
 
     @Test

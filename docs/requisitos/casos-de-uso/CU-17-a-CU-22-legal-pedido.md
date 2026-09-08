@@ -6,25 +6,26 @@
 **Trazabilidad:** REQ-F-017 / HU-17
 **Prueba de integración:** `ContratoServicioImplTest`
 
-**1. Actor principal y objetivo:** Sistema (iniciado por el Cliente al contratar un servicio) — generar el documento de contrato a partir de una plantilla.
+**1. Actor principal y objetivo:** Sistema (iniciado por el Cliente al contratar un servicio) — generar el documento de contrato a partir de la plantilla que corresponde al servicio.
 
 **Nivel:** Meta de usuario
 
 **Precondición:** El Cliente seleccionó un servicio y confirmó los términos (precio, revisiones incluidas).
 
-**Garantía de éxito:** El contrato HTML se genera con todas las variables correctamente sustituidas.
+**Garantía de éxito:** El contrato HTML se genera con la plantilla correcta (la del servicio, o la predeterminada como respaldo) y todas las variables correctamente sustituidas.
 
 **2. Escenario principal de éxito:**
 1. El Cliente confirma la contratación de un servicio.
-2. El sistema recupera la plantilla de contrato activa.
-3. El sistema sustituye las variables (partes, servicio, precio, revisiones, fecha) con los datos reales del pedido.
-4. El sistema genera el documento HTML y lo asocia al pedido, quedando pendiente de firma (continúa en CU-18).
+2. El sistema revisa si el servicio del pedido tiene una plantilla de contrato propia asignada (del catálogo curado por Administrador, ver CU-17b).
+3. Si el servicio tiene una plantilla propia, el sistema la usa; si no, usa la plantilla marcada como predeterminada en el catálogo.
+4. El sistema sustituye las variables (partes, servicio, precio, revisiones, fecha) con los datos reales del pedido.
+5. El sistema genera el documento HTML y lo asocia al pedido, quedando pendiente de firma (continúa en CU-18).
 
 **3. Extensiones:**
-- 2a. No existe una plantilla activa configurada.
+- 3a. No existe ninguna plantilla marcada como predeterminada en el catálogo (y el servicio tampoco tiene una propia).
 
 **4. Manejo de extensiones:**
-- 2a1. El sistema notifica al administrador la ausencia de plantilla y detiene el flujo de contratación. Termina.
+- 3a1. El sistema notifica al administrador la ausencia de plantilla predeterminada y detiene el flujo de contratación. Termina.
 
 ### Diagrama de secuencia
 
@@ -37,20 +38,52 @@ sequenceDiagram
 
     Cl->>ConC: POST /api/v1/contratos/pedido/{idPedido}
     ConC->>ConS: generarContrato(idPedido)
-    ConS->>DB: SELECT plantilla de contrato activa
-    alt no existe plantilla activa
-        DB-->>ConS: vacío
-        ConS-->>ConC: error (sin plantilla)
-        ConC-->>Cl: 409 Conflict + notificación al administrador
-    else plantilla existe
-        DB-->>ConS: plantilla
-        ConS->>ConS: sustituir variables (partes, servicio, precio, revisiones, fecha)
-        ConS->>DB: persistir contrato HTML asociado al pedido (estado: pendiente de firma)
-        DB-->>ConS: OK
-        ConS-->>ConC: contrato generado
-        ConC-->>Cl: 201 Created
+    ConS->>DB: SELECT pedido (con servicio.plantillaContrato)
+    alt servicio tiene plantilla propia
+        ConS->>ConS: usar plantilla del servicio
+    else servicio sin plantilla propia
+        ConS->>DB: SELECT plantilla predeterminada del catálogo
+        alt no existe predeterminada
+            DB-->>ConS: vacío
+            ConS-->>ConC: error (sin plantilla predeterminada)
+            ConC-->>Cl: 404 Not Found + notificación al administrador
+        else predeterminada existe
+            DB-->>ConS: plantilla predeterminada
+        end
     end
+    ConS->>ConS: sustituir variables (partes, servicio, precio, revisiones, fecha)
+    ConS->>DB: persistir contrato HTML asociado al pedido (estado: pendiente de firma)
+    DB-->>ConS: OK
+    ConS-->>ConC: contrato generado
+    ConC-->>Cl: 201 Created
 ```
+
+---
+
+## CU-17b: Administrar el catálogo de plantillas de contrato
+**Trazabilidad:** REQ-F-017 / HU-17
+**Prueba de integración:** `PlantillaContratoAdminServicioImplTest`
+
+**1. Actor principal y objetivo:** Administrador — mantener el catálogo de plantillas de contrato que los Creadores pueden asignar a sus servicios.
+
+**Nivel:** Subfunción
+
+**Precondición:** El Administrador tiene el permiso `CONTRATO_PLANTILLA_GESTIONAR`.
+
+**Garantía de éxito:** Siempre existe exactamente una plantilla marcada como predeterminada; una plantilla predeterminada no puede desactivarse ni perder esa condición sin que otra la reemplace.
+
+**2. Escenario principal de éxito:**
+1. El Administrador crea o edita una plantilla (nombre, versión legal, cuerpo HTML, si es predeterminada).
+2. Si la marca como predeterminada, el sistema desmarca automáticamente la que lo era antes.
+3. El Creador la ve disponible en el selector de su formulario de servicio (`GET /api/v1/plantillas-contrato/activas`) y puede asignarla a uno o más de sus servicios.
+
+**3. Extensiones:**
+- 1a. El Administrador intenta desactivar la plantilla predeterminada.
+- 1b. El Administrador intenta quitarle la condición de predeterminada sin marcar otra.
+
+**4. Manejo de extensiones:**
+- 1a1. El sistema rechaza la desactivación. Termina.
+- 1b1. El sistema rechaza el cambio. Termina.
 
 ---
 

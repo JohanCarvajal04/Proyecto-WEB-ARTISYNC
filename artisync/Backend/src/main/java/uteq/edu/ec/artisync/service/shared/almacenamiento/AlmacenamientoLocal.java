@@ -33,7 +33,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
         try {
             Files.createDirectories(rutaBase);
         } catch (IOException e) {
-            throw new IllegalStateException("No se pudo crear el directorio de documentos: " + rutaBase, e);
+            throw new RuntimeException("No se pudo crear el directorio de documentos: " + rutaBase, e);
         }
     }
 

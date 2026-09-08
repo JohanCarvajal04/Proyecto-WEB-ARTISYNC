@@ -9,11 +9,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.peticion.legal.FiltroSolicitudRetiro;
@@ -30,22 +29,13 @@ import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.legal.ISolicitudRetiroServicio;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 import uteq.edu.ec.artisync.specification.legal.SolicitudRetiroSpecification;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
-/**
- * El cliente HTTP de PayPal (llamarPayPal/obtenerAccessToken/getPayPalBaseUrl,
- * más abajo) está deliberadamente duplicado desde PagoServicioImpl en vez de
- * extraído a un componente compartido: este módulo es nuevo y ese código de
- * pagos ya está probado en producción, así que se prefirió no arriesgarlo con
- * un refactor en el mismo cambio. La extracción de un PayPalClient común queda
- * como mejora explícita post-lanzamiento (ver plan de retiros, Fase 4).
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -70,29 +60,12 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     private final DatosPagoCreadorRepository datosPagoCreadorRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final PayPalClient payPalClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /** No es `final` para que las pruebas puedan sustituirlo (mismo motivo que en PagoServicioImpl). */
-    private RestTemplate restTemplate = new RestTemplate();
-
     @Value("${retiros.monto-minimo:10.00}")
     private BigDecimal montoMinimo;
-
-    @Value("${paypal.client-id:sandbox_client_id}")
-    private String paypalClientId;
-
-    @Value("${paypal.client-secret:sandbox_client_secret}")
-    private String paypalClientSecret;
-
-    @Value("${paypal.mode:sandbox}")
-    private String paypalMode;
-
-    private String getPayPalBaseUrl() {
-        return "sandbox".equalsIgnoreCase(paypalMode)
-                ? "https://api-m.sandbox.paypal.com"
-                : "https://api-m.paypal.com";
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -300,41 +273,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
         item.put("note", "Pago de retiro ARTISYNC #" + solicitud.getIdSolicitud());
         item.put("sender_item_id", "item-" + solicitud.getIdSolicitud());
 
-        return llamarPayPal("/v1/payments/payouts", HttpMethod.POST, raiz);
-    }
-
-    /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
-    private JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(obtenerAccessToken());
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<String> peticion = new HttpEntity<>(cuerpo != null ? cuerpo.toString() : null, headers);
-
-        ResponseEntity<String> respuesta = restTemplate.exchange(
-                getPayPalBaseUrl() + ruta, metodo, peticion, String.class);
-
-        try {
-            return objectMapper.readTree(respuesta.getBody());
-        } catch (Exception e) {
-            throw new ExcepcionReglaNegocio("Respuesta ilegible de PayPal en " + ruta);
-        }
-    }
-
-    private String obtenerAccessToken() {
-        HttpHeaders headers = new HttpHeaders();
-        String credentials = Base64.getEncoder().encodeToString(
-                (paypalClientId + ":" + paypalClientSecret).getBytes());
-        headers.set("Authorization", "Basic " + credentials);
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                getPayPalBaseUrl() + "/v1/oauth2/token",
-                HttpMethod.POST, request, Map.class);
-
-        return (String) response.getBody().get("access_token");
+        return payPalClient.llamarPayPal("/v1/payments/payouts", HttpMethod.POST, raiz);
     }
 
     // ── Auxiliares ───────────────────────────────────────────────────────────

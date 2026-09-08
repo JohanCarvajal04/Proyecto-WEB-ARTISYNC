@@ -249,22 +249,22 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     @Override
     @Transactional(readOnly = true)
     public boolean estaIdentidadVerificada(Long idUsuario) {
-<span class="nc" id="L252">        return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(</span>
+<span class="fc" id="L252">        return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(</span>
                 idUsuario, &quot;IDENTIDAD&quot;, &quot;APROBADO&quot;);
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaEstadoIdentidad obtenerEstadoIdentidad(Long idUsuario) {
-<span class="nc" id="L259">        boolean verificado = estaIdentidadVerificada(idUsuario);</span>
-<span class="nc" id="L260">        String estadoActual = certificadoIaRepository</span>
-<span class="nc" id="L261">                .findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(idUsuario, &quot;IDENTIDAD&quot;)</span>
-<span class="nc" id="L262">                .map(c -&gt; c.getEstadoVerificacion().getNombreEstado())</span>
-<span class="nc" id="L263">                .orElse(null);</span>
-<span class="nc" id="L264">        return RespuestaEstadoIdentidad.builder()</span>
-<span class="nc" id="L265">                .verificado(verificado)</span>
-<span class="nc" id="L266">                .estadoActual(estadoActual)</span>
-<span class="nc" id="L267">                .build();</span>
+<span class="fc" id="L259">        boolean verificado = estaIdentidadVerificada(idUsuario);</span>
+<span class="fc" id="L260">        String estadoActual = certificadoIaRepository</span>
+<span class="fc" id="L261">                .findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(idUsuario, &quot;IDENTIDAD&quot;)</span>
+<span class="fc" id="L262">                .map(c -&gt; c.getEstadoVerificacion().getNombreEstado())</span>
+<span class="fc" id="L263">                .orElse(null);</span>
+<span class="fc" id="L264">        return RespuestaEstadoIdentidad.builder()</span>
+<span class="fc" id="L265">                .verificado(verificado)</span>
+<span class="fc" id="L266">                .estadoActual(estadoActual)</span>
+<span class="fc" id="L267">                .build();</span>
     }
 
     private RespuestaVerificacion mapearARespuesta(CertificadoIa c) {
