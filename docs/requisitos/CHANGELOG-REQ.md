@@ -2,6 +2,56 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [v1.3.0] - 2026-09-08 — Segunda revisión externa: defecto del validador, 10 requisitos adicionales, división de 2 requisitos compuestos, secciones normativas nuevas
+
+### Fixed — defecto en el validador de trazabilidad
+
+`scripts/validate-traceability.sh` extraía el estado de cada requisito en `SRS.md` con una regex que solo capturaba la primera palabra tras "Estado:" (`[a-zA-Z]+`). REQ-NF-005 y REQ-NF-006 declaraban `Estado: implementado de validación` — fuera del vocabulario cerrado `{pendiente, implementado, verificado}` que el propio documento exige — y la regex leía solo "implementado", coincidiendo por casualidad con `matriz.csv` sin que el validador lo detectara. Se corrigió la regex para capturar hasta el primer paréntesis o fin de línea, se normalizaron dos entradas preexistentes (REQ-NF-013, REQ-NF-017) que usaban punto o coma en vez de paréntesis para separar el estado de su nota, y se añadió una comprobación explícita del enum cerrado para que una regresión similar haga fallar el build en vez de colarse. Confirmado con una prueba de regresión (reintroducir `implementado de X` y verificar que el validador ahora falla).
+
+### Added — 2 requisitos funcionales y 8 no funcionales
+
+| Requisito | Módulo | Prioridad | Motivo de la adición |
+| --- | --- | --- | --- |
+| REQ-F-032 | Gestión de obras de portafolio | Must | `PortafolioItemControlador` (límite de 50 ítems, descarga forzada anti-XSS) no tenía requisito propio. |
+| REQ-F-033 | Administración de infracciones y suspensiones | Should | REQ-F-015 cubre la detección automática, pero `AdminInfraccionControlador` (listar infracciones, revertir suspensión) no tenía requisito ni prueba propios. |
+| REQ-NF-018 | Protección de datos personales sensibles | Must | Falta extender `POLITICA-RETENCION.md` (hoy solo cubre datos técnicos de sesión) a documentos de identidad, certificados, pagos, contratos y mensajería, y falta un mecanismo real de supresión de datos. |
+| REQ-NF-019 | Conciliación y recuperación de pagos PayPal | Must | Con patrón escrow, no había requisito sobre webhooks duplicados, reconciliación activa, ni cancelación con fondos retenidos (esto último no existe en código). |
+| REQ-NF-020 | Conservación e integridad de contratos firmados | Should | El hash de firma se calcula una vez y nunca se re-verifica; no hay retención declarada. |
+| REQ-NF-021 | Política de contraseñas | Should | Ya implementada (longitud + composición, revocación de sesiones al cambiarla) pero no especificada ni declarada `verificado`. |
+| REQ-NF-022 | Límite de tasa en autenticación y registro | Must | Ya implementado con valores concretos (`AuthRateLimitFilter`) pero sin requisito propio que los declare. |
+| REQ-NF-023 | Accesibilidad (Lighthouse) | Should | Ya medido (100/100) pero sin umbral declarado en ningún requisito. |
+| REQ-NF-024 | Respaldo y recuperación de base de datos | Should | No existe automatización; solo dumps SQL manuales ad hoc. |
+| REQ-NF-025 | Auto-revocación de sesiones propias | Should | Ya existe (`DELETE /api/v1/usuarios/me/sesiones`) pero sin requisito propio, distinto de la revocación administrativa de REQ-F-030. |
+
+Se agregaron las historias HU-32/HU-33 y los casos de uso CU-32/CU-33 (`docs/requisitos/historias/HU-32-a-HU-33-adicionales.md`, `docs/requisitos/casos-de-uso/CU-32-a-CU-33-adicionales.md`).
+
+### Changed — división de 2 requisitos compuestos en sub-requisitos atómicos
+
+| Requisito original | Dividido en | Motivo |
+| --- | --- | --- |
+| REQ-F-022 | REQ-F-022a (verificado), REQ-F-022b (pendiente), REQ-F-022c (pendiente) | Agrupaba tres capacidades con estados de verificación distintos bajo un único identificador; el estado compuesto ocultaba que 2 de las 3 no están construidas. |
+| REQ-NF-001 | REQ-NF-001a, REQ-NF-001b, REQ-NF-001c (los tres `implementado`, misma excepción) | Agrupaba tres aserciones técnicas independientes (redirección HTTPS, rechazo TLS<1.2, preferencia TLS 1.3) bajo un único enunciado, contra el criterio de atomicidad de INCOSE (C1-C15). |
+
+`scripts/validate-traceability.sh` se actualizó para aceptar un sufijo de letra opcional en los identificadores (`REQ-F-NNNa`) en sus tres puntos de validación de formato/extracción.
+
+### Changed — correcciones de precisión sobre hallazgos ya documentados
+
+- §2.3: se retiró "contenido reportado" de la descripción del rol Administrador — no existe ningún mecanismo de reporte/denuncia de contenido por usuarios, ni backend ni frontend; el alcance estaba prometido en prosa sin construir.
+- §7.1-§7.3: recalculados para 62 requisitos totales (43 CRUD-ORM · 8 SP · 11 sin acceso a datos); se distingue explícitamente, dentro de los Must no verificados, entre "evidencia pendiente de algo que ya funciona" (REQ-NF-001a/b/c, REQ-NF-009) e "incumplimiento activo en producción" (REQ-NF-011: mientras `DOCUMENTOS_PROVEEDOR` no se fije en `render.yaml`, el sistema desplegado guarda archivos localmente, que es justo lo que el requisito prohíbe).
+- §7.4: la tasa de estabilidad del corpus heredado se recalcula sobre 4 modificaciones (antes 2), incorporando la división de REQ-F-022 y REQ-NF-001 como cambio de enunciado; nueva tasa 89,2% (antes 94,6%).
+- Excepción de REQ-NF-017 en `excepciones-estado.txt`: la ronda anterior citaba un "flujo de UX problemático" sin fuente verificable. Se corrigió con la cita real: los ítems peor puntuados son Q10, Q6 y Q8 (carga de aprendizaje inicial), y el plan de cierre real ya existe en `docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md` §3 (ronda adicional de SUS después de un cambio real de UX, no una remedición del mismo build).
+- Se completó la plantilla (rationale + criterio de aceptación) de los 12 requisitos heredados que carecían de ella: REQ-F-010 a REQ-F-019, REQ-F-022a/b/c, REQ-F-023.
+- **REQ-F-014**: se corrigió el enunciado ("se cierra al llegar a Entregado o Cancelado" → "se cierra cuando el Cliente aprueba el entregable"). Verificado contra `ChatServiceImpl.cerrarSala`: su único invocador es la aprobación del entregable; no existe ninguna función de cancelar un pedido, así que la cláusula "o Cancelado" no tenía sustento en código.
+
+### Added — secciones normativas nuevas
+
+- **§1.6 Estados del dominio y transiciones**: Pedido (sin catálogo fijo de etapas — 100% configurable por flujo, contra lo asumido inicialmente), Solicitud de retiro (5 estados reales), Pago en garantía (3 estados, confirmado sin cancelación/reembolso), Entregable (booleano, no enum), Certificado/Verificación (4 estados reales en mayúsculas — "verificado" no existe como valor). Construida por lectura directa de enums/constantes reales, no por nombres plausibles.
+- **§1.7 Correspondencia con el Anexo C de ISO/IEC/IEEE 29148:2018**: tabla de mapeo sección-a-sección, con 2 desviaciones conscientes declaradas (requisitos lógicos de BD remitidos a `db/schema.sql`; detalle de usabilidad remitido a `docs/mediciones/`).
+- **§2.3**: se agregaron Moderador, Auditor Financiero y Soporte a la tabla de roles — existían como roles reales en `artisync/db/seed.sql` con permisos propios, pero no figuraban en la descripción de usuarios del SRS. `SOPORTE` es un sexto rol descubierto en esta ronda, no mencionado en ninguna revisión anterior.
+- **§2.6 Matriz de permisos por rol**: construida por extracción de `artisync/db/seed.sql` + migraciones `V10/V19/V20/V32/V33/V36/V39` y las anotaciones `@PreAuthorize` reales del backend. Documenta la distinción entre "permiso concedido en la base de datos" y "acceso real al endpoint" (18 de 20 permisos revisados tienen un comodín `hasRole('ADMIN')` a nivel de controlador aunque la fila de permiso se le haya retirado a ADMIN en la base de datos).
+- **§2.7 Interfaces externas**: PayPal Orders v2, servicio de IA de verificación, almacenamiento S3/Azure y canal WebSocket (STOMP + SockJS), con protocolo, autenticación y comportamiento ante indisponibilidad de cada una.
+- **§3.0-§4**: criterio de suficiencia de verificación añadido a REQ-NF-007, REQ-NF-008 y REQ-NF-010 (qué observar para dar el requisito por cumplido).
+
 ## [v1.2.0] - 2026-09-07 — 11 requisitos adicionales: funcionalidad implementada que no tenía especificación
 
 ### Added

@@ -3,10 +3,10 @@
 ## Artisync — Plataforma web de comisiones y venta de contenido digital para creadores
 
 - **Conforme a:** ISO/IEC/IEEE 29148:2018 (estructura SRS) · INCOSE Guide to Writing Requirements v4 (calidad de requisitos C1–C15)
-- **Versión:** v1.2.0 — Entrega Final
-- **Fecha:** 2026-09-07
+- **Versión:** v1.3.0 — Entrega Final
+- **Fecha:** 2026-09-08
 - **Precede a:** (Versión final)
-- **Actualiza a:** SRS v1.1.1 (2026-09-07) — ver historial completo de versiones en `docs/requisitos/CHANGELOG-REQ.md`
+- **Actualiza a:** SRS v1.2.0 (2026-09-07) — ver historial completo de versiones en `docs/requisitos/CHANGELOG-REQ.md`
 
 > Nota de mantenimiento: cada cambio sustantivo respecto a la versión 1A se registra en `docs/requisitos/CHANGELOG-REQ.md`. Los identificadores `REQ-F-NNN` / `REQ-NF-NNN` reemplazan a los códigos `RF-NN` / `RNF-NN` de la Entrega 1A; la tabla de equivalencia está en la sección 6.
 
@@ -20,7 +20,7 @@
 
 ### 1.1 Propósito
 
-Este documento especifica, de manera completa y verificable, los requisitos funcionales y no funcionales del sistema Artisync en su versión estable **v1.2.0**. Sirve como fuente única de verdad para la trazabilidad hacia el código, las pruebas automatizadas y la evidencia empírica exigida en la Entrega Final del PFC.
+Este documento especifica, de manera completa y verificable, los requisitos funcionales y no funcionales del sistema Artisync en su versión estable **v1.3.0**. Sirve como fuente única de verdad para la trazabilidad hacia el código, las pruebas automatizadas y la evidencia empírica exigida en la Entrega Final del PFC.
 
 ### 1.2 Alcance
 
@@ -41,7 +41,40 @@ ISO/IEC/IEEE 29148:2018; INCOSE Guide to Writing Requirements v4; RFC 7519 (JWT)
 
 ### 1.5 Resumen del documento
 
-La sección 2 describe el producto y sus actores. La sección 3 detalla los requisitos funcionales (REQ-F). La sección 4 detalla los requisitos no funcionales (REQ-NF). La sección 5 presenta la matriz de trazabilidad resumida. La sección 6 documenta la evolución de los requisitos desde la Entrega 1A.
+La sección 2 describe el producto y sus actores. La sección 3 detalla los requisitos funcionales (REQ-F). La sección 4 detalla los requisitos no funcionales (REQ-NF). La sección 5 presenta la matriz de trazabilidad resumida. La sección 6 documenta la evolución de los requisitos desde la Entrega 1A. La sección 7 reporta métricas de calidad del corpus. Las subsecciones 1.6 y 1.7 (añadidas en v1.3.0) documentan los estados del dominio y la correspondencia de este documento con el Anexo C de ISO/IEC/IEEE 29148:2018.
+
+### 1.6 Estados del dominio y transiciones (v1.3.0)
+
+Construido por lectura directa de los enums, constantes y lógica de transición reales del backend — no por inferencia de nombres plausibles. Varias suposiciones razonables resultaron incorrectas al verificarlas (ver notas por entidad); se documenta el resultado real.
+
+**Pedido — sin catálogo fijo de etapas.** A diferencia de lo que podría asumirse, `Pedido` no tiene una columna de estado ni un enum de etapas: la etapa vigente se deriva de la fila más reciente en `historial_estados_pedido` (histórico, solo inserción — `PATCH`/`DELETE` sobre él responden 403 por REQ-NF-013). Las etapas mismas (`EtapaFlujo.nombreEtapa`) son texto libre, únicas globalmente, y cualquiera que gestione un flujo de trabajo puede crear nombres nuevos (`FlujoTrabajoServicioImpl.obtenerOCrearEtapa`); su orden y cuál es la etapa final se definen por `FlujoEtapaConfig.numeroOrden` (entero) y `esEtapaFinal` (booleano, que en la práctica solo se usa para mostrar, no para bloquear — el corte real de "última etapa" es el número de orden más alto). Transición: `PedidoServicioImpl.avanzarEtapa` exige que, si la etapa actual tiene `requiereEntregable=true`, exista un `EntregableFinal`, y avanza a la siguiente por `numeroOrden`; sin etapa siguiente, rechaza ("El pedido ya se encuentra en la etapa final"). **No existe ninguna función de cancelar un pedido** — se verificó explícitamente (cero resultados para cualquier método `cancelarPedido` en el código). Por separado existe `PropuestaTerminosPedido`, una entidad distinta con su propio enum real (`PENDIENTE`, `ACEPTADA`, `RECHAZADA`, `CANCELADA`) para negociar precio/fecha antes del pedido — no debe confundirse con las etapas del pedido mismo.
+
+> **Corrección (v1.3.0):** el enunciado de REQ-F-014 decía antes "se cierra al llegar a Entregado o Cancelado". Verificado contra `ChatServiceImpl.cerrarSala`: su único invocador es `EntregableServicioImpl.aprobarEntrega` (aprobación del entregable). No existe ninguna ruta de cancelación de pedido que la invoque, porque esa función no existe. El enunciado se corrigió para reflejar solo el comportamiento real.
+
+**Solicitud de retiro** (`SolicitudRetiroServicioImpl`) — enum real de 5 valores (constantes `String`, no `@Enumerated`): `Pendiente`, `Aprobado`, `Pagado`, `Rechazado`, `Fallido`. Transiciones: `solicitar` (Creador) → `Pendiente`; `aprobar` (Auditor Financiero/Admin) ejecuta el payout de PayPal y bifurca por su resultado: `SUCCESS` → `Pagado`, `PENDING`/`PROCESSING` → `Aprobado`, cualquier otro resultado o excepción → `Fallido`; `rechazar` (con nota obligatoria) → `Rechazado`; `reintentar` solo aplica desde `Fallido` y repite la misma bifurcación. Nota de diseño: no existe ningún mecanismo (webhook o *poller*) que haga avanzar automáticamente una solicitud `Aprobado` a `Pagado` — depende de una acción administrativa manual adicional.
+
+**Pago en garantía (escrow)** (`PagoServicioImpl`, `PagoGarantia.estadoFondos`) — confirmado exactamente 3 valores: `Pendiente` (al crear la orden de PayPal) → `Retenido` (al confirmarse el webhook con firma válida y captura `COMPLETED`) → `Liberado` (al aprobar el Cliente el entregable, sin volver a verificar `estadoFondos`: el guardián real contra doble liberación es el booleano `EntregableFinal.estaLiberado`). **No existe un cuarto estado de cancelación o reembolso** — se confirmó explícitamente (cero resultados para "Reembolso"/"Disputa"/"refund" en el código); es precisamente la brecha que documenta REQ-NF-019.
+
+**Entregable** (`EntregableFinal.estaLiberado`) — no es un enum, es un booleano de 2 valores. Nace en `false` al subir el entregable; pasa a `true`, de forma irreversible, cuando el Cliente aprueba (`EntregableServicioImpl.aprobarEntrega`), lo que además libera el escrow y cierra la sala de chat. Antes de `true`, la descarga del archivo limpio (sin marca de agua) está bloqueada.
+
+**Certificado / Verificación** (`EstadoVerificacion`, sembrado en `V7__verificacion_asistida_ia.sql`) — 4 valores reales, en **mayúsculas**: `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REQUIERE_ACLARACION` (no "verificado": ese valor no existe en ningún lugar del código). Transición inicial `subir` → `PENDIENTE`; el análisis de IA (`analizarConIa`) no cambia este estado, solo registra un veredicto no vinculante aparte (`veredictoIa`); la decisión humana (`registrarDecision`, bajo un candado de fila que impide sobrescribir una decisión ya tomada) mueve a `APROBADO`/`RECHAZADO`/`REQUIERE_ACLARACION`, y el documento se elimina físicamente solo si el nuevo estado es `APROBADO` o `RECHAZADO` (`REQUIERE_ACLARACION` conserva el archivo). Caso límite real: un *scheduler* diario expira certificados `PENDIENTE` con más de 30 días y borra su archivo, pero **el estado permanece `PENDIENTE`** — un certificado puede quedar indefinidamente pendiente con su documento ya eliminado.
+
+### 1.7 Correspondencia con el Anexo C de ISO/IEC/IEEE 29148:2018
+
+| Sección de este SRS | Sección equivalente del Anexo C | Nota |
+| --- | --- | --- |
+| §1.1-1.5 Introducción | C.1 Introduction | Completo |
+| §1.6 Estados del dominio | C.2.4 (comportamiento del sistema, modelos de estado) | Añadido en v1.3.0 |
+| §2.1-2.5 Descripción global | C.2.1-C.2.3 (perspectiva, funciones, restricciones) | Completo |
+| §2.6 Matriz de permisos por rol | C.2.6 (características de los usuarios / control de acceso) | Añadido en v1.3.0 |
+| §2.7 Interfaces externas | C.2.2 (interfaces del sistema) | Añadido en v1.3.0 |
+| §3-4 Requisitos funcionales y no funcionales | C.3 Specific requirements | Completo |
+| §5 Matriz de trazabilidad | C.4 Verification / trazabilidad | Completo (`docs/trazabilidad/matriz.csv`) |
+| §6 Evolución de requisitos | (no tiene equivalente directo en el Anexo C; práctica adicional del proyecto) | — |
+| §7 Métricas de calidad | (no tiene equivalente directo; práctica adicional del proyecto, alineada con ISO/IEC 25010) | — |
+| §8 Aprobación | C.1 (aprobación del documento) | Completo salvo firma pendiente (ver §8) |
+| Requisitos lógicos de base de datos | C.3 (interface requirements / data) | **Desviación consciente**: no se repite aquí; ya están completamente especificados en `db/schema.sql` y los diagramas ER de `docs/basedatos/`, y duplicarlos en el SRS crearía dos fuentes de verdad divergentes. |
+| Requisitos de usabilidad detallados (más allá de REQ-NF-004/007/008/017) | C.3 (usability requirements) | **Desviación consciente**: el detalle vive en `docs/mediciones/sus/` y `docs/mediciones/lighthouse/`, referenciados desde los requisitos correspondientes en vez de duplicarse. |
 
 ---
 
@@ -59,10 +92,15 @@ Registro y autenticación con RBAC; verificación de identidad y de certificados
 
 | Rol                  | Descripción                                                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Administrador        | Supervisa la plataforma, gestiona cuentas, categorías, publicaciones, contenido reportado y transacciones. |
+| Administrador        | Supervisa la plataforma, gestiona cuentas, roles, permisos, categorías y el catálogo de plantillas de contrato. |
+| Moderador            | Revisa certificados y categorías de autoservicio, modera servicios/comentarios/mensajes, gestiona infracciones. |
+| Auditor Financiero   | Audita pagos en garantía y transacciones, gestiona solicitudes de retiro, exporta reportes financieros y de contratos. |
+| Soporte              | Asistencia técnica: consulta y suspende usuarios, revoca sesiones, resuelve tickets de revisión.           |
 | Creador de contenido | Publica servicios/productos, gestiona perfil y portafolio, atiende pedidos, organiza sorteos.              |
 | Cliente registrado   | Contrata servicios, compra productos, sigue creadores, participa en sorteos.                               |
 | Visitante anónimo    | Explora contenido público sin autenticarse.                                                                |
+
+> **Nota (v1.3.0):** Moderador, Auditor Financiero y Soporte son roles reales, sembrados en `artisync/db/seed.sql` con su propio conjunto de permisos (`rol_permisos`), pero no figuraban en esta tabla en versiones anteriores del SRS — una omisión real de especificación, no una simplificación deliberada. Ver §2.6 para el detalle de qué permiso tiene cada rol, extraído directamente del seed y de las anotaciones `@PreAuthorize` del backend.
 
 ### 2.4 Restricciones
 
@@ -72,11 +110,49 @@ Proyecto académico de 17 semanas; equipo reducido; hosting local durante el des
 
 Se asume disponibilidad continua de las APIs externas (PayPal sandbox, servicio de IA, almacenamiento S3-compatible) durante las pruebas. La arquitectura se diseña contemplando extensión futura (multi-idioma, multi-moneda) sin comprometerlas en esta entrega.
 
+### 2.6 Matriz de permisos por rol (v1.3.0)
+
+Tabla construida por extracción directa de `artisync/db/seed.sql` (el seed que realmente ejecuta `docker-compose.yml` antes de que arranque Spring Boot) y de las migraciones Flyway que lo modifican (`V10, V19, V20, V32, V33, V36, V39`), cruzada con las anotaciones `@PreAuthorize` del backend — no es una asignación inventada. Se muestran los permisos citados explícitamente en la ronda de revisión externa; el catálogo completo tiene 48 permisos sobre 6 roles reales (no 5: `SOPORTE` es un rol sembrado adicional, ver nota de §2.3).
+
+| Permiso                        | ADMIN | MODERADOR | AUDITOR_FINANCIERO | CREADOR | CLIENTE | SOPORTE |
+| ------------------------------- | :---: | :-------: | :-----------------: | :-----: | :-----: | :-----: |
+| `PAGO_AUDITAR`                  | ¹     |           | Sí                    |         |         |         |
+| `TRANSACCION_VER`               | ¹     |           | Sí                    |         |         |         |
+| `REPORTE_FINANCIERO_EXPORTAR`   | ¹     |           | Sí                    |         |         |         |
+| `REPORTE_CONTRATO_EXPORTAR`     | ¹     |           | Sí                    |         |         |         |
+| `RETIROS_GESTIONAR`             | ¹     |           | Sí                    |         |         |         |
+| `RETIROS_SOLICITAR`             |       |           |                      | Sí        |         |         |
+| `CATEGORIA_CREAR`               |       |           |                      | Sí        |         |         |
+| `CATEGORIA_GESTIONAR`           | Sí      | Sí          |                      |         |         |         |
+| `INFRACCION_GESTIONAR`          | ¹     | Sí          |                      |         |         |         |
+| `CERTIFICADO_REVISAR`           | ¹     | Sí          |                      |         |         |         |
+| `SERVICIO_MODERAR`              | ¹     | Sí          |                      |         |         |         |
+| `USUARIO_VER`                   | Sí      |           |                      |         |         | Sí        |
+| `USUARIO_CREAR`                 | Sí      |           |                      |         |         |         |
+| `USUARIO_EDITAR`                | Sí      |           |                      |         |         |         |
+| `USUARIO_ELIMINAR`              | Sí      |           |                      |         |         |         |
+| `USUARIO_SUSPENDER`             | Sí      |           |                      |         |         | Sí        |
+| `USUARIO_EXPORTAR`              | Sí      |           |                      |         |         | Sí        |
+| `ROL_GESTIONAR`                 | Sí      |           |                      |         |         |         |
+| `SESION_REVOCAR`                | Sí      |           |                      |         |         | Sí        |
+| `CONTRATO_PLANTILLA_GESTIONAR`  | Sí      |           |                      |         |         |         |
+
+¹ ADMIN no tiene la fila de permiso en `rol_permisos` — `V32__ajuste_permisos_admin_moderador.sql` la retiró deliberadamente para especializar el rol (comentario propio de la migración) — pero todos los controladores de estas filas están anotados `hasAuthority('X') or hasRole('ADMIN')`: el comodín de rol hace que ADMIN pueda llamar el endpoint en la práctica, aunque la fila de permiso ya no exista en la base de datos. La tabla refleja lo que la base de datos concede; para "quién puede llamar el endpoint hoy", sumar ADMIN a cada fila marcada ¹. Las dos únicas filas sin comodín ADMIN son `RETIROS_SOLICITAR` (acción exclusiva del Creador, ADMIN nunca la tuvo) y `CONTRATO_PLANTILLA_GESTIONAR` (ADMIN la tiene por fila directa, no necesita comodín).
+
+### 2.7 Interfaces externas
+
+| Interfaz | Protocolo / formato | Autenticación | Comportamiento ante indisponibilidad |
+| --- | --- | --- | --- |
+| PayPal Orders v2 (REQ-F-020, REQ-NF-014, REQ-NF-019) | HTTPS REST, JSON; webhooks entrantes firmados | Credenciales OAuth2 de PayPal vía variables de entorno (`.env`); verificación de firma de webhook (`webhook-id`) | Sin reconciliación activa hoy (ver REQ-NF-019): si el webhook no llega, el pago queda en `Pendiente` indefinidamente sin reintento automático — brecha declarada, no comportamiento diseñado |
+| Servicio de IA — verificación de identidad y certificados (REQ-F-006, REQ-F-007) | HTTPS REST; payload = prompt genérico + imagen en base64 (sin nombre, correo ni número de documento como campos separados — ver REQ-NF-018) | Clave de API del proveedor (Gemini/NVIDIA) vía variable de entorno | Sin respuesta o error del proveedor: el certificado permanece en estado `PENDIENTE` (ver §1.6); no hay reintento automático documentado más allá del scheduler de expiración a 30 días |
+| Almacenamiento de objetos compatible con S3 (Azure Blob Storage) (REQ-NF-011) | HTTPS; SDK de Azure Blob | Cadena de conexión / SAS token vía variable de entorno (`documentos.proveedor`, `DOCUMENTOS_PROVEEDOR`) | Proveedor configurable con `AlmacenamientoLocal` como alternativa de respaldo en código; en producción, mientras `DOCUMENTOS_PROVEEDOR` no esté fijado a `azure` en `render.yaml`, el sistema usa almacenamiento local por defecto — el propio incumplimiento activo declarado en REQ-NF-011, no una estrategia de failover |
+| Canal WebSocket interno (REQ-F-014) | STOMP sobre WebSocket, con *fallback* a SockJS para navegadores sin soporte nativo (`WebSocketConfig.java`) | JWT validado por un interceptor STOMP en cada conexión, antes de procesar cualquier mensaje | No es una interfaz con un tercero externo (es interna, entre cliente y backend); ante desconexión, SockJS reintenta la conexión según su propio mecanismo de *fallback*; no hay cola de mensajes persistente del lado del servidor para reentrega tras una reconexión |
+
 ---
 
 ## 3. Requisitos específicos — Funcionales
 
-Cada requisito seguido de: **Rationale**, **Prioridad (MoSCoW)**, **Criterio de aceptación**, **Verificación** y **Estado** en v1.2.0. Los 23 requisitos provienen del corpus de la Entrega 1A y se mantienen con trazabilidad completa (ver tabla de equivalencia en §6); los 8 requisitos adicionales de §3.1 se incorporaron en v1.1.2/v1.2.0 — ver `CHANGELOG-REQ.md`.
+Cada requisito seguido de: **Rationale**, **Prioridad (MoSCoW)**, **Criterio de aceptación**, **Verificación** y **Estado**. Los 23 requisitos originales provienen del corpus de la Entrega 1A y se mantienen con trazabilidad completa (ver tabla de equivalencia en §6; dos de ellos, REQ-F-022 y REQ-NF-001, se dividieron en sub-requisitos atómicos en v1.3.0 — ver §7.4); los 8 requisitos adicionales de §3.1 se incorporaron en v1.1.2/v1.2.0, y REQ-F-032/REQ-F-033 se incorporaron en v1.3.0 — ver `CHANGELOG-REQ.md`.
 
 ### 3.0 Historias de Usuario y Criterio INVEST
 
@@ -154,7 +230,9 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-010** (ex RF-10) — Comentarios en ítems de portafolio; el Creador puede eliminarlos (borrado lógico, no visibles en vista pública, consultables por el administrador).
 
+- Rationale: los comentarios son la única forma de interacción social directa sobre una obra concreta (a diferencia de los seguidores, que son sobre el perfil); el borrado lógico permite auditar abuso sin destruir evidencia.
 - Prioridad: Should
+- Aceptación: un comentario eliminado por su autor o por el dueño del portafolio deja de aparecer en la vista pública pero sigue siendo consultable por el Administrador vía `GET /api/v1/admin/comentarios`; un usuario no autenticado no puede comentar.
 - Verificación: Test
 - Estado: implementado (pendiente escribir la prueba automatizada para subir a verificado; ver matriz.csv)
 
@@ -162,60 +240,78 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-011** (ex RF-11) — Publicación de ítems tipo Producto o Servicio, con precio (≥0.01 USD), al menos una imagen (≤10MB) y descripción (20–2000 caracteres) obligatorios.
 
+- Rationale: un precio de 0 o negativo rompe el cálculo de comisión (REQ-F-021) y el flujo de pago (REQ-F-020); una descripción mínima evita publicaciones vacías que degradan la calidad del catálogo público.
 - Prioridad: Must
-- Verificación: Test (`ServicioControlador`)
+- Aceptación: precio menor a 0.01 USD → rechazo ("El precio debe ser de al menos 0.01 USD"); un ítem sin al menos una subcategoría asociada → rechazo ("El servicio necesita al menos una subcategoria").
+- Verificación: Test (`ServicioCatalogoServicioImplTest`)
 - Estado: verificado
 
 **REQ-F-012** (ex RF-12) — Hasta 10 atributos personalizados por ítem; formularios adaptados dinámicamente a la categoría del Creador.
 
+- Rationale: cada categoría de servicio (ilustración, desarrollo, música) necesita capturar datos distintos; un límite fijo evita que el formulario dinámico crezca sin control y degrade la experiencia de publicación.
 - Prioridad: Must
-- Verificación: Test
+- Aceptación: agregar un atributo número 11 al mismo ítem → rechazo ("Se ha alcanzado el límite de 10 atributos personalizados por ítem"); agregar un atributo ya asociado al mismo ítem → rechazo ("ya se encuentra asociado a este servicio").
+- Verificación: Test (`ServicioCatalogoServicioImplTest`)
 - Estado: verificado
 
 **REQ-F-013** (ex RF-13) — Motor de búsqueda con filtros por categoría, subcategoría, rango de precio y etiquetas, más búsqueda textual sobre título/descripción; edición de ítems en cualquier momento.
 
+- Rationale: con un catálogo de tamaño creciente, filtrar solo por categoría no basta para que un Cliente encuentre un servicio concreto; combinar todos los filtros en una sola consulta (Specification API) evita N llamadas sucesivas del frontend.
 - Prioridad: Must
+- Aceptación: los filtros de categoría, subcategoría, rango de precio, etiquetas y texto son combinables entre sí (AND); la búsqueda textual es insensible a mayúsculas y busca coincidencia parcial en título o descripción; sin ningún filtro, devuelve el catálogo completo en estado ACTIVO.
 - Verificación: Test (Specification API — `specification/catalogo`)
 - Estado: verificado
 
 ### Módulo Comunicación y Notificaciones
 
-**REQ-F-014** (ex RF-14) — Mensajería interna en tiempo real vía WebSocket; sala de chat creada automáticamente al firmar el contrato; se cierra al llegar a Entregado o Cancelado.
+**REQ-F-014** (ex RF-14) — Mensajería interna en tiempo real vía WebSocket; sala de chat creada automáticamente al firmar el contrato; se cierra cuando el Cliente aprueba el entregable.
 
+- Rationale: centralizar la comunicación dentro de la plataforma (en vez de intercambiar contactos externos) es la base del modelo de negocio: permite moderar contenido (REQ-F-015) y mantiene la evidencia del acuerdo dentro del sistema.
 - Prioridad: Must
+- Aceptación: enviar un mensaje en una sala cerrada → rechazo ("Esta sala ha sido cerrada"); un usuario sin acceso al pedido no puede leer ni escribir en su chat ("No tiene acceso al chat de este pedido").
 - Verificación: Test + prueba de carga WebSocket (ver REQ-NF-005)
 - Estado: verificado
 
-**REQ-F-015** (ex RF-15) — Análisis de contenido de mensajes para detectar teléfonos/correos; bloqueo de entrega y aviso; suspensión de 15 días tras 3 infracciones en 30 días.
+**REQ-F-015** (ex RF-15) — Análisis de contenido de mensajes para detectar teléfonos/correos; bloqueo de entrega y aviso; suspensión de 15 días tras 3 infracciones en 30 días. La consulta administrativa de infracciones y la reversión manual de una suspensión se especifican en REQ-F-033.
 
+- Rationale: permitir el intercambio de contacto directo en el chat rompe el modelo de comisión (las partes podrían negociar fuera de la plataforma); la ventana de 30 días evita que una infracción antigua penalice indefinidamente a un usuario que ya corrigió su comportamiento.
 - Prioridad: Must
+- Aceptación: un mensaje con teléfono o correo detectado se bloquea antes de persistirse y genera una infracción; la tercera infracción dentro de una ventana de 30 días suspende la cuenta 15 días.
 - Verificación: Test
 - Estado: verificado
 
 **REQ-F-016** (ex RF-16) — Cuestionario (briefing) configurable (hasta 10 preguntas) asociado a un servicio del Creador; si el servicio tiene uno asignado, el Cliente lo responde al crear el pedido (obligatorio antes de que el pedido se registre); respuestas no editables tras el envío. Un servicio sin cuestionario asignado no bloquea la creación del pedido.
 
+- Rationale: (ver también `CHANGELOG-REQ.md` v1.1.0) ligar el cuestionario al servicio y exigirlo en la creación del pedido garantiza que el Creador reciba el contexto que pidió, en vez de depender de que lo solicite manualmente después.
 - Prioridad: Must
+- Aceptación: crear un pedido de un servicio con cuestionario asignado sin respuestas → rechazo ("Este servicio tiene un cuestionario: responde todas sus preguntas para crear el pedido"); una plantilla de cuestionario no puede superar 10 preguntas ("Una plantilla no puede tener más de 10 preguntas"); la validación ocurre antes de persistir el pedido, para no dejarlo a medias.
 - Verificación: Test
 - Estado: verificado
 
 ### Módulo Legal, Entregables y Finanzas
 
-**REQ-F-017** (ex RF-17) — Generación automática de contrato HTML desde la plantilla asignada al servicio del pedido (catálogo de plantillas curado por Administrador), o la plantilla predeterminada si el servicio no tiene una propia, sustituyendo variables (partes, servicio, precio, revisiones, fecha).
+**REQ-F-017** (ex RF-17) — Generación automática de contrato HTML desde la plantilla asignada al servicio del pedido (catálogo de plantillas curado por Administrador, gestionable con alta, edición y desactivación), o la plantilla predeterminada si el servicio no tiene una propia, sustituyendo variables (partes, servicio, precio, revisiones, fecha).
 
+- Rationale: (ver también `CHANGELOG-REQ.md` v1.1.0) un catálogo curado por Administrador permite personalizar el texto legal por tipo de servicio sin exponer a la plataforma a cláusulas no revisadas escritas por cualquier Creador; debe existir siempre una plantilla predeterminada para que ningún servicio quede sin contrato generable.
 - Prioridad: Must
-- Verificación: Test (`ContratoControlador`)
+- Aceptación: crear una plantilla con una versión legal ya existente → rechazo ("Ya existe una plantilla con la version legal..."); intentar desmarcar la única plantilla predeterminada sin marcar otra antes → rechazo; desactivar la plantilla predeterminada → rechazo ("No se puede desactivar la plantilla predeterminada; marca otra como predeterminada primero").
+- Verificación: Test (`ContratoControlador`, `PlantillaContratoAdminServicioImplTest`)
 - Estado: verificado
 
 **REQ-F-018** (ex RF-18) — Firma electrónica como acción explícita de cada parte; el pedido no avanza sin ambas firmas; PDF descargable con hashes de firma.
 
+- Rationale: exigir una acción explícita de firma (no un checkbox implícito al avanzar de etapa) deja evidencia inequívoca de que cada parte leyó y aceptó el contrato antes de que haya dinero en juego.
 - Prioridad: Must
+- Aceptación: crear un segundo contrato para un pedido que ya tiene uno → rechazo ("Ya existe un contrato para este pedido"); una parte que intenta firmar dos veces → rechazo ("El creador ya firmo este contrato" / "El cliente ya firmo este contrato").
 - Verificación: Test
 - Estado: verificado
 
 **REQ-F-019** (ex RF-19) — Flujo de trabajo del pedido por etapas configurables según categoría; cada transición registrada con marca de tiempo; vista de seguimiento en tiempo real para el Cliente.
 
+- Rationale: cada categoría de servicio tiene un ciclo de trabajo distinto (un diseño gráfico no pasa por las mismas etapas que un desarrollo de software); permitir que el flujo se configure por categoría, en vez de ser único y fijo, refleja esa diferencia sin necesitar código nuevo por categoría.
 - Prioridad: Must
-- Verificación: Test (`FlujoTrabajoControlador`, `PedidoControlador`)
+- Aceptación: un pedido de un flujo sin etapas configuradas no puede avanzar ("no tiene etapas configuradas"); dos flujos no pueden compartir nombre ("Ya existe un flujo de trabajo con el nombre..."); una etapa no puede intercambiarse consigo misma ni con una etapa de otro flujo.
+- Verificación: Test (`FlujoTrabajoServicioImplTest`, `PedidoServicioImplFlujoTest`)
 - Estado: verificado
 
 **REQ-F-020** (ex RF-20) — Generación de enlace de pago vía PayPal Orders v2 al iniciar pedido; actualización de estado de fondos al recibir webhook confirmado.
@@ -231,17 +327,37 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Verificación: Test (`EntregableControlador`, `PagoControlador`)
 - Estado: verificado
 
-**REQ-F-022** (ex RF-22) — Cargo configurable por revisión adicional; ticket que supera el límite genera nuevo enlace de pago; rechazo automático tras 48h sin pago.
+**REQ-F-022a** (ex RF-22) — Cargo configurable por revisión adicional de un pedido que supera las revisiones incluidas.
 
+- Rationale: sin un cargo por revisión adicional, el Creador no tiene forma de monetizar el tiempo de trabajo extra que pide un Cliente más allá de lo acordado originalmente en el pedido.
 - Prioridad: Should
-- Verificación: Test (`TicketRevisionControlador`)
-- Estado: implementado (el cargo configurable por revisión adicional está implementado y probado en `TicketRevisionServicioImplTest`; el nuevo enlace de pago al superar el límite de revisiones y el rechazo automático tras 48h sin pago no tienen servicio de pago ni scheduler asociado en el código — ver excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Aceptación: el monto del cargo es configurable sin cambio de código; el ticket de revisión queda asociado al pedido correspondiente.
+- Verificación: Test (`TicketRevisionServicioImplTest`)
+- Estado: verificado
+
+**REQ-F-022b** (ex RF-22) — Un ticket de revisión que supera el límite de revisiones configurado genera un nuevo enlace de pago para la revisión adicional.
+
+- Rationale: cobrar la revisión adicional exige un medio de pago concreto; sin un enlace de pago generado automáticamente, el cargo configurado en REQ-F-022a no tiene forma de cobrarse.
+- Prioridad: Should
+- Aceptación: al superar el límite de revisiones configurado, el sistema genera un nuevo enlace de pago asociado al ticket de revisión.
+- Verificación: Test
+- Estado: pendiente (no existe servicio de pago asociado a tickets de revisión en el código — ver excepciones-estado.txt)
+
+**REQ-F-022c** (ex RF-22) — Un ticket de revisión sin pago confirmado tras 48 horas se rechaza automáticamente.
+
+- Rationale: sin un rechazo automático, un ticket de revisión impago quedaría indefinidamente abierto, bloqueando el avance del pedido sin que nadie lo resuelva.
+- Prioridad: Should
+- Aceptación: un ticket de revisión que no recibe confirmación de pago dentro de 48 horas desde su creación cambia automáticamente a un estado de rechazo.
+- Verificación: Test (scheduler simulando expiración)
+- Estado: pendiente (ninguno de los 4 `@Scheduled` del sistema — `NotificacionesPurgaScheduler`, `SeguridadPurgaScheduler`, `SorteoScheduler`, `VerificacionScheduler` — cubre tickets de revisión; ver excepciones-estado.txt)
 
 ### Módulo Social, Comunidad y Sorteos
 
 **REQ-F-023** (ex RF-23) — Creación de sorteos (título, premio, ganadores, fechas, requisito de seguidor); selección aleatoria automática de ganadores al cierre.
 
+- Rationale: un sorteo es una herramienta de crecimiento orgánico de la base de seguidores del Creador; automatizar la selección de ganadores al cierre evita disputas sobre la aleatoriedad del proceso.
 - Prioridad: Could
+- Aceptación: inscribirse en un sorteo que no está activo, que aún no comenzó, o cuyo periodo de inscripción ya finalizó → rechazo en cada caso; inscribirse dos veces en el mismo sorteo → rechazo ("Ya estás inscrito en este sorteo"); cancelar la inscripción en un sorteo ya finalizado → rechazo.
 - Verificación: Test + demostración
 - Estado: verificado
 
@@ -327,13 +443,41 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Verificación: Test (`PaisServiceImplTest`, `PaisControllerTest`, `LikePortafolioServiceImplTest`, `LikePortafolioControladorTest`)
 - Estado: verificado
 
+### Módulo Portafolio — Gestión de Obras (v1.3.0)
+
+**REQ-F-032** — El Creador debe poder subir, listar, actualizar y eliminar obras (ítems) de su portafolio, con un máximo de 50 obras por portafolio; la visibilidad de las obras respeta la del portafolio (público/privado) y el archivo se sirve siempre como descarga forzada, nunca renderizado inline.
+
+- Rationale: un portafolio sin límite de obras degrada el rendimiento de la vista pública y facilita abuso de almacenamiento; servir un ítem con `Content-Disposition: attachment` evita que un SVG subido como obra se interprete como HTML en el dominio de la plataforma (XSS almacenado).
+- Prioridad: Must
+- Aceptación: subir una obra número 51 al mismo portafolio → rechazo; un usuario que no es dueño del portafolio no puede modificar ni eliminar sus obras; un portafolio no público solo es visible para su dueño; toda descarga de archivo lleva la cabecera `Content-Disposition: attachment`.
+- Verificación: Test (`PortafolioItemControladorTest`, `PortafolioItemControladorRutasTest`, `PortafolioItemServicioImplTest`)
+- Estado: verificado
+
+### Módulo Comunicación — Administración de Infracciones (v1.3.0)
+
+**REQ-F-033** — El Administrador (o titular de `INFRACCION_GESTIONAR`) debe poder listar todas las infracciones registradas en el sistema, consultar el historial de infracciones de un usuario específico, y revertir manualmente la suspensión de una cuenta.
+
+- Rationale: REQ-F-015 detecta y suspende automáticamente, y ya cita `AdminInfraccionControlador` en `matriz.csv` como parte de su módulo, pero solo cubre (con prueba) el flujo de detección en el chat; los endpoints administrativos `listarInfracciones` y `revertirSuspension` no tienen historia, caso de uso ni prueba propios. Además, una suspensión automática puede ser un falso positivo (por ejemplo, un número de teléfono que en realidad forma parte del texto de un servicio); sin esta capacidad, revertirla exigiría acceso directo a la base de datos.
+- Prioridad: Should
+- Aceptación: el listado y el historial por usuario son de solo lectura; revertir la suspensión de una cuenta no suspendida no debe producir un estado inconsistente.
+- Verificación: Test (`InfraccionServiceImplTest` — solo `historialPorUsuario` cubierto; falta prueba para `listarInfracciones` y `revertirSuspension`)
+- Estado: implementado (falta prueba automatizada para 2 de los 3 endpoints, ver excepciones-estado.txt)
+
 ---
 
 ## 4. Requisitos específicos — No funcionales
 
-**REQ-NF-001** (ex RNF-01) — Seguridad/Transporte: redirección forzada a HTTPS (301); rechazo de TLS <1.2; TLS 1.3 preferente.
+**REQ-NF-001a** (ex RNF-01) — Redirección forzada de HTTP a HTTPS (301).
 
-- Prioridad: Must · Verificación: análisis (SSL Labs) · Estado: implementado (configuración acreditada en `docs/mediciones/sec/owasp/a02-tls.txt`; el sistema ya está desplegado en Render — ver `render.yaml` y `docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md` — pero el análisis externo con SSL Labs contra el dominio público todavía no se ejecutó ni archivó — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (configuración acreditada en `docs/mediciones/sec/owasp/a02-tls.txt`; el sistema ya está desplegado en Render — ver `render.yaml` y `docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md` — pero el análisis externo con SSL Labs contra el dominio público todavía no se ejecutó ni archivó — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+
+**REQ-NF-001b** (ex RNF-01) — Rechazo de conexiones con TLS inferior a 1.2.
+
+- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (mismo motivo y misma excepción que REQ-NF-001a: configuración acreditada, falta archivar el análisis SSL Labs)
+
+**REQ-NF-001c** (ex RNF-01) — Preferencia de TLS 1.3 cuando el cliente lo soporta.
+
+- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (mismo motivo y misma excepción que REQ-NF-001a: configuración acreditada, falta archivar el análisis SSL Labs)
 
 **REQ-NF-002** (ex RNF-02) — Contraseñas con hash bcrypt, factor de coste ≥10; nunca texto plano.
 
@@ -349,19 +493,19 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-005** (ex RNF-05) — WebSocket: ≥10 conexiones simultáneas sin degradación; latencia extremo-a-extremo ≤500ms en red local.
 
-- Prioridad: Should · Verificación: script de carga (ws/wscat) · Estado: implementado de validación
+- Prioridad: Should · Verificación: script de carga (ws/wscat) · Estado: implementado (funcionalidad implementada y probada; falta la medición de carga ≥10 conexiones simultáneas que verifica el umbral — ver excepciones-estado.txt)
 
 **REQ-NF-006** (ex RNF-06) — Generación de contrato PDF ≤5s bajo carga normal.
 
-- Prioridad: Should · Verificación: timestamps de log, 5 mediciones · Estado: implementado de validación
+- Prioridad: Should · Verificación: timestamps de log, 5 mediciones · Estado: implementado (funcionalidad implementada y probada; falta el cronometraje ≤5s que verifica el umbral — ver excepciones-estado.txt)
 
 **REQ-NF-007** (ex RNF-07) — Interfaz sin desbordamiento horizontal en 360/768/1440px; controles operables táctilmente (≥44px).
 
-- Prioridad: Should · Verificación: DevTools · Estado: implementado
+- Prioridad: Should · Verificación: DevTools — sin scroll horizontal visible en 360/768/1440px; todo control interactivo mide ≥44×44px en el inspector · Estado: implementado
 
 **REQ-NF-008** (ex RNF-08) — Formularios de catálogo dinámicos sin recarga; flujo de contratación en ≤5 pantallas.
 
-- Prioridad: Should · Verificación: prueba manual · Estado: implementado
+- Prioridad: Should · Verificación: prueba manual — completar el flujo de contratación de principio a fin sin recarga de página, contando el número de pantallas distintas visitadas · Estado: implementado
 
 **REQ-NF-009** (ex RNF-09) — Disponibilidad durante semanas de evaluación 16–17; reinicio automático ante fallos.
 
@@ -369,7 +513,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-010** (ex RNF-10) — Módulos WebSocket, REST y generación de PDF desacoplados (sin imports cruzados directos).
 
-- Prioridad: Should · Verificación: inspección de dependencias · Estado: implementado (paquetes separados por módulo)
+- Prioridad: Should · Verificación: inspección de dependencias — `grep` de imports en la clase `legal.impl.PdfGeneracionServicioImpl`: solo importa su propia interfaz y la librería de generación de PDF, sin ningún import de `service.comunicacion` (WebSocket) ni de un controlador REST; el desacople es de esa clase específica, no de todo el paquete `legal` (otras clases del mismo paquete, como `PagoServicioImpl`, sí dependen de `comunicacion` para notificaciones) · Estado: implementado (paquetes separados por módulo)
 
 **REQ-NF-011** (ex RNF-11) — Archivos binarios en almacenamiento externo compatible con S3; sin archivos locales en el servidor.
 
@@ -381,7 +525,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-013** (ex RNF-13) — Auditoría inmutable de transiciones de pedido y transacciones; exportación CSV por el administrador.
 
-- Prioridad: Must · Verificación: test (UPDATE/DELETE/TRUNCATE → error de base de datos) · Estado: verificado. Además de `historial_estados_pedido` (dominio) y el exportador de transacciones (`AuditControlador`), existe desde V15\_\_modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre los 7 módulos, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV. Verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real.
+- Prioridad: Must · Verificación: test (UPDATE/DELETE/TRUNCATE → error de base de datos) · Estado: verificado (además de `historial_estados_pedido` (dominio) y el exportador de transacciones (`AuditControlador`), existe desde V15\_\_modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre los 7 módulos, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV; verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real)
 
 **REQ-NF-014** (ex RNF-14) — Integración exclusiva con PayPal Orders v2; credenciales en variables de entorno; verificación de firma de webhook.
 
@@ -401,7 +545,75 @@ Igual que en §3.1, los tres requisitos siguientes (REQ-NF-015 a REQ-NF-017) se 
 
 **REQ-NF-017** — La usabilidad percibida del frontend, medida con System Usability Scale (SUS) sobre una muestra representativa de usuarios, debe alcanzar un puntaje ≥68/100.
 
-- Prioridad: Should · Verificación: `docs/mediciones/sus/REPORTE-SUS.md` · Estado: implementado, no cumple el umbral (61,25/100 medido el 2026-08-16, calificación "D"; por debajo de 68 — brecha reconocida, excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Prioridad: Should · Verificación: `docs/mediciones/sus/REPORTE-SUS.md` · Estado: implementado (no cumple el umbral: 61,25/100 medido el 2026-08-16, calificación "D"; por debajo de 68 — brecha reconocida, excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+
+### 4.2 Requisitos no funcionales adicionales (v1.3.0)
+
+Los ocho requisitos siguientes (REQ-NF-018 a REQ-NF-025) se incorporan en v1.3.0 tras una segunda auditoría externa del SRS contra el código real: cubren protección de datos personales, robustez de pagos, retención documental, contraseñas, límite de tasa, accesibilidad, respaldo de base de datos y auto-revocación de sesiones — capacidades con implicación legal, financiera o de seguridad que ningún requisito anterior capturaba. Ver `CHANGELOG-REQ.md` v1.3.0 para el detalle de por qué cada uno faltaba.
+
+**REQ-NF-018** — El sistema debe extender `docs/basedatos/POLITICA-RETENCION.md` para declarar y cumplir un período de retención sobre las categorías de datos personales sensibles que hoy quedan fuera de ella (documentos de identidad, certificados profesionales, datos de pago del creador, contratos firmados, mensajería privada), debe ofrecer al titular un mecanismo real de supresión de sus datos a solicitud (distinto de la baja lógica de cuenta que ya existe), y debe mantener minimizados los datos personales enviados a servicios externos: el servicio de verificación de identidad (REQ-F-006) y de certificados (REQ-F-007), que hoy ya solo reciben prompt + imagen.
+
+- Rationale: la política de retención actual (`docs/basedatos/POLITICA-RETENCION.md`) cubre datos técnicos de sesión (`sesiones_usuario`, `tokens_recuperacion`, `codigos_respaldo_2fa`, `notificaciones_sistema`, 90 días) pero excluye por diseño los datos personales de mayor sensibilidad del corpus; `docs/etica/ETHICS.md` ya reconoce la tensión entre auditoría inmutable y derecho al olvido sin resolverla en código. Es una obligación legal en el marco de protección de datos personales aplicable (Ecuador: Ley Orgánica de Protección de Datos Personales), no solo buena práctica.
+- Prioridad: Must
+- Aceptación: `POLITICA-RETENCION.md` declara un período de retención verificable para documentos de identidad, certificados, datos de pago, contratos y mensajería; un usuario puede solicitar la supresión de sus datos personales (más allá de desactivar la cuenta) y el sistema la ejecuta o declara la excepción legal que la impide (p. ej. registros contables); se mantiene verificado que el payload enviado a los servicios externos de IA no incorpora campos identificativos adicionales a prompt + imagen.
+- Verificación: inspección de código (payload ya confirmado minimizado en `GeminiIaService`/`NvidiaIaService`) + revisión de política de retención extendida + prueba de un flujo de supresión
+- Estado: pendiente (requiere diseño e implementación — ver excepciones-estado.txt)
+
+**REQ-NF-019** — Ante un webhook de PayPal que llega duplicado, o un pedido con fondos ya retenidos en escrow que necesita cancelarse, el sistema debe tener un comportamiento determinista y auditable: idempotencia ante reintentos del mismo webhook, un mecanismo de reconciliación (consulta activa a la API de PayPal) si el webhook no llega en una ventana razonable, y un flujo de reembolso o liberación explícito ante cancelación con fondos retenidos.
+
+- Rationale: con patrón escrow, la ausencia de un flujo de cancelación-con-fondos-retenidos es el riesgo financiero más serio del corpus: hoy, un pedido con dinero en escrow no tiene camino de cancelación.
+- Prioridad: Must
+- Aceptación: un reintento del mismo webhook de PayPal (mismo pago, mismo estado de fondos) no genera una segunda actualización de estado ni un segundo registro de transacción; un pedido cancelado con fondos en escrow dispara un flujo de reembolso o retención documentado; existe un job o endpoint de reconciliación que consulta el estado real en PayPal para pedidos con webhook pendiente más allá de un umbral de tiempo configurable.
+- Verificación: Test (`PagoServicioImplWebhookTest.reintentoNoDuplica` cubre la idempotencia por estado de fondos, ya implementada; reconciliación y reembolso no tienen prueba porque no tienen implementación)
+- Estado: pendiente (idempotencia por estado implementada y probada; reconciliación activa contra la API de PayPal y flujo de reembolso/liberación ante cancelación no existen en código — ver excepciones-estado.txt)
+
+**REQ-NF-020** — Los contratos firmados deben conservarse durante un período declarado, con integridad verificable del hash de firma.
+
+- Rationale: `generarHashFirma()` (`ContratoServicioImpl`) calcula el hash una sola vez al firmar; nada lo recomputa ni lo re-verifica después, y la tabla `contratos` no declara retención ni expiración — un contrato es evidencia legal del acuerdo entre las partes y no puede depender de que nadie lo borre por accidente ni de que el hash nunca se corrompa sin detectarlo.
+- Prioridad: Should
+- Aceptación: existe un período de retención declarado para los contratos firmados; existe un mecanismo (manual o automatizado) que re-verifica el hash de firma contra el contenido del contrato y señala una discrepancia si el hash no coincide.
+- Verificación: inspección de código + prueba de re-verificación de hash
+- Estado: pendiente
+
+**REQ-NF-021** — Las contraseñas deben cumplir una política de complejidad mínima (longitud y composición), y cambiar la contraseña debe revocar las demás sesiones activas del usuario.
+
+- Rationale: una contraseña débil es el vector de compromiso de cuenta más común; revocar sesiones activas al cambiarla cierra la ventana en la que un atacante con la contraseña anterior podría seguir usando una sesión ya iniciada.
+- Prioridad: Should
+- Aceptación: una contraseña de menos de 8 caracteres, o sin al menos un dígito, una minúscula y una mayúscula, es rechazada al registrarse; cambiar la contraseña invalida cualquier sesión activa distinta de la que originó el cambio.
+- Verificación: Test (`RegisterRequest` valida `@Size(min=8,max=100)` + `@Pattern` con dígito/minúscula/mayúscula obligatorios; `UserServiceImplTest.changePassword_ShouldUpdateHash_WhenContrasenaActualCorrecta` verifica explícitamente `sessionRevocationService.revocarSesionesUsuario(...)` tras el cambio)
+- Estado: verificado
+
+**REQ-NF-022** — Los endpoints de autenticación y registro deben limitar la tasa de solicitudes por origen para mitigar fuerza bruta y abuso.
+
+- Rationale: sin límite de tasa, un endpoint de login o registro es trivialmente atacable por fuerza bruta o creación masiva de cuentas; REQ-NF-015 ya menciona la infraestructura de conteo de intentos, pero ningún requisito fija los valores concretos que aplican hoy.
+- Prioridad: Must
+- Aceptación: login y verificación 2FA admiten como máximo 10 solicitudes por 60 segundos por origen; recuperar contraseña admite 5 solicitudes por 15 minutos; resetear contraseña admite 10 solicitudes por 15 minutos; registro admite 5 solicitudes por 60 minutos; superar el límite responde con un rechazo explícito, no con una degradación silenciosa.
+- Verificación: Test + inspección de código (`AuthRateLimitFilter`, constantes hardcodeadas: login 10/60s, 2FA 10/60s, forgot-password 5/15min, reset-password 10/15min, registro 5/60min)
+- Estado: implementado (confirmar si `AuthRateLimitFilterTest` cubre los 5 límites para subir a verificado)
+
+**REQ-NF-023** — La interfaz debe cumplir un umbral mínimo de accesibilidad medido con Lighthouse.
+
+- Rationale: la accesibilidad no es opcional para una plataforma pública que conecta clientes y creadores; sin un umbral declarado, una regresión de accesibilidad no tiene ninguna alarma que la detecte.
+- Prioridad: Should
+- Aceptación: la categoría Accessibility de Lighthouse alcanza un puntaje ≥90/100 sobre las vistas principales del catálogo, perfil y flujo de contratación.
+- Verificación: `docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md`
+- Estado: verificado (100/100 en la medición más reciente, tras una regresión intermedia a 87-89/100 contra producción ya remediada de vuelta a 100/100)
+
+**REQ-NF-024** — La base de datos debe contar con una política de respaldo y recuperación, con frecuencia y retención declaradas.
+
+- Rationale: sin respaldo automatizado, la pérdida o corrupción de la base de datos de producción sería irrecuperable; los volúmenes de `docker-compose.yml` son de persistencia normal, no de respaldo, y los dumps SQL existentes en el repositorio son manuales y ad hoc, no una política.
+- Prioridad: Should
+- Aceptación: existe un mecanismo de respaldo automatizado (cron o equivalente) con frecuencia y retención declaradas; existe al menos una restauración de prueba documentada.
+- Verificación: inspección de infraestructura + demostración de restauración
+- Estado: pendiente (existen 3 dumps SQL manuales committeados sin automatización — ver `artisync/Backend/backupPlainAI-*.sql` — no constituyen una política de respaldo)
+
+**REQ-NF-025** — El usuario debe poder revocar todas sus propias sesiones activas ante sospecha de compromiso de su cuenta, sin depender de un Administrador.
+
+- Rationale: REQ-F-030 solo cubre la revocación de sesiones de un tercero por un Administrador; sin esta capacidad, un usuario que sospecha que su cuenta fue comprometida no tiene forma de cerrar sus propias sesiones activas sin escalar a soporte.
+- Prioridad: Should
+- Aceptación: un usuario autenticado puede revocar todas sus sesiones activas con una sola acción; la sesión que originó la revocación puede, según diseño, cerrarse también o mantenerse — el comportamiento elegido queda documentado.
+- Verificación: Test (`UserServiceImplTest.revokeAllMySessions_ShouldRevoke`, `UserControllerTest.revokeAllMySessions_devuelveOk` — `DELETE /api/v1/usuarios/me/sesiones`)
+- Estado: verificado
 
 ---
 
@@ -432,60 +644,67 @@ Todas las cifras se derivan de `docs/trazabilidad/matriz.csv` en la fecha de est
 
 | Métrica                            | Valor                                                             |
 | ---------------------------------- | ----------------------------------------------------------------- |
-| Total de requisitos                | 48                                                                |
-| Por tipo                           | 31 funcionales (64,6 %) · 17 no funcionales (35,4 %)              |
-| Por prioridad MoSCoW               | 31 Must (64,6 %) · 15 Should (31,3 %) · 2 Could (4,2 %)           |
-| Por estrategia de acceso a datos   | 33 CRUD-ORM · 8 SP · 7 sin acceso a datos (frontend/arquitectura) |
+| Total de requisitos                | 62                                                                |
+| Por tipo                           | 35 funcionales (56,5 %) · 27 no funcionales (43,5 %)              |
+| Por prioridad MoSCoW               | 37 Must (59,7 %) · 23 Should (37,1 %) · 2 Could (3,2 %)           |
+| Por estrategia de acceso a datos   | 43 CRUD-ORM · 8 SP · 11 sin acceso a datos (frontend/arquitectura/pendiente) |
 
-El corpus original de la Entrega 1A (37 requisitos, REQ-F-001 a REQ-F-023 y REQ-NF-001 a REQ-NF-014) se amplió en v1.1.2 con 11 requisitos adicionales (REQ-F-024 a REQ-F-031, REQ-NF-015 a REQ-NF-017) que documentan funcionalidad ya implementada — ver §3.1, §4.1 y `CHANGELOG-REQ.md` v1.2.0.
+El corpus original de la Entrega 1A (37 requisitos, REQ-F-001 a REQ-F-023 y REQ-NF-001 a REQ-NF-014) se amplió en v1.1.2 con 11 requisitos adicionales (REQ-F-024 a REQ-F-031, REQ-NF-015 a REQ-NF-017) que documentan funcionalidad ya implementada, y en v1.3.0 con 10 requisitos adicionales más (REQ-F-032, REQ-F-033, REQ-NF-018 a REQ-NF-025) que documentan alcance genuinamente nuevo o brechas de cumplimiento con implicación legal, financiera o de seguridad no especificadas antes — ver §3.1, §4.2 y `CHANGELOG-REQ.md` v1.3.0. Además, en v1.3.0 dos requisitos heredados de la Entrega 1A (REQ-F-022 y REQ-NF-001) se dividieron en sub-requisitos atómicos (REQ-F-022a/b/c, REQ-NF-001a/b/c) para que cada capacidad testable tenga su propio estado sin depender de leer una nota aparte; esa división no representa alcance nuevo — ver §7.4.
 
 ### 7.2 Estado de verificación
 
 | Estado         | Requisitos | Porcentaje |
 | -------------- | ---------- | ---------- |
-| `verificado`   | 36         | 75,0 %     |
-| `implementado` | 12         | 25,0 %     |
-| `pendiente`    | 0          | 0,0 %      |
+| `verificado`   | 41         | 66,1 %     |
+| `implementado` | 15         | 24,2 %     |
+| `pendiente`    | 6          | 9,7 %      |
 
 Desglose por prioridad, que es lo que evalúa el criterio D0R:
 
 | Prioridad | Verificado | Implementado | Pendiente | Cumple el mínimo exigido           |
 | --------- | ---------- | ------------ | --------- | ---------------------------------- |
-| Must      | 28 (90,3 %) | 3            | 0         | 28 de 31; 3 con excepción declarada |
-| Should    | 6          | 9            | 0         | 15 de 15; 2 declarados por honestidad, sin exigir excepción |
+| Must      | 29 (78,4 %) | 6            | 2         | 29 de 37; 8 con excepción declarada |
+| Should    | 10         | 9            | 4         | 19 de 23; 4 con excepción declarada, 5 declarados por honestidad sin exigirlo |
 | Could     | 2          | 0            | 0         | Sin mínimo exigible                 |
 
-Los tres requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt): REQ-NF-001 y REQ-NF-009 tienen la funcionalidad y configuración implementadas, pero falta archivar el análisis externo (SSL Labs) y la demostración de caída/recuperación respectivamente, contra el despliegue real ya existente en Render; REQ-NF-011 tiene el almacenamiento en Azure implementado y probado, pero la variable de entorno que lo activa en producción (`DOCUMENTOS_PROVEEDOR`) no está fijada en `render.yaml`. Además, dos requisitos Should en `implementado` se documentan igual por honestidad aunque ya cumplen su mínimo formal: REQ-F-022 (falta el scheduler de rechazo automático a 48h) y REQ-NF-017 (el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto).
+Los ocho requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — pero agrupan tres situaciones distintas que conviene no tratar como equivalentes:
+
+- **Evidencia pendiente de un comportamiento que ya opera correctamente** (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009): la funcionalidad y configuración ya están implementadas y el sistema ya está desplegado en Render; falta archivar la prueba externa (análisis SSL Labs, demostración de caída/recuperación) contra ese despliegue real. El sistema, tal como opera hoy, cumple el requisito — falta el papel, no la sustancia.
+- **Incumplimiento activo en producción** (REQ-NF-011): a diferencia del caso anterior, mientras `DOCUMENTOS_PROVEEDOR` no se fije en `render.yaml`, el sistema desplegado **está incumpliendo** el requisito ahora mismo — guarda archivos localmente, que es justo lo que el criterio de aceptación prohíbe ("sin archivos locales en el servidor"). No es una brecha de documentación: es una brecha operativa vigente, corregible fijando una variable de entorno.
+- **Alcance nuevo sin terminar de construir** (REQ-NF-018, REQ-NF-019, REQ-NF-022): REQ-NF-018 (protección de datos personales) y dos de los tres pilares de REQ-NF-019 (reconciliación activa contra PayPal y reembolso ante cancelación con fondos en escrow) todavía no existen en código; REQ-NF-022 (límite de tasa) sí está implementado con valores concretos, pero su prueba automatizada no cubre los 5 límites exactos.
+
+Además, cuatro requisitos Should quedan en `pendiente` con excepción declarada (REQ-F-022b, REQ-F-022c, REQ-NF-020, REQ-NF-024), y cinco requisitos Should en `implementado` se documentan también por honestidad aunque ya cumplen su mínimo formal (REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-017) — el más relevante de estos es REQ-NF-017: el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto.
 
 ### 7.3 Cobertura de trazabilidad
 
 | Métrica                                     | Valor            |
 | ------------------------------------------- | ---------------- |
-| Requisitos presentes en la matriz           | 48 / 48 (100 %)  |
-| Requisitos con prueba automatizada asociada | 39 (81,3 %)      |
-| Requisitos Must con prueba automatizada     | 29 / 31 (93,5 %) |
-| Requisitos con evidencia empírica archivada | 31 (64,6 %)      |
+| Requisitos presentes en la matriz           | 62 / 62 (100 %)  |
+| Requisitos con prueba automatizada asociada | 46 (74,2 %)      |
+| Requisitos Must con prueba automatizada     | 32 / 37 (86,5 %) |
+| Requisitos con evidencia empírica archivada | 40 (64,5 %)      |
 
-Ningún requisito figura como `verificado` sin una prueba automatizada que lo respalde: es una regla que el validador impone y que hace fallar el pipeline si se incumple. Los 2 requisitos Must sin prueba automatizada (REQ-NF-001, REQ-NF-009) son, no por casualidad, los mismos que no alcanzan `verificado`: su verificación depende de un análisis externo o una demostración operativa, no de una prueba de código.
+El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. Los 5 requisitos Must sin prueba automatizada (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009, REQ-NF-018) son, no por casualidad, 5 de los 8 que no alcanzan `verificado`: su verificación depende de un análisis externo, una demostración operativa, o —en el caso de REQ-NF-018— de una implementación que todavía no existe. Los otros 3 Must no verificados (REQ-NF-011, REQ-NF-019, REQ-NF-022) sí tienen prueba automatizada, pero no alcanzan `verificado` por otros motivos ya explicados en §7.2 (variable de entorno no fijada, funcionalidad parcial, cobertura de prueba incompleta). En total, 7 requisitos tienen prueba automatizada parcial sin llegar a `verificado` — REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-011, REQ-NF-019, REQ-NF-022 — cada uno con su motivo puntual declarado en `excepciones-estado.txt` o en su propia fila de la matriz.
 
 ### 7.4 Estabilidad de requisitos
 
-La tasa de estabilidad se calcula como `1 − (requisitos modificados / requisitos totales)` entre la Entrega 1A y la Entrega Final, tomando como modificación cualquier cambio de **enunciado, prioridad o alcance** registrado en `CHANGELOG-REQ.md`. No cuentan los cambios de estado, que reflejan el avance de la implementación y no inestabilidad de la especificación.
+La tasa de estabilidad se calcula como `1 − (requisitos modificados / requisitos totales)` entre la Entrega 1A y la Entrega Final, tomando como modificación cualquier cambio de **enunciado, prioridad o alcance** registrado en `CHANGELOG-REQ.md`. No cuentan los cambios de estado, que reflejan el avance de la implementación y no inestabilidad de la especificación. Dividir un requisito heredado en sub-requisitos atómicos (REQ-F-022, REQ-NF-001 en v1.3.0) sí cuenta como modificación de enunciado sobre el corpus heredado, aunque no añada alcance: el contenido testable es el mismo, pero la forma de expresarlo cambió.
 
 | Métrica                            | Valor                                     |
 | ---------------------------------- | ----------------------------------------- |
 | Requisitos en la Entrega 1A        | 37 (RF-01 a RF-23 · RNF-01 a RNF-14)      |
-| Requisitos en v1.2.0                | 48 (REQ-F-001 a REQ-F-031 · REQ-NF-001 a REQ-NF-017) |
-| Añadidos                           | 11 (REQ-F-024 a REQ-F-031, REQ-NF-015 a REQ-NF-017 — ver CHANGELOG-REQ.md v1.2.0) |
+| Requisitos en v1.2.0                | 48 (+11 añadidos sobre el corpus heredado) |
+| Requisitos en v1.3.0                | 62 (+10 añadidos; +4 filas por dividir 2 requisitos heredados en sub-requisitos atómicos) |
+| Añadidos (acumulado desde 1A)      | 21 (11 en v1.2.0 + 10 en v1.3.0)          |
 | Eliminados                         | 0                                         |
-| Modificados en enunciado o alcance | 2 (REQ-F-016, REQ-F-017 — ver CHANGELOG-REQ.md v1.1.0) |
-| **Tasa de estabilidad del corpus heredado** | **1 − 2/37 = 0,946 (94,6 %)**       |
-| Tasa de adición                    | 11/37 = 29,7 % sobre el corpus original   |
+| Modificados en enunciado o alcance | 4 (REQ-F-016, REQ-F-017 en v1.1.0; REQ-F-022, REQ-NF-001 divididos en v1.3.0) |
+| **Tasa de estabilidad del corpus heredado** | **1 − 4/37 = 0,892 (89,2 %)**       |
+| Tasa de adición (acumulada)        | 21/37 = 56,8 % sobre el corpus original   |
 | Tasa de eliminación                | 0 %                                       |
 
-El corpus heredado de la Entrega 1A permaneció **estable en volumen**: los mismos 37 requisitos originales, con correspondencia uno a uno de identificadores; ninguno se eliminó. Lo que cambió entre 1A y v1.0.0 fue la *forma* de la especificación, no su contenido: la renumeración de `RF-NN`/`RNF-NN` a `REQ-F-NNN`/`REQ-NF-NNN` para conformidad con ISO/IEC/IEEE 29148, y el enriquecimiento de cada requisito con rationale, criterio de aceptación medible, método de verificación y estado — esos cambios no alteran lo que el sistema debe hacer y no se contabilizan como modificaciones. Entre v1.0.0 y v1.1.0 sí hubo dos cambios sustantivos de enunciado sobre el corpus heredado: REQ-F-016 (cuestionario ligado al servicio y obligatorio al crear el pedido, en vez de envío manual posterior) y REQ-F-017 (catálogo de plantillas de contrato curado por Administrador, en vez de una plantilla global única); ambos están documentados con su motivo en `CHANGELOG-REQ.md` v1.1.0. Por separado, en v1.2.0 se incorporaron 11 requisitos nuevos (REQ-F-024 a REQ-F-031, REQ-NF-015 a REQ-NF-017) que no son alcance nuevo del sistema, sino especificación de funcionalidad que ya estaba implementada y probada — ver §3.1, §4.1 y `CHANGELOG-REQ.md` v1.2.0. La tasa de estabilidad de 94,6% se calcula solo sobre el corpus heredado (denominador 37), porque mide cuánto cambió el *enunciado* de lo ya especificado; los 11 requisitos nuevos se reportan aparte como tasa de adición, no como inestabilidad, porque documentan alcance que nunca había sido especificado, no un enunciado que cambió de significado.
+El corpus heredado de la Entrega 1A permaneció **estable en volumen**: los mismos 37 requisitos originales, con correspondencia uno a uno de identificadores; ninguno se eliminó. Lo que cambió entre 1A y v1.0.0 fue la *forma* de la especificación, no su contenido: la renumeración de `RF-NN`/`RNF-NN` a `REQ-F-NNN`/`REQ-NF-NNN` para conformidad con ISO/IEC/IEEE 29148, y el enriquecimiento de cada requisito con rationale, criterio de aceptación medible, método de verificación y estado — esos cambios no alteran lo que el sistema debe hacer y no se contabilizan como modificaciones. Entre v1.0.0 y v1.1.0 hubo dos cambios sustantivos de enunciado sobre el corpus heredado: REQ-F-016 (cuestionario ligado al servicio y obligatorio al crear el pedido, en vez de envío manual posterior) y REQ-F-017 (catálogo de plantillas de contrato curado por Administrador, en vez de una plantilla global única). En v1.3.0 hubo dos modificaciones más, de naturaleza distinta: REQ-F-022 y REQ-NF-001 no cambiaron de significado, pero se dividieron cada uno en tres sub-requisitos atómicos (a/b/c) porque agrupaban capacidades con estados de verificación distintos bajo un único identificador — una de esas capacidades no debía quedar oculta detrás del estado de las otras dos. Las cuatro modificaciones están documentadas con su motivo en `CHANGELOG-REQ.md` (v1.1.0 y v1.3.0 respectivamente). Por separado, se incorporaron 21 requisitos nuevos en total (11 en v1.2.0, 10 en v1.3.0) que no son alcance nuevo del sistema construido, sino especificación de funcionalidad y brechas que ya existían en el código o en la operación real, pero que ningún requisito capturaba — ver §3.1, §4.2 y `CHANGELOG-REQ.md`. La tasa de estabilidad de 89,2% se calcula solo sobre el corpus heredado (denominador 37), porque mide cuánto cambió el *enunciado* de lo ya especificado; los 21 requisitos nuevos se reportan aparte como tasa de adición, no como inestabilidad, porque documentan alcance que nunca había sido especificado, no un enunciado que cambió de significado.
 
-Conviene leer estas cifras con cautela metodológica: que el corpus heredado casi no cambiara de enunciado (94,6% de estabilidad) mientras el corpus total creció 29,7% en la misma entrega es coherente con un proyecto académico de alcance cerrado, donde la especificación original se congeló temprano y la brecha entre "lo que se construyó" y "lo que se documentó" se cerró al final, no durante el desarrollo. En un proyecto con stakeholders externos, una tasa de adición de esta magnitud al cierre de una entrega sería una señal de alarma sobre el proceso de especificación continua, no solo un ajuste de documentación. La limitación se declara en el capítulo de amenazas a la validez del documento académico.
+Conviene leer estas cifras con cautela metodológica: que el corpus heredado cambiara relativamente poco de enunciado (89,2% de estabilidad) mientras el corpus total más que se duplicó (37 → 62, +67,6 %) a lo largo de tres rondas de auditoría es coherente con un proyecto académico de alcance cerrado, donde la especificación original se congeló temprano y la brecha entre "lo que se construyó" y "lo que se documentó" se fue cerrando en rondas sucesivas de revisión externa, no durante el desarrollo original. En un proyecto con stakeholders externos, una tasa de adición acumulada de esta magnitud sería una señal de alarma sobre el proceso de especificación continua, no solo un ajuste de documentación. La limitación se declara en el capítulo de amenazas a la validez del documento académico.
 
 ---
 
@@ -498,7 +717,7 @@ Este SRS se somete a la revisión y aprobación del docente-director del PFC, co
 | Docente-director del PFC   | Dr. Gleiston Cicerón Guerrero Ulloa, Ph.D. |       |       |
 | Representante del equipo   |                                            |       |       |
 
-**Estado de la aprobación: pendiente de firma.** La firma depende de la disponibilidad de un tercero externo al equipo (el docente-director) y no puede completarse unilateralmente antes de la entrega. Dado que la Entrega Final se presenta durante la semana del examen final (semana 19, 7–11 de septiembre de 2026), la revisión y, de proceder, la formalización de esta firma se realizarán presencialmente **el día del examen**, que es la primera instancia en que ambas partes coinciden. Hasta que esta sección lleve la firma del docente-director, el criterio D0R no puede superar el nivel *En desarrollo*, según la regla transversal 9 de la guía. La versión aprobada y firmada, cuando exista, se archiva como `docs/requisitos/SRS-v1.2.0.pdf`; las versiones anteriores (incluida v1.0.0) se conservan en `docs/requisitos/historico/`.
+**Estado de la aprobación: pendiente de firma.** La firma depende de la disponibilidad de un tercero externo al equipo (el docente-director) y no puede completarse unilateralmente antes de la entrega. Dado que la Entrega Final se presenta durante la semana del examen final (semana 19, 7–11 de septiembre de 2026), la revisión y, de proceder, la formalización de esta firma se realizarán presencialmente **el día del examen**, que es la primera instancia en que ambas partes coinciden. Hasta que esta sección lleve la firma del docente-director, el criterio D0R no puede superar el nivel *En desarrollo*, según la regla transversal 9 de la guía. La versión aprobada y firmada, cuando exista, se archiva como `docs/requisitos/SRS-v1.3.0.pdf`; las versiones anteriores (incluidas v1.0.0 y v1.2.0) se conservan en `docs/requisitos/historico/`.
 
 ---
 

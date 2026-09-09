@@ -116,7 +116,7 @@ Escenario: Aprobación libera fondos
 ---
 
 ## HU-22 — Solicitud de revisión adicional
-**Trazabilidad:** REQ-F-022
+**Trazabilidad:** REQ-F-022a/b/c (dividido en v1.3.0 — ver `CHANGELOG-REQ.md`)
 **Prueba de aceptación:** `TicketRevisionServicioImplTest`
 
 **As a** Cliente,
