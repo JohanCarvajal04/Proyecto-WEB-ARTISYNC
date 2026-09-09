@@ -219,4 +219,73 @@
       <p class="text-xs text-slate-400 mt-0.5">Salir de tu cuenta en este dispositivo</p>
     </div>
   </button>
+
+  <!-- Zona de peligro: supresión real de datos personales (REQ-NF-018) -->
+  <section class="space-y-3">
+    <h4 class="font-headline text-lg font-bold text-[#1E0F38]">Zona de peligro</h4>
+    <div class="bg-white rounded-2xl border border-rose-100 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div class="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <div class="flex-1">
+        <p class="font-semibold text-slate-800 text-sm">Suprimir mis datos personales</p>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Anonimiza tu nombre, correo, fecha de nacimiento, foto y documentos de identidad/certificados, y desactiva tu cuenta.
+          Es distinto de cerrar sesión: es <strong>irreversible</strong>, tu correo actual quedará libre y no podrás recuperar
+          tu historial con una cuenta nueva.
+        </p>
+      </div>
+      <button type="button" (click)="abrirConfirmSupresion()"
+        class="shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors">
+        Suprimir mis datos
+      </button>
+    </div>
+  </section>
 </div>
+
+<!-- Confirmación de supresión de datos (REQ-NF-018). Modal propio, no
+     app-confirm-dialog: además de la advertencia necesita pedir el código 2FA
+     cuando el usuario lo tiene activo. -->
+@if (isConfirmSupresionOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+    <div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 max-w-md w-full shadow-xl flex flex-col gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined">warning</span>
+        </div>
+        <div>
+          <h3 class="font-headline text-lg font-bold text-primary">Suprimir mis datos personales</h3>
+          <p class="text-sm text-on-surface-variant mt-1">
+            Esta acción anonimiza de forma irreversible tu nombre, correo, fecha de nacimiento, foto y documentos de
+            identidad/certificados, y desactiva tu cuenta. Tu correo actual quedará libre para un registro nuevo y no
+            hay forma de deshacer esto ni de recuperar tu historial.
+          </p>
+        </div>
+      </div>
+
+      @if (requiere2FaParaSuprimir()) {
+        <form [formGroup]="supresionForm" (ngSubmit)="confirmarSupresionDatos()">
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Código de autenticación de dos factores
+          </label>
+          <input type="text" formControlName="codigo" inputmode="numeric" autocomplete="one-time-code"
+            placeholder="Código TOTP o de respaldo"
+            class="mt-1 w-full bg-slate-50 text-slate-800 text-sm rounded-xl px-4 py-2.5 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
+        </form>
+      }
+
+      <div class="flex justify-end gap-3 mt-2">
+        <button type="button" (click)="cerrarConfirmSupresion()"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-sm font-medium hover:bg-surface-container transition-colors">
+          Cancelar
+        </button>
+        <button type="button" [disabled]="suprimiendoDatos()" (click)="confirmarSupresionDatos()"
+          class="px-4 py-2 rounded-lg bg-error text-on-error text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60">
+          {{ suprimiendoDatos() ? 'Suprimiendo...' : 'Sí, suprimir mis datos' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

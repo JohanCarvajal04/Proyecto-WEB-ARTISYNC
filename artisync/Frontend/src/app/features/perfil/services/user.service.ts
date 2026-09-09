@@ -33,6 +33,18 @@ export class UserService {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/me/sesiones`);
   }
 
+  /**
+   * REQ-NF-018: solicita la supresión real (anonimización) de los datos
+   * personales del usuario autenticado — distinta de deleteOwnAccount(), que
+   * solo desactiva la cuenta sin tocar los datos. Es irreversible: el correo
+   * queda libre para un registro nuevo y no hay forma de deshacerlo.
+   *
+   * @param codigo código TOTP o de respaldo — requerido solo si el usuario tiene 2FA activo (mismo shape que disable2fa)
+   */
+  solicitarSupresionDatos(codigo?: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/me/solicitud-supresion`, { codigo });
+  }
+
   uploadProfilePicture(file: File): Observable<UserResponse> {
     const formData = new FormData();
     formData.append('foto', file);
