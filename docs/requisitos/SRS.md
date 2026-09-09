@@ -2,11 +2,11 @@
 
 ## Artisync — Plataforma web de comisiones y venta de contenido digital para creadores
 
-**Conforme a:** ISO/IEC/IEEE 29148:2018 (estructura SRS) · INCOSE Guide to Writing Requirements v4 (calidad de requisitos C1–C15)
-**Versión:** v1.2.0 — Entrega Final
-**Fecha:** 2026-09-07
-**Precede a:** (Versión final)
-**Actualiza a:** SRS v1.1.1 (2026-09-07) — ver historial completo de versiones en `docs/requisitos/CHANGELOG-REQ.md`
+- **Conforme a:** ISO/IEC/IEEE 29148:2018 (estructura SRS) · INCOSE Guide to Writing Requirements v4 (calidad de requisitos C1–C15)
+- **Versión:** v1.2.0 — Entrega Final
+- **Fecha:** 2026-09-07
+- **Precede a:** (Versión final)
+- **Actualiza a:** SRS v1.1.1 (2026-09-07) — ver historial completo de versiones en `docs/requisitos/CHANGELOG-REQ.md`
 
 > Nota de mantenimiento: cada cambio sustantivo respecto a la versión 1A se registra en `docs/requisitos/CHANGELOG-REQ.md`. Los identificadores `REQ-F-NNN` / `REQ-NF-NNN` reemplazan a los códigos `RF-NN` / `RNF-NN` de la Entrega 1A; la tabla de equivalencia está en la sección 6.
 

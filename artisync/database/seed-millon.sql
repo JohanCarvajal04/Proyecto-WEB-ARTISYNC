@@ -61,28 +61,51 @@ SET LOCAL work_mem = '256MB';
 -- 0. ASEGURAR DATOS DE REFERENCIA
 -- ==============================================================================
 
--- Habilidades (catálogo de 100)
+-- Habilidades (catálogo de 70 habilidades reales del rubro creativo/freelance)
 INSERT INTO habilidades (nombre_habilidad)
-SELECT 'Habilidad-' || i
-FROM generate_series(1, 100) AS i
+SELECT unnest(ARRAY[
+  'Ilustración digital','Diseño de logotipos','Animación 2D','Animación 3D','Modelado 3D',
+  'Rigging de personajes','Edición de video','Motion graphics','Producción musical','Composición musical',
+  'Mezcla y masterización','Locución profesional','Retoque fotográfico','Fotografía de producto','Diseño UI',
+  'Diseño UX','Diseño de packaging','Concept art','Pixel art','Caligrafía digital',
+  'Rotulación','Diseño editorial','Maquetación de libros','Diseño de personajes','Storyboarding',
+  'Renderizado 3D','Texturizado 3D','Iluminación 3D','Visualización arquitectónica','Ilustración infantil',
+  'Cómic e historieta','Diseño de merchandising','Diseño de camisetas','Diseño de stickers','Vectorización',
+  'Infografías','Diseño de presentaciones','Branding corporativo','Identidad visual','Diseño para redes sociales',
+  'Plantillas para Instagram','Edición de podcast','Voz en off','Doblaje','Composición para videojuegos',
+  'Efectos de sonido','Diseño de niveles','Arte conceptual para videojuegos','Escultura digital','Modelado para impresión 3D',
+  'Diseño paramétrico','Diseño de moda digital','Patronaje virtual','Ilustración botánica','Acuarela digital',
+  'Sketching','Diseño de tatuajes','Caricatura','Retrato digital','Diseño de portadas de libros',
+  'Diseño de álbumes musicales','Kinetic typography','Rotoscopia','Compositing','Corrección de color',
+  'Subtitulado','Traducción creativa','Diseño de iconos','Ilustración vectorial','Diseño de mascotas'
+])
 ON CONFLICT (nombre_habilidad) DO NOTHING;
 
--- Etiquetas (catálogo de 50)
+-- Etiquetas (catálogo de 50 descriptores reales de estilo/categoría)
 INSERT INTO etiquetas (nombre_etiqueta)
-SELECT 'tag-' || i
-FROM generate_series(1, 50) AS i
+SELECT unnest(ARRAY[
+  'minimalista','moderno','vintage','colorido','elegante','vectorial','3d','hecho-a-mano','corporativo','creativo',
+  'profesional','económico','premium','rápido','personalizado','abstracto','realista','cartoon','fantasía','urbano',
+  'retro','futurista','orgánico','geométrico','monocromático','pastel','neón','acuarela','boceto','artesanal',
+  'nórdico','kawaii','oscuro','luminoso','delicado','atrevido','clásico','contemporáneo','experimental','editorial',
+  'comercial','infantil','minimalismo','bohemio','industrial','elegante-simple','rústico','tropical','monocromo','psicodélico'
+])
 ON CONFLICT (nombre_etiqueta) DO NOTHING;
 
--- Atributos dinámicos (catálogo de 20)
+-- Atributos dinámicos (catálogo de 20 atributos reales de un catálogo de servicios creativos)
 INSERT INTO atributos_dinamicos (nombre_atributo, tipo_dato)
-SELECT 'Atributo-' || i, CASE WHEN i % 3 = 0 THEN 'TEXTO' WHEN i % 3 = 1 THEN 'NUMERO' ELSE 'BOOLEANO' END
-FROM generate_series(1, 20) AS i
+SELECT nombre, CASE WHEN i % 3 = 0 THEN 'TEXTO' WHEN i % 3 = 1 THEN 'NUMERO' ELSE 'BOOLEANO' END
+FROM unnest(ARRAY[
+  'Resolución','Formato de archivo','Duración','Número de revisiones incluidas','Tiempo de entrega estimado',
+  'Estilo artístico','Paleta de colores','Peso máximo del archivo','Compatibilidad de software','Tipo de licencia',
+  'Incluye código fuente','Número de conceptos iniciales','Idioma','Orientación','Tamaño en píxeles',
+  'Frecuencia de muestreo','Formato de exportación','Nivel de detalle','Uso comercial permitido','Garantía de satisfacción'
+]) WITH ORDINALITY AS t(nombre, i)
 ON CONFLICT (nombre_atributo) DO NOTHING;
 
 -- Motivos de rechazo (catálogo de 10)
 INSERT INTO motivos_rechazo (descripcion_motivo)
-SELECT 'Motivo de rechazo #' || i || ': ' || 
-  CASE i
+SELECT CASE i
     WHEN 1 THEN 'No cumple con las especificaciones'
     WHEN 2 THEN 'Calidad insuficiente'
     WHEN 3 THEN 'Estilo no coincide con lo solicitado'
@@ -122,17 +145,44 @@ ON CONFLICT (nombre_estado) DO NOTHING;
 -- ==============================================================================
 DO $$ BEGIN RAISE NOTICE '>>> Insertando 50,000 usuarios...'; END $$;
 
+-- Nombres y apellidos hispanohablantes reales (no "Usuario1"/"Apellido3"),
+-- combinados por posicion: 70 x 70 = 4,900 combinaciones para 50,000 filas.
+WITH pool_nombres AS (
+  SELECT ARRAY[
+    'María','José','Carlos','Ana','Luis','Carmen','Juan','Rosa','Pedro','Laura',
+    'Miguel','Patricia','Jorge','Diana','Fernando','Andrea','Ricardo','Gabriela','Manuel','Valeria',
+    'Francisco','Daniela','Roberto','Camila','Antonio','Paola','Diego','Verónica','Alejandro','Mónica',
+    'Rafael','Silvia','Sergio','Cristina','Eduardo','Adriana','Javier','Beatriz','Raúl','Lucía',
+    'Andrés','Isabel','Gonzalo','Elena','Óscar','Natalia','Ramón','Sofía','Enrique','Claudia',
+    'Iván','Marta','Alberto','Teresa','Guillermo','Alicia','Héctor','Sandra','Emilio','Julia',
+    'Esteban','Ximena','Marcelo','Fernanda','Rodrigo','Estefanía','Hugo','Cecilia','Mario','Renata'
+  ] AS arr
+),
+pool_apellidos AS (
+  SELECT ARRAY[
+    'García','Rodríguez','González','Fernández','López','Martínez','Sánchez','Pérez','Gómez','Martín',
+    'Jiménez','Ruiz','Hernández','Díaz','Moreno','Álvarez','Romero','Alonso','Gutiérrez','Navarro',
+    'Torres','Domínguez','Vázquez','Ramos','Gil','Ramírez','Serrano','Blanco','Suárez','Molina',
+    'Morales','Ortega','Delgado','Castro','Ortiz','Rubio','Marín','Sanz','Iglesias','Núñez',
+    'Medina','Garrido','Cortés','Castillo','Santos','Lozano','Guerrero','Cano','Prieto','Méndez',
+    'Cruz','Calvo','Gallego','Vidal','León','Herrera','Márquez','Peña','Flores','Cabrera',
+    'Vega','Zambrano','Vera','Mendoza','Chávez','Loor','Vélez','Bravo','Cedeño','Solórzano'
+  ] AS arr
+)
 INSERT INTO usuarios (nombres, apellidos, correo, contrasena_hash, id_pais, fecha_nacimiento, estado_cuenta)
 SELECT
-  'Usuario' || i,
-  'Apellido' || (i % 500),
+  pn.arr[1 + (i % array_length(pn.arr, 1))],
+  pa.arr[1 + ((i * 7) % array_length(pa.arr, 1))],
   'usuario' || i || '@artisync-seed.test',
-  -- BCrypt hash de 'TestPass123!' (no importa para datos de prueba)
+  -- BCrypt hash reutilizado del admin de seed.sql ('ArtisyncAdmin2026!'); no
+  -- importa cual sea para estos usuarios sinteticos, nunca inician sesion real.
   '$2a$12$O26tVGE2jZ/6rNDZJYaKyOfDPE0.8E9HIbISLR4nXySuy.nvvycjK',
   1 + (i % (SELECT COUNT(*) FROM pais))::INT,
   '1985-01-01'::DATE + (i % 14000) * INTERVAL '1 day',
   CASE WHEN i % 50 = 0 THEN FALSE ELSE TRUE END  -- 2% inactivos
 FROM generate_series(1, 50000) AS i
+CROSS JOIN pool_nombres pn
+CROSS JOIN pool_apellidos pa
 ON CONFLICT (correo) DO NOTHING;
 
 -- Asignar roles a usuarios (todos empiezan como CLIENTE, 20% también son CREADOR)
@@ -158,10 +208,34 @@ ON CONFLICT DO NOTHING;
 -- ==============================================================================
 DO $$ BEGIN RAISE NOTICE '>>> Insertando perfiles de creadores...'; END $$;
 
+WITH pool_bios AS (
+  SELECT ARRAY[
+    'Diseñador gráfico apasionado por crear identidades visuales memorables para marcas y proyectos personales.',
+    'Ilustradora digital especializada en retratos y arte conceptual, con años de experiencia freelance.',
+    'Animador enfocado en dar vida a personajes con movimientos naturales y expresivos.',
+    'Modelador 3D con experiencia en videojuegos y visualización de producto.',
+    'Productor musical dedicado a crear bandas sonoras originales para proyectos audiovisuales.',
+    'Director de arte con ojo para la composición y la coherencia visual de cada proyecto.',
+    'Concept artist que transforma ideas abstractas en mundos y personajes visuales.',
+    'Artista multimedia que combina ilustración, animación y sonido en cada trabajo.',
+    'Apasionado por transformar ideas en piezas visuales que conectan con el público.',
+    'Especialista en branding, ayudando a marcas a encontrar su identidad visual.',
+    'Creativo autodidacta con más de una década explorando distintas técnicas digitales.',
+    'Amante del detalle, cada proyecto se trabaja pensando en la experiencia final del cliente.',
+    'Formado en bellas artes, ahora dedicado por completo al mundo del diseño digital.',
+    'Explorador constante de nuevas herramientas y estilos para no dejar de aprender.',
+    'Cree firmemente que el buen diseño resuelve problemas antes de embellecerlos.',
+    'Trabaja de la mano con sus clientes para entender la historia detrás de cada marca.',
+    'Especialista en dar personalidad propia a cada proyecto, sin fórmulas repetidas.',
+    'Disfruta tanto el proceso creativo como el resultado final de cada encargo.',
+    'Combina técnica tradicional y herramientas digitales para lograr resultados únicos.',
+    'Enfocado en plazos de entrega realistas sin sacrificar la calidad del trabajo.'
+  ] AS arr
+)
 INSERT INTO perfiles_creadores (id_usuario, biografia, url_red_social, titulo_profesional)
-SELECT 
+SELECT
   u.id_usuario,
-  'Creador profesional con experiencia en diseño digital. Especialista #' || ROW_NUMBER() OVER (ORDER BY u.id_usuario),
+  pb.arr[1 + (u.id_usuario % array_length(pb.arr, 1))],
   'https://portfolio.example.com/creador' || u.id_usuario,
   CASE (u.id_usuario % 8)
     WHEN 0 THEN 'Diseñador Gráfico'
@@ -174,6 +248,7 @@ SELECT
     ELSE 'Artista Multimedia'
   END
 FROM usuarios u
+CROSS JOIN pool_bios pb
 JOIN usuario_roles ur ON ur.id_usuario = u.id_usuario
 JOIN roles r ON r.id_rol = ur.id_rol AND r.nombre_rol = 'CREADOR'
 WHERE u.correo LIKE '%@artisync-seed.test'
@@ -210,22 +285,33 @@ WHERE EXISTS (
 )
 ON CONFLICT (id_perfil) DO NOTHING;
 
+WITH pool_titulos_obra AS (
+  SELECT ARRAY[
+    'Amanecer digital','Retrato en claroscuro','Ciudad futurista','Bosque encantado','Guerrero ancestral',
+    'Reflejos de agua','Naturaleza muerta moderna','Alma errante','Horizonte lejano','Silencio urbano',
+    'Danza de colores','Entre sombras y luz','Mundos paralelos','Retrato inolvidable','Ecos del pasado',
+    'Vuelo nocturno','Jardín secreto','Tormenta interior','Rostro de la ciudad','Espíritu libre',
+    'Fragmentos de memoria','Latido digital','Paisaje onírico','El último suspiro','Conexión invisible',
+    'Raíces','Metamorfosis','Instante eterno','Camino desconocido','Luz propia'
+  ] AS arr
+)
 INSERT INTO portafolio_items (id_portafolio, titulo_obra, descripcion_obra, url_archivo_multimedia, fecha_subida)
-SELECT 
+SELECT
   p.id_portafolio,
-  'Obra ' || item_num || ' - Creador ' || p.id_portafolio,
-  'Descripción de la obra número ' || item_num || '. Arte digital creado con técnicas modernas de ' ||
+  pt.arr[1 + ((p.id_portafolio * 5 + item_num) % array_length(pt.arr, 1))],
+  'Pieza de arte digital trabajada con técnicas modernas de ' ||
     CASE item_num % 5
       WHEN 0 THEN 'ilustración vectorial'
       WHEN 1 THEN 'pintura digital'
       WHEN 2 THEN 'modelado poligonal'
       WHEN 3 THEN 'composición fotográfica'
       ELSE 'animación cuadro a cuadro'
-    END,
+    END || '.',
   'https://storage.artisync.test/obras/' || p.id_portafolio || '/item-' || item_num || '.webp',
   NOW() - (item_num * 30 + p.id_portafolio % 60) * INTERVAL '1 day'
 FROM portafolios p
 CROSS JOIN generate_series(1, 5) AS item_num
+CROSS JOIN pool_titulos_obra pt
 WHERE EXISTS (
   SELECT 1 FROM perfiles_creadores pc
   JOIN usuarios u ON u.id_usuario = pc.id_usuario
@@ -265,16 +351,26 @@ DO $$ BEGIN RAISE NOTICE '>>> Insertando servicios...'; END $$;
 
 -- Nota: desde V37 un servicio se asocia a subcategorías via la tabla puente
 -- servicio_subcategorias (N:M), no por una columna id_subcategoria directa.
+WITH pool_titulos_servicio AS (
+  SELECT ARRAY[
+    'Diseño de logotipo profesional','Ilustración de personaje digital','Animación de introducción para YouTube',
+    'Paquete completo de identidad de marca','Retrato digital personalizado','Modelado 3D de producto',
+    'Edición y montaje de video','Composición musical original','Diseño de portada para álbum',
+    'Ilustración de libro infantil','Diseño de banner para redes sociales','Animación de logo (logo reveal)',
+    'Diseño de packaging para producto','Retoque fotográfico profesional','Diseño de interfaz para app móvil',
+    'Creación de pack de stickers','Diseño de tarjetas de presentación','Ilustración de concept art',
+    'Diseño de mascota para marca','Producción de efectos de sonido','Locución para spot publicitario',
+    'Diseño de infografía','Maquetación de e-book','Diseño de merchandising personalizado',
+    'Renderizado arquitectónico 3D','Diseño de vestuario para videojuego','Plantilla editable para redes sociales',
+    'Diseño de invitaciones digitales','Composición de banda sonora para videojuego','Diseño de identidad visual completa'
+  ] AS arr
+)
 INSERT INTO servicios (id_perfil, titulo_servicio, descripcion_detallada,
                        precio_base, tipo_item, estado_publicacion, limite_revisiones_base, url_miniatura)
 SELECT
   pc.id_perfil,
-  CASE serv_num
-    WHEN 1 THEN 'Diseño ' || pc.id_perfil || '-A'
-    WHEN 2 THEN 'Ilustración ' || pc.id_perfil || '-B'
-    ELSE 'Proyecto ' || pc.id_perfil || '-C'
-  END,
-  'Servicio profesional ofrecido por el creador. Incluye revisiones, archivos fuente en alta resolución y soporte post-entrega. Número de referencia: ' || pc.id_perfil || '-' || serv_num,
+  pts.arr[1 + ((pc.id_perfil * 3 + serv_num) % array_length(pts.arr, 1))],
+  'Servicio profesional ofrecido por el creador. Incluye revisiones, archivos fuente en alta resolución y soporte post-entrega.',
   ROUND((50 + (pc.id_perfil * serv_num % 950))::NUMERIC, 2),
   CASE WHEN serv_num = 3 THEN 'PAQUETE' ELSE 'SERVICIO' END,
   CASE WHEN pc.id_perfil % 20 = 0 THEN 'PAUSADO' ELSE 'ACTIVO' END,
@@ -282,6 +378,7 @@ SELECT
   'https://storage.artisync.test/thumbnails/' || pc.id_perfil || '/serv-' || serv_num || '.webp'
 FROM perfiles_creadores pc
 CROSS JOIN generate_series(1, 3) AS serv_num
+CROSS JOIN pool_titulos_servicio pts
 WHERE EXISTS (
   SELECT 1 FROM usuarios u
   WHERE u.id_usuario = pc.id_usuario AND u.correo LIKE '%@artisync-seed.test'
@@ -631,14 +728,13 @@ INSERT INTO sorteos (id_perfil_creador, titulo_sorteo, cantidad_ganadores,
                      fecha_inicio, fecha_cierre, estado_sorteo, requiere_seguidor)
 SELECT
   pc.id_perfil,
-  'Sorteo ' || ROW_NUMBER() OVER (ORDER BY pc.id_perfil) || ' - ' ||
-    CASE (pc.id_perfil % 5)
-      WHEN 0 THEN 'Diseño gratis'
-      WHEN 1 THEN 'Comisión personalizada'
-      WHEN 2 THEN 'Pack de assets'
-      WHEN 3 THEN 'Mentoría 1-a-1'
-      ELSE 'Descuento exclusivo'
-    END,
+  CASE (pc.id_perfil % 5)
+    WHEN 0 THEN 'Gana un diseño de logotipo gratis'
+    WHEN 1 THEN 'Sorteo de una comisión artística personalizada'
+    WHEN 2 THEN 'Sorteo de un pack de assets digitales'
+    WHEN 3 THEN 'Gana una sesión de mentoría 1 a 1'
+    ELSE 'Sorteo de un descuento exclusivo para seguidores'
+  END,
   1 + pc.id_perfil % 3,
   NOW() - (pc.id_perfil % 60) * INTERVAL '1 day',
   NOW() + (30 + pc.id_perfil % 90) * INTERVAL '1 day',

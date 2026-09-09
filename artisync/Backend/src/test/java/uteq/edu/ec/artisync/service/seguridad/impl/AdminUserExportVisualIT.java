@@ -28,8 +28,6 @@ import uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorPdf;
 import uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorXlsx;
 import uteq.edu.ec.artisync.service.shared.reporte.impl.ServicioExportacionImpl;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,23 +102,10 @@ class AdminUserExportVisualIT {
         assertThat(docPdf.contenido()).isNotEmpty();
         assertThat(docPdf.contentType()).isEqualTo("application/pdf");
 
-        // Guardar artifact para inspección
-        File pdfOut = new File("C:/Users/ASUS/.gemini/antigravity-ide/brain/46cb35fb-27c6-4f69-a469-ed25b8cd3ef7/reporte_usuarios_con_graficas.pdf");
-        try (FileOutputStream fos = new FileOutputStream(pdfOut)) {
-            fos.write(docPdf.contenido());
-        }
-        System.out.println("PDF generado exitosamente en: " + pdfOut.getAbsolutePath() + " (" + pdfOut.length() + " bytes)");
-
         // 2. Exportar en XLSX
         DocumentoGenerado docXlsx = adminUserService.exportar(filtro, FormatoReporte.XLSX, TipoGraficaReporte.AMBAS, "admin@artisync.com");
         assertThat(docXlsx).isNotNull();
         assertThat(docXlsx.contenido()).isNotEmpty();
         assertThat(docXlsx.contentType()).isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
-        File xlsxOut = new File("C:/Users/ASUS/.gemini/antigravity-ide/brain/46cb35fb-27c6-4f69-a469-ed25b8cd3ef7/reporte_usuarios_con_graficas.xlsx");
-        try (FileOutputStream fos = new FileOutputStream(xlsxOut)) {
-            fos.write(docXlsx.contenido());
-        }
-        System.out.println("XLSX generado exitosamente en: " + xlsxOut.getAbsolutePath() + " (" + xlsxOut.length() + " bytes)");
     }
 }
