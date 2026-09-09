@@ -53,6 +53,19 @@ public interface IAuditoriaServicio {
     DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante);
 
     /**
+     * Genera un documento con los eventos de auditoría que cumplen el filtro indicado,
+     * admitiendo paginación / división en partes para grandes volúmenes de datos.
+     *
+     * @param filtro            criterios de filtrado a exportar
+     * @param formato           formato del documento a generar
+     * @param page              número de página / parte (base 0), o null para exportar sin paginación
+     * @param size              tamaño de página / parte, o null para usar el tope del formato
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con los eventos filtrados
+     */
+    DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
+
+    /**
      * Lista los nombres de las acciones de auditoría ya registradas, distintos, para poblar filtros.
      *
      * @return los nombres de acción disponibles

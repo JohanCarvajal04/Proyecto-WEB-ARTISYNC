@@ -25,4 +25,17 @@ public interface IReporteFinancieroServicio {
      * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el detalle supera el tope de filas del formato pedido
      */
     DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante);
+
+    /**
+     * Genera un documento con el detalle del reporte de comisiones que cumple el filtro indicado,
+     * admitiendo paginación / división en partes para grandes volúmenes de datos.
+     *
+     * @param filtro            criterios de filtrado a exportar
+     * @param formato           formato del documento a generar
+     * @param page              número de página / parte (base 0), o null para exportar sin paginación
+     * @param size              tamaño de página / parte, o null para usar el tope del formato
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el detalle filtrado
+     */
+    DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
 }

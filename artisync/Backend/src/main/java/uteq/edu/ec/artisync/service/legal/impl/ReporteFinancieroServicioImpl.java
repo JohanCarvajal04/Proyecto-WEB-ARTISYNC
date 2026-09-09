@@ -70,20 +70,37 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "REPORTE_FINANCIERO_EXPORTAR", modulo = ModuloAuditoria.FINANZAS,
-            entidad = "perfiles_creadores", idEntidad = "#filtro.idPerfil", detalle = "{formato: #formato}")
-    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
+            entidad = "perfiles_creadores", idEntidad = "#filtro.idPerfil", detalle = "{formato: #formato, page: #page, size: #size}")
+    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
         RespuestaReporteComisiones reporte = parsear(consultar(filtro));
+        List<DetalleComision> filas;
+        String titulo = "Comisiones";
+        String subtitulo = "Reporte financiero por creador";
 
-        if (reporte.detalle().size() > formato.topeFilas()) {
-            throw new ExcepcionReglaNegocio(
-                    "El reporte devuelve " + reporte.detalle().size() + " transacciones, más de las "
-                            + formato.topeFilas() + " que admite una exportación en " + formato
-                            + ". Acote el rango de fechas.");
+        if (page != null) {
+            int pageSize = (size != null && size > 0 && size <= formato.topeFilas()) ? size : formato.topeFilas();
+            int totalFilas = reporte.detalle().size();
+            int totalPartes = Math.max(1, (int) Math.ceil((double) totalFilas / pageSize));
+            int fromIndex = Math.min(page * pageSize, totalFilas);
+            int toIndex = Math.min(fromIndex + pageSize, totalFilas);
+            filas = reporte.detalle().subList(fromIndex, toIndex);
+            int parte = page + 1;
+            titulo = "Comisiones - Parte " + parte;
+            subtitulo = "Reporte financiero por creador — Parte " + parte + " de " + totalPartes
+                    + " (" + totalFilas + " transacciones en total)";
+        } else {
+            filas = reporte.detalle();
+            if (filas.size() > formato.topeFilas()) {
+                throw new ExcepcionReglaNegocio(
+                        "El reporte devuelve " + filas.size() + " transacciones, más de las "
+                                + formato.topeFilas() + " que admite una exportación en " + formato
+                                + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
+            }
         }
 
         ModeloReporte<DetalleComision> modelo = ModeloReporte.<DetalleComision>builder()
-                .titulo("Comisiones")
-                .subtitulo("Reporte financiero por creador")
+                .titulo(titulo)
+                .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro, reporte))
                 .columnas(List.of(
                         ColumnaReporte.fechaHora("Fecha", DetalleComision::fechaEjecucion),
@@ -92,7 +109,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
                         ColumnaReporte.texto("Servicio", DetalleComision::servicio),
                         ColumnaReporte.texto("Tipo", DetalleComision::tipo),
                         ColumnaReporte.moneda("Monto", DetalleComision::monto)))
-                .filas(reporte.detalle())
+                .filas(filas)
                 .totales(List.of(
                         new TotalReporte("Monto bruto", reporte.montoBruto(), TipoColumna.MONEDA),
                         new TotalReporte("Comisión", reporte.comision(), TipoColumna.MONEDA),
@@ -101,6 +118,12 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
                 .build();
 
         return servicioExportacion.exportar(modelo, formato);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
+        return exportar(filtro, formato, null, null, correoSolicitante);
     }
 
     private String consultar(FiltroReporteFinanciero filtro) {

@@ -582,6 +582,26 @@ class AdminUserServiceImplTest {
     }
 
     @Test
+    void exportar_conPaginacion_permiteExportarPorLotes() {
+        Page<Usuario> pagina = new PageImpl<>(List.of(usuario), PageRequest.of(0, 5000), 50_000);
+        when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(pagina);
+        when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
+        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "application/pdf", "usuarios_parte_1.pdf");
+        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.PDF)))
+                .thenReturn(esperado);
+
+        DocumentoGenerado resultado = adminUserService.exportar(
+                new FiltroUsuario(), FormatoReporte.PDF, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.NINGUNA, 0, 5000, "admin@artisync.dev");
+
+        assertSame(esperado, resultado);
+        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.PDF));
+        assertEquals("Usuarios - Parte 1", captor.getValue().getTitulo());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 10");
+    }
+
+    @Test
     void exportar_ShouldReportarEstadoSuspendido_WhenEstadoCuentaEsFalse() {
         when(usuarioRepository.count(any(Specification.class))).thenReturn(1L);
         Page<Usuario> pagina = new PageImpl<>(List.of(usuario));

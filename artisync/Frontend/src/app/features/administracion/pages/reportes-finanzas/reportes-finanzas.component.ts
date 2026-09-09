@@ -5,7 +5,7 @@ import { ReporteFinancieroService } from '../../services/reporte-financiero.serv
 import { FiltroReporteFinanciero, RespuestaReporteComisiones } from '../../models/reporte-financiero.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
-import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { FormatoReporte, OpcionesExportacion } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 import { rangoFechasInvertido } from '../../../../shared/utils/rango-fechas';
 
@@ -66,7 +66,7 @@ export class ReportesFinanzasComponent {
     this.error.set('');
   }
 
-  exportar(formato: FormatoReporte): void {
+  exportar(opcion: FormatoReporte | OpcionesExportacion): void {
     if (!this.filtro().idPerfil) {
       this.error.set('Indica el id de perfil del creador antes de exportar.');
       return;
@@ -76,11 +76,22 @@ export class ReportesFinanzasComponent {
       return;
     }
 
+    const formato: FormatoReporte = typeof opcion === 'string' ? opcion : opcion.formato;
+    const page: number | undefined = typeof opcion === 'object' ? opcion.page : undefined;
+    const size: number | undefined = typeof opcion === 'object' ? opcion.size : undefined;
+    const todasLasPartes: boolean = typeof opcion === 'object' ? !!opcion.todasLasPartes : false;
+
+    if (todasLasPartes) {
+      this.descargarTodasLasPartes(formato, size);
+      return;
+    }
+
     this.exportando.set(true);
-    this.reporteService.exportar(this.filtro(), formato).subscribe({
+    this.reporteService.exportar(this.filtro(), formato, page, size).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
-        descargarRespuesta(respuesta, `comisiones_${this.filtro().idPerfil}.${formato.toLowerCase()}`);
+        const sufijo = page !== undefined ? `_parte_${page + 1}` : '';
+        descargarRespuesta(respuesta, `comisiones_${this.filtro().idPerfil}${sufijo}.${formato.toLowerCase()}`);
       },
       error: async (err) => {
         this.exportando.set(false);
@@ -88,5 +99,39 @@ export class ReportesFinanzasComponent {
         this.toastService.error(mensaje);
       }
     });
+  }
+
+  private descargarTodasLasPartes(formato: FormatoReporte, tamanoLote?: number): void {
+    const total = this.reporte()?.detalle?.length ?? 0;
+    const tope = tamanoLote ?? 5000;
+    const totalPartes = Math.max(1, Math.ceil(total / tope));
+    let parteActual = 0;
+
+    this.exportando.set(true);
+    this.toastService.info(`Iniciando descarga de ${totalPartes} partes (${formato})...`);
+
+    const descargarSiguiente = () => {
+      if (parteActual >= totalPartes) {
+        this.exportando.set(false);
+        this.toastService.success(`Descarga completada: ${totalPartes} partes descargadas con éxito.`);
+        return;
+      }
+
+      const p = parteActual;
+      this.reporteService.exportar(this.filtro(), formato, p, tope).subscribe({
+        next: (respuesta) => {
+          descargarRespuesta(respuesta, `comisiones_${this.filtro().idPerfil}_parte_${p + 1}.${formato.toLowerCase()}`);
+          parteActual++;
+          setTimeout(descargarSiguiente, 600);
+        },
+        error: async (err) => {
+          this.exportando.set(false);
+          const mensaje = await mensajeErrorBlob(err, `Error al descargar parte ${p + 1}`);
+          this.toastService.error(mensaje);
+        }
+      });
+    };
+
+    descargarSiguiente();
   }
 }

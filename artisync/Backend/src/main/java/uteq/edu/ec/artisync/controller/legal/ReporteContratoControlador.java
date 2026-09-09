@@ -53,19 +53,35 @@ public class ReporteContratoControlador {
     }
 
     /**
-     * Exporta el reporte de contratos formalizados en el formato solicitado.
+     * Exporta el reporte de contratos formalizados en el formato solicitado, con soporte de paginación/división en partes.
      *
      * @param filtro criterios opcionales para filtrar el reporte
      * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param page número de página / parte solicitada (base 0, opcional)
+     * @param size tamaño del lote / página (opcional)
      * @param authentication autenticación del usuario que solicita la exportación
      * @return el documento generado con el reporte de contratos
      */
-    @Operation(summary = "Exportar el reporte de contratos en CSV, XLSX o PDF")
+    @Operation(summary = "Exportar el reporte de contratos en CSV, XLSX o PDF con soporte de paginación / división por partes")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(FiltroReporteContrato filtro, @RequestParam FormatoReporte formato,
-                                            Authentication authentication) {
-        DocumentoGenerado documento = reporteContratoServicio.exportar(filtro, formato, authentication.getName());
+    public ResponseEntity<byte[]> exportar(
+            FiltroReporteContrato filtro,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            Authentication authentication) {
+        DocumentoGenerado documento = (page != null || size != null)
+                ? reporteContratoServicio.exportar(filtro, formato, page, size, authentication.getName())
+                : reporteContratoServicio.exportar(filtro, formato, authentication.getName());
         return RespuestaDocumento.de(documento);
+    }
+
+    @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportar(
+            FiltroReporteContrato filtro,
+            FormatoReporte formato,
+            Authentication authentication) {
+        return exportar(filtro, formato, null, null, authentication);
     }
 }

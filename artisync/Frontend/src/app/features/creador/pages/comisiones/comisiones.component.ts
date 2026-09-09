@@ -4,7 +4,7 @@ import { PedidoService } from '../../../pedido/services/pedido.service';
 import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 import { formatPrice, formatDate, esEtapaActiva, badgeEtapa, mensajeError } from '../../utils/formato';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
-import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { FormatoReporte, OpcionesExportacion } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 type FiltroEstado = 'todos' | 'activos' | 'cerrados' | 'vencidos';
@@ -74,7 +74,8 @@ export class ComisionesComponent implements OnInit {
     this.cargar();
   }
 
-  exportar(formato: FormatoReporte): void {
+  exportar(opcion: FormatoReporte | OpcionesExportacion): void {
+    const formato: FormatoReporte = typeof opcion === 'string' ? opcion : opcion.formato;
     this.exportando.set(true);
     // 1.4: exporta exactamente lo que ve el creador (comisionesFiltradas), no
     // el total sin filtrar.

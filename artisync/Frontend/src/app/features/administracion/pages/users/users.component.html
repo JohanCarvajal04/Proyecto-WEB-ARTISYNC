@@ -7,7 +7,11 @@
     </div>
 
     <div class="flex items-center gap-3 self-start sm:self-auto">
-      <app-boton-exportar permiso="USUARIO_EXPORTAR" [cargando]="exportando()" (exportar)="iniciarExportacion($event)" />
+      <app-boton-exportar permiso="USUARIO_EXPORTAR" [cargando]="exportando()"
+        [totalElementos]="totalElements()"
+        [paginaActual]="currentPage()"
+        [tamanoPagina]="users().length"
+        (exportar)="iniciarExportacion($event)" />
 
       <button *appHasPermission="'USUARIO_CREAR'" (click)="openCreateModal()"
         class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-95 text-white font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">

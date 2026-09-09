@@ -19,6 +19,20 @@ export const FORMATOS_REPORTE: readonly OpcionFormatoReporte[] = [
   { valor: 'PDF', etiqueta: 'PDF', acento: 'bg-rose-50 text-rose-600' }
 ] as const satisfies readonly OpcionFormatoReporte[];
 
+/** Topes de filas por archivo según FormatoReporte.java en backend */
+export const TOPES_FORMATO: Record<FormatoReporte, number> = {
+  PDF: 5_000,
+  CSV: 50_000,
+  XLSX: 100_000,
+};
+
+export interface OpcionesExportacion {
+  formato: FormatoReporte;
+  page?: number;
+  size?: number;
+  todasLasPartes?: boolean;
+}
+
 export type TipoGraficaReporte = 'ROL' | 'PAIS' | 'AMBAS' | 'NINGUNA';
 
 export interface OpcionGraficaReporte {

@@ -179,4 +179,25 @@ class ReporteFinancieroServicioImplTest {
         assertThat((BigDecimal) modelo.getTotales().get(0).valor()).isEqualByComparingTo("300.00");
         assertThat(modelo.getGeneradoPor()).isEqualTo("admin@artisync.dev");
     }
+
+    @Test
+    @DisplayName("exportar() con page y size pagina el detalle sin exceder el tope")
+    void exportar_conPaginacion_permiteExportarPorLotes() {
+        when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
+        servicio = crearServicio();
+        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "application/pdf", "comisiones_7_parte_1.pdf");
+        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.PDF))).thenReturn(esperado);
+
+        FiltroReporteFinanciero filtro = new FiltroReporteFinanciero();
+        filtro.setIdPerfil(7L);
+        DocumentoGenerado resultado = servicio.exportar(filtro, FormatoReporte.PDF, 0, 1, "admin@artisync.dev");
+
+        assertThat(resultado).isSameAs(esperado);
+        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.PDF));
+        ModeloReporte<DetalleComision> modelo = captor.getValue();
+        assertThat(modelo.getFilas()).hasSize(1);
+        assertThat(modelo.getTitulo()).isEqualTo("Comisiones - Parte 1");
+        assertThat(modelo.getSubtitulo()).contains("Parte 1 de 2");
+    }
 }

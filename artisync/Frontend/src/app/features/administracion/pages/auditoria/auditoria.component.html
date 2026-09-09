@@ -9,6 +9,9 @@
     </div>
 
     <app-boton-exportar permiso="AUDITORIA_EXPORTAR" [cargando]="exportando()"
+      [totalElementos]="pagina().totalElementos"
+      [paginaActual]="pagina().numero"
+      [tamanoPagina]="pagina().contenido.length"
       (exportar)="exportar($event)" />
   </div>
 

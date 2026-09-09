@@ -97,4 +97,5 @@ public interface AdminUserService {
      */
     DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante);
     DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, String correoSolicitante);
+    DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, Integer page, Integer size, String correoSolicitante);
 }

@@ -5,7 +5,7 @@ import { RespuestaPedidoResumido } from '../../../pedido/models/pedido.model';
 
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
-import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { FormatoReporte, OpcionesExportacion } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 
@@ -83,7 +83,8 @@ export class MisPedidosDashboardComponent implements OnInit {
   }
 
   /** Mismo criterio de rol que loadPedidos(): exporta lo que la pantalla está mostrando. */
-  exportar(formato: FormatoReporte): void {
+  exportar(opcion: FormatoReporte | OpcionesExportacion): void {
+    const formato: FormatoReporte = typeof opcion === 'string' ? opcion : opcion.formato;
     this.exportando.set(true);
     const role = this.authService.primaryRole();
     const req$ = role === 'CREADOR'

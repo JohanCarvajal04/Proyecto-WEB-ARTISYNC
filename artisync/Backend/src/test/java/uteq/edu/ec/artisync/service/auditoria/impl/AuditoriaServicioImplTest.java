@@ -210,6 +210,24 @@ class AuditoriaServicioImplTest {
         assertThat(captor.getValue().getSort().getOrderFor("correoActor")).isNotNull();
     }
 
+    @Test
+    @DisplayName("exportar() con page y size permite exportar por lotes sin exceder el tope")
+    void exportar_conPaginacion_permiteExportarPorLotes() {
+        Page<EventoAuditoria> pagina = new PageImpl<>(List.of(eventoDe(1L, "TEST")), PageRequest.of(0, 5000), 50_000);
+        when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(pagina);
+        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "application/pdf", "auditoria_parte_1.pdf");
+        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.PDF))).thenReturn(esperado);
+
+        DocumentoGenerado resultado = auditoriaServicio.exportar(new FiltroAuditoria(), FormatoReporte.PDF, 0, 5000, "admin@artisync.dev");
+
+        assertThat(resultado).isSameAs(esperado);
+        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.PDF));
+        assertThat(captor.getValue().getTitulo()).isEqualTo("Auditoría - Parte 1");
+        assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 10");
+    }
+
     private EventoAuditoria eventoDe(Long id, String accion) {
         return EventoAuditoria.builder()
                 .idEventoAuditoria(id)

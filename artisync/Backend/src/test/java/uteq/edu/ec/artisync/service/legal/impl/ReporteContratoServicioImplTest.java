@@ -127,4 +127,25 @@ class ReporteContratoServicioImplTest {
         verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.CSV));
         assertThat(captor.getValue().getFiltrosAplicados()).isEqualTo(Map.of("Solo firmados", "No"));
     }
+
+    @Test
+    @DisplayName("exportar con page y size permite exportar por lotes sin exceder el tope")
+    void exportar_conPaginacion_permiteExportarPorLotes() {
+        FilaReporteContrato fila1 = filaDe(1L, new BigDecimal("50.00"));
+        Page<FilaReporteContrato> paginaParte = new PageImpl<>(
+                List.of(fila1), PageRequest.of(0, 5000), 80_000);
+        given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
+                .willReturn(paginaParte);
+        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1, 2}, "application/pdf", "contratos_parte_1.pdf");
+        given(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.PDF))).willReturn(esperado);
+
+        DocumentoGenerado resultado = reporteContratoServicio.exportar(
+                new FiltroReporteContrato(), FormatoReporte.PDF, 0, 5000, "admin@artisync.dev");
+
+        assertThat(resultado).isSameAs(esperado);
+        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.PDF));
+        assertThat(captor.getValue().getTitulo()).isEqualTo("Contratos - Parte 1");
+        assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 16");
+    }
 }

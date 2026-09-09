@@ -9,7 +9,9 @@
     </div>
 
     <app-boton-exportar permiso="REPORTE_FINANCIERO_EXPORTAR" [cargando]="exportando()"
-      [deshabilitado]="!filtro().idPerfil" (exportar)="exportar($event)" />
+      [deshabilitado]="!filtro().idPerfil"
+      [totalElementos]="reporte() ? (reporte()!.detalle.length || reporte()!.totalOperaciones) : null"
+      (exportar)="exportar($event)" />
   </div>
 
   <!-- Filtros -->

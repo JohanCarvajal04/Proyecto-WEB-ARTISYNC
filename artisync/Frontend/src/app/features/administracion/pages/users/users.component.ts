@@ -12,7 +12,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
 import { UserFormModalComponent } from '../../../../shared/components/user-form-modal/user-form-modal.component';
 import { HasPermissionDirective } from '../../../../shared/directives/has-permission.directive';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
-import { FormatoReporte, TipoGraficaReporte, OPCIONES_GRAFICA_REPORTE, FORMATOS_REPORTE } from '../../../../shared/models/formato-reporte.model';
+import { FormatoReporte, TipoGraficaReporte, OPCIONES_GRAFICA_REPORTE, FORMATOS_REPORTE, OpcionesExportacion, TOPES_FORMATO } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 
 @Component({
@@ -45,12 +45,15 @@ export class UsersComponent implements OnInit {
   selectedRoleFilter = 'ALL';
   selectedStatusFilter = 'ALL';
 
-  /**
-   * Filtros efectivamente aplicados. Se separa del borrador porque paginar y
-   * exportar deben usar lo que la tabla está mostrando, no lo que el usuario
-   * dejó a medio escribir sin pulsar "Filtrar".
-   */
-  private readonly filtroAplicado = signal<FiltroUsuario>({});
+  // Filtros aplicados efectivamente: estos son los que usa loadUsers() y
+  // exportar(). Cambian únicamente cuando el usuario pulsa "Filtrar" o
+  // "Limpiar". Así garantizamos que lo que se ve en la tabla y lo que sale en
+  // el reporte coincidan exactamente.
+  readonly filtroAplicado = signal<FiltroUsuario>({
+    busqueda: undefined,
+    rol: undefined,
+    estadoCuenta: undefined,
+  });
 
   /**
    * Distingue "no hay usuarios" de "ningún usuario coincide con el filtro",
@@ -106,9 +109,13 @@ export class UsersComponent implements OnInit {
   readonly opcionesGrafica = OPCIONES_GRAFICA_REPORTE;
   readonly formatosReporte = FORMATOS_REPORTE;
 
-  iniciarExportacion(formato: FormatoReporte): void {
-    this.exportFormato.set(formato);
-    this.isExportModalOpen.set(true);
+  iniciarExportacion(opcion: FormatoReporte | OpcionesExportacion): void {
+    if (typeof opcion === 'string') {
+      this.exportFormato.set(opcion);
+      this.isExportModalOpen.set(true);
+    } else {
+      this.procesarExportacionPaginada(opcion);
+    }
   }
 
   cerrarModalExportar(): void {
@@ -119,16 +126,31 @@ export class UsersComponent implements OnInit {
     const formato = this.exportFormato();
     const grafica = this.exportGrafica();
     this.cerrarModalExportar();
+
+    const tope = TOPES_FORMATO[formato];
+    if (tope && this.totalElements() > tope) {
+      this.exportar(formato, grafica, 0, tope);
+      return;
+    }
     this.exportar(formato, grafica);
   }
 
-  exportar(formato: FormatoReporte, grafica?: TipoGraficaReporte): void {
+  private procesarExportacionPaginada(opcion: OpcionesExportacion): void {
+    if (opcion.todasLasPartes) {
+      this.descargarTodasLasPartes(opcion.formato, opcion.size);
+    } else {
+      this.exportar(opcion.formato, undefined, opcion.page, opcion.size);
+    }
+  }
+
+  exportar(formato: FormatoReporte, grafica?: TipoGraficaReporte, page?: number, size?: number): void {
     this.exportando.set(true);
     const graficaElegida = grafica ?? (formato === 'CSV' ? 'NINGUNA' : this.exportGrafica());
-    this.adminUserService.exportar(this.filtroAplicado(), formato, graficaElegida).subscribe({
+    this.adminUserService.exportar(this.filtroAplicado(), formato, graficaElegida, page, size).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
-        descargarRespuesta(respuesta, `usuarios.${formato.toLowerCase()}`);
+        const sufijo = page !== undefined ? `_parte_${page + 1}` : '';
+        descargarRespuesta(respuesta, `usuarios${sufijo}.${formato.toLowerCase()}`);
         this.toastService.success(`Reporte de usuarios exportado exitosamente en ${formato}`);
       },
       error: async (err) => {
@@ -137,6 +159,41 @@ export class UsersComponent implements OnInit {
         this.toastService.error(mensaje);
       }
     });
+  }
+
+  private descargarTodasLasPartes(formato: FormatoReporte, tamanoLote?: number): void {
+    const total = this.totalElements();
+    const tope = tamanoLote ?? TOPES_FORMATO[formato] ?? 5000;
+    const totalPartes = Math.max(1, Math.ceil(total / tope));
+    let parteActual = 0;
+
+    this.exportando.set(true);
+    this.toastService.info(`Iniciando descarga de ${totalPartes} partes (${formato})...`);
+
+    const descargarSiguiente = () => {
+      if (parteActual >= totalPartes) {
+        this.exportando.set(false);
+        this.toastService.success(`Se completó la descarga de las ${totalPartes} partes de usuarios.`);
+        return;
+      }
+
+      const paginaADescargar = parteActual;
+      parteActual++;
+
+      this.adminUserService.exportar(this.filtroAplicado(), formato, this.exportGrafica(), paginaADescargar, tope).subscribe({
+        next: (respuesta) => {
+          descargarRespuesta(respuesta, `usuarios_parte_${paginaADescargar + 1}_de_${totalPartes}.${formato.toLowerCase()}`);
+          setTimeout(descargarSiguiente, 700);
+        },
+        error: async (err) => {
+          this.exportando.set(false);
+          const mensaje = await mensajeErrorBlob(err, `Error al descargar la parte ${paginaADescargar + 1}`);
+          this.toastService.error(mensaje);
+        }
+      });
+    };
+
+    descargarSiguiente();
   }
 
   private loadRolesFiltro(): void {

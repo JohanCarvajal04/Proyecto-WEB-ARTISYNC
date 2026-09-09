@@ -21,8 +21,14 @@ export class ReporteContratoService {
       .pipe(map(crudo => normalizarPagina<FilaReporteContrato>(crudo)));
   }
 
-  exportar(filtro: FiltroReporteContrato, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
-    const params = paramsDesdeFiltro(filtro).set('formato', formato);
+  exportar(filtro: FiltroReporteContrato, formato: FormatoReporte, page?: number, size?: number): Observable<HttpResponse<Blob>> {
+    let params = paramsDesdeFiltro(filtro).set('formato', formato);
+    if (page !== undefined && page !== null) {
+      params = params.set('page', page);
+    }
+    if (size !== undefined && size !== null) {
+      params = params.set('size', size);
+    }
     return this.http.get(`${this.API}/exportar`, {
       ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });

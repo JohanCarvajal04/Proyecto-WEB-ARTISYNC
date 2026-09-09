@@ -42,8 +42,14 @@ export class AuditoriaService {
    * `observe: 'response'` para poder leer el nombre de archivo real del
    * header Content-Disposition en descargarRespuesta().
    */
-  exportar(filtro: FiltroAuditoria, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
-    const params = paramsDesdeFiltro(filtro).set('formato', formato);
+  exportar(filtro: FiltroAuditoria, formato: FormatoReporte, page?: number, size?: number): Observable<HttpResponse<Blob>> {
+    let params = paramsDesdeFiltro(filtro).set('formato', formato);
+    if (page !== undefined && page !== null) {
+      params = params.set('page', page);
+    }
+    if (size !== undefined && size !== null) {
+      params = params.set('size', size);
+    }
     return this.http.get(`${this.API}/exportar`, {
       ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });

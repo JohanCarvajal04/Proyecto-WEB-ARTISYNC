@@ -286,28 +286,52 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato}")
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante) {
-        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, correoSolicitante);
+        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, null, null, correoSolicitante);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato,
+                                      uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+                                      String correoSolicitante) {
+        return exportar(filtro, formato, tipoGrafica, null, null, correoSolicitante);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
-            detalle = "{formato: #formato, grafica: #tipoGrafica}")
+            detalle = "{formato: #formato, grafica: #tipoGrafica, page: #page, size: #size}")
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato,
                                       uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+                                      Integer page, Integer size,
                                       String correoSolicitante) {
         Specification<Usuario> spec = UsuarioSpecification.conFiltros(
                 filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());
 
-        long total = usuarioRepository.count(spec);
-        if (total > formato.topeFilas()) {
-            throw new ExcepcionReglaNegocio(
-                    "El listado filtrado tiene " + total + " usuarios, más de los " + formato.topeFilas()
-                            + " que admite una exportación en " + formato + ".");
+        Page<Usuario> pagina;
+        String titulo = "Usuarios";
+        String subtitulo = "Listado administrativo de usuarios";
+
+        if (page != null) {
+            int pageSize = (size != null && size > 0 && size <= formato.topeFilas()) ? size : formato.topeFilas();
+            pagina = usuarioRepository.findAll(spec, PageRequest.of(page, pageSize, Sort.by(Sort.Direction.ASC, "idUsuario")));
+            int parte = page + 1;
+            int totalPartes = Math.max(1, pagina.getTotalPages());
+            titulo = "Usuarios - Parte " + parte;
+            subtitulo = "Listado administrativo de usuarios — Parte " + parte + " de " + totalPartes
+                    + " (" + pagina.getTotalElements() + " usuarios en total)";
+        } else {
+            long total = usuarioRepository.count(spec);
+            if (total > formato.topeFilas()) {
+                throw new ExcepcionReglaNegocio(
+                        "El listado filtrado tiene " + total + " usuarios, más de los " + formato.topeFilas()
+                                + " que admite una exportación en " + formato + ". Acote los filtros o utilice la opción de exportar por partes.");
+            }
+
+            pagina = usuarioRepository.findAll(
+                    spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, "idUsuario")));
         }
 
-        Page<Usuario> pagina = usuarioRepository.findAll(
-                spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, "idUsuario")));
         List<UserResponse> filas = usuarioMapper.toUserResponseList(pagina.getContent());
 
         // Calcular métricas (KPIs) y datos agregados para las gráficas
@@ -362,8 +386,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         ModeloReporte<UserResponse> modelo = ModeloReporte.<UserResponse>builder()
-                .titulo("Usuarios")
-                .subtitulo("Listado administrativo de usuarios")
+                .titulo(titulo)
+                .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .kpis(kpis)
                 .graficas(graficas)

@@ -61,10 +61,16 @@ export class AdminUserService {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/${id}/sesiones`);
   }
 
-  exportar(filtro: FiltroUsuario, formato: FormatoReporte, grafica?: TipoGraficaReporte): Observable<HttpResponse<Blob>> {
+  exportar(filtro: FiltroUsuario, formato: FormatoReporte, grafica?: TipoGraficaReporte, page?: number, size?: number): Observable<HttpResponse<Blob>> {
     let params = paramsDesdeFiltro(filtro).set('formato', formato);
     if (grafica) {
       params = params.set('grafica', grafica);
+    }
+    if (page !== undefined && page !== null) {
+      params = params.set('page', page);
+    }
+    if (size !== undefined && size !== null) {
+      params = params.set('size', size);
     }
     return this.http.get(`${this.apiUrl}/exportar`, {
       ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'

@@ -8,7 +8,7 @@ import {
 import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
 import { ToastService } from '../../../../core/services/toast.service';
 import { BotonExportarComponent } from '../../../../shared/components/boton-exportar/boton-exportar.component';
-import { FormatoReporte } from '../../../../shared/models/formato-reporte.model';
+import { FormatoReporte, OpcionesExportacion } from '../../../../shared/models/formato-reporte.model';
 import { descargarRespuesta, mensajeErrorBlob } from '../../../../shared/utils/descarga-archivo';
 import { rangoFechasInvertido } from '../../../../shared/utils/rango-fechas';
 
@@ -100,16 +100,28 @@ export class AuditoriaComponent implements OnInit {
     this.detalle.set(null);
   }
 
-  exportar(formato: FormatoReporte): void {
+  exportar(opcion: FormatoReporte | OpcionesExportacion): void {
     if (rangoFechasInvertido(this.filtro())) {
       this.toastService.error('La fecha "Desde" no puede ser posterior a "Hasta".');
       return;
     }
+
+    const formato: FormatoReporte = typeof opcion === 'string' ? opcion : opcion.formato;
+    const page: number | undefined = typeof opcion === 'object' ? opcion.page : undefined;
+    const size: number | undefined = typeof opcion === 'object' ? opcion.size : undefined;
+    const todasLasPartes: boolean = typeof opcion === 'object' ? !!opcion.todasLasPartes : false;
+
+    if (todasLasPartes) {
+      this.descargarTodasLasPartes(formato, size);
+      return;
+    }
+
     this.exportando.set(true);
-    this.auditoriaService.exportar(this.filtro(), formato).subscribe({
+    this.auditoriaService.exportar(this.filtro(), formato, page, size).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
-        descargarRespuesta(respuesta, `auditoria_${new Date().toISOString().slice(0, 10)}.${formato.toLowerCase()}`);
+        const sufijo = page !== undefined ? `_parte_${page + 1}` : '';
+        descargarRespuesta(respuesta, `auditoria${sufijo}_${new Date().toISOString().slice(0, 10)}.${formato.toLowerCase()}`);
       },
       error: async (err) => {
         this.exportando.set(false);
@@ -117,6 +129,40 @@ export class AuditoriaComponent implements OnInit {
         this.toastService.error(mensaje);
       }
     });
+  }
+
+  private descargarTodasLasPartes(formato: FormatoReporte, tamanoLote?: number): void {
+    const total = this.pagina().totalElementos;
+    const tope = tamanoLote ?? 5000;
+    const totalPartes = Math.max(1, Math.ceil(total / tope));
+    let parteActual = 0;
+
+    this.exportando.set(true);
+    this.toastService.info(`Iniciando descarga de ${totalPartes} partes (${formato})...`);
+
+    const descargarSiguiente = () => {
+      if (parteActual >= totalPartes) {
+        this.exportando.set(false);
+        this.toastService.success(`Descarga completada: ${totalPartes} partes descargadas con éxito.`);
+        return;
+      }
+
+      const p = parteActual;
+      this.auditoriaService.exportar(this.filtro(), formato, p, tope).subscribe({
+        next: (respuesta) => {
+          descargarRespuesta(respuesta, `auditoria_parte_${p + 1}_${new Date().toISOString().slice(0, 10)}.${formato.toLowerCase()}`);
+          parteActual++;
+          setTimeout(descargarSiguiente, 600);
+        },
+        error: async (err) => {
+          this.exportando.set(false);
+          const mensaje = await mensajeErrorBlob(err, `Error al descargar parte ${p + 1}`);
+          this.toastService.error(mensaje);
+        }
+      });
+    };
+
+    descargarSiguiente();
   }
 
   formatFecha(fecha: string | null): string {

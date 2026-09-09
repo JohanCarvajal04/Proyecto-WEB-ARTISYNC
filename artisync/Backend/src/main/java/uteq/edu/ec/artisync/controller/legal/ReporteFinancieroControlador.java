@@ -45,20 +45,35 @@ public class ReporteFinancieroControlador {
     }
 
     /**
-     * Exporta el reporte de comisiones de un creador en el formato solicitado.
+     * Exporta el reporte de comisiones de un creador en el formato solicitado, con soporte de paginación/división en partes.
      *
      * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
      * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param page número de página / parte solicitada (base 0, opcional)
+     * @param size tamaño del lote / página (opcional)
      * @param authentication autenticación del usuario que solicita la exportación
      * @return el documento generado con el reporte de comisiones
-     * @throws ExcepcionReglaNegocio si el número de transacciones del reporte excede el tope de filas admitido por el formato
      */
-    @Operation(summary = "Exportar el reporte de comisiones en CSV, XLSX o PDF")
+    @Operation(summary = "Exportar el reporte de comisiones en CSV, XLSX o PDF con soporte de paginación / división en partes")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(FiltroReporteFinanciero filtro, @RequestParam FormatoReporte formato,
-                                            Authentication authentication) {
-        DocumentoGenerado documento = reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());
+    public ResponseEntity<byte[]> exportar(
+            FiltroReporteFinanciero filtro,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            Authentication authentication) {
+        DocumentoGenerado documento = (page != null || size != null)
+                ? reporteFinancieroServicio.exportar(filtro, formato, page, size, authentication.getName())
+                : reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());
         return RespuestaDocumento.de(documento);
+    }
+
+    @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportar(
+            FiltroReporteFinanciero filtro,
+            FormatoReporte formato,
+            Authentication authentication) {
+        return exportar(filtro, formato, null, null, authentication);
     }
 }

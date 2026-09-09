@@ -54,24 +54,40 @@ public class ReporteContratoServicioImpl implements IReporteContratoServicio {
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "REPORTE_CONTRATO_EXPORTAR", modulo = ModuloAuditoria.FINANZAS,
-            entidad = "contratos", detalle = "{formato: #formato}")
-    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante) {
-        Page<FilaReporteContrato> pagina = contratoRepository.buscarParaReporte(
-                filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
-                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaFormalizacion")));
+            entidad = "contratos", detalle = "{formato: #formato, page: #page, size: #size}")
+    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+        Page<FilaReporteContrato> pagina;
+        String titulo = "Contratos";
+        String subtitulo = "Reporte de contratos formalizados";
 
-        if (pagina.getTotalElements() > formato.topeFilas()) {
-            throw new ExcepcionReglaNegocio(
-                    "El reporte devuelve " + pagina.getTotalElements() + " contratos, más de los "
-                            + formato.topeFilas() + " que admite una exportación en " + formato
-                            + ". Acote el rango de fechas.");
+        if (page != null) {
+            int pageSize = (size != null && size > 0 && size <= formato.topeFilas()) ? size : formato.topeFilas();
+            pagina = contratoRepository.buscarParaReporte(
+                    filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
+                    PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "fechaFormalizacion")));
+            int parte = page + 1;
+            int totalPartes = Math.max(1, pagina.getTotalPages());
+            titulo = "Contratos - Parte " + parte;
+            subtitulo = "Reporte de contratos formalizados — Parte " + parte + " de " + totalPartes
+                    + " (" + pagina.getTotalElements() + " contratos en total)";
+        } else {
+            pagina = contratoRepository.buscarParaReporte(
+                    filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
+                    PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaFormalizacion")));
+
+            if (pagina.getTotalElements() > formato.topeFilas()) {
+                throw new ExcepcionReglaNegocio(
+                        "El reporte devuelve " + pagina.getTotalElements() + " contratos, más de los "
+                                + formato.topeFilas() + " que admite una exportación en " + formato
+                                + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
+            }
         }
 
-        log.info("Reporte de contratos exportado en formato {} por {}", formato, correoSolicitante);
+        log.info("Reporte de contratos exportado en formato {} (page={}, size={}) por {}", formato, page, size, correoSolicitante);
 
         ModeloReporte<FilaReporteContrato> modelo = ModeloReporte.<FilaReporteContrato>builder()
-                .titulo("Contratos")
-                .subtitulo("Reporte de contratos formalizados")
+                .titulo(titulo)
+                .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .columnas(List.of(
                         ColumnaReporte.entero("Id. contrato", FilaReporteContrato::idContrato),
@@ -90,6 +106,12 @@ public class ReporteContratoServicioImpl implements IReporteContratoServicio {
                 .build();
 
         return servicioExportacion.exportar(modelo, formato);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante) {
+        return exportar(filtro, formato, null, null, correoSolicitante);
     }
 
     private BigDecimal sumarPrecios(List<FilaReporteContrato> filas) {

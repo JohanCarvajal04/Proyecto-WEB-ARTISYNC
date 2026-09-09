@@ -25,8 +25,14 @@ export class ReporteFinancieroService {
    * Igual que AuditoriaService.exportar(): sinErrorGlobal() porque un 422
    * (tope de filas) llega como Blob y lo decodifica el propio componente.
    */
-  exportar(filtro: FiltroReporteFinanciero, formato: FormatoReporte): Observable<HttpResponse<Blob>> {
-    const params = paramsDesdeFiltro(filtro).set('formato', formato);
+  exportar(filtro: FiltroReporteFinanciero, formato: FormatoReporte, page?: number, size?: number): Observable<HttpResponse<Blob>> {
+    let params = paramsDesdeFiltro(filtro).set('formato', formato);
+    if (page !== undefined && page !== null) {
+      params = params.set('page', page);
+    }
+    if (size !== undefined && size !== null) {
+      params = params.set('size', size);
+    }
     return this.http.get(`${this.API}/exportar`, {
       ...sinErrorGlobal(), params, responseType: 'blob', observe: 'response'
     });

@@ -87,28 +87,44 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
         return toDetalle(evento);
     }
 
-    @Override
-    @Transactional(readOnly = true)
     // Auditar al auditor: exportar la propia bitácora es la operación más
     // sensible del módulo (extrae datos personales del sistema en un
     // archivo), así que queda registrada igual que cualquier otra, con el
     // formato pedido en el detalle.
-    @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, detalle = "{formato: #formato}")
-    public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante) {
-        Pageable primeraPaginaConTope =
-                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaEvento"));
-        Page<EventoAuditoria> pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), primeraPaginaConTope);
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, detalle = "{formato: #formato, page: #page, size: #size}")
+    public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+        Page<EventoAuditoria> pagina;
+        String titulo = "Auditoría";
+        String subtitulo = "Bitácora de eventos del sistema";
 
-        if (pagina.getTotalElements() > formato.topeFilas()) {
-            throw new ExcepcionReglaNegocio(
-                    "El filtro actual devuelve " + pagina.getTotalElements() + " eventos, más de los "
-                            + formato.topeFilas() + " que admite una exportación en " + formato
-                            + ". Acote el rango de fechas.");
+        if (page != null) {
+            int pageSize = (size != null && size > 0 && size <= formato.topeFilas()) ? size : formato.topeFilas();
+            pagina = eventoAuditoriaRepository.findAll(
+                    especificacionDe(filtro),
+                    PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "fechaEvento")));
+            int parte = page + 1;
+            int totalPartes = Math.max(1, pagina.getTotalPages());
+            titulo = "Auditoría - Parte " + parte;
+            subtitulo = "Bitácora de eventos del sistema — Parte " + parte + " de " + totalPartes
+                    + " (" + pagina.getTotalElements() + " eventos en total)";
+        } else {
+            Pageable primeraPaginaConTope =
+                    PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaEvento"));
+            pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), primeraPaginaConTope);
+
+            if (pagina.getTotalElements() > formato.topeFilas()) {
+                throw new ExcepcionReglaNegocio(
+                        "El filtro actual devuelve " + pagina.getTotalElements() + " eventos, más de los "
+                                + formato.topeFilas() + " que admite una exportación en " + formato
+                                + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
+            }
         }
 
         ModeloReporte<EventoAuditoria> modelo = ModeloReporte.<EventoAuditoria>builder()
-                .titulo("Auditoría")
-                .subtitulo("Bitácora de eventos del sistema")
+                .titulo(titulo)
+                .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .columnas(List.of(
                         ColumnaReporte.fechaHora("Fecha", EventoAuditoria::getFechaEvento),
@@ -125,6 +141,12 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
                 .build();
 
         return servicioExportacion.exportar(modelo, formato);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante) {
+        return exportar(filtro, formato, null, null, correoSolicitante);
     }
 
     private Map<String, String> filtrosLegibles(FiltroAuditoria filtro) {
