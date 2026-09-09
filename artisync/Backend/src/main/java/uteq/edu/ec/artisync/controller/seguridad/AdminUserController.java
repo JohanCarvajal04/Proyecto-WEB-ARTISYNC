@@ -20,6 +20,7 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
+import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
@@ -33,6 +34,7 @@ import uteq.edu.ec.artisync.util.RespuestaDocumento;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final PrivacidadService privacidadService;
 
     /**
      * Lista todos los usuarios de forma paginada, con filtros opcionales.
@@ -182,6 +184,25 @@ public class AdminUserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
         adminUserService.deleteUser(id, userDetails.getIdUsuario());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * REQ-NF-018: ejecuta la supresión real (anonimización) de los datos
+     * personales de un usuario en nombre de un administrador. A diferencia
+     * del autoservicio, rechaza la operación si el usuario ya la tiene
+     * ejecutada — el administrador solo debe usar esto cuando el titular no
+     * lo haya solicitado (o no lo tenga pendiente) por sí mismo.
+     *
+     * @param id            identificador del usuario cuyos datos se suprimen
+     * @param userDetails   administrador autenticado que ejecuta la acción
+     * @return mensaje de confirmación, incluyendo excepciones legales si las hay
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario ya tiene la supresión ejecutada, o si el admin se apunta a sí mismo
+     */
+    @Operation(summary = "Suprimir (anonimizar) los datos personales de un usuario, en nombre del titular")
+    @PostMapping("/{id}/supresion")
+    @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
+    public ResponseEntity<RespuestaMensaje> anonimizarUsuario(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(privacidadService.anonimizarUsuarioAdmin(id, userDetails.getIdUsuario()));
     }
 }
 

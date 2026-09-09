@@ -10,10 +10,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
@@ -120,5 +122,55 @@ class InfraccionServiceImplTest {
         assertThat(resultado.getContent()).extracting(RespuestaInfraccion::getIdUsuario).containsOnly(1L);
         verify(infraccionRepo).findByUsuarioIdUsuario(1L, pageable);
         verify(infraccionRepo, never()).findAll(any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("listarInfracciones — lista todas las infracciones del sistema, sin filtrar por usuario")
+    void listarInfracciones_listaTodasSinFiltrarPorUsuario() {
+        Usuario usuario1 = Usuario.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
+        Pedido pedido = Pedido.builder().idPedido(10L).build();
+        InfraccionMensaje infraccion = InfraccionMensaje.builder()
+                .idInfraccion(9L)
+                .usuario(usuario1)
+                .pedido(pedido)
+                .patronDetectado("TELEFONO")
+                .fechaInfraccion(LocalDateTime.now())
+                .build();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        when(infraccionRepo.findAll(pageable))
+                .thenReturn(new PageImpl<>(List.of(infraccion), pageable, 1));
+
+        var resultado = infraccionService.listarInfracciones(pageable);
+
+        assertThat(resultado.getTotalElements()).isEqualTo(1);
+        assertThat(resultado.getContent()).extracting(RespuestaInfraccion::getIdUsuario).containsOnly(1L);
+        verify(infraccionRepo).findAll(pageable);
+        verify(infraccionRepo, never()).findByUsuarioIdUsuario(any(), any());
+    }
+
+    @Test
+    @DisplayName("revertirSuspension — reactiva la cuenta y devuelve el mensaje con el correo del usuario")
+    void revertirSuspension_reactivaLaCuenta() {
+        Usuario usuario = Usuario.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
+        when(usuarioRepo.findById(1L)).thenReturn(Optional.of(usuario));
+
+        RespuestaMensaje respuesta = infraccionService.revertirSuspension(1L);
+
+        assertThat(usuario.getEstadoCuenta()).isTrue();
+        assertThat(respuesta.getMensaje()).isEqualTo("Cuenta del usuario juan@example.com reactivada correctamente");
+        verify(usuarioRepo).save(usuario);
+    }
+
+    @Test
+    @DisplayName("revertirSuspension — usuario inexistente lanza ExcepcionRecursoNoEncontrado")
+    void revertirSuspension_usuarioNoExiste_lanzaExcepcion() {
+        when(usuarioRepo.findById(99L)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                ExcepcionRecursoNoEncontrado.class,
+                () -> infraccionService.revertirSuspension(99L));
+
+        verify(usuarioRepo, never()).save(any());
     }
 }

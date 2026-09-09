@@ -8,12 +8,19 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ContratoRepository extends JpaRepository<Contrato, Long>, ContratoRepositoryCustom {
 
     Optional<Contrato> findByPedidoIdPedido(Long idPedido);
+
+    /** REQ-NF-018: contratos donde el usuario participa como cliente, para evaluar el impedimento legal de supresión. */
+    List<Contrato> findByPedidoUsuarioClienteIdUsuario(Long idUsuario);
+
+    /** REQ-NF-018: contratos donde el usuario participa como creador (vía servicio -> perfil -> usuario). */
+    List<Contrato> findByPedidoServicioPerfilUsuarioIdUsuario(Long idUsuario);
 
     /**
      * Igual que findById, pero con bloqueo pesimista de fila. Sin esto, la
