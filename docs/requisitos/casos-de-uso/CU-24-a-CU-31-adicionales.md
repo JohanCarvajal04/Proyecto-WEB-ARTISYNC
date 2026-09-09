@@ -1,6 +1,6 @@
 # Casos de Uso — Requisitos adicionales (post v1.0.0)
 
-Estos ocho casos de uso corresponden a REQ-F-024 a REQ-F-031, incorporados en v1.1.2 tras auditar el SRS contra código ya implementado y probado. Ver `docs/requisitos/SRS.md` §3.1 y `CHANGELOG-REQ.md` v1.2.0.
+Estos diez casos de uso corresponden a REQ-F-024 a REQ-F-031 (incorporados en v1.1.2) y REQ-F-032/REQ-F-033 (incorporados en v1.3.0), tras auditar el SRS contra código ya implementado y probado. Ver `docs/requisitos/SRS.md` §3.1 y `CHANGELOG-REQ.md`.
 
 ---
 
@@ -206,3 +206,57 @@ Estos ocho casos de uso corresponden a REQ-F-024 a REQ-F-031, incorporados en v1
 
 **4. Manejo de extensiones:**
 - 2a1. El sistema rechaza la operación como recurso duplicado. Termina.
+
+---
+
+## CU-32: Gestionar las obras de mi portafolio
+**Trazabilidad:** REQ-F-032 / HU-32
+**Prueba de integración:** `PortafolioItemControladorTest`, `PortafolioItemControladorRutasTest`, `PortafolioItemServicioImplTest`
+
+**1. Actor principal y objetivo:** Creador — mantener las obras (ítems) de su portafolio actualizadas.
+
+**Nivel:** Meta de usuario
+
+**Precondición:** El Creador tiene un portafolio creado.
+
+**Garantía de éxito:** Las obras quedan reflejadas en el portafolio respetando su visibilidad y el límite de 50; todo archivo se sirve como descarga forzada.
+
+**2. Escenario principal de éxito:**
+1. El Creador sube una obra a su portafolio con sus datos y el archivo multimedia.
+2. El Creador lista, actualiza o elimina obras existentes.
+3. Un visitante consulta las obras de un portafolio público; el archivo se sirve con `Content-Disposition: attachment`.
+
+**3. Extensiones:**
+- 1a. El portafolio ya tiene 50 obras.
+- 2a. Quien intenta modificar o eliminar no es el dueño del portafolio.
+- 3a. El portafolio no es público y quien consulta no es su dueño.
+
+**4. Manejo de extensiones:**
+- 1a1. El sistema rechaza la subida sin crear el ítem. Termina.
+- 2a1. El sistema rechaza la operación con un error de regla de negocio. Termina.
+- 3a1. El sistema rechaza la consulta. Termina.
+
+---
+
+## CU-33: Administrar infracciones y suspensiones
+**Trazabilidad:** REQ-F-033 / HU-33
+**Prueba de integración:** `InfraccionServiceImplTest` (cubre `historialPorUsuario`; falta prueba para `listarInfracciones` y `revertirSuspension`)
+
+**1. Actor principal y objetivo:** Administrador — revisar las infracciones detectadas por REQ-F-015 y, si corresponde, revertir una suspensión.
+
+**Nivel:** Meta de usuario
+
+**Precondición:** Existen infracciones registradas en el sistema (detectadas automáticamente por REQ-F-015).
+
+**Garantía de éxito:** El Administrador puede ver el panorama completo de infracciones y corregir una suspensión que resultó ser un falso positivo.
+
+**2. Escenario principal de éxito:**
+1. El Administrador lista todas las infracciones del sistema, paginadas.
+2. El Administrador consulta el historial de infracciones de un usuario específico.
+3. El Administrador revierte la suspensión de una cuenta.
+
+**3. Extensiones:**
+- 3a. La cuenta indicada no tiene ninguna suspensión activa.
+
+**4. Manejo de extensiones:**
+- 3a1. El sistema aplica la operación sin dejar la cuenta en un estado inconsistente. Termina.

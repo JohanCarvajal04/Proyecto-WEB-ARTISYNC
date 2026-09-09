@@ -2,7 +2,70 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [No publicado] - 2026-09-09 — 4 requisitos suben de `implementado`/`pendiente` a `verificado` (evidencia de prueba completada)
+
+### Changed — REQ-F-010, REQ-F-033, REQ-NF-018, REQ-NF-022 pasan a `verificado`
+
+Los cuatro ya estaban funcionalmente implementados; faltaba exclusivamente el nivel de evidencia que exige `verificado`. Se cerró cada brecha sin tocar código de producción salvo donde se indica:
+
+| Requisito | Qué faltaba | Qué se agregó |
+| --- | --- | --- |
+| REQ-F-010 | `AdminComentarioControlador` no tenía ninguna prueba (el servicio/controlador público ya estaban bien cubiertos). | `AdminComentarioControladorTest` (nuevo): los 4 endpoints (`listarParaModeracion`, `ocultarComentario`, `reactivarComentario`, `eliminarComentario`), incluida la propagación de `ExcepcionRecursoNoEncontrado`. |
+| REQ-F-033 | `InfraccionServiceImpl.listarInfracciones`/`revertirSuspension` sin prueba (`historialPorUsuario` sí la tenía). | 3 casos nuevos en `InfraccionServiceImplTest`: listado sin filtrar por usuario, reversión exitosa (mensaje exacto con el correo), reversión sobre usuario inexistente. |
+| REQ-NF-018 | `PrivacidadServiceImplTest` era unitario con Mockito; no ejercitaba las consultas JPA derivadas reales ni el bloqueo pesimista. | `PrivacidadServiceImplIT` (nueva, `@DataJpaTest` + `postgres-it`, mismo patrón que `AprobarEntregaConcurrenciaIT`): 4 casos contra PostgreSQL real — anonimización completa, rechazo por pedido sin transición registrada, excepción legal por fondos retenidos, idempotencia contra el bloqueo pesimista real de `findByIdParaAnonimizar`. |
+| REQ-NF-022 | `AuthRateLimitFilterTest` solo probaba el límite de `login`; los otros 4 (2fa, forgot-password, reset-password, registro) no tenían caso de prueba. | 8 casos nuevos: cada uno de los 5 límites reales en su valor exacto (pasa) y en límite+1 (bloquea con el `Retry-After` correcto). |
+
+Ningún cambio de enunciado ni de alcance — solo de estado, respaldado por prueba automatizada verde. Suite completa (`./mvnw test`): 1133/1133. `bash scripts/validate-traceability.sh`: 0 errores, 62/62. §7.1-§7.3 de `SRS.md` recalculados.
+
+## [No publicado] - 2026-09-09 — Cierre de REQ-NF-018 (protección de datos personales)
+
+### Changed — REQ-NF-018 pasa de `pendiente` a `implementado`
+
+Los tres criterios de aceptación quedan cubiertos:
+
+- `docs/basedatos/POLITICA-RETENCION.md` se extiende con la sección "Qué se retiene con plazo
+  declarado (datos personales sensibles)", cubriendo `certificados_ia`, `datos_pago_creador` y
+  `contratos` (este último sin campos personales propios — se documenta por qué queda fuera de
+  la anonimización y se remite a REQ-NF-020 para la integridad del hash de firma).
+- Nuevo mecanismo real de supresión de datos personales por anonimización:
+  `PrivacidadService`/`PrivacidadServiceImpl`, expuesto vía
+  `POST /api/v1/usuarios/me/solicitud-supresion` (autoservicio, idempotente) y
+  `POST /api/v1/admin/usuarios/{id}/supresion` (administrador, rechaza la operación si el
+  usuario ya la tiene ejecutada). Declara la excepción legal para `datos_pago_creador` cuando el
+  usuario tiene un contrato con fondos aún retenidos en garantía (`pagos_garantia.estado_fondos
+  = 'Retenido'`).
+- Minimización del payload hacia servicios de IA: sin cambios de código — se reconfirma que
+  `GeminiIaService`/`NvidiaIaService` solo envían prompt + imagen.
+- Frontend: botón "Suprimir mis datos" en `configuracion-cuenta.component` (autoservicio, con
+  advertencia explícita de irreversibilidad antes de confirmar) y acción "Suprimir datos
+  personales" en `users.component` del panel admin.
+
+### Added — tres ajustes de robustez sobre el mecanismo de supresión
+
+- **Bloqueo pesimista de fila** (`UsuarioRepository.findByIdParaAnonimizar`, mismo patrón que
+  `ContratoRepository.findByIdParaFirmar`): dos solicitudes casi simultáneas para el mismo
+  usuario (doble clic, autoservicio + admin a la vez) ya no pueden ambas pasar el chequeo de
+  idempotencia antes de que la primera confirme su cambio.
+- **Idempotencia basada en el propio correo anonimizado** en vez de una consulta a
+  `auditoria_eventos`: al estar bajo el mismo bloqueo de fila que el resto de la operación,
+  elimina la ventana de carrera que tenía la versión anterior (el commit de la bitácora ocurre en
+  una transacción `REQUIRES_NEW` posterior, fuera del bloqueo).
+- **Bloqueo por pedido en curso**: si el usuario (como cliente o como creador) tiene un pedido
+  cuya etapa actual no es la etapa final de su flujo, la supresión completa se rechaza (declarada
+  como excepción en autoservicio, como error en el panel admin) hasta que el pedido termine o se
+  cancele — evita que la contraparte de una transacción activa vea el nombre del usuario cambiar
+  a "Usuario eliminado" en medio de mensajería, entregables o reseñas.
+
+No alcanza `verificado`: la prueba nueva (`PrivacidadServiceImplTest`, 16 casos) es unitaria con
+Mockito, no una prueba de integración contra base de datos real que ejercite las consultas JPA
+derivadas (`ContratoRepository.findByPedidoUsuarioClienteIdUsuario`, etc.) ni el bloqueo pesimista
+real de PostgreSQL. Excepción declarada en `docs/trazabilidad/excepciones-estado.txt`.
+
 ## [v1.3.0] - 2026-09-08 — Segunda revisión externa: defecto del validador, 10 requisitos adicionales, división de 2 requisitos compuestos, secciones normativas nuevas
+
+### Added — portada institucional (recuperada tras conflicto de fusión)
+
+Un `git stash pop` conflictivo entre esta rama y una versión previa del mismo trabajo omitió la identificación del documento (M1 de la segunda auditoría): portada con universidad/facultad/carrera/período, tabla de los 4 integrantes con ORCID y correo institucional (uno queda honestamente pendiente de confirmar en vez de inventado), DOI del software y del dataset (Zenodo), enlace al repositorio, y "Representante del equipo" en §8. Se restauró tomando los datos de `CONTRIBUTORS.md`, `CITATION.cff` y `README.md`, sin inventar información.
 
 ### Fixed — defecto en el validador de trazabilidad
 

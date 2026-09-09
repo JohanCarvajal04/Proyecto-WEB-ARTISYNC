@@ -1,6 +1,6 @@
 # Historias de Usuario — Requisitos adicionales (post v1.0.0)
 
-Estas ocho historias corresponden a REQ-F-024 a REQ-F-031, incorporados en v1.1.2 tras auditar el SRS contra código ya implementado y probado. Ver `docs/requisitos/SRS.md` §3.1 y `CHANGELOG-REQ.md` v1.2.0.
+Estas diez historias corresponden a REQ-F-024 a REQ-F-031 (incorporados en v1.1.2) y REQ-F-032/REQ-F-033 (incorporados en v1.3.0), tras auditar el SRS contra código ya implementado y probado. Ver `docs/requisitos/SRS.md` §3.1 y `CHANGELOG-REQ.md`.
 
 ---
 
@@ -152,4 +152,42 @@ Escenario: No se puede dar like dos veces al mismo ítem
   Given que un usuario ya dio like a un ítem de portafolio
   When el mismo usuario intenta darle like de nuevo
   Then el sistema rechaza la operación como recurso duplicado
+```
+
+---
+
+## HU-32 — Gestionar las obras de mi portafolio
+**Trazabilidad:** REQ-F-032
+**Prueba de aceptación:** `PortafolioItemControladorTest`, `PortafolioItemControladorRutasTest`, `PortafolioItemServicioImplTest`
+
+**As a** Creador,
+**I want** subir, listar, actualizar y eliminar las obras de mi portafolio, hasta un máximo de 50,
+**so that** pueda mostrar mi trabajo sin arriesgar el rendimiento del catálogo público ni exponer a otros usuarios a un archivo malicioso.
+
+**INVEST:** Independiente del resto del perfil, solo depende de tener un portafolio creado; negociable en el límite exacto de 50 obras; valiosa porque el portafolio es la vitrina principal del Creador; estimable y pequeña (subir, listar, actualizar, eliminar, descargar); testable mediante el rechazo al superar el límite y el forzado de descarga.
+
+```gherkin
+Escenario: Rechazo al superar el máximo de obras del portafolio
+  Given que un portafolio ya tiene 50 obras
+  When su dueño intenta subir una obra número 51
+  Then el sistema rechaza la operación sin crear el nuevo ítem
+```
+
+---
+
+## HU-33 — Administrar infracciones y suspensiones
+**Trazabilidad:** REQ-F-033
+**Prueba de aceptación:** `InfraccionServiceImplTest` (cubre `historialPorUsuario`; falta prueba para `listarInfracciones` y `revertirSuspension`)
+
+**As a** Administrador,
+**I want** listar todas las infracciones registradas, consultar el historial de un usuario y revertir manualmente una suspensión,
+**so that** pueda corregir una suspensión automática que resultó ser un falso positivo (REQ-F-015) sin necesitar acceso directo a la base de datos.
+
+**INVEST:** Independiente de la detección automática de REQ-F-015 (esta historia es sobre la administración posterior, no la detección); negociable en si se añade un motivo obligatorio al revertir; valiosa porque sin ella un falso positivo deja a un usuario suspendido 15 días sin recurso; estimable y pequeña (listar, historial, revertir); testable mediante la reversión de una suspensión ya inexistente.
+
+```gherkin
+Escenario: Revertir la suspensión de una cuenta ya no suspendida
+  Given que una cuenta no tiene ninguna suspensión activa
+  When el Administrador solicita revertir su suspensión
+  Then el sistema no debe dejar la cuenta en un estado inconsistente
 ```
