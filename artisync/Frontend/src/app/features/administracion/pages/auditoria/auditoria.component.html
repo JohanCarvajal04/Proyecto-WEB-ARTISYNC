@@ -105,7 +105,7 @@
                 </td>
                 <td class="px-6 py-4 font-mono text-xs text-slate-600">{{ e.accionAuditoria }}</td>
                 <td class="px-6 py-4 text-xs text-slate-400">
-                  {{ e.entidadAfectada ? e.entidadAfectada + ' #' + e.idEntidadAfectada : '—' }}
+                  {{ formatearEntidad(e.entidadAfectada, e.idEntidadAfectada) }}
                 </td>
                 <td class="px-6 py-4">
                   <span class="px-2.5 py-1 rounded-full text-xs font-semibold" [class]="claseBadge(e.resultadoEvento)">
@@ -174,7 +174,7 @@
           </div>
           <div>
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Entidad</span>
-            <p class="text-slate-700 mt-1">{{ d.entidadAfectada ? d.entidadAfectada + ' #' + d.idEntidadAfectada : '—' }}</p>
+            <p class="text-slate-700 mt-1">{{ formatearEntidad(d.entidadAfectada, d.idEntidadAfectada) }}</p>
           </div>
           <div>
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">IP</span>
@@ -195,7 +195,26 @@
 
         <div>
           <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Detalle del cambio</span>
-          <pre class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 mt-1 overflow-auto max-h-80">{{ json(d.detalleCambio) }}</pre>
+          @if (obtenerEntradas(d.detalleCambio).length > 0) {
+            <div class="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+              <table class="w-full text-sm">
+                <tbody class="divide-y divide-slate-100">
+                  @for (entrada of obtenerEntradas(d.detalleCambio); track entrada.clave) {
+                    <tr class="hover:bg-slate-50/60 transition-colors">
+                      <td class="px-4 py-2.5 font-medium text-slate-500 bg-slate-50/80 w-2/5 whitespace-nowrap">
+                        {{ entrada.clave }}
+                      </td>
+                      <td class="px-4 py-2.5 text-slate-700">
+                        {{ entrada.valor }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="text-sm text-slate-400 italic mt-1">Sin detalle disponible</p>
+          }
         </div>
       </div>
       <div class="px-6 py-4 border-t border-slate-100 flex justify-end">

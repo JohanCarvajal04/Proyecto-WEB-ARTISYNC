@@ -165,6 +165,26 @@ export class AuditoriaComponent implements OnInit {
     descargarSiguiente();
   }
 
+  private readonly nombresEntidades: Record<string, string> = {
+    servicios: "Servicio",
+    pedidos: "Pedido",
+    pagos_garantia: "Pago de Garantía",
+    usuarios: "Usuario",
+    portafolios: "Portafolio",
+    categorias: "Categoría",
+    contratos: "Contrato",
+    resenas_servicios: "Reseña",
+    infracciones_mensaje: "Infracción",
+    solicitudes_retiro: "Solicitud de Retiro",
+    tickets_revision: "Ticket de Revisión"
+  };
+
+  formatearEntidad(entidad: string | null, id: number | null): string {
+    if (!entidad) return "—";
+    const nombre = this.nombresEntidades[entidad] || entidad.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
+    return id ? `${nombre} (ID: ${id})` : nombre;
+  }
+
   formatFecha(fecha: string | null): string {
     if (!fecha) return '—';
     return new Date(fecha).toLocaleString('es-EC', {
@@ -172,8 +192,27 @@ export class AuditoriaComponent implements OnInit {
     });
   }
 
-  json(valor: unknown): string {
-    return JSON.stringify(valor, null, 2);
+  obtenerEntradas(obj: Record<string, unknown> | null): { clave: string; valor: string }[] {
+    if (!obj) return [];
+    return Object.entries(obj).map(([k, v]) => ({
+      clave: this.formatearClave(k),
+      valor: this.formatearValor(v)
+    }));
+  }
+
+  private formatearClave(key: string): string {
+    // snake_case → spaces, then camelCase → spaces
+    return key
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/^./, c => c.toUpperCase());
+  }
+
+  private formatearValor(valor: unknown): string {
+    if (valor === null || valor === undefined) return '—';
+    if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
+    if (typeof valor === 'object') return JSON.stringify(valor);
+    return String(valor);
   }
 
   claseBadge(resultado: string): string {
