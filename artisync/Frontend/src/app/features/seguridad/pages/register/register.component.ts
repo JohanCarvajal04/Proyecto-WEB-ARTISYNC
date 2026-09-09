@@ -36,6 +36,7 @@ export class RegisterComponent {
   }
 
   form: FormGroup = this.fb.group({
+    rol: ['CLIENTE', Validators.required],
     nombreCompleto: ['', [Validators.required, Validators.maxLength(200)]],
     correo: ['', [Validators.required, Validators.email]],
     fechaNacimiento: ['', [Validators.required, this.ageValidator]],
@@ -43,6 +44,11 @@ export class RegisterComponent {
     confirmarContrasena: ['', [Validators.required]],
     terminosYCondiciones: [false, Validators.requiredTrue]
   }, { validators: this.passwordMatchValidator });
+
+  /** Selecciona el rol con el que se creará la cuenta (tarjetas Cliente/Creador). */
+  selectRole(rol: 'CLIENTE' | 'CREADOR'): void {
+    this.form.get('rol')?.setValue(rol);
+  }
 
   ageValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value) return null;
@@ -92,7 +98,7 @@ export class RegisterComponent {
       correo: val.correo,
       contrasena: val.contrasena,
       fechaNacimiento: val.fechaNacimiento,
-      rol: 'CLIENTE',
+      rol: val.rol,
       aceptaTerminos: val.terminosYCondiciones
     }).subscribe({
       next: () => {

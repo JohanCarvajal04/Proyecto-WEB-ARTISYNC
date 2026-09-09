@@ -240,6 +240,63 @@
   box-shadow: 0 0 0 3px rgba(168, 120, 220, 0.15);
 }
 
+/* ---------- Selector de rol (Cliente / Creador) ---------- */
+.role-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.role-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  background: rgba(55, 25, 85, 0.7);
+  border: 1px solid rgba(140, 100, 180, 0.3);
+  border-radius: 1.25rem;
+  color: #f0e6ff;
+  font-family: 'Inter', sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.role-option:hover {
+  border-color: rgba(168, 120, 220, 0.6);
+  background: rgba(65, 30, 100, 0.8);
+}
+
+.role-option--active {
+  border-color: rgba(199, 109, 215, 0.9);
+  background: linear-gradient(135deg, rgba(156, 92, 197, 0.35) 0%, rgba(224, 124, 224, 0.25) 100%);
+  box-shadow: 0 0 0 3px rgba(168, 120, 220, 0.15);
+}
+
+.role-option__icon {
+  width: 20px;
+  height: 20px;
+  color: #c76dd7;
+}
+
+.role-option__title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.role-option__desc {
+  font-size: 0.7rem;
+  line-height: 1.25;
+  color: rgba(232, 213, 245, 0.65);
+}
+
+@media (max-width: 480px) {
+  .role-option__desc { display: none; }
+}
+
 .form-error {
   font-size: 0.75rem;
   color: #ff8a8a;
