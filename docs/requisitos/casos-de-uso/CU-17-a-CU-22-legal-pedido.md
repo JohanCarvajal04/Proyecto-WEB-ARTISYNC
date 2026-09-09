@@ -219,7 +219,7 @@ sequenceDiagram
 ---
 
 ## CU-22: Solicitar una revisión adicional
-**Trazabilidad:** REQ-F-022 / HU-22
+**Trazabilidad:** REQ-F-022a/b/c / HU-22 (dividido en v1.3.0 — ver `CHANGELOG-REQ.md`)
 **Prueba de integración:** `TicketRevisionServicioImplTest`
 
 **1. Actor principal y objetivo:** Cliente — solicitar ajustes al entregable una vez agotadas las revisiones incluidas en el contrato.

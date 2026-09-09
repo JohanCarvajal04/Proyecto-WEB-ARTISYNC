@@ -84,13 +84,18 @@ if [[ -f "$SRS" ]]; then
     while IFS='=' read -r req_id req_estado; do
         [[ -z "$req_id" ]] && continue
         srs_estado[$req_id]="$req_estado"
+        # 8b. El estado leido del SRS tambien debe caer en el enum cerrado (ver bug M2).
+        if [[ "$req_estado" != "pendiente" && "$req_estado" != "implementado" && "$req_estado" != "verificado" ]]; then
+            fail "SRS.md ($req_id): estado leido '$req_estado' fuera del enum {pendiente, implementado, verificado}. Si el requisito lleva una nota despues del estado, debe ir entre parentesis: 'Estado: implementado (nota...)', no pegada como texto suelto."
+        fi
     done < <(awk '
-        match($0, /\*\*REQ-(F|NF)-[0-9][0-9][0-9]\*\*/) {
+        match($0, /\*\*REQ-(F|NF)-[0-9][0-9][0-9][a-z]?\*\*/) {
             cur = substr($0, RSTART + 2, RLENGTH - 4)
         }
-        cur != "" && match($0, /Estado:[[:space:]]*[a-zA-Z]+/) {
+        cur != "" && match($0, /Estado:[[:space:]]*[^(\n]+/) {
             tok = substr($0, RSTART, RLENGTH)
             sub(/Estado:[[:space:]]*/, "", tok)
+            gsub(/[[:space:]]+$/, "", tok)
             print cur "=" tok
             cur = ""
         }
@@ -112,9 +117,10 @@ while IFS=, read -r id_requisito tipo prioridad historia caso modulo endpoint pr
     row_num=$((row_num + 1))
     [[ -z "$id_requisito" ]] && continue
 
-    # Formato de identificador
-    if [[ ! "$id_requisito" =~ ^REQ-(F|NF)-[0-9]{3}$ ]]; then
-        fail "Fila $row_num: id_requisito '$id_requisito' no cumple el formato REQ-F-NNN / REQ-NF-NNN."
+    # Formato de identificador (sufijo de letra opcional: REQ-F-022a/b/c para
+    # subdividir un requisito compuesto en capacidades independientes)
+    if [[ ! "$id_requisito" =~ ^REQ-(F|NF)-[0-9]{3}[a-z]?$ ]]; then
+        fail "Fila $row_num: id_requisito '$id_requisito' no cumple el formato REQ-F-NNN / REQ-NF-NNN (sufijo de letra opcional)."
     fi
 
     # Unicidad
@@ -180,7 +186,7 @@ echo "  Filas de requisitos evaluadas: ${#seen_ids[@]}"
 
 # --- 5. Cobertura 100% de los Must declarados en el SRS -----------------
 if [[ -f "$SRS" ]]; then
-    srs_ids="$(grep -oE '\*\*REQ-(F|NF)-[0-9]{3}\*\*' "$SRS" | tr -d '*' | sort -u)"
+    srs_ids="$(grep -oE '\*\*REQ-(F|NF)-[0-9]{3}[a-z]?\*\*' "$SRS" | tr -d '*' | sort -u)"
     missing=0
     while read -r req_id; do
         [[ -z "$req_id" ]] && continue
