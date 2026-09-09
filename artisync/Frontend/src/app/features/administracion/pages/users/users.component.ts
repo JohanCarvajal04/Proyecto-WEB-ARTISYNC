@@ -72,7 +72,38 @@ export class UsersComponent implements OnInit {
   readonly selectedUser = signal<UserResponse | null>(null);
 
   readonly isConfirmOpen = signal<boolean>(false);
-  readonly confirmActionType = signal<'delete' | 'status' | 'sessions'>('delete');
+  readonly confirmActionType = signal<'delete' | 'status' | 'sessions' | 'anonimizar'>('delete');
+
+  readonly confirmDialogTitle = computed(() => {
+    switch (this.confirmActionType()) {
+      case 'sessions': return 'Revocar sesiones';
+      case 'status': return this.selectedUser()?.estadoCuenta ? 'Suspender cuenta' : 'Activar cuenta';
+      case 'anonimizar': return 'Suprimir datos personales';
+      default: return 'Eliminar usuario';
+    }
+  });
+
+  readonly confirmDialogMessage = computed(() => {
+    switch (this.confirmActionType()) {
+      case 'sessions':
+        return 'Se cerrarán todas las sesiones activas de este usuario y tendrá que volver a iniciar sesión. Su cuenta no se modifica.';
+      case 'status':
+        return '¿Estás seguro de cambiar el estado de acceso de este usuario?';
+      case 'anonimizar':
+        return 'Esto anonimiza de forma irreversible el nombre, correo, fecha de nacimiento, foto y documentos de identidad/certificados del usuario, y desactiva su cuenta. Su correo actual quedará libre. Solo debe usarse si el usuario no lo solicitó ya por sí mismo (el sistema lo rechaza si ya se ejecutó). Esta acción NO se puede deshacer.';
+      default:
+        return '¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esta acción no se puede deshacer.';
+    }
+  });
+
+  readonly confirmDialogConfirmText = computed(() => {
+    switch (this.confirmActionType()) {
+      case 'sessions': return 'Revocar';
+      case 'status': return 'Confirmar';
+      case 'anonimizar': return 'Suprimir datos';
+      default: return 'Eliminar';
+    }
+  });
 
   ngOnInit(): void {
     this.loadUsers();
@@ -294,6 +325,18 @@ export class UsersComponent implements OnInit {
     this.isConfirmOpen.set(true);
   }
 
+  /**
+   * REQ-NF-018: distinta de confirmDelete (soft delete) — anonimiza de
+   * verdad los datos personales del usuario. El backend la rechaza si el
+   * propio usuario ya la ejecutó, así que úsala solo cuando no la haya
+   * solicitado.
+   */
+  confirmAnonimizar(user: UserResponse): void {
+    this.selectedUser.set(user);
+    this.confirmActionType.set('anonimizar');
+    this.isConfirmOpen.set(true);
+  }
+
   executeConfirmAction(): void {
     const user = this.selectedUser();
     if (!user) return;
@@ -324,6 +367,19 @@ export class UsersComponent implements OnInit {
         error: (err) => {
           this.isActionLoading.set(false);
           this.toastService.error(err.error?.detail || 'No se pudo cambiar el estado de la cuenta');
+        }
+      });
+    } else if (this.confirmActionType() === 'anonimizar') {
+      this.adminUserService.anonimizarUsuario(user.idUsuario).subscribe({
+        next: (res) => {
+          this.isActionLoading.set(false);
+          this.isConfirmOpen.set(false);
+          this.toastService.success(res.message || res.mensaje || 'Datos personales suprimidos');
+          this.loadUsers();
+        },
+        error: (err) => {
+          this.isActionLoading.set(false);
+          this.toastService.error(err.error?.detail || 'No se pudo suprimir los datos personales del usuario');
         }
       });
     } else {
