@@ -170,6 +170,26 @@ class PerfilCreadorServicioImplTest {
     }
 
     @Test
+    @DisplayName("REQ-NF-018: obtenerPerfilPorId oculta el perfil de una cuenta desactivada/suprimida")
+    void obtenerPerfilPorId_ocultaCuentaDesactivada() {
+        usuario.setEstadoCuenta(false);
+        given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
+
+        assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorId(10L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
+    @DisplayName("REQ-NF-018: obtenerPerfilPorUsuario oculta el perfil de una cuenta desactivada/suprimida")
+    void obtenerPerfilPorUsuario_ocultaCuentaDesactivada() {
+        usuario.setEstadoCuenta(false);
+        given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
+
+        assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorUsuario(1L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
     @DisplayName("listarPerfiles mapea todos los registros")
     void listarPerfiles_mapea() {
         given(perfilRepository.findAll()).willReturn(List.of(perfil));

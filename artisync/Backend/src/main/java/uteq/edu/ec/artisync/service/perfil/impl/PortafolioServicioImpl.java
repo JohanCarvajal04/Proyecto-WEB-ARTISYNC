@@ -13,6 +13,7 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
@@ -72,6 +73,7 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     public RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
+        exigirCuentaActiva(portafolio);
         return mapearARespuesta(portafolio);
     }
 
@@ -80,7 +82,22 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     public RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil) {
         Portafolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No se encontró portafolio para el perfil con ID: " + idPerfil));
+        exigirCuentaActiva(portafolio);
         return mapearARespuesta(portafolio);
+    }
+
+    /**
+     * REQ-NF-018 (ajuste de seguimiento): mismo criterio que
+     * PerfilCreadorServicioImpl.exigirCuentaActiva. Un portafolio sin perfil
+     * asociado (dato huérfano, ya contemplado por mapearARespuesta) no se
+     * confunde con "cuenta desactivada" — solo se rechaza cuando SÍ hay un
+     * dueño identificado y su cuenta está inactiva.
+     */
+    private void exigirCuentaActiva(Portafolio portafolio) {
+        Usuario usuario = portafolio.getPerfil() != null ? portafolio.getPerfil().getUsuario() : null;
+        if (usuario != null && !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
+            throw new ExcepcionRecursoNoEncontrado("Portafolio no disponible");
+        }
     }
 
     @Override

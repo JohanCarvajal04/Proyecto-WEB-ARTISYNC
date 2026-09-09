@@ -148,6 +148,19 @@ class PortafolioServicioImplTest {
     }
 
     @Test
+    @DisplayName("REQ-NF-018: obtenerPortafolioPorId oculta el portafolio de un dueño con la cuenta desactivada/suprimida")
+    void obtenerPortafolioPorId_ocultaCuentaDesactivada() {
+        Usuario duenioDesactivado = Usuario.builder().idUsuario(ID_USUARIO_DUENIO).estadoCuenta(false).build();
+        PerfilCreador perfilDesactivado = PerfilCreador.builder().idPerfil(1L).usuario(duenioDesactivado).build();
+        Portafolio portafolioDesactivado = Portafolio.builder().idPortafolio(10L).perfil(perfilDesactivado).esPublico(true)
+                .totalVisitasAcumuladas(0).build();
+        given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolioDesactivado));
+
+        assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorId(10L))
+                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+    }
+
+    @Test
     @DisplayName("listarPortafolios mapea todos los registros")
     void listarPortafolios_mapea() {
         given(portafolioRepository.findAll()).willReturn(List.of(portafolio));

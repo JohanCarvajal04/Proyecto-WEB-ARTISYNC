@@ -61,6 +61,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
     public RespuestaPerfil obtenerPerfilPorId(Long idPerfil) {
         PerfilCreador perfil = perfilRepository.findById(idPerfil)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + idPerfil));
+        exigirCuentaActiva(perfil);
         return mapearARespuesta(perfil);
     }
 
@@ -69,7 +70,24 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
     public RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario) {
         PerfilCreador perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No se encontró perfil para el usuario con ID: " + idUsuario));
+        exigirCuentaActiva(perfil);
         return mapearARespuesta(perfil);
+    }
+
+    /**
+     * REQ-NF-018 (ajuste de seguimiento): oculta el perfil público de un
+     * creador con la cuenta desactivada (soft-delete o supresión real) —
+     * mismo criterio que ya aplica {@code listarPerfilesActivos()}, sin
+     * excepción para ningún llamante: esta ruta está marcada permitAll() en
+     * SecurityConfig y no distingue admin de público. Se responde igual que
+     * "no existe" (404) para no revelar si el perfil está desactivado o
+     * nunca existió.
+     */
+    private void exigirCuentaActiva(PerfilCreador perfil) {
+        Usuario usuario = perfil.getUsuario();
+        if (usuario != null && !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
+            throw new ExcepcionRecursoNoEncontrado("Perfil no disponible");
+        }
     }
 
     @Override
