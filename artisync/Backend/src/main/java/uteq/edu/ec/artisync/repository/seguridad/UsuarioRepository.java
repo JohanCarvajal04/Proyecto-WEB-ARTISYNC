@@ -1,7 +1,9 @@
 package uteq.edu.ec.artisync.repository.seguridad;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +24,20 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
     Optional<Usuario> findByIdUsuarioAndEstadoCuentaTrue(Long idUsuario);
 
     boolean existsByPaisIdPais(Long idPais);
+
+    /**
+     * REQ-NF-018: igual que findById, pero con bloqueo pesimista de fila
+     * (mismo patrón que ContratoRepository.findByIdParaFirmar). Sin esto, dos
+     * solicitudes de supresión casi simultáneas para el mismo usuario (doble
+     * clic, autoservicio + admin a la vez) podían pasar ambas el chequeo de
+     * "¿ya está anonimizado?" antes de que la primera confirmara su cambio,
+     * ejecutando la anonimización dos veces. El bloqueo serializa las dos
+     * transacciones: la segunda espera a que la primera confirme y entonces
+     * relee el correo ya anonimizado, evitando la repetición.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM Usuario u WHERE u.idUsuario = :idUsuario")
+    Optional<Usuario> findByIdParaAnonimizar(@Param("idUsuario") Long idUsuario);
 
     /**
      * REQ-F-001 - fn_registrar_usuario: inserta usuario + usuario_roles +

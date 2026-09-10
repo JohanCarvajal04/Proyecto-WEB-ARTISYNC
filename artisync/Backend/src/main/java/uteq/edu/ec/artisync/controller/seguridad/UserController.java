@@ -11,14 +11,18 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
+import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorConfirmRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.security.Principal;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class UserController {
 
     private final UserService userService;
+    private final PrivacidadService privacidadService;
     private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
     /**
@@ -81,6 +86,32 @@ public class UserController {
     @DeleteMapping("/me")
     public ResponseEntity<RespuestaMensaje> deleteOwnAccount(Principal principal) {
         return ResponseEntity.ok(userService.deleteOwnAccount(principal.getName()));
+    }
+
+    /**
+     * REQ-NF-018: solicita la supresión real de los datos personales del
+     * usuario autenticado (anonimización), distinta de la desactivación de
+     * cuenta de {@link #deleteOwnAccount}. Idempotente: si ya se ejecutó
+     * antes, lo informa sin repetir la operación.
+     *
+     * <p>Si el usuario tiene 2FA activo, exige un código TOTP o de respaldo
+     * en el cuerpo de la petición ({@code request.codigo}) como verificación
+     * adicional antes de una acción irreversible — el cuerpo es opcional
+     * (sin {@code @Valid}: su campo es obligatorio solo condicionalmente,
+     * esa validación la hace el servicio) para no romper a quien no tiene
+     * 2FA activo.
+     *
+     * @param userDetails usuario autenticado
+     * @param request     código 2FA opcional; requerido solo si el usuario tiene 2FA activo
+     * @return mensaje de confirmación, incluyendo excepciones legales si las hay
+     */
+    @Operation(summary = "Solicitar la supresión (anonimización) de los datos personales del usuario actual")
+    @PostMapping("/me/solicitud-supresion")
+    public ResponseEntity<RespuestaMensaje> solicitarSupresionDatos(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody(required = false) TwoFactorConfirmRequest request) {
+        String codigo = request != null ? request.getCodigo() : null;
+        return ResponseEntity.ok(privacidadService.solicitarSupresionPropia(userDetails.getIdUsuario(), codigo));
     }
 
     /**
