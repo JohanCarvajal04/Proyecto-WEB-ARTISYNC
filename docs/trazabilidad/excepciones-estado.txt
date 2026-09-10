@@ -20,29 +20,34 @@
 # requisito no critico. Si lo unico que falta es escribir la prueba, no es una
 # excepcion: es trabajo pendiente.
 
-REQ-NF-001a  # (Must) Redireccion forzada a HTTPS. El metodo de verificacion declarado en el SRS es analisis externo con SSL Labs. El sistema YA esta desplegado en Render (ver render.yaml y docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md, que documenta 3 rondas de medicion contra https://artisync-frontend.onrender.com), pero todavia no se ha ejecutado ni archivado el analisis SSL Labs contra el dominio publico real. La evidencia disponible (docs/mediciones/sec/owasp/a02-tls.txt) acredita la configuracion, no el resultado de ese analisis externo. Cierre: ejecutar ssllabs.com/ssltest contra el dominio real del backend/frontend y archivar el informe en docs/mediciones/sec/.
+REQ-NF-001a  # (Must) Redireccion forzada a HTTPS. Analisis SSL Labs ejecutado y archivado el 2026-09-10 contra artisync-frontend.onrender.com (grade A+; curl confirma 301 http-a-https) - ver docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md. No alcanza 'verificado' por un motivo estructural, no por falta de evidencia: scripts/validate-traceability.sh exige prueba_automatizada no vacia para todo Must verificado, y un analisis externo de un tercero (SSL Labs) no es una prueba automatizada del repositorio. Cierre: no aplica una prueba automatizada tradicional; se considera cerrado con la evidencia archivada y reejecutable via scripts/verificar-tls-ssllabs.sh.
 
-REQ-NF-001b  # (Must) Rechazo de TLS < 1.2. Mismo motivo y mismo cierre que REQ-NF-001a: configuracion acreditada, falta archivar el analisis SSL Labs contra el dominio real.
+REQ-NF-001b  # (Must) Rechazo de TLS < 1.2. Mismo motivo y mismo cierre que REQ-NF-001a: SSL Labs solo reporta TLS 1.2/1.3 aceptados (ver ssllabs-api-response-20260910.json), pero un analisis externo no es prueba_automatizada del repo.
 
-REQ-NF-001c  # (Must) Preferencia de TLS 1.3. Mismo motivo y mismo cierre que REQ-NF-001a: configuracion acreditada, falta archivar el analisis SSL Labs contra el dominio real.
+REQ-NF-001c  # (Must) Preferencia de TLS 1.3. Mismo motivo y mismo cierre que REQ-NF-001a: el servidor negocia TLS 1.3 por defecto (forwardSecrecy=4 en SSL Labs), pero un analisis externo no es prueba_automatizada del repo.
 
-REQ-NF-009  # (Must) Disponibilidad y reinicio automatico ante fallos. La politica `restart: unless-stopped` y los healthcheck estan declarados en los cinco servicios de artisync/docker-compose.yml, y el sistema ya esta desplegado en Render, pero no existe una demostracion archivada de caida y recuperacion (ni local ni en el entorno real). Elevarlo a `verificado` sin esa evidencia seria inflar el estado. Cierre: provocar la caida de un contenedor (local o en el entorno de Render), registrar la recuperacion automatica y archivar la salida en docs/mediciones/.
+REQ-NF-009  # (Must) Disponibilidad y reinicio automatico ante fallos. La politica `restart: unless-stopped` y los healthcheck estan declarados en los cinco servicios de artisync/docker-compose.yml. Demostracion real ejecutada el 2026-09-10 contra el entorno local (docker kill sobre pfc_backend y pfc_postgres, Docker Desktop/WSL2): el reinicio automatico NO se disparo en ninguno de los dos casos en ~70-150s de espera - ver docs/mediciones/resiliencia/REPORTE-RECUPERACION.md. Esto es un hallazgo activo confirmado, no evidencia pendiente de algo que funciona; no se puede extrapolar al despliegue real en Render, que no usa docker-compose para gestionar sus propios servicios. Cierre: investigar la causa raiz del fallo de reinicio en Docker Desktop/WSL2 (o migrar la demostracion a un entorno Linux nativo), y/o demostrar la resiliencia real de Render por otro medio (reinicio forzado desde su dashboard + healthcheck). Script reejecutable: scripts/demo-recuperacion-docker.sh.
 
 REQ-F-022b  # (Should) Un ticket de revision que supera el limite configurado no genera un nuevo enlace de pago: no existe servicio de pago asociado a tickets de revision en el codigo. Cierre: implementar el servicio de pago para revisiones adicionales, o retirar esta clausula del enunciado si se decide no construirla.
 
 REQ-F-022c  # (Should) Un ticket de revision sin pago tras 48h no se rechaza automaticamente: ninguno de los 4 @Scheduled existentes (NotificacionesPurgaScheduler, SeguridadPurgaScheduler, SorteoScheduler, VerificacionScheduler) cubre tickets de revision. Cierre: implementar el scheduler de expiracion a 48h y su prueba, o retirar esta clausula del enunciado si se decide no construirla.
 
-REQ-NF-011  # (Must) Azure Blob Storage implementado y probado en codigo (AlmacenamientoAzureTest, AlmacenamientoAzureIntegracionTest), pero `documentos.proveedor` tiene `local` como valor por defecto en application.properties y render.yaml no fija DOCUMENTOS_PROVEEDOR=azure en las variables de entorno del servicio backend. Sin verificar esa variable en el entorno real de produccion no se puede certificar `verificado`: el criterio de aceptacion exige "sin archivos locales en el servidor". Cierre: fijar DOCUMENTOS_PROVEEDOR=azure en render.yaml (o en el dashboard de Render) y verificar con una URL real servida desde Azure tras el proximo despliegue.
+REQ-NF-011  # (Must) INCUMPLIMIENTO ACTIVO, no evidencia pendiente: Azure Blob Storage esta implementado y probado en codigo (AlmacenamientoAzureTest, AlmacenamientoAzureIntegracionTest), pero mientras DOCUMENTOS_PROVEEDOR no estuviera fijado en el despliegue real, el sistema en produccion guardaba archivos en el volumen local del contenedor -- exactamente lo que el criterio de aceptacion prohibe ("sin archivos locales en el servidor"). render.yaml ya declara DOCUMENTOS_PROVEEDOR=azure y AZURE_STORAGE_CONNECTION_STRING (secreto, sync:false). Cierre: fijar el valor real de AZURE_STORAGE_CONNECTION_STRING en el dashboard de Render, redesplegar, y verificar con una URL real servida desde Azure.
 
-REQ-NF-005  # (Should) Falta medir >=10 conexiones WebSocket simultaneas sin degradacion (umbral de latencia extremo-a-extremo <=500ms). Funcionalidad implementada y probada (ChatServiceImplTest); falta archivar un script de carga (ws/wscat) contra el umbral. Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad, igual que REQ-F-010/REQ-F-022b. Cierre: ejecutar el script de carga y archivar el resultado en docs/mediciones/.
-
-REQ-NF-006  # (Should) Falta cronometrar la generacion de contrato PDF contra el umbral de <=5s (5 mediciones). Funcionalidad implementada y probada (ContratoServicioImplTest); falta archivar el cronometraje. Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad. Cierre: cronometrar 5 generaciones de PDF bajo carga normal y archivar el resultado en docs/mediciones/.
-
-REQ-F-033  # (Should) Listar infracciones y revertir suspension implementados (AdminInfraccionControlador), pero solo historialPorUsuario tiene prueba automatizada en InfraccionServiceImplTest. Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad, igual que REQ-F-010/REQ-F-022b/REQ-NF-005/REQ-NF-006. Cierre: escribir prueba para listarInfracciones y revertirSuspension para subir a 'verificado'.
+# REQ-NF-005 (Should) ya no esta aqui: ChatWebSocketLoadIT (nueva, @SpringBootTest
+# con 10 conexiones STOMP reales concurrentes, 5 rondas) mide la latencia extremo-a-
+# extremo real: p95=346ms, max=346ms, bajo el umbral de 500ms. La prueba tambien
+# expuso y forzo a corregir un defecto real (REQ-F-014/015: @AuthenticationPrincipal
+# no se resolvia en @MessageMapping sin registrar AuthenticationPrincipalArgumentResolver
+# + SecurityContextChannelInterceptor en WebSocketConfig -- el envio STOMP fallaba
+# en produccion para cualquier cliente real, invisible a las pruebas unitarias
+# existentes porque invocan el controlador directamente en Java). Sube a 'verificado'.
+#
+# REQ-NF-006 (Should) ya no esta aqui: ContratoPdfTimingIT (nueva, @DataJpaTest contra
+# Postgres real) cronometra 5 generaciones reales de PDF: 1218/29/30/20/20 ms, muy bajo
+# el umbral de 5000ms. Sube a 'verificado'.
 
 REQ-NF-017  # (Should) Usabilidad SUS medida en 61.25/100 (docs/mediciones/sus/REPORTE-SUS.md, sesiones del 2026-08-16), por debajo del umbral propio del proyecto (68). Un Should en estado `implementado` cumple su minimo formal sin excepcion obligatoria, pero se declara aqui por honestidad: el resultado medido no alcanza el objetivo, y eso es una brecha real, no solo una brecha de documentacion. El dato 61.25 es el real y verificado (ver docs/mediciones/sus/PLAN-MEJORA-SUS.md: se detecto y corrigio un problema de integridad en sus-raw.csv que antes daba un 76.88 falso) y se publica tal cual, sin sustituirlo. Los items peor puntuados son Q10 (2.06/4, "necesite aprender muchas cosas antes de poder empezar a usar el sistema"), seguido de Q6 y Q8 - patron de carga de aprendizaje inicial, no una funcion puntual rota. Cierre (ver docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md §3): el equipo aplicara cambios concretos de UX (onboarding, ayuda contextual, menos pasos en tareas guiadas) y medira una ronda adicional DESPUES de ese cambio real y documentado, con aprobacion previa esta vez fechada antes de la recoleccion, consentimiento individual y n>=15; se reportara el resultado exista lo que exista, sin sobrescribir la referencia del 2026-08-16.
-
-REQ-NF-018  # (Must) Proteccion de datos personales sensibles: falta extender POLITICA-RETENCION.md (hoy cubre solo datos tecnicos de sesion) a documentos de identidad, certificados, datos de pago, contratos y mensajeria, y falta un mecanismo real de supresion de datos a solicitud del titular (hoy solo existe baja logica de cuenta). El payload enviado a los servicios externos de IA ya esta minimizado (prompt + imagen, sin campos identificativos). Cierre: extender la politica de retencion y disenar el flujo de supresion antes de la entrega, o mantener declarado como trabajo futuro si no se alcanza.
 
 REQ-NF-019  # (Must) Idempotencia por estado implementada y probada (PagoServicioImplWebhookTest.reintentoNoDuplica); faltan reconciliacion activa contra la API de PayPal y flujo de reembolso/liberacion ante cancelacion con fondos en escrow - ninguno de los dos existe en codigo (no existe siquiera una funcion de cancelar un pedido con fondos ya retenidos). Cierre: implementar ambos y su prueba, o degradar la prioridad a Should si el equipo decide dejarlos fuera de v1.0.0.
 
@@ -52,9 +57,18 @@ REQ-NF-022  # (Must) Limite de tasa en autenticacion y registro implementado con
 
 REQ-NF-024  # (Should) Respaldo y recuperacion de base de datos: automatizado desde el panel de administracion (RespaldoControlador, RespaldoProgramacionScheduler), con disparo manual o programado, tipo FULL (pg_dump) o INCREMENTAL (COPY diferencial por tabla vía JDBC), frecuencia y retencion declaradas por programacion. Cierre: falta ejecutar y documentar una restauracion de prueba contra un respaldo generado por este mecanismo (ver docs/despliegue/BACKUP.md) para subir a verificado.
 
-# REQ-F-010 (Should) ya no esta aqui: la rodaja vertical (ComentarioPortafolioService/Impl,
-# ComentarioPortafolioControlador y AdminComentarioControlador) quedo implementada y probada
-# manualmente end-to-end (borrado logico vía estado_moderacion='Eliminado', consultable por
-# el administrador). Un Should con estado 'implementado' ya cumple su minimo sin excepcion.
-# Sigue pendiente escribir la prueba automatizada (unitaria/IT) — ver columna
-# prueba_automatizada de matriz.csv — para poder subirlo a 'verificado'.
+# REQ-F-010 (Should) ya no esta aqui: AdminComentarioControladorTest (nuevo) cierra el
+# unico hueco real que quedaba (ComentarioPortafolioServiceImpl/Controlador ya estaban
+# bien probados desde antes). Sube a 'verificado'.
+#
+# REQ-F-033 (Should) ya no esta aqui: InfraccionServiceImplTest se amplio con
+# listarInfracciones y revertirSuspension (los dos metodos que faltaban). Sube a 'verificado'.
+#
+# REQ-NF-018 (Must) ya no esta aqui: PrivacidadServiceImplIT (nueva, @DataJpaTest contra
+# Postgres real via docker compose -f artisync/docker-compose.yml up -d postgres) ejercita
+# el bloqueo pesimista de findByIdParaAnonimizar, la deteccion de pedido en curso y la
+# excepcion legal por fondos retenidos contra el esquema real. Sube a 'verificado'.
+#
+# REQ-NF-022 (Must) ya no esta aqui: AuthRateLimitFilterTest se amplio para cubrir los
+# 5 limites reales (login, 2fa, forgot-password, reset-password, registro) en su valor
+# exacto y en limite+1, no solo login. Sube a 'verificado'.

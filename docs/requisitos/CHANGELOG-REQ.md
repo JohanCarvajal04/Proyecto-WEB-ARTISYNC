@@ -2,7 +2,128 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [No publicado] - 2026-09-10 — Evidencia real para REQ-NF-001a/b/c, REQ-NF-009, REQ-NF-005, REQ-NF-006; REQ-NF-005/006 suben a `verificado`; defecto real corregido en WebSocket
+
+### Changed — REQ-NF-005 y REQ-NF-006 pasan de `implementado` a `verificado`
+
+Nuevas pruebas automatizadas re-ejecutables, no mediciones manuales de una sola vez:
+
+- **REQ-NF-005**: `ChatWebSocketLoadIT` (`@SpringBootTest` de contexto completo, 10 conexiones STOMP reales concurrentes × 5 rondas) mide la latencia extremo-a-extremo real del chat: p95=346ms, máximo=346ms, 0 conexiones fallidas — bajo el umbral de 500ms. Ver `docs/mediciones/ws/REPORTE-WS.md`.
+- **REQ-NF-006**: `ContratoPdfTimingIT` (`@DataJpaTest` contra Postgres real) cronometra 5 generaciones reales de PDF de contrato: 1218/29/30/20/20 ms — muy bajo el umbral de 5000ms. Ver `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`.
+
+### Fixed — defecto real de producción: el envío de chat por WebSocket estaba roto
+
+Al construir `ChatWebSocketLoadIT`, la primera corrida no completó ninguna ronda: el
+servidor rechazaba todo mensaje STOMP real con `MessageConversionException`.
+`ChatControlador.enviarMensajeWs` (`@MessageMapping("/chat.enviar")`) declara
+`@AuthenticationPrincipal CustomUserDetails userDetails`, pero el proyecto nunca
+registraba un `HandlerMethodArgumentResolver` para resolverlo en mensajería — Spring
+trataba ese parámetro como si fuera el `@Payload` implícito y fallaba al intentar
+deserializar el cuerpo JSON del mensaje dentro de `CustomUserDetails`. Invisible a
+`ChatControladorTest` porque invoca el método del controlador directamente en Java, sin
+pasar por el pipeline real de despacho STOMP.
+
+Corregido en `WebSocketConfig`:
+- `addArgumentResolvers(...)` con `AuthenticationPrincipalArgumentResolver`.
+- `SecurityContextChannelInterceptor` agregado en `configureClientInboundChannel`
+  (después de `webSocketAuthInterceptor`), para que la `Authentication` llegue al
+  `SecurityContextHolder` que el resolver anterior consulta.
+- Nueva dependencia `org.springframework.security:spring-security-messaging`.
+
+Confirmado sin regresiones: `./mvnw test` completo, 1133/1133.
+
+### Fixed — dos gaps preexistentes de configuración de pruebas, descubiertos al validar `./mvnw test` de punta a punta
+
+- `app.frontend.url` faltaba en `src/test/resources/application.properties` y
+  `application-postgres-it.properties`: `EmailService` (vía `AuthServiceImpl`) la
+  requiere incondicionalmente, y ningún `@DataJpaTest` anterior levantaba el contexto
+  completo bajo estos perfiles para exponerlo — `ArtisyncApplicationTests` y
+  `SecurityConfigTest` son los únicos que sí lo hacen.
+- `spring.flyway.user`/`spring.flyway.password` faltaban en el perfil H2 por defecto:
+  `RespaldoBdServicioImpl` (REQ-NF-024) los inyecta directamente vía `@Value`
+  independientemente de si Flyway está habilitado.
+
+### Changed — evidencia real archivada para REQ-NF-001a/b/c y REQ-NF-009 (permanecen `implementado`, no `pendiente`)
+
+- **REQ-NF-001a/b/c**: análisis SSL Labs ejecutado contra `artisync-frontend.onrender.com`
+  (grade A+, solo TLS 1.2/1.3 aceptados, redirección HTTPS forzada confirmada). No suben
+  a `verificado` por un motivo estructural: el validador exige `prueba_automatizada` para
+  todo Must verificado, y un análisis externo de un tercero no lo es. Ver
+  `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md` y script reejecutable
+  `scripts/verificar-tls-ssllabs.sh`.
+- **REQ-NF-009**: demostración real de caída/recuperación ejecutada (`docker kill` sobre
+  `pfc_backend` y `pfc_postgres`, Docker Desktop/WSL2 local). Resultado: el reinicio
+  automático **no se disparó** en ninguno de los dos casos — hallazgo activo, no evidencia
+  pendiente de algo que funciona. Ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`
+  y script reejecutable `scripts/demo-recuperacion-docker.sh`.
+
+§7.1-§7.3 de `SRS.md` recalculados: `verificado` 45→47, `implementado` 12→10,
+`pendiente` sin cambio (5). `bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
+## [No publicado] - 2026-09-09 — 4 requisitos suben de `implementado`/`pendiente` a `verificado` (evidencia de prueba completada)
+
+### Changed — REQ-F-010, REQ-F-033, REQ-NF-018, REQ-NF-022 pasan a `verificado`
+
+Los cuatro ya estaban funcionalmente implementados; faltaba exclusivamente el nivel de evidencia que exige `verificado`. Se cerró cada brecha sin tocar código de producción salvo donde se indica:
+
+| Requisito | Qué faltaba | Qué se agregó |
+| --- | --- | --- |
+| REQ-F-010 | `AdminComentarioControlador` no tenía ninguna prueba (el servicio/controlador público ya estaban bien cubiertos). | `AdminComentarioControladorTest` (nuevo): los 4 endpoints (`listarParaModeracion`, `ocultarComentario`, `reactivarComentario`, `eliminarComentario`), incluida la propagación de `ExcepcionRecursoNoEncontrado`. |
+| REQ-F-033 | `InfraccionServiceImpl.listarInfracciones`/`revertirSuspension` sin prueba (`historialPorUsuario` sí la tenía). | 3 casos nuevos en `InfraccionServiceImplTest`: listado sin filtrar por usuario, reversión exitosa (mensaje exacto con el correo), reversión sobre usuario inexistente. |
+| REQ-NF-018 | `PrivacidadServiceImplTest` era unitario con Mockito; no ejercitaba las consultas JPA derivadas reales ni el bloqueo pesimista. | `PrivacidadServiceImplIT` (nueva, `@DataJpaTest` + `postgres-it`, mismo patrón que `AprobarEntregaConcurrenciaIT`): 4 casos contra PostgreSQL real — anonimización completa, rechazo por pedido sin transición registrada, excepción legal por fondos retenidos, idempotencia contra el bloqueo pesimista real de `findByIdParaAnonimizar`. |
+| REQ-NF-022 | `AuthRateLimitFilterTest` solo probaba el límite de `login`; los otros 4 (2fa, forgot-password, reset-password, registro) no tenían caso de prueba. | 8 casos nuevos: cada uno de los 5 límites reales en su valor exacto (pasa) y en límite+1 (bloquea con el `Retry-After` correcto). |
+
+Ningún cambio de enunciado ni de alcance — solo de estado, respaldado por prueba automatizada verde. Suite completa (`./mvnw test`): 1133/1133. `bash scripts/validate-traceability.sh`: 0 errores, 62/62. §7.1-§7.3 de `SRS.md` recalculados.
+
+## [No publicado] - 2026-09-09 — Cierre de REQ-NF-018 (protección de datos personales)
+
+### Changed — REQ-NF-018 pasa de `pendiente` a `implementado`
+
+Los tres criterios de aceptación quedan cubiertos:
+
+- `docs/basedatos/POLITICA-RETENCION.md` se extiende con la sección "Qué se retiene con plazo
+  declarado (datos personales sensibles)", cubriendo `certificados_ia`, `datos_pago_creador` y
+  `contratos` (este último sin campos personales propios — se documenta por qué queda fuera de
+  la anonimización y se remite a REQ-NF-020 para la integridad del hash de firma).
+- Nuevo mecanismo real de supresión de datos personales por anonimización:
+  `PrivacidadService`/`PrivacidadServiceImpl`, expuesto vía
+  `POST /api/v1/usuarios/me/solicitud-supresion` (autoservicio, idempotente) y
+  `POST /api/v1/admin/usuarios/{id}/supresion` (administrador, rechaza la operación si el
+  usuario ya la tiene ejecutada). Declara la excepción legal para `datos_pago_creador` cuando el
+  usuario tiene un contrato con fondos aún retenidos en garantía (`pagos_garantia.estado_fondos
+  = 'Retenido'`).
+- Minimización del payload hacia servicios de IA: sin cambios de código — se reconfirma que
+  `GeminiIaService`/`NvidiaIaService` solo envían prompt + imagen.
+- Frontend: botón "Suprimir mis datos" en `configuracion-cuenta.component` (autoservicio, con
+  advertencia explícita de irreversibilidad antes de confirmar) y acción "Suprimir datos
+  personales" en `users.component` del panel admin.
+
+### Added — tres ajustes de robustez sobre el mecanismo de supresión
+
+- **Bloqueo pesimista de fila** (`UsuarioRepository.findByIdParaAnonimizar`, mismo patrón que
+  `ContratoRepository.findByIdParaFirmar`): dos solicitudes casi simultáneas para el mismo
+  usuario (doble clic, autoservicio + admin a la vez) ya no pueden ambas pasar el chequeo de
+  idempotencia antes de que la primera confirme su cambio.
+- **Idempotencia basada en el propio correo anonimizado** en vez de una consulta a
+  `auditoria_eventos`: al estar bajo el mismo bloqueo de fila que el resto de la operación,
+  elimina la ventana de carrera que tenía la versión anterior (el commit de la bitácora ocurre en
+  una transacción `REQUIRES_NEW` posterior, fuera del bloqueo).
+- **Bloqueo por pedido en curso**: si el usuario (como cliente o como creador) tiene un pedido
+  cuya etapa actual no es la etapa final de su flujo, la supresión completa se rechaza (declarada
+  como excepción en autoservicio, como error en el panel admin) hasta que el pedido termine o se
+  cancele — evita que la contraparte de una transacción activa vea el nombre del usuario cambiar
+  a "Usuario eliminado" en medio de mensajería, entregables o reseñas.
+
+No alcanza `verificado`: la prueba nueva (`PrivacidadServiceImplTest`, 16 casos) es unitaria con
+Mockito, no una prueba de integración contra base de datos real que ejercite las consultas JPA
+derivadas (`ContratoRepository.findByPedidoUsuarioClienteIdUsuario`, etc.) ni el bloqueo pesimista
+real de PostgreSQL. Excepción declarada en `docs/trazabilidad/excepciones-estado.txt`.
+
 ## [v1.3.0] - 2026-09-08 — Segunda revisión externa: defecto del validador, 10 requisitos adicionales, división de 2 requisitos compuestos, secciones normativas nuevas
+
+### Added — portada institucional (recuperada tras conflicto de fusión)
+
+Un `git stash pop` conflictivo entre esta rama y una versión previa del mismo trabajo omitió la identificación del documento (M1 de la segunda auditoría): portada con universidad/facultad/carrera/período, tabla de los 4 integrantes con ORCID y correo institucional (uno queda honestamente pendiente de confirmar en vez de inventado), DOI del software y del dataset (Zenodo), enlace al repositorio, y "Representante del equipo" en §8. Se restauró tomando los datos de `CONTRIBUTORS.md`, `CITATION.cff` y `README.md`, sin inventar información.
 
 ### Fixed — defecto en el validador de trazabilidad
 
