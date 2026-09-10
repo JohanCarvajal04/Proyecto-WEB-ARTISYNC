@@ -4,6 +4,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -56,6 +57,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("integracion")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("postgres-it")
+// Deshabilitado en CI (GitHub Actions): las máquinas compartidas pueden superar
+// el umbral de 500ms de latencia WebSocket, causando fallos intermitentes.
+// Adicionalmente, esta prueba requiere Redis real corriendo, servicio que no
+// está disponible en el pipeline de integración (solo se levanta Postgres).
+@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class ChatWebSocketLoadIT {
 
     private static final long ID_CLIENTE = 9501L;
