@@ -2,8 +2,11 @@ package uteq.edu.ec.artisync.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.security.messaging.context.AuthenticationPrincipalArgumentResolver;
+import org.springframework.security.messaging.context.SecurityContextChannelInterceptor;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -44,7 +47,28 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        // Validar el JWT en cada conexión STOMP antes de procesarla
-        registration.interceptors(webSocketAuthInterceptor);
+        // Orden importa: webSocketAuthInterceptor valida el JWT y deja la
+        // Authentication en accessor.setUser(); SecurityContextChannelInterceptor
+        // la toma de ahí y la publica en SecurityContextHolder para el hilo que
+        // procesa el mensaje — sin este segundo interceptor,
+        // AuthenticationPrincipalArgumentResolver (ver addArgumentResolvers)
+        // no encuentra ninguna Authentication y resuelve el parámetro como null.
+        registration.interceptors(webSocketAuthInterceptor, new SecurityContextChannelInterceptor());
+    }
+
+    /**
+     * Sin este resolver, un parámetro {@code @AuthenticationPrincipal} en un
+     * método {@code @MessageMapping} (ver ChatControlador#enviarMensajeWs) no
+     * lo resuelve ningún HandlerMethodArgumentResolver registrado por
+     * defecto, y Spring lo trata como si fuera el {@code @Payload} implícito:
+     * intenta deserializar el cuerpo JSON del mensaje STOMP dentro de
+     * CustomUserDetails y falla con MessageConversionException en cada envío
+     * real por WebSocket (solo se detecta con un cliente STOMP real — las
+     * pruebas unitarias que invocan el controlador directamente en Java no lo
+     * ejercitan).
+     */
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+        argumentResolvers.add(new AuthenticationPrincipalArgumentResolver());
     }
 }

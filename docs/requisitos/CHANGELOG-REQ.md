@@ -2,6 +2,64 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [No publicado] - 2026-09-10 — Evidencia real para REQ-NF-001a/b/c, REQ-NF-009, REQ-NF-005, REQ-NF-006; REQ-NF-005/006 suben a `verificado`; defecto real corregido en WebSocket
+
+### Changed — REQ-NF-005 y REQ-NF-006 pasan de `implementado` a `verificado`
+
+Nuevas pruebas automatizadas re-ejecutables, no mediciones manuales de una sola vez:
+
+- **REQ-NF-005**: `ChatWebSocketLoadIT` (`@SpringBootTest` de contexto completo, 10 conexiones STOMP reales concurrentes × 5 rondas) mide la latencia extremo-a-extremo real del chat: p95=346ms, máximo=346ms, 0 conexiones fallidas — bajo el umbral de 500ms. Ver `docs/mediciones/ws/REPORTE-WS.md`.
+- **REQ-NF-006**: `ContratoPdfTimingIT` (`@DataJpaTest` contra Postgres real) cronometra 5 generaciones reales de PDF de contrato: 1218/29/30/20/20 ms — muy bajo el umbral de 5000ms. Ver `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`.
+
+### Fixed — defecto real de producción: el envío de chat por WebSocket estaba roto
+
+Al construir `ChatWebSocketLoadIT`, la primera corrida no completó ninguna ronda: el
+servidor rechazaba todo mensaje STOMP real con `MessageConversionException`.
+`ChatControlador.enviarMensajeWs` (`@MessageMapping("/chat.enviar")`) declara
+`@AuthenticationPrincipal CustomUserDetails userDetails`, pero el proyecto nunca
+registraba un `HandlerMethodArgumentResolver` para resolverlo en mensajería — Spring
+trataba ese parámetro como si fuera el `@Payload` implícito y fallaba al intentar
+deserializar el cuerpo JSON del mensaje dentro de `CustomUserDetails`. Invisible a
+`ChatControladorTest` porque invoca el método del controlador directamente en Java, sin
+pasar por el pipeline real de despacho STOMP.
+
+Corregido en `WebSocketConfig`:
+- `addArgumentResolvers(...)` con `AuthenticationPrincipalArgumentResolver`.
+- `SecurityContextChannelInterceptor` agregado en `configureClientInboundChannel`
+  (después de `webSocketAuthInterceptor`), para que la `Authentication` llegue al
+  `SecurityContextHolder` que el resolver anterior consulta.
+- Nueva dependencia `org.springframework.security:spring-security-messaging`.
+
+Confirmado sin regresiones: `./mvnw test` completo, 1133/1133.
+
+### Fixed — dos gaps preexistentes de configuración de pruebas, descubiertos al validar `./mvnw test` de punta a punta
+
+- `app.frontend.url` faltaba en `src/test/resources/application.properties` y
+  `application-postgres-it.properties`: `EmailService` (vía `AuthServiceImpl`) la
+  requiere incondicionalmente, y ningún `@DataJpaTest` anterior levantaba el contexto
+  completo bajo estos perfiles para exponerlo — `ArtisyncApplicationTests` y
+  `SecurityConfigTest` son los únicos que sí lo hacen.
+- `spring.flyway.user`/`spring.flyway.password` faltaban en el perfil H2 por defecto:
+  `RespaldoBdServicioImpl` (REQ-NF-024) los inyecta directamente vía `@Value`
+  independientemente de si Flyway está habilitado.
+
+### Changed — evidencia real archivada para REQ-NF-001a/b/c y REQ-NF-009 (permanecen `implementado`, no `pendiente`)
+
+- **REQ-NF-001a/b/c**: análisis SSL Labs ejecutado contra `artisync-frontend.onrender.com`
+  (grade A+, solo TLS 1.2/1.3 aceptados, redirección HTTPS forzada confirmada). No suben
+  a `verificado` por un motivo estructural: el validador exige `prueba_automatizada` para
+  todo Must verificado, y un análisis externo de un tercero no lo es. Ver
+  `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md` y script reejecutable
+  `scripts/verificar-tls-ssllabs.sh`.
+- **REQ-NF-009**: demostración real de caída/recuperación ejecutada (`docker kill` sobre
+  `pfc_backend` y `pfc_postgres`, Docker Desktop/WSL2 local). Resultado: el reinicio
+  automático **no se disparó** en ninguno de los dos casos — hallazgo activo, no evidencia
+  pendiente de algo que funciona. Ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`
+  y script reejecutable `scripts/demo-recuperacion-docker.sh`.
+
+§7.1-§7.3 de `SRS.md` recalculados: `verificado` 45→47, `implementado` 12→10,
+`pendiente` sin cambio (5). `bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
 ## [No publicado] - 2026-09-09 — 4 requisitos suben de `implementado`/`pendiente` a `verificado` (evidencia de prueba completada)
 
 ### Changed — REQ-F-010, REQ-F-033, REQ-NF-018, REQ-NF-022 pasan a `verificado`

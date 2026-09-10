@@ -490,15 +490,15 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-001a** (ex RNF-01) — Redirección forzada de HTTP a HTTPS (301).
 
-- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (configuración acreditada en `docs/mediciones/sec/owasp/a02-tls.txt`; el sistema ya está desplegado en Render — ver `render.yaml` y `docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md` — pero el análisis externo con SSL Labs contra el dominio público todavía no se ejecutó ni archivó — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (análisis SSL Labs contra `artisync-frontend.onrender.com` ejecutado y archivado el 2026-09-10: `curl -i http://artisync-frontend.onrender.com` responde `301` a `https://` — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`. No alcanza `verificado`: el validador de trazabilidad exige `prueba_automatizada` no vacía para todo Must verificado, y un análisis externo de un tercero no es una prueba automatizada del repositorio — excepción estructural declarada en `docs/trazabilidad/excepciones-estado.txt`)
 
 **REQ-NF-001b** (ex RNF-01) — Rechazo de conexiones con TLS inferior a 1.2.
 
-- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (mismo motivo y misma excepción que REQ-NF-001a: configuración acreditada, falta archivar el análisis SSL Labs)
+- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (SSL Labs solo reporta TLS 1.2 y TLS 1.3 como protocolos aceptados por el servidor, grade A+ — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md` y `ssllabs-api-response-20260910.json`. Mismo motivo que REQ-NF-001a por el que no alcanza `verificado`: excepción estructural declarada)
 
 **REQ-NF-001c** (ex RNF-01) — Preferencia de TLS 1.3 cuando el cliente lo soporta.
 
-- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (mismo motivo y misma excepción que REQ-NF-001a: configuración acreditada, falta archivar el análisis SSL Labs)
+- Prioridad: Must · Verificación: análisis externo (SSL Labs) · Estado: implementado (el servidor negocia TLS 1.3 cuando el cliente lo ofrece — `openssl s_client` sin forzar versión negocia `TLSv1.3`/`TLS_AES_256_GCM_SHA384` — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`. Mismo motivo que REQ-NF-001a por el que no alcanza `verificado`: excepción estructural declarada)
 
 **REQ-NF-002** (ex RNF-02) — Contraseñas con hash bcrypt, factor de coste ≥10; nunca texto plano.
 
@@ -514,11 +514,11 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-005** (ex RNF-05) — WebSocket: ≥10 conexiones simultáneas sin degradación; latencia extremo-a-extremo ≤500ms en red local.
 
-- Prioridad: Should · Verificación: script de carga (ws/wscat) · Estado: implementado (funcionalidad implementada y probada; falta la medición de carga ≥10 conexiones simultáneas que verifica el umbral — ver excepciones-estado.txt)
+- Prioridad: Should · Verificación: `ChatWebSocketLoadIT` (prueba automatizada, 10 conexiones STOMP reales × 5 rondas) · Estado: verificado (p95=346ms, máximo=346ms, 0 conexiones fallidas — ver `docs/mediciones/ws/REPORTE-WS.md`. La prueba expuso y forzó a corregir un defecto real: `@AuthenticationPrincipal` no se resolvía en `@MessageMapping` sin `AuthenticationPrincipalArgumentResolver` + `SecurityContextChannelInterceptor` en `WebSocketConfig`, dejando roto el envío de chat por WebSocket para cualquier cliente real)
 
 **REQ-NF-006** (ex RNF-06) — Generación de contrato PDF ≤5s bajo carga normal.
 
-- Prioridad: Should · Verificación: timestamps de log, 5 mediciones · Estado: implementado (funcionalidad implementada y probada; falta el cronometraje ≤5s que verifica el umbral — ver excepciones-estado.txt)
+- Prioridad: Should · Verificación: `ContratoPdfTimingIT` (prueba automatizada, 5 corridas contra Postgres real) · Estado: verificado (1218/29/30/20/20 ms, media 263.4ms — ver `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`)
 
 **REQ-NF-007** (ex RNF-07) — Interfaz sin desbordamiento horizontal en 360/768/1440px; controles operables táctilmente (≥44px).
 
@@ -530,7 +530,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-009** (ex RNF-09) — Disponibilidad durante semanas de evaluación 16–17; reinicio automático ante fallos.
 
-- Prioridad: Must · Verificación: demostración (ps aux, healthcheck Docker) · Estado: implementado (los cinco servicios de `artisync/docker-compose.yml` declaran `restart: unless-stopped` y healthcheck, y el sistema ya está desplegado en Render; falta archivar una demostración de caída y recuperación, local o en el entorno real, para elevarlo a verificado — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Prioridad: Must · Verificación: demostración (ps aux, healthcheck Docker) · Estado: implementado (los cinco servicios de `artisync/docker-compose.yml` declaran `restart: unless-stopped` y healthcheck; demostración real ejecutada el 2026-09-10 contra el entorno local — `docker kill` sobre `pfc_backend` y `pfc_postgres` **no** disparó el reinicio automático en ninguno de los dos casos, ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`. Hallazgo activo, no evidencia pendiente; no aplica al despliegue real en Render, que no usa esta política de `docker-compose` — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
 
 **REQ-NF-010** (ex RNF-10) — Módulos WebSocket, REST y generación de PDF desacoplados (sin imports cruzados directos).
 
@@ -676,24 +676,25 @@ El corpus original de la Entrega 1A (37 requisitos, REQ-F-001 a REQ-F-023 y REQ-
 
 | Estado         | Requisitos | Porcentaje |
 | -------------- | ---------- | ---------- |
-| `verificado`   | 45         | 72,6 %     |
-| `implementado` | 12         | 19,4 %     |
+| `verificado`   | 47         | 75,8 %     |
+| `implementado` | 10         | 16,1 %     |
 | `pendiente`    | 5          | 8,1 %      |
 
 Desglose por prioridad, que es lo que evalúa el criterio D0R:
 
 | Prioridad | Verificado | Implementado | Pendiente | Cumple el mínimo exigido           |
 | --------- | ---------- | ------------ | --------- | ---------------------------------- |
-| Must      | 31 (83,8 %) | 5            | 1         | 31 de 37; 6 con excepción declarada |
-| Should    | 12         | 7            | 4         | 19 de 23; 4 con excepción declarada, 3 declarados por honestidad sin exigirlo |
+| Must      | 31 (83,8 %) | 5            | 1         | 31 de 37; 5 con excepción declarada |
+| Should    | 14         | 5            | 4         | 19 de 23; 4 con excepción declarada, 1 declarado por honestidad sin exigirlo |
 | Could     | 2          | 0            | 0         | Sin mínimo exigible                 |
 
-Los seis requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — pero agrupan dos situaciones distintas que conviene no tratar como equivalentes:
+Los cinco requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — y agrupan tres situaciones distintas que conviene no tratar como equivalentes:
 
-- **Evidencia pendiente de un comportamiento que ya opera correctamente** (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009): la funcionalidad y configuración ya están implementadas y el sistema ya está desplegado en Render; falta archivar la prueba externa (análisis SSL Labs, demostración de caída/recuperación) contra ese despliegue real. El sistema, tal como opera hoy, cumple el requisito — falta el papel, no la sustancia. (REQ-NF-018 ya salió de este grupo: `PrivacidadServiceImplIT`, nueva, cierra la evidencia de integración que faltaba y el requisito pasó a `verificado`.)
-- **Incumplimiento activo en producción** (REQ-NF-011): a diferencia del caso anterior, mientras `DOCUMENTOS_PROVEEDOR` no se fije en `render.yaml`, el sistema desplegado **está incumpliendo** el requisito ahora mismo — guarda archivos localmente, que es justo lo que el criterio de aceptación prohíbe ("sin archivos locales en el servidor"). No es una brecha de documentación: es una brecha operativa vigente, corregible fijando una variable de entorno.
+- **Excepción estructural, evidencia real ya archivada** (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c): análisis externo SSL Labs ejecutado y archivado el 2026-09-10 contra `artisync-frontend.onrender.com` (grade A+, solo TLS 1.2/1.3 aceptados, redirección HTTPS forzada confirmada — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`). No suben a `verificado` porque `scripts/validate-traceability.sh` exige `prueba_automatizada` no vacía para todo Must verificado, y un análisis externo de un tercero no es una prueba automatizada del repositorio — no es una brecha real, es un límite de la propia definición de "verificado" para este tipo de control.
+- **Falla confirmada en el entorno local, alcance incierto en producción** (REQ-NF-009): la política `restart: unless-stopped` y el healthcheck están correctamente declarados, pero la demostración real ejecutada el 2026-09-10 (`docker kill` sobre `pfc_backend` y `pfc_postgres`, Docker Desktop/WSL2 local) mostró que el reinicio automático **no se disparó** en ninguno de los dos casos — ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`. No es evidencia pendiente de algo que funciona: es un resultado negativo real. No se puede extrapolar a Render, que no usa `docker-compose` ni esta política para gestionar sus propios servicios.
+- **Incumplimiento activo en producción** (REQ-NF-011): mientras `DOCUMENTOS_PROVEEDOR` no se fije en `render.yaml`, el sistema desplegado **está incumpliendo** el requisito ahora mismo — guarda archivos localmente, que es justo lo que el criterio de aceptación prohíbe ("sin archivos locales en el servidor"). No es una brecha de documentación: es una brecha operativa vigente, corregible fijando una variable de entorno.
 
-Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reembolso ante cancelación con fondos en escrow) todavía no existen en código, aunque la idempotencia ante webhook duplicado ya está implementada y probada. Cuatro requisitos Should quedan en `pendiente` con excepción declarada (REQ-F-022b, REQ-F-022c, REQ-NF-020, REQ-NF-024), y tres requisitos Should en `implementado` se documentan también por honestidad aunque ya cumplen su mínimo formal (REQ-NF-005, REQ-NF-006, REQ-NF-017) — el más relevante de estos es REQ-NF-017: el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-F-010, REQ-F-033 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`.
+Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reembolso ante cancelación con fondos en escrow) todavía no existen en código, aunque la idempotencia ante webhook duplicado ya está implementada y probada. Cuatro requisitos Should quedan en `pendiente` con excepción declarada (REQ-F-022b, REQ-F-022c, REQ-NF-020, REQ-NF-024), y un requisito Should en `implementado` se documenta también por honestidad aunque ya cumple su mínimo formal (REQ-NF-017) — el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-F-010, REQ-F-033, REQ-NF-018 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`. REQ-NF-005 y REQ-NF-006 salieron de este grupo el 2026-09-10 con pruebas automatizadas reales (`ChatWebSocketLoadIT`, `ContratoPdfTimingIT` — ver `docs/mediciones/ws/REPORTE-WS.md` y `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`) y subieron a `verificado`; la primera, además, expuso y forzó a corregir un defecto real de producción en el envío de mensajes de chat por WebSocket (`WebSocketConfig` no resolvía `@AuthenticationPrincipal` en mensajes STOMP).
 
 ### 7.3 Cobertura de trazabilidad
 
@@ -704,7 +705,7 @@ Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reemb
 | Requisitos Must con prueba automatizada     | 33 / 37 (89,2 %) |
 | Requisitos con evidencia empírica archivada | 39 (62,9 %)      |
 
-El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. Los 4 requisitos Must sin prueba automatizada (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009) son, no por casualidad, 4 de los 6 que no alcanzan `verificado`: su verificación depende de un análisis externo o una demostración operativa contra el despliegue real. Los otros 2 Must no verificados (REQ-NF-011, REQ-NF-019) sí tienen prueba automatizada, pero no alcanzan `verificado` por otros motivos ya explicados en §7.2 (variable de entorno no fijada, funcionalidad parcial). En total, 3 requisitos tienen prueba automatizada parcial sin llegar a `verificado` — REQ-NF-005, REQ-NF-006, REQ-NF-011 — cada uno con su motivo puntual declarado en `excepciones-estado.txt` o en su propia fila de la matriz. REQ-F-010, REQ-F-033, REQ-NF-018 y REQ-NF-022 ya no están en esta lista: sus pruebas automatizadas (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado) cubren ahora el criterio de aceptación completo.
+El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. Los 4 requisitos Must sin prueba automatizada (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009) son, no por casualidad, 4 de los 5 que no alcanzan `verificado`: su verificación depende de un análisis externo (SSL Labs) o una demostración operativa (caída/recuperación de contenedor) que, por su propia naturaleza, no se ejecuta como una clase de prueba del repositorio. El otro Must no verificado con prueba automatizada real (REQ-NF-011) no alcanza `verificado` por un motivo distinto ya explicado en §7.2 (variable de entorno no fijada en el despliegue). REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-018 y REQ-NF-022 ya no figuran entre los requisitos sin prueba automatizada completa: sus pruebas (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `ChatWebSocketLoadIT`, `ContratoPdfTimingIT`, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado) cubren ahora el criterio de aceptación completo.
 
 ### 7.4 Estabilidad de requisitos
 

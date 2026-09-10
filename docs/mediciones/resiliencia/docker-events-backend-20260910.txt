@@ -1,0 +1,7 @@
+$ docker events --since "2026-09-10T10:26:00Z" --until "2026-09-10T10:29:00Z" --filter container=pfc_backend
+
+2026-09-10T05:26:24.612491910-05:00 container kill ... (signal=9)
+2026-09-10T05:26:25.075399328-05:00 container die ... (exitCode=137)
+
+(sin eventos "start"/"restart" posteriores dentro de la ventana de observación —
+2 minutos 28 segundos de polling continuo tras el kill)

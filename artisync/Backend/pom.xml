@@ -186,6 +186,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
+		<!-- Provee AuthenticationPrincipalArgumentResolver para @MessageMapping
+		     (ver WebSocketConfig#addArgumentResolvers): sin este modulo,
+		     @AuthenticationPrincipal en un metodo STOMP no se resuelve y Spring
+		     lo trata como si fuera el @Payload, rompiendo el envio real de
+		     mensajes de chat por WebSocket (REQ-F-014/015). -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-messaging</artifactId>
+		</dependency>
 
 		<!-- Azure Blob Storage — almacenamiento en la nube de documentos y multimedia.
 		     Se excluye el transporte Netty: el SDK se compila contra Netty 4.1.x y el
