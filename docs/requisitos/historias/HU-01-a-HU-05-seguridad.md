@@ -61,10 +61,10 @@ Escenario: Revocación de permiso surte efecto inmediato
 **Prueba de aceptación:** `JwtAuthenticationFilterTest` · `JwtServiceTest` · `AuthRateLimitFilterTest` · `AuthControllerTest`
 
 **As a** usuario registrado,
-**I want** iniciar sesión y mantenerla activa de forma segura durante 24 horas,
+**I want** iniciar sesión con un token de acceso válido por 24 horas y un token de refresco válido por 7 días,
 **so that** no tenga que volver a autenticarme en cada acción dentro de ese período.
 
-**INVEST:** Independiente porque el filtro JWT actúa sobre cualquier ruta protegida sin acoplarse a una historia funcional concreta; negociable en la duración exacta de la sesión (24 h) y en el mensaje devuelto en cada caso; valiosa porque sostiene la seguridad de acceso de todo el resto del sistema; estimable y pequeña porque se acota a `JwtAuthenticationFilter` y `JwtService`; testable con los tres escenarios de token válido, expirado y ausente.
+**INVEST:** Independiente porque el filtro JWT actúa sobre cualquier ruta protegida sin acoplarse a una historia funcional concreta; negociable en la duración exacta de la sesión (24 h de acceso; 7 días de refresco) y en el mensaje devuelto en cada caso; valiosa porque sostiene la seguridad de acceso de todo el resto del sistema; estimable y pequeña porque se acota a `JwtAuthenticationFilter` y `JwtService`; testable con los tres escenarios de token válido, expirado y ausente.
 
 ```gherkin
 Escenario: Acceso con token válido

@@ -45,7 +45,7 @@ Este documento especifica, de manera completa y verificable, los requisitos func
 
 ### 1.2 Alcance
 
-Artisync es una plataforma web que centraliza la comercialización de servicios y productos digitales ofrecidos por profesionales creativos (ilustradores, músicos, desarrolladores, diseñadores, etc.). El sistema conecta a **Creadores** (vendedores) con **Clientes**, gestionando perfiles, catálogo, mensajería, contratos con firma electrónica, flujo de pedidos, pagos vía PayPal Orders v2 con patrón _escrow_, y funciones sociales (seguidores, comentarios, sorteos). El desarrollo se enmarca en un proyecto académico de 17 semanas; algunas capacidades (firma legalmente vinculante, logística física, recomendaciones avanzadas) quedan fuera de alcance y se documentan como trabajo futuro.
+Artisync es una plataforma web que centraliza la comercialización de servicios y productos digitales ofrecidos por profesionales creativos (ilustradores, músicos, desarrolladores, diseñadores, etc.). El sistema conecta a **Creadores** (vendedores) con **Clientes**, gestionando perfiles, catálogo, mensajería, contratos con firma electrónica, flujo de pedidos, pagos vía PayPal Orders v2 con patrón _escrow_, y funciones sociales (seguidores, comentarios, sorteos). El desarrollo se enmarca en un proyecto académico de 17 semanas; algunas capacidades (firma legalmente vinculante, logística física, recomendaciones avanzadas) quedan fuera de alcance y se documentan como trabajo futuro. La moderación de contenido en esta versión es automática (REQ-F-015, detección de contacto directo) y administrativa reactiva a esa detección (REQ-F-033); un mecanismo de reporte manual de contenido iniciado por el propio usuario (botón "reportar", cola de revisión con plazos) queda fuera de alcance de v1.3.0 y se documenta como trabajo futuro.
 
 ### 1.3 Definiciones, acrónimos y abreviaturas
 
@@ -197,7 +197,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Verificación: Test (`RolePermissionControllerTest`)
 - Estado: verificado
 
-**REQ-F-003** (ex RF-03) — Gestión de sesiones mediante JWT con expiración de 24 horas; rutas protegidas exigen token válido en la cabecera de autorización.
+**REQ-F-003** (ex RF-03) — Gestión de sesiones mediante JWT de dos tokens: token de acceso con expiración de 24 horas y token de refresco con expiración de 7 días (configurable vía `JWT_REFRESH_EXPIRATION`); rutas protegidas exigen un token de acceso válido en la cabecera de autorización.
 
 - Rationale: autenticación _stateless_ escalable sin sesión en servidor.
 - Prioridad: Must
@@ -207,6 +207,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-004** (ex RF-04) — Recuperación de contraseña mediante enlace de un solo uso, válido 60 minutos, enviado por correo.
 
+- Rationale: Sin un mecanismo de autoservicio, un usuario que olvida su contraseña dependería de soporte manual; el enlace de un solo uso y su expiración a 60 minutos acotan la ventana de exposición si el correo es interceptado.
 - Prioridad: Must
 - Aceptación: enlace usado o expirado → mensaje de invalidez; tras el flujo, login inmediato con nueva contraseña.
 - Verificación: Test unitario + prueba manual de flujo de correo
@@ -214,6 +215,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-005** (ex RF-05) — 2FA opcional basada en TOTP (RFC 6238), disponible solo para usuarios con identidad verificada.
 
+- Rationale: Exigir 2FA solo a usuarios con identidad ya verificada evita añadir fricción a cuentas cuyo riesgo principal (fraude de identidad) el 2FA no mitiga; hacerlo opcional respeta la usabilidad del resto.
 - Prioridad: Should
 - Aceptación: código incorrecto/expirado → "Código inválido o expirado"; usuario no verificado no ve la opción.
 - Verificación: Test (`TwoFactorServiceImplTest`, `TwoFactorController`)
@@ -223,6 +225,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-006** (ex RF-06) — Verificación de mayoría de edad del Creador mediante documento de identidad analizado por servicio externo; el documento se elimina del almacenamiento tras la respuesta.
 
+- Rationale: Operar con creadores menores de edad expone a la plataforma a riesgo legal y reputacional; delegar el análisis del documento a un servicio externo evita construir una capacidad propia de verificación de identidad, y eliminarlo tras la respuesta minimiza el dato personal retenido.
 - Prioridad: Must
 - Aceptación: aprobado → estado verificado en ≤60s y notificación; minoría de edad → estado sin cambios y mensaje de rechazo; documento no accesible tras respuesta.
 - Verificación: Test + inspección de almacenamiento
@@ -230,6 +233,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-007** (ex RF-07) — Verificación de certificados profesionales por IA; puntaje ≥ umbral configurable (0.75 por defecto) habilita sello de verificación.
 
+- Rationale: Sin verificación de certificados, cualquier creador podría reclamar credenciales profesionales no comprobadas, degradando la confianza del catálogo; un umbral configurable permite ajustar la exigencia sin desplegar código nuevo.
 - Prioridad: Should
 - Aceptación: puntaje ≥ umbral → sello inmediato; puntaje menor → sin sello + notificación; umbral configurable sin cambio de código.
 - Verificación: Test + demostración
@@ -237,6 +241,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-008** (ex RF-08) — Personalización de perfil público: foto (JPG/PNG ≤5MB), biografía (≤500 caracteres, sin teléfono/correo), hasta 3 URLs de redes sociales.
 
+- Rationale: El perfil público es la vitrina de venta del Creador; limitar biografía e imagen y prohibir contacto directo evita que el perfil se use para negociar y cobrar fuera de la plataforma, eludiendo la comisión de REQ-F-021.
 - Prioridad: Must
 - Aceptación: biografía con contacto directo → rechazo; imagen >5MB → rechazo; URL válida se muestra como enlace.
 - Verificación: Test (`PerfilCreadorControlador`)
@@ -244,6 +249,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-009** (ex RF-09) — El perfil público muestra seguidores, servicios activos, calificación promedio y estado de verificación; cualquier usuario autenticado puede seguir/dejar de seguir.
 
+- Rationale: Mostrar métricas de reputación (seguidores, calificación, verificación) directamente en el perfil es lo que permite a un Cliente decidir con quién contratar sin salir de la plataforma.
 - Prioridad: Must
 - Aceptación: contador se actualiza de inmediato al seguir/dejar de seguir; usuario no autenticado es redirigido a login.
 - Verificación: Test + demostración
@@ -337,12 +343,14 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 **REQ-F-020** (ex RF-20) — Generación de enlace de pago vía PayPal Orders v2 al iniciar pedido; actualización de estado de fondos al recibir webhook confirmado.
 
+- Rationale: Sin un enlace de pago generado automáticamente al iniciar el pedido, el cobro dependería de un proceso manual fuera de la plataforma, rompiendo la trazabilidad exigida por el patrón escrow.
 - Prioridad: Must
 - Verificación: Test (`PayPalWebhookControlador`, sandbox)
 - Estado: verificado (el webhook y su validación de firma están cubiertos por `PagoServicioImplWebhookTest`; queda como trabajo futuro la validación end-to-end contra el sandbox real de PayPal)
 
 **REQ-F-021** (ex RF-21) — Entrega con marca de agua para previsualización; aprobación del Cliente libera fondos y habilita descarga limpia; comisión de plataforma registrada automáticamente.
 
+- Rationale: La marca de agua permite al Cliente evaluar el entregable antes de pagar sin poder usarlo todavía; ligar la liberación de fondos a su aprobación es lo que materializa el patrón escrow declarado en el alcance (§1.2).
 - Prioridad: Must
 - Aceptación: la comisión de plataforma es 10% del monto bruto (configurable vía `PLATAFORMA_COMISION_TASA`), registrada automáticamente en la transacción al aprobar el entregable.
 - Verificación: Test (`EntregableControlador`, `PagoControlador`)
@@ -538,7 +546,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-011** (ex RNF-11) — Archivos binarios en almacenamiento externo compatible con S3; sin archivos locales en el servidor.
 
-- Prioridad: Must · Verificación: inspección de URLs · Estado: implementado (`AlmacenamientoAzure` existe y está probado — `AlmacenamientoAzureTest`, `AlmacenamientoAzureIntegracionTest`. `documentos.proveedor` tiene `local` como valor por defecto en `application.properties`, pero `render.yaml` ya declara `DOCUMENTOS_PROVEEDOR=azure` y el secreto `AZURE_STORAGE_CONNECTION_STRING` (`sync: false`) para el despliegue real; cerrar a `verificado` todavía exige que alguien del equipo fije el valor real de ese secreto en el dashboard de Render, redespliegue, y confirme con una URL real servida desde Azure — ver excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Prioridad: Must · Verificación: inspección de configuración y de URL servida — confirmar que `documentos.proveedor` (`DOCUMENTOS_PROVEEDOR`) resuelve a `azure` en el entorno auditado, y que la URL de descarga de un documento recién subido apunta a un dominio `*.blob.core.windows.net` (Azure), no a una ruta local del servidor (`/uploads/...` o equivalente) · Estado: verificado (se fijó el valor real de `AZURE_STORAGE_CONNECTION_STRING` en el dashboard de Render, se redesplegó y se confirmó la carga y descarga con una URL real servida desde Azure Blob Storage, cerrando el incumplimiento activo previo — evidencia archivada en `docs/despliegue/EVIDENCIA-AZURE.md`)
 
 **REQ-NF-012** (ex RNF-12) — Bloqueo de registro a menores de 18; checkbox obligatorio de términos y privacidad.
 
@@ -676,23 +684,22 @@ El corpus original de la Entrega 1A (37 requisitos, REQ-F-001 a REQ-F-023 y REQ-
 
 | Estado         | Requisitos | Porcentaje |
 | -------------- | ---------- | ---------- |
-| `verificado`   | 47         | 75,8 %     |
-| `implementado` | 10         | 16,1 %     |
-| `pendiente`    | 5          | 8,1 %      |
+| `verificado`   | 49         | 79,0 %     |
+| `implementado` | 9          | 14,5 %     |
+| `pendiente`    | 4          | 6,5 %      |
 
 Desglose por prioridad, que es lo que evalúa el criterio D0R:
 
 | Prioridad | Verificado | Implementado | Pendiente | Cumple el mínimo exigido           |
 | --------- | ---------- | ------------ | --------- | ---------------------------------- |
-| Must      | 31 (83,8 %) | 5            | 1         | 31 de 37; 5 con excepción declarada |
-| Should    | 14         | 5            | 4         | 19 de 23; 4 con excepción declarada, 1 declarado por honestidad sin exigirlo |
+| Must      | 32 (86,5 %) | 4            | 1         | 32 de 37; 4 con excepción declarada |
+| Should    | 15         | 5            | 3         | 20 de 23; 3 con excepción declarada, 1 declarado por honestidad sin exigirlo |
 | Could     | 2          | 0            | 0         | Sin mínimo exigible                 |
 
-Los cinco requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — y agrupan tres situaciones distintas que conviene no tratar como equivalentes:
+Los cuatro requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — y agrupan dos situaciones distintas que conviene no tratar como equivalentes:
 
 - **Excepción estructural, evidencia real ya archivada** (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c): análisis externo SSL Labs ejecutado y archivado el 2026-09-10 contra `artisync-frontend.onrender.com` (grade A+, solo TLS 1.2/1.3 aceptados, redirección HTTPS forzada confirmada — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`). No suben a `verificado` porque `scripts/validate-traceability.sh` exige `prueba_automatizada` no vacía para todo Must verificado, y un análisis externo de un tercero no es una prueba automatizada del repositorio — no es una brecha real, es un límite de la propia definición de "verificado" para este tipo de control.
 - **Falla confirmada en el entorno local, alcance incierto en producción** (REQ-NF-009): la política `restart: unless-stopped` y el healthcheck están correctamente declarados, pero la demostración real ejecutada el 2026-09-10 (`docker kill` sobre `pfc_backend` y `pfc_postgres`, Docker Desktop/WSL2 local) mostró que el reinicio automático **no se disparó** en ninguno de los dos casos — ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`. No es evidencia pendiente de algo que funciona: es un resultado negativo real. No se puede extrapolar a Render, que no usa `docker-compose` ni esta política para gestionar sus propios servicios.
-- **Incumplimiento activo en producción** (REQ-NF-011): mientras `DOCUMENTOS_PROVEEDOR` no se fije en `render.yaml`, el sistema desplegado **está incumpliendo** el requisito ahora mismo — guarda archivos localmente, que es justo lo que el criterio de aceptación prohíbe ("sin archivos locales en el servidor"). No es una brecha de documentación: es una brecha operativa vigente, corregible fijando una variable de entorno.
 
 Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reembolso ante cancelación con fondos en escrow) todavía no existen en código, aunque la idempotencia ante webhook duplicado ya está implementada y probada. Tres requisitos Should quedan en `pendiente` con excepción declarada (REQ-F-022b, REQ-F-022c, REQ-NF-020), y un requisito Should en `implementado` se documenta también por honestidad aunque ya cumple su mínimo formal (REQ-NF-017) — el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-F-010, REQ-F-033, REQ-NF-018 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`. REQ-NF-005 y REQ-NF-006 salieron de este grupo el 2026-09-10 con pruebas automatizadas reales (`ChatWebSocketLoadIT`, `ContratoPdfTimingIT` — ver `docs/mediciones/ws/REPORTE-WS.md` y `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`) y subieron a `verificado`; la primera, además, expuso y forzó a corregir un defecto real de producción en el envío de mensajes de chat por WebSocket (`WebSocketConfig` no resolvía `@AuthenticationPrincipal` en mensajes STOMP). REQ-NF-024 salió de este grupo el 2026-09-10 tras ejecutar y documentar una restauración de prueba real contra el mecanismo automatizado del panel admin (respaldo FULL `pg_restore` exit 0, pedidos=4/usuarios=10/contratos=3 — ver `docs/despliegue/BACKUP.md §Registro de restauraciones de prueba`) y sube a `verificado`.
 
@@ -705,7 +712,9 @@ Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reemb
 | Requisitos Must con prueba automatizada     | 33 / 37 (89,2 %) |
 | Requisitos con evidencia empírica archivada | 39 (62,9 %)      |
 
-El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. Los 4 requisitos Must sin prueba automatizada (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009) son, no por casualidad, 4 de los 5 que no alcanzan `verificado`: su verificación depende de un análisis externo (SSL Labs) o una demostración operativa (caída/recuperación de contenedor) que, por su propia naturaleza, no se ejecuta como una clase de prueba del repositorio. El otro Must no verificado con prueba automatizada real (REQ-NF-011) no alcanza `verificado` por un motivo distinto ya explicado en §7.2 (variable de entorno no fijada en el despliegue). REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-018 y REQ-NF-022 ya no figuran entre los requisitos sin prueba automatizada completa: sus pruebas (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `ChatWebSocketLoadIT`, `ContratoPdfTimingIT`, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado) cubren ahora el criterio de aceptación completo.
+El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. Los 4 requisitos Must sin prueba automatizada (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009) son, no por casualidad, los únicos 4 que no alcanzan `verificado`: su verificación depende de un análisis externo (SSL Labs) o una demostración operativa (caída/recuperación de contenedor) que, por su propia naturaleza, no se ejecuta como una clase de prueba del repositorio. REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-011, REQ-NF-018 y REQ-NF-022 ya no figuran en las listas de incumplimiento o excepción: completaron sus pruebas o cerraron brechas operativas pendientes y alcanzaron el estado `verificado`.
+
+> **Nota sobre REQ-NF-011 y esta cifra.** Al fijar `AZURE_STORAGE_CONNECTION_STRING` en Render y subir REQ-NF-011 a `verificado`, la columna `evidencia_empirica` de su fila en `matriz.csv` se actualizó de una nota de evidencia parcial (`docs/mediciones/sec/...`, que documentaba el incumplimiento) a la evidencia real del cierre: `docs/despliegue/EVIDENCIA-AZURE.md`, que registra la respuesta `302` de la API hacia una URL firmada `*.blob.core.windows.net` y la descarga `200 OK` posterior directamente desde Azure Blob Storage. El total de 39 se mantiene estable frente a la ronda anterior, ahora con este requisito respaldado por el mismo estándar de evidencia archivada que el resto (SSL Labs, `REPORTE-RECUPERACION.md`, `BACKUP.md`).
 
 ### 7.4 Estabilidad de requisitos
 
@@ -718,12 +727,12 @@ La tasa de estabilidad se calcula como `1 − (requisitos modificados / requisit
 | Requisitos en v1.3.0                | 62 (+10 añadidos; +4 filas por dividir 2 requisitos heredados en sub-requisitos atómicos) |
 | Añadidos (acumulado desde 1A)      | 21 (11 en v1.2.0 + 10 en v1.3.0)          |
 | Eliminados                         | 0                                         |
-| Modificados en enunciado o alcance | 4 (REQ-F-016, REQ-F-017 en v1.1.0; REQ-F-022, REQ-NF-001 divididos en v1.3.0) |
-| **Tasa de estabilidad del corpus heredado** | **1 − 4/37 = 0,892 (89,2 %)**       |
+| Modificados en enunciado o alcance | 5 (REQ-F-016, REQ-F-017 en v1.1.0; REQ-F-022, REQ-NF-001 divididos en v1.3.0; REQ-F-003 en v1.3.0) |
+| **Tasa de estabilidad del corpus heredado** | **1 − 5/37 = 0,865 (86,5 %)**       |
 | Tasa de adición (acumulada)        | 21/37 = 56,8 % sobre el corpus original   |
 | Tasa de eliminación                | 0 %                                       |
 
-El corpus heredado de la Entrega 1A permaneció **estable en volumen**: los mismos 37 requisitos originales, con correspondencia uno a uno de identificadores; ninguno se eliminó. Lo que cambió entre 1A y v1.0.0 fue la *forma* de la especificación, no su contenido: la renumeración de `RF-NN`/`RNF-NN` a `REQ-F-NNN`/`REQ-NF-NNN` para conformidad con ISO/IEC/IEEE 29148, y el enriquecimiento de cada requisito con rationale, criterio de aceptación medible, método de verificación y estado — esos cambios no alteran lo que el sistema debe hacer y no se contabilizan como modificaciones. Entre v1.0.0 y v1.1.0 hubo dos cambios sustantivos de enunciado sobre el corpus heredado: REQ-F-016 (cuestionario ligado al servicio y obligatorio al crear el pedido, en vez de envío manual posterior) y REQ-F-017 (catálogo de plantillas de contrato curado por Administrador, en vez de una plantilla global única). En v1.3.0 hubo dos modificaciones más, de naturaleza distinta: REQ-F-022 y REQ-NF-001 no cambiaron de significado, pero se dividieron cada uno en tres sub-requisitos atómicos (a/b/c) porque agrupaban capacidades con estados de verificación distintos bajo un único identificador — una de esas capacidades no debía quedar oculta detrás del estado de las otras dos. Las cuatro modificaciones están documentadas con su motivo en `CHANGELOG-REQ.md` (v1.1.0 y v1.3.0 respectivamente). Por separado, se incorporaron 21 requisitos nuevos en total (11 en v1.2.0, 10 en v1.3.0) que no son alcance nuevo del sistema construido, sino especificación de funcionalidad y brechas que ya existían en el código o en la operación real, pero que ningún requisito capturaba — ver §3.1, §4.2 y `CHANGELOG-REQ.md`. La tasa de estabilidad de 89,2% se calcula solo sobre el corpus heredado (denominador 37), porque mide cuánto cambió el *enunciado* de lo ya especificado; los 21 requisitos nuevos se reportan aparte como tasa de adición, no como inestabilidad, porque documentan alcance que nunca había sido especificado, no un enunciado que cambió de significado.
+El corpus heredado de la Entrega 1A permaneció **estable en volumen**: los mismos 37 requisitos originales, con correspondencia uno a uno de identificadores; ninguno se eliminó. Lo que cambió entre 1A y v1.0.0 fue la *forma* de la especificación, no su contenido: la renumeración de `RF-NN`/`RNF-NN` a `REQ-F-NNN`/`REQ-NF-NNN` para conformidad con ISO/IEC/IEEE 29148, y el enriquecimiento de cada requisito con rationale, criterio de aceptación medible, método de verificación y estado — esos cambios no alteran lo que el sistema debe hacer y no se contabilizan como modificaciones. Entre v1.0.0 y v1.1.0 hubo dos cambios sustantivos de enunciado sobre el corpus heredado: REQ-F-016 (cuestionario ligado al servicio y obligatorio al crear el pedido, en vez de envío manual posterior) y REQ-F-017 (catálogo de plantillas de contrato curado por Administrador, en vez de una plantilla global única). En v1.3.0 hubo dos modificaciones más, de naturaleza distinta: REQ-F-022 y REQ-NF-001 no cambiaron de significado, pero se dividieron cada uno en tres sub-requisitos atómicos (a/b/c) porque agrupaban capacidades con estados de verificación distintos bajo un único identificador — una de esas capacidades no debía quedar oculta detrás del estado de las otras dos. Las cuatro modificaciones están documentadas con su motivo en `CHANGELOG-REQ.md` (v1.1.0 y v1.3.0 respectivamente). En v1.3.0 se añade una quinta: REQ-F-003, cuyo enunciado se amplió para declarar el refresh token de 7 días (antes solo mencionado en el criterio de aceptación). Por separado, se incorporaron 21 requisitos nuevos en total (11 en v1.2.0, 10 en v1.3.0) que no son alcance nuevo del sistema construido, sino especificación de funcionalidad y brechas que ya existían en el código o en la operación real, pero que ningún requisito capturaba — ver §3.1, §4.2 y `CHANGELOG-REQ.md`. La tasa de estabilidad de 86,5% se calcula solo sobre el corpus heredado (denominador 37), porque mide cuánto cambió el *enunciado* de lo ya especificado; los 21 requisitos nuevos se reportan aparte como tasa de adición, no como inestabilidad, porque documentan alcance que nunca había sido especificado, no un enunciado que cambió de significado.
 
 Conviene leer estas cifras con cautela metodológica: que el corpus heredado cambiara relativamente poco de enunciado (89,2% de estabilidad) mientras el corpus total más que se duplicó (37 → 62, +67,6 %) a lo largo de tres rondas de auditoría es coherente con un proyecto académico de alcance cerrado, donde la especificación original se congeló temprano y la brecha entre "lo que se construyó" y "lo que se documentó" se fue cerrando en rondas sucesivas de revisión externa, no durante el desarrollo original. En un proyecto con stakeholders externos, una tasa de adición acumulada de esta magnitud sería una señal de alarma sobre el proceso de especificación continua, no solo un ajuste de documentación. La limitación se declara en el capítulo de amenazas a la validez del documento académico.
 
