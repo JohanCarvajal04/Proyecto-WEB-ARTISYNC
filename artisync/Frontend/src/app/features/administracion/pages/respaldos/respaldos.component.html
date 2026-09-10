@@ -1,0 +1,540 @@
+<div class="flex flex-col gap-6 max-w-7xl mx-auto">
+  <!-- Alerta persistente: la última restauración falló y la BD puede haber quedado incompleta -->
+  <div *ngIf="alertaRestauracionFallida()" class="rounded-3xl border border-rose-200 bg-rose-50 p-4 flex items-start gap-3">
+    <app-nav-icon name="settings_backup_restore" svgClass="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5"></app-nav-icon>
+    <div class="flex-1">
+      <h3 class="text-sm font-bold text-rose-800">La restauración no se completó</h3>
+      <p class="text-sm text-rose-700 mt-1">{{ alertaRestauracionFallida() }}</p>
+    </div>
+    <button (click)="cerrarAlertaRestauracion()" class="text-rose-500 hover:text-rose-700 flex-shrink-0" title="Descartar aviso">
+      <app-nav-icon name="close" svgClass="w-5 h-5"></app-nav-icon>
+    </button>
+  </div>
+
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <h1 class="font-headline text-3xl font-bold text-[#1E0F38]">Respaldos de Base de Datos</h1>
+    <div class="flex gap-2 items-center flex-wrap">
+      <button *ngIf="puedeConfigurar()" (click)="abrirConfiguracion()"
+              class="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-colors bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200">
+        <app-nav-icon name="settings" svgClass="w-5 h-5 mr-2"></app-nav-icon>
+        Configurar Política
+      </button>
+
+      <input #fileInput type="file" accept=".dump" class="hidden" (change)="onArchivoSeleccionado($event)">
+      <button *ngIf="puedeRestaurar()" (click)="fileInput.click()" [disabled]="importandoArchivo()"
+              class="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-colors bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+        <app-nav-icon *ngIf="!importandoArchivo()" name="upload" svgClass="w-5 h-5 mr-2"></app-nav-icon>
+        <svg *ngIf="importandoArchivo()" class="animate-spin -ml-1 mr-2 h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        {{ importandoArchivo() ? 'Subiendo...' : 'Importar respaldo externo' }}
+      </button>
+
+      <div class="flex items-center gap-2" *ngIf="puedeCrear()">
+        <select [ngModel]="categoriaManual()" (ngModelChange)="categoriaManual.set($event)"
+                class="rounded-full border-0 bg-[#EAEFF9] py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-[#7B39B2]"
+                title="Categoría del respaldo manual">
+          <option value="FULL">Full</option>
+          <option value="DIARIO">Diario</option>
+        </select>
+        <button (click)="crearManual()" [disabled]="creandoManual()"
+                class="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-colors bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white hover:opacity-95 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#7B39B2] focus:ring-offset-2 disabled:opacity-50">
+          <app-nav-icon *ngIf="!creandoManual()" name="backup" svgClass="w-5 h-5 mr-2"></app-nav-icon>
+          <svg *ngIf="creandoManual()" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          {{ creandoManual() ? 'Creando...' : 'Crear Respaldo Manual' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tarjetas de Resumen -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" *ngIf="resumen() as res">
+    <div class="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-slate-500">Total Respaldos</p>
+        <app-nav-icon name="inventory_2" svgClass="w-6 h-6 text-slate-400"></app-nav-icon>
+      </div>
+      <p class="mt-2 text-3xl font-semibold text-[#1E0F38]">{{ res.totalRespaldos }}</p>
+    </div>
+
+    <div class="rounded-3xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-blue-700">Automáticos</p>
+        <app-nav-icon name="bolt" svgClass="w-6 h-6 text-blue-500"></app-nav-icon>
+      </div>
+      <p class="mt-2 text-3xl font-semibold text-[#1E0F38]">{{ res.totalAutomaticos }}</p>
+    </div>
+
+    <div class="rounded-3xl border border-amber-100 bg-amber-50/50 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-amber-700">Manuales</p>
+        <app-nav-icon name="build" svgClass="w-6 h-6 text-amber-500"></app-nav-icon>
+      </div>
+      <p class="mt-2 text-3xl font-semibold text-[#1E0F38]">{{ res.totalManuales }}</p>
+    </div>
+
+    <div class="rounded-3xl border border-violet-100 bg-violet-50/50 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-violet-700">Full</p>
+        <app-nav-icon name="inventory_2" svgClass="w-6 h-6 text-violet-500"></app-nav-icon>
+      </div>
+      <p class="mt-2 text-3xl font-semibold text-[#1E0F38]">{{ res.totalFull }}</p>
+    </div>
+
+    <div class="rounded-3xl border border-teal-100 bg-teal-50/50 p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-teal-700">Diarios</p>
+        <app-nav-icon name="sync" svgClass="w-6 h-6 text-teal-500"></app-nav-icon>
+      </div>
+      <p class="mt-2 text-3xl font-semibold text-[#1E0F38]">{{ res.totalDiarios }}</p>
+    </div>
+
+    <div class="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium text-slate-500">Espacio Usado</p>
+        <app-nav-icon name="storage" svgClass="w-6 h-6 text-slate-400"></app-nav-icon>
+      </div>
+      <p class="mt-2 text-3xl font-semibold text-[#1E0F38]">{{ res.espacioTotalUsado }}</p>
+    </div>
+  </div>
+
+  <!-- Alerta persistente: un respaldo automático programado no corrió cuando debía -->
+  <div *ngIf="resumen() as res" class="contents">
+    <div *ngIf="res.fullAtrasado || res.diarioAtrasado" class="rounded-3xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+      <app-nav-icon name="bolt" svgClass="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5"></app-nav-icon>
+      <div class="flex-1">
+        <h3 class="text-sm font-bold text-amber-800">El respaldo automático no se está ejecutando como estaba programado</h3>
+        <p class="text-sm text-amber-700 mt-1" *ngIf="res.fullAtrasado">
+          El respaldo <strong>FULL</strong> automático debía haber corrido y no hay registro reciente
+          (último: {{ formatFecha(res.ultimoFullAutomaticoFecha) }}).
+        </p>
+        <p class="text-sm text-amber-700 mt-1" *ngIf="res.diarioAtrasado">
+          El respaldo <strong>DIARIO</strong> automático debía haber corrido y no hay registro reciente
+          (último: {{ formatFecha(res.ultimoDiarioAutomaticoFecha) }}).
+        </p>
+        <p class="text-xs text-amber-600 mt-2">
+          La causa más común es que el servidor no estaba corriendo a esa hora (proceso reiniciado, contenedor
+          detenido, o un servicio en plan gratuito suspendido por inactividad) — un cron solo se dispara si el
+          backend está vivo en ese instante. Considera crear un respaldo manual ahora y verificar que el backend
+          permanezca activo a la hora programada.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Política Activa -->
+  <div class="rounded-3xl bg-[#EAEFF9] border border-slate-100 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4" *ngIf="resumen() as res">
+    <div>
+      <h3 class="text-sm font-semibold text-[#1E0F38] mb-1 flex items-center flex-wrap gap-2">
+        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-700">FULL</span>
+        Programación semanal
+        <span *ngIf="res.fullAtrasado" class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700">Atrasado</span>
+      </h3>
+      <p class="text-sm text-slate-600">
+        Cron: <code class="bg-white px-1.5 py-0.5 rounded-md text-xs">{{ res.cronFull }}</code> |
+        Retención: <strong>{{ res.retencionDiasFull }} días</strong>
+      </p>
+      <p class="text-xs text-slate-500 mt-1" *ngIf="res.proximoFullEstimado">Próximo: {{ formatFecha(res.proximoFullEstimado) }}</p>
+      <p class="text-xs text-slate-500 mt-0.5">Último automático: {{ formatFecha(res.ultimoFullAutomaticoFecha) }}</p>
+    </div>
+    <div>
+      <h3 class="text-sm font-semibold text-[#1E0F38] mb-1 flex items-center flex-wrap gap-2">
+        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-700">DIARIO</span>
+        Programación diaria
+        <span *ngIf="res.diarioAtrasado" class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700">Atrasado</span>
+      </h3>
+      <p class="text-sm text-slate-600">
+        Cron: <code class="bg-white px-1.5 py-0.5 rounded-md text-xs">{{ res.cronDiario }}</code> |
+        Retención: <strong>{{ res.retencionDiasDiario }} días</strong>
+      </p>
+      <p class="text-xs text-slate-500 mt-1" *ngIf="res.proximoDiarioEstimado">Próximo: {{ formatFecha(res.proximoDiarioEstimado) }}</p>
+      <p class="text-xs text-slate-500 mt-0.5">Último automático: {{ formatFecha(res.ultimoDiarioAutomaticoFecha) }}</p>
+    </div>
+    <div class="sm:col-span-2 text-xs text-slate-500 border-t border-white pt-2">
+      Último respaldo exitoso (de cualquier tipo): {{ formatFecha(res.ultimoRespaldoFecha) }}
+    </div>
+  </div>
+
+  <!-- Filtro y Tabla -->
+  <div class="rounded-3xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+    <div class="border-b border-slate-100 bg-white p-4 sm:flex sm:items-center sm:justify-between">
+      <h2 class="text-base font-semibold leading-6 text-[#1E0F38]">Historial de Respaldos</h2>
+      <div class="mt-3 sm:ml-4 sm:mt-0 flex gap-3">
+        <select [ngModel]="filtroTipo()" (change)="cambiarFiltro($event)"
+                class="block w-36 rounded-full border-0 bg-[#EAEFF9] py-1.5 pl-3 pr-10 text-slate-900 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm sm:leading-6">
+          <option value="TODOS">Todos</option>
+          <option value="AUTOMATICO">Automáticos</option>
+          <option value="MANUAL">Manuales</option>
+        </select>
+        <select [ngModel]="filtroCategoria()" (change)="cambiarFiltroCategoria($event)"
+                class="block w-36 rounded-full border-0 bg-[#EAEFF9] py-1.5 pl-3 pr-10 text-slate-900 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm sm:leading-6">
+          <option value="TODAS">Todas</option>
+          <option value="FULL">Full</option>
+          <option value="DIARIO">Diario</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="relative min-h-[400px]">
+      <div *ngIf="isLoading()" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+        <div class="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm ring-1 ring-slate-900/5">
+          <app-nav-icon name="sync" svgClass="w-5 h-5 animate-spin text-purple-600"></app-nav-icon>
+          <span class="text-sm font-medium text-slate-600">Cargando...</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100">
+          <thead class="bg-slate-50/50">
+            <tr>
+              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Archivo</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tipo</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categoría</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tamaño</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Estado</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha</th>
+              <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            <ng-container *ngFor="let item of pagina().contenido">
+              <tr class="hover:bg-slate-50/70 transition-colors">
+                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900">
+                  {{ item.nombreArchivo }}
+                  <div class="text-xs text-slate-500 font-normal mt-0.5" *ngIf="item.creadoPor">Por: {{ item.creadoPor }}</div>
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                  <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                        [ngClass]="item.tipo === 'AUTOMATICO' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'"
+                        [title]="item.tipo === 'AUTOMATICO' ? 'Generado por la política' : 'Creado manualmente'">
+                    <app-nav-icon [name]="item.tipo === 'AUTOMATICO' ? 'bolt' : 'build'" svgClass="w-3.5 h-3.5 mr-1"></app-nav-icon>
+                    {{ item.tipo }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                  <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                        [ngClass]="item.categoria === 'FULL' ? 'bg-violet-100 text-violet-700' : 'bg-teal-100 text-teal-700'">
+                    {{ item.categoria }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+                  {{ item.tamanoFormateado }}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                  <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                        [ngClass]="{
+                          'bg-emerald-100 text-emerald-700': item.estado === 'COMPLETADO',
+                          'bg-rose-100 text-rose-700': item.estado === 'FALLIDO',
+                          'bg-amber-100 text-amber-700': item.estado === 'EN_PROGRESO'
+                        }">
+                    {{ item.estado }}
+                  </span>
+                  <div *ngIf="item.mensajeError" class="text-xs text-rose-600 mt-1 max-w-xs truncate" [title]="item.mensajeError">
+                    {{ item.mensajeError }}
+                  </div>
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+                  {{ formatFecha(item.fechaCreacion) }}
+                  <div class="text-xs text-slate-400 mt-0.5" *ngIf="item.fechaExpiracion">Expira: {{ formatFecha(item.fechaExpiracion) }}</div>
+                </td>
+                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  <div class="flex justify-end gap-3">
+                    <button *ngIf="puedeCrear()"
+                            [disabled]="item.estado !== 'COMPLETADO'"
+                            (click)="descargar(item.idRespaldo, item.nombreArchivo)"
+                            class="text-blue-600 hover:text-purple-700 disabled:opacity-30 disabled:hover:text-blue-600"
+                            title="Descargar">
+                      <app-nav-icon name="download" svgClass="w-4 h-4"></app-nav-icon>
+                    </button>
+                    <button *ngIf="puedeRestaurar()"
+                            [disabled]="item.estado !== 'COMPLETADO'"
+                            (click)="restaurar(item.idRespaldo, item.nombreArchivo)"
+                            class="text-amber-600 hover:text-amber-700 disabled:opacity-30 disabled:hover:text-amber-600"
+                            title="Restaurar BD">
+                      <app-nav-icon name="settings_backup_restore" svgClass="w-4 h-4"></app-nav-icon>
+                    </button>
+                    <button *ngIf="puedeEliminar()"
+                            (click)="eliminar(item.idRespaldo, item.nombreArchivo)"
+                            class="text-rose-600 hover:text-rose-700"
+                            title="Eliminar">
+                      <app-nav-icon name="delete" svgClass="w-4 h-4"></app-nav-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="item.hashSha256" class="bg-slate-50/50 border-b border-slate-100">
+                <td colspan="7" class="py-2 pl-4 pr-4 text-xs text-slate-500">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-[10px] text-slate-400">SHA-256: {{ item.hashSha256 }}</span>
+                    <button (click)="copiarHash(item.hashSha256)" class="text-slate-400 hover:text-purple-600" title="Copiar hash">
+                      <app-nav-icon name="content_copy" svgClass="w-3.5 h-3.5"></app-nav-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="pagina().contenido.length === 0 && !isLoading() && errorCarga()">
+              <td colspan="7" class="py-12 text-center">
+                <p class="text-sm font-semibold text-rose-700">No se pudo cargar el historial de respaldos</p>
+                <p class="text-sm text-rose-600 mt-1">{{ errorCarga() }}</p>
+                <button (click)="cargar(0)" class="mt-3 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-medium bg-white border border-rose-200 text-rose-700 hover:bg-rose-50">
+                  Reintentar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="pagina().contenido.length === 0 && !isLoading() && !errorCarga()">
+              <td colspan="7" class="py-12 text-center text-sm text-slate-500">
+                No se encontraron respaldos.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      <div class="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3 sm:px-6">
+        <div class="flex flex-1 justify-between sm:hidden">
+          <button (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0" class="relative inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Anterior</button>
+          <button (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima" class="relative ml-3 inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Siguiente</button>
+        </div>
+        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-slate-700">
+              Mostrando página <span class="font-medium">{{ pagina().numero + 1 }}</span> de <span class="font-medium">{{ pagina().totalPaginas }}</span>
+              (<span class="font-medium">{{ pagina().totalElementos }}</span> respaldos en total)
+            </p>
+          </div>
+          <div>
+            <nav class="isolate inline-flex -space-x-px rounded-full shadow-sm" aria-label="Pagination">
+              <button (click)="irAPagina(pagina().numero - 1)" [disabled]="pagina().numero === 0" class="relative inline-flex items-center rounded-l-full px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 disabled:opacity-50 focus:z-20 focus:outline-offset-0">
+                <span class="sr-only">Anterior</span>
+                <app-nav-icon name="chevron_left" svgClass="w-5 h-5"></app-nav-icon>
+              </button>
+              <button (click)="irAPagina(pagina().numero + 1)" [disabled]="pagina().ultima" class="relative inline-flex items-center rounded-r-full px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 disabled:opacity-50 focus:z-20 focus:outline-offset-0">
+                <span class="sr-only">Siguiente</span>
+                <app-nav-icon name="chevron_right" svgClass="w-5 h-5"></app-nav-icon>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Diálogos de confirmación (crear / eliminar / aviso de restaurar) -->
+<app-confirm-dialog
+  [isOpen]="mostrarConfirmarCrear()"
+  title="Crear respaldo manual"
+  [message]="'¿Seguro que desea iniciar un respaldo manual (' + categoriaManual() + ') en este momento? Esto puede tardar unos minutos.'"
+  confirmText="Crear respaldo"
+  (onConfirm)="confirmarCrearManual()"
+  (onCancel)="cancelarAccion()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="respaldoAEliminar() !== null"
+  title="Eliminar respaldo"
+  [message]="'¿Eliminar permanentemente el respaldo ' + (respaldoAEliminar()?.nombre ?? '') + '?'"
+  confirmText="Eliminar"
+  (onConfirm)="confirmarEliminar()"
+  (onCancel)="cancelarAccion()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [isOpen]="respaldoARestaurarAviso() !== null"
+  title="¡Advertencia crítica!"
+  [message]="'Va a restaurar la base de datos usando el archivo ' + (respaldoARestaurarAviso()?.nombre ?? '') + '. Esto ELIMINARÁ todos los datos actuales y los reemplazará por los del respaldo. ¿Desea continuar?'"
+  confirmText="Continuar"
+  (onConfirm)="avanzarARestaurarConTexto()"
+  (onCancel)="cancelarAccion()">
+</app-confirm-dialog>
+
+<!-- Segundo paso de restauración: confirmación por texto -->
+<div *ngIf="respaldoARestaurarTexto() as ref" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+  <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+    <div class="bg-gradient-to-r from-[#7B39B2] to-[#9C5CC5] px-6 py-4">
+      <h3 class="font-headline text-lg font-bold text-white">Confirmar restauración</h3>
+    </div>
+    <div class="px-6 py-5 space-y-3">
+      <p class="text-sm text-slate-600">
+        Para confirmar la restauración del respaldo <strong>{{ ref.nombre }}</strong>, escriba
+        <code class="bg-slate-100 px-1.5 py-0.5 rounded-md text-xs">RESTAURAR</code> a continuación.
+      </p>
+      <input type="text" [(ngModel)]="textoConfirmacionRestaurar"
+             class="block w-full rounded-full border-0 bg-[#EAEFF9] py-2 px-4 text-slate-900 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm"
+             placeholder="RESTAURAR">
+    </div>
+    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3">
+      <button type="button" (click)="cancelarAccion()"
+              class="inline-flex justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
+      <button type="button" (click)="confirmarRestaurarTexto()"
+              class="inline-flex justify-center rounded-full bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] px-4 py-2 text-sm font-semibold text-white shadow-md hover:opacity-95">Restaurar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Configuración de Política -->
+<div *ngIf="showConfigModal()" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+  <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+      <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl">
+        <div class="bg-gradient-to-r from-[#7B39B2] to-[#9C5CC5] px-6 py-4 flex items-center gap-3">
+          <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/20">
+            <app-nav-icon name="settings" svgClass="w-6 h-6 text-white"></app-nav-icon>
+          </div>
+          <h3 class="font-headline text-lg font-bold text-white" id="modal-title">Configurar Política de Respaldos</h3>
+        </div>
+
+        <div class="px-6 pb-2 pt-4 space-y-6">
+          <!-- Programación Full -->
+          <div>
+            <h4 class="text-sm font-bold text-[#1E0F38] mb-2 flex items-center gap-2">
+              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-700">FULL</span>
+              Programación Full
+            </h4>
+            <div *ngIf="resumen()?.proximoFullEstimado" class="bg-[#EAEFF9] rounded-2xl px-4 py-2 text-sm text-slate-600 mb-2">
+              Próxima ejecución programada: <strong>{{ formatFecha(resumen()!.proximoFullEstimado) }}</strong>
+            </div>
+            
+            <!-- Selector de Modo FULL -->
+            <div class="flex bg-[#EAEFF9] rounded-full p-1 w-fit mb-3">
+              <button type="button" (click)="actualizarUiFull({modo: 'DIARIO'})" [class.bg-white]="cronFullUi().modo === 'DIARIO'" [class.shadow-sm]="cronFullUi().modo === 'DIARIO'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Diario</button>
+              <button type="button" (click)="actualizarUiFull({modo: 'SEMANAL'})" [class.bg-white]="cronFullUi().modo === 'SEMANAL'" [class.shadow-sm]="cronFullUi().modo === 'SEMANAL'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Semanal</button>
+              <button type="button" (click)="actualizarUiFull({modo: 'MENSUAL'})" [class.bg-white]="cronFullUi().modo === 'MENSUAL'" [class.shadow-sm]="cronFullUi().modo === 'MENSUAL'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Mensual</button>
+              <button type="button" (click)="actualizarUiFull({modo: 'AVANZADO'})" [class.bg-white]="cronFullUi().modo === 'AVANZADO'" [class.shadow-sm]="cronFullUi().modo === 'AVANZADO'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Cron</button>
+            </div>
+
+            <!-- Builder Visual FULL -->
+            <div *ngIf="cronFullUi().modo !== 'AVANZADO'" class="flex flex-col gap-3 mb-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl animate-fadeIn">
+              <div class="flex items-center gap-3">
+                <label class="text-xs font-bold text-slate-500 w-16 uppercase tracking-wider">Hora</label>
+                <input type="time" [ngModel]="cronFullUi().hora" (ngModelChange)="actualizarUiFull({hora: $event})" class="bg-white border border-slate-200 rounded-lg text-sm px-3 py-1.5 focus:ring-2 focus:ring-purple-400 focus:outline-none">
+              </div>
+
+              <div *ngIf="cronFullUi().modo === 'SEMANAL'" class="flex items-center gap-3 mt-1">
+                <label class="text-xs font-bold text-slate-500 w-16 uppercase tracking-wider">Días</label>
+                <div class="flex gap-1.5 flex-wrap">
+                  <button *ngFor="let dia of diasSemanaList" type="button" (click)="toggleDiaSemana('FULL', dia.value)"
+                    class="h-8 w-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all"
+                    [ngClass]="cronFullUi().diasSemana.includes(dia.value) ? 'bg-[#7B39B2] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-purple-50 hover:text-purple-700'">
+                    {{ dia.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div *ngIf="cronFullUi().modo === 'MENSUAL'" class="flex items-center gap-3 mt-1">
+                <label class="text-xs font-bold text-slate-500 w-16 uppercase tracking-wider">Día mes</label>
+                <input type="number" min="1" max="31" [ngModel]="cronFullUi().diaMes" (ngModelChange)="actualizarUiFull({diaMes: $event})" class="bg-white border border-slate-200 rounded-lg text-sm px-3 py-1.5 focus:ring-2 focus:ring-purple-400 focus:outline-none w-20">
+              </div>
+            </div>
+
+            <!-- Input de Cron Generado/Manual FULL -->
+            <div>
+              <label class="block text-xs font-medium leading-6 text-slate-500 mb-1">
+                {{ cronFullUi().modo === 'AVANZADO' ? 'Expresión Cron Personalizada' : 'Cron generado automáticamente' }}
+              </label>
+              <input type="text" [ngModel]="configPolitica().cronFull" (ngModelChange)="cronFullUi().modo === 'AVANZADO' ? actualizarUiFull({avanzado: $event}) : null"
+                     [readonly]="cronFullUi().modo !== 'AVANZADO'"
+                     [class.bg-[#EAEFF9]]="cronFullUi().modo === 'AVANZADO'"
+                     [class.bg-slate-50]="cronFullUi().modo !== 'AVANZADO'"
+                     [class.text-slate-400]="cronFullUi().modo !== 'AVANZADO'"
+                     [class.text-slate-900]="cronFullUi().modo === 'AVANZADO'"
+                     class="block w-full rounded-full border-0 py-2 px-4 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm font-mono transition-colors"
+                     placeholder="0 0 3 * * SUN">
+            </div>
+            <p *ngIf="cronErrorFull()" class="mt-1 text-xs text-rose-600 font-medium">{{ cronErrorFull() }}</p>
+
+            <label class="block text-sm font-medium leading-6 text-[#1E0F38] mt-3">Retención (Días)</label>
+            <div class="mt-1">
+              <input type="number" [(ngModel)]="configPolitica().retencionDiasFull"
+                     class="block w-full rounded-full border-0 bg-[#EAEFF9] py-2 px-4 text-slate-900 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm">
+            </div>
+          </div>
+
+          <hr class="border-slate-100">
+
+          <!-- Programación Diaria -->
+          <div>
+            <h4 class="text-sm font-bold text-[#1E0F38] mb-2 flex items-center gap-2">
+              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-700">DIARIO</span>
+              Programación Diaria
+            </h4>
+            <div *ngIf="resumen()?.proximoDiarioEstimado" class="bg-[#EAEFF9] rounded-2xl px-4 py-2 text-sm text-slate-600 mb-2">
+              Próxima ejecución programada: <strong>{{ formatFecha(resumen()!.proximoDiarioEstimado) }}</strong>
+            </div>
+
+            <!-- Selector de Modo DIARIO -->
+            <div class="flex bg-[#EAEFF9] rounded-full p-1 w-fit mb-3">
+              <button type="button" (click)="actualizarUiDiario({modo: 'DIARIO'})" [class.bg-white]="cronDiarioUi().modo === 'DIARIO'" [class.shadow-sm]="cronDiarioUi().modo === 'DIARIO'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Diario</button>
+              <button type="button" (click)="actualizarUiDiario({modo: 'SEMANAL'})" [class.bg-white]="cronDiarioUi().modo === 'SEMANAL'" [class.shadow-sm]="cronDiarioUi().modo === 'SEMANAL'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Semanal</button>
+              <button type="button" (click)="actualizarUiDiario({modo: 'MENSUAL'})" [class.bg-white]="cronDiarioUi().modo === 'MENSUAL'" [class.shadow-sm]="cronDiarioUi().modo === 'MENSUAL'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Mensual</button>
+              <button type="button" (click)="actualizarUiDiario({modo: 'AVANZADO'})" [class.bg-white]="cronDiarioUi().modo === 'AVANZADO'" [class.shadow-sm]="cronDiarioUi().modo === 'AVANZADO'" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-700 transition-all">Cron</button>
+            </div>
+
+            <!-- Builder Visual DIARIO -->
+            <div *ngIf="cronDiarioUi().modo !== 'AVANZADO'" class="flex flex-col gap-3 mb-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl animate-fadeIn">
+              <div class="flex items-center gap-3">
+                <label class="text-xs font-bold text-slate-500 w-16 uppercase tracking-wider">Hora</label>
+                <input type="time" [ngModel]="cronDiarioUi().hora" (ngModelChange)="actualizarUiDiario({hora: $event})" class="bg-white border border-slate-200 rounded-lg text-sm px-3 py-1.5 focus:ring-2 focus:ring-purple-400 focus:outline-none">
+              </div>
+
+              <div *ngIf="cronDiarioUi().modo === 'SEMANAL'" class="flex items-center gap-3 mt-1">
+                <label class="text-xs font-bold text-slate-500 w-16 uppercase tracking-wider">Días</label>
+                <div class="flex gap-1.5 flex-wrap">
+                  <button *ngFor="let dia of diasSemanaList" type="button" (click)="toggleDiaSemana('DIARIO', dia.value)"
+                    class="h-8 w-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all"
+                    [ngClass]="cronDiarioUi().diasSemana.includes(dia.value) ? 'bg-[#7B39B2] text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-purple-50 hover:text-purple-700'">
+                    {{ dia.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div *ngIf="cronDiarioUi().modo === 'MENSUAL'" class="flex items-center gap-3 mt-1">
+                <label class="text-xs font-bold text-slate-500 w-16 uppercase tracking-wider">Día mes</label>
+                <input type="number" min="1" max="31" [ngModel]="cronDiarioUi().diaMes" (ngModelChange)="actualizarUiDiario({diaMes: $event})" class="bg-white border border-slate-200 rounded-lg text-sm px-3 py-1.5 focus:ring-2 focus:ring-purple-400 focus:outline-none w-20">
+              </div>
+            </div>
+
+            <!-- Input de Cron Generado/Manual DIARIO -->
+            <div>
+              <label class="block text-xs font-medium leading-6 text-slate-500 mb-1">
+                {{ cronDiarioUi().modo === 'AVANZADO' ? 'Expresión Cron Personalizada' : 'Cron generado automáticamente' }}
+              </label>
+              <input type="text" [ngModel]="configPolitica().cronDiario" (ngModelChange)="cronDiarioUi().modo === 'AVANZADO' ? actualizarUiDiario({avanzado: $event}) : null"
+                     [readonly]="cronDiarioUi().modo !== 'AVANZADO'"
+                     [class.bg-[#EAEFF9]]="cronDiarioUi().modo === 'AVANZADO'"
+                     [class.bg-slate-50]="cronDiarioUi().modo !== 'AVANZADO'"
+                     [class.text-slate-400]="cronDiarioUi().modo !== 'AVANZADO'"
+                     [class.text-slate-900]="cronDiarioUi().modo === 'AVANZADO'"
+                     class="block w-full rounded-full border-0 py-2 px-4 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm font-mono transition-colors"
+                     placeholder="0 0 2 * * ?">
+            </div>
+            <p *ngIf="cronErrorDiario()" class="mt-1 text-xs text-rose-600 font-medium">{{ cronErrorDiario() }}</p>
+
+            <label class="block text-sm font-medium leading-6 text-[#1E0F38] mt-3">Retención (Días)</label>
+            <div class="mt-1">
+              <input type="number" [(ngModel)]="configPolitica().retencionDiasDiario"
+                     class="block w-full rounded-full border-0 bg-[#EAEFF9] py-2 px-4 text-slate-900 focus:ring-2 focus:ring-[#7B39B2] sm:text-sm">
+            </div>
+            <p class="mt-1 text-xs text-slate-500">0 para no eliminar los respaldos nunca.</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 px-6 py-4 mt-2 sm:flex sm:flex-row-reverse gap-3">
+          <button type="button" (click)="guardarConfiguracion()" [disabled]="guardandoPolitica()"
+                  class="inline-flex w-full justify-center rounded-full bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] px-4 py-2 text-sm font-semibold text-white shadow-md hover:opacity-95 disabled:opacity-50 sm:w-auto">
+            {{ guardandoPolitica() ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+          <button type="button" (click)="cerrarConfiguracion()"
+                  class="mt-3 inline-flex w-full justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 sm:mt-0 sm:w-auto">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

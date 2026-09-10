@@ -105,6 +105,7 @@ services:
       - "8080"
     volumes:
       - pfc_documentos_verificacion:/var/artisync/documentos
+      - pfc_backups:/var/artisync/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -139,3 +140,4 @@ volumes:
   pfc_postgres_data:
   pfc_documentos_verificacion:
   pfc_azurite_data:
+  pfc_backups:

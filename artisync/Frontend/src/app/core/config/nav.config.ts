@@ -113,6 +113,7 @@ export const PAGE_PERMISSIONS = {
   // es un permiso aparte (AUDITORIA_EXPORTAR): no abre la pantalla por sí
   // solo, así que no va en esta lista — ver EXTRA_PANEL_PERMISSIONS más abajo.
   auditoria: ['AUDITORIA_VER'],
+  respaldos: ['RESPALDO_VER'],
   // Igual criterio que auditoria: TRANSACCION_VER abre la pantalla y
   // muestra el reporte; REPORTE_*_EXPORTAR (V19__permisos_reportes.sql)
   // habilita solo el botón de exportar, no va aquí. Ambos reportes usan
@@ -285,6 +286,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // 'receipt_long' ya tiene rama SVG en dashboard-layout.component.html
   // (compartida con 'account_balance'): no hace falta tocar el layout.
   { label: 'Auditoría', icon: 'receipt_long', route: 'auditoria', panel: 'admin', permissions: PAGE_PERMISSIONS.auditoria, crossPanel: true },
+  { label: 'Respaldos BD', icon: 'backup', route: 'respaldos', panel: 'admin', permissions: PAGE_PERMISSIONS.respaldos, crossPanel: true },
   { label: 'Reporte financiero', icon: 'account_balance', route: 'reportes-finanzas', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesFinanzas, crossPanel: true },
   { label: 'Reporte de contratos', icon: 'description', route: 'reportes-contratos', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesContratos, crossPanel: true },
   { label: 'Plantillas de Contrato', icon: 'gavel', route: 'plantillas-contrato', panel: 'admin', permissions: PAGE_PERMISSIONS.plantillasContrato, crossPanel: true },

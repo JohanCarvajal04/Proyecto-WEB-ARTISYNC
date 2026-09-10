@@ -116,6 +116,12 @@ export const ADMINISTRACION_ROUTES: Routes = [
     loadComponent: () => import('./pages/plantillas-contrato/plantillas-contrato.component').then(m => m.PlantillasContratoComponent)
   },
   {
+    path: 'respaldos',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.respaldos },
+    loadComponent: () => import('./pages/respaldos/respaldos.component').then(m => m.RespaldosComponent)
+  },
+  {
     path: 'pagos-garantia',
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.pagosGarantia },
