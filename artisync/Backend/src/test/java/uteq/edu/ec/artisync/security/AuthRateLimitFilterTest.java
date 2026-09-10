@@ -132,4 +132,123 @@ class AuthRateLimitFilterTest {
         verify(valueOperations).increment("rl:login:203.0.113.9");
         verify(filterChain).doFilter(request, response);
     }
+
+    private MockHttpServletRequest peticion(String ruta, String ip) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setMethod("POST");
+        request.setRequestURI(ruta);
+        request.setRemoteAddr(ip);
+        return request;
+    }
+
+    // REQ-NF-022: cada uno de los 5 limites reales de POLITICAS, en su valor
+    // exacto (pasa) y en limite+1 (bloquea), no solo login.
+
+    @Test
+    void doFilterInternal_2fa_PermiteHastaElLimiteExacto() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/2fa/verify", "10.0.1.1");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:2fa:10.0.1.1")).thenReturn(10L); // limite 2fa = 10
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void doFilterInternal_2fa_Bloquea_AlSuperarElLimite() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/2fa/verify", "10.0.1.1");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:2fa:10.0.1.1")).thenReturn(11L);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain, never()).doFilter(any(), any());
+        assertEquals(429, response.getStatus());
+        assertEquals("60", response.getHeader("Retry-After"));
+    }
+
+    @Test
+    void doFilterInternal_forgotPassword_PermiteHastaElLimiteExacto() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/forgot-password", "10.0.1.2");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:recuperacion:10.0.1.2")).thenReturn(5L); // limite = 5
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void doFilterInternal_forgotPassword_Bloquea_AlSuperarElLimite() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/forgot-password", "10.0.1.2");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:recuperacion:10.0.1.2")).thenReturn(6L);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain, never()).doFilter(any(), any());
+        assertEquals(429, response.getStatus());
+        assertEquals("900", response.getHeader("Retry-After")); // ventana 15 min
+    }
+
+    @Test
+    void doFilterInternal_resetPassword_PermiteHastaElLimiteExacto() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/reset-password", "10.0.1.3");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:reset:10.0.1.3")).thenReturn(10L); // limite = 10
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void doFilterInternal_resetPassword_Bloquea_AlSuperarElLimite() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/reset-password", "10.0.1.3");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:reset:10.0.1.3")).thenReturn(11L);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain, never()).doFilter(any(), any());
+        assertEquals(429, response.getStatus());
+        assertEquals("900", response.getHeader("Retry-After")); // ventana 15 min
+    }
+
+    @Test
+    void doFilterInternal_registro_PermiteHastaElLimiteExacto() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/registro", "10.0.1.4");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:registro:10.0.1.4")).thenReturn(5L); // limite = 5
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void doFilterInternal_registro_Bloquea_AlSuperarElLimite() throws ServletException, IOException {
+        MockHttpServletRequest request = peticion("/api/v1/auth/registro", "10.0.1.4");
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("rl:registro:10.0.1.4")).thenReturn(6L);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain, never()).doFilter(any(), any());
+        assertEquals(429, response.getStatus());
+        assertEquals("3600", response.getHeader("Retry-After")); // ventana 60 min
+    }
 }
