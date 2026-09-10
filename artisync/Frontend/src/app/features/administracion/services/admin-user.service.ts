@@ -61,6 +61,17 @@ export class AdminUserService {
     return this.http.delete<MessageResponse>(`${this.apiUrl}/${id}/sesiones`);
   }
 
+  /**
+   * REQ-NF-018: ejecuta la supresión real (anonimización) de los datos
+   * personales de un usuario en nombre del titular. Distinta de deleteUser
+   * (soft delete): el backend la rechaza (422) si el usuario ya la tiene
+   * ejecutada por sí mismo, así que solo debe usarse cuando no la haya
+   * solicitado o no la tenga pendiente.
+   */
+  anonimizarUsuario(id: number): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/${id}/supresion`, {});
+  }
+
   exportar(filtro: FiltroUsuario, formato: FormatoReporte, grafica?: TipoGraficaReporte, page?: number, size?: number): Observable<HttpResponse<Blob>> {
     let params = paramsDesdeFiltro(filtro).set('formato', formato);
     if (grafica) {

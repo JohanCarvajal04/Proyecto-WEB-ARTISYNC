@@ -49,6 +49,16 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
   readonly editandoDatos = signal<boolean>(false);
   readonly guardandoDatos = signal<boolean>(false);
 
+  /** REQ-NF-018: confirmación explícita antes de la supresión — es irreversible y el correo actual queda libre. */
+  readonly isConfirmSupresionOpen = signal<boolean>(false);
+  readonly suprimiendoDatos = signal<boolean>(false);
+
+  /** REQ-NF-018 (ajuste de seguimiento): step-up de 2FA — solo se exige si el usuario lo tiene activo. */
+  readonly requiere2FaParaSuprimir = computed(() => this.userProfile()?.dosFactoresHabilitado === true);
+  supresionForm: FormGroup = this.fb.group({
+    codigo: ['']
+  });
+
   form: FormGroup = this.fb.group({
     nombres: ['', [Validators.maxLength(100)]],
     apellidos: ['', [Validators.maxLength(100)]],
@@ -154,5 +164,40 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  /** REQ-NF-018: abre la confirmación — el texto de advertencia vive en el template, junto al resto de "Zona de peligro". */
+  abrirConfirmSupresion(): void {
+    this.isConfirmSupresionOpen.set(true);
+  }
+
+  cerrarConfirmSupresion(): void {
+    this.isConfirmSupresionOpen.set(false);
+    this.supresionForm.reset();
+  }
+
+  confirmarSupresionDatos(): void {
+    if (this.requiere2FaParaSuprimir() && !this.supresionForm.value.codigo) {
+      this.toastService.error('Ingresa tu código de autenticación de dos factores para continuar');
+      return;
+    }
+
+    this.suprimiendoDatos.set(true);
+    this.userService.solicitarSupresionDatos(this.supresionForm.value.codigo || undefined).subscribe({
+      next: (res) => {
+        this.suprimiendoDatos.set(false);
+        this.isConfirmSupresionOpen.set(false);
+        this.toastService.success(res.mensaje || res.message || 'Datos personales suprimidos');
+        // El backend ya revocó todas las sesiones; cerrar sesión localmente también.
+        this.authService.logout();
+      },
+      error: (err) => {
+        this.suprimiendoDatos.set(false);
+        // El diálogo se deja abierto (no se cierra ni se resetea el código) para
+        // que, si el 2FA fue lo que falló, el usuario pueda corregirlo sin
+        // reiniciar todo el flujo de confirmación.
+        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudo suprimir los datos personales');
+      }
+    });
   }
 }
