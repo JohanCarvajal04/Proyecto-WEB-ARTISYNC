@@ -284,8 +284,8 @@ describe('coherencia del catálogo', () => {
     const soloEnPuerta = panelGatePermissions('admin').filter(p => !dePaginas.has(p));
     expect(soloEnPuerta.sort()).toEqual([
       'AUDITORIA_EXPORTAR', 'FONDOS_LIBERAR', 'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR',
-      'PERMISO_VER', 'REPORTE_CONTRATO_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR', 'ROL_VER',
-      'SESION_REVOCAR', 'TICKET_RESOLVER', 'USUARIO_EXPORTAR'
+      'PERMISO_VER', 'REPORTE_CONTRATO_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR',
+      'RESPALDO_DESCARGAR', 'ROL_VER', 'SESION_REVOCAR', 'TICKET_RESOLVER', 'USUARIO_EXPORTAR'
     ]);
   });
 

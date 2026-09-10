@@ -1,0 +1,256 @@
+<div class="flex flex-col gap-6 max-w-7xl mx-auto">
+  <!-- Encabezado -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
+    <div>
+      <h1 class="font-headline text-3xl font-bold text-primary">Respaldos</h1>
+      <p class="text-sm text-on-surface-variant mt-1">
+        Crea, programa y gestiona los respaldos de la base de datos (REQ-NF-024). Restaurar sigue siendo un
+        procedimiento manual documentado, no una acción de esta pantalla.
+      </p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-2 border-b border-outline-variant">
+    <button type="button" (click)="cambiarVista('respaldos')"
+      class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
+      [class]="vistaActiva() === 'respaldos' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'">
+      Respaldos
+    </button>
+    <button type="button" (click)="cambiarVista('programaciones')"
+      class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
+      [class]="vistaActiva() === 'programaciones' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'">
+      Programaciones
+    </button>
+  </div>
+
+  @if (vistaActiva() === 'respaldos') {
+    <!-- Acción: generar respaldo ahora -->
+    <div class="bg-surface-container-lowest rounded-3xl p-4 shadow-sm border border-outline-variant flex flex-col md:flex-row items-center justify-between gap-4" *appHasPermission="'RESPALDO_CREAR'">
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <label class="text-xs font-medium text-on-surface-variant" for="tipoNuevo">Tipo</label>
+        <select id="tipoNuevo" [ngModel]="tipoRespaldoNuevo()" (ngModelChange)="tipoRespaldoNuevo.set($event)"
+          class="bg-surface-container text-on-surface border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer">
+          <option value="FULL">Completo (FULL)</option>
+          <option value="INCREMENTAL">Incremental</option>
+        </select>
+      </div>
+      <button type="button" (click)="generarRespaldo()" [disabled]="isCreandoRespaldo()"
+        class="bg-primary text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2 w-full md:w-auto justify-center">
+        @if (isCreandoRespaldo()) {
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+        }
+        <span>Generar respaldo ahora</span>
+      </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-surface-container-lowest rounded-3xl p-4 shadow-sm border border-outline-variant flex flex-col md:flex-row items-center gap-3">
+      <select [(ngModel)]="selectedTipoFiltro"
+        class="bg-surface-container text-on-surface border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer">
+        <option value="ALL">Todos los tipos</option>
+        <option value="FULL">Completo (FULL)</option>
+        <option value="INCREMENTAL">Incremental</option>
+      </select>
+      <select [(ngModel)]="selectedEstadoFiltro"
+        class="bg-surface-container text-on-surface border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer">
+        <option value="ALL">Todos los estados</option>
+        <option value="EN_PROGRESO">En progreso</option>
+        <option value="COMPLETADO">Completado</option>
+        <option value="FALLIDO">Fallido</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <button type="button" (click)="aplicarFiltros()"
+          class="px-5 py-2.5 rounded-full text-xs font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity">
+          Filtrar
+        </button>
+        <button type="button" (click)="limpiarFiltros()"
+          class="px-4 py-2.5 rounded-full text-xs font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de respaldos -->
+    <div class="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden flex flex-col">
+      @if (isLoading()) {
+        <div class="flex items-center justify-center p-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        </div>
+      } @else if (respaldos().length === 0) {
+        <div class="flex flex-col items-center justify-center p-12 text-center gap-2">
+          <p class="text-sm text-on-surface-variant">No hay respaldos que coincidan con el filtro.</p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant uppercase tracking-wide">
+                <th class="px-5 py-3">Tipo</th>
+                <th class="px-5 py-3">Estado</th>
+                <th class="px-5 py-3">Origen</th>
+                <th class="px-5 py-3">Archivo</th>
+                <th class="px-5 py-3">Tamaño</th>
+                <th class="px-5 py-3">Inicio</th>
+                <th class="px-5 py-3">Solicitado por</th>
+                <th class="px-5 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (respaldo of respaldos(); track respaldo.idRespaldo) {
+                <tr class="border-b border-outline-variant last:border-0 hover:bg-surface-container transition-colors">
+                  <td class="px-5 py-3 font-medium text-on-surface">{{ respaldo.tipoRespaldo === 'FULL' ? 'Completo' : 'Incremental' }}</td>
+                  <td class="px-5 py-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold" [class]="claseEstado(respaldo.estadoRespaldo)">
+                      {{ respaldo.estadoRespaldo }}
+                    </span>
+                    @if (respaldo.estadoRespaldo === 'FALLIDO' && respaldo.mensajeError) {
+                      <p class="text-xs text-error mt-1 max-w-xs truncate" [title]="respaldo.mensajeError">{{ respaldo.mensajeError }}</p>
+                    }
+                  </td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.origen === 'MANUAL' ? 'Manual' : 'Programado' }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.nombreArchivo || '—' }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ formatearTamano(respaldo.tamanoBytes) }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.fechaInicio | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.correoSolicitante }}</td>
+                  <td class="px-5 py-3">
+                    <div class="flex items-center justify-end gap-2">
+                      @if (respaldo.estadoRespaldo === 'COMPLETADO') {
+                        <button type="button" *appHasPermission="'RESPALDO_DESCARGAR'" (click)="descargar(respaldo)"
+                          class="text-xs font-semibold text-primary hover:underline">
+                          Descargar
+                        </button>
+                      }
+                      <button type="button" *appHasPermission="'RESPALDO_ELIMINAR'" (click)="confirmarEliminarRespaldo(respaldo)"
+                        [disabled]="respaldo.estadoRespaldo === 'EN_PROGRESO'"
+                        class="text-xs font-semibold text-error hover:underline disabled:opacity-40 disabled:pointer-events-none">
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginación -->
+        <div class="flex items-center justify-between px-5 py-3 border-t border-outline-variant">
+          <p class="text-xs text-on-surface-variant">{{ totalElements() }} respaldo(s) en total</p>
+          <div class="flex items-center gap-2">
+            <button (click)="changePage(currentPage() - 1)" [disabled]="currentPage() === 0"
+              class="w-7 h-7 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container disabled:opacity-40 disabled:pointer-events-none transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button (click)="changePage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"
+              class="w-7 h-7 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container disabled:opacity-40 disabled:pointer-events-none transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Programaciones -->
+    <div class="flex justify-end" *appHasPermission="'RESPALDO_PROGRAMAR'">
+      <button type="button" (click)="abrirCrearProgramacion()"
+        class="bg-primary text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:opacity-90 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Nueva programación</span>
+      </button>
+    </div>
+
+    <div class="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden flex flex-col">
+      @if (isLoadingProgramaciones()) {
+        <div class="flex items-center justify-center p-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        </div>
+      } @else if (programaciones().length === 0) {
+        <div class="flex flex-col items-center justify-center p-12 text-center gap-2">
+          <p class="text-sm text-on-surface-variant">Todavía no hay programaciones de respaldo.</p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant uppercase tracking-wide">
+                <th class="px-5 py-3">Nombre</th>
+                <th class="px-5 py-3">Tipo</th>
+                <th class="px-5 py-3">Cron</th>
+                <th class="px-5 py-3">Retención</th>
+                <th class="px-5 py-3">Próxima ejecución</th>
+                <th class="px-5 py-3">Estado</th>
+                <th class="px-5 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (programacion of programaciones(); track programacion.idProgramacion) {
+                <tr class="border-b border-outline-variant last:border-0 hover:bg-surface-container transition-colors">
+                  <td class="px-5 py-3 font-medium text-on-surface">{{ programacion.nombre }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ programacion.tipoRespaldo === 'FULL' ? 'Completo' : 'Incremental' }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant font-mono text-xs">{{ programacion.expresionCron }}</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ programacion.retencionDias }} días</td>
+                  <td class="px-5 py-3 text-on-surface-variant">{{ programacion.proximaEjecucion | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="px-5 py-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
+                      [class]="programacion.activo ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'">
+                      {{ programacion.activo ? 'Activa' : 'Inactiva' }}
+                    </span>
+                  </td>
+                  <td class="px-5 py-3">
+                    <div class="flex items-center justify-end gap-3" *appHasPermission="'RESPALDO_PROGRAMAR'">
+                      <button type="button" (click)="alternarActivo(programacion)" class="text-xs font-semibold text-primary hover:underline">
+                        {{ programacion.activo ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button type="button" (click)="abrirEditarProgramacion(programacion)" class="text-xs font-semibold text-primary hover:underline">
+                        Editar
+                      </button>
+                      <button type="button" (click)="confirmarEliminarProgramacion(programacion)" class="text-xs font-semibold text-error hover:underline">
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Modales -->
+@if (isFormModalOpen()) {
+  <app-programacion-respaldo-form-modal
+    [mode]="formModalMode()"
+    [programacion]="programacionSeleccionada()"
+    [isLoading]="isActionLoading()"
+    (save)="guardarProgramacion($event)"
+    (closeModal)="isFormModalOpen.set(false)"
+  />
+}
+
+<app-confirm-dialog
+  [isOpen]="isConfirmEliminarRespaldoOpen()"
+  title="Eliminar respaldo"
+  message="¿Estás seguro de que deseas eliminar permanentemente este respaldo? Esta acción no se puede deshacer."
+  confirmText="Eliminar"
+  (onConfirm)="ejecutarEliminarRespaldo()"
+  (onCancel)="isConfirmEliminarRespaldoOpen.set(false)"
+/>
+
+<app-confirm-dialog
+  [isOpen]="isConfirmEliminarProgramacionOpen()"
+  title="Eliminar programación"
+  message="¿Estás seguro de que deseas eliminar esta programación de respaldo? Los respaldos ya generados no se eliminan."
+  confirmText="Eliminar"
+  (onConfirm)="ejecutarEliminarProgramacion()"
+  (onCancel)="isConfirmEliminarProgramacionOpen.set(false)"
+/>

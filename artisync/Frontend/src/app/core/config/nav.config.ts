@@ -130,7 +130,11 @@ export const PAGE_PERMISSIONS = {
   // RETIROS_GESTIONAR se asigna a AUDITOR_FINANCIERO, no a ADMIN (mismo
   // criterio que PAGO_AUDITAR/FONDOS_LIBERAR desde V32): el @PreAuthorize del
   // controlador añade "or hasRole('ADMIN')" como comodín aparte.
-  retirosAdmin: ['RETIROS_GESTIONAR']
+  retirosAdmin: ['RETIROS_GESTIONAR'],
+  // Todas las acciones sobre respaldos requieren poder abrir la pantalla,
+  // mismo criterio que auditoria/reportesFinanzas. RESPALDO_DESCARGAR queda
+  // fuera (no abre la pantalla por sí solo) — ver EXTRA_PANEL_PERMISSIONS.
+  respaldos: ['RESPALDO_VER', 'RESPALDO_CREAR', 'RESPALDO_ELIMINAR', 'RESPALDO_PROGRAMAR']
 } as const satisfies Record<string, readonly string[]>;
 
 export const PANEL_BASE_PATH: Record<PanelId, string> = {
@@ -288,6 +292,7 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Reporte financiero', icon: 'account_balance', route: 'reportes-finanzas', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesFinanzas, crossPanel: true },
   { label: 'Reporte de contratos', icon: 'description', route: 'reportes-contratos', panel: 'admin', permissions: PAGE_PERMISSIONS.reportesContratos, crossPanel: true },
   { label: 'Plantillas de Contrato', icon: 'gavel', route: 'plantillas-contrato', panel: 'admin', permissions: PAGE_PERMISSIONS.plantillasContrato, crossPanel: true },
+  { label: 'Respaldos', icon: 'backup', route: 'respaldos', panel: 'admin', permissions: PAGE_PERMISSIONS.respaldos, crossPanel: true },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
   // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
   // misma página que ven creador y cliente — ver NavItem.basePath.
@@ -356,7 +361,8 @@ const EXTRA_PANEL_PERMISSIONS: Partial<Record<PanelId, readonly string[]>> = {
   admin: [
     'AUDITORIA_EXPORTAR', 'REPORTE_FINANCIERO_EXPORTAR', 'REPORTE_CONTRATO_EXPORTAR', 'USUARIO_EXPORTAR',
     'ROL_VER', 'PERMISO_VER', 'SESION_REVOCAR',
-    'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR'
+    'MENSAJE_MODERAR', 'NOTIFICACION_ENVIAR', 'TICKET_RESOLVER', 'FONDOS_LIBERAR',
+    'RESPALDO_DESCARGAR'
   ]
 };
 

@@ -40,6 +40,25 @@ services:
         value: artisync_app
       - key: DB_APP_PASSWORD
         sync: false
+      # Respaldos (REQ-NF-024, ver db/seed_privilegios.sh como referencia):
+      # cuenta de SOLO LECTURA para pg_dump/COPY. Debe crearse manualmente en
+      # la base de datos gestionada; Render no la genera. RESPALDO_DB_HOST/
+      # PUERTO/NOMBRE: host y puerto de artisync-db (Render no expone un
+      # nombre de servicio interno para Postgres como docker-compose, así que
+      # estos no tienen "fromDatabase" -- pegar los mismos valores que ya usa
+      # DB_URL). Riesgo abierto: este archivo no fija la versión mayor de
+      # Postgres de Render; verificarla contra postgresql16-client del
+      # Dockerfile antes de depender de esto en producción.
+      - key: DB_BACKUP_USER
+        value: artisync_backup
+      - key: DB_BACKUP_PASSWORD
+        sync: false
+      - key: RESPALDO_DB_HOST
+        sync: false
+      - key: RESPALDO_DB_PUERTO
+        sync: false
+      - key: RESPALDO_DB_NOMBRE
+        sync: false
       - key: REDIS_HOST
         fromService:
           type: redis
