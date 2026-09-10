@@ -626,7 +626,7 @@ Los ocho requisitos siguientes (REQ-NF-018 a REQ-NF-025) se incorporan en v1.3.0
 - Prioridad: Should
 - Aceptación: existe un mecanismo de respaldo automatizado (cron o equivalente) con frecuencia y retención declaradas; existe al menos una restauración de prueba documentada.
 - Verificación: inspección de infraestructura + demostración de restauración
-- Estado: implementado (`RespaldoBdScheduler` ejecuta dos programaciones independientes —FULL semanal y DIARIO nocturno— configurables en caliente vía `RespaldoPolitica` [`V44`-`V46`], con purga automática por retención, verificación de integridad por SHA-256 e importación/restauración manual vía `pg_dump`/`pg_restore`; expuesto en `RespaldoBdControlador` con permisos propios `RESPALDO_*`. No alcanza `verificado`: sin prueba automatizada del scheduler/servicio y sin disco persistente declarado en `render.yaml` para `/var/artisync/backups` — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Estado: pendiente (existen 3 dumps SQL manuales committeados sin automatización — ver `artisync/Backend/backupPlainAI-*.sql` — no constituyen una política de respaldo)
 
 **REQ-NF-025** — El usuario debe poder revocar todas sus propias sesiones activas ante sospecha de compromiso de su cuenta, sin depender de un Administrador.
 
@@ -668,7 +668,7 @@ Todas las cifras se derivan de `docs/trazabilidad/matriz.csv` en la fecha de est
 | Total de requisitos                | 62                                                                |
 | Por tipo                           | 35 funcionales (56,5 %) · 27 no funcionales (43,5 %)              |
 | Por prioridad MoSCoW               | 37 Must (59,7 %) · 23 Should (37,1 %) · 2 Could (3,2 %)           |
-| Por estrategia de acceso a datos   | 44 CRUD-ORM · 8 SP · 10 sin acceso a datos (frontend/arquitectura/pendiente) |
+| Por estrategia de acceso a datos   | 43 CRUD-ORM · 8 SP · 11 sin acceso a datos (frontend/arquitectura/pendiente) |
 
 El corpus original de la Entrega 1A (37 requisitos, REQ-F-001 a REQ-F-023 y REQ-NF-001 a REQ-NF-014) se amplió en v1.1.2 con 11 requisitos adicionales (REQ-F-024 a REQ-F-031, REQ-NF-015 a REQ-NF-017) que documentan funcionalidad ya implementada, y en v1.3.0 con 10 requisitos adicionales más (REQ-F-032, REQ-F-033, REQ-NF-018 a REQ-NF-025) que documentan alcance genuinamente nuevo o brechas de cumplimiento con implicación legal, financiera o de seguridad no especificadas antes — ver §3.1, §4.2 y `CHANGELOG-REQ.md` v1.3.0. Además, en v1.3.0 dos requisitos heredados de la Entrega 1A (REQ-F-022 y REQ-NF-001) se dividieron en sub-requisitos atómicos (REQ-F-022a/b/c, REQ-NF-001a/b/c) para que cada capacidad testable tenga su propio estado sin depender de leer una nota aparte; esa división no representa alcance nuevo — ver §7.4.
 
@@ -677,15 +677,15 @@ El corpus original de la Entrega 1A (37 requisitos, REQ-F-001 a REQ-F-023 y REQ-
 | Estado         | Requisitos | Porcentaje |
 | -------------- | ---------- | ---------- |
 | `verificado`   | 45         | 72,6 %     |
-| `implementado` | 13         | 21,0 %     |
-| `pendiente`    | 4          | 6,4 %      |
+| `implementado` | 12         | 19,4 %     |
+| `pendiente`    | 5          | 8,1 %      |
 
 Desglose por prioridad, que es lo que evalúa el criterio D0R:
 
 | Prioridad | Verificado | Implementado | Pendiente | Cumple el mínimo exigido           |
 | --------- | ---------- | ------------ | --------- | ---------------------------------- |
 | Must      | 31 (83,8 %) | 5            | 1         | 31 de 37; 6 con excepción declarada |
-| Should    | 12         | 8            | 3         | 20 de 23; 3 con excepción declarada, 4 declarados por honestidad sin exigirlo |
+| Should    | 12         | 7            | 4         | 19 de 23; 4 con excepción declarada, 3 declarados por honestidad sin exigirlo |
 | Could     | 2          | 0            | 0         | Sin mínimo exigible                 |
 
 Los seis requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — pero agrupan dos situaciones distintas que conviene no tratar como equivalentes:
@@ -693,7 +693,7 @@ Los seis requisitos Must que no alcanzan `verificado` están declarados uno a un
 - **Evidencia pendiente de un comportamiento que ya opera correctamente** (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009): la funcionalidad y configuración ya están implementadas y el sistema ya está desplegado en Render; falta archivar la prueba externa (análisis SSL Labs, demostración de caída/recuperación) contra ese despliegue real. El sistema, tal como opera hoy, cumple el requisito — falta el papel, no la sustancia. (REQ-NF-018 ya salió de este grupo: `PrivacidadServiceImplIT`, nueva, cierra la evidencia de integración que faltaba y el requisito pasó a `verificado`.)
 - **Incumplimiento activo en producción** (REQ-NF-011): a diferencia del caso anterior, mientras `DOCUMENTOS_PROVEEDOR` no se fije en `render.yaml`, el sistema desplegado **está incumpliendo** el requisito ahora mismo — guarda archivos localmente, que es justo lo que el criterio de aceptación prohíbe ("sin archivos locales en el servidor"). No es una brecha de documentación: es una brecha operativa vigente, corregible fijando una variable de entorno.
 
-Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reembolso ante cancelación con fondos en escrow) todavía no existen en código, aunque la idempotencia ante webhook duplicado ya está implementada y probada. Tres requisitos Should quedan en `pendiente` con excepción declarada (REQ-F-022b, REQ-F-022c, REQ-NF-020), y cuatro requisitos Should en `implementado` se documentan también por honestidad aunque ya cumplen su mínimo formal (REQ-NF-005, REQ-NF-006, REQ-NF-017, REQ-NF-024) — el más relevante de estos es REQ-NF-017: el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-NF-024 subió de `pendiente` a `implementado` al construirse el módulo de respaldo automatizado (`RespaldoBdScheduler`), pero queda documentado por honestidad porque carece de prueba automatizada y de un disco persistente declarado en `render.yaml` para el directorio de respaldos. REQ-F-010, REQ-F-033 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`.
+Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reembolso ante cancelación con fondos en escrow) todavía no existen en código, aunque la idempotencia ante webhook duplicado ya está implementada y probada. Cuatro requisitos Should quedan en `pendiente` con excepción declarada (REQ-F-022b, REQ-F-022c, REQ-NF-020, REQ-NF-024), y tres requisitos Should en `implementado` se documentan también por honestidad aunque ya cumplen su mínimo formal (REQ-NF-005, REQ-NF-006, REQ-NF-017) — el más relevante de estos es REQ-NF-017: el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-F-010, REQ-F-033 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`.
 
 ### 7.3 Cobertura de trazabilidad
 
@@ -702,7 +702,7 @@ Además, dos pilares de REQ-NF-019 (reconciliación activa contra PayPal y reemb
 | Requisitos presentes en la matriz           | 62 / 62 (100 %)  |
 | Requisitos con prueba automatizada asociada | 47 (75,8 %)      |
 | Requisitos Must con prueba automatizada     | 33 / 37 (89,2 %) |
-| Requisitos con evidencia empírica archivada | 40 (64,5 %)      |
+| Requisitos con evidencia empírica archivada | 39 (62,9 %)      |
 
 El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. Los 4 requisitos Must sin prueba automatizada (REQ-NF-001a, REQ-NF-001b, REQ-NF-001c, REQ-NF-009) son, no por casualidad, 4 de los 6 que no alcanzan `verificado`: su verificación depende de un análisis externo o una demostración operativa contra el despliegue real. Los otros 2 Must no verificados (REQ-NF-011, REQ-NF-019) sí tienen prueba automatizada, pero no alcanzan `verificado` por otros motivos ya explicados en §7.2 (variable de entorno no fijada, funcionalidad parcial). En total, 3 requisitos tienen prueba automatizada parcial sin llegar a `verificado` — REQ-NF-005, REQ-NF-006, REQ-NF-011 — cada uno con su motivo puntual declarado en `excepciones-estado.txt` o en su propia fila de la matriz. REQ-F-010, REQ-F-033, REQ-NF-018 y REQ-NF-022 ya no están en esta lista: sus pruebas automatizadas (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado) cubren ahora el criterio de aceptación completo.
 

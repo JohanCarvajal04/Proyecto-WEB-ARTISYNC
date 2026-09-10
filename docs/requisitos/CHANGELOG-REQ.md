@@ -2,19 +2,6 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
-## [No publicado] - 2026-09-10 — REQ-NF-024 pasa de `pendiente` a `implementado` (módulo de respaldo construido)
-
-### Changed — REQ-NF-024 pasa de `pendiente` a `implementado`
-
-Se construyó el módulo completo de respaldo y recuperación de base de datos, sin tocar el enunciado ni la prioridad del requisito:
-
-- `RespaldoBdScheduler` (dos programaciones dinámicas independientes: cron `FULL` semanal y cron `DIARIO` nocturno, leídas en caliente de `RespaldoPolitica` en vez de fijas por anotación, más una tarea de purga de expirados a las 02:30).
-- `RespaldoBdServicioImpl`/`RespaldoBdControlador`, expuestos en `POST/GET/DELETE /api/v1/admin/respaldos`, `POST /api/v1/admin/respaldos/importar`, `GET /api/v1/admin/respaldos/{id}/descargar`, `POST /api/v1/admin/respaldos/{id}/restaurar` y `GET/PUT /api/v1/admin/respaldos/politica`, con permisos propios (`RESPALDO_VER/CREAR/ELIMINAR/RESTAURAR/CONFIGURAR/DESCARGAR`).
-- Respaldo vía `pg_dump --format=custom` con verificación de integridad SHA-256; restauración vía `pg_restore --clean --if-exists` con advertencia explícita de estado inconsistente si la restauración se corta a mitad de camino; importación de dumps externos con validación de firma `PGDMP`.
-- Migraciones `V44__modulo_respaldos_bd.sql`, `V45__permiso_respaldo_descargar.sql`, `V46__respaldos_categoria_full_diario.sql`; volumen dedicado `pfc_backups` en `docker-compose.yml`; `spring.task.scheduling.pool.size=6` en `application.properties` para que los dos crons de respaldo no compitan por el único hilo compartido con `VerificacionScheduler`/`SorteoScheduler`/purgas; `postgresql16-client` fijado en el `Dockerfile` (la versión genérica de Alpine instala una major más nueva que el servidor `postgres:16`, y `pg_dump` de esa versión emite sentencias que `pg_restore` contra un servidor 16 rechaza).
-
-No alcanza `verificado`, y se declara excepción por honestidad en `docs/trazabilidad/excepciones-estado.txt` (mismo criterio que REQ-NF-005/006/017): no hay prueba automatizada del scheduler/servicio, no hay una restauración de prueba documentada, y `render.yaml` no declara un disco persistente para `/var/artisync/backups` — en el filesystem efímero del backend en Render, los respaldos se perderían en cada reinicio o redeploy (misma categoría de brecha que tuvo REQ-NF-011 con el almacenamiento de documentos antes de fijar `DOCUMENTOS_PROVEEDOR=azure`). §7.1-§7.3 de `SRS.md` recalculados: `implementado` 12→13, `pendiente` 5→4, estrategia de acceso a datos 43→44 CRUD-ORM, evidencia empírica archivada 39→40.
-
 ## [No publicado] - 2026-09-09 — 4 requisitos suben de `implementado`/`pendiente` a `verificado` (evidencia de prueba completada)
 
 ### Changed — REQ-F-010, REQ-F-033, REQ-NF-018, REQ-NF-022 pasan a `verificado`
