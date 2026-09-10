@@ -32,8 +32,6 @@ REQ-F-022b  # (Should) Un ticket de revision que supera el limite configurado no
 
 REQ-F-022c  # (Should) Un ticket de revision sin pago tras 48h no se rechaza automaticamente: ninguno de los 4 @Scheduled existentes (NotificacionesPurgaScheduler, SeguridadPurgaScheduler, SorteoScheduler, VerificacionScheduler) cubre tickets de revision. Cierre: implementar el scheduler de expiracion a 48h y su prueba, o retirar esta clausula del enunciado si se decide no construirla.
 
-REQ-NF-011  # (Must) INCUMPLIMIENTO ACTIVO, no evidencia pendiente: Azure Blob Storage esta implementado y probado en codigo (AlmacenamientoAzureTest, AlmacenamientoAzureIntegracionTest), pero mientras DOCUMENTOS_PROVEEDOR no estuviera fijado en el despliegue real, el sistema en produccion guardaba archivos en el volumen local del contenedor -- exactamente lo que el criterio de aceptacion prohibe ("sin archivos locales en el servidor"). render.yaml ya declara DOCUMENTOS_PROVEEDOR=azure y AZURE_STORAGE_CONNECTION_STRING (secreto, sync:false). Cierre: fijar el valor real de AZURE_STORAGE_CONNECTION_STRING en el dashboard de Render, redesplegar, y verificar con una URL real servida desde Azure.
-
 # REQ-NF-005 (Should) ya no esta aqui: ChatWebSocketLoadIT (nueva, @SpringBootTest
 # con 10 conexiones STOMP reales concurrentes, 5 rondas) mide la latencia extremo-a-
 # extremo real: p95=346ms, max=346ms, bajo el umbral de 500ms. La prueba tambien
@@ -52,8 +50,6 @@ REQ-NF-017  # (Should) Usabilidad SUS medida en 61.25/100 (docs/mediciones/sus/R
 REQ-NF-019  # (Must) Idempotencia por estado implementada y probada (PagoServicioImplWebhookTest.reintentoNoDuplica); faltan reconciliacion activa contra la API de PayPal y flujo de reembolso/liberacion ante cancelacion con fondos en escrow - ninguno de los dos existe en codigo (no existe siquiera una funcion de cancelar un pedido con fondos ya retenidos). Cierre: implementar ambos y su prueba, o degradar la prioridad a Should si el equipo decide dejarlos fuera de v1.0.0.
 
 REQ-NF-020  # (Should) Conservacion e integridad de contratos firmados: generarHashFirma() en ContratoServicioImpl corre una sola vez al firmar; nada recomputa ni re-verifica el hash despues, y la tabla contratos no declara retencion ni expiracion. Cierre: declarar un periodo de retencion y un mecanismo de re-verificacion periodica del hash.
-
-REQ-NF-022  # (Must) Limite de tasa en autenticacion y registro implementado con valores concretos (AuthRateLimitFilter: login 10/60s, 2fa 10/60s, forgot-password 5/15min, reset-password 10/15min, registro 5/60min), pero AuthRateLimitFilterTest solo prueba explicitamente el limite de login y la separacion de buckets, no los 5 valores exactos. Cierre: ampliar la prueba para cubrir los 5 limites y subir a verificado.
 
 # REQ-NF-024 (Should) ya no esta aqui: restauracion de prueba ejecutada el 2026-09-10 sobre el
 # ambiente local de la Entrega Final. Respaldo FULL id=1 (respaldo_full_20260910_1230.dump, 349 KB,
