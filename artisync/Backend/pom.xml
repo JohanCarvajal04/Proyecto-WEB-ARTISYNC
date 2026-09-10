@@ -73,7 +73,10 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<!-- Sin scope runtime: IncrementalRespaldoExportador (respaldos,
+			     REQ-NF-024) usa org.postgresql.PGConnection/copy.CopyManager
+			     directamente (COPY TO STDOUT por tabla), no solo a través del
+			     driver JDBC estándar. -->
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

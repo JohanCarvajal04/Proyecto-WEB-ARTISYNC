@@ -59,6 +59,8 @@ const ASIGNACION = 'M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a
 const CAMPANA = 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9';
 /** Billetes superpuestos (Heroicons v1 `cash`) — Retiros (payouts a creadores). */
 const EFECTIVO = 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z';
+/** Pila de discos (Heroicons v2 `circle-stack`) — Respaldos de base de datos. */
+const RESPALDO = 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75';
 
 /** Cromo del propio shell (no aparece en NAV_CATALOG): buscador, hamburguesa,
  *  cerrar (X), flechas de colapsar/expandir y logout. Se centralizan aquí para
@@ -97,6 +99,7 @@ export const NAV_ICON_PATHS: Readonly<Record<string, string>> = {
   assignment: ASIGNACION,
   notifications: CAMPANA,
   account_balance_wallet: EFECTIVO,
+  backup: RESPALDO,
 
   // Cromo del shell, sin entrada en NAV_CATALOG.
   search: BUSCAR,

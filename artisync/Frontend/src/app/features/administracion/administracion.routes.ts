@@ -126,5 +126,11 @@ export const ADMINISTRACION_ROUTES: Routes = [
     canActivate: [authGuard],
     data: { permissions: PAGE_PERMISSIONS.retirosAdmin },
     loadComponent: () => import('./pages/retiros/retiros-admin.component').then(m => m.RetirosAdminComponent)
+  },
+  {
+    path: 'respaldos',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.respaldos },
+    loadComponent: () => import('./pages/respaldos/respaldos.component').then(m => m.RespaldosComponent)
   }
 ];

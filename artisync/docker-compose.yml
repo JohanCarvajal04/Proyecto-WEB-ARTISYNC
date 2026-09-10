@@ -12,6 +12,9 @@ services:
       POSTGRES_USER: ${DB_USER:-pfc_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
+      # Leida por db/seed_privilegios.sh para crear el rol de solo lectura
+      # artisync_backup (respaldos, REQ-NF-024).
+      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD:-changeme_backup}
       # Alinea CURRENT_TIMESTAMP con la hora local que usa el backend (ver
       # TZ en el Dockerfile del backend) -- solo toma efecto en un volumen
       # nuevo; initdb fija el timezone del servidor una sola vez.
@@ -86,6 +89,15 @@ services:
       # ejecucion (A.2.3, privilegios minimos — ver db/seed_privilegios.sh).
       DB_APP_USER: artisync_app
       DB_APP_PASSWORD: ${DB_APP_PASSWORD:-changeme_app}
+      # Respaldos (REQ-NF-024): RESPALDO_DB_HOST debe ser el nombre del
+      # servicio "postgres" y NO el default "localhost" de
+      # application.properties, que dentro de este contenedor resolveria al
+      # propio backend -- mismo motivo por el que DB_URL ya se sobreescribe
+      # arriba. DB_BACKUP_USER/PASSWORD: rol de solo lectura creado por
+      # db/seed_privilegios.sh.
+      RESPALDO_DB_HOST: postgres
+      DB_BACKUP_USER: artisync_backup
+      DB_BACKUP_PASSWORD: ${DB_BACKUP_PASSWORD:-changeme_backup}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
@@ -105,6 +117,7 @@ services:
       - "8080"
     volumes:
       - pfc_documentos_verificacion:/var/artisync/documentos
+      - pfc_respaldos:/var/artisync/respaldos
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,4 +151,5 @@ services:
 volumes:
   pfc_postgres_data:
   pfc_documentos_verificacion:
+  pfc_respaldos:
   pfc_azurite_data:

@@ -1,0 +1,108 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+  <div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 max-w-lg w-full shadow-xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true">
+
+    <div class="flex items-center justify-between border-b border-outline-variant pb-4">
+      <h3 class="font-headline text-xl font-bold text-primary">
+        {{ mode === 'create' ? 'Nueva Programación de Respaldo' : 'Editar Programación' }}
+      </h3>
+      <button
+        type="button"
+        aria-label="Cerrar"
+        class="text-on-surface-variant hover:text-primary p-1"
+        (click)="closeModal.emit()"
+        [disabled]="isLoading">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface" for="nombre">Nombre *</label>
+        <input
+          type="text"
+          id="nombre"
+          formControlName="nombre"
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+          [class]="{'border-error focus:border-error focus:ring-error/20': isFieldInvalid('nombre')}"
+          placeholder="Ej. Respaldo diario completo">
+        @if (isFieldInvalid('nombre')) {
+          <div class="mt-1 text-xs text-error">El nombre es requerido (máximo 100 caracteres)</div>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface" for="tipoRespaldo">Tipo de respaldo *</label>
+        <select
+          id="tipoRespaldo"
+          formControlName="tipoRespaldo"
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+          <option value="FULL">Completo (FULL)</option>
+          <option value="INCREMENTAL">Incremental</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface" for="expresionCron">Frecuencia (expresión cron) *</label>
+        <div class="flex flex-wrap gap-2 mb-1">
+          @for (preset of presetsCron; track preset.valor) {
+            <button
+              type="button"
+              (click)="aplicarPreset(preset.valor)"
+              class="px-2.5 py-1 rounded-full border border-outline-variant text-xs text-on-surface-variant hover:bg-surface-container transition-colors">
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+        <input
+          type="text"
+          id="expresionCron"
+          formControlName="expresionCron"
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+          [class]="{'border-error focus:border-error focus:ring-error/20': isFieldInvalid('expresionCron')}"
+          placeholder="0 0 3 * * *">
+        @if (isFieldInvalid('expresionCron')) {
+          <div class="mt-1 text-xs text-error">La expresión cron es requerida</div>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface" for="retencionDias">Retención (días) *</label>
+        <input
+          type="number"
+          id="retencionDias"
+          formControlName="retencionDias"
+          min="1"
+          max="3650"
+          class="bg-surface text-on-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+          [class]="{'border-error focus:border-error focus:ring-error/20': isFieldInvalid('retencionDias')}">
+        @if (isFieldInvalid('retencionDias')) {
+          <div class="mt-1 text-xs text-error">Debe ser un número entre 1 y 3650</div>
+        }
+      </div>
+
+      <div class="flex justify-end gap-3 border-t border-outline-variant pt-4 mt-2">
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-sm font-medium hover:bg-surface-container transition-colors"
+          (click)="closeModal.emit()"
+          [disabled]="isLoading">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="px-5 py-2 rounded-lg bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+          (click)="onSubmit()"
+          [disabled]="isLoading">
+          @if (isLoading) {
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          }
+          <span>{{ isLoading ? 'Guardando...' : (mode === 'create' ? 'Crear Programación' : 'Guardar Cambios') }}</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

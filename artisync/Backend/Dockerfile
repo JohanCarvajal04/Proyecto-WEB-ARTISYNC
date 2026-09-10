@@ -9,7 +9,12 @@ RUN mvn clean package -DskipTests -B
 # --- Etapa de ejecucion ---
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN apk add --no-cache wget
+# postgresql16-client (pg_dump): version 16 para igualar la version mayor del
+# servidor postgres:16 (docker-compose.yml) y evitar desfases entre cliente y
+# servidor. Lo invoca PgDumpEjecutor via ProcessBuilder, conectando por red al
+# host de Postgres -- nunca via "docker exec" al contenedor sibling, ver
+# docs/despliegue/BACKUP.md.
+RUN apk add --no-cache wget postgresql16-client
 # Sin esto la JVM corre en UTC (el default de la imagen base), 5 horas por
 # delante de Ecuador. Como el frontend envia LocalDateTime "de pared" sin
 # offset (p.ej. datetime-local de Sorteo/Pedido), @Future los comparaba

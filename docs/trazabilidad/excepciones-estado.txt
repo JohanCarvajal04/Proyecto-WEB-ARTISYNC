@@ -53,7 +53,9 @@ REQ-NF-019  # (Must) Idempotencia por estado implementada y probada (PagoServici
 
 REQ-NF-020  # (Should) Conservacion e integridad de contratos firmados: generarHashFirma() en ContratoServicioImpl corre una sola vez al firmar; nada recomputa ni re-verifica el hash despues, y la tabla contratos no declara retencion ni expiracion. Cierre: declarar un periodo de retencion y un mecanismo de re-verificacion periodica del hash.
 
-REQ-NF-024  # (Should) Respaldo y recuperacion de base de datos: no existe automatizacion (cron/pg_dump programado); existen 3 dumps SQL manuales committeados al repositorio (artisync/Backend/backupPlainAI-*.sql) que documentan una practica ad hoc, no una politica de respaldo. Cierre: automatizar el respaldo con frecuencia y retencion declaradas, y documentar una restauracion de prueba.
+REQ-NF-022  # (Must) Limite de tasa en autenticacion y registro implementado con valores concretos (AuthRateLimitFilter: login 10/60s, 2fa 10/60s, forgot-password 5/15min, reset-password 10/15min, registro 5/60min), pero AuthRateLimitFilterTest solo prueba explicitamente el limite de login y la separacion de buckets, no los 5 valores exactos. Cierre: ampliar la prueba para cubrir los 5 limites y subir a verificado.
+
+REQ-NF-024  # (Should) Respaldo y recuperacion de base de datos: automatizado desde el panel de administracion (RespaldoControlador, RespaldoProgramacionScheduler), con disparo manual o programado, tipo FULL (pg_dump) o INCREMENTAL (COPY diferencial por tabla vía JDBC), frecuencia y retencion declaradas por programacion. Cierre: falta ejecutar y documentar una restauracion de prueba contra un respaldo generado por este mecanismo (ver docs/despliegue/BACKUP.md) para subir a verificado.
 
 # REQ-F-010 (Should) ya no esta aqui: AdminComentarioControladorTest (nuevo) cierra el
 # unico hueco real que quedaba (ComentarioPortafolioServiceImpl/Controlador ya estaban

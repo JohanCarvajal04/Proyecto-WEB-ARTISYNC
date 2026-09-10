@@ -626,7 +626,7 @@ Los ocho requisitos siguientes (REQ-NF-018 a REQ-NF-025) se incorporan en v1.3.0
 - Prioridad: Should
 - Aceptación: existe un mecanismo de respaldo automatizado (cron o equivalente) con frecuencia y retención declaradas; existe al menos una restauración de prueba documentada.
 - Verificación: inspección de infraestructura + demostración de restauración
-- Estado: pendiente (existen 3 dumps SQL manuales committeados sin automatización — ver `artisync/Backend/backupPlainAI-*.sql` — no constituyen una política de respaldo)
+- Estado: implementado (mecanismo de respaldo automatizado FULL/INCREMENTAL con frecuencia y retención declaradas por programación cron o disparo manual, desde el panel de administración — ver `docs/despliegue/BACKUP.md`; falta ejecutar y documentar una restauración de prueba para subir a verificado)
 
 **REQ-NF-025** — El usuario debe poder revocar todas sus propias sesiones activas ante sospecha de compromiso de su cuenta, sin depender de un Administrador.
 

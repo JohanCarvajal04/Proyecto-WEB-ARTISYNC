@@ -57,3 +57,34 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     END
     \$\$;
 EOSQL
+
+# ==============================================================================
+# Cuenta de solo lectura para respaldos (REQ-NF-024, V44__modulo_respaldos.sql)
+# ==============================================================================
+#
+# artisync_backup la usan PgDumpEjecutor (pg_dump) e
+# IncrementalRespaldoExportador (COPY vía JDBC) para leer la base de datos
+# completa sin necesitar los privilegios de escritura de artisync_app ni los
+# de DDL de la cuenta de Flyway -- estrictamente menos privilegio que
+# artisync_app, mismo motivo por el que esa cuenta ya existe separada de la
+# de Flyway.
+: "${DB_BACKUP_PASSWORD:?Falta la variable de entorno DB_BACKUP_PASSWORD}"
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DO \$\$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'artisync_backup') THEN
+            CREATE ROLE artisync_backup LOGIN PASSWORD '$DB_BACKUP_PASSWORD';
+        END IF;
+    END
+    \$\$;
+
+    GRANT USAGE ON SCHEMA public TO artisync_backup;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO artisync_backup;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO artisync_backup;
+
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+        GRANT SELECT ON TABLES TO artisync_backup;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public
+        GRANT USAGE, SELECT ON SEQUENCES TO artisync_backup;
+EOSQL
