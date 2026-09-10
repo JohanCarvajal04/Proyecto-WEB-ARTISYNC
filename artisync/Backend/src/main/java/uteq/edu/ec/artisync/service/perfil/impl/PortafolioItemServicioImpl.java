@@ -9,6 +9,7 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolioItem;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolioItem;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
@@ -151,10 +152,19 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     /** Un portafolio privado solo lo ve su dueño; uno público, cualquiera. */
     private void exigirVisibilidad(Portafolio portafolio, Long idUsuario) {
+        // REQ-NF-018 (ajuste de seguimiento): una cuenta desactivada (soft-delete
+        // o supresión real) nunca es visible, sin importar esPublico ni idUsuario
+        // — el propio dueño, si su cuenta está desactivada, tampoco puede haberse
+        // autenticado para pedirlo con su propio id.
+        Usuario duenio = portafolio.getPerfil().getUsuario();
+        if (duenio == null || !Boolean.TRUE.equals(duenio.getEstadoCuenta())) {
+            throw new ExcepcionReglaNegocio("Este portafolio no es público.");
+        }
+
         if (Boolean.TRUE.equals(portafolio.getEsPublico())) {
             return;
         }
-        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();
+        Long idDuenio = duenio.getIdUsuario();
         if (idUsuario == null || !idDuenio.equals(idUsuario)) {
             throw new ExcepcionReglaNegocio("Este portafolio no es público.");
         }

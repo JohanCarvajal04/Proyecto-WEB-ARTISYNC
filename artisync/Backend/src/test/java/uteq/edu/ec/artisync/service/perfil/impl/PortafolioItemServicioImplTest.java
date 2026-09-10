@@ -1,6 +1,7 @@
 package uteq.edu.ec.artisync.service.perfil.impl;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -190,6 +191,24 @@ class PortafolioItemServicioImplTest {
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
         assertThat(servicio.listarItems(ID_PORTAFOLIO, ID_DUENIO)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("REQ-NF-018: un portafolio público deja de ser visible si el dueño desactivó/suprimió su cuenta")
+    void listarItems_duenioConCuentaDesactivada_esRechazadoAunqueSeaPublico() {
+        portafolio.getPerfil().getUsuario().setEstadoCuenta(false);
+        when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
+    }
+
+    @Test
+    @DisplayName("REQ-NF-018: ni el propio dueño ve su portafolio si su cuenta está desactivada")
+    void listarItems_duenioConCuentaDesactivada_niElPropioDuenioLoVe() {
+        portafolio.getPerfil().getUsuario().setEstadoCuenta(false);
+        when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_DUENIO));
     }
 
     // ── Descarga ─────────────────────────────────────────────────────────────
