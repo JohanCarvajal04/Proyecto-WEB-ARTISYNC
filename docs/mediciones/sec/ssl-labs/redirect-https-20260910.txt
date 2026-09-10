@@ -1,0 +1,14 @@
+HTTP/1.1 301 Moved Permanently
+Date: Thu, 10 Sep 2026 10:24:30 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 74
+Connection: keep-alive
+Location: https://artisync-frontend.onrender.com/
+cf-cache-status: DYNAMIC
+Server: cloudflare
+CF-RAY: a38db92fae5eb08f-GYE
+alt-svc: h3=":443"; ma=86400
+
+<a href="https://artisync-frontend.onrender.com/">Moved Permanently</a>.
+
+---

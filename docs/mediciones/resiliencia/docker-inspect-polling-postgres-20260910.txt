@@ -1,0 +1,24 @@
+Kill time (UTC): 2026-09-10T10:30:47.068Z
+pfc_postgres
+2026-09-10T10:30:48.013Z  exited health=unhealthy restartcount=0
+2026-09-10T10:30:51.752Z  exited health=unhealthy restartcount=0
+2026-09-10T10:30:55.416Z  exited health=unhealthy restartcount=0
+2026-09-10T10:30:59.102Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:02.752Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:06.402Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:10.093Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:13.744Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:17.395Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:21.098Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:24.768Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:28.445Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:32.094Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:35.751Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:39.437Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:43.132Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:46.770Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:50.488Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:54.163Z  exited health=unhealthy restartcount=0
+2026-09-10T10:31:57.823Z  exited health=unhealthy restartcount=0
+(sin recuperacion tras ~71s de polling continuo; se restauro manualmente con
+`docker start pfc_postgres` para no dejar el entorno de desarrollo caido)
