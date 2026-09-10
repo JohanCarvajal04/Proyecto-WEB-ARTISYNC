@@ -108,7 +108,51 @@ Procedimiento equivalente, paso a paso con capturas de pgAdmin, en la Sección I
 Se recomienda ejecutar el procedimiento anterior contra un entorno de staging (no producción) de
 forma mensual, siguiendo el simulacro ya diseñado en la Sección II-A del PDF de la asignatura
 (ventana semanal de simulacro, sábado 10:00 AM). **Estado a la fecha de este documento:** el
-simulacro no se ha ejecutado todavía sobre el ambiente real de la Entrega Final — queda declarado
-como acción pendiente. Con el mecanismo automatizado ya implementado, ese simulacro debe ejecutarse
-contra un respaldo generado por él (no contra los dumps manuales antiguos) para que REQ-NF-024 pase
-de "implementado" a "verificado" en `docs/requisitos/SRS.md`.
+simulacro fue ejecutado el 2026-09-10 sobre el ambiente local de la Entrega Final contra un
+respaldo generado por el mecanismo automatizado del panel de administración (`/admin/respaldos`) —
+ver el registro de restauraciones de prueba más abajo. REQ-NF-024 sube a "verificado".
+
+## Registro de restauraciones de prueba
+
+| Fecha | Tipo de respaldo | ID | Archivo | Generado por | Resultado | Tablas validadas | Responsable |
+|---|---|---|---|---|---|---|---|
+| 2026-09-10 | FULL (`pg_dump -Fc`) | 1 | `respaldo_full_20260910_1230.dump` (349 KB, 895 ms) | Panel admin `/admin/respaldos` · MANUAL | ✅ Exitoso (`pg_restore` exit 0; sin errores) | pedidos: 4, usuarios: 10, contratos: 3 | Johan Carvajal |
+
+### Pasos ejecutados el 2026-09-10
+
+```bash
+# 1. Entorno levantado (ya estaba corriendo)
+#    docker compose -f artisync/docker-compose.yml up -d
+#    pfc_frontend  Up | pfc_backend  Up (healthy) | pfc_postgres  Up (healthy) | pfc_redis  Up (healthy)
+
+# 2. Respaldo generado desde el panel admin
+#    http://localhost:4200/admin/respaldos → "Generar respaldo ahora" → Tipo: Completo (FULL)
+#    Resultado en BD: id_respaldo=1, estado_respaldo=COMPLETADO, duracion_ms=895
+docker exec pfc_backend ls -lh /var/artisync/respaldos/
+# -rw-r--r-- 1 root root 350K Sep 10 12:30 respaldo_full_20260910_1230.dump
+
+# 3. Copia del dump del volumen al host
+docker cp pfc_backend:/var/artisync/respaldos/respaldo_full_20260910_1230.dump ./backup-test.dump
+# backup-test.dump  357502 bytes
+
+# 4. Copia al contenedor postgres para restaurar
+docker cp ./backup-test.dump pfc_postgres:/tmp/backup-test.dump
+
+# 5. Restauración sobre la misma base (entorno de prueba local, --clean --if-exists)
+docker exec pfc_postgres pg_restore \
+  -U postgres -d artisyncbd \
+  --clean --if-exists \
+  /tmp/backup-test.dump
+# Exit: 0  (sin errores)
+
+# 6. Validación de integridad post-restauración
+docker exec pfc_postgres psql -U postgres -d artisyncbd \
+  -c "SELECT 'pedidos' AS tabla, count(*) AS total FROM pedidos
+      UNION ALL SELECT 'usuarios', count(*) FROM usuarios
+      UNION ALL SELECT 'contratos', count(*) FROM contratos;"
+#    tabla   | total
+# -----------+-------
+#  pedidos   |     4
+#  usuarios  |    10
+#  contratos |     3
+```
