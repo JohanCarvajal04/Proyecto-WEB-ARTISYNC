@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.exception;
+﻿package uteq.edu.ec.artisync.exception;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +20,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Errores en formato ProblemDetails (RFC 7807), Bloque A.1 de la guia de la Tercera Entrega.
+ * Componente transversal de infraestructura: Controlador de asesoramiento (ControllerAdvice).
+ * 
+ * Propósito: Centralizar y capturar las excepciones lanzadas desde cualquier capa de la aplicacion para estandarizarlas bajo el formato ProblemDetails (RFC 7807).
+ * 
+ * Flujo interno: Intercepta excepciones (via @ExceptionHandler) y devuelve un payload JSON coherente con el codigo HTTP apropiado (400, 401, 404, 500), evitando la filtracion de stacktraces.
  */
 @Slf4j
 @RestControllerAdvice
@@ -40,7 +44,7 @@ public class ManejadorGlobalExcepciones {
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.BAD_REQUEST,
                 "validacion",
-                "Error de validación en los datos de entrada",
+                "Error de validaciÃ³n en los datos de entrada",
                 peticion.getRequestURI()
         );
         pd.setProperty("fieldErrors", erroresCampos);
@@ -124,17 +128,17 @@ public class ManejadorGlobalExcepciones {
 
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.FORBIDDEN, "acceso-denegado",
-                "No tienes permisos suficientes para realizar esta acción", peticion.getRequestURI());
+                "No tienes permisos suficientes para realizar esta acciÃ³n", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
     }
 
     @ExceptionHandler({AuthenticationException.class, JwtException.class})
     public ResponseEntity<ProblemDetail> manejarExcepcionAutenticacion(
             Exception ex, HttpServletRequest peticion) {
-        log.warn("Error de autenticación/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        log.warn("Error de autenticaciÃ³n/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.UNAUTHORIZED, "autenticacion",
-                "Credenciales inválidas o token expirado/malformado", peticion.getRequestURI());
+                "Credenciales invÃ¡lidas o token expirado/malformado", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
     }
 
@@ -165,3 +169,4 @@ public class ManejadorGlobalExcepciones {
         return pd;
     }
 }
+

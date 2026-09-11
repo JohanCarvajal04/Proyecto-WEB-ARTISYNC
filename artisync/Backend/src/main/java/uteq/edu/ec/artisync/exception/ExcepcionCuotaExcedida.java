@@ -1,11 +1,11 @@
-package uteq.edu.ec.artisync.exception;
+﻿package uteq.edu.ec.artisync.exception;
 
 /**
- * §2.2 / OBS-AUTO-06: cuota de intentos por CUENTA excedida (a diferencia del
- * rate limit por IP de AuthRateLimitFilter, que responde 429 directamente
- * desde el filtro). Se maneja como ProblemDetail via ManejadorGlobalExcepciones
- * para que lleve la cabecera Retry-After, que un ResponseStatusException
- * generico no puede transportar.
+ * Componente de Excepciones: Error personalizado de negocio.
+ * 
+ * Propósito: Notificar que un usuario ha superado un limite o cuota operativa permitida en el sistema (ej. cuota de IA).
+ * 
+ * Flujo interno: Lanzada por la capa de negocio y atrapada por el manejador global para traducirse a un HTTP 429 Too Many Requests o 402 Payment Required.
  */
 public class ExcepcionCuotaExcedida extends RuntimeException {
 
@@ -20,3 +20,4 @@ public class ExcepcionCuotaExcedida extends RuntimeException {
         return retryAfterSegundos;
     }
 }
+
