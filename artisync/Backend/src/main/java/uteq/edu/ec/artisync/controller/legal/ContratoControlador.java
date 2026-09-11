@@ -77,6 +77,12 @@ public class ContratoControlador {
         return ResponseEntity.ok(contratoServicio.obtenerContratoPorPedido(idPedido, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Consulta el estado de firma actual del contrato para el usuario autenticado.
+     * @param id identificador del contrato
+     * @param userDetails usuario autenticado que realiza la consulta
+     * @return estado de firma indicando si el usuario ya firmó, si es el último en firmar, etc.
+     */
     @GetMapping("/{id}/estado-firma")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RespuestaEstadoFirma> obtenerEstadoFirma(
@@ -85,6 +91,12 @@ public class ContratoControlador {
         return ResponseEntity.ok(contratoServicio.obtenerEstadoFirma(id, userDetails.getIdUsuario()));
     }
 
+    /**
+     * Descarga el documento PDF final y firmado del contrato.
+     * @param id identificador del contrato
+     * @param userDetails usuario autenticado (debe ser parte del contrato o administrador)
+     * @return el archivo PDF del contrato para descarga
+     */
     @GetMapping("/{id}/pdf")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> descargarPdf(

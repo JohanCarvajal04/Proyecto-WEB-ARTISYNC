@@ -104,6 +104,14 @@ public class AuditoriaControlador {
         return RespuestaDocumento.de(documento);
     }
 
+    /**
+     * Sobrecarga de conveniencia para exportar los eventos de auditoría sin paginación (documento completo).
+     *
+     * @param filtro criterios opcionales para filtrar los eventos
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del usuario actual
+     * @return el documento generado con la totalidad de los eventos que cumplen el filtro
+     */
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             FiltroAuditoria filtro,

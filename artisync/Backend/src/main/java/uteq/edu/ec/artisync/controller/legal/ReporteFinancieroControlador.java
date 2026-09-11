@@ -69,6 +69,14 @@ public class ReporteFinancieroControlador {
         return RespuestaDocumento.de(documento);
     }
 
+    /**
+     * Sobrecarga de conveniencia para exportar el reporte de comisiones sin paginación (documento completo).
+     *
+     * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del usuario actual
+     * @return el documento generado con la totalidad de los registros que cumplen el filtro
+     */
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             FiltroReporteFinanciero filtro,

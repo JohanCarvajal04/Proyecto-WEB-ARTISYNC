@@ -77,6 +77,14 @@ public class ReporteContratoControlador {
         return RespuestaDocumento.de(documento);
     }
 
+    /**
+     * Sobrecarga de conveniencia para exportar el reporte de contratos sin paginación (documento completo).
+     *
+     * @param filtro criterios opcionales para filtrar el reporte
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del usuario actual
+     * @return el documento generado con la totalidad de los contratos que cumplen el filtro
+     */
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             FiltroReporteContrato filtro,
