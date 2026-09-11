@@ -6,7 +6,6 @@ import { AuthService } from '../../../seguridad/services/auth.service';
 import { UserService } from '../../../perfil/services/user.service';
 import { PaisService } from '../../../../shared/services/pais.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { IdentityCardComponent } from '../../../../shared/components/identity-card/identity-card.component';
 import { PaisResponse, UserResponse } from '../../../../shared/models/user.model';
 import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 
@@ -28,7 +27,7 @@ import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 @Component({
   selector: 'app-configuracion-cuenta',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, IdentityCardComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './configuracion-cuenta.component.html'
 })
 export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
@@ -40,14 +39,8 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
-  /** El ítem "Cambiar foto de perfil" del menú de usuario llega aquí con ?accion=cambiar-foto y abre el selector de la tarjeta de identidad solo. */
-  @ViewChild(IdentityCardComponent) private identityCard?: IdentityCardComponent;
-
   readonly isLoading = signal<boolean>(true);
   readonly userProfile = signal<UserResponse | null>(null);
-  readonly paises = signal<PaisResponse[]>([]);
-  readonly editandoDatos = signal<boolean>(false);
-  readonly guardandoDatos = signal<boolean>(false);
 
   /** REQ-NF-018: confirmación explícita antes de la supresión — es irreversible y el correo actual queda libre. */
   readonly isConfirmSupresionOpen = signal<boolean>(false);
@@ -59,12 +52,7 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
     codigo: ['']
   });
 
-  form: FormGroup = this.fb.group({
-    nombres: ['', [Validators.maxLength(100)]],
-    apellidos: ['', [Validators.maxLength(100)]],
-    fechaNacimiento: [''],
-    idPais: [null]
-  });
+
 
   userEmail = computed(() =>
     this.userProfile()?.correo || this.authService.currentUser()?.email || this.authService.currentUser()?.sub || '—'
@@ -77,16 +65,11 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
   sinPermisos = computed(() => this.totalPermisos() === 0);
 
   ngOnInit(): void {
-    this.paisService.getPaisesActivos().subscribe({ next: (data) => this.paises.set(data) });
     this.loadProfile();
   }
 
   ngAfterViewInit(): void {
-    if (this.route.snapshot.queryParamMap.get('accion') === 'cambiar-foto') {
-      // setTimeout: dejar que termine este ciclo de detección de cambios antes
-      // de abrir el selector nativo, para no interferir con el renderizado inicial.
-      setTimeout(() => this.identityCard?.abrirSelectorFoto());
-    }
+    // Left empty for now, as photo editing moved to profile
   }
 
   loadProfile(): void {
@@ -94,7 +77,6 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
     this.userService.getCurrentUser().subscribe({
       next: (profile) => {
         this.userProfile.set(profile);
-        this.patchDatosPersonales(profile);
         this.isLoading.set(false);
       },
       error: () => {
@@ -102,56 +84,6 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
         this.isLoading.set(false);
       }
     });
-  }
-
-  private patchDatosPersonales(u: UserResponse): void {
-    this.form.patchValue({
-      nombres: u.nombres || '',
-      apellidos: u.apellidos || '',
-      fechaNacimiento: u.fechaNacimiento || '',
-      idPais: u.idPais || null
-    });
-  }
-
-  editarDatos(): void {
-    this.editandoDatos.set(true);
-  }
-
-  cancelarEdicionDatos(): void {
-    const u = this.userProfile();
-    if (u) this.patchDatosPersonales(u);
-    this.editandoDatos.set(false);
-  }
-
-  guardarDatosPersonales(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const val = this.form.getRawValue();
-    this.guardandoDatos.set(true);
-    this.userService.updateCurrentUser({
-      nombres: val.nombres || undefined,
-      apellidos: val.apellidos || undefined,
-      fechaNacimiento: val.fechaNacimiento || undefined,
-      idPais: val.idPais ? Number(val.idPais) : undefined
-    }).subscribe({
-      next: (u) => {
-        this.userProfile.set(u);
-        this.guardandoDatos.set(false);
-        this.editandoDatos.set(false);
-        this.toastService.success('Datos personales actualizados');
-      },
-      error: (err) => {
-        this.guardandoDatos.set(false);
-        this.toastService.error(err.error?.detail || err.error?.message || 'No se pudieron guardar los cambios');
-      }
-    });
-  }
-
-  onFotoActualizada(profile: UserResponse): void {
-    this.userProfile.set(profile);
   }
 
   openPasswordModal(): void {

@@ -259,9 +259,10 @@ export class RespaldosComponent implements OnInit {
 
   claseEstado(estado: EstadoRespaldo): string {
     switch (estado) {
-      case 'COMPLETADO': return 'bg-secondary-container text-on-secondary-container';
-      case 'FALLIDO': return 'bg-error-container text-on-error-container';
-      default: return 'bg-surface-container text-on-surface-variant';
+      case 'COMPLETADO': return 'bg-emerald-50 text-emerald-700';
+      case 'FALLIDO': return 'bg-rose-50 text-rose-700';
+      case 'EN_PROGRESO': return 'bg-amber-50 text-amber-700';
+      default: return 'bg-slate-100 text-slate-600';
     }
   }
 }

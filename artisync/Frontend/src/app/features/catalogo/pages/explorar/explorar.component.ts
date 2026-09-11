@@ -15,13 +15,14 @@ import { Pagina, paginaVacia } from '../../../../shared/models/pagina.model';
 import { CATALOGO_BASE_PATH } from '../../catalogo.config';
 import { ToastService } from '../../../../core/services/toast.service';
 import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
+import { CreadorPopoverComponent } from '../../components/creador-popover/creador-popover.component';
 
 const TAMANO_PAGINA = 12;
 
 @Component({
   selector: 'app-explorar',
   standalone: true,
-  imports: [RouterLink, MonedaPipe],
+  imports: [RouterLink, MonedaPipe, CreadorPopoverComponent],
   templateUrl: './explorar.component.html'
 })
 export class ExplorarComponent implements OnInit {
