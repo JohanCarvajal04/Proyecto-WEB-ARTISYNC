@@ -14,7 +14,7 @@ import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IRevisionTicketPaymentService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
@@ -38,7 +38,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
     private static final String EVENTO_ORDEN_APROBADA = "CHECKOUT.ORDER.APPROVED";
 
     private final RevisionTicketPaymentRepository pagoTicketRevisionRepository;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
     private final PayPalClient payPalClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

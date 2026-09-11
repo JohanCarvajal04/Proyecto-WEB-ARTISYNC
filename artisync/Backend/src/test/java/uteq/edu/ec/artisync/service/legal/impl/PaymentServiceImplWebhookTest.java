@@ -24,7 +24,7 @@ import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IRevisionTicketPaymentService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
@@ -51,7 +51,7 @@ class PaymentServiceImplWebhookTest {
     @Mock private EscrowPaymentRepository pagoGarantiaRepository;
     @Mock private ContractRepository contratoRepository;
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
-    @Mock private NotificacionService notificacionService;
+    @Mock private NotificationService notificacionService;
     @Mock private IRevisionTicketPaymentService pagoTicketRevisionServicio;
 
     @Mock private PayPalClient payPalClient;

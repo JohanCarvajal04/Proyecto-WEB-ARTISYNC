@@ -2,8 +2,8 @@ package uteq.edu.ec.artisync.service.comunicacion;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatMessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatRoomResponse;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 
@@ -23,7 +23,7 @@ public interface ChatService {
      * Envía un mensaje aplicando el filtro RF-15.
      * Lanza BusinessRuleException si la sala está cerrada o el mensaje contiene datos de contacto.
      */
-    RespuestaMensajeChat enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje);
+    ChatMessageResponse enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje);
 
     /**
      * Historial de mensajes paginado de un pedido (por su sala).
@@ -31,7 +31,7 @@ public interface ChatService {
      * @param idUsuario quien consulta; debe ser el cliente o el creador del
      *                  pedido, o se rechaza (ver BusinessRuleException).
      */
-    Page<RespuestaMensajeChat> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable);
+    Page<ChatMessageResponse> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable);
 
     /**
      * Estado actual de la sala (activa/cerrada).
@@ -39,5 +39,5 @@ public interface ChatService {
      * @param idUsuario quien consulta; debe ser el cliente o el creador del
      *                  pedido, o se rechaza (ver BusinessRuleException).
      */
-    RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario);
+    ChatRoomResponse obtenerEstadoSala(Long idPedido, Long idUsuario);
 }

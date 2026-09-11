@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.catalogo;
 
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingTemplate;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
 import jakarta.persistence.*;
@@ -95,7 +95,7 @@ public class Offering {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_briefing_plantilla")
-    private BriefingPlantilla briefingPlantilla;
+    private BriefingTemplate briefingPlantilla;
 
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "actualizado_en")

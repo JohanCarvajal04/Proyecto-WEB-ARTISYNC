@@ -16,7 +16,7 @@ import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 /**
@@ -39,7 +39,7 @@ public class ReconciliacionPayPalEjecutorServicio {
 
     private final EscrowPaymentRepository pagoGarantiaRepository;
     private final PaymentTransactionRepository transaccionPagoRepository;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
     private final PayPalClient payPalClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

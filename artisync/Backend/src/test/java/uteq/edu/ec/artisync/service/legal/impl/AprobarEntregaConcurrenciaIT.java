@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 
@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * vez" -- no sobre el orden de ejecucion, que es no determinista.
  *
  * @DataJpaTest, igual que el resto de *IT de este proyecto (no @SpringBootTest):
- * aprobarEntrega depende de ChatService/NotificacionService/AlmacenamientoDocumentos
+ * aprobarEntrega depende de ChatService/NotificationService/AlmacenamientoDocumentos
  * además de los repositorios JPA, pero ninguno de los tres participa en la
  * sección crítica que se está probando (el lock), así que se sustituyen por
  * mocks vía @TestConfiguration en vez de levantar el contexto completo de
@@ -70,8 +70,8 @@ class AprobarEntregaConcurrenciaIT {
         }
 
         @Bean
-        NotificacionService notificacionService() {
-            return Mockito.mock(NotificacionService.class);
+        NotificationService notificacionService() {
+            return Mockito.mock(NotificationService.class);
         }
 
         @Bean

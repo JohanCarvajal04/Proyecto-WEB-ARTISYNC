@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
 import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -35,7 +35,7 @@ class TicketRevisionExpiracionServicioTest {
 
     @Mock private RevisionTicketRepository ticketRevisionRepository;
     @Mock private RevisionTicketPaymentRepository pagoTicketRevisionRepository;
-    @Mock private NotificacionService notificacionService;
+    @Mock private NotificationService notificacionService;
 
     @InjectMocks
     private TicketRevisionExpiracionServicio servicio;

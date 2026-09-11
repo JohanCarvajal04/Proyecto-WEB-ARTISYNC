@@ -11,7 +11,7 @@ import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
 import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 /**
  * Extraído de TicketRevisionExpiracionScheduler para que REQUIRES_NEW funcione
@@ -29,7 +29,7 @@ public class TicketRevisionExpiracionServicio {
 
     private final RevisionTicketRepository ticketRevisionRepository;
     private final RevisionTicketPaymentRepository pagoTicketRevisionRepository;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Auditable(accion = "TICKET_EXPIRAR", modulo = AuditModule.PEDIDOS,

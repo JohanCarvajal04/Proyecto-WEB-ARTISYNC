@@ -6,31 +6,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.AnswerBriefingRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.AdvanceStageRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateOrderRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateTermsProposalRequest;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.*;
 import uteq.edu.ec.artisync.entity.catalogo.Workflow;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingEnviado;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingPregunta;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingRespuesta;
+import uteq.edu.ec.artisync.entity.comunicacion.SentBriefing;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingTemplate;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingQuestion;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingAnswer;
 import uteq.edu.ec.artisync.entity.pedido.*;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.WorkflowRepository;
 import uteq.edu.ec.artisync.repository.catalogo.OfferingRepository;
-import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
-import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.SentBriefingRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingAnswerRepository;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
 import uteq.edu.ec.artisync.repository.pedido.*;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 import uteq.edu.ec.artisync.service.pedido.IOrderService;
 import uteq.edu.ec.artisync.service.perfil.IVerificationService;
@@ -63,13 +63,13 @@ public class OrderServiceImpl implements IOrderService {
     private final ContractRepository contratoRepository;
     private final FinalDeliverableRepository entregableFinalRepository;
     private final OrderTermsProposalRepository propuestaTerminosPedidoRepository;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
     private final ChatService chatService;
     private final IServicioExportacion servicioExportacion;
     private final IVerificationService verificacionServicio;
     private final IContractService contratoServicio;
-    private final BriefingEnviadoRepository briefingEnviadoRepository;
-    private final BriefingRespuestaRepository briefingRespuestaRepository;
+    private final SentBriefingRepository briefingEnviadoRepository;
+    private final BriefingAnswerRepository briefingRespuestaRepository;
 
     @Override
     @Transactional
@@ -116,7 +116,7 @@ public class OrderServiceImpl implements IOrderService {
         // hay un envío manual posterior del creador. Se valida ANTES de
         // guardar nada para que un cuestionario incompleto no deje un pedido
         // a medias (el método completo sigue siendo @Transactional).
-        BriefingPlantilla plantillaBriefing = servicio.getBriefingPlantilla();
+        BriefingTemplate plantillaBriefing = servicio.getBriefingPlantilla();
         if (plantillaBriefing != null) {
             validarRespuestasBriefingCompletas(plantillaBriefing, peticion.getRespuestasBriefing());
         }
@@ -456,8 +456,8 @@ public class OrderServiceImpl implements IOrderService {
      * llama antes de persistir el pedido para que un cuestionario incompleto
      * rechace la creación completa, no solo el briefing.
      */
-    private void validarRespuestasBriefingCompletas(BriefingPlantilla plantilla,
-                                                      List<PeticionResponderBriefing.RespuestaItem> respuestas) {
+    private void validarRespuestasBriefingCompletas(BriefingTemplate plantilla,
+                                                      List<AnswerBriefingRequest.RespuestaItem> respuestas) {
         if (respuestas == null || respuestas.isEmpty()) {
             throw new BusinessRuleException(
                     "Este servicio tiene un cuestionario: responde todas sus preguntas para crear el pedido");
@@ -465,10 +465,10 @@ public class OrderServiceImpl implements IOrderService {
 
         Set<Long> idsRespondidos = respuestas.stream()
                 .filter(r -> r.getTextoRespuesta() != null && !r.getTextoRespuesta().isBlank())
-                .map(PeticionResponderBriefing.RespuestaItem::getIdPregunta)
+                .map(AnswerBriefingRequest.RespuestaItem::getIdPregunta)
                 .collect(Collectors.toSet());
 
-        for (BriefingPregunta pregunta : plantilla.getPreguntas()) {
+        for (BriefingQuestion pregunta : plantilla.getPreguntas()) {
             if (!idsRespondidos.contains(pregunta.getIdPregunta())) {
                 throw new BusinessRuleException(
                         "Falta responder la pregunta del cuestionario: \"" + pregunta.getTextoPregunta() + "\"");
@@ -477,14 +477,14 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     /**
-     * Crea el BriefingEnviado (ya completado) y sus BriefingRespuesta en la
+     * Crea el SentBriefing (ya completado) y sus BriefingAnswer en la
      * misma transacción que el pedido — reemplaza el antiguo camino en dos
      * pasos (BriefingServiceImpl.enviarBriefing + responderBriefing), que
      * dependía de que el creador lo disparara manualmente después.
      */
-    private void registrarBriefingCompletado(Order pedido, BriefingPlantilla plantilla,
-                                              List<PeticionResponderBriefing.RespuestaItem> respuestas) {
-        BriefingEnviado enviado = BriefingEnviado.builder()
+    private void registrarBriefingCompletado(Order pedido, BriefingTemplate plantilla,
+                                              List<AnswerBriefingRequest.RespuestaItem> respuestas) {
+        SentBriefing enviado = SentBriefing.builder()
                 .pedido(pedido)
                 .plantilla(plantilla)
                 .completado(true)
@@ -493,12 +493,12 @@ public class OrderServiceImpl implements IOrderService {
 
         Map<Long, String> textoPorPregunta = respuestas.stream()
                 .collect(Collectors.toMap(
-                        PeticionResponderBriefing.RespuestaItem::getIdPregunta,
-                        PeticionResponderBriefing.RespuestaItem::getTextoRespuesta,
+                        AnswerBriefingRequest.RespuestaItem::getIdPregunta,
+                        AnswerBriefingRequest.RespuestaItem::getTextoRespuesta,
                         (a, b) -> b));
 
-        for (BriefingPregunta pregunta : plantilla.getPreguntas()) {
-            BriefingRespuesta respuesta = BriefingRespuesta.builder()
+        for (BriefingQuestion pregunta : plantilla.getPreguntas()) {
+            BriefingAnswer respuesta = BriefingAnswer.builder()
                     .briefingEnviado(enviado)
                     .pregunta(pregunta)
                     .textoRespuesta(textoPorPregunta.get(pregunta.getIdPregunta()))

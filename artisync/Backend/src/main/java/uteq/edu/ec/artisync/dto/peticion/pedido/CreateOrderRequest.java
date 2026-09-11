@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.AnswerBriefingRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,5 +36,5 @@ public class CreateOrderRequest {
      * no aquí, porque la obligatoriedad depende del servicio elegido.
      */
     @Valid
-    private List<PeticionResponderBriefing.RespuestaItem> respuestasBriefing;
+    private List<AnswerBriefingRequest.RespuestaItem> respuestasBriefing;
 }

@@ -12,7 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.AnswerBriefingRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.AdvanceStageRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateOrderRequest;
 import uteq.edu.ec.artisync.dto.peticion.pedido.CreateTermsProposalRequest;
@@ -24,9 +24,9 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.TermsProposalResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderTrackingResponse;
 import uteq.edu.ec.artisync.entity.catalogo.Workflow;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingEnviado;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingPregunta;
+import uteq.edu.ec.artisync.entity.comunicacion.SentBriefing;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingTemplate;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingQuestion;
 import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
 import uteq.edu.ec.artisync.entity.pedido.WorkflowStageConfig;
 import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
@@ -35,13 +35,13 @@ import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.OrderTermsProposal;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
-import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.SentBriefingRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingAnswerRepository;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderTermsProposalRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -94,13 +94,13 @@ class OrderServiceImplTest {
     @Mock private ContractRepository contratoRepository;
     @Mock private FinalDeliverableRepository entregableFinalRepository;
     @Mock private OrderTermsProposalRepository propuestaTerminosPedidoRepository;
-    @Mock private NotificacionService notificacionService;
+    @Mock private NotificationService notificacionService;
     @Mock private ChatService chatService;
     @Mock private IServicioExportacion servicioExportacion;
     @Mock private IVerificationService verificacionServicio;
     @Mock private IContractService contratoServicio;
-    @Mock private BriefingEnviadoRepository briefingEnviadoRepository;
-    @Mock private BriefingRespuestaRepository briefingRespuestaRepository;
+    @Mock private SentBriefingRepository briefingEnviadoRepository;
+    @Mock private BriefingAnswerRepository briefingRespuestaRepository;
 
     @InjectMocks
     private OrderServiceImpl pedidoServicio;
@@ -204,10 +204,10 @@ class OrderServiceImplTest {
 
     // ---------- crearPedido: cuestionario (briefing) por servicio, REQ-F-016 ampliado ----------
 
-    private BriefingPlantilla plantillaBriefingDeDosPreguntas() {
-        BriefingPregunta p1 = BriefingPregunta.builder().idPregunta(101L).textoPregunta("¿Colores preferidos?").numeroOrden(1).build();
-        BriefingPregunta p2 = BriefingPregunta.builder().idPregunta(102L).textoPregunta("¿Referencias?").numeroOrden(2).build();
-        return BriefingPlantilla.builder().idBriefingPlantilla(50L).nombrePlantilla("Briefing Logo")
+    private BriefingTemplate plantillaBriefingDeDosPreguntas() {
+        BriefingQuestion p1 = BriefingQuestion.builder().idPregunta(101L).textoPregunta("¿Colores preferidos?").numeroOrden(1).build();
+        BriefingQuestion p2 = BriefingQuestion.builder().idPregunta(102L).textoPregunta("¿Referencias?").numeroOrden(2).build();
+        return BriefingTemplate.builder().idBriefingPlantilla(50L).nombrePlantilla("Briefing Logo")
                 .preguntas(List.of(p1, p2)).build();
     }
 
@@ -219,8 +219,8 @@ class OrderServiceImplTest {
 
         CreateOrderRequest peticion = CreateOrderRequest.builder().idServicio(1L)
                 .respuestasBriefing(List.of(
-                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build(),
-                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(102L).textoRespuesta("Ninguna en particular").build()
+                        AnswerBriefingRequest.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build(),
+                        AnswerBriefingRequest.RespuestaItem.builder().idPregunta(102L).textoRespuesta("Ninguna en particular").build()
                 ))
                 .build();
 
@@ -229,8 +229,8 @@ class OrderServiceImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
         given(pedidoRepository.save(any(Order.class))).willAnswer(inv -> inv.getArgument(0));
         given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(any())).willReturn(List.of());
-        given(briefingEnviadoRepository.save(any(BriefingEnviado.class))).willAnswer(inv -> {
-            BriefingEnviado be = inv.getArgument(0);
+        given(briefingEnviadoRepository.save(any(SentBriefing.class))).willAnswer(inv -> {
+            SentBriefing be = inv.getArgument(0);
             be.setIdBriefingEnviado(500L);
             return be;
         });
@@ -250,7 +250,7 @@ class OrderServiceImplTest {
 
         CreateOrderRequest peticion = CreateOrderRequest.builder().idServicio(1L)
                 .respuestasBriefing(List.of(
-                        PeticionResponderBriefing.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build()
+                        AnswerBriefingRequest.RespuestaItem.builder().idPregunta(101L).textoRespuesta("Azul y blanco").build()
                         // falta la respuesta a la pregunta 102
                 ))
                 .build();

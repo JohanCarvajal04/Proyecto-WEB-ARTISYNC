@@ -11,7 +11,7 @@ import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 /**
  * Extraído de SorteoScheduler para que REQUIRES_NEW funcione de verdad: un
@@ -27,7 +27,7 @@ public class SorteoEjecutorServicio {
 
     private final SorteoRepository sorteoRepository;
     private final UserRepository usuarioRepository;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

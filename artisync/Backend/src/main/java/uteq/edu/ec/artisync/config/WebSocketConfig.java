@@ -58,7 +58,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     /**
      * Sin este resolver, un parámetro {@code @AuthenticationPrincipal} en un
-     * método {@code @MessageMapping} (ver ChatControlador#enviarMensajeWs) no
+     * método {@code @MessageMapping} (ver ChatController#enviarMensajeWs) no
      * lo resuelve ningún HandlerMethodArgumentResolver registrado por
      * defecto, y Spring lo trata como si fuera el {@code @Payload} implícito:
      * intenta deserializar el cuerpo JSON del mensaje STOMP dentro de

@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.repository.catalogo.OfferingSubcategoryRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoryRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,7 +33,7 @@ public class CategoryServiceImpl implements ICategoryService {
     private final SubcategoryRepository subcategoriaRepository;
     private final OfferingSubcategoryRepository servicioSubcategoriaRepository;
     private final UserRepository usuarioRepository;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
 
     @Override
     @Transactional(readOnly = true)

@@ -30,7 +30,7 @@ import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
@@ -61,7 +61,7 @@ class PaymentServiceImplCancellationTest {
     @Mock private EscrowPaymentRepository pagoGarantiaRepository;
     @Mock private ContractRepository contratoRepository;
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
-    @Mock private NotificacionService notificacionService;
+    @Mock private NotificationService notificacionService;
     @Mock private PayPalClient payPalClient;
 
     @InjectMocks

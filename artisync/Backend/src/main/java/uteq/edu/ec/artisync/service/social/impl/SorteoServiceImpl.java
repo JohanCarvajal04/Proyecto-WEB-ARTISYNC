@@ -22,7 +22,7 @@ import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.FollowerRepository;
 import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
@@ -50,7 +50,7 @@ public class SorteoServiceImpl implements SorteoService {
     private final ParticipanteSorteoRepository participanteSorteoRepository;
     private final CreatorProfileRepository perfilCreadorRepository;
     private final UserRepository usuarioRepository;
-    private final SeguidorRepository seguidorRepository;
+    private final FollowerRepository seguidorRepository;
 
     // =========================================================================
     // CRUD de Sorteos (CREADOR)

@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.comunicacion;
 
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.CreateBriefingTemplateRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.BriefingResponse;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador configurado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el cuestionario supera el máximo de preguntas permitido
      */
-    RespuestaBriefing crearPlantilla(Long idUsuario, PeticionCrearBriefingPlantilla peticion);
+    BriefingResponse crearPlantilla(Long idUsuario, CreateBriefingTemplateRequest peticion);
 
     /**
      * Lista las plantillas de briefing propias del creador.
@@ -37,7 +37,7 @@ public interface BriefingService {
      * @return las plantillas del creador
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador configurado
      */
-    List<RespuestaBriefing> obtenerMisPlantillas(Long idUsuario);
+    List<BriefingResponse> obtenerMisPlantillas(Long idUsuario);
 
     /**
      * Reemplaza el nombre y las preguntas de una plantilla existente.
@@ -49,7 +49,7 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño de la plantilla, o si el cuestionario supera el máximo de preguntas permitido
      */
-    RespuestaBriefing editarPlantilla(Long idPlantilla, Long idUsuario, PeticionCrearBriefingPlantilla peticion);
+    BriefingResponse editarPlantilla(Long idPlantilla, Long idUsuario, CreateBriefingTemplateRequest peticion);
 
     /**
      * Elimina una plantilla de briefing.
@@ -72,5 +72,5 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene un briefing respondido
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es parte del pedido ni administrador
      */
-    RespuestaBriefing obtenerBriefing(Long idPedido, Long idUsuarioSolicitante);
+    BriefingResponse obtenerBriefing(Long idPedido, Long idUsuarioSolicitante);
 }

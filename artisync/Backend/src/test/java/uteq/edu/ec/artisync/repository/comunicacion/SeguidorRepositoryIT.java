@@ -8,7 +8,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
-import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
+import uteq.edu.ec.artisync.entity.comunicacion.Follower;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 
@@ -38,15 +38,15 @@ class SeguidorRepositoryIT {
             "INSERT INTO perfiles_creadores (id_perfil, id_usuario) VALUES (9102, 9102)";
 
     @Autowired
-    private SeguidorRepository seguidorRepository;
+    private FollowerRepository seguidorRepository;
 
     @Autowired
     private jakarta.persistence.EntityManager entityManager;
 
-    private Seguidor nuevoSeguimiento() {
+    private Follower nuevoSeguimiento() {
         User seguidor = entityManager.getReference(User.class, 9101L);
         CreatorProfile perfil = entityManager.getReference(CreatorProfile.class, 9102L);
-        return Seguidor.builder()
+        return Follower.builder()
                 .usuarioSeguidor(seguidor)
                 .perfilCreador(perfil)
                 .build();
@@ -75,7 +75,7 @@ class SeguidorRepositoryIT {
     @Test
     @Sql(statements = {SEED_USUARIOS, SEED_PERFIL})
     void dejarDeSeguir_devuelveElContadorACero() {
-        Seguidor seguimiento = seguidorRepository.saveAndFlush(nuevoSeguimiento());
+        Follower seguimiento = seguidorRepository.saveAndFlush(nuevoSeguimiento());
         assertThat(seguidorRepository.countByPerfilCreadorIdPerfil(9102L)).isEqualTo(1L);
 
         seguidorRepository.delete(seguimiento);

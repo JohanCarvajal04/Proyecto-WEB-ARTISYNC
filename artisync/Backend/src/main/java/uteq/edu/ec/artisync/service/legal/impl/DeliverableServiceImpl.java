@@ -22,7 +22,7 @@ import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
 
 import java.math.BigDecimal;
@@ -39,7 +39,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
     private final PaymentTransactionRepository transaccionPagoRepository;
     private final AlmacenamientoDocumentos almacenamiento;
     private final ChatService chatService;
-    private final NotificacionService notificacionService;
+    private final NotificationService notificacionService;
 
     /**
      * Fuente unica con FinancialReportServiceImpl: antes era un literal

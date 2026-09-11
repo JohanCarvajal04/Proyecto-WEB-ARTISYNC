@@ -15,7 +15,7 @@ import java.util.Map;
  * "columnaFecha" mapea cada una a su columna de auditoría de fecha
  * (actualizado_en, fecha_creacion, ...). Una tabla en "incluidas" sin entrada
  * en "columnaFecha" se exporta completa en cada corrida incremental (no se
- * omite) — ver IncrementalRespaldoExportador.
+ * omite) — ver IncrementalBackupExporter.
  *
  * Este mapeo debe poblarse revisando docs/diagramas/Entidad_Relacion.md y las
  * migraciones Flyway para confirmar qué tablas realmente tienen una columna

@@ -19,8 +19,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.SendMessageRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatMessageResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
 
@@ -189,13 +189,13 @@ class ChatWebSocketLoadIT {
                 session.subscribe("/topic/sala." + idSala, new StompFrameHandler() {
                     @Override
                     public Type getPayloadType(StompHeaders headers) {
-                        return RespuestaMensajeChat.class;
+                        return ChatMessageResponse.class;
                     }
 
                     @Override
                     public void handleFrame(StompHeaders headers, Object payload) {
                         long recibidoEnNanos = System.nanoTime();
-                        RespuestaMensajeChat mensaje = (RespuestaMensajeChat) payload;
+                        ChatMessageResponse mensaje = (ChatMessageResponse) payload;
                         if (mensaje != null && nonceEsperado.get().equals(mensaje.getCuerpoMensaje())) {
                             long latenciaMs = (recibidoEnNanos - enviadoEnNanos.get()) / 1_000_000;
                             latenciasMs.add(latenciaMs);
@@ -215,7 +215,7 @@ class ChatWebSocketLoadIT {
                 CountDownLatch latch = new CountDownLatch(NUMERO_CONEXIONES);
                 latchRonda.set(latch);
 
-                PeticionEnviarMensaje peticion = PeticionEnviarMensaje.builder()
+                SendMessageRequest peticion = SendMessageRequest.builder()
                         .idPedido(idPedido)
                         .cuerpoMensaje(nonce)
                         .build();

@@ -18,13 +18,13 @@ import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.*;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.*;
 import uteq.edu.ec.artisync.entity.catalogo.*;
-import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
+import uteq.edu.ec.artisync.entity.comunicacion.BriefingTemplate;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.*;
-import uteq.edu.ec.artisync.repository.comunicacion.BriefingPlantillaRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.BriefingTemplateRepository;
 import uteq.edu.ec.artisync.repository.pedido.ContractTemplateRepository;
 import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
@@ -54,7 +54,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     private final IVerificationService verificacionServicio;
     private final WorkflowRepository flujoTrabajoRepository;
     private final ContractTemplateRepository plantillaContratoRepository;
-    private final BriefingPlantillaRepository briefingPlantillaRepository;
+    private final BriefingTemplateRepository briefingPlantillaRepository;
     private final uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos almacenamientoDocumentos;
 
     @Override
@@ -578,7 +578,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .build();
     }
 
-    private List<OfferingResponse.PreguntaBriefingItem> mapearPreguntasBriefing(BriefingPlantilla plantilla) {
+    private List<OfferingResponse.PreguntaBriefingItem> mapearPreguntasBriefing(BriefingTemplate plantilla) {
         if (plantilla == null) {
             return List.of();
         }
@@ -651,7 +651,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * no existe, o que pertenece a otro creador, se rechaza: un creador solo
      * puede asignarle a su servicio uno de sus propios cuestionarios.
      */
-    private BriefingPlantilla resolverBriefingPlantillaPropia(Long idBriefingPlantilla, CreatorProfile perfil) {
+    private BriefingTemplate resolverBriefingPlantillaPropia(Long idBriefingPlantilla, CreatorProfile perfil) {
         if (idBriefingPlantilla == null) {
             return null;
         }

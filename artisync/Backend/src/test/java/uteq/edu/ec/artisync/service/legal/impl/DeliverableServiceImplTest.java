@@ -48,7 +48,7 @@ class DeliverableServiceImplTest {
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
     @Mock private AlmacenamientoDocumentos almacenamiento;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
-    @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificacionService notificacionService;
+    @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificationService notificacionService;
 
     @InjectMocks private DeliverableServiceImpl servicio;
 

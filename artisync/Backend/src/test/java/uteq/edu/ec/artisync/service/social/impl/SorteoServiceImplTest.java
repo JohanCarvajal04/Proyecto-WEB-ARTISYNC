@@ -23,7 +23,7 @@ import uteq.edu.ec.artisync.entity.social.PremioSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
+import uteq.edu.ec.artisync.repository.comunicacion.FollowerRepository;
 import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
@@ -52,7 +52,7 @@ class SorteoServiceImplTest {
     @Mock private ParticipanteSorteoRepository participanteSorteoRepository;
     @Mock private CreatorProfileRepository perfilCreadorRepository;
     @Mock private UserRepository usuarioRepository;
-    @Mock private SeguidorRepository seguidorRepository;
+    @Mock private FollowerRepository seguidorRepository;
 
     @InjectMocks
     private SorteoServiceImpl sorteoService;

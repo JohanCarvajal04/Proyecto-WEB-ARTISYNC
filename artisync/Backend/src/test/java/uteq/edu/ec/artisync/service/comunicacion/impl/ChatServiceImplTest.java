@@ -8,8 +8,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatMessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatRoomResponse;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.Message;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
@@ -21,9 +21,9 @@ import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.MessageRepository;
 import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
-import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.ViolationService;
+import uteq.edu.ec.artisync.service.comunicacion.MessageFilterService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,9 +43,9 @@ class ChatServiceImplTest {
     @Mock private ChatRoomRepository    salaChatRepo;
     @Mock private MessageRepository     mensajeRepo;
     @Mock private UserRepository     usuarioRepo;
-    @Mock private InfraccionService     infraccionService;
-    @Mock private MensajeFilterService  mensajeFilterService;
-    @Mock private NotificacionService   notificacionService;
+    @Mock private ViolationService     infraccionService;
+    @Mock private MessageFilterService  mensajeFilterService;
+    @Mock private NotificationService   notificacionService;
     @Mock private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
@@ -161,10 +161,10 @@ class ChatServiceImplTest {
         when(usuarioRepo.getReferenceById(1L)).thenReturn(remitente);
         when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
-        RespuestaMensajeChat respuesta = chatService.enviarMensaje(10L, 1L, "Hola, ¿cómo va el proyecto?");
+        ChatMessageResponse respuesta = chatService.enviarMensaje(10L, 1L, "Hola, ¿cómo va el proyecto?");
 
         assertThat(respuesta.getCuerpoMensaje()).isEqualTo("Hola, ¿cómo va el proyecto?");
-        verify(messagingTemplate).convertAndSend(eq("/topic/sala.100"), any(RespuestaMensajeChat.class));
+        verify(messagingTemplate).convertAndSend(eq("/topic/sala.100"), any(ChatMessageResponse.class));
         // El remitente (1L) es el cliente: la notificación debe ir al creador (2L), no a él mismo.
         verify(notificacionService).notificar(eq(creador), eq("MENSAJE_RECIBIDO"), anyString());
         verify(notificacionService, never()).notificar(eq(remitente), eq("MENSAJE_RECIBIDO"), anyString());
@@ -233,7 +233,7 @@ class ChatServiceImplTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("datos de contacto");
 
-        // El registro de la infraccion se delega a InfraccionService, que corre
+        // El registro de la infraccion se delega a ViolationService, que corre
         // en su propia transaccion (REQUIRES_NEW) para que quede confirmada
         // aunque este metodo termine lanzando la excepcion de arriba.
         verify(infraccionService).registrarInfraccion(1L, 10L, mensajeConTelefono);
@@ -241,7 +241,7 @@ class ChatServiceImplTest {
     }
 
     @Test
-    @DisplayName("RF-15: si InfraccionService lanza, el mensaje igual se rechaza (no se guarda ni se notifica al destinatario)")
+    @DisplayName("RF-15: si ViolationService lanza, el mensaje igual se rechaza (no se guarda ni se notifica al destinatario)")
     void enviarMensaje_conContacto_noPropagaMensajeAunqueFalleRegistroInfraccion() {
         String mensajeConEmail = "Escríbeme a test@ejemplo.com";
 
@@ -271,7 +271,7 @@ class ChatServiceImplTest {
     void obtenerEstadoSala_retornaEstadoAlCliente() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        RespuestaSalaChat estado = chatService.obtenerEstadoSala(10L, 1L);
+        ChatRoomResponse estado = chatService.obtenerEstadoSala(10L, 1L);
 
         assertThat(estado.getIdSala()).isEqualTo(100L);
         assertThat(estado.getSalaActiva()).isTrue();
@@ -282,7 +282,7 @@ class ChatServiceImplTest {
     void obtenerEstadoSala_retornaEstadoAlCreador() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        RespuestaSalaChat estado = chatService.obtenerEstadoSala(10L, ID_CREADOR);
+        ChatRoomResponse estado = chatService.obtenerEstadoSala(10L, ID_CREADOR);
 
         assertThat(estado.getIdSala()).isEqualTo(100L);
     }

@@ -21,7 +21,7 @@ import uteq.edu.ec.artisync.repository.catalogo.CategoryRepository;
 import uteq.edu.ec.artisync.repository.catalogo.OfferingSubcategoryRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoryRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +41,7 @@ class CategoryServiceImplTest {
     @Mock private SubcategoryRepository subcategoriaRepository;
     @Mock private OfferingSubcategoryRepository servicioSubcategoriaRepository;
     @Mock private UserRepository usuarioRepository;
-    @Mock private NotificacionService notificacionService;
+    @Mock private NotificationService notificacionService;
 
     @InjectMocks
     private CategoryServiceImpl categoriaServicio;

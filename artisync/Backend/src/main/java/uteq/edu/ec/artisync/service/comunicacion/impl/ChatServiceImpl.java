@@ -8,8 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatMessageResponse;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.ChatRoomResponse;
 import uteq.edu.ec.artisync.entity.legal.Message;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
 import uteq.edu.ec.artisync.entity.pedido.Order;
@@ -20,9 +20,9 @@ import uteq.edu.ec.artisync.repository.legal.MessageRepository;
 import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
-import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
-import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.ViolationService;
+import uteq.edu.ec.artisync.service.comunicacion.MessageFilterService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 import java.util.List;
 import java.util.Map;
@@ -40,9 +40,9 @@ public class ChatServiceImpl implements ChatService {
     private final ChatRoomRepository      salaChatRepo;
     private final MessageRepository       mensajeRepo;
     private final UserRepository       usuarioRepo;
-    private final InfraccionService       infraccionService;
-    private final MensajeFilterService    mensajeFilterService;
-    private final NotificacionService     notificacionService;
+    private final ViolationService       infraccionService;
+    private final MessageFilterService    mensajeFilterService;
+    private final NotificationService     notificacionService;
     private final SimpMessagingTemplate   messagingTemplate;
 
     // -------------------------------------------------------------------------
@@ -108,7 +108,7 @@ public class ChatServiceImpl implements ChatService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensajeChat enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
+    public ChatMessageResponse enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
         ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
@@ -142,7 +142,7 @@ public class ChatServiceImpl implements ChatService {
                 .build();
         mensaje = mensajeRepo.save(mensaje);
 
-        RespuestaMensajeChat response = mapToResponse(mensaje, remitente);
+        ChatMessageResponse response = mapToResponse(mensaje, remitente);
 
         // Publicar en el tópico de la sala para entrega en tiempo real
         messagingTemplate.convertAndSend("/topic/sala." + sala.getIdSala(), response);
@@ -179,7 +179,7 @@ public class ChatServiceImpl implements ChatService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Page<RespuestaMensajeChat> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
+    public Page<ChatMessageResponse> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
         ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
@@ -189,13 +189,13 @@ public class ChatServiceImpl implements ChatService {
         verificarParticipante(sala.getPedido(), idUsuario);
 
         List<Message> mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());
-        List<RespuestaMensajeChat> dtos = mensajes.stream()
+        List<ChatMessageResponse> dtos = mensajes.stream()
                 .map(m -> mapToResponse(m, m.getRemitente()))
                 .toList();
 
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), dtos.size());
-        List<RespuestaMensajeChat> page = start > dtos.size() ? List.of() : dtos.subList(start, end);
+        List<ChatMessageResponse> page = start > dtos.size() ? List.of() : dtos.subList(start, end);
         return new PageImpl<>(page, pageable, dtos.size());
     }
 
@@ -209,7 +209,7 @@ public class ChatServiceImpl implements ChatService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario) {
+    public ChatRoomResponse obtenerEstadoSala(Long idPedido, Long idUsuario) {
         ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
@@ -218,7 +218,7 @@ public class ChatServiceImpl implements ChatService {
         // usuario logueado podía ver el estado del chat de un pedido ajeno.
         verificarParticipante(sala.getPedido(), idUsuario);
 
-        return RespuestaSalaChat.builder()
+        return ChatRoomResponse.builder()
                 .idSala(sala.getIdSala())
                 .idPedido(sala.getPedido().getIdPedido())
                 .salaActiva(sala.getSalaActiva())
@@ -240,8 +240,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     // -------------------------------------------------------------------------
-    private RespuestaMensajeChat mapToResponse(Message m, User remitente) {
-        return RespuestaMensajeChat.builder()
+    private ChatMessageResponse mapToResponse(Message m, User remitente) {
+        return ChatMessageResponse.builder()
                 .idMensaje(m.getIdMensaje())
                 .idSala(m.getSala().getIdSala())
                 .idRemitente(remitente.getIdUsuario())

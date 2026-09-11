@@ -21,7 +21,7 @@ import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
-import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.verify;
 class RevisionTicketPaymentServiceImplTest {
 
     @Mock private RevisionTicketPaymentRepository pagoTicketRevisionRepository;
-    @Mock private NotificacionService notificacionService;
+    @Mock private NotificationService notificacionService;
     @Mock private PayPalClient payPalClient;
 
     @InjectMocks

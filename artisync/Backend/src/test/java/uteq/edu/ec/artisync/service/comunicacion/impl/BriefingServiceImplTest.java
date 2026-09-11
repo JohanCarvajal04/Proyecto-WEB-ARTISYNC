@@ -7,8 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
-import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
+import uteq.edu.ec.artisync.dto.peticion.comunicacion.CreateBriefingTemplateRequest;
+import uteq.edu.ec.artisync.dto.respuesta.comunicacion.BriefingResponse;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
 import uteq.edu.ec.artisync.entity.pedido.Order;
@@ -35,9 +35,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class BriefingServiceImplTest {
 
-    @Mock private BriefingPlantillaRepository plantillaRepo;
-    @Mock private BriefingEnviadoRepository   enviadoRepo;
-    @Mock private BriefingRespuestaRepository respuestaRepo;
+    @Mock private BriefingTemplateRepository plantillaRepo;
+    @Mock private SentBriefingRepository   enviadoRepo;
+    @Mock private BriefingAnswerRepository respuestaRepo;
     @Mock private CreatorProfileRepository     perfilRepo;
 
     @InjectMocks
@@ -79,15 +79,15 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("crearPlantilla — crea plantilla con preguntas correctamente")
     void crearPlantilla_valida_creaExitosamente() {
-        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
+        CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
                 .nombrePlantilla("Briefing Logo")
                 .preguntas(List.of(
-                        new PeticionCrearBriefingPlantilla.PreguntaRequest("¿Colores preferidos?", 1),
-                        new PeticionCrearBriefingPlantilla.PreguntaRequest("¿Estilo de diseño?", 2)
+                        new CreateBriefingTemplateRequest.PreguntaRequest("¿Colores preferidos?", 1),
+                        new CreateBriefingTemplateRequest.PreguntaRequest("¿Estilo de diseño?", 2)
                 ))
                 .build();
 
-        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+        BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L)
                 .perfilCreador(perfilCreador)
                 .nombrePlantilla("Briefing Logo")
@@ -100,23 +100,23 @@ class BriefingServiceImplTest {
         // encontrado" — así queda protegida la regresión real que reportó el
         // creador ("no me deja guardar un cuestionario").
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
-        when(plantillaRepo.save(any(BriefingPlantilla.class))).thenReturn(plantilla);
+        when(plantillaRepo.save(any(BriefingTemplate.class))).thenReturn(plantilla);
 
-        RespuestaBriefing respuesta = briefingService.crearPlantilla(1L, peticion);
+        BriefingResponse respuesta = briefingService.crearPlantilla(1L, peticion);
 
         assertThat(respuesta.getNombrePlantilla()).isEqualTo("Briefing Logo");
-        verify(plantillaRepo, times(2)).save(any(BriefingPlantilla.class));
+        verify(plantillaRepo, times(2)).save(any(BriefingTemplate.class));
     }
 
     @Test
     @DisplayName("crearPlantilla — más de 10 preguntas lanza excepción")
     void crearPlantilla_masDeMaxPreguntas_lanzaExcepcion() {
-        List<PeticionCrearBriefingPlantilla.PreguntaRequest> muchasPreguntas = new ArrayList<>();
+        List<CreateBriefingTemplateRequest.PreguntaRequest> muchasPreguntas = new ArrayList<>();
         for (int i = 1; i <= 11; i++) {
-            muchasPreguntas.add(new PeticionCrearBriefingPlantilla.PreguntaRequest("Pregunta " + i, i));
+            muchasPreguntas.add(new CreateBriefingTemplateRequest.PreguntaRequest("Pregunta " + i, i));
         }
 
-        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
+        CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
                 .nombrePlantilla("Demasiadas preguntas")
                 .preguntas(muchasPreguntas)
                 .build();
@@ -131,8 +131,8 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("crearPlantilla — usuario sin perfil de creador lanza ResourceNotFoundException")
     void crearPlantilla_sinPerfilCreador_lanzaExcepcion() {
-        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
-                .nombrePlantilla("X").preguntas(List.of(new PeticionCrearBriefingPlantilla.PreguntaRequest("¿?", 1)))
+        CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
+                .nombrePlantilla("X").preguntas(List.of(new CreateBriefingTemplateRequest.PreguntaRequest("¿?", 1)))
                 .build();
         when(perfilRepo.findByUsuarioIdUsuario(999L)).thenReturn(Optional.empty());
 
@@ -149,11 +149,11 @@ class BriefingServiceImplTest {
     void obtenerMisPlantillas_resuelvePerfilPorUsuario() {
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
         when(plantillaRepo.findByPerfilCreadorIdPerfil(5L)).thenReturn(List.of(
-                BriefingPlantilla.builder().idBriefingPlantilla(1L).perfilCreador(perfilCreador)
+                BriefingTemplate.builder().idBriefingPlantilla(1L).perfilCreador(perfilCreador)
                         .nombrePlantilla("Briefing Logo").preguntas(new ArrayList<>()).build()
         ));
 
-        List<RespuestaBriefing> resultado = briefingService.obtenerMisPlantillas(1L);
+        List<BriefingResponse> resultado = briefingService.obtenerMisPlantillas(1L);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getNombrePlantilla()).isEqualTo("Briefing Logo");
@@ -162,18 +162,18 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("editarPlantilla — el dueño real (por id_perfil) puede editar su plantilla")
     void editarPlantilla_dueno_puedeEditar() {
-        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+        BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
                 .nombrePlantilla("Vieja").preguntas(new ArrayList<>()).build();
-        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
-                .nombrePlantilla("Nueva").preguntas(List.of(new PeticionCrearBriefingPlantilla.PreguntaRequest("¿?", 1)))
+        CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
+                .nombrePlantilla("Nueva").preguntas(List.of(new CreateBriefingTemplateRequest.PreguntaRequest("¿?", 1)))
                 .build();
 
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
         when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
-        when(plantillaRepo.save(any(BriefingPlantilla.class))).thenReturn(plantilla);
+        when(plantillaRepo.save(any(BriefingTemplate.class))).thenReturn(plantilla);
 
-        RespuestaBriefing respuesta = briefingService.editarPlantilla(1L, 1L, peticion);
+        BriefingResponse respuesta = briefingService.editarPlantilla(1L, 1L, peticion);
 
         assertThat(respuesta.getNombrePlantilla()).isEqualTo("Nueva");
     }
@@ -181,7 +181,7 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("editarPlantilla — un creador ajeno (otro id_perfil) no puede editarla")
     void editarPlantilla_ajeno_rechaza() {
-        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+        BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
                 .nombrePlantilla("Vieja").preguntas(new ArrayList<>()).build();
         CreatorProfile otroPerfil = CreatorProfile.builder().idPerfil(6L)
@@ -190,7 +190,7 @@ class BriefingServiceImplTest {
         when(perfilRepo.findByUsuarioIdUsuario(2L)).thenReturn(Optional.of(otroPerfil));
         when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
 
-        PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
+        CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
                 .nombrePlantilla("Nueva").preguntas(List.of()).build();
 
         assertThatThrownBy(() -> briefingService.editarPlantilla(1L, 2L, peticion))
@@ -201,7 +201,7 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("eliminarPlantilla — el dueño real (por id_perfil) puede eliminar su plantilla")
     void eliminarPlantilla_dueno_puedeEliminar() {
-        BriefingPlantilla plantilla = BriefingPlantilla.builder()
+        BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador).build();
 
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
@@ -227,10 +227,10 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("obtenerBriefing — el cliente del pedido puede consultarlo")
     void obtenerBriefing_cliente_puedeConsultar() {
-        BriefingEnviado enviado = BriefingEnviado.builder()
+        SentBriefing enviado = SentBriefing.builder()
                 .idBriefingEnviado(20L)
                 .pedido(pedido) // cliente idUsuario=2
-                .plantilla(BriefingPlantilla.builder().preguntas(new ArrayList<>()).build())
+                .plantilla(BriefingTemplate.builder().preguntas(new ArrayList<>()).build())
                 .completado(false)
                 .build();
         when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
@@ -241,10 +241,10 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("obtenerBriefing — el creador del servicio puede consultarlo")
     void obtenerBriefing_creador_puedeConsultar() {
-        BriefingEnviado enviado = BriefingEnviado.builder()
+        SentBriefing enviado = SentBriefing.builder()
                 .idBriefingEnviado(20L)
                 .pedido(pedido) // servicio.perfil.usuario idUsuario=1 (usuarioCreador)
-                .plantilla(BriefingPlantilla.builder().preguntas(new ArrayList<>()).build())
+                .plantilla(BriefingTemplate.builder().preguntas(new ArrayList<>()).build())
                 .completado(false)
                 .build();
         when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
@@ -255,7 +255,7 @@ class BriefingServiceImplTest {
     @Test
     @DisplayName("obtenerBriefing — usuario ajeno al pedido recibe AccessDenied")
     void obtenerBriefing_usuarioAjeno_lanzaAccessDenied() {
-        BriefingEnviado enviado = BriefingEnviado.builder()
+        SentBriefing enviado = SentBriefing.builder()
                 .idBriefingEnviado(20L)
                 .pedido(pedido) // cliente=2, creador=1
                 .completado(false)
