@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoRetencionScheduler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">RespaldoRetencionScheduler.java</span></div><h1>RespaldoRetencionScheduler.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.config.RespaldoProperties;
+import uteq.edu.ec.artisync.entity.respaldo.EstadoRespaldo;
+import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
+import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
+import uteq.edu.ec.artisync.repository.respaldo.RespaldoRepository;
+import uteq.edu.ec.artisync.service.respaldo.impl.RespaldoArchivoStorage;
+
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+
+/**
+ * Purga diaria de respaldos vencidos según su retención (REQ-NF-024). Mismo
+ * patrón de job de mantenimiento diario best-effort que SeguridadPurgaScheduler
+ * -- corre a las 4:00 AM, después de esa (3:30), para no competir por I/O de
+ * disco con ella ni con VerificacionScheduler/SorteoScheduler.
+ */
+<span class="fc" id="L23">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class RespaldoRetencionScheduler {
+
+    private final RespaldoRepository respaldoRepository;
+    private final RespaldoProperties respaldoProperties;
+    private final RespaldoArchivoStorage storage;
+
+    @Scheduled(cron = &quot;0 0 4 * * *&quot;)
+    public void purgarRespaldosVencidos() {
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        for (Respaldo respaldo : respaldoRepository.findByEstadoRespaldo(EstadoRespaldo.COMPLETADO)) {</span>
+            try {
+<span class="nc bnc" id="L36" title="All 4 branches missed.">                if (haVencido(respaldo) &amp;&amp; esSeguroEliminar(respaldo)) {</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">                    if (respaldo.getRutaArchivo() != null) {</span>
+<span class="nc" id="L38">                        storage.eliminar(Path.of(respaldo.getRutaArchivo()));</span>
+                    }
+<span class="nc" id="L40">                    respaldoRepository.delete(respaldo);</span>
+<span class="nc" id="L41">                    log.info(&quot;[RespaldoRetencionScheduler] Respaldo {} eliminado (retención vencida)&quot;, respaldo.getIdRespaldo());</span>
+                }
+<span class="nc" id="L43">            } catch (Exception e) {</span>
+<span class="nc" id="L44">                log.error(&quot;[RespaldoRetencionScheduler] Error al purgar el respaldo {}: {}&quot;,</span>
+<span class="nc" id="L45">                        respaldo.getIdRespaldo(), e.getMessage(), e);</span>
+<span class="nc" id="L46">            }</span>
+<span class="nc" id="L47">        }</span>
+<span class="nc" id="L48">    }</span>
+
+    private boolean haVencido(Respaldo respaldo) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        int dias = respaldo.getProgramacion() != null</span>
+<span class="nc" id="L52">                ? respaldo.getProgramacion().getRetencionDias()</span>
+<span class="nc" id="L53">                : respaldoProperties.getRetencionDiasManual();</span>
+<span class="nc" id="L54">        return respaldo.getFechaInicio().isBefore(LocalDateTime.now().minusDays(dias));</span>
+    }
+
+    /**
+     * Un INCREMENTAL siempre es seguro de borrar solo. Un FULL NO se borra
+     * mientras existan INCREMENTAL COMPLETADO que dependan de él: sin la FULL
+     * esos incrementales quedan huérfanos e irrecuperables. Consecuencia
+     * documentada (ver docs/despliegue/BACKUP.md): la retención de una FULL
+     * es un MÍNIMO, no un máximo estricto -- puede sobrevivir más allá de su
+     * retención configurada mientras algún incremental la necesite.
+     *
+     * Reutilizado también por la eliminación manual del controlador
+     * (RespaldoServicioImpl#eliminar): un admin tampoco puede borrar a mano
+     * un FULL del que dependen incrementales vivos.
+     */
+    public boolean esSeguroEliminar(Respaldo respaldo) {
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (respaldo.getTipoRespaldo() == TipoRespaldo.INCREMENTAL) {</span>
+<span class="nc" id="L71">            return true;</span>
+        }
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        return !respaldoRepository.existsByIdRespaldoFullBaseAndEstadoRespaldo(</span>
+<span class="nc" id="L74">                respaldo.getIdRespaldo(), EstadoRespaldo.COMPLETADO);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

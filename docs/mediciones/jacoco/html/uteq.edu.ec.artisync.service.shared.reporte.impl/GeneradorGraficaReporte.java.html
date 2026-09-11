@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeneradorGraficaReporte.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.reporte.impl</a> &gt; <span class="el_source">GeneradorGraficaReporte.java</span></div><h1>GeneradorGraficaReporte.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.reporte.impl;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.geom.Arc2D;
+import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Genera gráficas estadísticas en formato PNG de alta fidelidad para reportes PDF y Excel
+ * utilizando Java2D nativo (Graphics2D) en modo headless, sin dependencias externas pesadas.
+ * Utiliza la paleta de colores oficial de Artisync (#7B39B2, #9C5CC5, #1E0F38).
+ */
+<span class="fc" id="L24">@Slf4j</span>
+@Component
+<span class="fc" id="L26">public class GeneradorGraficaReporte {</span>
+
+    private static final int ANCHO = 560;
+    private static final int ALTO = 300;
+
+    // Paleta corporativa Artisync
+<span class="fc" id="L32">    private static final Color COLOR_TEXTO_TITULO = new Color(30, 15, 56);       // #1E0F38</span>
+<span class="fc" id="L33">    private static final Color COLOR_TEXTO_MUTED = new Color(100, 116, 139);     // #64748B</span>
+<span class="fc" id="L34">    private static final Color COLOR_BORDE_TARJETA = new Color(233, 213, 255);    // #E9D5FF</span>
+<span class="fc" id="L35">    private static final Color COLOR_FONDO_BARRA = new Color(241, 245, 249);     // #F1F5F9</span>
+
+<span class="fc" id="L37">    private static final Color MORADO_PRIMARIO = new Color(123, 57, 178);        // #7B39B2</span>
+<span class="fc" id="L38">    private static final Color MORADO_CLARO = new Color(156, 92, 197);           // #9C5CC5</span>
+
+<span class="fc" id="L40">    private static final Color[] PALETA_ROLES = {</span>
+            new Color(123, 57, 178), // Creador - #7B39B2
+            new Color(59, 130, 246),  // Cliente - #3B82F6
+            new Color(16, 185, 129),  // Admin - #10B981
+            new Color(245, 158, 11),  // Moderador - #F59E0B
+            new Color(236, 72, 153),  // Soporte - #EC4899
+            new Color(139, 92, 246),  // Auditor - #8B5CF6
+            new Color(99, 102, 241),  // Índigo
+            new Color(20, 184, 166)   // Teal
+    };
+
+    /**
+     * Genera una gráfica moderna tipo Donut de usuarios agrupados por rol.
+     */
+    public byte[] generarGraficaRol(Map&lt;String, Long&gt; datosRol) {
+<span class="fc" id="L55">        BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);</span>
+<span class="fc" id="L56">        Graphics2D g = configurarGraphics(imagen);</span>
+
+        try {
+<span class="fc" id="L59">            dibujarFondoTarjeta(g, &quot;Distribución de Usuarios por Rol&quot;, &quot;Proporción de usuarios según su rol asignado&quot;);</span>
+
+<span class="fc" id="L61">            long total = datosRol.values().stream().mapToLong(Long::longValue).sum();</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (total == 0) {</span>
+<span class="fc" id="L63">                dibujarMensajeSinDatos(g);</span>
+<span class="fc" id="L64">                return convertirAPng(imagen);</span>
+            }
+
+            // Dimensiones y posición del Donut
+<span class="fc" id="L68">            int centroX = 140;</span>
+<span class="fc" id="L69">            int centroY = 175;</span>
+<span class="fc" id="L70">            int radioExterior = 85;</span>
+<span class="fc" id="L71">            int radioInterior = 52;</span>
+
+<span class="fc" id="L73">            double anguloInicial = 90.0;</span>
+<span class="fc" id="L74">            int colorIdx = 0;</span>
+
+<span class="fc" id="L76">            List&lt;Map.Entry&lt;String, Long&gt;&gt; entradas = new ArrayList&lt;&gt;(datosRol.entrySet());</span>
+<span class="fc" id="L77">            entradas.sort((a, b) -&gt; Long.compare(b.getValue(), a.getValue()));</span>
+
+<span class="fc bfc" id="L79" title="All 2 branches covered.">            for (Map.Entry&lt;String, Long&gt; entry : entradas) {</span>
+<span class="fc" id="L80">                double porcion = (double) entry.getValue() / total;</span>
+<span class="fc" id="L81">                double extension = porcion * 360.0;</span>
+<span class="fc" id="L82">                Color color = PALETA_ROLES[colorIdx % PALETA_ROLES.length];</span>
+
+                // Dibujar sector exterior
+<span class="fc" id="L85">                g.setColor(color);</span>
+<span class="fc" id="L86">                Arc2D sector = new Arc2D.Double(</span>
+                        centroX - radioExterior, centroY - radioExterior,
+                        radioExterior * 2, radioExterior * 2,
+                        anguloInicial, -extension, Arc2D.PIE);
+<span class="fc" id="L90">                g.fill(sector);</span>
+
+                // Separador blanco entre arcos si hay más de una categoría
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">                if (entradas.size() &gt; 1) {</span>
+<span class="fc" id="L94">                    g.setColor(Color.WHITE);</span>
+<span class="fc" id="L95">                    g.setStroke(new BasicStroke(2.0f));</span>
+<span class="fc" id="L96">                    g.draw(sector);</span>
+                }
+
+<span class="fc" id="L99">                anguloInicial -= extension;</span>
+<span class="fc" id="L100">                colorIdx++;</span>
+<span class="fc" id="L101">            }</span>
+
+            // Agujero central para efecto Donut
+<span class="fc" id="L104">            g.setColor(Color.WHITE);</span>
+<span class="fc" id="L105">            g.fillOval(centroX - radioInterior, centroY - radioInterior, radioInterior * 2, radioInterior * 2);</span>
+<span class="fc" id="L106">            g.setColor(new Color(243, 232, 255)); // Borde sutil al agujero</span>
+<span class="fc" id="L107">            g.setStroke(new BasicStroke(1.5f));</span>
+<span class="fc" id="L108">            g.drawOval(centroX - radioInterior, centroY - radioInterior, radioInterior * 2, radioInterior * 2);</span>
+
+            // Texto central: Total de usuarios
+<span class="fc" id="L111">            g.setColor(COLOR_TEXTO_TITULO);</span>
+<span class="fc" id="L112">            g.setFont(new Font(&quot;SansSerif&quot;, Font.BOLD, 22));</span>
+<span class="fc" id="L113">            String totalTexto = String.valueOf(total);</span>
+<span class="fc" id="L114">            FontMetrics fm = g.getFontMetrics();</span>
+<span class="fc" id="L115">            g.drawString(totalTexto, centroX - (fm.stringWidth(totalTexto) / 2), centroY + 2);</span>
+
+<span class="fc" id="L117">            g.setColor(COLOR_TEXTO_MUTED);</span>
+<span class="fc" id="L118">            g.setFont(new Font(&quot;SansSerif&quot;, Font.PLAIN, 10));</span>
+<span class="fc" id="L119">            fm = g.getFontMetrics();</span>
+<span class="fc" id="L120">            g.drawString(&quot;USUARIOS&quot;, centroX - (fm.stringWidth(&quot;USUARIOS&quot;) / 2), centroY + 17);</span>
+
+            // Leyenda a la derecha
+<span class="fc" id="L123">            int leyendaX = 265;</span>
+<span class="fc" id="L124">            int leyendaY = 100;</span>
+<span class="fc" id="L125">            int altoFila = 26;</span>
+<span class="fc" id="L126">            colorIdx = 0;</span>
+
+<span class="fc" id="L128">            int maxItems = Math.min(entradas.size(), 6);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">            for (int i = 0; i &lt; maxItems; i++) {</span>
+<span class="fc" id="L130">                Map.Entry&lt;String, Long&gt; entry = entradas.get(i);</span>
+<span class="fc" id="L131">                Color color = PALETA_ROLES[colorIdx % PALETA_ROLES.length];</span>
+<span class="fc" id="L132">                int yFila = leyendaY + (i * altoFila);</span>
+
+                // Indicador circular
+<span class="fc" id="L135">                g.setColor(color);</span>
+<span class="fc" id="L136">                g.fillOval(leyendaX, yFila, 12, 12);</span>
+
+                // Nombre del rol
+<span class="fc" id="L139">                g.setColor(COLOR_TEXTO_TITULO);</span>
+<span class="fc" id="L140">                g.setFont(new Font(&quot;SansSerif&quot;, Font.BOLD, 11));</span>
+<span class="fc" id="L141">                String nombreLegible = formatearNombreRol(entry.getKey());</span>
+<span class="fc" id="L142">                g.drawString(nombreLegible, leyendaX + 18, yFila + 10);</span>
+
+                // Conteo y porcentaje
+<span class="fc" id="L145">                double pct = ((double) entry.getValue() / total) * 100.0;</span>
+<span class="fc" id="L146">                String info = String.format(&quot;%d (%.1f%%)&quot;, entry.getValue(), pct);</span>
+<span class="fc" id="L147">                g.setColor(COLOR_TEXTO_MUTED);</span>
+<span class="fc" id="L148">                g.setFont(new Font(&quot;SansSerif&quot;, Font.PLAIN, 11));</span>
+<span class="fc" id="L149">                g.drawString(info, leyendaX + 175, yFila + 10);</span>
+
+<span class="fc" id="L151">                colorIdx++;</span>
+            }
+
+<span class="fc" id="L154">            return convertirAPng(imagen);</span>
+        } finally {
+<span class="fc" id="L156">            g.dispose();</span>
+        }
+    }
+
+    /**
+     * Genera una gráfica moderna de barras horizontales de usuarios agrupados por país.
+     */
+    public byte[] generarGraficaPais(Map&lt;String, Long&gt; datosPais) {
+<span class="fc" id="L164">        BufferedImage imagen = new BufferedImage(ANCHO, ALTO, BufferedImage.TYPE_INT_ARGB);</span>
+<span class="fc" id="L165">        Graphics2D g = configurarGraphics(imagen);</span>
+
+        try {
+<span class="fc" id="L168">            dibujarFondoTarjeta(g, &quot;Distribución de Usuarios por País&quot;, &quot;Concentración geográfica de los usuarios registrados&quot;);</span>
+
+<span class="fc" id="L170">            long total = datosPais.values().stream().mapToLong(Long::longValue).sum();</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">            if (total == 0) {</span>
+<span class="fc" id="L172">                dibujarMensajeSinDatos(g);</span>
+<span class="fc" id="L173">                return convertirAPng(imagen);</span>
+            }
+
+            // Ordenar por cantidad descendente
+<span class="fc" id="L177">            List&lt;Map.Entry&lt;String, Long&gt;&gt; entradas = new ArrayList&lt;&gt;(datosPais.entrySet());</span>
+<span class="fc" id="L178">            entradas.sort((a, b) -&gt; Long.compare(b.getValue(), a.getValue()));</span>
+
+            // Limitar a los 6 primeros si hay más, agrupando el resto en &quot;Otros&quot;
+<span class="fc" id="L181">            Map&lt;String, Long&gt; paisesFinales = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L182">            long otros = 0;</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">            for (int i = 0; i &lt; entradas.size(); i++) {</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">                if (i &lt; 5) {</span>
+<span class="fc" id="L185">                    paisesFinales.put(entradas.get(i).getKey(), entradas.get(i).getValue());</span>
+                } else {
+<span class="nc" id="L187">                    otros += entradas.get(i).getValue();</span>
+                }
+            }
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">            if (otros &gt; 0) {</span>
+<span class="nc" id="L191">                paisesFinales.put(&quot;Otros&quot;, otros);</span>
+            }
+
+<span class="fc" id="L194">            long maxValor = paisesFinales.values().stream().mapToLong(Long::longValue).max().orElse(1L);</span>
+
+<span class="fc" id="L196">            int inicioX = 145;</span>
+<span class="fc" id="L197">            int inicioY = 95;</span>
+<span class="fc" id="L198">            int anchoBarraMax = 320;</span>
+<span class="fc" id="L199">            int altoBarra = 18;</span>
+<span class="fc" id="L200">            int espaciado = 30;</span>
+
+<span class="fc" id="L202">            int fila = 0;</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">            for (Map.Entry&lt;String, Long&gt; entry : paisesFinales.entrySet()) {</span>
+<span class="fc" id="L204">                int y = inicioY + (fila * espaciado);</span>
+<span class="pc bpc" id="L205" title="2 of 4 branches missed.">                String pais = entry.getKey() == null || entry.getKey().isBlank() ? &quot;Sin especificar&quot; : entry.getKey();</span>
+<span class="fc" id="L206">                long cantidad = entry.getValue();</span>
+
+                // Nombre del país alineado a la izquierda
+<span class="fc" id="L209">                g.setColor(COLOR_TEXTO_TITULO);</span>
+<span class="fc" id="L210">                g.setFont(new Font(&quot;SansSerif&quot;, Font.PLAIN, 11));</span>
+<span class="fc" id="L211">                FontMetrics fm = g.getFontMetrics();</span>
+<span class="fc" id="L212">                int textoX = inicioX - fm.stringWidth(pais) - 12;</span>
+<span class="fc" id="L213">                g.drawString(pais, Math.max(16, textoX), y + 13);</span>
+
+                // Barra de fondo (escala completa)
+<span class="fc" id="L216">                g.setColor(COLOR_FONDO_BARRA);</span>
+<span class="fc" id="L217">                g.fillRoundRect(inicioX, y, anchoBarraMax, altoBarra, 8, 8);</span>
+
+                // Barra con valor proporcional y degradado morado
+<span class="fc" id="L220">                int anchoCalculado = (int) Math.round(((double) cantidad / maxValor) * anchoBarraMax);</span>
+<span class="fc" id="L221">                int anchoFinal = Math.max(10, anchoCalculado);</span>
+
+<span class="fc" id="L223">                GradientPaint gradiente = new GradientPaint(</span>
+                        inicioX, y, MORADO_CLARO,
+                        inicioX + anchoFinal, y, MORADO_PRIMARIO);
+<span class="fc" id="L226">                g.setPaint(gradiente);</span>
+<span class="fc" id="L227">                g.fillRoundRect(inicioX, y, anchoFinal, altoBarra, 8, 8);</span>
+
+                // Conteo y porcentaje al final de la barra
+<span class="fc" id="L230">                double pct = ((double) cantidad / total) * 100.0;</span>
+<span class="fc" id="L231">                String etiquetaValor = String.format(&quot;%d (%.1f%%)&quot;, cantidad, pct);</span>
+<span class="fc" id="L232">                g.setColor(COLOR_TEXTO_TITULO);</span>
+<span class="fc" id="L233">                g.setFont(new Font(&quot;SansSerif&quot;, Font.BOLD, 10));</span>
+<span class="fc" id="L234">                g.drawString(etiquetaValor, inicioX + anchoFinal + 8, y + 13);</span>
+
+<span class="fc" id="L236">                fila++;</span>
+<span class="fc" id="L237">            }</span>
+
+<span class="fc" id="L239">            return convertirAPng(imagen);</span>
+        } finally {
+<span class="fc" id="L241">            g.dispose();</span>
+        }
+    }
+
+    private Graphics2D configurarGraphics(BufferedImage imagen) {
+<span class="fc" id="L246">        Graphics2D g = imagen.createGraphics();</span>
+<span class="fc" id="L247">        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);</span>
+<span class="fc" id="L248">        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);</span>
+<span class="fc" id="L249">        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);</span>
+<span class="fc" id="L250">        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);</span>
+<span class="fc" id="L251">        return g;</span>
+    }
+
+    private void dibujarFondoTarjeta(Graphics2D g, String titulo, String subtitulo) {
+        // Fondo blanco con borde redondeado suave
+<span class="fc" id="L256">        g.setColor(Color.WHITE);</span>
+<span class="fc" id="L257">        g.fillRoundRect(2, 2, ANCHO - 4, ALTO - 4, 16, 16);</span>
+
+<span class="fc" id="L259">        g.setColor(COLOR_BORDE_TARJETA);</span>
+<span class="fc" id="L260">        g.setStroke(new BasicStroke(1.2f));</span>
+<span class="fc" id="L261">        g.drawRoundRect(2, 2, ANCHO - 4, ALTO - 4, 16, 16);</span>
+
+        // Barra decorativa morada superior
+<span class="fc" id="L264">        GradientPaint barraTop = new GradientPaint(16, 12, MORADO_PRIMARIO, 150, 12, MORADO_CLARO);</span>
+<span class="fc" id="L265">        g.setPaint(barraTop);</span>
+<span class="fc" id="L266">        g.fillRoundRect(16, 12, 34, 4, 2, 2);</span>
+
+        // Título de la gráfica
+<span class="fc" id="L269">        g.setColor(COLOR_TEXTO_TITULO);</span>
+<span class="fc" id="L270">        g.setFont(new Font(&quot;SansSerif&quot;, Font.BOLD, 14));</span>
+<span class="fc" id="L271">        g.drawString(titulo, 16, 36);</span>
+
+        // Subtítulo
+<span class="fc" id="L274">        g.setColor(COLOR_TEXTO_MUTED);</span>
+<span class="fc" id="L275">        g.setFont(new Font(&quot;SansSerif&quot;, Font.PLAIN, 10));</span>
+<span class="fc" id="L276">        g.drawString(subtitulo, 16, 52);</span>
+
+        // Línea sutil divisoria
+<span class="fc" id="L279">        g.setColor(new Color(241, 245, 249));</span>
+<span class="fc" id="L280">        g.drawLine(16, 62, ANCHO - 16, 62);</span>
+<span class="fc" id="L281">    }</span>
+
+    private void dibujarMensajeSinDatos(Graphics2D g) {
+<span class="fc" id="L284">        g.setColor(COLOR_TEXTO_MUTED);</span>
+<span class="fc" id="L285">        g.setFont(new Font(&quot;SansSerif&quot;, Font.ITALIC, 12));</span>
+<span class="fc" id="L286">        String msg = &quot;No hay datos suficientes para graficar.&quot;;</span>
+<span class="fc" id="L287">        FontMetrics fm = g.getFontMetrics();</span>
+<span class="fc" id="L288">        g.drawString(msg, (ANCHO - fm.stringWidth(msg)) / 2, ALTO / 2);</span>
+<span class="fc" id="L289">    }</span>
+
+    private String formatearNombreRol(String rol) {
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">        if (rol == null) return &quot;Sin Rol&quot;;</span>
+<span class="pc bpc" id="L293" title="3 of 7 branches missed.">        return switch (rol.toUpperCase()) {</span>
+<span class="fc" id="L294">            case &quot;ADMIN&quot;, &quot;ROLE_ADMIN&quot; -&gt; &quot;Administrador&quot;;</span>
+<span class="fc" id="L295">            case &quot;CREADOR&quot;, &quot;ROLE_CREADOR&quot; -&gt; &quot;Creador&quot;;</span>
+<span class="fc" id="L296">            case &quot;CLIENTE&quot;, &quot;ROLE_CLIENTE&quot; -&gt; &quot;Cliente&quot;;</span>
+<span class="fc" id="L297">            case &quot;MODERADOR&quot;, &quot;ROLE_MODERADOR&quot; -&gt; &quot;Moderador&quot;;</span>
+<span class="nc" id="L298">            case &quot;SOPORTE&quot;, &quot;ROLE_SOPORTE&quot; -&gt; &quot;Soporte&quot;;</span>
+<span class="nc" id="L299">            case &quot;AUDITOR_FINANCIERO&quot;, &quot;ROLE_AUDITOR_FINANCIERO&quot; -&gt; &quot;Auditor Financiero&quot;;</span>
+<span class="nc" id="L300">            default -&gt; rol.replace(&quot;ROLE_&quot;, &quot;&quot;);</span>
+        };
+    }
+
+    private byte[] convertirAPng(BufferedImage imagen) {
+<span class="fc" id="L305">        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {</span>
+<span class="fc" id="L306">            ImageIO.write(imagen, &quot;png&quot;, baos);</span>
+<span class="fc" id="L307">            return baos.toByteArray();</span>
+<span class="nc" id="L308">        } catch (IOException e) {</span>
+<span class="nc" id="L309">            log.error(&quot;Error al exportar gráfica a formato PNG&quot;, e);</span>
+<span class="nc" id="L310">            throw new IllegalStateException(&quot;Error al renderizar la gráfica: &quot; + e.getMessage(), e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

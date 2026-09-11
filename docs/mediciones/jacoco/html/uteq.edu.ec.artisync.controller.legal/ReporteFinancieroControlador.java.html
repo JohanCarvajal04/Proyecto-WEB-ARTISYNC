@@ -31,20 +31,50 @@ public class ReporteFinancieroControlador {
 
     private final IReporteFinancieroServicio reporteFinancieroServicio;
 
+    /**
+     * Obtiene el reporte de comisiones de un creador: monto bruto, comisión, neto y detalle de transacciones.
+     *
+     * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
+     * @return el reporte de comisiones solicitado
+     */
     @Operation(summary = &quot;Reporte de comisiones de un creador: bruto, comisión, neto y detalle de transacciones&quot;)
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('TRANSACCION_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaReporteComisiones&gt; obtener(FiltroReporteFinanciero filtro) {
-<span class="fc" id="L38">        return ResponseEntity.ok(reporteFinancieroServicio.obtenerReporteComisiones(filtro));</span>
+<span class="fc" id="L44">        return ResponseEntity.ok(reporteFinancieroServicio.obtenerReporteComisiones(filtro));</span>
     }
 
-    @Operation(summary = &quot;Exportar el reporte de comisiones en CSV, XLSX o PDF&quot;)
+    /**
+     * Exporta el reporte de comisiones de un creador en el formato solicitado, con soporte de paginación/división en partes.
+     *
+     * @param filtro criterios para acotar el reporte (creador, rango de fechas, etc.)
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param page número de página / parte solicitada (base 0, opcional)
+     * @param size tamaño del lote / página (opcional)
+     * @param authentication autenticación del usuario que solicita la exportación
+     * @return el documento generado con el reporte de comisiones
+     */
+    @Operation(summary = &quot;Exportar el reporte de comisiones en CSV, XLSX o PDF con soporte de paginación / división en partes&quot;)
     @GetMapping(&quot;/exportar&quot;)
     @PreAuthorize(&quot;hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;byte[]&gt; exportar(FiltroReporteFinanciero filtro, @RequestParam FormatoReporte formato,
-                                            Authentication authentication) {
-<span class="fc" id="L46">        DocumentoGenerado documento = reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());</span>
-<span class="fc" id="L47">        return RespuestaDocumento.de(documento);</span>
+    public ResponseEntity&lt;byte[]&gt; exportar(
+            FiltroReporteFinanciero filtro,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            Authentication authentication) {
+<span class="pc bpc" id="L66" title="2 of 4 branches missed.">        DocumentoGenerado documento = (page != null || size != null)</span>
+<span class="nc" id="L67">                ? reporteFinancieroServicio.exportar(filtro, formato, page, size, authentication.getName())</span>
+<span class="fc" id="L68">                : reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());</span>
+<span class="fc" id="L69">        return RespuestaDocumento.de(documento);</span>
+    }
+
+    @PreAuthorize(&quot;hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportar(
+            FiltroReporteFinanciero filtro,
+            FormatoReporte formato,
+            Authentication authentication) {
+<span class="fc" id="L77">        return exportar(filtro, formato, null, null, authentication);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

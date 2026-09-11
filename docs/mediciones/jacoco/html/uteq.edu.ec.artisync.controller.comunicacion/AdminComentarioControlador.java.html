@@ -25,34 +25,60 @@ public class AdminComentarioControlador {
 
     private final ComentarioPortafolioService comentarioService;
 
+    /**
+     * Lista todos los comentarios del sistema de forma paginada para su moderación.
+     *
+     * @param pageable configuración de paginación
+     * @return página con los comentarios del sistema
+     */
     @Operation(summary = &quot;Listar todos los comentarios del sistema&quot;)
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaComentario&gt;&gt; listarParaModeracion(
             @PageableDefault(size = 20) Pageable pageable) {
-<span class="nc" id="L33">        return ResponseEntity.ok(comentarioService.listarParaModeracion(pageable));</span>
+<span class="fc" id="L39">        return ResponseEntity.ok(comentarioService.listarParaModeracion(pageable));</span>
     }
 
+    /**
+     * Oculta un comentario como acción de moderación.
+     *
+     * @param idComentario identificador del comentario a ocultar
+     * @return el comentario con su estado de moderación actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     */
     @Operation(summary = &quot;Ocultar un comentario (moderación)&quot;)
     @PatchMapping(&quot;/{idComentario}/ocultar&quot;)
     @PreAuthorize(&quot;hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaComentario&gt; ocultarComentario(@PathVariable Long idComentario) {
-<span class="nc" id="L40">        return ResponseEntity.ok(comentarioService.ocultarComentario(idComentario));</span>
+<span class="fc" id="L53">        return ResponseEntity.ok(comentarioService.ocultarComentario(idComentario));</span>
     }
 
+    /**
+     * Reactiva un comentario previamente oculto.
+     *
+     * @param idComentario identificador del comentario a reactivar
+     * @return el comentario con su estado de moderación actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     */
     @Operation(summary = &quot;Reactivar un comentario previamente oculto&quot;)
     @PatchMapping(&quot;/{idComentario}/reactivar&quot;)
     @PreAuthorize(&quot;hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaComentario&gt; reactivarComentario(@PathVariable Long idComentario) {
-<span class="nc" id="L47">        return ResponseEntity.ok(comentarioService.reactivarComentario(idComentario));</span>
+<span class="fc" id="L67">        return ResponseEntity.ok(comentarioService.reactivarComentario(idComentario));</span>
     }
 
+    /**
+     * Elimina definitivamente un comentario del sistema como acción de moderación.
+     *
+     * @param idComentario identificador del comentario a eliminar
+     * @return respuesta vacía con estado 204
+     */
     @Operation(summary = &quot;Eliminar definitivamente un comentario (moderación)&quot;)
     @DeleteMapping(&quot;/{idComentario}&quot;)
     @PreAuthorize(&quot;hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Void&gt; eliminarComentario(@PathVariable Long idComentario) {
-<span class="nc" id="L54">        comentarioService.eliminarComentario(idComentario, null, true);</span>
-<span class="nc" id="L55">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L80">        comentarioService.eliminarComentario(idComentario, null, true);</span>
+<span class="fc" id="L81">        return ResponseEntity.noContent().build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -6,6 +6,13 @@ import org.springframework.security.core.userdetails.User;
 
 import java.util.Collection;
 
+/**
+ * Componente de Seguridad: Implementacion personalizada de UserDetails.
+ * 
+ * Propósito: Adaptar la entidad Usuario del dominio interno a la estructura de contrato exigida por Spring Security.
+ * 
+ * Flujo interno: Alberga la identidad, credenciales y coleccion de autoridades (roles/permisos) del usuario en sesion, facilitando el acceso a propiedades personalizadas desde el SecurityContext.
+ */
 @Getter
 public class CustomUserDetails extends User {
 
@@ -14,8 +21,9 @@ public class CustomUserDetails extends User {
     public CustomUserDetails(Long idUsuario, String username, String password, boolean enabled,
                              boolean accountNonExpired, boolean credentialsNonExpired,
                              boolean accountNonLocked, Collection&lt;? extends GrantedAuthority&gt; authorities) {
-<span class="fc" id="L17">        super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);</span>
-<span class="fc" id="L18">        this.idUsuario = idUsuario;</span>
-<span class="fc" id="L19">    }</span>
+<span class="fc" id="L24">        super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);</span>
+<span class="fc" id="L25">        this.idUsuario = idUsuario;</span>
+<span class="fc" id="L26">    }</span>
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

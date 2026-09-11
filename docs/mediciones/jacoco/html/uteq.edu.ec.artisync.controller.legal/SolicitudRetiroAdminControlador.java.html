@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SolicitudRetiroAdminControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">SolicitudRetiroAdminControlador.java</span></div><h1>SolicitudRetiroAdminControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.legal.FiltroSolicitudRetiro;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionDecisionRetiro;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSolicitudRetiro;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.legal.ISolicitudRetiroServicio;
+
+/**
+ * Cola de revisión de retiros del Auditor Financiero. RETIROS_GESTIONAR se
+ * asigna a AUDITOR_FINANCIERO, no a ADMIN (mismo criterio que
+ * PagoGarantiaAuditoriaControlador con PAGO_AUDITAR); &quot;or hasRole('ADMIN')&quot;
+ * es el comodín que ya usa el resto de endpoints financieros del panel admin.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/retiros&quot;)
+@RequiredArgsConstructor
+public class SolicitudRetiroAdminControlador {
+
+    private final ISolicitudRetiroServicio solicitudRetiroServicio;
+
+    /**
+     * Lista de forma paginada la cola de solicitudes de retiro, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar la cola de solicitudes
+     * @param pageable configuración de paginación
+     * @return página con las solicitudes de retiro que cumplen el filtro
+     */
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Page&lt;RespuestaSolicitudRetiro&gt;&gt; listar(FiltroSolicitudRetiro filtro, Pageable pageable) {
+<span class="fc" id="L40">        return ResponseEntity.ok(solicitudRetiroServicio.listarCola(filtro, pageable));</span>
+    }
+
+    /**
+     * Aprueba una solicitud de retiro pendiente y ejecuta el pago vía PayPal Payouts.
+     *
+     * @param idSolicitud identificador de la solicitud de retiro
+     * @param userDetails administrador autenticado que aprueba la solicitud
+     * @return la solicitud de retiro con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
+     * @throws ExcepcionReglaNegocio si la solicitud no está en estado pendiente
+     */
+    @PostMapping(&quot;/{idSolicitud}/aprobar&quot;)
+    @PreAuthorize(&quot;hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaSolicitudRetiro&gt; aprobar(
+            @PathVariable Long idSolicitud,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L57">        return ResponseEntity.ok(solicitudRetiroServicio.aprobar(idSolicitud, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Rechaza una solicitud de retiro pendiente.
+     *
+     * @param idSolicitud identificador de la solicitud de retiro
+     * @param userDetails administrador autenticado que rechaza la solicitud
+     * @param peticion nota administrativa con el motivo del rechazo
+     * @return la solicitud de retiro con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
+     * @throws ExcepcionReglaNegocio si no se indica motivo de rechazo, o la solicitud no está en estado pendiente
+     */
+    @PostMapping(&quot;/{idSolicitud}/rechazar&quot;)
+    @PreAuthorize(&quot;hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaSolicitudRetiro&gt; rechazar(
+            @PathVariable Long idSolicitud,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionDecisionRetiro peticion) {
+<span class="fc" id="L76">        return ResponseEntity.ok(solicitudRetiroServicio.rechazar(</span>
+<span class="fc" id="L77">                idSolicitud, userDetails.getIdUsuario(), peticion.getNotaAdmin()));</span>
+    }
+
+    /**
+     * Solo tiene efecto sobre una solicitud en estado &quot;Fallido&quot; (ver ISolicitudRetiroServicio.reintentar).
+     *
+     * @param idSolicitud identificador de la solicitud de retiro
+     * @param userDetails administrador autenticado que reintenta la solicitud
+     * @return la solicitud de retiro con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
+     * @throws ExcepcionReglaNegocio si la solicitud no está en estado fallido
+     */
+    @PostMapping(&quot;/{idSolicitud}/reintentar&quot;)
+    @PreAuthorize(&quot;hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaSolicitudRetiro&gt; reintentar(
+            @PathVariable Long idSolicitud,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L94">        return ResponseEntity.ok(solicitudRetiroServicio.reintentar(idSolicitud, userDetails.getIdUsuario()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

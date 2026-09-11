@@ -28,6 +28,17 @@ public class ResenaControlador {
 
     private final ResenaService resenaService;
 
+    /**
+     * Crea una reseña para un pedido cuyo entregable ya fue liberado.
+     *
+     * @param idPedido identificador del pedido
+     * @param peticion calificación y texto de la reseña
+     * @param userDetails usuario autenticado (cliente del pedido) que crea la reseña
+     * @return la reseña creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws ExcepcionReglaNegocio si el entregable del pedido aún no fue liberado
+     * @throws ExcepcionRecursoDuplicado si ya existe una reseña para el pedido
+     */
     @Operation(summary = &quot;Crear reseña de un pedido entregado (CLIENTE)&quot;)
     @PostMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -36,20 +47,36 @@ public class ResenaControlador {
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionCrearResena peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L39">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L40">                .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L50">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L51">                .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Obtiene la reseña del usuario autenticado sobre un pedido, si existe.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado (cliente del pedido)
+     * @return la reseña del cliente, o estado 404 si no existe o no le pertenece
+     */
     @Operation(summary = &quot;Obtener mi reseña de un pedido, si existe (CLIENTE)&quot;)
     @GetMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaResena&gt; obtenerMiResena(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L49">        RespuestaResena resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());</span>
-<span class="fc bfc" id="L50" title="All 2 branches covered.">        return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();</span>
+<span class="fc" id="L67">        RespuestaResena resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();</span>
     }
 
+    /**
+     * Edita la reseña del usuario autenticado sobre un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param peticion calificación y texto actualizados de la reseña
+     * @param userDetails usuario autenticado (cliente que dejó la reseña)
+     * @return la reseña actualizada
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     */
     @Operation(summary = &quot;Editar mi reseña de un pedido (CLIENTE)&quot;)
     @PutMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -57,9 +84,16 @@ public class ResenaControlador {
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionCrearResena peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L60">        return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L87">        return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Elimina la reseña del usuario autenticado sobre un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado (cliente que dejó la reseña)
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     */
     @Operation(summary = &quot;Eliminar mi reseña de un pedido (CLIENTE)&quot;)
     @DeleteMapping(&quot;/api/v1/pedidos/{idPedido}/resena&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -67,20 +101,32 @@ public class ResenaControlador {
     public void eliminarResena(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L70">        resenaService.eliminarResena(idPedido, userDetails.getIdUsuario());</span>
-<span class="fc" id="L71">    }</span>
+<span class="fc" id="L104">        resenaService.eliminarResena(idPedido, userDetails.getIdUsuario());</span>
+<span class="fc" id="L105">    }</span>
 
+    /**
+     * Lista las reseñas de un creador, de acceso público.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return listado de reseñas del creador
+     */
     @Operation(summary = &quot;Listar reseñas de un creador (público)&quot;)
     @GetMapping(&quot;/api/v1/creadores/{idPerfil}/resenas&quot;)
     public ResponseEntity&lt;List&lt;RespuestaResena&gt;&gt; listarResenas(@PathVariable Long idPerfil) {
-<span class="fc" id="L76">        return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));</span>
+<span class="fc" id="L116">        return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));</span>
     }
 
+    /**
+     * Obtiene el promedio de calificaciones de un creador, de acceso público.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return el identificador del perfil y su calificación promedio
+     */
     @Operation(summary = &quot;Promedio de calificaciones de un creador (público)&quot;)
     @GetMapping(&quot;/api/v1/creadores/{idPerfil}/resenas/promedio&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; obtenerPromedio(@PathVariable Long idPerfil) {
-<span class="fc" id="L82">        Double promedio = resenaService.calcularPromedioPorCreador(idPerfil);</span>
-<span class="fc" id="L83">        return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L128">        Double promedio = resenaService.calcularPromedioPorCreador(idPerfil);</span>
+<span class="fc" id="L129">        return ResponseEntity.ok(Map.of(</span>
                 &quot;idPerfil&quot;, idPerfil,
                 &quot;promedio&quot;, promedio
         ));

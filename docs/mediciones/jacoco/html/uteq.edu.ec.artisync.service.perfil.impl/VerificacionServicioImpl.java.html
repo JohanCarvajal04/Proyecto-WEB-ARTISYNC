@@ -225,7 +225,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 <span class="nc" id="L225">        } catch (IOException e) {</span>
 <span class="nc" id="L226">            throw new ExcepcionReglaNegocio(&quot;No se pudo leer el documento para calcular su huella.&quot;);</span>
 <span class="nc" id="L227">        } catch (NoSuchAlgorithmException e) {</span>
-<span class="nc" id="L228">            throw new IllegalStateException(&quot;SHA-256 no disponible en esta JVM.&quot;, e);</span>
+<span class="nc" id="L228">            throw new RuntimeException(&quot;SHA-256 no disponible en esta JVM.&quot;, e);</span>
         }
     }
 

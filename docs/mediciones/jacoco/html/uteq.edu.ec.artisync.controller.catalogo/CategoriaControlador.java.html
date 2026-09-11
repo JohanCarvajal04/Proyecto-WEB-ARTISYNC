@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
@@ -12,6 +13,7 @@ import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
 import java.util.List;
@@ -23,49 +25,126 @@ public class CategoriaControlador {
 
     private final ICategoriaServicio categoriaServicio;
 
+    /**
+     * Lista las categorías activas y ya revisadas, visibles públicamente en
+     * el catálogo.
+     * @return listado de categorías activas
+     */
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarCategoriasActivas() {
-<span class="fc" id="L28">        return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());</span>
+<span class="fc" id="L35">        return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());</span>
     }
 
     // La gestión del catálogo se autoriza por permiso, no por rol: MODERADOR
     // recibe CATEGORIA_GESTIONAR en la semilla y es quien administra categorías
     // desde su panel. Exigir hasRole('ADMIN') lo dejaba fuera con un 403.
+    /**
+     * Lista absolutamente todas las categorías, incluidas las inactivas y las
+     * pendientes de revisión, para el panel de administración del catálogo.
+     * @return listado completo de categorías sin filtrar por estado
+     */
     @GetMapping(&quot;/todas&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarTodasLasCategorias() {
-<span class="fc" id="L37">        return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());</span>
+<span class="fc" id="L49">        return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());</span>
     }
 
+    /**
+     * Obtiene el detalle de una categoría puntual del catálogo.
+     * @param id identificador de la categoría
+     * @return datos de la categoría solicitada
+     */
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaCategoria&gt; obtenerCategoriaPorId(@PathVariable Long id) {
-<span class="nc" id="L42">        return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));</span>
+<span class="nc" id="L59">        return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));</span>
     }
 
+    // CATEGORIA_CREAR es autoservicio (cada creador crea las suyas, quedan sin
+    // revisar); CATEGORIA_GESTIONAR/ADMIN crean directamente como revisadas,
+    // igual que siempre.
+    /**
+     * Crea una categoría nueva; si quien la crea es un creador con
+     * CATEGORIA_CREAR queda asociada a él y sin revisar, mientras que un
+     * moderador o administrador la crea ya como revisada.
+     * @param peticion datos de la categoría a crear
+     * @param userDetails usuario autenticado que solicita la creación
+     * @return categoría recién creada
+     */
     @PostMapping
-    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaCategoria&gt; crearCategoria(@Valid @RequestBody PeticionCrearCategoria peticion) {
-<span class="fc" id="L48">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(peticion));</span>
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaCategoria&gt; crearCategoria(
+            @Valid @RequestBody PeticionCrearCategoria peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        Long idUsuarioCreador = esModerador(userDetails) ? null : userDetails.getIdUsuario();</span>
+<span class="fc" id="L79">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(idUsuarioCreador, peticion));</span>
     }
 
+    /**
+     * Actualiza los datos de una categoría existente.
+     * @param id identificador de la categoría a modificar
+     * @param peticion nuevos datos a aplicar sobre la categoría
+     * @return categoría con los cambios aplicados
+     */
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCategoria&gt; actualizarCategoria(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarCategoria peticion) {
-<span class="fc" id="L56">        return ResponseEntity.ok(categoriaServicio.actualizarCategoria(id, peticion));</span>
+<span class="fc" id="L93">        return ResponseEntity.ok(categoriaServicio.actualizarCategoria(id, peticion));</span>
     }
 
+    /**
+     * Elimina (desactiva) una categoría del catálogo, opcionalmente
+     * registrando el motivo de la baja.
+     * @param id identificador de la categoría a eliminar
+     * @param motivo justificación de la eliminación, si se provee
+     * @return mensaje de confirmación de la eliminación
+     */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCategoria(@PathVariable Long id) {
-<span class="fc" id="L62">        categoriaServicio.eliminarCategoria(id);</span>
-<span class="fc" id="L63">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Categoria eliminada exitosamente&quot;));</span>
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCategoria(
+            @PathVariable Long id,
+            @RequestParam(required = false) String motivo) {
+<span class="fc" id="L108">        categoriaServicio.eliminarCategoria(id, motivo);</span>
+<span class="fc" id="L109">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Categoria eliminada exitosamente&quot;));</span>
     }
 
+    /**
+     * Lista las subcategorías que pertenecen a una categoría concreta.
+     * @param id identificador de la categoría padre
+     * @return listado de subcategorías asociadas a la categoría
+     */
     @GetMapping(&quot;/{id}/subcategorias&quot;)
     public ResponseEntity&lt;List&lt;RespuestaSubcategoria&gt;&gt; listarSubcategoriasPorCategoria(@PathVariable Long id) {
-<span class="nc" id="L68">        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));</span>
+<span class="nc" id="L119">        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));</span>
+    }
+
+    /**
+     * Lista las categorías creadas por autoservicio que aún no han sido
+     * revisadas por un moderador o administrador.
+     * @return listado de categorías pendientes de revisión
+     */
+    @GetMapping(&quot;/pendientes-revision&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaCategoria&gt;&gt; listarPendientesRevision() {
+<span class="nc" id="L130">        return ResponseEntity.ok(categoriaServicio.listarCategoriasPendientesRevision());</span>
+    }
+
+    /**
+     * Marca una categoría pendiente como revisada por un moderador o
+     * administrador.
+     * @param id identificador de la categoría a marcar como revisada
+     * @return categoría actualizada con el estado de revisión aplicado
+     */
+    @PatchMapping(&quot;/{id}/revisar&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaCategoria&gt; marcarRevisada(@PathVariable Long id) {
+<span class="nc" id="L142">        return ResponseEntity.ok(categoriaServicio.marcarCategoriaRevisada(id));</span>
+    }
+
+    private boolean esModerador(CustomUserDetails userDetails) {
+<span class="fc" id="L146">        return userDetails.getAuthorities().stream()</span>
+<span class="fc bfc" id="L147" title="All 4 branches covered.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;CATEGORIA_GESTIONAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

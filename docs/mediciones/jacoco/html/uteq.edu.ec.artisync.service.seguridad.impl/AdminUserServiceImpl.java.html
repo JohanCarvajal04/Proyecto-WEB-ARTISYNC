@@ -43,6 +43,8 @@ import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +53,7 @@ import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
 
-<span class="fc" id="L54">@Slf4j</span>
+<span class="fc" id="L56">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
@@ -65,6 +67,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
     private final EntityManager entityManager;
     private final IServicioExportacion servicioExportacion;
+    private final uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorGraficaReporte generadorGraficaReporte;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,18 +78,18 @@ public class AdminUserServiceImpl implements AdminUserService {
     // se conserva intacto -- se sigue resolviendo con findAll(pageable), no se
     // reemplaza por una rutina con orden fijo.
     public PagedResponse&lt;UserResponse&gt; getAllUsers(FiltroUsuario filtro, Pageable pageable) {
-<span class="fc" id="L78">        Specification&lt;Usuario&gt; spec = UsuarioSpecification.conFiltros(</span>
-<span class="fc" id="L79">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
-<span class="fc" id="L80">        Page&lt;Usuario&gt; usuariosPage = usuarioRepository.findAll(spec, pageable);</span>
-<span class="fc" id="L81">        return PagedResponseBuilder.buildAndMapList(usuariosPage, usuarioMapper::toUserResponseList);</span>
+<span class="fc" id="L81">        Specification&lt;Usuario&gt; spec = UsuarioSpecification.conFiltros(</span>
+<span class="fc" id="L82">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
+<span class="fc" id="L83">        Page&lt;Usuario&gt; usuariosPage = usuarioRepository.findAll(spec, pageable);</span>
+<span class="fc" id="L84">        return PagedResponseBuilder.buildAndMapList(usuariosPage, usuarioMapper::toUserResponseList);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
-<span class="fc" id="L87">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="fc" id="L88">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado con ID: &quot; + id));</span>
-<span class="fc" id="L89">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L90">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L91">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado con ID: &quot; + id));</span>
+<span class="fc" id="L92">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
@@ -101,29 +104,29 @@ public class AdminUserServiceImpl implements AdminUserService {
     // fn_sincronizar_roles_usuario (Fase 1) para los roles y el perfil de
     // creador en la misma transaccion.
     public UserResponse createUser(CreateUserRequest request) {
-<span class="pc bpc" id="L104" title="1 of 4 branches missed.">        List&lt;String&gt; rolesAsignar = (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty())</span>
-<span class="fc" id="L105">                ? request.getRoles() : List.of(&quot;CLIENTE&quot;);</span>
-<span class="fc" id="L106">        String[] roles = rolesAsignar.stream().map(String::toUpperCase).toArray(String[]::new);</span>
+<span class="pc bpc" id="L107" title="1 of 4 branches missed.">        List&lt;String&gt; rolesAsignar = (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty())</span>
+<span class="fc" id="L108">                ? request.getRoles() : List.of(&quot;CLIENTE&quot;);</span>
+<span class="fc" id="L109">        String[] roles = rolesAsignar.stream().map(String::toUpperCase).toArray(String[]::new);</span>
 
         Long idUsuario;
         try {
-<span class="fc" id="L110">            idUsuario = usuarioRepository.crearUsuarioAdmin(</span>
-<span class="fc" id="L111">                    request.getNombres(),</span>
-<span class="fc" id="L112">                    request.getApellidos(),</span>
-<span class="fc" id="L113">                    request.getCorreo(),</span>
-<span class="fc" id="L114">                    passwordEncoder.encode(request.getContrasena()),</span>
-<span class="fc" id="L115">                    request.getFechaNacimiento(),</span>
-<span class="fc" id="L116">                    request.getIdPais(),</span>
-<span class="fc" id="L117">                    request.getEstadoCuenta(),</span>
+<span class="fc" id="L113">            idUsuario = usuarioRepository.crearUsuarioAdmin(</span>
+<span class="fc" id="L114">                    request.getNombres(),</span>
+<span class="fc" id="L115">                    request.getApellidos(),</span>
+<span class="fc" id="L116">                    request.getCorreo(),</span>
+<span class="fc" id="L117">                    passwordEncoder.encode(request.getContrasena()),</span>
+<span class="fc" id="L118">                    request.getFechaNacimiento(),</span>
+<span class="fc" id="L119">                    request.getIdPais(),</span>
+<span class="fc" id="L120">                    request.getEstadoCuenta(),</span>
                     roles);
-<span class="fc" id="L119">        } catch (RuntimeException e) {</span>
-<span class="fc" id="L120">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
-<span class="fc" id="L121">        }</span>
+<span class="fc" id="L122">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L123">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L124">        }</span>
 
-<span class="fc" id="L123">        Usuario usuario = usuarioRepository.findById(idUsuario)</span>
-<span class="pc" id="L124">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el usuario&quot;));</span>
+<span class="fc" id="L126">        Usuario usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="pc" id="L127">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Error al crear el usuario&quot;));</span>
 
-<span class="fc" id="L126">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L129">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
@@ -132,56 +135,56 @@ public class AdminUserServiceImpl implements AdminUserService {
             entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;,
             detalle = &quot;{estadoCuenta: #request.estadoCuenta, roles: #request.roles}&quot;)
     public UserResponse updateUser(Long id, AdminUpdateUserRequest request) {
-<span class="fc" id="L135">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="fc" id="L136">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L138">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L139">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc" id="L138">        ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(</span>
-<span class="fc" id="L139">                &quot;nombres&quot;, usuario.getNombres(),</span>
-<span class="fc" id="L140">                &quot;apellidos&quot;, usuario.getApellidos(),</span>
-<span class="fc" id="L141">                &quot;estadoCuenta&quot;, usuario.getEstadoCuenta()));</span>
+<span class="fc" id="L141">        ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(</span>
+<span class="fc" id="L142">                &quot;nombres&quot;, usuario.getNombres(),</span>
+<span class="fc" id="L143">                &quot;apellidos&quot;, usuario.getApellidos(),</span>
+<span class="fc" id="L144">                &quot;estadoCuenta&quot;, usuario.getEstadoCuenta()));</span>
 
-<span class="pc bpc" id="L143" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
-<span class="fc" id="L144">            usuario.setNombres(request.getNombres());</span>
+<span class="pc bpc" id="L146" title="1 of 4 branches missed.">        if (request.getNombres() != null &amp;&amp; !request.getNombres().isBlank()) {</span>
+<span class="fc" id="L147">            usuario.setNombres(request.getNombres());</span>
         }
-<span class="pc bpc" id="L146" title="1 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
-<span class="fc" id="L147">            usuario.setApellidos(request.getApellidos());</span>
+<span class="pc bpc" id="L149" title="1 of 4 branches missed.">        if (request.getApellidos() != null &amp;&amp; !request.getApellidos().isBlank()) {</span>
+<span class="fc" id="L150">            usuario.setApellidos(request.getApellidos());</span>
         }
-<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (request.getFechaNacimiento() != null) {</span>
-<span class="fc" id="L150">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="fc" id="L153">            usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
         }
-<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
-<span class="fc bfc" id="L153" title="All 2 branches covered.">            if (request.getIdPais() &lt;= 0) {</span>
-<span class="fc" id="L154">                usuario.setPais(null);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (request.getIdPais() != null) {</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">            if (request.getIdPais() &lt;= 0) {</span>
+<span class="fc" id="L157">                usuario.setPais(null);</span>
             } else {
-<span class="fc" id="L156">                Pais pais = paisRepository.findById(request.getIdPais())</span>
-<span class="fc" id="L157">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
-<span class="fc" id="L158">                usuario.setPais(pais);</span>
+<span class="fc" id="L159">                Pais pais = paisRepository.findById(request.getIdPais())</span>
+<span class="fc" id="L160">                        .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;País no encontrado&quot;));</span>
+<span class="fc" id="L161">                usuario.setPais(pais);</span>
             }
         }
-<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (Boolean.FALSE.equals(request.getDosFactoresHabilitado())) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (Boolean.FALSE.equals(request.getDosFactoresHabilitado())) {</span>
             // Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7):
             // fn_desactivar_2fa desactiva el flag y purga los codigos de
             // respaldo en una unica transaccion; es idempotente (no lanza si
             // el usuario no tenia 2FA configurado, igual que el ifPresent
             // anterior). Unifica el codigo antes duplicado con
             // TwoFactorServiceImpl.disable2Fa.
-<span class="fc" id="L168">            boolean desactivado = autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());</span>
-<span class="pc bpc" id="L169" title="1 of 2 branches missed.">            if (desactivado) {</span>
-<span class="fc" id="L170">                log.info(&quot;2FA desactivado por administrador para usuario: {}&quot;, usuario.getCorreo());</span>
+<span class="fc" id="L171">            boolean desactivado = autenticacionDosFactoresRepository.desactivar2Fa(usuario.getIdUsuario());</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">            if (desactivado) {</span>
+<span class="fc" id="L173">                log.info(&quot;2FA desactivado por administrador para usuario: {}&quot;, usuario.getCorreo());</span>
             }
         }
 
-<span class="pc bpc" id="L174" title="1 of 4 branches missed.">        if (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty()) {</span>
-<span class="fc" id="L175">            actualizarRoles(usuario, request.getRoles());</span>
+<span class="pc bpc" id="L177" title="1 of 4 branches missed.">        if (request.getRoles() != null &amp;&amp; !request.getRoles().isEmpty()) {</span>
+<span class="fc" id="L178">            actualizarRoles(usuario, request.getRoles());</span>
         }
 
         // Persiste primero nombres/apellidos/fechaNacimiento/pais (los unicos
         // campos mutados directamente en la entidad hasta aqui) para que este
         // UPDATE no incluya estado_cuenta -- ese campo se cambia mas abajo por
         // la rutina atomica, nunca por esta escritura JPA.
-<span class="fc" id="L182">        usuario = usuarioRepository.save(usuario);</span>
+<span class="fc" id="L185">        usuario = usuarioRepository.save(usuario);</span>
 
-<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (request.getEstadoCuenta() != null) {</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (request.getEstadoCuenta() != null) {</span>
             // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
             // fn_cambiar_estado_cuenta decide &quot;hubo transicion activa-&gt;inactiva?&quot;
             // y revoca sesiones bajo SELECT FOR UPDATE en el motor, en vez de
@@ -195,11 +198,11 @@ public class AdminUserServiceImpl implements AdminUserService {
             // resincroniza el snapshot de Hibernate, evitando que el commit de
             // esta transaccion dispare un SEGUNDO UPDATE redundante reescribiendo
             // el mismo valor que la funcion atomica ya persistio.
-<span class="fc" id="L198">            sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());</span>
-<span class="fc" id="L199">            entityManager.refresh(usuario);</span>
+<span class="fc" id="L201">            sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());</span>
+<span class="fc" id="L202">            entityManager.refresh(usuario);</span>
         }
 
-<span class="fc" id="L202">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L205">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
@@ -208,12 +211,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;,
             detalle = &quot;{estadoCuenta: #request.estadoCuenta}&quot;)
     public UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual) {
-<span class="pc bpc" id="L211" title="1 of 4 branches missed.">        if (id.equals(idAdminActual) &amp;&amp; !request.getEstadoCuenta()) {</span>
-<span class="fc" id="L212">            throw new ExcepcionReglaNegocio(&quot;No puedes desactivar tu propia cuenta.&quot;);</span>
+<span class="pc bpc" id="L214" title="1 of 4 branches missed.">        if (id.equals(idAdminActual) &amp;&amp; !request.getEstadoCuenta()) {</span>
+<span class="fc" id="L215">            throw new ExcepcionReglaNegocio(&quot;No puedes desactivar tu propia cuenta.&quot;);</span>
         }
 
-<span class="fc" id="L215">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="fc" id="L216">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L218">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L219">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
         // fn_cambiar_estado_cuenta aplica el cambio y revoca sesiones (si hubo
@@ -227,10 +230,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         // emitiria, al confirmar la transaccion, un UPDATE adicional reescribiendo
         // el mismo valor que la funcion atomica ya persistio. refresh() releae la
         // fila real (sin escribir nada) y resincroniza el snapshot de Hibernate.
-<span class="fc" id="L230">        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());</span>
-<span class="fc" id="L231">        entityManager.refresh(usuario);</span>
+<span class="fc" id="L233">        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());</span>
+<span class="fc" id="L234">        entityManager.refresh(usuario);</span>
 
-<span class="fc" id="L233">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L236">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
@@ -239,22 +242,22 @@ public class AdminUserServiceImpl implements AdminUserService {
             entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;,
             detalle = &quot;{roles: #request.roles}&quot;)
     public UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual) {
-<span class="fc bfc" id="L242" title="All 2 branches covered.">        if (id.equals(idAdminActual)) {</span>
-<span class="fc" id="L243">            throw new ExcepcionReglaNegocio(&quot;No puedes cambiar tus propios roles. Pide a otro administrador que lo haga.&quot;);</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">        if (id.equals(idAdminActual)) {</span>
+<span class="fc" id="L246">            throw new ExcepcionReglaNegocio(&quot;No puedes cambiar tus propios roles. Pide a otro administrador que lo haga.&quot;);</span>
         }
 
-<span class="fc" id="L246">        Usuario usuario = usuarioRepository.findById(id)</span>
-<span class="fc" id="L247">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+<span class="fc" id="L249">        Usuario usuario = usuarioRepository.findById(id)</span>
+<span class="fc" id="L250">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
 
-<span class="fc" id="L249">        ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(&quot;roles&quot;,</span>
-<span class="fc" id="L250">                usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
-<span class="fc" id="L251">                        .map(ur -&gt; ur.getRol().getNombreRol())</span>
-<span class="fc" id="L252">                        .toList()));</span>
+<span class="fc" id="L252">        ContextoAuditoria.aportar(&quot;antes&quot;, Map.of(&quot;roles&quot;,</span>
+<span class="fc" id="L253">                usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()</span>
+<span class="fc" id="L254">                        .map(ur -&gt; ur.getRol().getNombreRol())</span>
+<span class="fc" id="L255">                        .toList()));</span>
 
-<span class="fc" id="L254">        actualizarRoles(usuario, request.getRoles());</span>
-<span class="fc" id="L255">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles</span>
+<span class="fc" id="L257">        actualizarRoles(usuario, request.getRoles());</span>
+<span class="fc" id="L258">        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles</span>
 
-<span class="fc" id="L257">        return usuarioMapper.toUserResponse(usuario);</span>
+<span class="fc" id="L260">        return usuarioMapper.toUserResponse(usuario);</span>
     }
 
     @Override
@@ -265,8 +268,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = &quot;USUARIO_DESACTIVAR&quot;, modulo = ModuloAuditoria.SEGURIDAD,
             entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;)
     public void deleteUser(Long id, Long idAdminActual) {
-<span class="fc bfc" id="L268" title="All 2 branches covered.">        if (id.equals(idAdminActual)) {</span>
-<span class="fc" id="L269">            throw new ExcepcionReglaNegocio(&quot;No puedes eliminar tu propia cuenta.&quot;);</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">        if (id.equals(idAdminActual)) {</span>
+<span class="fc" id="L272">            throw new ExcepcionReglaNegocio(&quot;No puedes eliminar tu propia cuenta.&quot;);</span>
         }
 
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
@@ -275,71 +278,158 @@ public class AdminUserServiceImpl implements AdminUserService {
         // existsById previo era redundante: fn_cambiar_estado_cuenta ya
         // lanza P0002 si el usuario no existe, y SessionRevocationService
         // ya lo traduce a 404 (revision de codigo, hallazgo de eficiencia).
-<span class="fc" id="L278">        sessionRevocationService.cambiarEstadoCuenta(id, false);</span>
-<span class="fc" id="L279">    }</span>
+<span class="fc" id="L281">        sessionRevocationService.cambiarEstadoCuenta(id, false);</span>
+<span class="fc" id="L282">    }</span>
 
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = &quot;USUARIO_EXPORTAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, entidad = &quot;usuarios&quot;,
             detalle = &quot;{formato: #formato}&quot;)
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante) {
-<span class="fc" id="L286">        Specification&lt;Usuario&gt; spec = UsuarioSpecification.conFiltros(</span>
-<span class="fc" id="L287">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
+<span class="fc" id="L289">        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, null, null, correoSolicitante);</span>
+    }
 
-<span class="fc" id="L289">        long total = usuarioRepository.count(spec);</span>
-<span class="fc bfc" id="L290" title="All 2 branches covered.">        if (total &gt; formato.topeFilas()) {</span>
-<span class="fc" id="L291">            throw new ExcepcionReglaNegocio(</span>
-<span class="fc" id="L292">                    &quot;El listado filtrado tiene &quot; + total + &quot; usuarios, más de los &quot; + formato.topeFilas()</span>
-                            + &quot; que admite una exportación en &quot; + formato + &quot;.&quot;);
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato,
+                                      uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+                                      String correoSolicitante) {
+<span class="fc" id="L297">        return exportar(filtro, formato, tipoGrafica, null, null, correoSolicitante);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Auditable(accion = &quot;USUARIO_EXPORTAR&quot;, modulo = ModuloAuditoria.SEGURIDAD, entidad = &quot;usuarios&quot;,
+            detalle = &quot;{formato: #formato, grafica: #tipoGrafica, page: #page, size: #size}&quot;)
+    public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato,
+                                      uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+                                      Integer page, Integer size,
+                                      String correoSolicitante) {
+<span class="fc" id="L308">        Specification&lt;Usuario&gt; spec = UsuarioSpecification.conFiltros(</span>
+<span class="fc" id="L309">                filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());</span>
+
+        Page&lt;Usuario&gt; pagina;
+<span class="fc" id="L312">        String titulo = &quot;Usuarios&quot;;</span>
+<span class="fc" id="L313">        String subtitulo = &quot;Listado administrativo de usuarios&quot;;</span>
+
+<span class="fc bfc" id="L315" title="All 2 branches covered.">        if (page != null) {</span>
+<span class="pc bpc" id="L316" title="3 of 6 branches missed.">            int pageSize = (size != null &amp;&amp; size &gt; 0 &amp;&amp; size &lt;= formato.topeFilas()) ? size : formato.topeFilas();</span>
+<span class="fc" id="L317">            pagina = usuarioRepository.findAll(spec, PageRequest.of(page, pageSize, Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
+<span class="fc" id="L318">            int parte = page + 1;</span>
+<span class="fc" id="L319">            int totalPartes = Math.max(1, pagina.getTotalPages());</span>
+<span class="fc" id="L320">            titulo = &quot;Usuarios - Parte &quot; + parte;</span>
+<span class="fc" id="L321">            subtitulo = &quot;Listado administrativo de usuarios — Parte &quot; + parte + &quot; de &quot; + totalPartes</span>
+<span class="fc" id="L322">                    + &quot; (&quot; + pagina.getTotalElements() + &quot; usuarios en total)&quot;;</span>
+<span class="fc" id="L323">        } else {</span>
+<span class="fc" id="L324">            long total = usuarioRepository.count(spec);</span>
+<span class="fc bfc" id="L325" title="All 2 branches covered.">            if (total &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L326">                throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L327">                        &quot;El listado filtrado tiene &quot; + total + &quot; usuarios, más de los &quot; + formato.topeFilas()</span>
+                                + &quot; que admite una exportación en &quot; + formato + &quot;. Acote los filtros o utilice la opción de exportar por partes.&quot;);
+            }
+
+<span class="fc" id="L331">            pagina = usuarioRepository.findAll(</span>
+<span class="fc" id="L332">                    spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
         }
 
-<span class="fc" id="L296">        Page&lt;Usuario&gt; pagina = usuarioRepository.findAll(</span>
-<span class="fc" id="L297">                spec, PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.ASC, &quot;idUsuario&quot;)));</span>
-<span class="fc" id="L298">        List&lt;UserResponse&gt; filas = usuarioMapper.toUserResponseList(pagina.getContent());</span>
+<span class="fc" id="L335">        List&lt;UserResponse&gt; filas = usuarioMapper.toUserResponseList(pagina.getContent());</span>
 
-<span class="fc" id="L300">        ModeloReporte&lt;UserResponse&gt; modelo = ModeloReporte.&lt;UserResponse&gt;builder()</span>
-<span class="fc" id="L301">                .titulo(&quot;Usuarios&quot;)</span>
-<span class="fc" id="L302">                .subtitulo(&quot;Listado administrativo de usuarios&quot;)</span>
-<span class="fc" id="L303">                .filtrosAplicados(filtrosLegibles(filtro))</span>
-<span class="fc" id="L304">                .columnas(List.of(</span>
-<span class="fc" id="L305">                        ColumnaReporte.entero(&quot;Id&quot;, UserResponse::getIdUsuario),</span>
-<span class="fc" id="L306">                        ColumnaReporte.texto(&quot;Nombres&quot;, UserResponse::getNombres),</span>
-<span class="fc" id="L307">                        ColumnaReporte.texto(&quot;Apellidos&quot;, UserResponse::getApellidos),</span>
-<span class="fc" id="L308">                        ColumnaReporte.texto(&quot;Correo&quot;, UserResponse::getCorreo),</span>
-<span class="fc" id="L309">                        ColumnaReporte.texto(&quot;País&quot;, UserResponse::getNombrePais),</span>
-<span class="fc" id="L310">                        ColumnaReporte.fechaHora(&quot;Registrado&quot;, UserResponse::getFechaRegistro),</span>
-<span class="fc" id="L311">                        ColumnaReporte.booleano(&quot;Activo&quot;, UserResponse::getEstadoCuenta),</span>
-<span class="pc bnc" id="L312" title="All 2 branches missed.">                        ColumnaReporte.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
-<span class="fc" id="L313">                .filas(filas)</span>
-<span class="fc" id="L314">                .generadoPor(correoSolicitante)</span>
-<span class="fc" id="L315">                .build();</span>
+        // Calcular métricas (KPIs) y datos agregados para las gráficas
+        uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte graficaElegida =
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">                tipoGrafica != null ? tipoGrafica : uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS;</span>
+<span class="fc" id="L340">        List&lt;uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte&gt; graficas = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L341">        List&lt;uteq.edu.ec.artisync.service.shared.reporte.KpiReporte&gt; kpis = new ArrayList&lt;&gt;();</span>
 
-<span class="fc" id="L317">        return servicioExportacion.exportar(modelo, formato);</span>
+<span class="pc bpc" id="L343" title="2 of 6 branches missed.">        if (!filas.isEmpty() &amp;&amp; (formato == FormatoReporte.PDF || formato == FormatoReporte.XLSX)) {</span>
+<span class="fc" id="L344">            Map&lt;String, Long&gt; conteoRoles = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L345">            Map&lt;String, Long&gt; conteoPaises = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L346">            long activos = 0;</span>
+
+<span class="fc bfc" id="L348" title="All 2 branches covered.">            for (UserResponse u : filas) {</span>
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">                if (Boolean.TRUE.equals(u.getEstadoCuenta())) {</span>
+<span class="fc" id="L350">                    activos++;</span>
+                }
+
+<span class="pc bpc" id="L353" title="1 of 4 branches missed.">                if (u.getRoles() != null &amp;&amp; !u.getRoles().isEmpty()) {</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">                    for (String rol : u.getRoles()) {</span>
+<span class="fc" id="L355">                        conteoRoles.put(rol, conteoRoles.getOrDefault(rol, 0L) + 1);</span>
+<span class="fc" id="L356">                    }</span>
+                } else {
+<span class="fc" id="L358">                    conteoRoles.put(&quot;SIN_ROL&quot;, conteoRoles.getOrDefault(&quot;SIN_ROL&quot;, 0L) + 1);</span>
+                }
+
+<span class="pc bpc" id="L361" title="1 of 4 branches missed.">                String pais = (u.getNombrePais() != null &amp;&amp; !u.getNombrePais().isBlank())</span>
+<span class="fc" id="L362">                        ? u.getNombrePais() : &quot;Sin especificar&quot;;</span>
+<span class="fc" id="L363">                conteoPaises.put(pais, conteoPaises.getOrDefault(pais, 0L) + 1);</span>
+<span class="fc" id="L364">            }</span>
+
+            // KPIs
+<span class="fc" id="L367">            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte(&quot;Total Usuarios&quot;, String.valueOf(filas.size()), &quot;Registrados en listado&quot;));</span>
+<span class="fc" id="L368">            double pctActivos = ((double) activos / filas.size()) * 100.0;</span>
+<span class="fc" id="L369">            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte(&quot;Usuarios Activos&quot;, String.format(&quot;%d (%.0f%%)&quot;, activos, pctActivos), &quot;Cuentas habilitadas&quot;));</span>
+<span class="fc" id="L370">            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte(&quot;Roles Representados&quot;, String.valueOf(conteoRoles.size()), &quot;Roles distintos&quot;));</span>
+<span class="fc" id="L371">            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte(&quot;Países&quot;, String.valueOf(conteoPaises.size()), &quot;Distribución geográfica&quot;));</span>
+
+            // Gráficas estadísticas
+<span class="pc bpc" id="L374" title="1 of 4 branches missed.">            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.ROL</span>
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS) {
+<span class="fc" id="L376">                byte[] imgRol = generadorGraficaReporte.generarGraficaRol(conteoRoles);</span>
+<span class="fc" id="L377">                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte(&quot;Distribución de Usuarios por Rol&quot;,</span>
+                        &quot;Proporción de usuarios según su rol asignado&quot;, imgRol, conteoRoles));
+            }
+<span class="pc bpc" id="L380" title="1 of 4 branches missed.">            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.PAIS</span>
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS) {
+<span class="fc" id="L382">                byte[] imgPais = generadorGraficaReporte.generarGraficaPais(conteoPaises);</span>
+<span class="fc" id="L383">                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte(&quot;Distribución de Usuarios por País&quot;,</span>
+                        &quot;Concentración geográfica de los usuarios registrados&quot;, imgPais, conteoPaises));
+            }
+        }
+
+<span class="fc" id="L388">        ModeloReporte&lt;UserResponse&gt; modelo = ModeloReporte.&lt;UserResponse&gt;builder()</span>
+<span class="fc" id="L389">                .titulo(titulo)</span>
+<span class="fc" id="L390">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L391">                .filtrosAplicados(filtrosLegibles(filtro))</span>
+<span class="fc" id="L392">                .kpis(kpis)</span>
+<span class="fc" id="L393">                .graficas(graficas)</span>
+<span class="fc" id="L394">                .columnas(List.of(</span>
+<span class="fc" id="L395">                        ColumnaReporte.entero(&quot;Id&quot;, UserResponse::getIdUsuario),</span>
+<span class="fc" id="L396">                        ColumnaReporte.texto(&quot;Nombres&quot;, UserResponse::getNombres),</span>
+<span class="fc" id="L397">                        ColumnaReporte.texto(&quot;Apellidos&quot;, UserResponse::getApellidos),</span>
+<span class="fc" id="L398">                        ColumnaReporte.texto(&quot;Correo&quot;, UserResponse::getCorreo),</span>
+<span class="fc" id="L399">                        ColumnaReporte.texto(&quot;País&quot;, UserResponse::getNombrePais),</span>
+<span class="fc" id="L400">                        ColumnaReporte.fechaHora(&quot;Registrado&quot;, UserResponse::getFechaRegistro),</span>
+<span class="fc" id="L401">                        ColumnaReporte.booleano(&quot;Activo&quot;, UserResponse::getEstadoCuenta),</span>
+<span class="pc bnc" id="L402" title="All 2 branches missed.">                        ColumnaReporte.texto(&quot;Roles&quot;, u -&gt; u.getRoles() == null ? &quot;&quot; : String.join(&quot;, &quot;, u.getRoles()))))</span>
+<span class="fc" id="L403">                .filas(filas)</span>
+<span class="fc" id="L404">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L405">                .build();</span>
+
+<span class="fc" id="L407">        return servicioExportacion.exportar(modelo, formato);</span>
     }
 
     private Map&lt;String, String&gt; filtrosLegibles(FiltroUsuario filtro) {
-<span class="fc" id="L321">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
-<span class="pc bpc" id="L322" title="1 of 4 branches missed.">        if (filtro.getBusqueda() != null &amp;&amp; !filtro.getBusqueda().isBlank()) {</span>
-<span class="fc" id="L323">            filtros.put(&quot;Búsqueda&quot;, filtro.getBusqueda());</span>
+<span class="fc" id="L411">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L412" title="1 of 4 branches missed.">        if (filtro.getBusqueda() != null &amp;&amp; !filtro.getBusqueda().isBlank()) {</span>
+<span class="fc" id="L413">            filtros.put(&quot;Búsqueda&quot;, filtro.getBusqueda());</span>
         }
-<span class="pc bpc" id="L325" title="1 of 4 branches missed.">        if (filtro.getRol() != null &amp;&amp; !filtro.getRol().isBlank()) {</span>
-<span class="fc" id="L326">            filtros.put(&quot;Rol&quot;, filtro.getRol());</span>
+<span class="pc bpc" id="L415" title="1 of 4 branches missed.">        if (filtro.getRol() != null &amp;&amp; !filtro.getRol().isBlank()) {</span>
+<span class="fc" id="L416">            filtros.put(&quot;Rol&quot;, filtro.getRol());</span>
         }
-<span class="fc bfc" id="L328" title="All 2 branches covered.">        if (filtro.getEstadoCuenta() != null) {</span>
-<span class="fc bfc" id="L329" title="All 2 branches covered.">            filtros.put(&quot;Estado&quot;, filtro.getEstadoCuenta() ? &quot;Activo&quot; : &quot;Suspendido&quot;);</span>
+<span class="fc bfc" id="L418" title="All 2 branches covered.">        if (filtro.getEstadoCuenta() != null) {</span>
+<span class="fc bfc" id="L419" title="All 2 branches covered.">            filtros.put(&quot;Estado&quot;, filtro.getEstadoCuenta() ? &quot;Activo&quot; : &quot;Suspendido&quot;);</span>
         }
-<span class="fc" id="L331">        return filtros;</span>
+<span class="fc" id="L421">        return filtros;</span>
     }
 
     @Override
     @Auditable(accion = &quot;SESION_REVOCAR&quot;, modulo = ModuloAuditoria.SEGURIDAD,
             entidad = &quot;usuarios&quot;, idEntidad = &quot;#id&quot;)
     public RespuestaMensaje revokeUserSessions(Long id) {
-<span class="fc bfc" id="L338" title="All 2 branches covered.">        if (!usuarioRepository.existsById(id)) {</span>
-<span class="fc" id="L339">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado con ID: &quot; + id);</span>
+<span class="fc bfc" id="L428" title="All 2 branches covered.">        if (!usuarioRepository.existsById(id)) {</span>
+<span class="fc" id="L429">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado con ID: &quot; + id);</span>
         }
-<span class="fc" id="L341">        sessionRevocationService.revocarSesionesUsuario(id);</span>
-<span class="fc" id="L342">        return new RespuestaMensaje(&quot;Se han revocado exitosamente todas las sesiones del usuario ID: &quot; + id);</span>
+<span class="fc" id="L431">        sessionRevocationService.revocarSesionesUsuario(id);</span>
+<span class="fc" id="L432">        return new RespuestaMensaje(&quot;Se han revocado exitosamente todas las sesiones del usuario ID: &quot; + id);</span>
     }
 
     /**
@@ -354,13 +444,13 @@ public class AdminUserServiceImpl implements AdminUserService {
      */
     private void actualizarRoles(Usuario usuario, List&lt;String&gt; nuevosRoles) {
         try {
-<span class="fc" id="L357">            usuarioRolRepository.sincronizarRoles(</span>
-<span class="fc" id="L358">                    usuario.getIdUsuario(),</span>
-<span class="fc" id="L359">                    nuevosRoles.stream().map(String::toUpperCase).toArray(String[]::new));</span>
-<span class="fc" id="L360">        } catch (RuntimeException e) {</span>
-<span class="fc" id="L361">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
-<span class="fc" id="L362">        }</span>
-<span class="fc" id="L363">    }</span>
+<span class="fc" id="L447">            usuarioRolRepository.sincronizarRoles(</span>
+<span class="fc" id="L448">                    usuario.getIdUsuario(),</span>
+<span class="fc" id="L449">                    nuevosRoles.stream().map(String::toUpperCase).toArray(String[]::new));</span>
+<span class="fc" id="L450">        } catch (RuntimeException e) {</span>
+<span class="fc" id="L451">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L452">        }</span>
+<span class="fc" id="L453">    }</span>
 }
 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,12 +1,14 @@
 # Reporte de Cobertura de Código — JaCoCo
 
-- Fecha: 2026-09-05 (medición previa: 2026-09-04)
-- Rama: `feat/ia-verificacion-asistida`
+- Fecha: 2026-09-11, ronda 2 — cierre de la regresión de controladores (medición anterior el mismo
+  día, ronda 1: ver "Historial de mediciones")
+- Rama: `main`, commit base `e84ab50` + pruebas nuevas de esta ronda (sin commit al momento de esta
+  medición)
 - Comando: `./mvnw.cmd -B clean test` (plugin `jacoco-maven-plugin` 0.8.13, ya configurado en
   `pom.xml` desde la entrega anterior — ver `OBS-09`)
-- Suite: 1039 pruebas, 0 fallos, 0 errores (132 pruebas nuevas desde la medición del 09-04, en dos
-  rondas: 61 para cerrar el umbral del 70% y 71 adicionales para subirlo por encima del 75% a
-  pedido explícito, con margen — ver "Qué se cubrió en esta medición" más abajo)
+- Suite: 1230 pruebas, 129 clases de test, 0 fallos, 0 errores (43 pruebas nuevas desde la ronda 1
+  de hoy: 5 clases de test Mockito para los controladores sin cobertura propia y una suite completa
+  para `RespaldoServicioImpl`, que no tenía ninguna prueba)
 - Artefactos crudos: [`report.xml`](report.xml), [`html/index.html`](html/index.html),
   [`html/jacoco.csv`](html/jacoco.csv)
 
@@ -14,8 +16,8 @@
 
 | Métrica | Cobertura |
 |---|---|
-| Lines | 4859 / 5601 = **86.75%** |
-| Branches | 1232 / 1642 = **75.03%** |
+| Lines | 6023 / 7263 = **82.93%** |
+| Branches | 1548 / 2165 = **71.50%** |
 
 ## Resultado por capa (OBS-P1-01)
 
@@ -23,17 +25,45 @@ El criterio exige líneas Y ramas en cada una de las tres capas:
 
 | Capa | Lines | Branches |
 |---|---|---|
-| Servicios (`service`) | 3836 / 4264 = **89.96%** | 1004 / 1266 = **79.30%** |
-| Controladores (`controller`) | 326 / 377 = **86.47%** | 43 / 50 = **86.00%** |
-| Global | 4859 / 5601 = **86.75%** | 1232 / 1642 = **75.03%** |
+| Servicios (`service`) | 4778 / 5563 = **85.89%** | 1273 / 1673 = **76.09%** |
+| Controladores (`controller`) | 393 / 456 = **86.18%** | 64 / 82 = **78.05%** |
+| Global | 6023 / 7263 = **82.93%** | 1548 / 2165 = **71.50%** |
 
-Cifras obtenidas agregando por paquete desde `html/jacoco.csv` (script
-[`analyze_coverage.py`](../../../artisync/Backend/analyze_coverage.py)). Las tres capas y el
-global superan ahora el 75% tanto en líneas como en ramas — la observación pendiente sobre ramas
-globales (66.44%, bajo el 70% pedido) quedó cerrada el mismo día con la primera ronda (70.10%), y
-se amplió a pedido explícito hasta 75.03% para dejar margen de seguridad (1232/1642 — 12 ramas de
-más sobre el umbral exacto de 1232 antes de considerar el 75% comprometido) frente a cambios
-futuros en el código que puedan mover el denominador.
+**OBS-P1-01 vuelve a cumplirse**: las tres capas superan el 70% de líneas y ramas, con margen
+razonable en las tres. Cifras obtenidas agregando por paquete desde `html/jacoco.csv` (script
+[`analyze_coverage.py`](../../../artisync/Backend/analyze_coverage.py)).
+
+### Qué cerró la regresión de esta mañana
+
+La medición de la ronda 1 de hoy (ver "Historial de mediciones") había detectado que la capa de
+controladores cayó a 67.07% de ramas (por debajo del 70% exigido) porque cinco controladores
+incorporados en V45-V48 no tenían ninguna prueba propia — solo la cobertura indirecta que dejaban
+los tests de sus servicios:
+
+- `RespaldoControlador` (21 líneas sin cubrir de 21): CRUD de respaldos manuales/programados,
+  incluida la descarga con headers `Content-Disposition`/`Content-Length`
+- `SubcategoriaControlador` (9/9): incluye la rama `esModerador` (moderador vs. creador autoservicio)
+- `PagoControlador` (6/6): incluye ambas ramas de `cancelarPago` (con/sin cuerpo opcional)
+- `PlantillaAcuerdoCreadorControlador` (5/5)
+- `EtiquetaControlador` (5/5)
+
+Se añadió una clase de test por controlador (patrón ya establecido para la inmensa mayoría de
+controladores del proyecto: Mockito puro, `@ExtendWith(MockitoExtension.class)` +
+`@Mock`/`@InjectMocks`, invocación directa del método — no `@WebMvcTest` con `MockMvc`, que en este
+proyecto solo se usa para casos puntuales de seguridad como `SecurityConfigTest` y
+`CategoriaAutorizacionTest`). El `@PreAuthorize` no se ejercita vía Spring Security en estas
+pruebas nuevas, solo la lógica del método. 30 pruebas nuevas, camino feliz + las ramas
+condicionales propias de cada controlador.
+
+Adicionalmente, `RespaldoServicioImpl` (el servicio detrás de `RespaldoControlador`) tampoco tenía
+ninguna prueba — 0/14 ramas cubiertas. Se añadieron 13 pruebas (`RespaldoServicioImplTest`) usando
+archivos reales en un `@TempDir` para ejercitar `descargar`/`eliminar` sin mockear el filesystem
+(mismo criterio que `TwoFactorServiceImpl` con TOTP real): cuota de respaldo en progreso, las dos
+ramas de `descargar` (sin ruta / archivo inexistente en disco / archivo real) y de `eliminar` (en
+progreso / incrementales dependientes / con y sin archivo en disco). Resultado: 14/14 ramas.
+
+Ningún cambio de producción en esta ronda: todas las pruebas se añadieron contra el código ya
+existente, sin tocar `src/main`.
 
 ## Historial de mediciones
 
@@ -44,7 +74,9 @@ futuros en el código que puedan mover el denominador.
 | 2026-08-16 (segunda ronda) | 58 | 522 | 72.0% | 62.5% | 56.5% |
 | 2026-09-04 | 74 | 907 | 80.29% | 66.44% | — |
 | 2026-09-05 (ronda 1 — cierre del 70%) | 76 | 968 | 82.88% | 70.10% | — |
-| 2026-09-05 (ronda 2 — esta medición, margen sobre el 75%) | 82 | 1039 | **86.75%** | **75.03%** | — |
+| 2026-09-05 (ronda 2 — margen sobre el 75%) | 82 | 1039 | 86.75% | 75.03% | — |
+| 2026-09-11 (ronda 1 — código nuevo V45-V48 sin cobertura completa, OBS-P1-01 incumplido) | — | 1187 | 81.69% | 70.44% | — |
+| 2026-09-11 (ronda 2 — esta medición, cierre de la regresión) | 129 | 1230 | **82.93%** | **71.50%** | — |
 
 ## Qué se cubrió en esta medición (66.44% → 70.10% en ramas globales)
 
@@ -190,11 +222,20 @@ mockear.
 
 ## Nota de cumplimiento
 
-**OBS-P1-01 queda implementado**: el criterio exige líneas Y ramas por encima del umbral en las
-tres capas (servicios, controladores, global), y las tres lo cumplen ahora — ver la tabla "Resultado
-por capa" arriba. Antes de esta ronda, controladores estaba en 29.17% de líneas / 30.56% de ramas
-(84 de 288 líneas cubiertas); ahora está en 83.82% / 72.00% (316 de 377). Se reporta el número
-real medido desde `jacoco.csv`, sin ajustar el umbral ni excluir paquetes.
+**OBS-P1-01 vuelve a cumplirse (2026-09-11, ronda 2)**: el criterio exige líneas Y ramas por encima
+del 70% en cada una de las tres capas. Las tres lo cumplen ahora: servicios 85.89%/76.09%,
+controladores 86.18%/78.05%, global 82.93%/71.50%. La regresión detectada en la ronda 1 de hoy
+(controladores en 67.07% de ramas, por debajo del umbral, por cinco controladores V45-V48 sin
+prueba propia — ver "Qué cerró la regresión de esta mañana" arriba) quedó resuelta con 43 pruebas
+nuevas dirigidas específicamente a esos controladores y a `RespaldoServicioImpl` (0% → 100% de
+ramas), sin tocar `src/main`. Se reporta el número real medido desde `jacoco.csv`, sin ajustar el
+umbral ni excluir paquetes.
+
+El margen sobre el 70% en controladores (78.05% de ramas) es más ajustado que en servicios: los
+próximos candidatos con mayor déficit de ramas a nivel de servicio (`GeneradorXlsx` 39,
+`ServicioCatalogoServicioImpl` 35, `AdminUserServiceImpl` 21, `PagoServicioImpl` 17,
+`PedidoServicioImpl` 15 — ver `analyze_coverage.py`) quedan como trabajo pendiente para una próxima
+ronda; ninguno bloquea el cumplimiento actual de OBS-P1-01.
 
 **Ramas globales al 70%**: hasta la medición del 2026-09-04 el global de ramas (66.44%) quedaba por
 debajo del 70% pedido, aunque las tres capas ya lo cumplían individualmente. La ronda 1 del
@@ -202,9 +243,11 @@ debajo del 70% pedido, aunque las tres capas ya lo cumplían individualmente. La
 dirigidas a ramas condicionales concretas (no cobertura genérica): 1151/1642 = 70.10%, por encima
 del umbral, sin tocar `src/main`.
 
-**Ramas globales al 75% (margen de seguridad)**: a pedido explícito de subir el número por encima
-del mínimo — un cambio de código que agregue una rama sin test podría hacer bajar 70.10% de nuevo
-por debajo de 70% — la ronda 2 (ver arriba) añadió 71 pruebas más dirigidas a ramas concretas
-adicionales, sin tocar `src/main`: **1232/1642 = 75.03%**. Margen de 12 ramas sobre el mínimo
-exacto (1232/1642 es el primer entero que redondea a ≥75.00%) — igual que antes, si una futura
-medición añade clases nuevas al backend sin tests, es el primer número a revisar.
+**Ramas globales al 75% (margen de seguridad, 2026-09-05)**: a pedido explícito de subir el número
+por encima del mínimo, la ronda 2 del 2026-09-05 añadió 71 pruebas más dirigidas a ramas concretas
+adicionales, sin tocar `src/main`: 1232/1642 = 75.03%. Ese margen se consumió por completo con el
+código nuevo incorporado después (V45-V48): la ronda 1 del 2026-09-11 quedó en 1525/2165 = 70.44%
+global, y la capa de controladores cayó por debajo del umbral (ver arriba). La ronda 2 del mismo día
+recuperó margen en controladores (78.05% de ramas) pero el global (71.50%) sigue sin el colchón que
+tenía el 2026-09-05: si una futura medición añade clases nuevas al backend sin tests equivalentes,
+este es el primer número a revisar.

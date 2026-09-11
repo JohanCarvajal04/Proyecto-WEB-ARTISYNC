@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TicketRevisionExpiracionServicio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">TicketRevisionExpiracionServicio.java</span></div><h1>TicketRevisionExpiracionServicio.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
+import uteq.edu.ec.artisync.repository.legal.PagoTicketRevisionRepository;
+import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+
+/**
+ * Extraído de TicketRevisionExpiracionScheduler para que REQUIRES_NEW funcione
+ * de verdad (mismo motivo documentado en SorteoEjecutorServicio).
+ */
+<span class="fc" id="L20">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class TicketRevisionExpiracionServicio {
+
+    private static final String ESTADO_ABIERTO = &quot;Abierto&quot;;
+    private static final String ESTADO_RECHAZADO = &quot;Rechazado&quot;;
+    private static final String PAGO_PENDIENTE = &quot;Pendiente&quot;;
+    private static final String PAGO_EXPIRADO = &quot;Expirado&quot;;
+
+    private final TicketRevisionRepository ticketRevisionRepository;
+    private final PagoTicketRevisionRepository pagoTicketRevisionRepository;
+    private final NotificacionService notificacionService;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Auditable(accion = &quot;TICKET_EXPIRAR&quot;, modulo = ModuloAuditoria.PEDIDOS,
+            correoActor = &quot;'sistema:scheduler'&quot;,
+            entidad = &quot;tickets_revision&quot;, idEntidad = &quot;#idTicket&quot;)
+    public void expirarTicket(Long idTicket) {
+        // Relectura con lock: si el creador ya resolvió el ticket, o el
+        // webhook de PayPal ya confirmó el pago, entre que el scheduler lo
+        // leyó y esta transacción arrancó, no hay nada que hacer.
+<span class="fc" id="L42">        TicketRevision ticket = ticketRevisionRepository.findByIdParaActualizar(idTicket).orElse(null);</span>
+<span class="pc bpc" id="L43" title="1 of 4 branches missed.">        if (ticket == null || !ESTADO_ABIERTO.equals(ticket.getEstadoTicket())) {</span>
+<span class="fc" id="L44">            return;</span>
+        }
+
+<span class="fc" id="L47">        ticket.setEstadoTicket(ESTADO_RECHAZADO);</span>
+<span class="fc" id="L48">        ticketRevisionRepository.save(ticket);</span>
+
+<span class="fc" id="L50">        pagoTicketRevisionRepository.findByTicketIdTicketParaActualizar(idTicket).ifPresent(pago -&gt; {</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">            if (PAGO_PENDIENTE.equals(pago.getEstadoPago())) {</span>
+<span class="fc" id="L52">                pago.setEstadoPago(PAGO_EXPIRADO);</span>
+<span class="fc" id="L53">                pagoTicketRevisionRepository.save(pago);</span>
+            }
+<span class="fc" id="L55">        });</span>
+
+<span class="fc" id="L57">        log.info(&quot;[TicketRevisionExpiracionServicio] Ticket {} rechazado automáticamente: sin pago confirmado a tiempo&quot;,</span>
+                idTicket);
+
+<span class="fc" id="L60">        Pedido pedido = ticket.getPedido();</span>
+<span class="fc" id="L61">        String mensaje = &quot;Tu solicitud de revisión adicional del pedido \&quot;&quot; + pedido.getServicio().getTituloServicio()</span>
+                + &quot;\&quot; fue rechazada automáticamente por falta de pago.&quot;;
+<span class="fc" id="L63">        notificacionService.notificar(pedido.getUsuarioCliente(), &quot;TICKET_RECHAZADO&quot;, mensaje);</span>
+<span class="fc" id="L64">        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), &quot;TICKET_RECHAZADO&quot;,</span>
+<span class="fc" id="L65">                &quot;Un ticket de revisión sin pagar del pedido \&quot;&quot; + pedido.getServicio().getTituloServicio()</span>
+                        + &quot;\&quot; se rechazó automáticamente.&quot;);
+<span class="fc" id="L67">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

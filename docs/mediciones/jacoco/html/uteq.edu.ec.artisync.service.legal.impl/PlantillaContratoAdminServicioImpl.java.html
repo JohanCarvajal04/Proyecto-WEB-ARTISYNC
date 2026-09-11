@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlantillaContratoAdminServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">PlantillaContratoAdminServicioImpl.java</span></div><h1>PlantillaContratoAdminServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionActualizarPlantillaContrato;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaContrato;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContratoResumen;
+import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
+import uteq.edu.ec.artisync.service.legal.IPlantillaContratoAdminServicio;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+<span class="fc" id="L21">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdminServicio {
+
+    private final PlantillaContratoRepository plantillaContratoRepository;
+
+    @Override
+    @Transactional
+    public RespuestaPlantillaContrato crear(PeticionCrearPlantillaContrato peticion) {
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        if (plantillaContratoRepository.findByVersionLegal(peticion.getVersionLegal()).isPresent()) {</span>
+<span class="fc" id="L32">            throw new ExcepcionReglaNegocio(&quot;Ya existe una plantilla con la version legal '&quot; + peticion.getVersionLegal() + &quot;'&quot;);</span>
+        }
+
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        if (peticion.isEsPredeterminada()) {</span>
+<span class="fc" id="L36">            limpiarPredeterminadaActual();</span>
+        }
+
+<span class="fc" id="L39">        PlantillaContrato plantilla = PlantillaContrato.builder()</span>
+<span class="fc" id="L40">                .nombrePlantilla(peticion.getNombrePlantilla().trim())</span>
+<span class="fc" id="L41">                .versionLegal(peticion.getVersionLegal().trim())</span>
+<span class="fc" id="L42">                .cuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L43">                .esPredeterminada(peticion.isEsPredeterminada())</span>
+<span class="fc" id="L44">                .activa(true)</span>
+<span class="fc" id="L45">                .build();</span>
+
+<span class="fc" id="L47">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L48">        log.info(&quot;Plantilla de contrato '{}' creada (id {})&quot;, plantilla.getNombrePlantilla(), plantilla.getIdPlantilla());</span>
+<span class="fc" id="L49">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPlantillaContrato editar(Long idPlantilla, PeticionActualizarPlantillaContrato peticion) {
+<span class="fc" id="L55">        PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantilla)</span>
+<span class="pc" id="L56">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Plantilla de contrato no encontrada: &quot; + idPlantilla));</span>
+
+<span class="pc bpc" id="L58" title="3 of 4 branches missed.">        if (peticion.isEsPredeterminada() &amp;&amp; !Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {</span>
+<span class="nc" id="L59">            limpiarPredeterminadaActual();</span>
+        }
+<span class="pc bpc" id="L61" title="2 of 4 branches missed.">        if (!peticion.isEsPredeterminada() &amp;&amp; Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {</span>
+<span class="fc" id="L62">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;Debe existir siempre una plantilla predeterminada; marca otra como predeterminada antes de quitarle esta condición&quot;);
+        }
+
+<span class="nc" id="L66">        plantilla.setNombrePlantilla(peticion.getNombrePlantilla().trim());</span>
+<span class="nc" id="L67">        plantilla.setVersionLegal(peticion.getVersionLegal().trim());</span>
+<span class="nc" id="L68">        plantilla.setCuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla());</span>
+<span class="nc" id="L69">        plantilla.setEsPredeterminada(peticion.isEsPredeterminada());</span>
+<span class="nc" id="L70">        plantilla.setActiva(peticion.isActiva());</span>
+
+<span class="nc" id="L72">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="nc" id="L73">        log.info(&quot;Plantilla de contrato {} actualizada&quot;, idPlantilla);</span>
+<span class="nc" id="L74">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPlantillaContrato&gt; listarTodas() {
+<span class="nc" id="L80">        return plantillaContratoRepository.findAll().stream()</span>
+<span class="nc" id="L81">                .map(this::mapToRespuesta)</span>
+<span class="nc" id="L82">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje desactivar(Long idPlantilla) {
+<span class="fc" id="L88">        PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantilla)</span>
+<span class="fc" id="L89">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Plantilla de contrato no encontrada: &quot; + idPlantilla));</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {</span>
+<span class="fc" id="L92">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;No se puede desactivar la plantilla predeterminada; marca otra como predeterminada primero&quot;);
+        }
+
+<span class="fc" id="L96">        plantilla.setActiva(false);</span>
+<span class="fc" id="L97">        plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L98">        log.info(&quot;Plantilla de contrato {} desactivada&quot;, idPlantilla);</span>
+<span class="fc" id="L99">        return new RespuestaMensaje(&quot;Plantilla desactivada correctamente&quot;);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPlantillaContratoResumen&gt; listarActivas() {
+<span class="fc" id="L105">        return plantillaContratoRepository.findByActivaTrueOrderByNombrePlantillaAsc().stream()</span>
+<span class="fc" id="L106">                .map(p -&gt; RespuestaPlantillaContratoResumen.builder()</span>
+<span class="fc" id="L107">                        .idPlantilla(p.getIdPlantilla())</span>
+<span class="fc" id="L108">                        .nombrePlantilla(p.getNombrePlantilla())</span>
+<span class="fc" id="L109">                        .esPropia(false)</span>
+<span class="fc" id="L110">                        .build())</span>
+<span class="fc" id="L111">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPlantillaContratoResumen&gt; listarActivasVisiblesPara(Long idUsuarioCreador) {
+<span class="fc" id="L117">        return plantillaContratoRepository.findActivasVisiblesParaCreador(idUsuarioCreador).stream()</span>
+<span class="fc" id="L118">                .map(p -&gt; RespuestaPlantillaContratoResumen.builder()</span>
+<span class="fc" id="L119">                        .idPlantilla(p.getIdPlantilla())</span>
+<span class="fc" id="L120">                        .nombrePlantilla(p.getNombrePlantilla())</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">                        .esPropia(p.getIdCreador() != null)</span>
+<span class="fc" id="L122">                        .build())</span>
+<span class="fc" id="L123">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Flush obligatorio: ux_plantilla_contrato_predeterminada es un índice
+     * único parcial (WHERE es_predeterminada). Sin forzar el UPDATE que
+     * desmarca la plantilla vieja antes del INSERT/UPDATE de la nueva, ambas
+     * filas podrían coexistir con es_predeterminada = true dentro del mismo
+     * flush y violar la restricción.
+     */
+    private void limpiarPredeterminadaActual() {
+<span class="fc" id="L134">        plantillaContratoRepository.findByEsPredeterminadaTrue().ifPresent(actual -&gt; {</span>
+<span class="fc" id="L135">            actual.setEsPredeterminada(false);</span>
+<span class="fc" id="L136">            plantillaContratoRepository.save(actual);</span>
+<span class="fc" id="L137">            plantillaContratoRepository.flush();</span>
+<span class="fc" id="L138">        });</span>
+<span class="fc" id="L139">    }</span>
+
+    private RespuestaPlantillaContrato mapToRespuesta(PlantillaContrato plantilla) {
+<span class="fc" id="L142">        return RespuestaPlantillaContrato.builder()</span>
+<span class="fc" id="L143">                .idPlantilla(plantilla.getIdPlantilla())</span>
+<span class="fc" id="L144">                .nombrePlantilla(plantilla.getNombrePlantilla())</span>
+<span class="fc" id="L145">                .versionLegal(plantilla.getVersionLegal())</span>
+<span class="fc" id="L146">                .cuerpoHtmlPlantilla(plantilla.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L147">                .esPredeterminada(plantilla.getEsPredeterminada())</span>
+<span class="fc" id="L148">                .activa(plantilla.getActiva())</span>
+<span class="fc" id="L149">                .idCreador(plantilla.getIdCreador())</span>
+<span class="fc" id="L150">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

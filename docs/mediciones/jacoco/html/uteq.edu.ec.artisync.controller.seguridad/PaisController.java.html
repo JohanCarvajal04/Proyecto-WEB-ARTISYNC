@@ -24,43 +24,83 @@ public class PaisController {
 
     private final PaisService paisService;
 
+    /**
+     * Lista todos los países del catálogo, ordenados alfabéticamente.
+     *
+     * @return listado de países
+     */
     @Operation(summary = &quot;Listar todos los países ordenados alfabéticamente&quot;)
     @GetMapping
     public ResponseEntity&lt;List&lt;PaisResponse&gt;&gt; getAllPaises() {
-<span class="fc" id="L30">        return ResponseEntity.ok(paisService.getAllPaises());</span>
+<span class="fc" id="L35">        return ResponseEntity.ok(paisService.getAllPaises());</span>
     }
 
+    /**
+     * Lista solo los países activos del catálogo, ordenados alfabéticamente.
+     *
+     * @return listado de países activos
+     */
     @Operation(summary = &quot;Listar solo los países activos ordenados alfabéticamente&quot;)
     @GetMapping(&quot;/activos&quot;)
     public ResponseEntity&lt;List&lt;PaisResponse&gt;&gt; getPaisesActivos() {
-<span class="nc" id="L36">        return ResponseEntity.ok(paisService.getPaisesActivos());</span>
+<span class="nc" id="L46">        return ResponseEntity.ok(paisService.getPaisesActivos());</span>
     }
 
+    /**
+     * Obtiene un país por su identificador.
+     *
+     * @param id identificador del país
+     * @return el país solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el país no existe
+     */
     @Operation(summary = &quot;Obtener un país por su ID&quot;)
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;PaisResponse&gt; getPaisById(@PathVariable Long id) {
-<span class="nc" id="L42">        return ResponseEntity.ok(paisService.getPaisById(id));</span>
+<span class="nc" id="L59">        return ResponseEntity.ok(paisService.getPaisById(id));</span>
     }
 
+    /**
+     * Crea un nuevo país en el catálogo.
+     *
+     * @param request datos del país a crear
+     * @return el país creado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si ya existe un país con el mismo nombre
+     */
     @Operation(summary = &quot;Crear un nuevo país&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PreAuthorize(&quot;hasAuthority('PAIS_CREAR') or hasRole('ADMIN')&quot;)
     @PostMapping
     public ResponseEntity&lt;PaisResponse&gt; createPais(@Valid @RequestBody PaisRequest request) {
-<span class="fc" id="L49">        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));</span>
+<span class="fc" id="L73">        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));</span>
     }
 
+    /**
+     * Actualiza el nombre de un país existente.
+     *
+     * @param id identificador del país a actualizar
+     * @param request datos actualizados del país
+     * @return el país actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el país no existe
+     * @throws ExcepcionRecursoDuplicado si ya existe otro país con el mismo nombre
+     */
     @Operation(summary = &quot;Actualizar el nombre de un país existente&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PreAuthorize(&quot;hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')&quot;)
     @PutMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;PaisResponse&gt; updatePais(@PathVariable Long id, @Valid @RequestBody PaisRequest request) {
-<span class="nc" id="L56">        return ResponseEntity.ok(paisService.updatePais(id, request));</span>
+<span class="nc" id="L89">        return ResponseEntity.ok(paisService.updatePais(id, request));</span>
     }
 
+    /**
+     * Activa o desactiva un país del catálogo.
+     *
+     * @param id identificador del país
+     * @return mensaje de confirmación con el nuevo estado del país
+     * @throws ExcepcionRecursoNoEncontrado si el país no existe
+     */
     @Operation(summary = &quot;Eliminar un país si no tiene usuarios asociados&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PreAuthorize(&quot;hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')&quot;)
     @DeleteMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; deletePais(@PathVariable Long id) {
-<span class="fc" id="L63">        return ResponseEntity.ok(paisService.deletePais(id));</span>
+<span class="fc" id="L103">        return ResponseEntity.ok(paisService.deletePais(id));</span>
     }
 }
 

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReconciliacionPayPalEjecutorServicio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">ReconciliacionPayPalEjecutorServicio.java</span></div><h1>ReconciliacionPayPalEjecutorServicio.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpStatusCodeException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
+import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
+import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
+
+/**
+ * Extraído de ReconciliacionPayPalScheduler para que REQUIRES_NEW funcione de
+ * verdad (mismo motivo documentado en SorteoEjecutorServicio: this.metodo()
+ * dentro de la misma clase se salta el proxy de Spring AOP).
+ *
+ * No reutiliza los métodos privados de PagoServicioImpl (capturarOrden,
+ * firmaVerificada, etc.): se mantiene deliberadamente autocontenido para no
+ * arriesgar la lógica de idempotencia del webhook, ya verificada (REQ-NF-014),
+ * a costa de duplicar ~15 líneas de captura.
+ */
+<span class="fc" id="L32">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class ReconciliacionPayPalEjecutorServicio {
+
+    private static final String FONDOS_PENDIENTE = &quot;Pendiente&quot;;
+    private static final String FONDOS_RETENIDO = &quot;Retenido&quot;;
+
+    private final PagoGarantiaRepository pagoGarantiaRepository;
+    private final TransaccionPagoRepository transaccionPagoRepository;
+    private final NotificacionService notificacionService;
+    private final PayPalClient payPalClient;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Auditable(accion = &quot;PAGO_RECONCILIAR&quot;, modulo = ModuloAuditoria.FINANZAS,
+            correoActor = &quot;'sistema:paypal'&quot;,
+            entidad = &quot;pagos_garantia&quot;, idEntidad = &quot;#idPago&quot;)
+    public void reconciliar(Long idPago) {
+        // Relectura con lock: si el webhook confirmó el pago entre que el
+        // scheduler lo leyó y esta transacción arrancó, gana el webhook y aquí
+        // no hay nada que hacer.
+<span class="fc" id="L55">        PagoGarantia pago = pagoGarantiaRepository.findByIdParaActualizar(idPago).orElse(null);</span>
+<span class="pc bpc" id="L56" title="1 of 4 branches missed.">        if (pago == null || !FONDOS_PENDIENTE.equalsIgnoreCase(pago.getEstadoFondos())) {</span>
+<span class="fc" id="L57">            return;</span>
+        }
+
+        JsonNode orden;
+        try {
+<span class="fc" id="L62">            orden = payPalClient.llamarPayPal(</span>
+<span class="fc" id="L63">                    &quot;/v2/checkout/orders/&quot; + pago.getIdOrdenPaypal(), HttpMethod.GET, null);</span>
+<span class="nc" id="L64">        } catch (Exception e) {</span>
+<span class="nc" id="L65">            log.error(&quot;[ReconciliacionPayPalEjecutorServicio] Error consultando la orden {} en PayPal: {}&quot;,</span>
+<span class="nc" id="L66">                    pago.getIdOrdenPaypal(), e.getMessage());</span>
+<span class="nc" id="L67">            return;</span>
+<span class="fc" id="L68">        }</span>
+
+<span class="fc" id="L70">        String estado = orden.path(&quot;status&quot;).asText();</span>
+<span class="fc bfc" id="L71" title="All 4 branches covered.">        switch (estado) {</span>
+<span class="fc" id="L72">            case &quot;COMPLETED&quot; -&gt; confirmarPago(pago, &quot;reconciliación: la orden ya estaba COMPLETED en PayPal&quot;);</span>
+<span class="fc" id="L73">            case &quot;APPROVED&quot; -&gt; capturarYConfirmar(pago);</span>
+<span class="fc" id="L74">            case &quot;VOIDED&quot; -&gt; log.warn(</span>
+                    &quot;[ReconciliacionPayPalEjecutorServicio] Orden {} (pago {}) VOIDED en PayPal; sigue Pendiente, &quot;
+                            + &quot;el cliente deberá iniciar un nuevo intento de pago&quot;,
+<span class="fc" id="L77">                    pago.getIdOrdenPaypal(), pago.getIdPago());</span>
+<span class="fc" id="L78">            default -&gt; log.info(</span>
+                    &quot;[ReconciliacionPayPalEjecutorServicio] Orden {} (pago {}) sigue en estado {} en PayPal; &quot;
+                            + &quot;se reintenta en el próximo ciclo&quot;,
+<span class="fc" id="L81">                    pago.getIdOrdenPaypal(), pago.getIdPago(), estado);</span>
+        }
+<span class="fc" id="L83">    }</span>
+
+    private void capturarYConfirmar(PagoGarantia pago) {
+        try {
+<span class="fc" id="L87">            JsonNode respuesta = payPalClient.llamarPayPal(</span>
+<span class="fc" id="L88">                    &quot;/v2/checkout/orders/&quot; + pago.getIdOrdenPaypal() + &quot;/capture&quot;,</span>
+<span class="fc" id="L89">                    HttpMethod.POST, objectMapper.createObjectNode());</span>
+<span class="fc" id="L90">            String estadoCaptura = respuesta.path(&quot;status&quot;).asText();</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">            if (&quot;COMPLETED&quot;.equals(estadoCaptura)) {</span>
+<span class="fc" id="L92">                confirmarPago(pago, &quot;reconciliación: orden APPROVED capturada de forma proactiva&quot;);</span>
+            } else {
+<span class="nc" id="L94">                log.error(&quot;[ReconciliacionPayPalEjecutorServicio] Captura de la orden {} devolvió estado {}&quot;,</span>
+<span class="nc" id="L95">                        pago.getIdOrdenPaypal(), estadoCaptura);</span>
+            }
+<span class="fc" id="L97">        } catch (HttpStatusCodeException e) {</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">            if (e.getResponseBodyAsString().contains(&quot;ORDER_ALREADY_CAPTURED&quot;)) {</span>
+<span class="fc" id="L99">                confirmarPago(pago, &quot;reconciliación: la orden ya estaba capturada&quot;);</span>
+<span class="fc" id="L100">                return;</span>
+            }
+<span class="nc" id="L102">            log.error(&quot;[ReconciliacionPayPalEjecutorServicio] Error capturando la orden {}: {}&quot;,</span>
+<span class="nc" id="L103">                    pago.getIdOrdenPaypal(), e.getResponseBodyAsString());</span>
+<span class="nc" id="L104">        } catch (Exception e) {</span>
+<span class="nc" id="L105">            log.error(&quot;[ReconciliacionPayPalEjecutorServicio] Error capturando la orden {}&quot;,</span>
+<span class="nc" id="L106">                    pago.getIdOrdenPaypal(), e);</span>
+<span class="pc" id="L107">        }</span>
+<span class="fc" id="L108">    }</span>
+
+    private void confirmarPago(PagoGarantia pago, String motivo) {
+<span class="fc" id="L111">        pago.setEstadoFondos(FONDOS_RETENIDO);</span>
+<span class="fc" id="L112">        pagoGarantiaRepository.save(pago);</span>
+
+<span class="fc" id="L114">        transaccionPagoRepository.save(TransaccionPago.builder()</span>
+<span class="fc" id="L115">                .pago(pago)</span>
+<span class="fc" id="L116">                .tipoTransaccion(&quot;Ingreso&quot;)</span>
+<span class="fc" id="L117">                .monto(pago.getMontoRetenido())</span>
+<span class="fc" id="L118">                .build());</span>
+
+<span class="fc" id="L120">        log.info(&quot;[ReconciliacionPayPalEjecutorServicio] Pago {} confirmado por {}. Fondos retenidos: ${}&quot;,</span>
+<span class="fc" id="L121">                pago.getIdPago(), motivo, pago.getMontoRetenido());</span>
+
+<span class="fc" id="L123">        Pedido pedido = pago.getContrato().getPedido();</span>
+<span class="fc" id="L124">        String mensaje = &quot;El pago de tu pedido \&quot;&quot; + pedido.getServicio().getTituloServicio()</span>
+                + &quot;\&quot; fue confirmado. Los fondos quedan en garantía hasta la aprobación de la entrega.&quot;;
+<span class="fc" id="L126">        notificacionService.notificar(pedido.getUsuarioCliente(), &quot;PAGO_CONFIRMADO&quot;, mensaje);</span>
+<span class="fc" id="L127">        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), &quot;PAGO_CONFIRMADO&quot;,</span>
+<span class="fc" id="L128">                &quot;Se confirmó el pago de garantía para el pedido \&quot;&quot; + pedido.getServicio().getTituloServicio() + &quot;\&quot;.&quot;);</span>
+<span class="fc" id="L129">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

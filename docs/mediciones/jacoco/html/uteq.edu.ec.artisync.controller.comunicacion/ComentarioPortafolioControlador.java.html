@@ -30,6 +30,15 @@ public class ComentarioPortafolioControlador {
 
     private final ComentarioPortafolioService comentarioService;
 
+    /**
+     * Crea un comentario sobre un ítem de portafolio.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio comentado
+     * @param peticion contenido del comentario
+     * @param userDetails usuario autenticado que comenta
+     * @return el comentario creado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el ítem de portafolio o el usuario autor no existen
+     */
     @Operation(summary = &quot;Comentar un ítem de portafolio&quot;)
     @PostMapping(&quot;/{idItemPortafolio}/comentarios&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -38,27 +47,47 @@ public class ComentarioPortafolioControlador {
             @PathVariable Long idItemPortafolio,
             @Valid @RequestBody PeticionCrearComentario peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L41">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L42">                .body(comentarioService.crearComentario(idItemPortafolio, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L50">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L51">                .body(comentarioService.crearComentario(idItemPortafolio, peticion, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Lista los comentarios activos de un ítem de portafolio, de acceso público.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param pageable configuración de paginación
+     * @return página con los comentarios activos del ítem
+     */
     @Operation(summary = &quot;Listar comentarios activos de un ítem de portafolio (público)&quot;)
     @GetMapping(&quot;/{idItemPortafolio}/comentarios&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaComentario&gt;&gt; listarComentarios(
             @PathVariable Long idItemPortafolio,
             @PageableDefault(size = 20) Pageable pageable) {
-<span class="fc" id="L50">        return ResponseEntity.ok(comentarioService.listarComentarios(idItemPortafolio, pageable));</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(comentarioService.listarComentarios(idItemPortafolio, pageable));</span>
     }
 
+    /**
+     * Cuenta los comentarios de un ítem de portafolio, de acceso público.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @return el identificador del ítem y el total de comentarios
+     */
     @Operation(summary = &quot;Contar comentarios de un ítem de portafolio (público)&quot;)
     @GetMapping(&quot;/{idItemPortafolio}/comentarios/conteo&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; contarComentarios(@PathVariable Long idItemPortafolio) {
-<span class="fc" id="L56">        return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L78">        return ResponseEntity.ok(Map.of(</span>
                 &quot;idItemPortafolio&quot;, idItemPortafolio,
-<span class="fc" id="L58">                &quot;total&quot;, comentarioService.contarComentarios(idItemPortafolio)</span>
+<span class="fc" id="L80">                &quot;total&quot;, comentarioService.contarComentarios(idItemPortafolio)</span>
         ));
     }
 
+    /**
+     * Elimina un comentario propio, del dueño del portafolio comentado, o como administrador.
+     *
+     * @param idComentario identificador del comentario a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     */
     @Operation(summary = &quot;Eliminar un comentario propio, del portafolio, o como ADMIN&quot;)
     @DeleteMapping(&quot;/comentarios/{idComentario}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -66,9 +95,9 @@ public class ComentarioPortafolioControlador {
     public void eliminarComentario(
             @PathVariable Long idComentario,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L69">        boolean esAdmin = userDetails.getAuthorities().stream()</span>
-<span class="fc" id="L70">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
-<span class="fc" id="L71">        comentarioService.eliminarComentario(idComentario, userDetails.getIdUsuario(), esAdmin);</span>
-<span class="fc" id="L72">    }</span>
+<span class="fc" id="L98">        boolean esAdmin = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L99">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+<span class="fc" id="L100">        comentarioService.eliminarComentario(idComentario, userDetails.getIdUsuario(), esAdmin);</span>
+<span class="fc" id="L101">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

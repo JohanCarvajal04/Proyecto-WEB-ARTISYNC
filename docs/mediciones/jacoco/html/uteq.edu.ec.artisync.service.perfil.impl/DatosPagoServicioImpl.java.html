@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatosPagoServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.perfil.impl</a> &gt; <span class="el_source">DatosPagoServicioImpl.java</span></div><h1>DatosPagoServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.perfil.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionDatosPago;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaDatosPago;
+import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.perfil.IDatosPagoServicio;
+
+@Service
+@RequiredArgsConstructor
+public class DatosPagoServicioImpl implements IDatosPagoServicio {
+
+    private final DatosPagoCreadorRepository datosPagoCreadorRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaDatosPago obtenerMisDatosPago(Long idUsuario) {
+<span class="nc" id="L27">        return datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="nc" id="L28">                .map(this::mapear)</span>
+<span class="nc" id="L29">                .orElseGet(() -&gt; RespuestaDatosPago.builder().correoPaypal(null).fechaActualizacion(null).build());</span>
+    }
+
+    @Override
+    @Transactional
+    @Auditable(accion = &quot;RETIRO_DATOS_PAGO_ACTUALIZAR&quot;, modulo = ModuloAuditoria.FINANZAS,
+            entidad = &quot;datos_pago_creador&quot;, idEntidad = &quot;#idUsuario&quot;)
+    public RespuestaDatosPago actualizarCorreoPaypal(Long idUsuario, PeticionDatosPago peticion) {
+<span class="nc" id="L37">        DatosPagoCreador datos = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="nc" id="L38">                .orElseGet(() -&gt; {</span>
+<span class="nc" id="L39">                    Usuario usuario = usuarioRepository.findById(idUsuario)</span>
+<span class="nc" id="L40">                            .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado&quot;));</span>
+<span class="nc" id="L41">                    return DatosPagoCreador.builder().usuario(usuario).build();</span>
+                });
+
+<span class="nc" id="L44">        datos.setCorreoPaypal(peticion.getCorreoPaypal());</span>
+<span class="nc" id="L45">        return mapear(datosPagoCreadorRepository.save(datos));</span>
+    }
+
+    private RespuestaDatosPago mapear(DatosPagoCreador datos) {
+<span class="nc" id="L49">        return RespuestaDatosPago.builder()</span>
+<span class="nc" id="L50">                .correoPaypal(datos.getCorreoPaypal())</span>
+<span class="nc" id="L51">                .fechaActualizacion(datos.getFechaActualizacion())</span>
+<span class="nc" id="L52">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

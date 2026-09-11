@@ -37,36 +37,69 @@ public class CertificadoIaControlador {
 
     private final ICertificadoIaServicio certificadoServicio;
 
+    /**
+     * Emite un certificado de IA para un usuario. Conservado por compatibilidad;
+     * el alta vigente de verificaciones es {@code POST /api/v1/verificaciones}.
+     *
+     * @param peticion datos del certificado a emitir
+     * @return el certificado emitido, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el usuario o el estado de verificación indicados no existen
+     */
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCertificadoIa&gt; emitirCertificado(@Valid @RequestBody PeticionCrearCertificadoIa peticion) {
-<span class="fc" id="L43">        RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);</span>
-<span class="fc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+<span class="fc" id="L51">        RespuestaCertificadoIa respuesta = certificadoServicio.emitirCertificado(peticion);</span>
+<span class="fc" id="L52">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
+    /**
+     * Obtiene un certificado de IA por su identificador.
+     *
+     * @param id identificador del certificado
+     * @return el certificado solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el certificado no existe
+     */
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaCertificadoIa&gt; obtenerCertificadoPorId(@PathVariable Long id) {
-<span class="nc" id="L50">        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));</span>
+<span class="nc" id="L65">        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));</span>
     }
 
+    /**
+     * Lista los certificados de IA de un usuario.
+     *
+     * @param idUsuario identificador del usuario
+     * @return listado de certificados del usuario
+     */
     @GetMapping(&quot;/usuario/{idUsuario}&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarCertificadosPorUsuario(@PathVariable Long idUsuario) {
-<span class="nc" id="L56">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorUsuario(idUsuario));</span>
+<span class="nc" id="L77">        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorUsuario(idUsuario));</span>
     }
 
+    /**
+     * Lista todos los certificados de IA del sistema.
+     *
+     * @return listado completo de certificados
+     */
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCertificadoIa&gt; &gt; listarTodosLosCertificados() {
-<span class="nc" id="L62">        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());</span>
+<span class="nc" id="L88">        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());</span>
     }
 
+    /**
+     * Elimina un certificado de IA.
+     *
+     * @param id identificador del certificado a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el certificado no existe
+     */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarCertificado(@PathVariable Long id) {
-<span class="nc" id="L68">        certificadoServicio.eliminarCertificado(id);</span>
-<span class="nc" id="L69">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Certificado de IA eliminado exitosamente&quot;));</span>
+<span class="nc" id="L101">        certificadoServicio.eliminarCertificado(id);</span>
+<span class="nc" id="L102">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Certificado de IA eliminado exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

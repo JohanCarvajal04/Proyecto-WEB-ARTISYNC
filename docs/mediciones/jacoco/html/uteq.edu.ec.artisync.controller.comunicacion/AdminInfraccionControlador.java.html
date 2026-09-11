@@ -25,27 +25,47 @@ public class AdminInfraccionControlador {
 
     private final InfraccionService infraccionService;
 
+    /**
+     * Lista todas las infracciones registradas en el sistema.
+     *
+     * @param pageable configuración de paginación
+     * @return página con las infracciones del sistema
+     */
     @Operation(summary = &quot;Listar todas las infracciones del sistema&quot;)
     @GetMapping(&quot;/infracciones&quot;)
     @PreAuthorize(&quot;hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaInfraccion&gt;&gt; listarInfracciones(Pageable pageable) {
-<span class="nc" id="L32">        return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));</span>
+<span class="nc" id="L38">        return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));</span>
     }
 
+    /**
+     * Obtiene el historial de infracciones de un usuario específico.
+     *
+     * @param idUsuario identificador del usuario
+     * @param pageable configuración de paginación
+     * @return página con el historial de infracciones del usuario
+     */
     @Operation(summary = &quot;Historial de infracciones de un usuario específico&quot;)
     @GetMapping(&quot;/infracciones/usuario/{idUsuario}&quot;)
     @PreAuthorize(&quot;hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaInfraccion&gt;&gt; historialPorUsuario(
             @PathVariable Long idUsuario,
             Pageable pageable) {
-<span class="nc" id="L41">        return ResponseEntity.ok(infraccionService.historialPorUsuario(idUsuario, pageable));</span>
+<span class="nc" id="L54">        return ResponseEntity.ok(infraccionService.historialPorUsuario(idUsuario, pageable));</span>
     }
 
+    /**
+     * Revierte la suspensión de la cuenta de un usuario.
+     *
+     * @param idUsuario identificador del usuario cuya suspensión se revierte
+     * @return mensaje de confirmación de la reactivación
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     */
     @Operation(summary = &quot;Revertir suspensión de un usuario&quot;)
     @DeleteMapping(&quot;/suspensiones/{idUsuario}&quot;)
     @PreAuthorize(&quot;hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; revertirSuspension(@PathVariable Long idUsuario) {
-<span class="nc" id="L48">        return ResponseEntity.ok(infraccionService.revertirSuspension(idUsuario));</span>
+<span class="nc" id="L68">        return ResponseEntity.ok(infraccionService.revertirSuspension(idUsuario));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

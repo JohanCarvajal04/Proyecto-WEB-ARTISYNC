@@ -54,66 +54,88 @@ public class ReporteContratoServicioImpl implements IReporteContratoServicio {
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = &quot;REPORTE_CONTRATO_EXPORTAR&quot;, modulo = ModuloAuditoria.FINANZAS,
-            entidad = &quot;contratos&quot;, detalle = &quot;{formato: #formato}&quot;)
-    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante) {
-<span class="fc" id="L59">        Page&lt;FilaReporteContrato&gt; pagina = contratoRepository.buscarParaReporte(</span>
-<span class="fc" id="L60">                filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
-<span class="fc" id="L61">                PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, &quot;fechaFormalizacion&quot;)));</span>
+            entidad = &quot;contratos&quot;, detalle = &quot;{formato: #formato, page: #page, size: #size}&quot;)
+    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+        Page&lt;FilaReporteContrato&gt; pagina;
+<span class="fc" id="L60">        String titulo = &quot;Contratos&quot;;</span>
+<span class="fc" id="L61">        String subtitulo = &quot;Reporte de contratos formalizados&quot;;</span>
 
-<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (pagina.getTotalElements() &gt; formato.topeFilas()) {</span>
-<span class="fc" id="L64">            throw new ExcepcionReglaNegocio(</span>
-<span class="fc" id="L65">                    &quot;El reporte devuelve &quot; + pagina.getTotalElements() + &quot; contratos, más de los &quot;</span>
-<span class="fc" id="L66">                            + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
-                            + &quot;. Acote el rango de fechas.&quot;);
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (page != null) {</span>
+<span class="pc bpc" id="L64" title="3 of 6 branches missed.">            int pageSize = (size != null &amp;&amp; size &gt; 0 &amp;&amp; size &lt;= formato.topeFilas()) ? size : formato.topeFilas();</span>
+<span class="fc" id="L65">            pagina = contratoRepository.buscarParaReporte(</span>
+<span class="fc" id="L66">                    filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="fc" id="L67">                    PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, &quot;fechaFormalizacion&quot;)));</span>
+<span class="fc" id="L68">            int parte = page + 1;</span>
+<span class="fc" id="L69">            int totalPartes = Math.max(1, pagina.getTotalPages());</span>
+<span class="fc" id="L70">            titulo = &quot;Contratos - Parte &quot; + parte;</span>
+<span class="fc" id="L71">            subtitulo = &quot;Reporte de contratos formalizados — Parte &quot; + parte + &quot; de &quot; + totalPartes</span>
+<span class="fc" id="L72">                    + &quot; (&quot; + pagina.getTotalElements() + &quot; contratos en total)&quot;;</span>
+<span class="fc" id="L73">        } else {</span>
+<span class="fc" id="L74">            pagina = contratoRepository.buscarParaReporte(</span>
+<span class="fc" id="L75">                    filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),</span>
+<span class="fc" id="L76">                    PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, &quot;fechaFormalizacion&quot;)));</span>
+
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (pagina.getTotalElements() &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L79">                throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L80">                        &quot;El reporte devuelve &quot; + pagina.getTotalElements() + &quot; contratos, más de los &quot;</span>
+<span class="fc" id="L81">                                + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                                + &quot;. Acote el rango de fechas o utilice la opción de exportar por partes.&quot;);
+            }
         }
 
-<span class="fc" id="L70">        log.info(&quot;Reporte de contratos exportado en formato {} por {}&quot;, formato, correoSolicitante);</span>
+<span class="fc" id="L86">        log.info(&quot;Reporte de contratos exportado en formato {} (page={}, size={}) por {}&quot;, formato, page, size, correoSolicitante);</span>
 
-<span class="fc" id="L72">        ModeloReporte&lt;FilaReporteContrato&gt; modelo = ModeloReporte.&lt;FilaReporteContrato&gt;builder()</span>
-<span class="fc" id="L73">                .titulo(&quot;Contratos&quot;)</span>
-<span class="fc" id="L74">                .subtitulo(&quot;Reporte de contratos formalizados&quot;)</span>
-<span class="fc" id="L75">                .filtrosAplicados(filtrosLegibles(filtro))</span>
-<span class="fc" id="L76">                .columnas(List.of(</span>
-<span class="fc" id="L77">                        ColumnaReporte.entero(&quot;Id. contrato&quot;, FilaReporteContrato::idContrato),</span>
-<span class="fc" id="L78">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, FilaReporteContrato::idPedido),</span>
-<span class="fc" id="L79">                        ColumnaReporte.texto(&quot;Servicio&quot;, FilaReporteContrato::servicio),</span>
-<span class="fc" id="L80">                        ColumnaReporte.texto(&quot;Cliente&quot;, FilaReporteContrato::cliente),</span>
-<span class="fc" id="L81">                        ColumnaReporte.texto(&quot;Creador&quot;, FilaReporteContrato::creador),</span>
-<span class="fc" id="L82">                        ColumnaReporte.moneda(&quot;Precio pactado&quot;, FilaReporteContrato::precioPactado),</span>
-<span class="fc" id="L83">                        ColumnaReporte.entero(&quot;Límite de revisiones&quot;, FilaReporteContrato::limiteRevisiones),</span>
-<span class="fc" id="L84">                        ColumnaReporte.fechaHora(&quot;Formalizado&quot;, FilaReporteContrato::fechaFormalizacion),</span>
-<span class="fc" id="L85">                        ColumnaReporte.booleano(&quot;Firmado (cliente)&quot;, FilaReporteContrato::firmadoCliente),</span>
-<span class="fc" id="L86">                        ColumnaReporte.booleano(&quot;Firmado (creador)&quot;, FilaReporteContrato::firmadoCreador)))</span>
-<span class="fc" id="L87">                .filas(pagina.getContent())</span>
-<span class="fc" id="L88">                .totales(List.of(new TotalReporte(&quot;Importe pactado total&quot;, sumarPrecios(pagina.getContent()), TipoColumna.MONEDA)))</span>
-<span class="fc" id="L89">                .generadoPor(correoSolicitante)</span>
-<span class="fc" id="L90">                .build();</span>
+<span class="fc" id="L88">        ModeloReporte&lt;FilaReporteContrato&gt; modelo = ModeloReporte.&lt;FilaReporteContrato&gt;builder()</span>
+<span class="fc" id="L89">                .titulo(titulo)</span>
+<span class="fc" id="L90">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L91">                .filtrosAplicados(filtrosLegibles(filtro))</span>
+<span class="fc" id="L92">                .columnas(List.of(</span>
+<span class="fc" id="L93">                        ColumnaReporte.entero(&quot;Id. contrato&quot;, FilaReporteContrato::idContrato),</span>
+<span class="fc" id="L94">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, FilaReporteContrato::idPedido),</span>
+<span class="fc" id="L95">                        ColumnaReporte.texto(&quot;Servicio&quot;, FilaReporteContrato::servicio),</span>
+<span class="fc" id="L96">                        ColumnaReporte.texto(&quot;Cliente&quot;, FilaReporteContrato::cliente),</span>
+<span class="fc" id="L97">                        ColumnaReporte.texto(&quot;Creador&quot;, FilaReporteContrato::creador),</span>
+<span class="fc" id="L98">                        ColumnaReporte.moneda(&quot;Precio pactado&quot;, FilaReporteContrato::precioPactado),</span>
+<span class="fc" id="L99">                        ColumnaReporte.entero(&quot;Límite de revisiones&quot;, FilaReporteContrato::limiteRevisiones),</span>
+<span class="fc" id="L100">                        ColumnaReporte.fechaHora(&quot;Formalizado&quot;, FilaReporteContrato::fechaFormalizacion),</span>
+<span class="fc" id="L101">                        ColumnaReporte.booleano(&quot;Firmado (cliente)&quot;, FilaReporteContrato::firmadoCliente),</span>
+<span class="fc" id="L102">                        ColumnaReporte.booleano(&quot;Firmado (creador)&quot;, FilaReporteContrato::firmadoCreador)))</span>
+<span class="fc" id="L103">                .filas(pagina.getContent())</span>
+<span class="fc" id="L104">                .totales(List.of(new TotalReporte(&quot;Importe pactado total&quot;, sumarPrecios(pagina.getContent()), TipoColumna.MONEDA)))</span>
+<span class="fc" id="L105">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L106">                .build();</span>
 
-<span class="fc" id="L92">        return servicioExportacion.exportar(modelo, formato);</span>
+<span class="fc" id="L108">        return servicioExportacion.exportar(modelo, formato);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante) {
+<span class="fc" id="L114">        return exportar(filtro, formato, null, null, correoSolicitante);</span>
     }
 
     private BigDecimal sumarPrecios(List&lt;FilaReporteContrato&gt; filas) {
-<span class="fc" id="L96">        return filas.stream()</span>
-<span class="fc" id="L97">                .map(FilaReporteContrato::precioPactado)</span>
-<span class="fc" id="L98">                .filter(java.util.Objects::nonNull)</span>
-<span class="fc" id="L99">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+<span class="fc" id="L118">        return filas.stream()</span>
+<span class="fc" id="L119">                .map(FilaReporteContrato::precioPactado)</span>
+<span class="fc" id="L120">                .filter(java.util.Objects::nonNull)</span>
+<span class="fc" id="L121">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
     }
 
     private Map&lt;String, String&gt; filtrosLegibles(FiltroReporteContrato filtro) {
-<span class="fc" id="L103">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (filtro.getDesde() != null) {</span>
-<span class="fc" id="L105">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
+<span class="fc" id="L125">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (filtro.getDesde() != null) {</span>
+<span class="fc" id="L127">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
         }
-<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (filtro.getHasta() != null) {</span>
-<span class="fc" id="L108">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        if (filtro.getHasta() != null) {</span>
+<span class="fc" id="L130">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
         }
-<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (filtro.getIdPerfilCreador() != null) {</span>
-<span class="fc" id="L111">            filtros.put(&quot;Id. perfil del creador&quot;, String.valueOf(filtro.getIdPerfilCreador()));</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (filtro.getIdPerfilCreador() != null) {</span>
+<span class="fc" id="L133">            filtros.put(&quot;Id. perfil del creador&quot;, String.valueOf(filtro.getIdPerfilCreador()));</span>
         }
-<span class="pc bpc" id="L113" title="1 of 2 branches missed.">        if (filtro.getSoloFirmados() != null) {</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">            filtros.put(&quot;Solo firmados&quot;, filtro.getSoloFirmados() ? &quot;Sí&quot; : &quot;No&quot;);</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (filtro.getSoloFirmados() != null) {</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            filtros.put(&quot;Solo firmados&quot;, filtro.getSoloFirmados() ? &quot;Sí&quot; : &quot;No&quot;);</span>
         }
-<span class="fc" id="L116">        return filtros;</span>
+<span class="fc" id="L138">        return filtros;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

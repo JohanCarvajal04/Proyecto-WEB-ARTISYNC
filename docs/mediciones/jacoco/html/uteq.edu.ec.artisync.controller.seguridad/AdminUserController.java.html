@@ -20,6 +20,7 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
+import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
@@ -33,7 +34,18 @@ import uteq.edu.ec.artisync.util.RespuestaDocumento;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final PrivacidadService privacidadService;
 
+    /**
+     * Lista todos los usuarios de forma paginada, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el listado de usuarios
+     * @param page número de página solicitada (base 0)
+     * @param size tamaño de la página
+     * @param sortBy campo por el cual ordenar el resultado
+     * @param direction dirección del orden (&quot;asc&quot; o &quot;desc&quot;)
+     * @return página con los usuarios que cumplen el filtro
+     */
     @Operation(summary = &quot;Listar todos los usuarios paginados&quot;)
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('USUARIO_VER') or hasRole('ADMIN')&quot;)
@@ -44,70 +56,153 @@ public class AdminUserController {
             @RequestParam(defaultValue = &quot;idUsuario&quot;) String sortBy,
             @RequestParam(defaultValue = &quot;asc&quot;) String direction) {
 
-<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        Sort sort = direction.equalsIgnoreCase(&quot;desc&quot;) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();</span>
-<span class="fc" id="L48">        Pageable pageable = PageRequest.of(page, size, sort);</span>
-<span class="fc" id="L49">        return ResponseEntity.ok(adminUserService.getAllUsers(filtro, pageable));</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        Sort sort = direction.equalsIgnoreCase(&quot;desc&quot;) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();</span>
+<span class="fc" id="L60">        Pageable pageable = PageRequest.of(page, size, sort);</span>
+<span class="fc" id="L61">        return ResponseEntity.ok(adminUserService.getAllUsers(filtro, pageable));</span>
     }
 
-    @Operation(summary = &quot;Exportar el listado de usuarios en CSV, XLSX o PDF&quot;)
+    /**
+     * Exporta el listado de usuarios filtrado en el formato solicitado.
+     *
+     * @param filtro criterios opcionales para filtrar el listado de usuarios
+     * @param formato formato del documento a generar (CSV, XLSX o PDF)
+     * @param authentication autenticación del administrador que solicita la exportación
+     * @return el documento generado con el listado de usuarios
+     */
+    @Operation(summary = &quot;Exportar el listado de usuarios en CSV, XLSX o PDF con gráficas y paginación opcionales&quot;)
     @GetMapping(&quot;/exportar&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;byte[]&gt; exportar(FiltroUsuario filtro, @RequestParam FormatoReporte formato,
-                                            Authentication authentication) {
-<span class="nc" id="L57">        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, authentication.getName());</span>
-<span class="nc" id="L58">        return RespuestaDocumento.de(documento);</span>
+    public ResponseEntity&lt;byte[]&gt; exportar(
+            FiltroUsuario filtro,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false, defaultValue = &quot;AMBAS&quot;) uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte grafica,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            Authentication authentication) {
+<span class="nc" id="L82">        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, grafica, page, size, authentication.getName());</span>
+<span class="nc" id="L83">        return RespuestaDocumento.de(documento);</span>
     }
 
+    /**
+     * Obtiene el detalle de un usuario por su identificador.
+     *
+     * @param id identificador del usuario
+     * @return el usuario solicitado
+     */
     @Operation(summary = &quot;Obtener usuario por ID&quot;)
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; getUserById(@PathVariable Long id) {
-<span class="fc" id="L65">        return ResponseEntity.ok(adminUserService.getUserById(id));</span>
+<span class="fc" id="L96">        return ResponseEntity.ok(adminUserService.getUserById(id));</span>
     }
 
+    /**
+     * Crea un nuevo usuario desde el panel administrativo.
+     *
+     * @param request datos del usuario a crear
+     * @return el usuario creado, con estado 201
+     */
     @Operation(summary = &quot;Crear nuevo usuario desde el panel administrativo&quot;)
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('USUARIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; createUser(@Valid @RequestBody CreateUserRequest request) {
-<span class="nc" id="L72">        return ResponseEntity.status(HttpStatus.CREATED).body(adminUserService.createUser(request));</span>
+<span class="nc" id="L109">        return ResponseEntity.status(HttpStatus.CREATED).body(adminUserService.createUser(request));</span>
     }
 
+    /**
+     * Actualiza la información y configuración de un usuario.
+     *
+     * @param id identificador del usuario a actualizar
+     * @param request datos actualizados del usuario
+     * @return el usuario actualizado
+     */
     @Operation(summary = &quot;Actualizar información y configuración de un usuario&quot;)
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; updateUser(@PathVariable Long id, @Valid @RequestBody AdminUpdateUserRequest request) {
-<span class="nc" id="L79">        return ResponseEntity.ok(adminUserService.updateUser(id, request));</span>
+<span class="nc" id="L123">        return ResponseEntity.ok(adminUserService.updateUser(id, request));</span>
     }
 
+    /**
+     * Activa, desactiva o suspende la cuenta de un usuario.
+     *
+     * @param id identificador del usuario
+     * @param request nuevo estado a aplicar sobre la cuenta
+     * @param userDetails administrador autenticado que realiza el cambio
+     * @return el usuario con su estado actualizado
+     * @throws ExcepcionReglaNegocio si el administrador intenta desactivar su propia cuenta
+     */
     @Operation(summary = &quot;Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)&quot;)
     @PatchMapping(&quot;/{id}/estado&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_SUSPENDER') or hasAuthority('USUARIO_ELIMINAR') or hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; changeEstado(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request,
                                                       @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L87">        return ResponseEntity.ok(adminUserService.changeEstado(id, request, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L140">        return ResponseEntity.ok(adminUserService.changeEstado(id, request, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Asigna roles a un usuario.
+     *
+     * @param id identificador del usuario
+     * @param request roles a asignar
+     * @param userDetails administrador autenticado que realiza la asignación
+     * @return el usuario con sus roles actualizados
+     * @throws ExcepcionReglaNegocio si el administrador intenta cambiar sus propios roles
+     */
     @Operation(summary = &quot;Asignar roles a un usuario&quot;)
     @PutMapping(&quot;/{id}/roles&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;UserResponse&gt; assignRoles(@PathVariable Long id, @Valid @RequestBody AssignRolesRequest request,
                                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L95">        return ResponseEntity.ok(adminUserService.assignRoles(id, request, userDetails.getIdUsuario()));</span>
+<span class="nc" id="L157">        return ResponseEntity.ok(adminUserService.assignRoles(id, request, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Revoca inmediatamente todas las sesiones activas de un usuario.
+     *
+     * @param id identificador del usuario cuyas sesiones se revocan
+     * @return mensaje de confirmación de la revocación
+     */
     @Operation(summary = &quot;Revocar inmediatamente todas las sesiones activas de un usuario&quot;)
     @DeleteMapping(&quot;/{id}/sesiones&quot;)
     @PreAuthorize(&quot;hasAuthority('SESION_REVOCAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; revokeUserSessions(@PathVariable Long id) {
-<span class="nc" id="L102">        return ResponseEntity.ok(adminUserService.revokeUserSessions(id));</span>
+<span class="nc" id="L170">        return ResponseEntity.ok(adminUserService.revokeUserSessions(id));</span>
     }
 
+    /**
+     * Elimina lógicamente a un usuario (soft delete).
+     *
+     * @param id identificador del usuario a eliminar
+     * @param userDetails administrador autenticado que solicita la eliminación
+     * @return respuesta vacía con estado 204
+     * @throws ExcepcionReglaNegocio si el administrador intenta eliminar su propia cuenta
+     */
     @Operation(summary = &quot;Eliminar lógicamente a un usuario (Soft Delete)&quot;)
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Void&gt; deleteUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L109">        adminUserService.deleteUser(id, userDetails.getIdUsuario());</span>
-<span class="fc" id="L110">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L185">        adminUserService.deleteUser(id, userDetails.getIdUsuario());</span>
+<span class="fc" id="L186">        return ResponseEntity.noContent().build();</span>
+    }
+
+    /**
+     * REQ-NF-018: ejecuta la supresión real (anonimización) de los datos
+     * personales de un usuario en nombre de un administrador. A diferencia
+     * del autoservicio, rechaza la operación si el usuario ya la tiene
+     * ejecutada — el administrador solo debe usar esto cuando el titular no
+     * lo haya solicitado (o no lo tenga pendiente) por sí mismo.
+     *
+     * @param id            identificador del usuario cuyos datos se suprimen
+     * @param userDetails   administrador autenticado que ejecuta la acción
+     * @return mensaje de confirmación, incluyendo excepciones legales si las hay
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario ya tiene la supresión ejecutada, o si el admin se apunta a sí mismo
+     */
+    @Operation(summary = &quot;Suprimir (anonimizar) los datos personales de un usuario, en nombre del titular&quot;)
+    @PostMapping(&quot;/{id}/supresion&quot;)
+    @PreAuthorize(&quot;hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; anonimizarUsuario(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="nc" id="L205">        return ResponseEntity.ok(privacidadService.anonimizarUsuarioAdmin(id, userDetails.getIdUsuario()));</span>
     }
 }
 

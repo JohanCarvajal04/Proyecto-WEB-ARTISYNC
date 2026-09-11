@@ -7,11 +7,20 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
-<span class="fc" id="L10">public record PeticionCrearCertificadoIa(</span>
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Declaracion de uso etico de IA por parte del creador.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
+<span class="fc" id="L19">public record PeticionCrearCertificadoIa(</span>
         @NotNull(message = &quot;El ID del usuario es obligatorio&quot;)
         Long idUsuario,
 
-        @NotNull(message = &quot;El ID del estado de verificación es obligatorio&quot;)
+        @NotNull(message = &quot;El ID del estado de verificaciÃ³n es obligatorio&quot;)
         Long idEstadoVerificacion,
 
         @NotBlank(message = &quot;La URL del documento S3 es obligatoria&quot;)
@@ -23,4 +32,7 @@ import java.math.BigDecimal;
         BigDecimal puntajeConfianzaIa
 ) {
 }
+
+
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

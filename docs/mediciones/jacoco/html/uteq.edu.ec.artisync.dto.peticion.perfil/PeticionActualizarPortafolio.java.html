@@ -2,10 +2,22 @@
 
 import jakarta.validation.constraints.Size;
 
-<span class="fc" id="L5">public record PeticionActualizarPortafolio(</span>
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Payload para editar los metadatos de un portafolio existente.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
+<span class="fc" id="L14">public record PeticionActualizarPortafolio(</span>
         Boolean esPublico,
 
         java.util.Map&lt;String, String&gt; opcionesPersonalizacion
 ) {
 }
+
+
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

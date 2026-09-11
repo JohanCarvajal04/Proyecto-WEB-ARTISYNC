@@ -24,47 +24,82 @@ public class SeguidorControlador {
 
     private final ISeguidorServicio seguidorServicio;
 
+    /**
+     * Registra al usuario autenticado como seguidor del perfil de creador indicado.
+     * @param idPerfil identificador del perfil de creador a seguir
+     * @param userDetails identidad del usuario autenticado que inicia el seguimiento
+     * @return el nuevo estado de seguimiento y el conteo actualizado de seguidores
+     */
     @Operation(summary = &quot;Seguir a un perfil de creador&quot;)
     @PostMapping(&quot;/{idPerfil}/seguir&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaEstadoSeguimiento&gt; seguirCreador(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L33">        return ResponseEntity.ok(seguidorServicio.seguirCreador(userDetails.getIdUsuario(), idPerfil));</span>
+<span class="fc" id="L39">        return ResponseEntity.ok(seguidorServicio.seguirCreador(userDetails.getIdUsuario(), idPerfil));</span>
     }
 
+    /**
+     * Elimina la relación de seguimiento del usuario autenticado hacia el perfil de creador indicado.
+     * @param idPerfil identificador del perfil de creador que se deja de seguir
+     * @param userDetails identidad del usuario autenticado que termina el seguimiento
+     * @return el nuevo estado de seguimiento y el conteo actualizado de seguidores
+     */
     @Operation(summary = &quot;Dejar de seguir a un perfil de creador&quot;)
     @DeleteMapping(&quot;/{idPerfil}/seguir&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaEstadoSeguimiento&gt; dejarDeSeguirCreador(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L42">        return ResponseEntity.ok(seguidorServicio.dejarDeSeguirCreador(userDetails.getIdUsuario(), idPerfil));</span>
+<span class="fc" id="L54">        return ResponseEntity.ok(seguidorServicio.dejarDeSeguirCreador(userDetails.getIdUsuario(), idPerfil));</span>
     }
 
+    /**
+     * Consulta si el usuario actual (si hay sesión) sigue al perfil de creador indicado, junto con el total de seguidores.
+     * @param idPerfil identificador del perfil de creador a consultar
+     * @param userDetails identidad del usuario autenticado, o null si la consulta es anónima
+     * @return el estado de seguimiento del usuario actual y el conteo total de seguidores del perfil
+     */
     @Operation(summary = &quot;Obtener el estado de seguimiento y conteo de un perfil de creador&quot;)
     @GetMapping(&quot;/{idPerfil}/es-seguidor&quot;)
     public ResponseEntity&lt;RespuestaEstadoSeguimiento&gt; obtenerEstadoSeguimiento(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc bfc" id="L50" title="All 2 branches covered.">        Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="fc" id="L51">        return ResponseEntity.ok(seguidorServicio.obtenerEstadoSeguimiento(idUsuario, idPerfil));</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L69">        return ResponseEntity.ok(seguidorServicio.obtenerEstadoSeguimiento(idUsuario, idPerfil));</span>
     }
 
+    /**
+     * Obtiene la lista pública de usuarios que siguen al perfil de creador indicado.
+     * @param idPerfil identificador del perfil de creador cuyos seguidores se listan
+     * @return los seguidores registrados del perfil
+     */
     @Operation(summary = &quot;Listar los seguidores de un perfil de creador&quot;)
     @GetMapping(&quot;/{idPerfil}/seguidores&quot;)
     public ResponseEntity&lt;List&lt;RespuestaSeguidor&gt;&gt; listarSeguidores(@PathVariable Long idPerfil) {
-<span class="fc" id="L57">        return ResponseEntity.ok(seguidorServicio.listarSeguidores(idPerfil));</span>
+<span class="fc" id="L80">        return ResponseEntity.ok(seguidorServicio.listarSeguidores(idPerfil));</span>
     }
 
+    /**
+     * Obtiene el feed de novedades publicadas por los creadores que sigue el usuario autenticado.
+     * @param userDetails identidad del usuario autenticado cuyos creadores seguidos se consultan
+     * @return las novedades recientes de los creadores seguidos
+     */
     @Operation(summary = &quot;Listar las novedades de los creadores que el usuario sigue&quot;)
     @GetMapping(&quot;/siguiendo/novedades&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;List&lt;RespuestaCreadorSeguidoNovedad&gt;&gt; listarCreadoresSeguidosNovedades(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L65">        return ResponseEntity.ok(seguidorServicio.listarCreadoresSeguidosNovedades(userDetails.getIdUsuario()));</span>
+<span class="fc" id="L93">        return ResponseEntity.ok(seguidorServicio.listarCreadoresSeguidosNovedades(userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Actualiza la imagen de portada y el título profesional del perfil de creador autenticado.
+     * @param urlPortada nueva URL de la imagen de portada del perfil, o null para no modificarla
+     * @param tituloProfesional nuevo título profesional a mostrar en el perfil, o null para no modificarlo
+     * @param userDetails identidad del creador autenticado cuyo perfil se actualiza
+     * @return mensaje de confirmación de la actualización
+     */
     @Operation(summary = &quot;Actualizar la portada y título profesional del creador&quot;)
     @PutMapping(&quot;/mi-perfil/portada&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -72,8 +107,8 @@ public class SeguidorControlador {
             @RequestParam(required = false) String urlPortada,
             @RequestParam(required = false) String tituloProfesional,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L75">        seguidorServicio.actualizarPortadaYTitulo(userDetails.getIdUsuario(), urlPortada, tituloProfesional);</span>
-<span class="fc" id="L76">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portada y especialidad del perfil actualizadas correctamente.&quot;));</span>
+<span class="fc" id="L110">        seguidorServicio.actualizarPortadaYTitulo(userDetails.getIdUsuario(), urlPortada, tituloProfesional);</span>
+<span class="fc" id="L111">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portada y especialidad del perfil actualizadas correctamente.&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

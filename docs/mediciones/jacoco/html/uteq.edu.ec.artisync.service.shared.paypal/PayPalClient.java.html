@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PayPalClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.shared.paypal</a> &gt; <span class="el_source">PayPalClient.java</span></div><h1>PayPalClient.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.shared.paypal;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+
+import java.util.Base64;
+import java.util.Map;
+
+/**
+ * Cliente HTTP para la API REST de PayPal (checkout/orders y payouts),
+ * compartido por PagoServicioImpl y SolicitudRetiroServicioImpl. Antes estaba
+ * duplicado palabra por palabra entre ambos.
+ */
+@Component
+<span class="fc" id="L24">public class PayPalClient {</span>
+
+    /**
+     * Mapper propio, no el del contexto: el contrato con PayPal no debe verse
+     * afectado por personalizaciones de serialización de la aplicación.
+     */
+<span class="fc" id="L30">    private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+    /**
+     * No es `final` para que las pruebas puedan sustituirlo: el camino de
+     * verificación y captura es el que mueve dinero y conviene poder ejercitarlo
+     * sin salir a la red.
+     */
+<span class="fc" id="L37">    private RestTemplate restTemplate = new RestTemplate();</span>
+
+    @Value(&quot;${paypal.client-id:sandbox_client_id}&quot;)
+    private String paypalClientId;
+
+    @Value(&quot;${paypal.client-secret:sandbox_client_secret}&quot;)
+    private String paypalClientSecret;
+
+    @Value(&quot;${paypal.mode:sandbox}&quot;)
+    private String paypalMode;
+
+    public String getPayPalBaseUrl() {
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        return &quot;sandbox&quot;.equalsIgnoreCase(paypalMode)</span>
+<span class="nc" id="L50">                ? &quot;https://api-m.sandbox.paypal.com&quot;</span>
+<span class="nc" id="L51">                : &quot;https://api-m.paypal.com&quot;;</span>
+    }
+
+    /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
+    public JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
+<span class="nc" id="L56">        return llamarPayPal(ruta, metodo, cuerpo, null);</span>
+    }
+
+    /**
+     * Igual que {@link #llamarPayPal(String, HttpMethod, JsonNode)}, pero con
+     * cabecera `PayPal-Request-Id` (REQ-NF-019): un reembolso reintentado con
+     * la misma clave no se procesa dos veces del lado de PayPal, mismo
+     * principio que el `sender_batch_id` idempotente de los payouts en
+     * SolicitudRetiroServicioImpl, aplicado aquí vía el mecanismo propio que
+     * PayPal expone para checkout/orders y captures/refund.
+     */
+    public JsonNode llamarPayPalIdempotente(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
+<span class="nc" id="L68">        return llamarPayPal(ruta, metodo, cuerpo, idempotencyKey);</span>
+    }
+
+    private JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
+<span class="nc" id="L72">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L73">        headers.setBearerAuth(obtenerAccessToken());</span>
+<span class="nc" id="L74">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc bnc" id="L75" title="All 4 branches missed.">        if (idempotencyKey != null &amp;&amp; !idempotencyKey.isBlank()) {</span>
+<span class="nc" id="L76">            headers.set(&quot;PayPal-Request-Id&quot;, idempotencyKey);</span>
+        }
+
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        HttpEntity&lt;String&gt; peticion = new HttpEntity&lt;&gt;(cuerpo != null ? cuerpo.toString() : null, headers);</span>
+
+<span class="nc" id="L81">        ResponseEntity&lt;String&gt; respuesta = restTemplate.exchange(</span>
+<span class="nc" id="L82">                getPayPalBaseUrl() + ruta, metodo, peticion, String.class);</span>
+
+        try {
+<span class="nc" id="L85">            return objectMapper.readTree(respuesta.getBody());</span>
+<span class="nc" id="L86">        } catch (Exception e) {</span>
+<span class="nc" id="L87">            throw new ExcepcionReglaNegocio(&quot;Respuesta ilegible de PayPal en &quot; + ruta);</span>
+        }
+    }
+
+    private String obtenerAccessToken() {
+<span class="nc" id="L92">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L93">        String credentials = Base64.getEncoder().encodeToString(</span>
+<span class="nc" id="L94">                (paypalClientId + &quot;:&quot; + paypalClientSecret).getBytes());</span>
+<span class="nc" id="L95">        headers.set(&quot;Authorization&quot;, &quot;Basic &quot; + credentials);</span>
+<span class="nc" id="L96">        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
+
+<span class="nc" id="L98">        HttpEntity&lt;String&gt; request = new HttpEntity&lt;&gt;(&quot;grant_type=client_credentials&quot;, headers);</span>
+
+<span class="nc" id="L100">        ResponseEntity&lt;Map&gt; response = restTemplate.exchange(</span>
+<span class="nc" id="L101">                getPayPalBaseUrl() + &quot;/v1/oauth2/token&quot;,</span>
+                HttpMethod.POST, request, Map.class);
+
+<span class="nc" id="L104">        return (String) response.getBody().get(&quot;access_token&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

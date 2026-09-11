@@ -37,6 +37,17 @@ public class PortafolioItemControlador {
 
     private final IPortafolioItemServicio itemServicio;
 
+    /**
+     * Sube una nueva obra (ítem) a un portafolio.
+     *
+     * @param idPortafolio identificador del portafolio
+     * @param userDetails usuario autenticado que sube la obra
+     * @param datos datos de la obra a crear
+     * @param archivo archivo multimedia de la obra
+     * @return el ítem de portafolio creado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ExcepcionReglaNegocio si el usuario no es el dueño del portafolio o se alcanzó el máximo de obras permitidas
+     */
     @PostMapping(value = &quot;/{idPortafolio}/items&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPortafolioItem&gt; subirItem(
@@ -44,23 +55,41 @@ public class PortafolioItemControlador {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestPart(&quot;datos&quot;) PeticionCrearPortafolioItem datos,
             @RequestPart(&quot;archivo&quot;) MultipartFile archivo) {
-<span class="fc" id="L47">        RespuestaPortafolioItem respuesta = itemServicio.subirItem(</span>
-<span class="fc" id="L48">                idPortafolio, userDetails.getIdUsuario(), datos, archivo);</span>
-<span class="fc" id="L49">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+<span class="fc" id="L58">        RespuestaPortafolioItem respuesta = itemServicio.subirItem(</span>
+<span class="fc" id="L59">                idPortafolio, userDetails.getIdUsuario(), datos, archivo);</span>
+<span class="fc" id="L60">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
+    /**
+     * Lista las obras de un portafolio, respetando su visibilidad.
+     *
+     * @param idPortafolio identificador del portafolio
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de ítems del portafolio
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ExcepcionReglaNegocio si el portafolio no es público y el usuario no es su dueño
+     */
     @GetMapping(&quot;/{idPortafolio}/items&quot;)
     public ResponseEntity&lt;List&lt;RespuestaPortafolioItem&gt;&gt; listarItems(
             @PathVariable Long idPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L56">        return ResponseEntity.ok(itemServicio.listarItems(idPortafolio, idDe(userDetails)));</span>
+<span class="fc" id="L76">        return ResponseEntity.ok(itemServicio.listarItems(idPortafolio, idDe(userDetails)));</span>
     }
 
+    /**
+     * Obtiene una obra de portafolio por su identificador, respetando su visibilidad.
+     *
+     * @param idItem identificador de la obra
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el ítem de portafolio solicitado
+     * @throws ExcepcionRecursoNoEncontrado si la obra no existe
+     * @throws ExcepcionReglaNegocio si el portafolio no es público y el usuario no es su dueño
+     */
     @GetMapping(&quot;/items/{idItem}&quot;)
     public ResponseEntity&lt;RespuestaPortafolioItem&gt; obtenerItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L63">        return ResponseEntity.ok(itemServicio.obtenerItem(idItem, idDe(userDetails)));</span>
+<span class="fc" id="L92">        return ResponseEntity.ok(itemServicio.obtenerItem(idItem, idDe(userDetails)));</span>
     }
 
     /**
@@ -70,42 +99,67 @@ public class PortafolioItemControlador {
      * &lt;p&gt;Content-Disposition attachment y no inline: una obra puede ser un SVG,
      * y servirlo para que el navegador lo interprete en el dominio de la
      * plataforma abriría la puerta a XSS almacenado.
+     *
+     * @param idItem identificador de la obra a descargar
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el contenido binario del archivo, como adjunto
+     * @throws ExcepcionRecursoNoEncontrado si la obra no existe
+     * @throws ExcepcionReglaNegocio si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping(&quot;/items/{idItem}/archivo&quot;)
     public ResponseEntity&lt;byte[]&gt; descargarArchivo(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L78">        IPortafolioItemServicio.ArchivoItem archivo =</span>
-<span class="fc" id="L79">                itemServicio.descargarArchivo(idItem, idDe(userDetails));</span>
+<span class="fc" id="L113">        IPortafolioItemServicio.ArchivoItem archivo =</span>
+<span class="fc" id="L114">                itemServicio.descargarArchivo(idItem, idDe(userDetails));</span>
 
-<span class="fc" id="L81">        return ResponseEntity.ok()</span>
-<span class="fc" id="L82">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
-<span class="fc" id="L83">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
-<span class="fc" id="L84">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())</span>
-<span class="fc" id="L85">                .body(archivo.contenido());</span>
+<span class="fc" id="L116">        return ResponseEntity.ok()</span>
+<span class="fc" id="L117">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
+<span class="fc" id="L118">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L119">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).toString())</span>
+<span class="fc" id="L120">                .body(archivo.contenido());</span>
     }
 
+    /**
+     * Actualiza los datos de una obra de portafolio.
+     *
+     * @param idItem identificador de la obra a actualizar
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @param datos datos actualizados de la obra
+     * @return el ítem de portafolio actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la obra no existe
+     * @throws ExcepcionReglaNegocio si el usuario no es el dueño del portafolio
+     */
     @PutMapping(&quot;/items/{idItem}&quot;)
     @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPortafolioItem&gt; actualizarItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PeticionCrearPortafolioItem datos) {
-<span class="nc" id="L94">        return ResponseEntity.ok(itemServicio.actualizarItem(idItem, userDetails.getIdUsuario(), datos));</span>
+<span class="nc" id="L139">        return ResponseEntity.ok(itemServicio.actualizarItem(idItem, userDetails.getIdUsuario(), datos));</span>
     }
 
+    /**
+     * Elimina una obra de un portafolio.
+     *
+     * @param idItem identificador de la obra a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si la obra no existe
+     * @throws ExcepcionReglaNegocio si el usuario no es el dueño del portafolio
+     */
     @DeleteMapping(&quot;/items/{idItem}&quot;)
     @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L102">        itemServicio.eliminarItem(idItem, userDetails.getIdUsuario());</span>
-<span class="fc" id="L103">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Obra eliminada del portafolio&quot;));</span>
+<span class="fc" id="L156">        itemServicio.eliminarItem(idItem, userDetails.getIdUsuario());</span>
+<span class="fc" id="L157">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Obra eliminada del portafolio&quot;));</span>
     }
 
     /** Nulo cuando la petición es anónima, que en GET es un caso válido. */
     private Long idDe(CustomUserDetails userDetails) {
-<span class="fc bfc" id="L108" title="All 2 branches covered.">        return userDetails == null ? null : userDetails.getIdUsuario();</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">        return userDetails == null ? null : userDetails.getIdUsuario();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

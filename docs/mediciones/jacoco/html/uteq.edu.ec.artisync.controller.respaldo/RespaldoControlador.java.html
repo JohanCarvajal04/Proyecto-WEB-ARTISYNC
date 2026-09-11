@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.respaldo</a> &gt; <span class="el_source">RespaldoControlador.java</span></div><h1>RespaldoControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.respaldo;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.FiltroRespaldo;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionActualizarProgramacion;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionCambiarEstadoProgramacion;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionCrearProgramacion;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionCrearRespaldo;
+import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaProgramacion;
+import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaRespaldo;
+import uteq.edu.ec.artisync.service.respaldo.ArchivoRespaldo;
+import uteq.edu.ec.artisync.service.respaldo.IRespaldoProgramacionServicio;
+import uteq.edu.ec.artisync.service.respaldo.IRespaldoServicio;
+import uteq.edu.ec.artisync.util.PagedResponse;
+
+import java.util.List;
+
+/**
+ * Respaldos de base de datos (REQ-NF-024): disparo manual/programado,
+ * FULL/INCREMENTAL, listado, descarga y eliminación, gestionados localmente.
+ * Sin restauración: es deliberadamente un procedimiento manual documentado en
+ * docs/despliegue/BACKUP.md, no una acción de la UI.
+ */
+@Tag(name = &quot;Respaldos&quot;, description = &quot;Respaldos de base de datos: creación, programación y gestión (REQ-NF-024)&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/respaldos&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class RespaldoControlador {
+
+    private final IRespaldoServicio respaldoServicio;
+    private final IRespaldoProgramacionServicio programacionServicio;
+
+    @Operation(summary = &quot;Dispara un respaldo FULL o INCREMENTAL bajo demanda&quot;)
+    @PostMapping
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaRespaldo&gt; crear(
+            @Valid @RequestBody PeticionCrearRespaldo peticion, Authentication authentication) {
+<span class="fc" id="L53">        RespuestaRespaldo respuesta = respaldoServicio.solicitarRespaldo(peticion.getTipoRespaldo(), authentication.getName());</span>
+<span class="fc" id="L54">        return ResponseEntity.status(HttpStatus.ACCEPTED).body(respuesta);</span>
+    }
+
+    @Operation(summary = &quot;Listado paginado y filtrado de respaldos&quot;)
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;PagedResponse&lt;RespuestaRespaldo&gt;&gt; listar(FiltroRespaldo filtro, Pageable pageable) {
+<span class="fc" id="L61">        return ResponseEntity.ok(respaldoServicio.listar(filtro, pageable));</span>
+    }
+
+    @Operation(summary = &quot;Detalle de un respaldo&quot;)
+    @GetMapping(&quot;/{idRespaldo}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaRespaldo&gt; obtenerPorId(@PathVariable Long idRespaldo) {
+<span class="fc" id="L68">        return ResponseEntity.ok(respaldoServicio.obtenerPorId(idRespaldo));</span>
+    }
+
+    @Operation(summary = &quot;Descarga el archivo generado de un respaldo&quot;)
+    @GetMapping(&quot;/{idRespaldo}/descargar&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_DESCARGAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Resource&gt; descargar(@PathVariable Long idRespaldo) {
+<span class="fc" id="L75">        ArchivoRespaldo archivo = respaldoServicio.descargar(idRespaldo);</span>
+<span class="fc" id="L76">        return ResponseEntity.ok()</span>
+<span class="fc" id="L77">                .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
+<span class="fc" id="L78">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L79">                        ContentDisposition.attachment().filename(archivo.nombreArchivo()).build().toString())</span>
+<span class="fc" id="L80">                .contentLength(archivo.tamanoBytes())</span>
+<span class="fc" id="L81">                .body(archivo.recurso());</span>
+    }
+
+    @Operation(summary = &quot;Elimina un respaldo guardado (rechaza si aún tiene incrementales que dependen de él)&quot;)
+    @DeleteMapping(&quot;/{idRespaldo}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_ELIMINAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; eliminar(@PathVariable Long idRespaldo) {
+<span class="fc" id="L88">        respaldoServicio.eliminar(idRespaldo);</span>
+<span class="fc" id="L89">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @Operation(summary = &quot;Crea una programación recurrente de respaldos&quot;)
+    @PostMapping(&quot;/programaciones&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaProgramacion&gt; crearProgramacion(
+            @Valid @RequestBody PeticionCrearProgramacion peticion, Authentication authentication) {
+<span class="fc" id="L97">        RespuestaProgramacion respuesta = programacionServicio.crear(peticion, authentication.getName());</span>
+<span class="fc" id="L98">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+    }
+
+    @Operation(summary = &quot;Lista las programaciones de respaldo existentes&quot;)
+    @GetMapping(&quot;/programaciones&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaProgramacion&gt;&gt; listarProgramaciones() {
+<span class="fc" id="L105">        return ResponseEntity.ok(programacionServicio.listar());</span>
+    }
+
+    @Operation(summary = &quot;Detalle de una programación de respaldo&quot;)
+    @GetMapping(&quot;/programaciones/{idProgramacion}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_VER') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaProgramacion&gt; obtenerProgramacion(@PathVariable Long idProgramacion) {
+<span class="fc" id="L112">        return ResponseEntity.ok(programacionServicio.obtenerPorId(idProgramacion));</span>
+    }
+
+    @Operation(summary = &quot;Actualiza una programación de respaldo existente&quot;)
+    @PutMapping(&quot;/programaciones/{idProgramacion}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaProgramacion&gt; actualizarProgramacion(
+            @PathVariable Long idProgramacion, @Valid @RequestBody PeticionActualizarProgramacion peticion) {
+<span class="fc" id="L120">        return ResponseEntity.ok(programacionServicio.actualizar(idProgramacion, peticion));</span>
+    }
+
+    @Operation(summary = &quot;Activa o desactiva una programación de respaldo&quot;)
+    @PatchMapping(&quot;/programaciones/{idProgramacion}/estado&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaProgramacion&gt; cambiarEstadoProgramacion(
+            @PathVariable Long idProgramacion, @Valid @RequestBody PeticionCambiarEstadoProgramacion peticion) {
+<span class="fc" id="L128">        return ResponseEntity.ok(programacionServicio.cambiarEstado(idProgramacion, peticion.getActivo()));</span>
+    }
+
+    @Operation(summary = &quot;Elimina una programación de respaldo&quot;)
+    @DeleteMapping(&quot;/programaciones/{idProgramacion}&quot;)
+    @PreAuthorize(&quot;hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; eliminarProgramacion(@PathVariable Long idProgramacion) {
+<span class="fc" id="L135">        programacionServicio.eliminar(idProgramacion);</span>
+<span class="fc" id="L136">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

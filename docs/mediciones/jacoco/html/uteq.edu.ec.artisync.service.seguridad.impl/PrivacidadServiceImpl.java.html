@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrivacidadServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.seguridad.impl</a> &gt; <span class="el_source">PrivacidadServiceImpl.java</span></div><h1>PrivacidadServiceImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.seguridad.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ContextoAuditoria;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.entity.legal.Contrato;
+import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
+import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
+import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
+import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
+import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
+import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
+import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
+import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
+import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
+import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
+import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+/**
+ * REQ-NF-018: supresión real de datos personales, complementaria a la baja
+ * lógica de cuenta (estadoCuenta=false) que ya ofrecen UserService y
+ * AdminUserService. Ver docs/basedatos/POLITICA-RETENCION.md.
+ *
+ * Estrategia de anonimización (no borrado físico): se sobrescriben los
+ * campos identificativos de {@code usuarios}, se limpian los datos extraídos
+ * por IA y el hash de {@code certificados_ia}, y se anonimiza el correo de
+ * PayPal en {@code datos_pago_creador} — salvo que el usuario tenga un
+ * contrato con fondos aún retenidos en garantía (pagos_garantia.estado_fondos
+ * = &quot;Retenido&quot;), en cuyo caso ese dato de pago queda excluido y la excepción
+ * legal se declara en la respuesta y en el detalle del evento de auditoría.
+ * {@code contratos} no tiene campos personales propios (solo hashes/URLs) —
+ * su plazo de retención se declara en la política, no requiere anonimización
+ * aquí (ver REQ-NF-020 para la re-verificación del hash de firma).
+ *
+ * Antes de tocar cualquier dato, se rechaza la operación completa si el
+ * usuario tiene un pedido cuya etapa actual no es la etapa final de su flujo
+ * (&quot;en curso&quot;): anonimizar a alguien en medio de una transacción activa
+ * rompería la atribución de mensajería, entregables y reseñas para la
+ * contraparte. El titular debe esperar a que sus pedidos en curso terminen o
+ * se cancelen antes de solicitar la supresión.
+ *
+ * La idempotencia se resuelve releyendo el propio correo del usuario bajo
+ * bloqueo pesimista de fila ({@link UsuarioRepository#findByIdParaAnonimizar}):
+ * si ya termina en el dominio anónimo, la operación ya se ejecutó. El bloqueo
+ * evita la condición de carrera de dos solicitudes casi simultáneas (doble
+ * clic, autoservicio + admin a la vez) que, con una simple lectura sin
+ * bloquear, podían pasar ambas el chequeo antes de que la primera confirmara
+ * su cambio.
+ */
+@Service
+@RequiredArgsConstructor
+public class PrivacidadServiceImpl implements PrivacidadService {
+
+    private static final String ACCION_ANONIMIZAR = &quot;USUARIO_ANONIMIZAR&quot;;
+    private static final String ENTIDAD_USUARIOS = &quot;usuarios&quot;;
+    private static final String CORREO_ANONIMO_DOMINIO = &quot;@eliminado.artisync.invalid&quot;;
+    private static final String NOMBRE_ANONIMO = &quot;Usuario eliminado&quot;;
+    private static final String APELLIDOS_ANONIMOS = &quot;(dato suprimido)&quot;;
+    private static final String CORREO_PAYPAL_ANONIMO = &quot;eliminado@eliminado.artisync.invalid&quot;;
+    private static final String ESTADO_FONDOS_RETENIDO = &quot;Retenido&quot;;
+    private static final String MENSAJE_YA_ANONIMIZADO = &quot;Tus datos personales ya fueron suprimidos anteriormente.&quot;;
+    private static final String MENSAJE_PEDIDO_EN_CURSO =
+            &quot;No fue posible suprimir los datos: el usuario tiene al menos un pedido en curso &quot;
+                    + &quot;(aún no llega a la etapa final de su flujo). Debe completarse o cancelarse antes de solicitar la supresión.&quot;;
+    private static final String AMBITO_2FA_SUPRESION = &quot;2fa-supresion-cuenta&quot;;
+    private static final int LIMITE_INTENTOS_2FA = 5;
+<span class="fc" id="L93">    private static final Duration VENTANA_INTENTOS_2FA = Duration.ofMinutes(15);</span>
+
+    private final UsuarioRepository usuarioRepository;
+    private final CertificadoIaRepository certificadoIaRepository;
+    private final DatosPagoCreadorRepository datosPagoCreadorRepository;
+    private final ContratoRepository contratoRepository;
+    private final PagoGarantiaRepository pagoGarantiaRepository;
+    private final PedidoRepository pedidoRepository;
+    private final HistorialEstadoPedidoRepository historialEstadoPedidoRepository;
+    private final FlujoEtapaConfigRepository flujoEtapaConfigRepository;
+    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+    private final TwoFactorService twoFactorService;
+    private final IntentosAutenticacionService intentosAutenticacionService;
+    private final SessionRevocationService sessionRevocationService;
+    private final AlmacenamientoDocumentos almacenamientoDocumentos;
+
+    @Override
+    @Transactional
+    @Auditable(accion = ACCION_ANONIMIZAR, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = ENTIDAD_USUARIOS, idEntidad = &quot;#idUsuario&quot;,
+            detalle = &quot;{origen: 'AUTOSERVICIO'}&quot;)
+    public RespuestaMensaje solicitarSupresionPropia(Long idUsuario, String codigo) {
+<span class="fc" id="L115">        Usuario usuario = usuarioRepository.findByIdParaAnonimizar(idUsuario)</span>
+<span class="fc" id="L116">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (estaAnonimizado(usuario)) {</span>
+<span class="fc" id="L119">            return new RespuestaMensaje(MENSAJE_YA_ANONIMIZADO);</span>
+        }
+
+<span class="fc" id="L122">        exigirSegundoFactorSiHabilitado(usuario, codigo);</span>
+
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (tienePedidoEnCurso(idUsuario)) {</span>
+<span class="fc" id="L125">            return new RespuestaMensaje(MENSAJE_PEDIDO_EN_CURSO);</span>
+        }
+
+<span class="fc" id="L128">        List&lt;String&gt; excepciones = anonimizar(usuario);</span>
+<span class="fc" id="L129">        return construirMensaje(excepciones);</span>
+    }
+
+    /**
+     * REQ-NF-018 (ajuste de seguimiento): step-up de verificación antes de una
+     * acción irreversible — mismo criterio que ya exige
+     * {@code TwoFactorServiceImpl#disable2Fa} para desactivar el propio 2FA.
+     * Solo aplica al autoservicio: el administrador no tiene el código 2FA
+     * del usuario, por eso existe la vía {@code anonimizarUsuarioAdmin}.
+     */
+    private void exigirSegundoFactorSiHabilitado(Usuario usuario, String codigo) {
+<span class="fc" id="L140">        boolean tiene2Fa = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())</span>
+<span class="fc" id="L141">                .map(AutenticacionDosFactores::getEstaHabilitado)</span>
+<span class="fc" id="L142">                .map(Boolean.TRUE::equals)</span>
+<span class="fc" id="L143">                .orElse(false);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (!tiene2Fa) {</span>
+<span class="fc" id="L145">            return;</span>
+        }
+
+<span class="pc bpc" id="L148" title="1 of 4 branches missed.">        if (codigo == null || codigo.isBlank()) {</span>
+<span class="fc" id="L149">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+                    &quot;Se requiere tu código de autenticación de dos factores para suprimir tus datos&quot;);
+        }
+
+<span class="fc bfc" id="L153" title="All 2 branches covered.">        if (!twoFactorService.validarCodigoOBackup(usuario.getCorreo(), codigo)) {</span>
+<span class="fc" id="L154">            intentosAutenticacionService.verificarCuota(</span>
+<span class="fc" id="L155">                    AMBITO_2FA_SUPRESION, usuario.getCorreo(), LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);</span>
+<span class="fc" id="L156">            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, &quot;Código inválido o expirado&quot;);</span>
+        }
+<span class="fc" id="L158">        intentosAutenticacionService.limpiar(AMBITO_2FA_SUPRESION, usuario.getCorreo());</span>
+<span class="fc" id="L159">    }</span>
+
+    @Override
+    @Transactional
+    @Auditable(accion = ACCION_ANONIMIZAR, modulo = ModuloAuditoria.SEGURIDAD,
+            entidad = ENTIDAD_USUARIOS, idEntidad = &quot;#idUsuario&quot;,
+            detalle = &quot;{origen: 'ADMIN', idAdminActual: #idAdminActual}&quot;)
+    public RespuestaMensaje anonimizarUsuarioAdmin(Long idUsuario, Long idAdminActual) {
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (idUsuario.equals(idAdminActual)) {</span>
+<span class="fc" id="L168">            throw new ExcepcionReglaNegocio(&quot;No puedes suprimir tus propios datos desde el panel administrativo; usa la opción de autoservicio.&quot;);</span>
+        }
+
+<span class="fc" id="L171">        Usuario usuario = usuarioRepository.findByIdParaAnonimizar(idUsuario)</span>
+<span class="pc" id="L172">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Usuario no encontrado&quot;));</span>
+
+        // A diferencia del autoservicio, aquí SÍ se rechaza en vez de responder
+        // de forma idempotente: el administrador solo debe ejecutar esta acción
+        // cuando el usuario no la tiene ya solicitada/realizada.
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if (estaAnonimizado(usuario)) {</span>
+<span class="fc" id="L178">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;El usuario ya tiene sus datos personales suprimidos; no es necesario repetir la acción.&quot;);
+        }
+
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (tienePedidoEnCurso(idUsuario)) {</span>
+<span class="fc" id="L183">            throw new ExcepcionReglaNegocio(MENSAJE_PEDIDO_EN_CURSO);</span>
+        }
+
+<span class="fc" id="L186">        List&lt;String&gt; excepciones = anonimizar(usuario);</span>
+<span class="fc" id="L187">        return construirMensaje(excepciones);</span>
+    }
+
+    private boolean estaAnonimizado(Usuario usuario) {
+<span class="pc bpc" id="L191" title="1 of 4 branches missed.">        return usuario.getCorreo() != null &amp;&amp; usuario.getCorreo().endsWith(CORREO_ANONIMO_DOMINIO);</span>
+    }
+
+    /**
+     * ¿El usuario (como cliente o como creador) tiene algún pedido cuya
+     * transición más reciente NO apunta a la etapa final de su flujo? Un
+     * pedido sin ninguna transición registrada se trata, conservadoramente,
+     * como &quot;en curso&quot;: no hay evidencia de que haya terminado.
+     */
+    private boolean tienePedidoEnCurso(Long idUsuario) {
+<span class="fc" id="L201">        List&lt;Pedido&gt; pedidos = Stream.concat(</span>
+<span class="fc" id="L202">                        pedidoRepository.findByUsuarioClienteIdUsuario(idUsuario).stream(),</span>
+<span class="fc" id="L203">                        pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idUsuario).stream())</span>
+<span class="fc" id="L204">                .toList();</span>
+
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        for (Pedido pedido : pedidos) {</span>
+<span class="fc" id="L207">            Optional&lt;HistorialEstadoPedido&gt; ultimaTransicion =</span>
+<span class="fc" id="L208">                    historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(pedido.getIdPedido());</span>
+
+<span class="fc bfc" id="L210" title="All 2 branches covered.">            if (ultimaTransicion.isEmpty()) {</span>
+<span class="fc" id="L211">                return true;</span>
+            }
+
+<span class="fc" id="L214">            boolean etapaActualEsFinal = flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(</span>
+<span class="fc" id="L215">                    pedido.getFlujo().getIdFlujo(), ultimaTransicion.get().getEtapa().getIdEtapa());</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">            if (!etapaActualEsFinal) {</span>
+<span class="fc" id="L217">                return true;</span>
+            }
+<span class="fc" id="L219">        }</span>
+<span class="fc" id="L220">        return false;</span>
+    }
+
+    private List&lt;String&gt; anonimizar(Usuario usuario) {
+<span class="fc" id="L224">        List&lt;String&gt; excepciones = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L226">        anonimizarDatosUsuario(usuario);</span>
+<span class="fc" id="L227">        anonimizarCertificados(usuario.getIdUsuario());</span>
+<span class="fc" id="L228">        anonimizarDatosPago(usuario.getIdUsuario(), excepciones);</span>
+
+<span class="fc" id="L230">        ContextoAuditoria.aportar(&quot;excepcionesLegales&quot;, excepciones);</span>
+<span class="fc" id="L231">        return excepciones;</span>
+    }
+
+    private void anonimizarDatosUsuario(Usuario usuario) {
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">        if (usuario.getUrlFotoPerfil() != null) {</span>
+            try {
+<span class="fc" id="L237">                almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());</span>
+<span class="nc" id="L238">            } catch (Exception e) {</span>
+                // La foto ya podría no existir en el proveedor; no bloquear la supresión por esto.
+<span class="fc" id="L240">            }</span>
+        }
+
+<span class="fc" id="L243">        usuario.setNombres(NOMBRE_ANONIMO);</span>
+<span class="fc" id="L244">        usuario.setApellidos(APELLIDOS_ANONIMOS);</span>
+        // REQ-NF-018 (ajuste de seguimiento): el UUID hace el correo
+        // impredecible, no solo derivado del id -- sin esto, alguien podía
+        // auto-registrarse hoy con &quot;usuario-&lt;id&gt;@...&quot; para un id que aún no
+        // se ha suprimido y provocar una colisión contra el UNIQUE de
+        // usuarios.correo (V1__schema_inicial.sql) el día que sí se suprima.
+        // Mismo idiom que JwtService (jti), AuthServiceImpl (token de
+        // recuperación) y TwoFactorServiceImpl (código de respaldo).
+<span class="fc" id="L252">        usuario.setCorreo(&quot;usuario-&quot; + usuario.getIdUsuario() + &quot;-&quot; + UUID.randomUUID() + CORREO_ANONIMO_DOMINIO);</span>
+<span class="fc" id="L253">        usuario.setFechaNacimiento(null);</span>
+<span class="fc" id="L254">        usuario.setUrlFotoPerfil(null);</span>
+        try {
+<span class="fc" id="L256">            usuarioRepository.save(usuario);</span>
+<span class="fc" id="L257">        } catch (DataIntegrityViolationException e) {</span>
+            // Defensa en profundidad: con el UUID de arriba esta rama es
+            // prácticamente inalcanzable, pero degrada a un 409 controlado
+            // en vez de un 500 sin manejar si alguna vez ocurre.
+<span class="fc" id="L261">            throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.CONFLICT);</span>
+<span class="fc" id="L262">        }</span>
+
+        // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
+        // atómicamente (mismo mecanismo que el soft-delete existente).
+<span class="fc" id="L266">        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), false);</span>
+<span class="fc" id="L267">    }</span>
+
+    private void anonimizarCertificados(Long idUsuario) {
+<span class="fc" id="L270">        List&lt;CertificadoIa&gt; certificados = certificadoIaRepository.findByUsuarioIdUsuario(idUsuario);</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">        for (CertificadoIa certificado : certificados) {</span>
+<span class="pc bpc" id="L272" title="2 of 4 branches missed.">            if (!certificado.isDocumentoEliminado() &amp;&amp; certificado.getUrlDocumentoS3() != null) {</span>
+                try {
+<span class="fc" id="L274">                    almacenamientoDocumentos.eliminar(certificado.getUrlDocumentoS3());</span>
+<span class="nc" id="L275">                } catch (Exception e) {</span>
+                    // El documento ya podría no existir; no bloquear la supresión por esto.
+<span class="fc" id="L277">                }</span>
+<span class="fc" id="L278">                certificado.setDocumentoEliminado(true);</span>
+            }
+<span class="fc" id="L280">            certificado.setDatosExtraidosIa(null);</span>
+<span class="fc" id="L281">            certificado.setHashDocumento(null);</span>
+<span class="fc" id="L282">            certificado.setRazonIa(null);</span>
+<span class="fc" id="L283">        }</span>
+<span class="fc" id="L284">        certificadoIaRepository.saveAll(certificados);</span>
+<span class="fc" id="L285">    }</span>
+
+    /**
+     * Anonimiza el correo de PayPal salvo que exista un contrato (como
+     * cliente o como creador) con fondos aún retenidos en garantía — en ese
+     * caso el dato de pago se conserva y la excepción legal queda declarada.
+     */
+    private void anonimizarDatosPago(Long idUsuario, List&lt;String&gt; excepciones) {
+<span class="fc" id="L293">        Optional&lt;DatosPagoCreador&gt; datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario);</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">        if (datosPago.isEmpty()) {</span>
+<span class="fc" id="L295">            return;</span>
+        }
+
+<span class="pc bpc" id="L298" title="1 of 2 branches missed.">        if (tieneFondosRetenidos(idUsuario)) {</span>
+<span class="fc" id="L299">            excepciones.add(</span>
+                    &quot;datos_pago_creador: correo de PayPal conservado por tener fondos retenidos en garantía &quot;
+                            + &quot;en un contrato activo (registro contable pendiente).&quot;);
+<span class="fc" id="L302">            return;</span>
+        }
+
+<span class="nc" id="L305">        DatosPagoCreador entidad = datosPago.get();</span>
+<span class="nc" id="L306">        entidad.setCorreoPaypal(CORREO_PAYPAL_ANONIMO);</span>
+<span class="nc" id="L307">        datosPagoCreadorRepository.save(entidad);</span>
+<span class="nc" id="L308">    }</span>
+
+    private boolean tieneFondosRetenidos(Long idUsuario) {
+<span class="fc" id="L311">        List&lt;Contrato&gt; contratos = Stream.concat(</span>
+<span class="fc" id="L312">                        contratoRepository.findByPedidoUsuarioClienteIdUsuario(idUsuario).stream(),</span>
+<span class="fc" id="L313">                        contratoRepository.findByPedidoServicioPerfilUsuarioIdUsuario(idUsuario).stream())</span>
+<span class="fc" id="L314">                .toList();</span>
+
+<span class="pc bpc" id="L316" title="1 of 2 branches missed.">        for (Contrato contrato : contratos) {</span>
+<span class="fc" id="L317">            Optional&lt;PagoGarantia&gt; pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());</span>
+<span class="pc bpc" id="L318" title="2 of 4 branches missed.">            if (pago.isPresent() &amp;&amp; ESTADO_FONDOS_RETENIDO.equalsIgnoreCase(pago.get().getEstadoFondos())) {</span>
+<span class="fc" id="L319">                return true;</span>
+            }
+<span class="nc" id="L321">        }</span>
+<span class="nc" id="L322">        return false;</span>
+    }
+
+    private RespuestaMensaje construirMensaje(List&lt;String&gt; excepciones) {
+<span class="fc bfc" id="L326" title="All 2 branches covered.">        if (excepciones.isEmpty()) {</span>
+<span class="fc" id="L327">            return new RespuestaMensaje(&quot;Datos personales suprimidos exitosamente.&quot;);</span>
+        }
+<span class="fc" id="L329">        return new RespuestaMensaje(</span>
+<span class="fc" id="L330">                &quot;Datos personales suprimidos, con las siguientes excepciones legales: &quot; + String.join(&quot; | &quot;, excepciones));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

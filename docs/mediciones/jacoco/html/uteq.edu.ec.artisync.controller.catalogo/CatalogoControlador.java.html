@@ -17,6 +17,20 @@ public class CatalogoControlador {
 
     private final IServicioCatalogoServicio servicioCatalogoServicio;
 
+    /**
+     * Busca servicios publicados en el catálogo aplicando filtros combinables
+     * de categoría, subcategoría, rango de precio, etiquetas y texto libre.
+     * @param categoria identificador de la categoría a filtrar
+     * @param subcategoria identificador de la subcategoría a filtrar
+     * @param precioMin precio mínimo aceptado para los servicios devueltos
+     * @param precioMax precio máximo aceptado para los servicios devueltos
+     * @param etiquetas identificadores de etiquetas que el servicio debe tener
+     * @param q término de búsqueda libre sobre nombre/descripción del servicio
+     * @param sort campo y dirección de ordenamiento, formato &quot;campo,asc|desc&quot;
+     * @param page número de página solicitada (base 0)
+     * @param size cantidad de resultados por página
+     * @return página de servicios resumidos que cumplen los filtros indicados
+     */
     @GetMapping
     public ResponseEntity&lt;Page&lt;RespuestaServicioResumido&gt;&gt; buscarCatalogo(
             @RequestParam(required = false) Long categoria,
@@ -29,7 +43,7 @@ public class CatalogoControlador {
             @RequestParam(required = false, defaultValue = &quot;0&quot;) int page,
             @RequestParam(required = false, defaultValue = &quot;10&quot;) int size) {
 
-<span class="nc" id="L32">        return ResponseEntity.ok(servicioCatalogoServicio.buscarCatalogoServicios(</span>
+<span class="nc" id="L46">        return ResponseEntity.ok(servicioCatalogoServicio.buscarCatalogoServicios(</span>
                 categoria, subcategoria, precioMin, precioMax, etiquetas, q, sort, page, size));
     }
 }

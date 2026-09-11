@@ -3,8 +3,17 @@
 import lombok.Builder;
 import java.time.LocalDateTime;
 
+/**
+ * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).
+ * 
+ * Propósito: Proyeccion de una coleccion u obra especifica del creador.
+ * 
+ * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
+ * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
+ * atributos necesarios para cumplir con el contrato de esta vista del API.
+ */
 @Builder
-<span class="fc" id="L7">public record RespuestaPortafolio(</span>
+<span class="fc" id="L16">public record RespuestaPortafolio(</span>
         Long idPortafolio,
         Long idPerfil,
         LocalDateTime fechaCreacion,
@@ -13,4 +22,7 @@ import java.time.LocalDateTime;
         java.util.Map&lt;String, String&gt; opcionesPersonalizacion
 ) {
 }
+
+
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

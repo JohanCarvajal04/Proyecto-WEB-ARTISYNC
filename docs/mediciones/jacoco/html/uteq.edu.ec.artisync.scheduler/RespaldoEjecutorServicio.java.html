@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoEjecutorServicio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">RespaldoEjecutorServicio.java</span></div><h1>RespaldoEjecutorServicio.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.entity.respaldo.EstadoRespaldo;
+import uteq.edu.ec.artisync.entity.respaldo.OrigenRespaldo;
+import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
+import uteq.edu.ec.artisync.entity.respaldo.RespaldoProgramacion;
+import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
+import uteq.edu.ec.artisync.repository.respaldo.RespaldoProgramacionRepository;
+import uteq.edu.ec.artisync.repository.respaldo.RespaldoRepository;
+
+import java.time.LocalDateTime;
+
+/**
+ * Orquesta el inicio de un respaldo: crea la fila EN_PROGRESO y dispara el
+ * trabajo async. Lo invocan tanto RespaldoProgramacionScheduler (programado)
+ * como RespaldoServicioImpl (disparo manual del admin).
+ */
+@Component
+@RequiredArgsConstructor
+public class RespaldoEjecutorServicio {
+
+    private final RespaldoRepository respaldoRepository;
+    private final RespaldoProgramacionRepository programacionRepository;
+    private final RespaldoTrabajoAsincronoServicio trabajoAsincronoServicio;
+
+    /** Disparo manual (admin autenticado, sin programación asociada). */
+    public Respaldo iniciarManual(TipoRespaldo tipo, String correoSolicitante) {
+<span class="nc" id="L31">        Respaldo respaldo = crearRespaldo(tipo, OrigenRespaldo.MANUAL, null, correoSolicitante);</span>
+<span class="nc" id="L32">        trabajoAsincronoServicio.ejecutar(respaldo.getIdRespaldo());</span>
+<span class="nc" id="L33">        return respaldo;</span>
+    }
+
+    /** Disparo desde RespaldoProgramacionScheduler. */
+    public void iniciarDesdeProgramacion(RespaldoProgramacion programacion) {
+<span class="nc" id="L38">        Respaldo respaldo = crearRespaldo(</span>
+<span class="nc" id="L39">                programacion.getTipoRespaldo(), OrigenRespaldo.PROGRAMADO, programacion, &quot;sistema:scheduler&quot;);</span>
+
+        // proxima_ejecucion se recalcula YA, no al terminar: si el respaldo
+        // tarda más de 60s no debe volver a dispararse en el siguiente tick
+        // del poller.
+<span class="nc" id="L44">        LocalDateTime ahora = LocalDateTime.now();</span>
+<span class="nc" id="L45">        programacion.setProximaEjecucion(CronExpression.parse(programacion.getExpresionCron()).next(ahora));</span>
+<span class="nc" id="L46">        programacion.setUltimaEjecucion(ahora);</span>
+<span class="nc" id="L47">        programacion.setActualizadoEn(ahora);</span>
+<span class="nc" id="L48">        programacionRepository.save(programacion);</span>
+
+<span class="nc" id="L50">        trabajoAsincronoServicio.ejecutar(respaldo.getIdRespaldo());</span>
+<span class="nc" id="L51">    }</span>
+
+    private Respaldo crearRespaldo(TipoRespaldo tipo, OrigenRespaldo origen,
+                                    RespaldoProgramacion programacion, String correoSolicitante) {
+<span class="nc" id="L55">        Respaldo.RespaldoBuilder builder = Respaldo.builder()</span>
+<span class="nc" id="L56">                .tipoRespaldo(tipo)</span>
+<span class="nc" id="L57">                .origen(origen)</span>
+<span class="nc" id="L58">                .programacion(programacion)</span>
+<span class="nc" id="L59">                .correoSolicitante(correoSolicitante)</span>
+<span class="nc" id="L60">                .fechaInicio(LocalDateTime.now());</span>
+
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (tipo == TipoRespaldo.INCREMENTAL) {</span>
+<span class="nc" id="L63">            Respaldo baseFull = respaldoRepository</span>
+<span class="nc" id="L64">                    .findTopByTipoRespaldoAndEstadoRespaldoOrderByFechaInicioDesc(TipoRespaldo.FULL, EstadoRespaldo.COMPLETADO)</span>
+<span class="nc" id="L65">                    .orElseThrow(() -&gt; new IllegalStateException(</span>
+                            &quot;No existe ningún respaldo FULL completado del que partir un INCREMENTAL&quot;));
+
+            // Corte = fecha del último respaldo de LA CADENA de ese FULL (el
+            // incremental completado más reciente si existe, si no el FULL
+            // mismo) -- no siempre &quot;desde el FULL&quot;. Mantiene cada incremental
+            // pequeño, el significado estándar de &quot;incremental&quot;. Consecuencia:
+            // restaurar a un punto en el tiempo requiere el FULL + TODA la
+            // cadena de incrementales en orden (ver docs/despliegue/BACKUP.md).
+<span class="nc" id="L74">            LocalDateTime corte = respaldoRepository</span>
+<span class="nc" id="L75">                    .findTopByIdRespaldoFullBaseOrderByFechaInicioDesc(baseFull.getIdRespaldo())</span>
+<span class="nc" id="L76">                    .map(Respaldo::getFechaInicio)</span>
+<span class="nc" id="L77">                    .orElse(baseFull.getFechaInicio());</span>
+
+<span class="nc" id="L79">            builder.idRespaldoFullBase(baseFull.getIdRespaldo()).fechaDesdeIncremental(corte);</span>
+        }
+
+<span class="nc" id="L82">        return respaldoRepository.save(builder.build());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

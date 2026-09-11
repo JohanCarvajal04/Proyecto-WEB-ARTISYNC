@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlantillaContratoAdminControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">PlantillaContratoAdminControlador.java</span></div><h1>PlantillaContratoAdminControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionActualizarPlantillaContrato;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaContrato;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
+import uteq.edu.ec.artisync.service.legal.IPlantillaContratoAdminServicio;
+
+import java.util.List;
+
+/**
+ * Catálogo de plantillas de contrato curado por ADMIN (REQ-F-017 ampliado):
+ * el creador solo elige entre estas plantillas, no escribe texto legal libre.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/plantillas-contrato&quot;)
+@RequiredArgsConstructor
+@PreAuthorize(&quot;hasAuthority('CONTRATO_PLANTILLA_GESTIONAR')&quot;)
+public class PlantillaContratoAdminControlador {
+
+    private final IPlantillaContratoAdminServicio plantillaContratoAdminServicio;
+
+    /**
+     * Crea una nueva plantilla de contrato en el catálogo curado por administración.
+     *
+     * @param peticion datos de la plantilla a crear
+     * @return la plantilla creada, con estado 201
+     * @throws ExcepcionReglaNegocio si ya existe una plantilla con la misma versión legal
+     */
+    @PostMapping
+    public ResponseEntity&lt;RespuestaPlantillaContrato&gt; crear(@Valid @RequestBody PeticionCrearPlantillaContrato peticion) {
+<span class="nc" id="L38">        return ResponseEntity.status(HttpStatus.CREATED).body(plantillaContratoAdminServicio.crear(peticion));</span>
+    }
+
+    /**
+     * Edita una plantilla de contrato existente.
+     *
+     * @param id identificador de la plantilla a editar
+     * @param peticion datos actualizados de la plantilla
+     * @return la plantilla actualizada
+     * @throws ExcepcionRecursoNoEncontrado si la plantilla no existe
+     * @throws ExcepcionReglaNegocio si la plantilla no puede editarse en su estado actual
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaPlantillaContrato&gt; editar(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionActualizarPlantillaContrato peticion) {
+<span class="nc" id="L54">        return ResponseEntity.ok(plantillaContratoAdminServicio.editar(id, peticion));</span>
+    }
+
+    /**
+     * Lista todas las plantillas de contrato del catálogo, activas e inactivas.
+     *
+     * @return listado completo de plantillas de contrato
+     */
+    @GetMapping
+    public ResponseEntity&lt;List&lt;RespuestaPlantillaContrato&gt;&gt; listarTodas() {
+<span class="nc" id="L64">        return ResponseEntity.ok(plantillaContratoAdminServicio.listarTodas());</span>
+    }
+
+    /**
+     * Desactiva una plantilla de contrato del catálogo.
+     *
+     * @param id identificador de la plantilla a desactivar
+     * @return mensaje de confirmación de la desactivación
+     * @throws ExcepcionRecursoNoEncontrado si la plantilla no existe
+     * @throws ExcepcionReglaNegocio si la plantilla no puede desactivarse en su estado actual
+     */
+    @PatchMapping(&quot;/{id}/desactivar&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; desactivar(@PathVariable Long id) {
+<span class="nc" id="L77">        return ResponseEntity.ok(plantillaContratoAdminServicio.desactivar(id));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

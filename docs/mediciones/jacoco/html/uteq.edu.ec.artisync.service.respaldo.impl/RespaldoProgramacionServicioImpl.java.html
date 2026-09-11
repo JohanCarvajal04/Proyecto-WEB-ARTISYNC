@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoProgramacionServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.respaldo.impl</a> &gt; <span class="el_source">RespaldoProgramacionServicioImpl.java</span></div><h1>RespaldoProgramacionServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.respaldo.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionActualizarProgramacion;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionCrearProgramacion;
+import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaProgramacion;
+import uteq.edu.ec.artisync.entity.respaldo.RespaldoProgramacion;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.respaldo.RespaldoProgramacionRepository;
+import uteq.edu.ec.artisync.service.respaldo.IRespaldoProgramacionServicio;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionServicio {
+
+    private final RespaldoProgramacionRepository programacionRepository;
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_CREAR&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#resultado.idProgramacion&quot;,
+            detalle = &quot;{nombre: #peticion.nombre, tipoRespaldo: #peticion.tipoRespaldo}&quot;)
+    @Override
+    @Transactional
+    public RespuestaProgramacion crear(PeticionCrearProgramacion peticion, String creadoPor) {
+<span class="nc" id="L33">        LocalDateTime proximaEjecucion = calcularProximaEjecucion(peticion.getExpresionCron());</span>
+<span class="nc" id="L34">        LocalDateTime ahora = LocalDateTime.now();</span>
+
+<span class="nc" id="L36">        RespaldoProgramacion programacion = RespaldoProgramacion.builder()</span>
+<span class="nc" id="L37">                .nombre(peticion.getNombre())</span>
+<span class="nc" id="L38">                .tipoRespaldo(peticion.getTipoRespaldo())</span>
+<span class="nc" id="L39">                .expresionCron(peticion.getExpresionCron())</span>
+<span class="nc" id="L40">                .retencionDias(peticion.getRetencionDias())</span>
+<span class="nc" id="L41">                .activo(true)</span>
+<span class="nc" id="L42">                .proximaEjecucion(proximaEjecucion)</span>
+<span class="nc" id="L43">                .creadoPor(creadoPor)</span>
+<span class="nc" id="L44">                .fechaCreacion(ahora)</span>
+<span class="nc" id="L45">                .actualizadoEn(ahora)</span>
+<span class="nc" id="L46">                .build();</span>
+
+<span class="nc" id="L48">        return aRespuesta(programacionRepository.save(programacion));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_ACTUALIZAR&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#idProgramacion&quot;,
+            detalle = &quot;{nombre: #peticion.nombre, tipoRespaldo: #peticion.tipoRespaldo}&quot;)
+    @Override
+    @Transactional
+    public RespuestaProgramacion actualizar(Long idProgramacion, PeticionActualizarProgramacion peticion) {
+<span class="nc" id="L57">        RespaldoProgramacion programacion = obtenerOFallar(idProgramacion);</span>
+
+<span class="nc" id="L59">        programacion.setNombre(peticion.getNombre());</span>
+<span class="nc" id="L60">        programacion.setTipoRespaldo(peticion.getTipoRespaldo());</span>
+<span class="nc" id="L61">        programacion.setExpresionCron(peticion.getExpresionCron());</span>
+<span class="nc" id="L62">        programacion.setRetencionDias(peticion.getRetencionDias());</span>
+<span class="nc" id="L63">        programacion.setProximaEjecucion(calcularProximaEjecucion(peticion.getExpresionCron()));</span>
+<span class="nc" id="L64">        programacion.setActualizadoEn(LocalDateTime.now());</span>
+
+<span class="nc" id="L66">        return aRespuesta(programacionRepository.save(programacion));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_CAMBIAR_ESTADO&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#idProgramacion&quot;, detalle = &quot;{activo: #activo}&quot;)
+    @Override
+    @Transactional
+    public RespuestaProgramacion cambiarEstado(Long idProgramacion, boolean activo) {
+<span class="nc" id="L74">        RespaldoProgramacion programacion = obtenerOFallar(idProgramacion);</span>
+<span class="nc" id="L75">        programacion.setActivo(activo);</span>
+<span class="nc" id="L76">        programacion.setActualizadoEn(LocalDateTime.now());</span>
+<span class="nc" id="L77">        return aRespuesta(programacionRepository.save(programacion));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_PROGRAMACION_ELIMINAR&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;respaldo_programaciones&quot;, idEntidad = &quot;#idProgramacion&quot;)
+    @Override
+    @Transactional
+    public void eliminar(Long idProgramacion) {
+<span class="nc" id="L85">        RespaldoProgramacion programacion = obtenerOFallar(idProgramacion);</span>
+<span class="nc" id="L86">        programacionRepository.delete(programacion);</span>
+<span class="nc" id="L87">    }</span>
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaProgramacion&gt; listar() {
+<span class="nc" id="L92">        return programacionRepository.findAll().stream().map(this::aRespuesta).toList();</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaProgramacion obtenerPorId(Long idProgramacion) {
+<span class="nc" id="L98">        return aRespuesta(obtenerOFallar(idProgramacion));</span>
+    }
+
+    private LocalDateTime calcularProximaEjecucion(String expresionCron) {
+        try {
+<span class="nc" id="L103">            LocalDateTime siguiente = CronExpression.parse(expresionCron).next(LocalDateTime.now());</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">            if (siguiente == null) {</span>
+<span class="nc" id="L105">                throw new ExcepcionReglaNegocio(&quot;La expresión cron no produce ninguna ejecución futura.&quot;);</span>
+            }
+<span class="nc" id="L107">            return siguiente;</span>
+<span class="nc" id="L108">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L109">            throw new ExcepcionReglaNegocio(&quot;Expresión cron inválida: &quot; + e.getMessage());</span>
+        }
+    }
+
+    private RespaldoProgramacion obtenerOFallar(Long idProgramacion) {
+<span class="nc" id="L114">        return programacionRepository.findById(idProgramacion)</span>
+<span class="nc" id="L115">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Programación de respaldo no encontrada con ID: &quot; + idProgramacion));</span>
+    }
+
+    private RespuestaProgramacion aRespuesta(RespaldoProgramacion programacion) {
+<span class="nc" id="L119">        return RespuestaProgramacion.builder()</span>
+<span class="nc" id="L120">                .idProgramacion(programacion.getIdProgramacion())</span>
+<span class="nc" id="L121">                .nombre(programacion.getNombre())</span>
+<span class="nc" id="L122">                .tipoRespaldo(programacion.getTipoRespaldo())</span>
+<span class="nc" id="L123">                .expresionCron(programacion.getExpresionCron())</span>
+<span class="nc" id="L124">                .retencionDias(programacion.getRetencionDias())</span>
+<span class="nc" id="L125">                .activo(programacion.getActivo())</span>
+<span class="nc" id="L126">                .proximaEjecucion(programacion.getProximaEjecucion())</span>
+<span class="nc" id="L127">                .ultimaEjecucion(programacion.getUltimaEjecucion())</span>
+<span class="nc" id="L128">                .creadoPor(programacion.getCreadoPor())</span>
+<span class="nc" id="L129">                .fechaCreacion(programacion.getFechaCreacion())</span>
+<span class="nc" id="L130">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

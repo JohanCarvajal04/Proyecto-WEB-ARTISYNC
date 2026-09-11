@@ -25,55 +25,96 @@ public class RolePermissionController {
 
     private final RolePermissionService service;
 
+    /**
+     * Lista todos los roles del sistema junto con sus permisos asignados.
+     *
+     * @return listado de roles con sus permisos
+     */
     @Operation(summary = &quot;Listar todos los roles y sus permisos asignados&quot;)
     @GetMapping(&quot;/roles&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_VER') or hasAuthority('ROL_GESTIONAR') or hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RolResponse&gt;&gt; getAllRoles() {
-<span class="fc" id="L32">        return ResponseEntity.ok(service.getAllRoles());</span>
+<span class="fc" id="L37">        return ResponseEntity.ok(service.getAllRoles());</span>
     }
 
+    /**
+     * Lista el catálogo completo de permisos disponibles, agrupados por módulo.
+     *
+     * @return listado de permisos disponibles
+     */
     @Operation(summary = &quot;Listar el catálogo completo de permisos disponibles por módulo&quot;)
     @GetMapping(&quot;/permisos&quot;)
     @PreAuthorize(&quot;hasAuthority('PERMISO_VER') or hasAuthority('ROL_GESTIONAR') or hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;PermisoResponse&gt;&gt; getAllPermisos() {
-<span class="nc" id="L39">        return ResponseEntity.ok(service.getAllPermisos());</span>
+<span class="nc" id="L49">        return ResponseEntity.ok(service.getAllPermisos());</span>
     }
 
+    /**
+     * Obtiene los códigos de los permisos asignados a un rol específico.
+     *
+     * @param roleName nombre del rol
+     * @return listado de códigos de permisos asignados al rol
+     */
     @Operation(summary = &quot;Obtener lista de códigos de permisos asignados a un rol específico&quot;)
     @GetMapping(&quot;/{roleName}&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_VER') or hasAuthority('PERMISO_VER') or hasAuthority('ROL_GESTIONAR') or hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;String&gt;&gt; getPermissionsByRole(@PathVariable String roleName) {
-<span class="nc" id="L46">        return ResponseEntity.ok(service.getPermissionsByRole(roleName));</span>
+<span class="nc" id="L62">        return ResponseEntity.ok(service.getPermissionsByRole(roleName));</span>
     }
 
+    /**
+     * Sincroniza transaccionalmente la lista completa de permisos asignados a un rol.
+     *
+     * @param request nombre del rol y lista completa de códigos de permisos a asignar
+     * @return mensaje de confirmación de la sincronización
+     */
     @Operation(summary = &quot;Sincronizar la lista de permisos de un rol transaccionalmente&quot;)
     @PutMapping(&quot;/sync&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; syncPermissions(@Valid @RequestBody SyncPermissionsRequest request) {
-<span class="nc" id="L53">        service.syncPermissions(request.getRoleName(), request.getPermissionCodes());</span>
-<span class="nc" id="L54">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Permisos sincronizados con éxito para el rol: &quot; + request.getRoleName()));</span>
+<span class="nc" id="L75">        service.syncPermissions(request.getRoleName(), request.getPermissionCodes());</span>
+<span class="nc" id="L76">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Permisos sincronizados con éxito para el rol: &quot; + request.getRoleName()));</span>
     }
 
+    /**
+     * Crea un nuevo rol personalizado con su matriz inicial de permisos.
+     *
+     * @param request datos del rol a crear, incluyendo sus permisos iniciales
+     * @return el rol creado, con estado 201
+     */
     @Operation(summary = &quot;Crear un nuevo rol personalizado con su matriz inicial de permisos&quot;)
     @PostMapping(&quot;/roles&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RolResponse&gt; createRole(@Valid @RequestBody CreateRoleRequest request) {
-<span class="fc" id="L61">        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(service.createRole(request));</span>
+<span class="fc" id="L89">        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(service.createRole(request));</span>
     }
 
+    /**
+     * Actualiza la descripción de un rol.
+     *
+     * @param idRol identificador del rol a actualizar
+     * @param request datos actualizados del rol
+     * @return el rol actualizado
+     */
     @Operation(summary = &quot;Actualizar descripción de un rol&quot;)
     @PutMapping(&quot;/roles/{idRol}&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RolResponse&gt; updateRole(@PathVariable Long idRol, @Valid @RequestBody UpdateRoleRequest request) {
-<span class="fc" id="L68">        return ResponseEntity.ok(service.updateRole(idRol, request));</span>
+<span class="fc" id="L103">        return ResponseEntity.ok(service.updateRole(idRol, request));</span>
     }
 
+    /**
+     * Elimina un rol personalizado.
+     *
+     * @param idRol identificador del rol a eliminar
+     * @return mensaje de confirmación de la eliminación
+     */
     @Operation(summary = &quot;Eliminar un rol personalizado&quot;)
     @DeleteMapping(&quot;/roles/{idRol}&quot;)
     @PreAuthorize(&quot;hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; deleteRole(@PathVariable Long idRol) {
-<span class="fc" id="L75">        service.deleteRole(idRol);</span>
-<span class="fc" id="L76">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Rol eliminado exitosamente&quot;));</span>
+<span class="fc" id="L116">        service.deleteRole(idRol);</span>
+<span class="fc" id="L117">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Rol eliminado exitosamente&quot;));</span>
     }
 }
 

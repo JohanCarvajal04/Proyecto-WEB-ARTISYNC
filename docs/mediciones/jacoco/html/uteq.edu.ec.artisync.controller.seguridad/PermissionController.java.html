@@ -23,20 +23,25 @@ import java.util.List;
 @SecurityRequirement(name = &quot;bearerAuth&quot;)
 <span class="fc" id="L24">public class PermissionController {</span>
 
+    /**
+     * Obtiene los códigos de los permisos (authorities) activos del usuario autenticado, sin incluir los roles (prefijo ROLE_).
+     *
+     * @return listado de códigos de permisos del usuario autenticado, o estado 401 si no hay sesión autenticada
+     */
     @Operation(summary = &quot;Obtener códigos de permisos activos para el usuario autenticado (sin prefijo ROLE_)&quot;)
     @GetMapping(&quot;/me&quot;)
     public ResponseEntity&lt;List&lt;String&gt;&gt; getMyPermissions() {
-<span class="fc" id="L29">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="fc bfc" id="L30" title="All 4 branches covered.">        if (auth == null || !auth.isAuthenticated()) {</span>
-<span class="fc" id="L31">            return ResponseEntity.status(401).build();</span>
+<span class="fc" id="L34">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc bfc" id="L35" title="All 4 branches covered.">        if (auth == null || !auth.isAuthenticated()) {</span>
+<span class="fc" id="L36">            return ResponseEntity.status(401).build();</span>
         }
 
-<span class="fc" id="L34">        List&lt;String&gt; permissions = auth.getAuthorities().stream()</span>
-<span class="fc" id="L35">                .map(GrantedAuthority::getAuthority)</span>
-<span class="fc bfc" id="L36" title="All 2 branches covered.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
-<span class="fc" id="L37">                .toList();</span>
+<span class="fc" id="L39">        List&lt;String&gt; permissions = auth.getAuthorities().stream()</span>
+<span class="fc" id="L40">                .map(GrantedAuthority::getAuthority)</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">                .filter(a -&gt; !a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="fc" id="L42">                .toList();</span>
 
-<span class="fc" id="L39">        return ResponseEntity.ok(permissions);</span>
+<span class="fc" id="L44">        return ResponseEntity.ok(permissions);</span>
     }
 }
 

@@ -20,30 +20,56 @@ public class EtiquetaControlador {
 
     private final IEtiquetaServicio etiquetaServicio;
 
+    /**
+     * Lista todas las etiquetas disponibles en el catálogo.
+     *
+     * @return listado de etiquetas
+     */
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaEtiqueta&gt;&gt; listarEtiquetas() {
-<span class="nc" id="L25">        return ResponseEntity.ok(etiquetaServicio.listarEtiquetas());</span>
+<span class="fc" id="L30">        return ResponseEntity.ok(etiquetaServicio.listarEtiquetas());</span>
     }
 
+    /**
+     * Obtiene una etiqueta por su identificador.
+     *
+     * @param id identificador de la etiqueta
+     * @return la etiqueta solicitada
+     * @throws ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     */
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaEtiqueta&gt; obtenerPorId(@PathVariable Long id) {
-<span class="nc" id="L30">        return ResponseEntity.ok(etiquetaServicio.obtenerPorId(id));</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(etiquetaServicio.obtenerPorId(id));</span>
     }
 
+    /**
+     * Crea una nueva etiqueta en el catálogo.
+     *
+     * @param peticion datos de la etiqueta a crear
+     * @return la etiqueta creada, con estado 201
+     * @throws ExcepcionReglaNegocio si ya existe una etiqueta con el mismo nombre
+     */
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaEtiqueta&gt; crearEtiqueta(@Valid @RequestBody PeticionCrearEtiqueta peticion) {
-<span class="nc" id="L36">        return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));</span>
+<span class="fc" id="L55">        return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));</span>
     }
 
     // Mismo criterio que CategoriaControlador: MODERADOR administra el
     // catálogo completo (categorías, subcategorías y etiquetas) vía el
     // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
+    /**
+     * Elimina una etiqueta del catálogo.
+     *
+     * @param id identificador de la etiqueta a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarEtiqueta(@PathVariable Long id) {
-<span class="nc" id="L45">        etiquetaServicio.eliminarEtiqueta(id);</span>
-<span class="nc" id="L46">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etiqueta eliminada exitosamente&quot;));</span>
+<span class="fc" id="L71">        etiquetaServicio.eliminarEtiqueta(id);</span>
+<span class="fc" id="L72">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etiqueta eliminada exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

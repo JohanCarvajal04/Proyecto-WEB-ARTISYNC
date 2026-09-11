@@ -3,10 +3,18 @@
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Componente de Excepciones: Error personalizado de negocio.
+ * 
+ * Propósito: Notificar intentos de crear un recurso (correo, nombre) que vulnera una restriccion de unicidad.
+ * 
+ * Flujo interno: Traducida por el manejador global a un codigo HTTP 409 Conflict.
+ */
 @ResponseStatus(HttpStatus.CONFLICT)
 public class ExcepcionRecursoDuplicado extends RuntimeException {
     public ExcepcionRecursoDuplicado(String mensaje) {
-<span class="fc" id="L9">        super(mensaje);</span>
-<span class="fc" id="L10">    }</span>
+<span class="fc" id="L16">        super(mensaje);</span>
+<span class="fc" id="L17">    }</span>
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

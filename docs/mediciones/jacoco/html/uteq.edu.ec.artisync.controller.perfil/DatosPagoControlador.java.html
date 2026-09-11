@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatosPagoControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.perfil</a> &gt; <span class="el_source">DatosPagoControlador.java</span></div><h1>DatosPagoControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.perfil;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionDatosPago;
+import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaDatosPago;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.perfil.IDatosPagoServicio;
+
+/**
+ * Correo de PayPal del creador para recibir retiros. Ruta separada a
+ * propósito de /api/v1/perfiles/{id}: ese endpoint es público y este dato de
+ * cobro nunca debe colgar de él.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/perfiles/mis-datos-pago&quot;)
+@RequiredArgsConstructor
+public class DatosPagoControlador {
+
+    private final IDatosPagoServicio datosPagoServicio;
+
+    /**
+     * Obtiene los datos de pago (correo de PayPal) del creador autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return los datos de pago del creador
+     */
+    @GetMapping
+    @PreAuthorize(&quot;hasAuthority('RETIROS_SOLICITAR')&quot;)
+    public ResponseEntity&lt;RespuestaDatosPago&gt; obtenerMisDatosPago(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L36">        return ResponseEntity.ok(datosPagoServicio.obtenerMisDatosPago(userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Actualiza el correo de PayPal del creador autenticado para recibir retiros.
+     *
+     * @param userDetails usuario autenticado
+     * @param peticion nuevo correo de PayPal
+     * @return los datos de pago actualizados
+     */
+    @PutMapping
+    @PreAuthorize(&quot;hasAuthority('RETIROS_SOLICITAR')&quot;)
+    public ResponseEntity&lt;RespuestaDatosPago&gt; actualizarCorreoPaypal(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PeticionDatosPago peticion) {
+<span class="fc" id="L51">        return ResponseEntity.ok(datosPagoServicio.actualizarCorreoPaypal(userDetails.getIdUsuario(), peticion));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

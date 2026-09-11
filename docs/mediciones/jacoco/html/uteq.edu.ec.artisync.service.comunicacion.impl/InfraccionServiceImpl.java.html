@@ -89,14 +89,14 @@ public class InfraccionServiceImpl implements InfraccionService {
         try {
 <span class="fc" id="L90">            return objectMapper.readTree(json);</span>
 <span class="nc" id="L91">        } catch (Exception e) {</span>
-<span class="nc" id="L92">            throw new IllegalStateException(&quot;Error al interpretar el resultado de fn_registrar_infraccion&quot;, e);</span>
+<span class="nc" id="L92">            throw new RuntimeException(&quot;Error al interpretar el resultado de fn_registrar_infraccion&quot;, e);</span>
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page&lt;RespuestaInfraccion&gt; listarInfracciones(Pageable pageable) {
-<span class="nc" id="L99">        return infraccionRepo.findAll(pageable).map(this::mapToResponse);</span>
+<span class="fc" id="L99">        return infraccionRepo.findAll(pageable).map(this::mapToResponse);</span>
     }
 
     @Override
@@ -111,12 +111,12 @@ public class InfraccionServiceImpl implements InfraccionService {
     @Auditable(accion = &quot;SUSPENSION_REVERTIR&quot;, modulo = ModuloAuditoria.COMUNICACION,
             entidad = &quot;usuarios&quot;, idEntidad = &quot;#idUsuario&quot;)
     public RespuestaMensaje revertirSuspension(Long idUsuario) {
-<span class="nc" id="L114">        Usuario usuario = usuarioRepo.findById(idUsuario)</span>
-<span class="nc" id="L115">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
-<span class="nc" id="L116">        usuario.setEstadoCuenta(true);</span>
-<span class="nc" id="L117">        usuarioRepo.save(usuario);</span>
-<span class="nc" id="L118">        log.info(&quot;Suspensión revertida para usuario {} por admin&quot;, idUsuario);</span>
-<span class="nc" id="L119">        return new RespuestaMensaje(&quot;Cuenta del usuario &quot; + usuario.getCorreo() + &quot; reactivada correctamente&quot;);</span>
+<span class="fc" id="L114">        Usuario usuario = usuarioRepo.findById(idUsuario)</span>
+<span class="fc" id="L115">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Usuario no encontrado: &quot; + idUsuario));</span>
+<span class="fc" id="L116">        usuario.setEstadoCuenta(true);</span>
+<span class="fc" id="L117">        usuarioRepo.save(usuario);</span>
+<span class="fc" id="L118">        log.info(&quot;Suspensión revertida para usuario {} por admin&quot;, idUsuario);</span>
+<span class="fc" id="L119">        return new RespuestaMensaje(&quot;Cuenta del usuario &quot; + usuario.getCorreo() + &quot; reactivada correctamente&quot;);</span>
     }
 
     // -------------------------------------------------------------------------

@@ -3,10 +3,18 @@
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Componente de Excepciones: Error personalizado de infraestructura/negocio.
+ * 
+ * Propósito: Notificar que el recurso solicitado a traves de un identificador no existe en la base de datos.
+ * 
+ * Flujo interno: Traducida por el manejador global a un codigo HTTP 404 Not Found.
+ */
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class ExcepcionRecursoNoEncontrado extends RuntimeException {
     public ExcepcionRecursoNoEncontrado(String mensaje) {
-<span class="fc" id="L9">        super(mensaje);</span>
-<span class="fc" id="L10">    }</span>
+<span class="fc" id="L16">        super(mensaje);</span>
+<span class="fc" id="L17">    }</span>
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

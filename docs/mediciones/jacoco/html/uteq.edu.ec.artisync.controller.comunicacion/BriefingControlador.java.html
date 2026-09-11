@@ -10,8 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarBriefing;
-import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -21,7 +19,9 @@ import java.util.List;
 
 /**
  * Controlador de briefing interactivo.
- * RF-16: Formulario configurable de hasta 10 preguntas; respuestas inmutables.
+ * REQ-F-016 ampliado: el cuestionario se asigna a un servicio y el cliente lo
+ * responde al crear el pedido (POST /api/v1/pedidos); este controlador solo
+ * gestiona las plantillas del creador y la lectura de respuestas.
  */
 @Tag(name = &quot;Briefing&quot;, description = &quot;Formulario interactivo de briefing para pedidos&quot;)
 @RestController
@@ -34,6 +34,12 @@ public class BriefingControlador {
     // Gestión de plantillas (CREADOR)
     // =========================================================================
 
+    /**
+     * Registra una nueva plantilla de cuestionario de briefing para el creador autenticado.
+     * @param peticion preguntas y configuración de la plantilla a crear
+     * @param userDetails identidad del creador autenticado, usada para resolver su perfil
+     * @return la plantilla de briefing recién creada
+     */
     @Operation(summary = &quot;Crear plantilla de briefing&quot;)
     @PostMapping(&quot;/api/v1/briefing/plantillas&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -41,19 +47,31 @@ public class BriefingControlador {
     public ResponseEntity&lt;RespuestaBriefing&gt; crearPlantilla(
             @Valid @RequestBody PeticionCrearBriefingPlantilla peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        // El idPerfilCreador se resuelve desde el JWT del usuario autenticado
-<span class="fc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L46">                .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));</span>
+        // BriefingServiceImpl resuelve el PerfilCreador propio a partir de este idUsuario.
+<span class="fc" id="L51">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L52">                .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));</span>
     }
 
+    /**
+     * Obtiene todas las plantillas de briefing pertenecientes al creador autenticado.
+     * @param userDetails identidad del creador autenticado, usada para filtrar sus plantillas
+     * @return las plantillas de briefing del creador
+     */
     @Operation(summary = &quot;Listar mis plantillas de briefing&quot;)
     @GetMapping(&quot;/api/v1/briefing/plantillas&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;List&lt;RespuestaBriefing&gt;&gt; obtenerMisPlantillas(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L54">        return ResponseEntity.ok(briefingService.obtenerMisPlantillas(userDetails.getIdUsuario()));</span>
+<span class="fc" id="L65">        return ResponseEntity.ok(briefingService.obtenerMisPlantillas(userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Actualiza las preguntas y configuración de una plantilla de briefing existente del creador.
+     * @param idPlantilla identificador de la plantilla de briefing a editar
+     * @param peticion nuevos datos de preguntas y configuración de la plantilla
+     * @param userDetails identidad del creador autenticado, usada para validar la propiedad de la plantilla
+     * @return la plantilla de briefing con los cambios aplicados
+     */
     @Operation(summary = &quot;Editar plantilla de briefing&quot;)
     @PutMapping(&quot;/api/v1/briefing/plantillas/{idPlantilla}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -61,54 +79,45 @@ public class BriefingControlador {
             @PathVariable Long idPlantilla,
             @Valid @RequestBody PeticionCrearBriefingPlantilla peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L64">        return ResponseEntity.ok(</span>
-<span class="fc" id="L65">                briefingService.editarPlantilla(idPlantilla, userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L82">        return ResponseEntity.ok(</span>
+<span class="fc" id="L83">                briefingService.editarPlantilla(idPlantilla, userDetails.getIdUsuario(), peticion));</span>
     }
 
+    /**
+     * Elimina definitivamente una plantilla de briefing propiedad del creador autenticado.
+     * @param idPlantilla identificador de la plantilla de briefing a eliminar
+     * @param userDetails identidad del creador autenticado, usada para validar la propiedad de la plantilla
+     * @return mensaje de confirmación de la eliminación
+     */
     @Operation(summary = &quot;Eliminar plantilla de briefing&quot;)
     @DeleteMapping(&quot;/api/v1/briefing/plantillas/{idPlantilla}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPlantilla(
             @PathVariable Long idPlantilla,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L74">        return ResponseEntity.ok(</span>
-<span class="fc" id="L75">                briefingService.eliminarPlantilla(idPlantilla, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L98">        return ResponseEntity.ok(</span>
+<span class="fc" id="L99">                briefingService.eliminarPlantilla(idPlantilla, userDetails.getIdUsuario()));</span>
     }
 
     // =========================================================================
-    // Envío y respuesta de briefing en pedidos
+    // Lectura del briefing respondido de un pedido
     // =========================================================================
+    // El cliente ya no responde aquí: las respuestas se dan al crear el
+    // pedido (POST /api/v1/pedidos, ver PedidoServicioImpl.crearPedido).
 
-    @Operation(summary = &quot;Enviar briefing al cliente de un pedido (CREADOR)&quot;)
-    @PostMapping(&quot;/api/v1/pedidos/{idPedido}/briefing&quot;)
-    @PreAuthorize(&quot;isAuthenticated()&quot;)
-    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity&lt;RespuestaBriefing&gt; enviarBriefing(
-            @PathVariable Long idPedido,
-            @Valid @RequestBody PeticionEnviarBriefing peticion,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L90">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L91">                .body(briefingService.enviarBriefing(idPedido, peticion, userDetails.getIdUsuario()));</span>
-    }
-
-    @Operation(summary = &quot;Ver briefing enviado a un pedido&quot;)
+    /**
+     * Recupera las respuestas del cuestionario de briefing asociado a un pedido específico.
+     * @param idPedido identificador del pedido cuyo briefing respondido se desea consultar
+     * @param userDetails identidad del usuario autenticado, usada para validar que puede ver ese pedido
+     * @return el briefing con las respuestas registradas al crear el pedido
+     */
+    @Operation(summary = &quot;Ver el cuestionario respondido de un pedido&quot;)
     @GetMapping(&quot;/api/v1/pedidos/{idPedido}/briefing&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaBriefing&gt; obtenerBriefing(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L100">        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido, userDetails.getIdUsuario()));</span>
-    }
-
-    @Operation(summary = &quot;Responder briefing (CLIENTE) — respuestas inmutables&quot;)
-    @PostMapping(&quot;/api/v1/pedidos/{idPedido}/briefing/responder&quot;)
-    @PreAuthorize(&quot;isAuthenticated()&quot;)
-    public ResponseEntity&lt;RespuestaBriefing&gt; responderBriefing(
-            @PathVariable Long idPedido,
-            @Valid @RequestBody PeticionResponderBriefing peticion,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L110">        return ResponseEntity.ok(</span>
-<span class="fc" id="L111">                briefingService.responderBriefing(idPedido, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L120">        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido, userDetails.getIdUsuario()));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -9,15 +9,23 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-    info = @Info(title = &quot;ARTISYNC API REST&quot;, version = &quot;1.0&quot;, description = &quot;Plataforma de conexión para creadores artísticos y clientes&quot;),
+    info = @Info(title = &quot;ARTISYNC API REST&quot;, version = &quot;1.0&quot;, description = &quot;Plataforma de conexiÃ³n para creadores artÃ­sticos y clientes&quot;),
     security = @SecurityRequirement(name = &quot;bearerAuth&quot;)
 )
+/**
+ * Componente de Infraestructura: Configuracion de Swagger/OpenAPI.
+ * 
+ * Propósito: Generar la documentacion automatica e interactiva de los endpoints REST de la aplicacion.
+ * 
+ * Flujo interno: Registra los metadatos globales (titulo, version, esquema de seguridad Bearer JWT) expuestos publicamente en /v3/api-docs.
+ */
 @SecurityScheme(
     name = &quot;bearerAuth&quot;,
     type = SecuritySchemeType.HTTP,
     scheme = &quot;bearer&quot;,
     bearerFormat = &quot;JWT&quot;
 )
-<span class="fc" id="L21">public class OpenApiConfig {</span>
+<span class="fc" id="L28">public class OpenApiConfig {</span>
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

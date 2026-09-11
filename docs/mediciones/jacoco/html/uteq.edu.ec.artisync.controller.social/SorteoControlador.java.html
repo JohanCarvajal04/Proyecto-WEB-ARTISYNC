@@ -35,6 +35,14 @@ public class SorteoControlador {
     // CRUD de Sorteos
     // =========================================================================
 
+    /**
+     * Crea un nuevo sorteo para el creador autenticado.
+     *
+     * @param peticion datos del sorteo a crear
+     * @param userDetails usuario autenticado que crea el sorteo
+     * @return el sorteo creado, con estado 201
+     * @throws ExcepcionReglaNegocio si los datos del sorteo violan alguna regla de negocio
+     */
     @Operation(summary = &quot;Crear un nuevo sorteo (CREADOR)&quot;)
     @PostMapping(&quot;/api/v1/sorteos&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -42,19 +50,37 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaSorteo&gt; crearSorteo(
             @Valid @RequestBody PeticionCrearSorteo peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L45">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L46">                .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L53">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L54">                .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));</span>
     }
 
+    /**
+     * Obtiene el detalle público de un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el detalle del sorteo solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     */
     @Operation(summary = &quot;Obtener detalle de un sorteo (público)&quot;)
     @GetMapping(&quot;/api/v1/sorteos/{idSorteo}&quot;)
     public ResponseEntity&lt;RespuestaSorteo&gt; obtenerSorteo(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc bfc" id="L54" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="fc" id="L55">        return ResponseEntity.ok(sorteoService.obtenerSorteo(idSorteo, idUsuarioActual));</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L71">        return ResponseEntity.ok(sorteoService.obtenerSorteo(idSorteo, idUsuarioActual));</span>
     }
 
+    /**
+     * Edita un sorteo existente, sujeto a las restricciones de edición del negocio.
+     *
+     * @param idSorteo identificador del sorteo a editar
+     * @param peticion datos actualizados del sorteo
+     * @param userDetails usuario autenticado que solicita la edición
+     * @return el sorteo actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo no puede editarse en su estado actual
+     */
     @Operation(summary = &quot;Editar un sorteo (CREADOR, con restricciones)&quot;)
     @PutMapping(&quot;/api/v1/sorteos/{idSorteo}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -62,40 +88,72 @@ public class SorteoControlador {
             @PathVariable Long idSorteo,
             @Valid @RequestBody PeticionActualizarSorteo peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L65">        return ResponseEntity.ok(</span>
-<span class="fc" id="L66">                sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L91">        return ResponseEntity.ok(</span>
+<span class="fc" id="L92">                sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));</span>
     }
 
+    /**
+     * Elimina un sorteo que aún no tiene participantes.
+     *
+     * @param idSorteo identificador del sorteo a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo ya tiene participantes
+     */
     @Operation(summary = &quot;Eliminar un sorteo sin participantes (CREADOR)&quot;)
     @DeleteMapping(&quot;/api/v1/sorteos/{idSorteo}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarSorteo(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L75">        return ResponseEntity.ok(sorteoService.eliminarSorteo(idSorteo, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L110">        return ResponseEntity.ok(sorteoService.eliminarSorteo(idSorteo, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Lista los sorteos de un creador.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de sorteos del creador
+     */
     @Operation(summary = &quot;Listar sorteos de un creador (público)&quot;)
     @GetMapping(&quot;/api/v1/creadores/{idPerfil}/sorteos&quot;)
     public ResponseEntity&lt;List&lt;RespuestaSorteo&gt;&gt; listarSorteosPorCreador(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc bfc" id="L83" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="fc" id="L84">        return ResponseEntity.ok(sorteoService.listarSorteosPorCreador(idPerfil, idUsuarioActual));</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L126">        return ResponseEntity.ok(sorteoService.listarSorteosPorCreador(idPerfil, idUsuarioActual));</span>
     }
 
+    /**
+     * Lista los sorteos actualmente activos.
+     *
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return listado de sorteos activos
+     */
     @Operation(summary = &quot;Listar sorteos activos (público)&quot;)
     @GetMapping(&quot;/api/v1/sorteos/activos&quot;)
     public ResponseEntity&lt;List&lt;RespuestaSorteo&gt;&gt; listarSorteosActivos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc bfc" id="L91" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="fc" id="L92">        return ResponseEntity.ok(sorteoService.listarSorteosActivos(idUsuarioActual));</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L140">        return ResponseEntity.ok(sorteoService.listarSorteosActivos(idUsuarioActual));</span>
     }
 
     // =========================================================================
     // Participación
     // =========================================================================
 
+    /**
+     * Inscribe al usuario autenticado como participante en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado que se inscribe
+     * @return la participación creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo no está activo, aún no ha comenzado o el periodo de inscripción ha finalizado
+     * @throws ExcepcionRecursoDuplicado si el usuario ya está inscrito en el sorteo
+     */
     @Operation(summary = &quot;Inscribirse en un sorteo&quot;)
     @PostMapping(&quot;/api/v1/sorteos/{idSorteo}/participar&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -103,32 +161,55 @@ public class SorteoControlador {
     public ResponseEntity&lt;RespuestaParticipante&gt; participar(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L106">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L107">                .body(sorteoService.participar(idSorteo, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L164">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L165">                .body(sorteoService.participar(idSorteo, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Cancela la inscripción del usuario autenticado en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param userDetails usuario autenticado que cancela su inscripción
+     * @return mensaje de confirmación de la cancelación
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ExcepcionReglaNegocio si el sorteo ya ha finalizado
+     */
     @Operation(summary = &quot;Cancelar inscripción en un sorteo&quot;)
     @DeleteMapping(&quot;/api/v1/sorteos/{idSorteo}/participar&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; cancelarParticipacion(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L116">        return ResponseEntity.ok(</span>
-<span class="fc" id="L117">                sorteoService.cancelarParticipacion(idSorteo, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L183">        return ResponseEntity.ok(</span>
+<span class="fc" id="L184">                sorteoService.cancelarParticipacion(idSorteo, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Lista los participantes inscritos en un sorteo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @return listado de participantes del sorteo
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     */
     @Operation(summary = &quot;Listar participantes de un sorteo&quot;)
     @GetMapping(&quot;/api/v1/sorteos/{idSorteo}/participantes&quot;)
     public ResponseEntity&lt;List&lt;RespuestaParticipante&gt;&gt; listarParticipantes(
             @PathVariable Long idSorteo) {
-<span class="fc" id="L124">        return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));</span>
+<span class="fc" id="L198">        return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));</span>
     }
 
+    /**
+     * Lista los ganadores de un sorteo, disponible solo después del cierre.
+     *
+     * @param idSorteo identificador del sorteo
+     * @return listado de ganadores del sorteo
+     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     */
     @Operation(summary = &quot;Ver ganadores del sorteo (solo post-cierre)&quot;)
     @GetMapping(&quot;/api/v1/sorteos/{idSorteo}/ganadores&quot;)
     public ResponseEntity&lt;List&lt;RespuestaGanador&gt;&gt; listarGanadores(
             @PathVariable Long idSorteo) {
-<span class="fc" id="L131">        return ResponseEntity.ok(sorteoService.listarGanadores(idSorteo));</span>
+<span class="fc" id="L212">        return ResponseEntity.ok(sorteoService.listarGanadores(idSorteo));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

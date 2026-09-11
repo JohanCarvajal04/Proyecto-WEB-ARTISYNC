@@ -33,6 +33,16 @@ public class VerificacionControlador {
 
     private final IVerificacionServicio verificacionServicio;
 
+    /**
+     * Solicita una verificación de identidad o de certificado, subiendo el documento correspondiente.
+     *
+     * @param tipo tipo de documento de verificación a subir
+     * @param documento archivo del documento a verificar
+     * @param userDetails usuario autenticado que solicita la verificación
+     * @return la verificación creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el usuario solicitante no existe
+     * @throws ExcepcionReglaNegocio si el usuario ya tiene una solicitud de este tipo en curso, o el documento no puede leerse
+     */
     @Operation(summary = &quot;Solicitar una verificación de identidad o certificado&quot;)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -40,18 +50,32 @@ public class VerificacionControlador {
             @RequestParam(&quot;tipo&quot;) TipoDocumentoVerificacion tipo,
             @RequestParam(&quot;documento&quot;) MultipartFile documento,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L43">        RespuestaVerificacion respuesta = verificacionServicio.subir(userDetails.getIdUsuario(), tipo, documento);</span>
-<span class="fc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+<span class="fc" id="L53">        RespuestaVerificacion respuesta = verificacionServicio.subir(userDetails.getIdUsuario(), tipo, documento);</span>
+<span class="fc" id="L54">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
+    /**
+     * Obtiene el estado de identidad del usuario autenticado, que gatea la publicación de servicios y la creación de pedidos.
+     *
+     * @param userDetails usuario autenticado
+     * @return el estado de identidad del usuario
+     */
     @Operation(summary = &quot;Estado de identidad del usuario autenticado (gatea publicar servicios y crear pedidos)&quot;)
     @GetMapping(&quot;/mi-estado&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaEstadoIdentidad&gt; obtenerMiEstadoIdentidad(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L52">        return ResponseEntity.ok(verificacionServicio.obtenerEstadoIdentidad(userDetails.getIdUsuario()));</span>
+<span class="fc" id="L68">        return ResponseEntity.ok(verificacionServicio.obtenerEstadoIdentidad(userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Lista la cola de verificaciones pendientes de revisión.
+     *
+     * @param estado estado por el cual filtrar la cola (opcional)
+     * @param limite cantidad máxima de resultados a devolver
+     * @param offset cantidad de resultados a saltar, para paginación
+     * @return listado de verificaciones en cola
+     */
     @Operation(summary = &quot;Cola de verificaciones pendientes de revisión&quot;)
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
@@ -59,35 +83,68 @@ public class VerificacionControlador {
             @RequestParam(required = false) String estado,
             @RequestParam(defaultValue = &quot;20&quot;) int limite,
             @RequestParam(defaultValue = &quot;0&quot;) int offset) {
-<span class="fc" id="L62">        return ResponseEntity.ok(verificacionServicio.listarCola(estado, limite, offset));</span>
+<span class="fc" id="L86">        return ResponseEntity.ok(verificacionServicio.listarCola(estado, limite, offset));</span>
     }
 
+    /**
+     * Obtiene el detalle de una verificación.
+     *
+     * @param id identificador de la verificación
+     * @param userDetails usuario autenticado que consulta la verificación
+     * @return el detalle de la verificación
+     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     */
     @Operation(summary = &quot;Detalle de una verificación&quot;)
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaVerificacion&gt; obtenerPorId(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L71">        boolean esRevisor = userDetails.getAuthorities().stream()</span>
-<span class="pc bpc" id="L72" title="3 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;CERTIFICADO_REVISAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
-<span class="fc" id="L73">        return ResponseEntity.ok(verificacionServicio.obtenerPorId(id, userDetails.getIdUsuario(), esRevisor));</span>
+<span class="fc" id="L103">        boolean esRevisor = userDetails.getAuthorities().stream()</span>
+<span class="pc bpc" id="L104" title="3 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;CERTIFICADO_REVISAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+<span class="fc" id="L105">        return ResponseEntity.ok(verificacionServicio.obtenerPorId(id, userDetails.getIdUsuario(), esRevisor));</span>
     }
 
+    /**
+     * Descarga el documento original de una verificación, para su revisión.
+     *
+     * @param id identificador de la verificación
+     * @return el contenido binario del documento en formato JPEG
+     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     */
     @Operation(summary = &quot;Descargar el documento original para revisión&quot;)
     @GetMapping(&quot;/{id}/documento&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;byte[]&gt; obtenerDocumento(@PathVariable Long id) {
-<span class="fc" id="L80">        byte[] documento = verificacionServicio.obtenerDocumento(id);</span>
-<span class="fc" id="L81">        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(documento);</span>
+<span class="fc" id="L119">        byte[] documento = verificacionServicio.obtenerDocumento(id);</span>
+<span class="fc" id="L120">        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(documento);</span>
     }
 
+    /**
+     * Pide a la IA un dictamen orientativo sobre una verificación; el dictamen no decide el estado final.
+     *
+     * @param id identificador de la verificación
+     * @return la verificación con el dictamen de la IA
+     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     * @throws ExcepcionReglaNegocio si el documento de la verificación ya fue eliminado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible si el servicio de IA no está disponible
+     */
     @Operation(summary = &quot;Pedir a la IA un dictamen orientativo (no decide)&quot;)
     @PostMapping(&quot;/{id}/analisis-ia&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaVerificacion&gt; analizarConIa(@PathVariable Long id) {
-<span class="fc" id="L88">        return ResponseEntity.ok(verificacionServicio.analizarConIa(id));</span>
+<span class="fc" id="L136">        return ResponseEntity.ok(verificacionServicio.analizarConIa(id));</span>
     }
 
+    /**
+     * Registra la decisión del moderador sobre una verificación; es el único punto que cambia su estado final.
+     *
+     * @param id identificador de la verificación
+     * @param peticion decisión del moderador, con el nuevo estado y una nota opcional
+     * @param userDetails moderador autenticado que registra la decisión
+     * @return la verificación con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si la verificación o el estado de verificación indicado no existen
+     */
     @Operation(summary = &quot;Registrar la decisión del moderador (único punto que cambia el estado)&quot;)
     @PatchMapping(&quot;/{id}/decision&quot;)
     @PreAuthorize(&quot;hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')&quot;)
@@ -95,9 +152,9 @@ public class VerificacionControlador {
             @PathVariable Long id,
             @Valid @RequestBody PeticionDecisionVerificacion peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L98">        RespuestaVerificacion respuesta = verificacionServicio.registrarDecision(</span>
-<span class="fc" id="L99">                id, userDetails.getIdUsuario(), peticion.idEstadoVerificacion(), peticion.notaModerador());</span>
-<span class="fc" id="L100">        return ResponseEntity.ok(respuesta);</span>
+<span class="fc" id="L155">        RespuestaVerificacion respuesta = verificacionServicio.registrarDecision(</span>
+<span class="fc" id="L156">                id, userDetails.getIdUsuario(), peticion.idEstadoVerificacion(), peticion.notaModerador());</span>
+<span class="fc" id="L157">        return ResponseEntity.ok(respuesta);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

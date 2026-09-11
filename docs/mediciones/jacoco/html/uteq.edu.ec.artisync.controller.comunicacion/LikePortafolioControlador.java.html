@@ -23,6 +23,15 @@ public class LikePortafolioControlador {
 
     private final LikePortafolioService likeService;
 
+    /**
+     * Da &quot;me gusta&quot; a un ítem de portafolio en nombre del usuario autenticado.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param userDetails usuario autenticado que da el like
+     * @return el estado de likes actualizado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si el usuario ya le dio like al ítem
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     */
     @Operation(summary = &quot;Dar like a un ítem de portafolio&quot;)
     @PostMapping(&quot;/{idItemPortafolio}/likes&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -30,26 +39,42 @@ public class LikePortafolioControlador {
     public ResponseEntity&lt;RespuestaEstadoLike&gt; darLike(
             @PathVariable Long idItemPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L33">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L34">                .body(likeService.darLike(idItemPortafolio, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L42">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L43">                .body(likeService.darLike(idItemPortafolio, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Quita el &quot;me gusta&quot; del usuario autenticado sobre un ítem de portafolio.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param userDetails usuario autenticado que quita el like
+     * @return el estado de likes actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no le había dado like al ítem
+     */
     @Operation(summary = &quot;Quitar el like de un ítem de portafolio&quot;)
     @DeleteMapping(&quot;/{idItemPortafolio}/likes&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaEstadoLike&gt; quitarLike(
             @PathVariable Long idItemPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L43">        return ResponseEntity.ok(likeService.quitarLike(idItemPortafolio, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L60">        return ResponseEntity.ok(likeService.quitarLike(idItemPortafolio, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Obtiene el estado de likes de un ítem de portafolio, de acceso público.
+     *
+     * @param idItemPortafolio identificador del ítem de portafolio
+     * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
+     * @return el estado de likes del ítem, incluyendo si el usuario actual ya dio like
+     * @throws ExcepcionRecursoNoEncontrado si el ítem de portafolio no existe
+     */
     @Operation(summary = &quot;Estado de likes de un ítem de portafolio (público)&quot;)
     @GetMapping(&quot;/{idItemPortafolio}/likes&quot;)
     public ResponseEntity&lt;RespuestaEstadoLike&gt; obtenerEstado(
             @PathVariable Long idItemPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc bfc" id="L51" title="All 2 branches covered.">        Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;</span>
-<span class="fc" id="L52">        return ResponseEntity.ok(likeService.obtenerEstado(idItemPortafolio, idUsuario));</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;</span>
+<span class="fc" id="L77">        return ResponseEntity.ok(likeService.obtenerEstado(idItemPortafolio, idUsuario));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

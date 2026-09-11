@@ -18,44 +18,52 @@ import java.net.URI;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-<span class="fc" id="L21">@Slf4j</span>
+/**
+ * Componente de Seguridad: Punto de entrada para peticiones no autenticadas.
+ * 
+ * Propósito: Manejar de forma controlada y estandarizada los intentos de acceso a recursos protegidos sin proveer credenciales validas.
+ * 
+ * Flujo interno: Es invocado por el ExceptionTranslationFilter de Spring Security cuando se lanza una AuthenticationException. Retorna una respuesta JSON (ProblemDetail) con HTTP 401 en lugar del redirect por defecto a login HTML.
+ */
+<span class="fc" id="L28">@Slf4j</span>
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
 
     @Autowired
-<span class="fc" id="L28">    public CustomAuthenticationEntryPoint(@Autowired(required = false) ObjectMapper objectMapper) {</span>
-<span class="pc bpc" id="L29" title="1 of 2 branches missed.">        if (objectMapper != null) {</span>
-<span class="fc" id="L30">            this.objectMapper = objectMapper;</span>
+<span class="fc" id="L35">    public CustomAuthenticationEntryPoint(@Autowired(required = false) ObjectMapper objectMapper) {</span>
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">        if (objectMapper != null) {</span>
+<span class="fc" id="L37">            this.objectMapper = objectMapper;</span>
         } else {
-<span class="nc" id="L32">            this.objectMapper = new ObjectMapper()</span>
-<span class="nc" id="L33">                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())</span>
-<span class="nc" id="L34">                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);</span>
+<span class="nc" id="L39">            this.objectMapper = new ObjectMapper()</span>
+<span class="nc" id="L40">                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())</span>
+<span class="nc" id="L41">                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);</span>
         }
         // Asegura el soporte de serializacion de ProblemDetail (RFC 7807) sin depender
         // de si el ObjectMapper inyectado ya trae el mixin de Spring MVC registrado.
-<span class="fc" id="L38">        this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);</span>
-<span class="fc" id="L39">    }</span>
+<span class="fc" id="L45">        this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);</span>
+<span class="fc" id="L46">    }</span>
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-<span class="fc" id="L43">        String jwtError = (String) request.getAttribute(&quot;JWT_ERROR&quot;);</span>
-<span class="pc bpc" id="L44" title="1 of 2 branches missed.">        String message = jwtError != null ? jwtError : &quot;Autenticación requerida&quot;;</span>
+<span class="fc" id="L50">        String jwtError = (String) request.getAttribute(&quot;JWT_ERROR&quot;);</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        String message = jwtError != null ? jwtError : &quot;AutenticaciÃ³n requerida&quot;;</span>
 
-<span class="fc" id="L46">        log.warn(&quot;Fallo de autenticación en {}: {} (Excepción: {})&quot;, request.getRequestURI(), message, authException.getMessage());</span>
+<span class="fc" id="L53">        log.warn(&quot;Fallo de autenticaciÃ³n en {}: {} (ExcepciÃ³n: {})&quot;, request.getRequestURI(), message, authException.getMessage());</span>
 
-<span class="fc" id="L48">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
-<span class="fc" id="L49">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
-<span class="fc" id="L50">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
+<span class="fc" id="L55">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="fc" id="L56">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
+<span class="fc" id="L57">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
 
-<span class="fc" id="L52">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, message);</span>
-<span class="fc" id="L53">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/autenticacion&quot;));</span>
-<span class="fc" id="L54">        problemDetail.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());</span>
-<span class="fc" id="L55">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="fc" id="L59">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, message);</span>
+<span class="fc" id="L60">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/autenticacion&quot;));</span>
+<span class="fc" id="L61">        problemDetail.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());</span>
+<span class="fc" id="L62">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
 
-<span class="fc" id="L57">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
-<span class="fc" id="L58">    }</span>
+<span class="fc" id="L64">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
+<span class="fc" id="L65">    }</span>
 }
+
 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

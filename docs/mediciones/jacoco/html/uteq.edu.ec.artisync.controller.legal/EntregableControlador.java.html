@@ -22,6 +22,17 @@ public class EntregableControlador {
 
     private final IEntregableServicio entregableServicio;
 
+    /**
+     * Sube el entregable de un pedido, con su versión marcada de agua y su versión limpia.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que sube el entregable
+     * @param versionMarcaAgua archivo con la versión marcada de agua del entregable
+     * @param versionLimpia archivo con la versión limpia del entregable
+     * @return el entregable creado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws ExcepcionReglaNegocio si el usuario no es el creador del servicio del pedido
+     */
     @PostMapping(value = &quot;/{idPedido}/entregable&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(&quot;hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaEntregable&gt; subirEntregable(
@@ -29,45 +40,80 @@ public class EntregableControlador {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(&quot;versionMarcaAgua&quot;) MultipartFile versionMarcaAgua,
             @RequestParam(&quot;versionLimpia&quot;) MultipartFile versionLimpia) {
-<span class="fc" id="L32">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L33">                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),</span>
+<span class="fc" id="L43">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L44">                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),</span>
                         versionMarcaAgua, versionLimpia));
     }
 
+    /**
+     * Obtiene los datos del entregable asociado a un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta el entregable
+     * @return el entregable del pedido
+     * @throws ExcepcionRecursoNoEncontrado si no hay entregable para el pedido
+     */
     @GetMapping(&quot;/{idPedido}/entregable&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaEntregable&gt; obtenerEntregable(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L42">        return ResponseEntity.ok(</span>
-<span class="fc" id="L43">                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L61">        return ResponseEntity.ok(</span>
+<span class="fc" id="L62">                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Aprueba la entrega de un pedido y libera los fondos correspondientes.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que aprueba la entrega
+     * @return mensaje de confirmación de la aprobación
+     * @throws ExcepcionRecursoNoEncontrado si el pedido, el entregable o el contrato no existen
+     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido o el entregable ya fue aprobado
+     */
     @PostMapping(&quot;/{idPedido}/aprobar&quot;)
     @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; aprobarEntrega(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L51">        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());</span>
-<span class="fc" id="L52">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Entrega aprobada exitosamente. Fondos liberados.&quot;));</span>
+<span class="fc" id="L79">        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());</span>
+<span class="fc" id="L80">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Entrega aprobada exitosamente. Fondos liberados.&quot;));</span>
     }
 
+    /**
+     * Descarga la versión limpia (sin marca de agua) del entregable de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que solicita la descarga
+     * @return el contenido binario del archivo, como adjunto
+     * @throws ExcepcionRecursoNoEncontrado si el pedido, el entregable, o el archivo asociado no existen
+     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido o el entregable aún no está disponible
+     */
     @GetMapping(&quot;/{idPedido}/entregable/descargar&quot;)
     @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;byte[]&gt; descargarVersionLimpia(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L60">        return responderArchivo(</span>
-<span class="fc" id="L61">                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L97">        return responderArchivo(</span>
+<span class="fc" id="L98">                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Descarga la versión con marca de agua del entregable de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que solicita la descarga
+     * @return el contenido binario del archivo, como adjunto
+     * @throws ExcepcionRecursoNoEncontrado si no hay entregable para el pedido o no tiene versión con marca de agua
+     * @throws ExcepcionReglaNegocio si el usuario no tiene acceso al entregable
+     */
     @GetMapping(&quot;/{idPedido}/entregable/descargar/marca-agua&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;byte[]&gt; descargarVersionMarcaAgua(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L69">        return responderArchivo(</span>
-<span class="fc" id="L70">                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L115">        return responderArchivo(</span>
+<span class="fc" id="L116">                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     /**
@@ -76,11 +122,11 @@ public class EntregableControlador {
      * de la plataforma abriría la puerta a XSS almacenado.
      */
     private ResponseEntity&lt;byte[]&gt; responderArchivo(IEntregableServicio.ArchivoDescargado archivo) {
-<span class="fc" id="L79">        return ResponseEntity.ok()</span>
-<span class="fc" id="L80">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
-<span class="fc" id="L81">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
-<span class="fc" id="L82">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).build().toString())</span>
-<span class="fc" id="L83">                .body(archivo.contenido());</span>
+<span class="fc" id="L125">        return ResponseEntity.ok()</span>
+<span class="fc" id="L126">                .contentType(MediaType.parseMediaType(archivo.contentType()))</span>
+<span class="fc" id="L127">                .header(HttpHeaders.CONTENT_DISPOSITION,</span>
+<span class="fc" id="L128">                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).build().toString())</span>
+<span class="fc" id="L129">                .body(archivo.contenido());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

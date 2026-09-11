@@ -5,10 +5,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
 
 import java.util.List;
@@ -20,25 +22,83 @@ public class SubcategoriaControlador {
 
     private final ICategoriaServicio categoriaServicio;
 
+    /**
+     * Lista todas las subcategorías del catálogo.
+     *
+     * @return listado de subcategorías
+     */
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaSubcategoria&gt;&gt; listarTodasLasSubcategorias() {
-<span class="nc" id="L25">        return ResponseEntity.ok(categoriaServicio.listarTodasLasSubcategorias());</span>
+<span class="fc" id="L32">        return ResponseEntity.ok(categoriaServicio.listarTodasLasSubcategorias());</span>
     }
 
-    // Mismo criterio que CategoriaControlador: MODERADOR administra el
-    // catálogo completo (categorías, subcategorías y etiquetas) vía el
-    // permiso CATEGORIA_GESTIONAR, no vía ROLE_ADMIN.
+    // CATEGORIA_CREAR es autoservicio (cada creador crea las suyas, quedan sin
+    // revisar); CATEGORIA_GESTIONAR/ADMIN crean directamente como revisadas,
+    // igual que siempre.
+    /**
+     * Crea una nueva subcategoría. Si quien la crea no es moderador/administrador,
+     * la subcategoría queda asociada a su usuario y pendiente de revisión.
+     *
+     * @param peticion datos de la subcategoría a crear
+     * @param userDetails usuario autenticado que crea la subcategoría
+     * @return la subcategoría creada, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si la categoría indicada no existe
+     * @throws ExcepcionReglaNegocio si ya existe una subcategoría con el mismo nombre en la categoría
+     */
     @PostMapping
-    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaSubcategoria&gt; crearSubcategoria(@Valid @RequestBody PeticionCrearSubcategoria peticion) {
-<span class="nc" id="L34">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearSubcategoria(peticion));</span>
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaSubcategoria&gt; crearSubcategoria(
+            @Valid @RequestBody PeticionCrearSubcategoria peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        Long idUsuarioCreador = esModerador(userDetails) ? null : userDetails.getIdUsuario();</span>
+<span class="fc" id="L54">        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearSubcategoria(idUsuarioCreador, peticion));</span>
     }
 
+    /**
+     * Elimina una subcategoría del catálogo.
+     *
+     * @param id identificador de la subcategoría a eliminar
+     * @param motivo motivo de la eliminación, obligatorio si la subcategoría fue creada por un creador
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si la subcategoría no existe
+     * @throws ExcepcionReglaNegocio si no se indica motivo siendo obligatorio, o la subcategoría no puede eliminarse
+     */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarSubcategoria(@PathVariable Long id) {
-<span class="nc" id="L40">        categoriaServicio.eliminarSubcategoria(id);</span>
-<span class="nc" id="L41">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Subcategoria eliminada exitosamente&quot;));</span>
+    public ResponseEntity&lt;RespuestaMensaje&gt; eliminarSubcategoria(
+            @PathVariable Long id,
+            @RequestParam(required = false) String motivo) {
+<span class="fc" id="L71">        categoriaServicio.eliminarSubcategoria(id, motivo);</span>
+<span class="fc" id="L72">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Subcategoria eliminada exitosamente&quot;));</span>
+    }
+
+    /**
+     * Lista las subcategorías creadas por creadores que aún están pendientes de revisión.
+     *
+     * @return listado de subcategorías pendientes de revisión
+     */
+    @GetMapping(&quot;/pendientes-revision&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;RespuestaSubcategoria&gt;&gt; listarPendientesRevision() {
+<span class="fc" id="L83">        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPendientesRevision());</span>
+    }
+
+    /**
+     * Marca una subcategoría como revisada.
+     *
+     * @param id identificador de la subcategoría a marcar como revisada
+     * @return la subcategoría actualizada
+     * @throws ExcepcionRecursoNoEncontrado si la subcategoría no existe
+     */
+    @PatchMapping(&quot;/{id}/revisar&quot;)
+    @PreAuthorize(&quot;hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaSubcategoria&gt; marcarRevisada(@PathVariable Long id) {
+<span class="fc" id="L96">        return ResponseEntity.ok(categoriaServicio.marcarSubcategoriaRevisada(id));</span>
+    }
+
+    private boolean esModerador(CustomUserDetails userDetails) {
+<span class="fc" id="L100">        return userDetails.getAuthorities().stream()</span>
+<span class="pc bpc" id="L101" title="1 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;CATEGORIA_GESTIONAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

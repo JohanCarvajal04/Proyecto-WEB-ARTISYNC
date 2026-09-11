@@ -31,25 +31,44 @@ public class PagoGarantiaAuditoriaControlador {
 
     private final IPagoGarantiaAuditoriaServicio pagoGarantiaAuditoriaServicio;
 
+    /**
+     * Lista los pagos en garantía (escrow) de forma paginada, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar el listado
+     * @param pageable configuración de paginación
+     * @return página con los pagos en garantía que cumplen el filtro
+     */
     @Operation(summary = &quot;Listado paginado y filtrado de pagos en garantía (escrow)&quot;)
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaPagoGarantia&gt;&gt; listar(FiltroPagoGarantia filtro, Pageable pageable) {
-<span class="nc" id="L38">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.listar(filtro, pageable));</span>
+<span class="nc" id="L45">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.listar(filtro, pageable));</span>
     }
 
+    /**
+     * Obtiene el detalle de un pago en garantía junto con su historial de transacciones.
+     *
+     * @param idPago identificador del pago en garantía
+     * @return el detalle del pago en garantía
+     * @throws ExcepcionRecursoNoEncontrado si el pago en garantía no existe
+     */
     @Operation(summary = &quot;Detalle de un pago en garantía, con su historial de transacciones&quot;)
     @GetMapping(&quot;/{idPago}&quot;)
     @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPagoGarantiaDetalle&gt; obtenerDetalle(@PathVariable Long idPago) {
-<span class="nc" id="L45">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerDetalle(idPago));</span>
+<span class="nc" id="L59">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerDetalle(idPago));</span>
     }
 
+    /**
+     * Obtiene el resumen agregado de fondos en garantía: cantidad y monto total por estado.
+     *
+     * @return listado con el resumen de fondos en escrow por estado
+     */
     @Operation(summary = &quot;Resumen agregado: cantidad y monto total de fondos por estado&quot;)
     @GetMapping(&quot;/resumen&quot;)
     @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaResumenEscrow&gt;&gt; obtenerResumen() {
-<span class="nc" id="L52">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerResumen());</span>
+<span class="nc" id="L71">        return ResponseEntity.ok(pagoGarantiaAuditoriaServicio.obtenerResumen());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

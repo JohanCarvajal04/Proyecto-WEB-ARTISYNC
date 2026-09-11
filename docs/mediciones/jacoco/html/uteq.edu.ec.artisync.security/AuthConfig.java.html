@@ -9,6 +9,13 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Componente Core de Seguridad: Configuracion de beans de autenticacion.
+ * 
+ * Propósito: Exponer y configurar los beans fundamentales para el proceso de validacion criptografica y autenticacion.
+ * 
+ * Flujo interno: Registra el PasswordEncoder (BCrypt), el AuthenticationProvider delegando al UserDetailsService, y el AuthenticationManager global.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class AuthConfig {
@@ -17,14 +24,15 @@ public class AuthConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-<span class="fc" id="L20">        return new BCryptPasswordEncoder(12);</span>
+<span class="fc" id="L27">        return new BCryptPasswordEncoder(12);</span>
     }
 
     @Bean
     public AuthenticationManager authenticationManager() {
-<span class="fc" id="L25">        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);</span>
-<span class="fc" id="L26">        provider.setPasswordEncoder(passwordEncoder());</span>
-<span class="fc" id="L27">        return new ProviderManager(provider);</span>
+<span class="fc" id="L32">        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);</span>
+<span class="fc" id="L33">        provider.setPasswordEncoder(passwordEncoder());</span>
+<span class="fc" id="L34">        return new ProviderManager(provider);</span>
     }
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

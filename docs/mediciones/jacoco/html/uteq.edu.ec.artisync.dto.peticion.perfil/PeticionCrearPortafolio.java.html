@@ -3,7 +3,16 @@
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-<span class="fc" id="L6">public record PeticionCrearPortafolio(</span>
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Payload para registrar una nueva coleccion u agrupacion de obras.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
+<span class="fc" id="L15">public record PeticionCrearPortafolio(</span>
         @NotNull(message = &quot;El ID del perfil es obligatorio&quot;)
         Long idPerfil,
 
@@ -12,4 +21,7 @@ import jakarta.validation.constraints.Size;
         java.util.Map&lt;String, String&gt; opcionesPersonalizacion
 ) {
 }
+
+
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

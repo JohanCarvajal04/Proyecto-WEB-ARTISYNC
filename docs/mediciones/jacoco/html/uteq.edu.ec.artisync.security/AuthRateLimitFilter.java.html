@@ -22,34 +22,25 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * OBS-AUTO-06 (A07 OWASP): limita por IP los intentos sobre las rutas publicas
- * de autenticacion mas expuestas a abuso (fuerza bruta de login/2FA, spam de
- * cuentas, mail-bombing vía forgot-password). Generaliza el antiguo
- * LoginRateLimitFilter, que solo cubria /api/v1/auth/login.
- *
- * La cuota POR IP vive aqui; la cuota POR CUENTA vive en
- * {@link uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService},
- * invocada desde AuthServiceImpl — un filtro de pre-autenticacion no puede
- * leer el cuerpo JSON de forma segura sin bufferizarlo, y AuthServiceImpl ya
- * tiene el correo validado y el resultado real de la autenticacion en mano.
- *
- * Fail-open ante caida de Redis: un control de mitigacion no debe bloquear
- * el acceso completo al sistema (a diferencia de la blacklist de JWT en
- * JwtAuthenticationFilter, que si es fail-closed).
+ * Componente de Seguridad: Filtro de limitacion de tasa (Rate Limiting).
+ * 
+ * Propósito: Prevenir ataques de fuerza bruta, denegacion de servicio (DoS) y abusos de endpoints publicos.
+ * 
+ * Flujo interno: Se ejecuta antes del filtro de autenticacion. Utiliza Redis y Bucket4j para descontar un token por peticion (basado en IP). Si se agota, rechaza con HTTP 429.
  */
-<span class="fc" id="L40">@Slf4j</span>
+<span class="fc" id="L31">@Slf4j</span>
 @Component
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
-<span class="fc" id="L44">    private record Politica(String ruta, String metodo, int limite, Duration ventana, String ambito) {</span>
+<span class="fc" id="L35">    private record Politica(String ruta, String metodo, int limite, Duration ventana, String ambito) {</span>
     }
 
-<span class="fc" id="L47">    private static final List&lt;Politica&gt; POLITICAS = List.of(</span>
-<span class="fc" id="L48">            new Politica(&quot;/api/v1/auth/login&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;login&quot;),</span>
-<span class="fc" id="L49">            new Politica(&quot;/api/v1/auth/2fa/verify&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;2fa&quot;),</span>
-<span class="fc" id="L50">            new Politica(&quot;/api/v1/auth/forgot-password&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(15), &quot;recuperacion&quot;),</span>
-<span class="fc" id="L51">            new Politica(&quot;/api/v1/auth/reset-password&quot;, &quot;POST&quot;, 10, Duration.ofMinutes(15), &quot;reset&quot;),</span>
-<span class="fc" id="L52">            new Politica(&quot;/api/v1/auth/registro&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(60), &quot;registro&quot;)</span>
+<span class="fc" id="L38">    private static final List&lt;Politica&gt; POLITICAS = List.of(</span>
+<span class="fc" id="L39">            new Politica(&quot;/api/v1/auth/login&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;login&quot;),</span>
+<span class="fc" id="L40">            new Politica(&quot;/api/v1/auth/2fa/verify&quot;, &quot;POST&quot;, 10, Duration.ofSeconds(60), &quot;2fa&quot;),</span>
+<span class="fc" id="L41">            new Politica(&quot;/api/v1/auth/forgot-password&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(15), &quot;recuperacion&quot;),</span>
+<span class="fc" id="L42">            new Politica(&quot;/api/v1/auth/reset-password&quot;, &quot;POST&quot;, 10, Duration.ofMinutes(15), &quot;reset&quot;),</span>
+<span class="fc" id="L43">            new Politica(&quot;/api/v1/auth/registro&quot;, &quot;POST&quot;, 5, Duration.ofMinutes(60), &quot;registro&quot;)</span>
     );
 
     private final StringRedisTemplate redisTemplate;
@@ -57,20 +48,20 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     @Autowired
     public AuthRateLimitFilter(StringRedisTemplate redisTemplate,
-<span class="fc" id="L60">                                @Autowired(required = false) ObjectMapper objectMapper) {</span>
-<span class="fc" id="L61">        this.redisTemplate = redisTemplate;</span>
-<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (objectMapper != null) {</span>
-<span class="fc" id="L63">            this.objectMapper = objectMapper;</span>
+<span class="fc" id="L51">                                @Autowired(required = false) ObjectMapper objectMapper) {</span>
+<span class="fc" id="L52">        this.redisTemplate = redisTemplate;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (objectMapper != null) {</span>
+<span class="fc" id="L54">            this.objectMapper = objectMapper;</span>
         } else {
-<span class="fc" id="L65">            this.objectMapper = new ObjectMapper()</span>
-<span class="fc" id="L66">                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())</span>
-<span class="fc" id="L67">                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);</span>
+<span class="fc" id="L56">            this.objectMapper = new ObjectMapper()</span>
+<span class="fc" id="L57">                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())</span>
+<span class="fc" id="L58">                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);</span>
         }
         // Mismo patron que CustomAuthenticationEntryPoint: asegura el soporte de
         // serializacion de ProblemDetail (RFC 7807) sin depender de si el
         // ObjectMapper inyectado ya trae el mixin de Spring MVC registrado.
-<span class="fc" id="L72">        this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);</span>
-<span class="fc" id="L73">    }</span>
+<span class="fc" id="L63">        this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);</span>
+<span class="fc" id="L64">    }</span>
 
     @Override
     protected void doFilterInternal(
@@ -78,58 +69,59 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-<span class="fc" id="L81">        Politica politica = encontrarPolitica(request);</span>
-<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (politica == null) {</span>
-<span class="fc" id="L83">            filterChain.doFilter(request, response);</span>
-<span class="fc" id="L84">            return;</span>
+<span class="fc" id="L72">        Politica politica = encontrarPolitica(request);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (politica == null) {</span>
+<span class="fc" id="L74">            filterChain.doFilter(request, response);</span>
+<span class="fc" id="L75">            return;</span>
         }
 
-<span class="fc" id="L87">        String ip = ClientIpResolver.resolver(request);</span>
-<span class="fc" id="L88">        String clave = &quot;rl:&quot; + politica.ambito() + &quot;:&quot; + ip;</span>
+<span class="fc" id="L78">        String ip = ClientIpResolver.resolver(request);</span>
+<span class="fc" id="L79">        String clave = &quot;rl:&quot; + politica.ambito() + &quot;:&quot; + ip;</span>
         try {
-<span class="fc" id="L90">            Long intentos = redisTemplate.opsForValue().increment(clave);</span>
-<span class="pc bpc" id="L91" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos == 1L) {</span>
-<span class="fc" id="L92">                redisTemplate.expire(clave, politica.ventana());</span>
+<span class="fc" id="L81">            Long intentos = redisTemplate.opsForValue().increment(clave);</span>
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos == 1L) {</span>
+<span class="fc" id="L83">                redisTemplate.expire(clave, politica.ventana());</span>
             }
 
-<span class="pc bpc" id="L95" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos &gt; politica.limite()) {</span>
-<span class="fc" id="L96">                log.warn(&quot;Rate limit por IP excedido: ip={} ambito={}&quot;, ip, politica.ambito());</span>
-<span class="fc" id="L97">                escribirRespuesta429(response, request, politica.ventana());</span>
-<span class="fc" id="L98">                return;</span>
+<span class="pc bpc" id="L86" title="1 of 4 branches missed.">            if (intentos != null &amp;&amp; intentos &gt; politica.limite()) {</span>
+<span class="fc" id="L87">                log.warn(&quot;Rate limit por IP excedido: ip={} ambito={}&quot;, ip, politica.ambito());</span>
+<span class="fc" id="L88">                escribirRespuesta429(response, request, politica.ventana());</span>
+<span class="fc" id="L89">                return;</span>
             }
-<span class="fc" id="L100">        } catch (DataAccessException e) {</span>
-<span class="fc" id="L101">            log.warn(&quot;No se pudo contactar a Redis para el rate limit ({}); se permite la solicitud (fail-open): {}&quot;,</span>
-<span class="fc" id="L102">                    politica.ambito(), e.getMessage());</span>
-<span class="fc" id="L103">        }</span>
+<span class="fc" id="L91">        } catch (DataAccessException e) {</span>
+<span class="fc" id="L92">            log.warn(&quot;No se pudo contactar a Redis para el rate limit ({}); se permite la solicitud (fail-open): {}&quot;,</span>
+<span class="fc" id="L93">                    politica.ambito(), e.getMessage());</span>
+<span class="fc" id="L94">        }</span>
 
-<span class="fc" id="L105">        filterChain.doFilter(request, response);</span>
-<span class="fc" id="L106">    }</span>
+<span class="fc" id="L96">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L97">    }</span>
 
     private Politica encontrarPolitica(HttpServletRequest request) {
-<span class="fc bfc" id="L109" title="All 2 branches covered.">        for (Politica politica : POLITICAS) {</span>
-<span class="fc bfc" id="L110" title="All 2 branches covered.">            if (politica.metodo().equalsIgnoreCase(request.getMethod())</span>
-<span class="fc bfc" id="L111" title="All 2 branches covered.">                    &amp;&amp; politica.ruta().equals(request.getRequestURI())) {</span>
-<span class="fc" id="L112">                return politica;</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        for (Politica politica : POLITICAS) {</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">            if (politica.metodo().equalsIgnoreCase(request.getMethod())</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">                    &amp;&amp; politica.ruta().equals(request.getRequestURI())) {</span>
+<span class="fc" id="L103">                return politica;</span>
             }
-<span class="fc" id="L114">        }</span>
-<span class="fc" id="L115">        return null;</span>
+<span class="fc" id="L105">        }</span>
+<span class="fc" id="L106">        return null;</span>
     }
 
     private void escribirRespuesta429(HttpServletResponse response, HttpServletRequest request, Duration ventana)
             throws IOException {
-<span class="fc" id="L120">        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
-<span class="fc" id="L121">        response.setHeader(&quot;Retry-After&quot;, String.valueOf(ventana.getSeconds()));</span>
-<span class="fc" id="L122">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
-<span class="fc" id="L123">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
+<span class="fc" id="L111">        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
+<span class="fc" id="L112">        response.setHeader(&quot;Retry-After&quot;, String.valueOf(ventana.getSeconds()));</span>
+<span class="fc" id="L113">        response.setContentType(MediaType.APPLICATION_JSON_VALUE);</span>
+<span class="fc" id="L114">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
 
-<span class="fc" id="L125">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L116">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
                 HttpStatus.TOO_MANY_REQUESTS,
                 &quot;Demasiados intentos. Intenta nuevamente en unos minutos.&quot;);
-<span class="fc" id="L128">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/cuota-excedida&quot;));</span>
-<span class="fc" id="L129">        problemDetail.setTitle(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase());</span>
-<span class="fc" id="L130">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
+<span class="fc" id="L119">        problemDetail.setType(URI.create(&quot;https://artisync.dev/errors/cuota-excedida&quot;));</span>
+<span class="fc" id="L120">        problemDetail.setTitle(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase());</span>
+<span class="fc" id="L121">        problemDetail.setInstance(URI.create(request.getRequestURI()));</span>
 
-<span class="fc" id="L132">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
-<span class="fc" id="L133">    }</span>
+<span class="fc" id="L123">        objectMapper.writeValue(response.getWriter(), problemDetail);</span>
+<span class="fc" id="L124">    }</span>
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

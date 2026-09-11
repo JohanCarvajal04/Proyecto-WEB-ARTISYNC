@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReconciliacionPayPalScheduler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">ReconciliacionPayPalScheduler.java</span></div><h1>ReconciliacionPayPalScheduler.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
+import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * REQ-NF-019: reconciliación activa contra la API de PayPal para pagos que
+ * quedaron 'Pendiente' más allá de un umbral, por si el webhook nunca llegó
+ * (entrega no garantizada por diseño: PayPal reintenta, pero no infinitamente).
+ *
+ * Requiere: @EnableScheduling en ArtisyncApplication (ya presente).
+ *
+ * A diferencia de los demás schedulers del paquete (umbral hardcodeado como
+ * constante), este usa @Value porque el propio REQ-NF-019 exige
+ * explícitamente un &quot;umbral de tiempo configurable&quot;.
+ */
+<span class="fc" id="L25">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class ReconciliacionPayPalScheduler {
+
+    private final PagoGarantiaRepository pagoGarantiaRepository;
+    private final ReconciliacionPayPalEjecutorServicio reconciliacionPayPalEjecutorServicio;
+
+    @Value(&quot;${paypal.reconciliacion.umbral-minutos:30}&quot;)
+    private int umbralMinutos;
+
+    /**
+     * Sin @Transactional aquí, mismo motivo que SorteoScheduler: cada pago se
+     * reconcilia en su propia transacción (ReconciliacionPayPalEjecutorServicio,
+     * REQUIRES_NEW) para que el fallo de uno no revierta a los demás.
+     */
+    @Scheduled(fixedRateString = &quot;${paypal.reconciliacion.intervalo-ms:900000}&quot;) // 15 min
+    public void reconciliarPagosPendientes() {
+<span class="fc" id="L43">        LocalDateTime limite = LocalDateTime.now().minusMinutes(umbralMinutos);</span>
+<span class="fc" id="L44">        List&lt;PagoGarantia&gt; pendientes = pagoGarantiaRepository</span>
+<span class="fc" id="L45">                .findByEstadoFondosAndFechaActualizacionBefore(&quot;Pendiente&quot;, limite);</span>
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (pendientes.isEmpty()) {</span>
+<span class="fc" id="L48">            return;</span>
+        }
+
+<span class="fc" id="L51">        log.info(&quot;[ReconciliacionPayPalScheduler] Reconciliando {} pago(s) pendiente(s) de más de {} min&quot;,</span>
+<span class="fc" id="L52">                pendientes.size(), umbralMinutos);</span>
+
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (PagoGarantia pago : pendientes) {</span>
+            try {
+<span class="fc" id="L56">                reconciliacionPayPalEjecutorServicio.reconciliar(pago.getIdPago());</span>
+<span class="fc" id="L57">            } catch (Exception e) {</span>
+<span class="fc" id="L58">                log.error(&quot;[ReconciliacionPayPalScheduler] Error reconciliando pago {}: {}&quot;,</span>
+<span class="fc" id="L59">                        pago.getIdPago(), e.getMessage(), e);</span>
+<span class="fc" id="L60">            }</span>
+<span class="fc" id="L61">        }</span>
+<span class="fc" id="L62">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

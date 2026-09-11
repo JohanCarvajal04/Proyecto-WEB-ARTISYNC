@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
@@ -40,120 +41,153 @@ import java.util.Map;
  * un CSV separado por comas. Aquí el bruto/comisión/neto los calcula la
  * función SQL, y el detalle pasa por FormateadorValores (Locale fijo).
  */
-<span class="fc" id="L43">@Slf4j</span>
+<span class="fc" id="L44">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio {
 
-<span class="fc" id="L48">    private static final DateTimeFormatter FORMATO_FECHA_SQL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;</span>
+<span class="fc" id="L49">    private static final DateTimeFormatter FORMATO_FECHA_SQL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;</span>
 
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final IServicioExportacion servicioExportacion;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Fuente unica con EntregableServicioImpl.tasaComision: si el filtro no
+     * trae una tasa explicita, se usa esta en vez de dejar que
+     * fn_reporte_comisiones_creador aplique su propio default 0.1000
+     * independiente en SQL.
+     */
+    @Value(&quot;${plataforma.comision-tasa:0.10}&quot;)
+    private BigDecimal tasaComisionPorDefecto;
+
     @Override
     @Transactional(readOnly = true)
     public RespuestaReporteComisiones obtenerReporteComisiones(FiltroReporteFinanciero filtro) {
-<span class="fc" id="L57">        return parsear(consultar(filtro));</span>
+<span class="fc" id="L67">        return parsear(consultar(filtro));</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = &quot;REPORTE_FINANCIERO_EXPORTAR&quot;, modulo = ModuloAuditoria.FINANZAS,
-            entidad = &quot;perfiles_creadores&quot;, idEntidad = &quot;#filtro.idPerfil&quot;, detalle = &quot;{formato: #formato}&quot;)
-    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
-<span class="fc" id="L65">        RespuestaReporteComisiones reporte = parsear(consultar(filtro));</span>
+            entidad = &quot;perfiles_creadores&quot;, idEntidad = &quot;#filtro.idPerfil&quot;, detalle = &quot;{formato: #formato, page: #page, size: #size}&quot;)
+    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+<span class="fc" id="L75">        RespuestaReporteComisiones reporte = parsear(consultar(filtro));</span>
+        List&lt;DetalleComision&gt; filas;
+<span class="fc" id="L77">        String titulo = &quot;Comisiones&quot;;</span>
+<span class="fc" id="L78">        String subtitulo = &quot;Reporte financiero por creador&quot;;</span>
 
-<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (reporte.detalle().size() &gt; formato.topeFilas()) {</span>
-<span class="fc" id="L68">            throw new ExcepcionReglaNegocio(</span>
-<span class="fc" id="L69">                    &quot;El reporte devuelve &quot; + reporte.detalle().size() + &quot; transacciones, más de las &quot;</span>
-<span class="fc" id="L70">                            + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
-                            + &quot;. Acote el rango de fechas.&quot;);
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (page != null) {</span>
+<span class="pc bpc" id="L81" title="3 of 6 branches missed.">            int pageSize = (size != null &amp;&amp; size &gt; 0 &amp;&amp; size &lt;= formato.topeFilas()) ? size : formato.topeFilas();</span>
+<span class="fc" id="L82">            int totalFilas = reporte.detalle().size();</span>
+<span class="fc" id="L83">            int totalPartes = Math.max(1, (int) Math.ceil((double) totalFilas / pageSize));</span>
+<span class="fc" id="L84">            int fromIndex = Math.min(page * pageSize, totalFilas);</span>
+<span class="fc" id="L85">            int toIndex = Math.min(fromIndex + pageSize, totalFilas);</span>
+<span class="fc" id="L86">            filas = reporte.detalle().subList(fromIndex, toIndex);</span>
+<span class="fc" id="L87">            int parte = page + 1;</span>
+<span class="fc" id="L88">            titulo = &quot;Comisiones - Parte &quot; + parte;</span>
+<span class="fc" id="L89">            subtitulo = &quot;Reporte financiero por creador — Parte &quot; + parte + &quot; de &quot; + totalPartes</span>
+                    + &quot; (&quot; + totalFilas + &quot; transacciones en total)&quot;;
+<span class="fc" id="L91">        } else {</span>
+<span class="fc" id="L92">            filas = reporte.detalle();</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            if (filas.size() &gt; formato.topeFilas()) {</span>
+<span class="fc" id="L94">                throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L95">                        &quot;El reporte devuelve &quot; + filas.size() + &quot; transacciones, más de las &quot;</span>
+<span class="fc" id="L96">                                + formato.topeFilas() + &quot; que admite una exportación en &quot; + formato</span>
+                                + &quot;. Acote el rango de fechas o utilice la opción de exportar por partes.&quot;);
+            }
         }
 
-<span class="fc" id="L74">        ModeloReporte&lt;DetalleComision&gt; modelo = ModeloReporte.&lt;DetalleComision&gt;builder()</span>
-<span class="fc" id="L75">                .titulo(&quot;Comisiones&quot;)</span>
-<span class="fc" id="L76">                .subtitulo(&quot;Reporte financiero por creador&quot;)</span>
-<span class="fc" id="L77">                .filtrosAplicados(filtrosLegibles(filtro, reporte))</span>
-<span class="fc" id="L78">                .columnas(List.of(</span>
-<span class="fc" id="L79">                        ColumnaReporte.fechaHora(&quot;Fecha&quot;, DetalleComision::fechaEjecucion),</span>
-<span class="fc" id="L80">                        ColumnaReporte.entero(&quot;Id. transacción&quot;, DetalleComision::idTransaccion),</span>
-<span class="fc" id="L81">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, DetalleComision::idPedido),</span>
-<span class="fc" id="L82">                        ColumnaReporte.texto(&quot;Servicio&quot;, DetalleComision::servicio),</span>
-<span class="fc" id="L83">                        ColumnaReporte.texto(&quot;Tipo&quot;, DetalleComision::tipo),</span>
-<span class="fc" id="L84">                        ColumnaReporte.moneda(&quot;Monto&quot;, DetalleComision::monto)))</span>
-<span class="fc" id="L85">                .filas(reporte.detalle())</span>
-<span class="fc" id="L86">                .totales(List.of(</span>
-<span class="fc" id="L87">                        new TotalReporte(&quot;Monto bruto&quot;, reporte.montoBruto(), TipoColumna.MONEDA),</span>
-<span class="fc" id="L88">                        new TotalReporte(&quot;Comisión&quot;, reporte.comision(), TipoColumna.MONEDA),</span>
-<span class="fc" id="L89">                        new TotalReporte(&quot;Monto neto&quot;, reporte.montoNeto(), TipoColumna.MONEDA)))</span>
-<span class="fc" id="L90">                .generadoPor(correoSolicitante)</span>
-<span class="fc" id="L91">                .build();</span>
+<span class="fc" id="L101">        ModeloReporte&lt;DetalleComision&gt; modelo = ModeloReporte.&lt;DetalleComision&gt;builder()</span>
+<span class="fc" id="L102">                .titulo(titulo)</span>
+<span class="fc" id="L103">                .subtitulo(subtitulo)</span>
+<span class="fc" id="L104">                .filtrosAplicados(filtrosLegibles(filtro, reporte))</span>
+<span class="fc" id="L105">                .columnas(List.of(</span>
+<span class="fc" id="L106">                        ColumnaReporte.fechaHora(&quot;Fecha&quot;, DetalleComision::fechaEjecucion),</span>
+<span class="fc" id="L107">                        ColumnaReporte.entero(&quot;Id. transacción&quot;, DetalleComision::idTransaccion),</span>
+<span class="fc" id="L108">                        ColumnaReporte.entero(&quot;Id. pedido&quot;, DetalleComision::idPedido),</span>
+<span class="fc" id="L109">                        ColumnaReporte.texto(&quot;Servicio&quot;, DetalleComision::servicio),</span>
+<span class="fc" id="L110">                        ColumnaReporte.texto(&quot;Tipo&quot;, DetalleComision::tipo),</span>
+<span class="fc" id="L111">                        ColumnaReporte.moneda(&quot;Monto&quot;, DetalleComision::monto)))</span>
+<span class="fc" id="L112">                .filas(filas)</span>
+<span class="fc" id="L113">                .totales(List.of(</span>
+<span class="fc" id="L114">                        new TotalReporte(&quot;Monto bruto&quot;, reporte.montoBruto(), TipoColumna.MONEDA),</span>
+<span class="fc" id="L115">                        new TotalReporte(&quot;Comisión&quot;, reporte.comision(), TipoColumna.MONEDA),</span>
+<span class="fc" id="L116">                        new TotalReporte(&quot;Monto neto&quot;, reporte.montoNeto(), TipoColumna.MONEDA)))</span>
+<span class="fc" id="L117">                .generadoPor(correoSolicitante)</span>
+<span class="fc" id="L118">                .build();</span>
 
-<span class="fc" id="L93">        return servicioExportacion.exportar(modelo, formato);</span>
+<span class="fc" id="L120">        return servicioExportacion.exportar(modelo, formato);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
+<span class="fc" id="L126">        return exportar(filtro, formato, null, null, correoSolicitante);</span>
     }
 
     private String consultar(FiltroReporteFinanciero filtro) {
-<span class="fc" id="L97">        String json = transaccionPagoRepository.reporteComisionesJson(</span>
-<span class="fc" id="L98">                filtro.getIdPerfil(), filtro.getDesde(), filtro.getHasta(), filtro.getTasaComision());</span>
-<span class="fc" id="L99">        log.info(&quot;Reporte de comisiones consultado para perfil {}&quot;, filtro.getIdPerfil());</span>
-<span class="fc" id="L100">        return json;</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        BigDecimal tasa = filtro.getTasaComision() != null ? filtro.getTasaComision() : tasaComisionPorDefecto;</span>
+<span class="fc" id="L131">        String json = transaccionPagoRepository.reporteComisionesJson(</span>
+<span class="fc" id="L132">                filtro.getIdPerfil(), filtro.getDesde(), filtro.getHasta(), tasa);</span>
+<span class="fc" id="L133">        log.info(&quot;Reporte de comisiones consultado para perfil {}&quot;, filtro.getIdPerfil());</span>
+<span class="fc" id="L134">        return json;</span>
     }
 
     private RespuestaReporteComisiones parsear(String json) {
         JsonNode nodo;
         try {
-<span class="fc" id="L106">            nodo = objectMapper.readTree(json);</span>
-<span class="nc" id="L107">        } catch (Exception e) {</span>
-<span class="nc" id="L108">            throw new IllegalStateException(&quot;No se pudo interpretar el reporte de comisiones: &quot; + e.getMessage(), e);</span>
-<span class="fc" id="L109">        }</span>
+<span class="fc" id="L140">            nodo = objectMapper.readTree(json);</span>
+<span class="nc" id="L141">        } catch (Exception e) {</span>
+<span class="nc" id="L142">            throw new RuntimeException(&quot;No se pudo interpretar el reporte de comisiones: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L143">        }</span>
 
-<span class="fc" id="L111">        List&lt;DetalleComision&gt; detalle = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">        for (JsonNode item : nodo.get(&quot;detalle&quot;)) {</span>
-<span class="fc" id="L113">            detalle.add(new DetalleComision(</span>
-<span class="fc" id="L114">                    item.get(&quot;idTransaccion&quot;).asLong(),</span>
-<span class="pc bpc" id="L115" title="1 of 4 branches missed.">                    item.get(&quot;idPedido&quot;) != null &amp;&amp; !item.get(&quot;idPedido&quot;).isNull() ? item.get(&quot;idPedido&quot;).asLong() : null,</span>
-<span class="fc" id="L116">                    textoONulo(item.get(&quot;servicio&quot;)),</span>
-<span class="fc" id="L117">                    textoONulo(item.get(&quot;tipo&quot;)),</span>
-<span class="fc" id="L118">                    item.get(&quot;monto&quot;).decimalValue(),</span>
-<span class="fc" id="L119">                    fechaONula(item.get(&quot;fechaEjecucion&quot;))));</span>
-<span class="fc" id="L120">        }</span>
+<span class="fc" id="L145">        List&lt;DetalleComision&gt; detalle = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        for (JsonNode item : nodo.get(&quot;detalle&quot;)) {</span>
+<span class="fc" id="L147">            detalle.add(new DetalleComision(</span>
+<span class="fc" id="L148">                    item.get(&quot;idTransaccion&quot;).asLong(),</span>
+<span class="pc bpc" id="L149" title="1 of 4 branches missed.">                    item.get(&quot;idPedido&quot;) != null &amp;&amp; !item.get(&quot;idPedido&quot;).isNull() ? item.get(&quot;idPedido&quot;).asLong() : null,</span>
+<span class="fc" id="L150">                    textoONulo(item.get(&quot;servicio&quot;)),</span>
+<span class="fc" id="L151">                    textoONulo(item.get(&quot;tipo&quot;)),</span>
+<span class="fc" id="L152">                    item.get(&quot;monto&quot;).decimalValue(),</span>
+<span class="fc" id="L153">                    fechaONula(item.get(&quot;fechaEjecucion&quot;))));</span>
+<span class="fc" id="L154">        }</span>
 
-<span class="fc" id="L122">        return new RespuestaReporteComisiones(</span>
-<span class="fc" id="L123">                nodo.get(&quot;idPerfil&quot;).asLong(),</span>
-<span class="fc" id="L124">                fechaONula(nodo.get(&quot;fechaDesde&quot;)),</span>
-<span class="fc" id="L125">                fechaONula(nodo.get(&quot;fechaHasta&quot;)),</span>
-<span class="fc" id="L126">                nodo.get(&quot;tasaComision&quot;).decimalValue(),</span>
-<span class="fc" id="L127">                nodo.get(&quot;totalPedidos&quot;).asLong(),</span>
-<span class="fc" id="L128">                nodo.get(&quot;totalOperaciones&quot;).asLong(),</span>
-<span class="fc" id="L129">                nodo.get(&quot;montoBruto&quot;).decimalValue(),</span>
-<span class="fc" id="L130">                nodo.get(&quot;comision&quot;).decimalValue(),</span>
-<span class="fc" id="L131">                nodo.get(&quot;montoNeto&quot;).decimalValue(),</span>
+<span class="fc" id="L156">        return new RespuestaReporteComisiones(</span>
+<span class="fc" id="L157">                nodo.get(&quot;idPerfil&quot;).asLong(),</span>
+<span class="fc" id="L158">                fechaONula(nodo.get(&quot;fechaDesde&quot;)),</span>
+<span class="fc" id="L159">                fechaONula(nodo.get(&quot;fechaHasta&quot;)),</span>
+<span class="fc" id="L160">                nodo.get(&quot;tasaComision&quot;).decimalValue(),</span>
+<span class="fc" id="L161">                nodo.get(&quot;totalPedidos&quot;).asLong(),</span>
+<span class="fc" id="L162">                nodo.get(&quot;totalOperaciones&quot;).asLong(),</span>
+<span class="fc" id="L163">                nodo.get(&quot;montoBruto&quot;).decimalValue(),</span>
+<span class="fc" id="L164">                nodo.get(&quot;comision&quot;).decimalValue(),</span>
+<span class="fc" id="L165">                nodo.get(&quot;montoNeto&quot;).decimalValue(),</span>
                 detalle);
     }
 
     private String textoONulo(JsonNode nodo) {
-<span class="pc bpc" id="L136" title="1 of 4 branches missed.">        return nodo == null || nodo.isNull() ? null : nodo.asText();</span>
+<span class="pc bpc" id="L170" title="1 of 4 branches missed.">        return nodo == null || nodo.isNull() ? null : nodo.asText();</span>
     }
 
     private LocalDateTime fechaONula(JsonNode nodo) {
-<span class="pc bpc" id="L140" title="1 of 4 branches missed.">        if (nodo == null || nodo.isNull()) {</span>
-<span class="fc" id="L141">            return null;</span>
+<span class="pc bpc" id="L174" title="1 of 4 branches missed.">        if (nodo == null || nodo.isNull()) {</span>
+<span class="fc" id="L175">            return null;</span>
         }
-<span class="fc" id="L143">        return LocalDateTime.parse(nodo.asText(), FORMATO_FECHA_SQL);</span>
+<span class="fc" id="L177">        return LocalDateTime.parse(nodo.asText(), FORMATO_FECHA_SQL);</span>
     }
 
     private Map&lt;String, String&gt; filtrosLegibles(FiltroReporteFinanciero filtro, RespuestaReporteComisiones reporte) {
-<span class="fc" id="L147">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L148">        filtros.put(&quot;Id. perfil&quot;, String.valueOf(filtro.getIdPerfil()));</span>
-<span class="pc bpc" id="L149" title="1 of 2 branches missed.">        if (filtro.getDesde() != null) {</span>
-<span class="nc" id="L150">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
+<span class="fc" id="L181">        Map&lt;String, String&gt; filtros = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L182">        filtros.put(&quot;Id. perfil&quot;, String.valueOf(filtro.getIdPerfil()));</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">        if (filtro.getDesde() != null) {</span>
+<span class="nc" id="L184">            filtros.put(&quot;Desde&quot;, filtro.getDesde().toString());</span>
         }
-<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        if (filtro.getHasta() != null) {</span>
-<span class="nc" id="L153">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        if (filtro.getHasta() != null) {</span>
+<span class="nc" id="L187">            filtros.put(&quot;Hasta&quot;, filtro.getHasta().toString());</span>
         }
-<span class="fc" id="L155">        filtros.put(&quot;Tasa de comisión&quot;, reporte.tasaComision().toString());</span>
-<span class="fc" id="L156">        return filtros;</span>
+<span class="fc" id="L189">        filtros.put(&quot;Tasa de comisión&quot;, reporte.tasaComision().toString());</span>
+<span class="fc" id="L190">        return filtros;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

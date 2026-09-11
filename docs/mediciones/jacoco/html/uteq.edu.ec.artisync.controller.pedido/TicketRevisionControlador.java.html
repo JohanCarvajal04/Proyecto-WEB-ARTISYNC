@@ -21,32 +21,59 @@ public class TicketRevisionControlador {
 
     private final ITicketRevisionServicio ticketRevisionServicio;
 
+    /**
+     * Crea un ticket de revisión (rechazo) para el entregable actual de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que crea el ticket
+     * @param peticion datos del ticket de revisión, incluyendo el motivo de rechazo
+     * @return el ticket de revisión creado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el pedido o el motivo de rechazo no existen
+     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido
+     */
     @PostMapping(&quot;/pedidos/{idPedido}/tickets-revision&quot;)
     @PreAuthorize(&quot;hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaTicketRevision&gt; crearTicket(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PeticionCrearTicketRevision peticion) {
-<span class="fc" id="L30">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L31">                .body(ticketRevisionServicio.crearTicketRevision(idPedido, userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L40">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L41">                .body(ticketRevisionServicio.crearTicketRevision(idPedido, userDetails.getIdUsuario(), peticion));</span>
     }
 
+    /**
+     * Lista los tickets de revisión asociados a un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta los tickets
+     * @return listado de tickets de revisión del pedido
+     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
+     */
     @GetMapping(&quot;/pedidos/{idPedido}/tickets-revision&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;List&lt;RespuestaTicketRevision&gt;&gt; listarTickets(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L39">        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L57">        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Cambia el estado de un ticket de revisión.
+     *
+     * @param idTicket identificador del ticket de revisión
+     * @param userDetails usuario autenticado que solicita el cambio de estado
+     * @param nuevoEstado nuevo estado a asignar al ticket
+     * @return el ticket de revisión con su estado actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el ticket no existe
+     */
     @PutMapping(&quot;/tickets-revision/{idTicket}/estado&quot;)
     @PreAuthorize(&quot;hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaTicketRevision&gt; cambiarEstado(
             @PathVariable Long idTicket,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String nuevoEstado) {
-<span class="fc" id="L48">        return ResponseEntity.ok(</span>
-<span class="fc" id="L49">                ticketRevisionServicio.cambiarEstadoTicket(idTicket, userDetails.getIdUsuario(), nuevoEstado));</span>
+<span class="fc" id="L75">        return ResponseEntity.ok(</span>
+<span class="fc" id="L76">                ticketRevisionServicio.cambiarEstadoTicket(idTicket, userDetails.getIdUsuario(), nuevoEstado));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

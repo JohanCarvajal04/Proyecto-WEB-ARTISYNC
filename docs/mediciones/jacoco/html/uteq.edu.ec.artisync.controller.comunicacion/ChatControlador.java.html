@@ -33,6 +33,16 @@ public class ChatControlador {
 
     private final ChatService chatService;
 
+    /**
+     * Obtiene el historial paginado de mensajes de la sala de chat de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param pageable configuración de paginación
+     * @param userDetails usuario autenticado que solicita el historial
+     * @return página con los mensajes de la sala de chat
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido
+     */
     @Operation(summary = &quot;Historial de mensajes de un pedido (paginado)&quot;)
     @GetMapping(&quot;/mensajes&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -40,9 +50,19 @@ public class ChatControlador {
             @PathVariable Long idPedido,
             Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L43">        return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, userDetails.getIdUsuario(), pageable));</span>
+<span class="fc" id="L53">        return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, userDetails.getIdUsuario(), pageable));</span>
     }
 
+    /**
+     * Envía un mensaje al chat de un pedido por REST, como alternativa al canal WebSocket.
+     *
+     * @param idPedido identificador del pedido
+     * @param peticion cuerpo del mensaje a enviar
+     * @param userDetails usuario autenticado que envía el mensaje
+     * @return el mensaje enviado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido, la sala está cerrada o el mensaje contiene datos de contacto
+     */
     @Operation(summary = &quot;Enviar mensaje por REST (fallback sin WebSocket)&quot;)
     @PostMapping(&quot;/mensajes&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
@@ -50,18 +70,27 @@ public class ChatControlador {
             @PathVariable Long idPedido,
             @Valid @RequestBody PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L53">        RespuestaMensajeChat respuesta = chatService.enviarMensaje(</span>
-<span class="fc" id="L54">                idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
-<span class="fc" id="L55">        return ResponseEntity.ok(respuesta);</span>
+<span class="fc" id="L73">        RespuestaMensajeChat respuesta = chatService.enviarMensaje(</span>
+<span class="fc" id="L74">                idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
+<span class="fc" id="L75">        return ResponseEntity.ok(respuesta);</span>
     }
 
+    /**
+     * Obtiene el estado actual de la sala de chat de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta el estado
+     * @return el estado de la sala de chat
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido
+     */
     @Operation(summary = &quot;Estado actual de la sala de chat de un pedido&quot;)
     @GetMapping(&quot;/estado&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaSalaChat&gt; obtenerEstado(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L64">        return ResponseEntity.ok(chatService.obtenerEstadoSala(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L93">        return ResponseEntity.ok(chatService.obtenerEstadoSala(idPedido, userDetails.getIdUsuario()));</span>
     }
 
     // -------------------------------------------------------------------------
@@ -71,16 +100,21 @@ public class ChatControlador {
     /**
      * Endpoint STOMP: el cliente envía a /app/chat.enviar con el idPedido y cuerpo del mensaje.
      * La respuesta se publica automáticamente en /topic/sala.{idSala} desde ChatServiceImpl.
+     *
+     * @param peticion mensaje entrante con el identificador del pedido y el cuerpo del mensaje
+     * @param userDetails usuario autenticado que envía el mensaje
+     * @throws ExcepcionReglaNegocio si no se indica el identificador del pedido, el usuario no participa en él,
+     *      la sala está cerrada o el mensaje contiene datos de contacto
      */
     @MessageMapping(&quot;/chat.enviar&quot;)
     public void enviarMensajeWs(
             @Payload PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (peticion.getIdPedido() == null) {</span>
-<span class="fc" id="L80">            log.warn(&quot;Mensaje STOMP recibido sin idPedido, usuario {}&quot;, userDetails.getIdUsuario());</span>
-<span class="fc" id="L81">            throw new ExcepcionReglaNegocio(&quot;idPedido es obligatorio para enviar mensajes por WebSocket&quot;);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (peticion.getIdPedido() == null) {</span>
+<span class="fc" id="L114">            log.warn(&quot;Mensaje STOMP recibido sin idPedido, usuario {}&quot;, userDetails.getIdUsuario());</span>
+<span class="fc" id="L115">            throw new ExcepcionReglaNegocio(&quot;idPedido es obligatorio para enviar mensajes por WebSocket&quot;);</span>
         }
-<span class="fc" id="L83">        chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
-<span class="fc" id="L84">    }</span>
+<span class="fc" id="L117">        chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());</span>
+<span class="fc" id="L118">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

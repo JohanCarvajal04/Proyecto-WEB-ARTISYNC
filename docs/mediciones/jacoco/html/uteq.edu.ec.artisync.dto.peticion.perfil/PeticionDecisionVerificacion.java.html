@@ -3,12 +3,24 @@
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-<span class="fc" id="L6">public record PeticionDecisionVerificacion(</span>
-        @NotNull(message = &quot;El nuevo estado de verificación es obligatorio&quot;)
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Payload del administrador para aprobar o rechazar la validacion KYC de un usuario.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
+<span class="fc" id="L15">public record PeticionDecisionVerificacion(</span>
+        @NotNull(message = &quot;El nuevo estado de verificaciÃ³n es obligatorio&quot;)
         Long idEstadoVerificacion,
 
         @Size(max = 500, message = &quot;La nota no puede superar los 500 caracteres&quot;)
         String notaModerador
 ) {
 }
+
+
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

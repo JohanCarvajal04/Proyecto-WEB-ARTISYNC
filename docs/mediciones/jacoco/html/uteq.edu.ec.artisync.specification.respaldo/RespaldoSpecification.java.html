@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoSpecification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.specification.respaldo</a> &gt; <span class="el_source">RespaldoSpecification.java</span></div><h1>RespaldoSpecification.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.specification.respaldo;
+
+import org.springframework.data.jpa.domain.Specification;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.FiltroRespaldo;
+import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
+
+public final class RespaldoSpecification {
+
+    private RespaldoSpecification() {
+    }
+
+    public static Specification&lt;Respaldo&gt; conFiltro(FiltroRespaldo filtro) {
+<span class="fc" id="L13">        return (root, query, cb) -&gt; {</span>
+<span class="nc" id="L14">            var predicados = cb.conjunction();</span>
+
+<span class="nc bnc" id="L16" title="All 2 branches missed.">            if (filtro.getTipoRespaldo() != null) {</span>
+<span class="nc" id="L17">                predicados = cb.and(predicados, cb.equal(root.get(&quot;tipoRespaldo&quot;), filtro.getTipoRespaldo()));</span>
+            }
+<span class="nc bnc" id="L19" title="All 2 branches missed.">            if (filtro.getEstadoRespaldo() != null) {</span>
+<span class="nc" id="L20">                predicados = cb.and(predicados, cb.equal(root.get(&quot;estadoRespaldo&quot;), filtro.getEstadoRespaldo()));</span>
+            }
+<span class="nc bnc" id="L22" title="All 2 branches missed.">            if (filtro.getOrigen() != null) {</span>
+<span class="nc" id="L23">                predicados = cb.and(predicados, cb.equal(root.get(&quot;origen&quot;), filtro.getOrigen()));</span>
+            }
+<span class="nc bnc" id="L25" title="All 2 branches missed.">            if (filtro.getDesde() != null) {</span>
+<span class="nc" id="L26">                predicados = cb.and(predicados, cb.greaterThanOrEqualTo(root.get(&quot;fechaInicio&quot;), filtro.getDesde()));</span>
+            }
+<span class="nc bnc" id="L28" title="All 2 branches missed.">            if (filtro.getHasta() != null) {</span>
+<span class="nc" id="L29">                predicados = cb.and(predicados, cb.lessThanOrEqualTo(root.get(&quot;fechaInicio&quot;), filtro.getHasta()));</span>
+            }
+<span class="nc" id="L31">            return predicados;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

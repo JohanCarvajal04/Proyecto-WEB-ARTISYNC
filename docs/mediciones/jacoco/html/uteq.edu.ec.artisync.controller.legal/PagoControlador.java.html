@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCancelarPago;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IPagoServicio;
@@ -16,20 +17,65 @@ public class PagoControlador {
 
     private final IPagoServicio pagoServicio;
 
+    /**
+     * Crea una orden de pago de PayPal para un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que inicia el pago
+     * @return la orden de pago creada
+     * @throws ExcepcionRecursoNoEncontrado si no existe contrato para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido, el contrato no está firmado por ambas partes,
+     *      o ocurre un error al comunicarse con PayPal
+     */
     @PostMapping(&quot;/{idPedido}/pago&quot;)
     @PreAuthorize(&quot;hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPago&gt; crearOrdenPago(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L24">        return ResponseEntity.ok(pagoServicio.crearOrdenPayPal(idPedido, userDetails.getIdUsuario(), null));</span>
+<span class="fc" id="L35">        return ResponseEntity.ok(pagoServicio.crearOrdenPayPal(idPedido, userDetails.getIdUsuario(), null));</span>
     }
 
+    /**
+     * Obtiene el estado del pago asociado a un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta el pago
+     * @return el estado actual del pago
+     * @throws ExcepcionRecursoNoEncontrado si no existe contrato o pago registrado para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no tiene acceso al pago del pedido
+     */
     @GetMapping(&quot;/{idPedido}/pago/estado&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaPago&gt; obtenerEstadoPago(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="nc" id="L32">        return ResponseEntity.ok(pagoServicio.obtenerEstadoPago(idPedido, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L52">        return ResponseEntity.ok(pagoServicio.obtenerEstadoPago(idPedido, userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Cancela un pedido con fondos ya retenidos en escrow (REQ-NF-019),
+     * reembolsando al cliente vía PayPal o (solo administrador) liberando los
+     * fondos al creador. La autorización fina (cliente-o-admin, y que solo un
+     * admin pueda liberar) vive en el servicio, igual que en obtenerEstadoPago.
+     *
+     * @param idPedido    identificador del pedido a cancelar
+     * @param userDetails usuario autenticado que solicita la cancelación
+     * @param peticion    acción sobre los fondos (&quot;REEMBOLSAR&quot;/&quot;LIBERAR&quot;) y motivo; body opcional
+     * @return el estado final del pago tras la cancelación
+     * @throws ExcepcionRecursoNoEncontrado si no existe contrato o pago registrado para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no tiene permiso, la acción no es válida,
+     *      o el pago no está en un estado cancelable
+     */
+    @PostMapping(&quot;/{idPedido}/pago/cancelar&quot;)
+    @PreAuthorize(&quot;isAuthenticated()&quot;)
+    public ResponseEntity&lt;RespuestaPago&gt; cancelarPago(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody(required = false) PeticionCancelarPago peticion) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        String accionFondos = peticion != null ? peticion.getAccionFondos() : null;</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        String motivo = peticion != null ? peticion.getMotivo() : null;</span>
+<span class="fc" id="L77">        return ResponseEntity.ok(pagoServicio.cancelarPedidoConFondosRetenidos(</span>
+<span class="fc" id="L78">                idPedido, userDetails.getIdUsuario(), accionFondos, motivo));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

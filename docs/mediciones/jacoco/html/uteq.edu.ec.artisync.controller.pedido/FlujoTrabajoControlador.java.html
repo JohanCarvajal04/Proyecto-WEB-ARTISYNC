@@ -31,53 +31,110 @@ public class FlujoTrabajoControlador {
 
     private final IFlujoTrabajoServicio flujoTrabajoServicio;
 
+    /**
+     * Crea un nuevo flujo de trabajo para el usuario autenticado.
+     *
+     * @param peticion datos del flujo de trabajo a crear, incluyendo sus etapas
+     * @param userDetails usuario autenticado propietario del flujo
+     * @return el flujo de trabajo creado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si ya existe un flujo con el mismo nombre
+     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     * @throws ExcepcionReglaNegocio si las etapas indicadas tienen nombres o números de orden repetidos
+     */
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; crearFlujo(
             @Valid @RequestBody PeticionCrearFlujoTrabajo peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L39">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L40">                .body(flujoTrabajoServicio.crearFlujoTrabajo(userDetails.getIdUsuario(), peticion));</span>
+<span class="fc" id="L49">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L50">                .body(flujoTrabajoServicio.crearFlujoTrabajo(userDetails.getIdUsuario(), peticion));</span>
     }
 
+    /**
+     * Lista los flujos de trabajo visibles para el usuario autenticado: los propios,
+     * o todos si tiene FLUJO_MODERAR/ADMIN.
+     *
+     * @param userDetails usuario autenticado
+     * @return listado de flujos de trabajo
+     */
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;RespuestaFlujoTrabajo&gt;&gt; listarFlujos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L47">        return ResponseEntity.ok(flujoTrabajoServicio.listarFlujosTrabajo(</span>
-<span class="fc" id="L48">                userDetails.getIdUsuario(), puedeVerTodos(userDetails)));</span>
+<span class="fc" id="L64">        return ResponseEntity.ok(flujoTrabajoServicio.listarFlujosTrabajo(</span>
+<span class="fc" id="L65">                userDetails.getIdUsuario(), puedeVerTodos(userDetails)));</span>
     }
 
+    /**
+     * Obtiene el detalle de un flujo de trabajo por su identificador.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param userDetails usuario autenticado que consulta el flujo
+     * @return el flujo de trabajo solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el usuario
+     */
     @GetMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; obtenerFlujo(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L56">        return ResponseEntity.ok(flujoTrabajoServicio.obtenerFlujoPorId(</span>
-<span class="fc" id="L57">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails)));</span>
+<span class="fc" id="L81">        return ResponseEntity.ok(flujoTrabajoServicio.obtenerFlujoPorId(</span>
+<span class="fc" id="L82">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails)));</span>
     }
 
+    /**
+     * Actualiza los datos de un flujo de trabajo existente.
+     *
+     * @param id identificador del flujo de trabajo a actualizar
+     * @param peticion datos actualizados del flujo de trabajo
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el flujo de trabajo actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el usuario
+     * @throws ExcepcionRecursoDuplicado si ya existe otro flujo con el mismo nombre
+     */
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; actualizarFlujo(
             @PathVariable Long id,
             @Valid @RequestBody PeticionCrearFlujoTrabajo peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L66">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarFlujoTrabajo(</span>
-<span class="fc" id="L67">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
+<span class="fc" id="L101">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarFlujoTrabajo(</span>
+<span class="fc" id="L102">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
+    /**
+     * Agrega una nueva etapa a un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param peticion datos de la etapa a agregar
+     * @param userDetails usuario autenticado que solicita agregar la etapa
+     * @return el flujo de trabajo actualizado, con estado 201
+     * @throws ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el usuario
+     * @throws ExcepcionRecursoDuplicado si ya existe una etapa con el mismo nombre en el flujo
+     * @throws ExcepcionReglaNegocio si el número de orden de la etapa ya está en uso
+     */
     @PostMapping(&quot;/{id}/etapas&quot;)
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; agregarEtapa(
             @PathVariable Long id,
             @Valid @RequestBody PeticionEtapaConfig peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L76">        return ResponseEntity.status(HttpStatus.CREATED)</span>
-<span class="fc" id="L77">                .body(flujoTrabajoServicio.agregarEtapa(</span>
-<span class="fc" id="L78">                        id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
+<span class="fc" id="L122">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L123">                .body(flujoTrabajoServicio.agregarEtapa(</span>
+<span class="fc" id="L124">                        id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
+    /**
+     * Actualiza la configuración de una etapa de un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param etapaId identificador de la configuración de etapa a actualizar
+     * @param peticion datos actualizados de la etapa
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el flujo de trabajo actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el flujo o la configuración de etapa no existen
+     * @throws ExcepcionReglaNegocio si la etapa no pertenece al flujo especificado
+     */
     @PutMapping(&quot;/{id}/etapas/{etapaId}&quot;)
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; actualizarEtapa(
@@ -85,33 +142,53 @@ public class FlujoTrabajoControlador {
             @PathVariable Long etapaId,
             @Valid @RequestBody PeticionEtapaConfig peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L88">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarEtapa(</span>
-<span class="fc" id="L89">                id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
+<span class="fc" id="L145">        return ResponseEntity.ok(flujoTrabajoServicio.actualizarEtapa(</span>
+<span class="fc" id="L146">                id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
+    /**
+     * Intercambia el orden de dos etapas de un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param peticion identificadores de las dos etapas a intercambiar
+     * @param userDetails usuario autenticado que solicita el intercambio
+     * @return el flujo de trabajo actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el flujo o alguna de las configuraciones de etapa no existen
+     * @throws ExcepcionReglaNegocio si se intenta intercambiar una etapa consigo misma, o las etapas no pertenecen al flujo
+     */
     @PutMapping(&quot;/{id}/etapas/reordenar&quot;)
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaFlujoTrabajo&gt; intercambiarOrdenEtapas(
             @PathVariable Long id,
             @Valid @RequestBody PeticionSwapEtapas peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L98">        return ResponseEntity.ok(flujoTrabajoServicio.intercambiarOrdenEtapas(</span>
-<span class="fc" id="L99">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
+<span class="fc" id="L165">        return ResponseEntity.ok(flujoTrabajoServicio.intercambiarOrdenEtapas(</span>
+<span class="fc" id="L166">                id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));</span>
     }
 
+    /**
+     * Elimina una etapa de un flujo de trabajo.
+     *
+     * @param id identificador del flujo de trabajo
+     * @param etapaId identificador de la configuración de etapa a eliminar
+     * @param userDetails usuario autenticado que solicita la eliminación
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el flujo o la configuración de etapa no existen
+     * @throws ExcepcionReglaNegocio si la etapa no pertenece al flujo o hay pedidos actualmente detenidos en ella
+     */
     @DeleteMapping(&quot;/{id}/etapas/{etapaId}&quot;)
     @PreAuthorize(&quot;hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarEtapa(
             @PathVariable Long id,
             @PathVariable Long etapaId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L108">        flujoTrabajoServicio.eliminarEtapa(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));</span>
-<span class="fc" id="L109">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etapa eliminada exitosamente del flujo de trabajo&quot;));</span>
+<span class="fc" id="L185">        flujoTrabajoServicio.eliminarEtapa(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));</span>
+<span class="fc" id="L186">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Etapa eliminada exitosamente del flujo de trabajo&quot;));</span>
     }
 
     private boolean puedeVerTodos(CustomUserDetails userDetails) {
-<span class="fc" id="L113">        return userDetails.getAuthorities().stream()</span>
-<span class="pc bpc" id="L114" title="3 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;FLUJO_MODERAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
+<span class="fc" id="L190">        return userDetails.getAuthorities().stream()</span>
+<span class="pc bpc" id="L191" title="3 of 4 branches missed.">                .anyMatch(a -&gt; a.getAuthority().equals(&quot;FLUJO_MODERAR&quot;) || a.getAuthority().equals(&quot;ROLE_ADMIN&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

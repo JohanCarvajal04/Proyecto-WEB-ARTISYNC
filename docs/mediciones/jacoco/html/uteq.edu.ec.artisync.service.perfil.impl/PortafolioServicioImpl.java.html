@@ -13,6 +13,7 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
+import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
 import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
@@ -24,13 +25,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
-<span class="fc" id="L27">@Slf4j</span>
+<span class="fc" id="L28">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class PortafolioServicioImpl implements IPortafolioServicio {
 
     /** Una visita del mismo usuario al mismo portafolio solo cuenta una vez por día. */
-<span class="fc" id="L33">    private static final Duration VENTANA_DEDUP_VISITA = Duration.ofHours(24);</span>
+<span class="fc" id="L34">    private static final Duration VENTANA_DEDUP_VISITA = Duration.ofHours(24);</span>
 
     private final PortafolioRepository portafolioRepository;
     private final PerfilCreadorRepository perfilRepository;
@@ -39,56 +40,72 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     @Override
     @Transactional
     public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion, Long idUsuarioLogueado) {
-<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {</span>
-<span class="fc" id="L43">            throw new ExcepcionRecursoDuplicado(&quot;El perfil de creador ya cuenta con un portafolio registrado.&quot;);</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {</span>
+<span class="fc" id="L44">            throw new ExcepcionRecursoDuplicado(&quot;El perfil de creador ya cuenta con un portafolio registrado.&quot;);</span>
         }
 
-<span class="fc" id="L46">        PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())</span>
-<span class="fc" id="L47">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + peticion.idPerfil()));</span>
+<span class="fc" id="L47">        PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())</span>
+<span class="fc" id="L48">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Perfil no encontrado con ID: &quot; + peticion.idPerfil()));</span>
 
-<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (!perfil.getUsuario().getIdUsuario().equals(idUsuarioLogueado)) {</span>
-<span class="fc" id="L50">            throw new ExcepcionReglaNegocio(&quot;No tiene permisos para crear un portafolio para este perfil.&quot;);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!perfil.getUsuario().getIdUsuario().equals(idUsuarioLogueado)) {</span>
+<span class="fc" id="L51">            throw new ExcepcionReglaNegocio(&quot;No tiene permisos para crear un portafolio para este perfil.&quot;);</span>
         }
 
-<span class="fc" id="L53">        Portafolio portafolio = Portafolio.builder()</span>
-<span class="fc" id="L54">                .perfil(perfil)</span>
-<span class="fc bfc" id="L55" title="All 2 branches covered.">                .esPublico(peticion.esPublico() != null ? peticion.esPublico() : true)</span>
-<span class="fc bfc" id="L56" title="All 2 branches covered.">                .opcionesPersonalizacion(peticion.opcionesPersonalizacion() != null ? peticion.opcionesPersonalizacion() : java.util.Map.of(</span>
+<span class="fc" id="L54">        Portafolio portafolio = Portafolio.builder()</span>
+<span class="fc" id="L55">                .perfil(perfil)</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">                .esPublico(peticion.esPublico() != null ? peticion.esPublico() : true)</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">                .opcionesPersonalizacion(peticion.opcionesPersonalizacion() != null ? peticion.opcionesPersonalizacion() : java.util.Map.of(</span>
                         &quot;primary&quot;, &quot;#0d6efd&quot;,
                         &quot;secondary&quot;, &quot;#6c757d&quot;,
                         &quot;bg&quot;, &quot;#f8f9fa&quot;,
                         &quot;text&quot;, &quot;#212529&quot;,
                         &quot;surface&quot;, &quot;#ffffff&quot;
                 ))
-<span class="fc" id="L63">                .totalVisitasAcumuladas(0)</span>
-<span class="fc" id="L64">                .build();</span>
+<span class="fc" id="L64">                .totalVisitasAcumuladas(0)</span>
+<span class="fc" id="L65">                .build();</span>
 
-<span class="fc" id="L66">        Portafolio guardado = portafolioRepository.save(portafolio);</span>
-<span class="fc" id="L67">        return mapearARespuesta(guardado);</span>
+<span class="fc" id="L67">        Portafolio guardado = portafolioRepository.save(portafolio);</span>
+<span class="fc" id="L68">        return mapearARespuesta(guardado);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio) {
-<span class="fc" id="L73">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
-<span class="fc" id="L74">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
-<span class="fc" id="L75">        return mapearARespuesta(portafolio);</span>
+<span class="fc" id="L74">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
+<span class="fc" id="L75">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+<span class="fc" id="L76">        exigirCuentaActiva(portafolio);</span>
+<span class="fc" id="L77">        return mapearARespuesta(portafolio);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil) {
-<span class="fc" id="L81">        Portafolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)</span>
-<span class="fc" id="L82">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No se encontró portafolio para el perfil con ID: &quot; + idPerfil));</span>
-<span class="fc" id="L83">        return mapearARespuesta(portafolio);</span>
+<span class="fc" id="L83">        Portafolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)</span>
+<span class="fc" id="L84">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No se encontró portafolio para el perfil con ID: &quot; + idPerfil));</span>
+<span class="fc" id="L85">        exigirCuentaActiva(portafolio);</span>
+<span class="fc" id="L86">        return mapearARespuesta(portafolio);</span>
     }
+
+    /**
+     * REQ-NF-018 (ajuste de seguimiento): mismo criterio que
+     * PerfilCreadorServicioImpl.exigirCuentaActiva. Un portafolio sin perfil
+     * asociado (dato huérfano, ya contemplado por mapearARespuesta) no se
+     * confunde con &quot;cuenta desactivada&quot; — solo se rechaza cuando SÍ hay un
+     * dueño identificado y su cuenta está inactiva.
+     */
+    private void exigirCuentaActiva(Portafolio portafolio) {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        Usuario usuario = portafolio.getPerfil() != null ? portafolio.getPerfil().getUsuario() : null;</span>
+<span class="fc bfc" id="L98" title="All 4 branches covered.">        if (usuario != null &amp;&amp; !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {</span>
+<span class="fc" id="L99">            throw new ExcepcionRecursoNoEncontrado(&quot;Portafolio no disponible&quot;);</span>
+        }
+<span class="fc" id="L101">    }</span>
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaPortafolio&gt; listarPortafolios() {
-<span class="fc" id="L89">        return portafolioRepository.findAll().stream()</span>
-<span class="fc" id="L90">                .map(this::mapearARespuesta)</span>
-<span class="fc" id="L91">                .collect(Collectors.toList());</span>
+<span class="fc" id="L106">        return portafolioRepository.findAll().stream()</span>
+<span class="fc" id="L107">                .map(this::mapearARespuesta)</span>
+<span class="fc" id="L108">                .collect(Collectors.toList());</span>
     }
 
     @Override
@@ -97,36 +114,36 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
             entidad = &quot;portafolios&quot;, idEntidad = &quot;#idPortafolio&quot;,
             detalle = &quot;{esPublico: #peticion.esPublico}&quot;)
     public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion, Long idUsuarioLogueado) {
-<span class="fc" id="L100">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
-<span class="fc" id="L101">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+<span class="fc" id="L117">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
+<span class="fc" id="L118">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
 
-<span class="fc" id="L103">        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();</span>
-<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (!idDuenio.equals(idUsuarioLogueado)) {</span>
-<span class="fc" id="L105">            throw new ExcepcionReglaNegocio(&quot;No tiene permisos para modificar este portafolio.&quot;);</span>
+<span class="fc" id="L120">        Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (!idDuenio.equals(idUsuarioLogueado)) {</span>
+<span class="fc" id="L122">            throw new ExcepcionReglaNegocio(&quot;No tiene permisos para modificar este portafolio.&quot;);</span>
         }
 
-<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (peticion.esPublico() != null) {</span>
-<span class="fc" id="L109">            portafolio.setEsPublico(peticion.esPublico());</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        if (peticion.esPublico() != null) {</span>
+<span class="fc" id="L126">            portafolio.setEsPublico(peticion.esPublico());</span>
         }
-<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (peticion.opcionesPersonalizacion() != null) {</span>
-<span class="fc" id="L112">            portafolio.setOpcionesPersonalizacion(peticion.opcionesPersonalizacion());</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (peticion.opcionesPersonalizacion() != null) {</span>
+<span class="fc" id="L129">            portafolio.setOpcionesPersonalizacion(peticion.opcionesPersonalizacion());</span>
         }
 
-<span class="fc" id="L115">        Portafolio actualizado = portafolioRepository.save(portafolio);</span>
-<span class="fc" id="L116">        return mapearARespuesta(actualizado);</span>
+<span class="fc" id="L132">        Portafolio actualizado = portafolioRepository.save(portafolio);</span>
+<span class="fc" id="L133">        return mapearARespuesta(actualizado);</span>
     }
 
     @Override
     @Transactional
     public void incrementarVisitas(Long idPortafolio, Long idUsuario) {
-<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (!marcarVisitaSiEsNueva(idPortafolio, idUsuario)) {</span>
-<span class="fc" id="L123">            return;</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (!marcarVisitaSiEsNueva(idPortafolio, idUsuario)) {</span>
+<span class="fc" id="L140">            return;</span>
         }
-<span class="fc" id="L125">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
-<span class="fc" id="L126">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
-<span class="fc" id="L127">        portafolio.setTotalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas() + 1);</span>
-<span class="fc" id="L128">        portafolioRepository.save(portafolio);</span>
-<span class="fc" id="L129">    }</span>
+<span class="fc" id="L142">        Portafolio portafolio = portafolioRepository.findById(idPortafolio)</span>
+<span class="fc" id="L143">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio));</span>
+<span class="fc" id="L144">        portafolio.setTotalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas() + 1);</span>
+<span class="fc" id="L145">        portafolioRepository.save(portafolio);</span>
+<span class="fc" id="L146">    }</span>
 
     /**
      * SETNX con TTL: true solo la primera vez que este usuario visita este
@@ -138,14 +155,14 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      * si Redis no responde, se cuenta la visita en vez de bloquear la métrica.
      */
     private boolean marcarVisitaSiEsNueva(Long idPortafolio, Long idUsuario) {
-<span class="fc" id="L141">        String clave = &quot;visita-portafolio:&quot; + idPortafolio + &quot;:&quot; + idUsuario;</span>
+<span class="fc" id="L158">        String clave = &quot;visita-portafolio:&quot; + idPortafolio + &quot;:&quot; + idUsuario;</span>
         try {
-<span class="fc" id="L143">            Boolean esNueva = redisTemplate.opsForValue().setIfAbsent(clave, &quot;1&quot;, VENTANA_DEDUP_VISITA);</span>
-<span class="fc bfc" id="L144" title="All 2 branches covered.">            return !Boolean.FALSE.equals(esNueva);</span>
-<span class="nc" id="L145">        } catch (DataAccessException e) {</span>
-<span class="nc" id="L146">            log.warn(&quot;No se pudo deduplicar la visita al portafolio {} en Redis; se cuenta igual (fail-open): {}&quot;,</span>
-<span class="nc" id="L147">                    idPortafolio, e.getMessage());</span>
-<span class="nc" id="L148">            return true;</span>
+<span class="fc" id="L160">            Boolean esNueva = redisTemplate.opsForValue().setIfAbsent(clave, &quot;1&quot;, VENTANA_DEDUP_VISITA);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">            return !Boolean.FALSE.equals(esNueva);</span>
+<span class="nc" id="L162">        } catch (DataAccessException e) {</span>
+<span class="nc" id="L163">            log.warn(&quot;No se pudo deduplicar la visita al portafolio {} en Redis; se cuenta igual (fail-open): {}&quot;,</span>
+<span class="nc" id="L164">                    idPortafolio, e.getMessage());</span>
+<span class="nc" id="L165">            return true;</span>
         }
     }
 
@@ -154,21 +171,21 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
     @Auditable(accion = &quot;PORTAFOLIO_ELIMINAR&quot;, modulo = ModuloAuditoria.PORTAFOLIO,
             entidad = &quot;portafolios&quot;, idEntidad = &quot;#idPortafolio&quot;)
     public void eliminarPortafolio(Long idPortafolio) {
-<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (!portafolioRepository.existsById(idPortafolio)) {</span>
-<span class="fc" id="L158">            throw new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (!portafolioRepository.existsById(idPortafolio)) {</span>
+<span class="fc" id="L175">            throw new ExcepcionRecursoNoEncontrado(&quot;Portafolio no encontrado con ID: &quot; + idPortafolio);</span>
         }
-<span class="fc" id="L160">        portafolioRepository.deleteById(idPortafolio);</span>
-<span class="fc" id="L161">    }</span>
+<span class="fc" id="L177">        portafolioRepository.deleteById(idPortafolio);</span>
+<span class="fc" id="L178">    }</span>
 
     private RespuestaPortafolio mapearARespuesta(Portafolio portafolio) {
-<span class="fc" id="L164">        return RespuestaPortafolio.builder()</span>
-<span class="fc" id="L165">                .idPortafolio(portafolio.getIdPortafolio())</span>
-<span class="fc bfc" id="L166" title="All 2 branches covered.">                .idPerfil(portafolio.getPerfil() != null ? portafolio.getPerfil().getIdPerfil() : null)</span>
-<span class="fc" id="L167">                .fechaCreacion(portafolio.getFechaCreacion())</span>
-<span class="fc" id="L168">                .totalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas())</span>
-<span class="fc" id="L169">                .esPublico(portafolio.getEsPublico())</span>
-<span class="fc" id="L170">                .opcionesPersonalizacion(portafolio.getOpcionesPersonalizacion())</span>
-<span class="fc" id="L171">                .build();</span>
+<span class="fc" id="L181">        return RespuestaPortafolio.builder()</span>
+<span class="fc" id="L182">                .idPortafolio(portafolio.getIdPortafolio())</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">                .idPerfil(portafolio.getPerfil() != null ? portafolio.getPerfil().getIdPerfil() : null)</span>
+<span class="fc" id="L184">                .fechaCreacion(portafolio.getFechaCreacion())</span>
+<span class="fc" id="L185">                .totalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas())</span>
+<span class="fc" id="L186">                .esPublico(portafolio.getEsPublico())</span>
+<span class="fc" id="L187">                .opcionesPersonalizacion(portafolio.getOpcionesPersonalizacion())</span>
+<span class="fc" id="L188">                .build();</span>
     }
 }
 

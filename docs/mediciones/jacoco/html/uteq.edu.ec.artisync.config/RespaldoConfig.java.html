@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.config</a> &gt; <span class="el_source">RespaldoConfig.java</span></div><h1>RespaldoConfig.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.config;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.health.contributor.HealthContributor;
+import org.springframework.boot.jdbc.health.DataSourceHealthIndicator;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import javax.sql.DataSource;
+import java.util.concurrent.Executor;
+
+/**
+ * Infraestructura propia del módulo de respaldos: un DataSource dedicado
+ * (conecta como artisync_backup, separado del pool principal de la app que
+ * conecta como artisync_app) para el COPY incremental, y un executor acotado
+ * para las ejecuciones @Async de respaldo.
+ *
+ * No existe hoy ningún AsyncConfigurer/ThreadPoolTaskExecutor propio en el
+ * proyecto (@Async de EmailService usa el SimpleAsyncTaskExecutor ilimitado
+ * por defecto de Spring). Para respaldos eso es un riesgo real y nuevo que el
+ * envío de correos nunca tuvo: dos pg_dump/COPY concurrentes competirían por
+ * I/O de disco y carga de BD. Un executor de 1 hilo serializa las ejecuciones.
+ */
+@Configuration
+@RequiredArgsConstructor
+public class RespaldoConfig {
+
+    private final RespaldoProperties respaldoProperties;
+
+    /**
+     * CRÍTICO: declarar cualquier otro bean DataSource (respaldoDataSource,
+     * más abajo) desactiva por completo el DataSourceAutoConfiguration de
+     * Spring Boot -- su @ConditionalOnMissingBean(DataSource.class) deja de
+     * cumplirse en cuanto existe OTRO DataSource en el contexto -- así que el
+     * datasource principal basado en spring.datasource.* (artisync_app)
+     * jamás se crea, y todo autowiring de DataSource sin calificador
+     * (incluida la EntityManagerFactory de JPA que usa cada repositorio del
+     * proyecto, login incluido) cae sobre el único DataSource que encuentre.
+     * Comprobado en pg_stat_activity: sin este bean, la app entera termina
+     * conectada como el rol de SOLO LECTURA artisync_backup (cero conexiones
+     * artisync_app), y cualquier login falla con &quot;permission denied&quot; al no
+     * poder ni insertar en auditoria_eventos. Este bean reconstruye
+     * exactamente el datasource que DataSourceAutoConfiguration habría
+     * creado y lo marca @Primary para que gane sobre respaldoDataSource en
+     * cualquier punto de inyección sin @Qualifier.
+     */
+    @Bean
+    @Primary
+    public DataSource dataSource(
+            @Value(&quot;${spring.datasource.url}&quot;) String url,
+            @Value(&quot;${spring.datasource.username}&quot;) String username,
+            @Value(&quot;${spring.datasource.password}&quot;) String password,
+            @Value(&quot;${spring.datasource.driver-class-name}&quot;) String driverClassName) {
+<span class="fc" id="L59">        HikariConfig config = new HikariConfig();</span>
+<span class="fc" id="L60">        config.setJdbcUrl(url);</span>
+<span class="fc" id="L61">        config.setUsername(username);</span>
+<span class="fc" id="L62">        config.setPassword(password);</span>
+<span class="fc" id="L63">        config.setDriverClassName(driverClassName);</span>
+<span class="fc" id="L64">        config.setPoolName(&quot;artisync-app-pool&quot;);</span>
+<span class="fc" id="L65">        return new HikariDataSource(config);</span>
+    }
+
+    @Bean(name = &quot;respaldoDataSource&quot;)
+    public DataSource respaldoDataSource() {
+<span class="fc" id="L70">        RespaldoProperties.Db db = respaldoProperties.getDb();</span>
+<span class="fc" id="L71">        HikariConfig config = new HikariConfig();</span>
+<span class="fc" id="L72">        config.setJdbcUrl(&quot;jdbc:postgresql://%s:%d/%s&quot;.formatted(db.getHost(), db.getPuerto(), db.getNombre()));</span>
+<span class="fc" id="L73">        config.setUsername(db.getUsuario());</span>
+<span class="fc" id="L74">        config.setPassword(db.getPassword());</span>
+<span class="fc" id="L75">        config.setMaximumPoolSize(2);</span>
+<span class="fc" id="L76">        config.setPoolName(&quot;respaldo-pool&quot;);</span>
+        // Sin fail-fast: a diferencia del datasource principal (arriba), este
+        // pool es de un subsistema secundario (respaldos) que no debe impedir
+        // que arranque el resto de la app si Postgres aún no está listo o no
+        // es alcanzable -- p. ej. en tests unitarios (src/test/resources/
+        // application.properties usa H2 y no define respaldo.db.*, así que
+        // este bean se construiría con host/password vacíos/por defecto).
+        // Sin esto, HikariCP valida una conexión al crear el pool y aborta el
+        // arranque de TODO el ApplicationContext ante cualquier fallo.
+<span class="fc" id="L85">        config.setInitializationFailTimeout(-1);</span>
+<span class="fc" id="L86">        return new HikariDataSource(config);</span>
+    }
+
+    /**
+     * Spring Boot registra por defecto un HealthContributor por cada bean
+     * DataSource del contexto (DataSourceHealthContributorAutoConfiguration,
+     * @ConditionalOnMissingBean(name = {&quot;dbHealthIndicator&quot;,
+     * &quot;dbHealthContributor&quot;})). Sin este bean, respaldoDataSource entraría
+     * también en /actuator/health: un pg_dump/respaldo temporalmente
+     * inalcanzable haría que TODA la aplicación reporte DOWN (503), aunque el
+     * resto siga funcionando con normalidad. Al declarar aquí el bean
+     * &quot;dbHealthContributor&quot; a mano, el autoconfigurado de Spring Boot se
+     * desactiva (mismo mecanismo @ConditionalOnMissingBean que ya obliga a
+     * declarar el datasource principal arriba) y el health check vuelve a
+     * cubrir solo el datasource principal, como antes de este módulo.
+     */
+    @Bean(name = &quot;dbHealthContributor&quot;)
+    public HealthContributor dbHealthContributor(DataSource dataSource) {
+<span class="fc" id="L104">        return new DataSourceHealthIndicator(dataSource);</span>
+    }
+
+    @Bean(name = &quot;respaldoTaskExecutor&quot;)
+    public Executor respaldoTaskExecutor() {
+<span class="fc" id="L109">        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();</span>
+<span class="fc" id="L110">        executor.setCorePoolSize(1);</span>
+<span class="fc" id="L111">        executor.setMaxPoolSize(1);</span>
+<span class="fc" id="L112">        executor.setQueueCapacity(10);</span>
+<span class="fc" id="L113">        executor.setThreadNamePrefix(&quot;respaldo-async-&quot;);</span>
+<span class="fc" id="L114">        executor.initialize();</span>
+<span class="fc" id="L115">        return executor;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

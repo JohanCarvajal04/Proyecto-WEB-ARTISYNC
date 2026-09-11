@@ -4,31 +4,34 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * La IA no pudo emitir un dictamen (fallo de red, 401/413/429/5xx de NVIDIA,
- * o respuesta ilegible). No representa un rechazo del documento: la fila de
- * verificación queda intacta y el moderador revisa sin asistencia.
+ * Componente de Excepciones: Error de integracion.
+ * 
+ * Propósito: Alertar de fallos o indisponibilidad temporal en los servicios externos de Inteligencia Artificial.
+ * 
+ * Flujo interno: Traducida a HTTP 502 Bad Gateway o 503 Service Unavailable, alertando al cliente de un problema de terceros.
  */
 @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 public class ExcepcionServicioIaNoDisponible extends RuntimeException {
 
     /**
      * Solo true para fallos transitorios (429, timeout): un segundo intento
-     * puede tener éxito. Para 401/413 el segundo intento fallaría igual y
-     * solo duplicaría la espera del moderador.
+     * puede tener Ã©xito. Para 401/413 el segundo intento fallarÃ­a igual y
+     * solo duplicarÃ­a la espera del moderador.
      */
     private final boolean reintentable;
 
     public ExcepcionServicioIaNoDisponible(String mensaje, Throwable causa) {
-<span class="fc" id="L22">        this(mensaje, causa, false);</span>
-<span class="fc" id="L23">    }</span>
+<span class="fc" id="L24">        this(mensaje, causa, false);</span>
+<span class="fc" id="L25">    }</span>
 
     public ExcepcionServicioIaNoDisponible(String mensaje, Throwable causa, boolean reintentable) {
-<span class="fc" id="L26">        super(mensaje, causa);</span>
-<span class="fc" id="L27">        this.reintentable = reintentable;</span>
-<span class="fc" id="L28">    }</span>
+<span class="fc" id="L28">        super(mensaje, causa);</span>
+<span class="fc" id="L29">        this.reintentable = reintentable;</span>
+<span class="fc" id="L30">    }</span>
 
     public boolean isReintentable() {
-<span class="fc" id="L31">        return reintentable;</span>
+<span class="fc" id="L33">        return reintentable;</span>
     }
 }
+
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

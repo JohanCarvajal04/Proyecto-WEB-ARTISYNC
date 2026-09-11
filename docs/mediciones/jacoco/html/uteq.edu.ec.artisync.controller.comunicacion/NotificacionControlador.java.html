@@ -28,42 +28,69 @@ public class NotificacionControlador {
 
     private final NotificacionService notificacionService;
 
+    /**
+     * Lista las notificaciones del usuario autenticado, de forma paginada.
+     *
+     * @param userDetails usuario autenticado
+     * @param pageable configuración de paginación
+     * @return página con las notificaciones del usuario
+     */
     @Operation(summary = &quot;Listar mis notificaciones (paginado)&quot;)
     @GetMapping
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;Page&lt;RespuestaNotificacion&gt;&gt; listarMisNotificaciones(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable) {
-<span class="fc" id="L37">        return ResponseEntity.ok(</span>
-<span class="fc" id="L38">                notificacionService.listarMisNotificaciones(userDetails.getIdUsuario(), pageable));</span>
+<span class="fc" id="L44">        return ResponseEntity.ok(</span>
+<span class="fc" id="L45">                notificacionService.listarMisNotificaciones(userDetails.getIdUsuario(), pageable));</span>
     }
 
+    /**
+     * Marca una notificación del usuario autenticado como leída.
+     *
+     * @param id identificador de la notificación
+     * @param userDetails usuario autenticado propietario de la notificación
+     * @return la notificación actualizada
+     * @throws ExcepcionRecursoNoEncontrado si la notificación no existe o no pertenece al usuario
+     */
     @Operation(summary = &quot;Marcar una notificación como leída&quot;)
     @PutMapping(&quot;/{id}/leer&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaNotificacion&gt; marcarComoLeida(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L47">        return ResponseEntity.ok(</span>
-<span class="fc" id="L48">                notificacionService.marcarComoLeida(id, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L62">        return ResponseEntity.ok(</span>
+<span class="fc" id="L63">                notificacionService.marcarComoLeida(id, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Marca todas las notificaciones del usuario autenticado como leídas.
+     *
+     * @param userDetails usuario autenticado
+     * @return mensaje con la cantidad de notificaciones marcadas como leídas
+     */
     @Operation(summary = &quot;Marcar todas las notificaciones como leídas&quot;)
     @PutMapping(&quot;/leer-todas&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; marcarTodasLeidas(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L56">        int count = notificacionService.marcarTodasLeidas(userDetails.getIdUsuario());</span>
-<span class="fc" id="L57">        return ResponseEntity.ok(new RespuestaMensaje(count + &quot; notificaciones marcadas como leídas&quot;));</span>
+<span class="fc" id="L77">        int count = notificacionService.marcarTodasLeidas(userDetails.getIdUsuario());</span>
+<span class="fc" id="L78">        return ResponseEntity.ok(new RespuestaMensaje(count + &quot; notificaciones marcadas como leídas&quot;));</span>
     }
 
+    /**
+     * Cuenta las notificaciones no leídas del usuario autenticado.
+     *
+     * @param userDetails usuario autenticado
+     * @return el número de notificaciones no leídas
+     */
     @Operation(summary = &quot;Contador de notificaciones no leídas&quot;)
     @GetMapping(&quot;/no-leidas/count&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;Map&lt;String, Long&gt;&gt; contarNoLeidas(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L65">        long count = notificacionService.contarNoLeidas(userDetails.getIdUsuario());</span>
-<span class="fc" id="L66">        return ResponseEntity.ok(Map.of(&quot;noLeidas&quot;, count));</span>
+<span class="fc" id="L92">        long count = notificacionService.contarNoLeidas(userDetails.getIdUsuario());</span>
+<span class="fc" id="L93">        return ResponseEntity.ok(Map.of(&quot;noLeidas&quot;, count));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

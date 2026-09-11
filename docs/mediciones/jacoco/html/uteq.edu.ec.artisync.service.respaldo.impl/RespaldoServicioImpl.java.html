@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.respaldo.impl</a> &gt; <span class="el_source">RespaldoServicioImpl.java</span></div><h1>RespaldoServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.respaldo.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.audit.Auditable;
+import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.respaldo.FiltroRespaldo;
+import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaRespaldo;
+import uteq.edu.ec.artisync.entity.respaldo.EstadoRespaldo;
+import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
+import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.repository.respaldo.RespaldoRepository;
+import uteq.edu.ec.artisync.scheduler.RespaldoEjecutorServicio;
+import uteq.edu.ec.artisync.scheduler.RespaldoRetencionScheduler;
+import uteq.edu.ec.artisync.service.respaldo.ArchivoRespaldo;
+import uteq.edu.ec.artisync.service.respaldo.IRespaldoServicio;
+import uteq.edu.ec.artisync.specification.respaldo.RespaldoSpecification;
+import uteq.edu.ec.artisync.util.PagedResponse;
+import uteq.edu.ec.artisync.util.PagedResponseBuilder;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+@Service
+@RequiredArgsConstructor
+public class RespaldoServicioImpl implements IRespaldoServicio {
+
+    private final RespaldoRepository respaldoRepository;
+    private final RespaldoEjecutorServicio respaldoEjecutorServicio;
+    private final RespaldoRetencionScheduler retencionScheduler;
+
+    /**
+     * Sin @Transactional a propósito: el INSERT que hace
+     * RespaldoEjecutorServicio.iniciarManual debe quedar comprometido antes
+     * de que el hilo @Async (con su propia conexión) intente leer esa misma
+     * fila -- si este método llevara @Transactional, el hilo async podría
+     * arrancar antes de que el commit sea visible.
+     */
+    @Auditable(accion = &quot;RESPALDO_CREAR&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;respaldos&quot;, idEntidad = &quot;#resultado.idRespaldo&quot;,
+            detalle = &quot;{tipoRespaldo: #tipo}&quot;)
+    @Override
+    public RespuestaRespaldo solicitarRespaldo(TipoRespaldo tipo, String correoSolicitante) {
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (respaldoRepository.existsByEstadoRespaldo(EstadoRespaldo.EN_PROGRESO)) {</span>
+<span class="fc" id="L52">            throw new ExcepcionReglaNegocio(&quot;Ya hay un respaldo en progreso. Espere a que termine antes de iniciar otro.&quot;);</span>
+        }
+<span class="fc" id="L54">        Respaldo respaldo = respaldoEjecutorServicio.iniciarManual(tipo, correoSolicitante);</span>
+<span class="fc" id="L55">        return aRespuesta(respaldo);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse&lt;RespuestaRespaldo&gt; listar(FiltroRespaldo filtro, Pageable pageable) {
+<span class="fc" id="L61">        Page&lt;Respaldo&gt; pagina = respaldoRepository.findAll(RespaldoSpecification.conFiltro(filtro), pageable);</span>
+<span class="fc" id="L62">        return PagedResponseBuilder.buildAndMap(pagina, this::aRespuesta);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaRespaldo obtenerPorId(Long idRespaldo) {
+<span class="fc" id="L68">        return aRespuesta(obtenerOFallar(idRespaldo));</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ArchivoRespaldo descargar(Long idRespaldo) {
+<span class="fc" id="L74">        Respaldo respaldo = obtenerOFallar(idRespaldo);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (respaldo.getRutaArchivo() == null) {</span>
+<span class="fc" id="L76">            throw new ExcepcionRecursoNoEncontrado(&quot;El respaldo &quot; + idRespaldo + &quot; todavía no tiene un archivo generado&quot;);</span>
+        }
+<span class="fc" id="L78">        Path ruta = Path.of(respaldo.getRutaArchivo());</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        if (!Files.exists(ruta)) {</span>
+<span class="fc" id="L80">            throw new ExcepcionRecursoNoEncontrado(&quot;El archivo del respaldo &quot; + idRespaldo + &quot; no existe en disco&quot;);</span>
+        }
+        // FileSystemResource -&gt; Spring transmite el InputStream a la respuesta
+        // en streaming, nunca un byte[] completo en memoria (a diferencia de
+        // DocumentoGenerado/RespuestaDocumento, pensados para reportes
+        // pequeños; un dump de BD puede ser mucho más grande).
+<span class="fc" id="L86">        return new ArchivoRespaldo(new FileSystemResource(ruta), respaldo.getNombreArchivo(), tamano(ruta));</span>
+    }
+
+    @Auditable(accion = &quot;RESPALDO_ELIMINAR&quot;, modulo = ModuloAuditoria.SISTEMA,
+            entidad = &quot;respaldos&quot;, idEntidad = &quot;#idRespaldo&quot;)
+    @Override
+    @Transactional
+    public void eliminar(Long idRespaldo) {
+<span class="fc" id="L94">        Respaldo respaldo = obtenerOFallar(idRespaldo);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (respaldo.getEstadoRespaldo() == EstadoRespaldo.EN_PROGRESO) {</span>
+<span class="fc" id="L96">            throw new ExcepcionReglaNegocio(&quot;No se puede eliminar un respaldo en progreso.&quot;);</span>
+        }
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        if (!retencionScheduler.esSeguroEliminar(respaldo)) {</span>
+<span class="fc" id="L99">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;No se puede eliminar: existen respaldos incrementales que dependen de este FULL. Elimínelos primero.&quot;);
+        }
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        if (respaldo.getRutaArchivo() != null) {</span>
+            try {
+<span class="fc" id="L104">                Files.deleteIfExists(Path.of(respaldo.getRutaArchivo()));</span>
+<span class="nc" id="L105">            } catch (IOException e) {</span>
+<span class="nc" id="L106">                throw new IllegalStateException(&quot;No se pudo borrar el archivo del respaldo: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L107">            }</span>
+        }
+<span class="fc" id="L109">        respaldoRepository.delete(respaldo);</span>
+<span class="fc" id="L110">    }</span>
+
+    private Respaldo obtenerOFallar(Long idRespaldo) {
+<span class="fc" id="L113">        return respaldoRepository.findById(idRespaldo)</span>
+<span class="fc" id="L114">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Respaldo no encontrado con ID: &quot; + idRespaldo));</span>
+    }
+
+    private long tamano(Path ruta) {
+        try {
+<span class="fc" id="L119">            return Files.size(ruta);</span>
+<span class="nc" id="L120">        } catch (IOException e) {</span>
+<span class="nc" id="L121">            return 0L;</span>
+        }
+    }
+
+    private RespuestaRespaldo aRespuesta(Respaldo respaldo) {
+<span class="fc" id="L126">        return RespuestaRespaldo.builder()</span>
+<span class="fc" id="L127">                .idRespaldo(respaldo.getIdRespaldo())</span>
+<span class="fc" id="L128">                .tipoRespaldo(respaldo.getTipoRespaldo())</span>
+<span class="fc" id="L129">                .estadoRespaldo(respaldo.getEstadoRespaldo())</span>
+<span class="fc" id="L130">                .origen(respaldo.getOrigen())</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">                .idProgramacion(respaldo.getProgramacion() != null ? respaldo.getProgramacion().getIdProgramacion() : null)</span>
+<span class="fc" id="L132">                .idRespaldoFullBase(respaldo.getIdRespaldoFullBase())</span>
+<span class="fc" id="L133">                .nombreArchivo(respaldo.getNombreArchivo())</span>
+<span class="fc" id="L134">                .tamanoBytes(respaldo.getTamanoBytes())</span>
+<span class="fc" id="L135">                .fechaInicio(respaldo.getFechaInicio())</span>
+<span class="fc" id="L136">                .fechaFin(respaldo.getFechaFin())</span>
+<span class="fc" id="L137">                .duracionMs(respaldo.getDuracionMs())</span>
+<span class="fc" id="L138">                .mensajeError(respaldo.getMensajeError())</span>
+<span class="fc" id="L139">                .correoSolicitante(respaldo.getCorreoSolicitante())</span>
+<span class="fc" id="L140">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

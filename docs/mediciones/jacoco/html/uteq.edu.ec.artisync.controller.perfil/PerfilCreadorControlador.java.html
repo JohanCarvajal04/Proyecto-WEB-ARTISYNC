@@ -23,52 +23,91 @@ public class PerfilCreadorControlador {
 
     private final IPerfilCreadorServicio perfilServicio;
 
+    /**
+     * Crea el perfil de creador del usuario autenticado (o de un tercero,
+     * cuando quien llama tiene rol ADMIN).
+     * @param peticion datos del perfil de creador a registrar
+     * @param autenticacion usuario autenticado que solicita la creación
+     * @return perfil de creador recién creado, con código 201
+     */
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPerfil&gt; crearPerfil(
             @Valid @RequestBody PeticionCrearPerfil peticion,
             Authentication autenticacion) {
-<span class="fc" id="L31">        RespuestaPerfil respuesta = perfilServicio.crearPerfil(</span>
-<span class="fc" id="L32">                peticion, autenticacion.getName(), esAdmin(autenticacion));</span>
-<span class="fc" id="L33">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+<span class="fc" id="L38">        RespuestaPerfil respuesta = perfilServicio.crearPerfil(</span>
+<span class="fc" id="L39">                peticion, autenticacion.getName(), esAdmin(autenticacion));</span>
+<span class="fc" id="L40">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
+    /**
+     * Obtiene el perfil de creador identificado por su clave primaria.
+     * @param id identificador del perfil de creador
+     * @return perfil de creador correspondiente
+     */
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaPerfil&gt; obtenerPerfilPorId(@PathVariable Long id) {
-<span class="fc" id="L38">        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorId(id));</span>
+<span class="fc" id="L50">        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorId(id));</span>
     }
 
+    /**
+     * Obtiene el perfil de creador asociado a una cuenta de usuario.
+     * @param idUsuario identificador del usuario dueño del perfil
+     * @return perfil de creador de ese usuario
+     */
     @GetMapping(&quot;/usuario/{idUsuario}&quot;)
     public ResponseEntity&lt;RespuestaPerfil&gt; obtenerPerfilPorUsuario(@PathVariable Long idUsuario) {
-<span class="fc" id="L43">        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorUsuario(idUsuario));</span>
+<span class="fc" id="L60">        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorUsuario(idUsuario));</span>
     }
 
+    /**
+     * Lista todos los perfiles de creador registrados en la plataforma.
+     * @return listado completo de perfiles de creador
+     */
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaPerfil&gt; &gt; listarPerfiles() {
-<span class="fc" id="L48">        return ResponseEntity.ok(perfilServicio.listarPerfiles());</span>
+<span class="fc" id="L69">        return ResponseEntity.ok(perfilServicio.listarPerfiles());</span>
     }
 
+    /**
+     * Lista los perfiles de creador con cuenta activa, para el directorio
+     * público de creadores.
+     * @return listado de perfiles de creadores activos
+     */
     @Operation(summary = &quot;Directorio público de creadores con cuenta activa&quot;)
     @GetMapping(&quot;/activos&quot;)
     public ResponseEntity&lt;List&lt;RespuestaPerfil&gt;&gt; listarPerfilesActivos() {
-<span class="fc" id="L54">        return ResponseEntity.ok(perfilServicio.listarPerfilesActivos());</span>
+<span class="fc" id="L80">        return ResponseEntity.ok(perfilServicio.listarPerfilesActivos());</span>
     }
 
+    /**
+     * Actualiza los datos del perfil de creador indicado; solo el dueño del
+     * perfil o un ADMIN pueden hacerlo.
+     * @param id identificador del perfil a actualizar
+     * @param peticion datos actualizados del perfil
+     * @param autenticacion usuario autenticado que solicita el cambio
+     * @return perfil de creador ya actualizado
+     */
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPerfil&gt; actualizarPerfil(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarPerfil peticion,
             Authentication autenticacion) {
-<span class="fc" id="L63">        return ResponseEntity.ok(perfilServicio.actualizarPerfil(</span>
-<span class="fc" id="L64">                id, peticion, autenticacion.getName(), esAdmin(autenticacion)));</span>
+<span class="fc" id="L97">        return ResponseEntity.ok(perfilServicio.actualizarPerfil(</span>
+<span class="fc" id="L98">                id, peticion, autenticacion.getName(), esAdmin(autenticacion)));</span>
     }
 
+    /**
+     * Elimina el perfil de creador indicado.
+     * @param id identificador del perfil a eliminar
+     * @return mensaje de confirmación de la eliminación
+     */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPerfil(@PathVariable Long id) {
-<span class="fc" id="L70">        perfilServicio.eliminarPerfil(id);</span>
-<span class="fc" id="L71">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Perfil de creador eliminado exitosamente&quot;));</span>
+<span class="fc" id="L109">        perfilServicio.eliminarPerfil(id);</span>
+<span class="fc" id="L110">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Perfil de creador eliminado exitosamente&quot;));</span>
     }
 
     /**
@@ -78,8 +117,8 @@ public class PerfilCreadorControlador {
      * unitario corriente.
      */
     private boolean esAdmin(Authentication autenticacion) {
-<span class="fc" id="L81">        return autenticacion.getAuthorities().stream()</span>
-<span class="fc" id="L82">                .anyMatch(a -&gt; &quot;ROLE_ADMIN&quot;.equals(a.getAuthority()));</span>
+<span class="fc" id="L120">        return autenticacion.getAuthorities().stream()</span>
+<span class="fc" id="L121">                .anyMatch(a -&gt; &quot;ROLE_ADMIN&quot;.equals(a.getAuthority()));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

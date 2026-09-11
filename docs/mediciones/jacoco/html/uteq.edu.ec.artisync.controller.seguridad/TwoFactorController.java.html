@@ -23,22 +23,43 @@ public class TwoFactorController {
 
     private final TwoFactorService twoFactorService;
 
+    /**
+     * Inicia la configuración de 2FA para el usuario autenticado: genera el secreto, la URI del QR
+     * y los códigos de respaldo.
+     *
+     * @param principal usuario autenticado que inicia la configuración
+     * @return los datos necesarios para configurar el autenticador TOTP
+     */
     @Operation(summary = &quot;Iniciar configuración de 2FA (obtiene secreto, URI de QR y códigos de respaldo)&quot;)
     @PostMapping(&quot;/setup&quot;)
     public ResponseEntity&lt;TwoFactorSetupResponse&gt; setup2Fa(Principal principal) {
-<span class="nc" id="L29">        return ResponseEntity.ok(twoFactorService.setup2Fa(principal.getName()));</span>
+<span class="nc" id="L36">        return ResponseEntity.ok(twoFactorService.setup2Fa(principal.getName()));</span>
     }
 
+    /**
+     * Confirma y activa 2FA verificando el primer código TOTP generado por el autenticador.
+     *
+     * @param principal usuario autenticado que confirma la configuración
+     * @param request código TOTP a verificar
+     * @return mensaje de confirmación de la activación
+     */
     @Operation(summary = &quot;Confirmar y activar 2FA verificando el primer código TOTP generado por el autenticador&quot;)
     @PostMapping(&quot;/confirm&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; confirm2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
-<span class="nc" id="L35">        return ResponseEntity.ok(twoFactorService.confirm2Fa(principal.getName(), request.getCodigo()));</span>
+<span class="nc" id="L49">        return ResponseEntity.ok(twoFactorService.confirm2Fa(principal.getName(), request.getCodigo()));</span>
     }
 
+    /**
+     * Desactiva 2FA para el usuario autenticado, verificando un código TOTP o de respaldo.
+     *
+     * @param principal usuario autenticado que desactiva 2FA
+     * @param request código TOTP o de respaldo a verificar
+     * @return mensaje de confirmación de la desactivación
+     */
     @Operation(summary = &quot;Desactivar 2FA verificando con un código TOTP o de respaldo&quot;)
     @DeleteMapping(&quot;/disable&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; disable2Fa(Principal principal, @Valid @RequestBody TwoFactorConfirmRequest request) {
-<span class="nc" id="L41">        return ResponseEntity.ok(twoFactorService.disable2Fa(principal.getName(), request.getCodigo()));</span>
+<span class="nc" id="L62">        return ResponseEntity.ok(twoFactorService.disable2Fa(principal.getName(), request.getCodigo()));</span>
     }
 }
 

@@ -23,53 +23,107 @@ public class PortafolioControlador {
 
     private final IPortafolioServicio portafolioServicio;
 
+    /**
+     * Crea el portafolio de un perfil de creador.
+     *
+     * @param peticion datos del portafolio a crear
+     * @param userDetails usuario autenticado que crea el portafolio
+     * @return el portafolio creado, con estado 201
+     * @throws ExcepcionRecursoDuplicado si el perfil de creador ya cuenta con un portafolio registrado
+     * @throws ExcepcionRecursoNoEncontrado si el perfil de creador no existe
+     * @throws ExcepcionReglaNegocio si el usuario no tiene permisos para crear un portafolio para ese perfil
+     */
     @PostMapping
     @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; crearPortafolio(
             @Valid @RequestBody PeticionCrearPortafolio peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L31">        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion, userDetails.getIdUsuario());</span>
-<span class="fc" id="L32">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
+<span class="fc" id="L41">        RespuestaPortafolio respuesta = portafolioServicio.crearPortafolio(peticion, userDetails.getIdUsuario());</span>
+<span class="fc" id="L42">        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);</span>
     }
 
+    /**
+     * Obtiene un portafolio por su identificador.
+     *
+     * @param id identificador del portafolio
+     * @return el portafolio solicitado
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     */
     @GetMapping(&quot;/{id}&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorId(@PathVariable Long id) {
-<span class="fc" id="L37">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
+<span class="fc" id="L54">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));</span>
     }
 
+    /**
+     * Obtiene el portafolio asociado a un perfil de creador.
+     *
+     * @param idPerfil identificador del perfil de creador
+     * @return el portafolio del perfil
+     * @throws ExcepcionRecursoNoEncontrado si no existe portafolio para el perfil
+     */
     @GetMapping(&quot;/perfil/{idPerfil}&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
-<span class="fc" id="L42">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));</span>
+<span class="fc" id="L66">        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));</span>
     }
 
+    /**
+     * Lista todos los portafolios del sistema.
+     *
+     * @return listado de portafolios
+     */
     @GetMapping
     public ResponseEntity&lt;List&lt;RespuestaPortafolio&gt; &gt; listarPortafolios() {
-<span class="fc" id="L47">        return ResponseEntity.ok(portafolioServicio.listarPortafolios());</span>
+<span class="fc" id="L76">        return ResponseEntity.ok(portafolioServicio.listarPortafolios());</span>
     }
 
+    /**
+     * Actualiza los datos de un portafolio existente.
+     *
+     * @param id identificador del portafolio a actualizar
+     * @param peticion datos actualizados del portafolio
+     * @param userDetails usuario autenticado que solicita la actualización
+     * @return el portafolio actualizado
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ExcepcionReglaNegocio si el usuario no tiene permisos para modificar el portafolio
+     */
     @PutMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaPortafolio&gt; actualizarPortafolio(
             @PathVariable Long id,
             @Valid @RequestBody PeticionActualizarPortafolio peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L56">        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion, userDetails.getIdUsuario()));</span>
+<span class="fc" id="L95">        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion, userDetails.getIdUsuario()));</span>
     }
 
+    /**
+     * Registra una visita al portafolio, incrementando su contador de visitas.
+     *
+     * @param id identificador del portafolio visitado
+     * @param userDetails usuario autenticado que registra la visita
+     * @return mensaje de confirmación del registro de la visita
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     */
     @PostMapping(&quot;/{id}/visita&quot;)
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; registrarVisita(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-<span class="fc" id="L64">        portafolioServicio.incrementarVisitas(id, userDetails.getIdUsuario());</span>
-<span class="fc" id="L65">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Visita al portafolio incrementada&quot;));</span>
+<span class="fc" id="L111">        portafolioServicio.incrementarVisitas(id, userDetails.getIdUsuario());</span>
+<span class="fc" id="L112">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Visita al portafolio incrementada&quot;));</span>
     }
 
+    /**
+     * Elimina un portafolio como acción de moderación.
+     *
+     * @param id identificador del portafolio a eliminar
+     * @return mensaje de confirmación de la eliminación
+     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     */
     @DeleteMapping(&quot;/{id}&quot;)
     @PreAuthorize(&quot;hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; eliminarPortafolio(@PathVariable Long id) {
-<span class="fc" id="L71">        portafolioServicio.eliminarPortafolio(id);</span>
-<span class="fc" id="L72">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portafolio eliminado exitosamente&quot;));</span>
+<span class="fc" id="L125">        portafolioServicio.eliminarPortafolio(id);</span>
+<span class="fc" id="L126">        return ResponseEntity.ok(new RespuestaMensaje(&quot;Portafolio eliminado exitosamente&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

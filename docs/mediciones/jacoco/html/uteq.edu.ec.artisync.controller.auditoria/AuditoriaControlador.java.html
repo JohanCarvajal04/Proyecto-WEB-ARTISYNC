@@ -38,36 +38,78 @@ public class AuditoriaControlador {
 
     private final IAuditoriaServicio auditoriaServicio;
 
+    /**
+     * Lista de forma paginada la bitácora de auditoría, con filtros opcionales.
+     *
+     * @param filtro criterios opcionales para filtrar los eventos
+     * @param pageable configuración de paginación
+     * @return página con los eventos de auditoría que cumplen el filtro
+     */
     @Operation(summary = &quot;Listado paginado y filtrado de la bitácora de auditoría&quot;)
     @GetMapping
     @PreAuthorize(&quot;hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;PagedResponse&lt;RespuestaEventoAuditoriaResumen&gt;&gt; listar(
             FiltroAuditoria filtro, Pageable pageable) {
-<span class="fc" id="L46">        return ResponseEntity.ok(auditoriaServicio.listar(filtro, pageable));</span>
+<span class="fc" id="L53">        return ResponseEntity.ok(auditoriaServicio.listar(filtro, pageable));</span>
     }
 
+    /**
+     * Obtiene el detalle completo de un evento de auditoría, incluido el JSON del cambio.
+     *
+     * @param idEvento identificador del evento de auditoría
+     * @return el detalle del evento de auditoría
+     * @throws ExcepcionRecursoNoEncontrado si el evento no existe
+     */
     @Operation(summary = &quot;Detalle completo de un evento, incluido el JSON del cambio&quot;)
     @GetMapping(&quot;/{idEvento}&quot;)
     @PreAuthorize(&quot;hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;RespuestaEventoAuditoria&gt; obtenerPorId(@PathVariable Long idEvento) {
-<span class="fc" id="L53">        return ResponseEntity.ok(auditoriaServicio.obtenerPorId(idEvento));</span>
+<span class="fc" id="L67">        return ResponseEntity.ok(auditoriaServicio.obtenerPorId(idEvento));</span>
     }
 
+    /**
+     * Lista el catálogo de acciones distintas registradas en la bitácora, para poblar el filtro.
+     *
+     * @return listado de nombres de acciones registradas
+     */
     @Operation(summary = &quot;Catálogo de acciones distintas registradas, para poblar el filtro&quot;)
     @GetMapping(&quot;/acciones&quot;)
     @PreAuthorize(&quot;hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')&quot;)
     public ResponseEntity&lt;List&lt;String&gt;&gt; listarAcciones() {
-<span class="fc" id="L60">        return ResponseEntity.ok(auditoriaServicio.listarAccionesDisponibles());</span>
+<span class="fc" id="L79">        return ResponseEntity.ok(auditoriaServicio.listarAccionesDisponibles());</span>
     }
 
-    @Operation(summary = &quot;Exportar los eventos que coinciden con el filtro en CSV, XLSX o PDF &quot;
-            + &quot;(cada formato tiene su propio tope de filas)&quot;)
+    /**
+     * Exporta los eventos de auditoría que coinciden con el filtro, en el formato solicitado, con soporte de paginación/división en partes.
+     *
+     * @param filtro criterios opcionales para filtrar los eventos
+     * @param formato formato del documento a generar (CSV, XLSX o PDF), cada uno con su propio tope de filas
+     * @param page número de página / parte solicitada (base 0, opcional)
+     * @param size tamaño del lote / página (opcional)
+     * @param authentication autenticación del usuario que solicita la exportación
+     * @return el documento generado con los eventos de auditoría
+     */
+    @Operation(summary = &quot;Exportar los eventos que coinciden con el filtro en CSV, XLSX o PDF con soporte de paginación / división por partes&quot;)
     @GetMapping(&quot;/exportar&quot;)
     @PreAuthorize(&quot;hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')&quot;)
-    public ResponseEntity&lt;byte[]&gt; exportar(FiltroAuditoria filtro, @RequestParam FormatoReporte formato,
-                                            Authentication authentication) {
-<span class="fc" id="L69">        DocumentoGenerado documento = auditoriaServicio.exportar(filtro, formato, authentication.getName());</span>
-<span class="fc" id="L70">        return RespuestaDocumento.de(documento);</span>
+    public ResponseEntity&lt;byte[]&gt; exportar(
+            FiltroAuditoria filtro,
+            @RequestParam FormatoReporte formato,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            Authentication authentication) {
+<span class="pc bpc" id="L101" title="2 of 4 branches missed.">        DocumentoGenerado documento = (page != null || size != null)</span>
+<span class="nc" id="L102">                ? auditoriaServicio.exportar(filtro, formato, page, size, authentication.getName())</span>
+<span class="fc" id="L103">                : auditoriaServicio.exportar(filtro, formato, authentication.getName());</span>
+<span class="fc" id="L104">        return RespuestaDocumento.de(documento);</span>
+    }
+
+    @PreAuthorize(&quot;hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportar(
+            FiltroAuditoria filtro,
+            FormatoReporte formato,
+            Authentication authentication) {
+<span class="fc" id="L112">        return exportar(filtro, formato, null, null, authentication);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

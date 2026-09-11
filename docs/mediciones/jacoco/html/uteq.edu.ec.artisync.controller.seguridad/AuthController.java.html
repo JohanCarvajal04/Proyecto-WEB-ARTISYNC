@@ -44,106 +44,151 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Registra un nuevo usuario en el sistema, validando que cumpla la mayoría de edad (RNF-12).
+     * @param request datos personales y credenciales del usuario a registrar
+     * @return el usuario recién creado, con estado HTTP 201
+     */
     @Operation(summary = &quot;Registrar nuevo usuario con validación de mayoría de edad (RNF-12)&quot;)
     @PostMapping(&quot;/registro&quot;)
     public ResponseEntity&lt;UserResponse&gt; register(@Valid @RequestBody RegisterRequest request) {
-<span class="fc" id="L50">        UserResponse userResponse = authService.register(request);</span>
-<span class="fc" id="L51">        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);</span>
+<span class="fc" id="L55">        UserResponse userResponse = authService.register(request);</span>
+<span class="fc" id="L56">        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);</span>
     }
 
+    /**
+     * Autentica al usuario con sus credenciales y, según tenga 2FA habilitado, devuelve el
+     * token JWT de acceso o un ticket pre-auth para completar la verificación en dos pasos.
+     * @param request correo y contraseña del usuario que intenta iniciar sesión
+     * @param response respuesta HTTP en la que se escriben las cookies de refresh token y/o ticket pre-auth 2FA
+     * @return el token de acceso (y refresh) si la autenticación es completa, o los datos del reto 2FA pendiente
+     */
     @Operation(summary = &quot;Iniciar sesión y obtener token JWT o requerimiento 2FA&quot;)
     @PostMapping(&quot;/login&quot;)
     public ResponseEntity&lt;TokenResponse&gt; login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-<span class="fc" id="L57">        TokenResponse tokenResponse = authService.login(request);</span>
-<span class="fc" id="L58">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
-<span class="fc" id="L59">        setPreAuth2faCookie(response, tokenResponse.getPreAuthTicket());</span>
-<span class="fc" id="L60">        return ResponseEntity.ok(tokenResponse);</span>
+<span class="fc" id="L69">        TokenResponse tokenResponse = authService.login(request);</span>
+<span class="fc" id="L70">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
+<span class="fc" id="L71">        setPreAuth2faCookie(response, tokenResponse.getPreAuthTicket());</span>
+<span class="fc" id="L72">        return ResponseEntity.ok(tokenResponse);</span>
     }
 
+    /**
+     * Completa el login verificando el código 2FA contra el ticket pre-auth emitido por {@code /login}.
+     * @param preAuthTicket ticket pre-auth de 2FA leído de la cookie {@code preAuth2fa}, emitido en el paso previo de login
+     * @param request código de verificación de doble factor ingresado por el usuario
+     * @param response respuesta HTTP en la que se escribe la cookie del refresh token y se limpia la cookie pre-auth 2FA
+     * @return el token JWT de acceso definitivo si el código es válido, o 401 si no hay ticket pre-auth vigente
+     */
     @Operation(summary = &quot;Verificar código de autenticación de doble factor (2FA) usando el ticket pre-auth emitido por /login&quot;)
     @PostMapping(&quot;/2fa/verify&quot;)
     public ResponseEntity&lt;TokenResponse&gt; verify2Fa(
             @CookieValue(name = COOKIE_PRE_AUTH_2FA, required = false) String preAuthTicket,
             @Valid @RequestBody TwoFactorRequest request,
             HttpServletResponse response) {
-<span class="fc bfc" id="L69" title="All 4 branches covered.">        if (preAuthTicket == null || preAuthTicket.isBlank()) {</span>
-<span class="fc" id="L70">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
+<span class="fc bfc" id="L88" title="All 4 branches covered.">        if (preAuthTicket == null || preAuthTicket.isBlank()) {</span>
+<span class="fc" id="L89">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
         }
-<span class="fc" id="L72">        TokenResponse tokenResponse = authService.verify2Fa(preAuthTicket, request);</span>
-<span class="fc" id="L73">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
-<span class="fc" id="L74">        clearPreAuth2faCookie(response);</span>
-<span class="fc" id="L75">        return ResponseEntity.ok(tokenResponse);</span>
+<span class="fc" id="L91">        TokenResponse tokenResponse = authService.verify2Fa(preAuthTicket, request);</span>
+<span class="fc" id="L92">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
+<span class="fc" id="L93">        clearPreAuth2faCookie(response);</span>
+<span class="fc" id="L94">        return ResponseEntity.ok(tokenResponse);</span>
     }
 
+    /**
+     * Emite un nuevo token de acceso a partir de un refresh token vigente, tomado de la cookie
+     * HttpOnly o, si no está presente, del cuerpo de la petición.
+     * @param refreshTokenCookie refresh token leído de la cookie HttpOnly {@code refreshToken}
+     * @param requestBody refresh token alternativo enviado en el cuerpo JSON, usado solo si no hay cookie
+     * @param response respuesta HTTP en la que se escribe la cookie con el refresh token renovado
+     * @return un nuevo token de acceso, o 401 si no se proporcionó ningún refresh token
+     */
     @Operation(summary = &quot;Refrescar token de acceso utilizando Refresh Token en cookie HttpOnly o cuerpo JSON&quot;)
     @PostMapping(&quot;/refresh&quot;)
     public ResponseEntity&lt;TokenResponse&gt; refresh(
             @CookieValue(name = COOKIE_REFRESH, required = false) String refreshTokenCookie,
             @RequestBody(required = false) RefreshTokenRequest requestBody,
             HttpServletResponse response) {
-<span class="fc" id="L84">        String tokenToRefresh = refreshTokenCookie;</span>
-<span class="fc bfc" id="L85" title="All 4 branches covered.">        if (tokenToRefresh == null &amp;&amp; requestBody != null) {</span>
-<span class="fc" id="L86">            tokenToRefresh = requestBody.getRefreshToken();</span>
+<span class="fc" id="L111">        String tokenToRefresh = refreshTokenCookie;</span>
+<span class="fc bfc" id="L112" title="All 4 branches covered.">        if (tokenToRefresh == null &amp;&amp; requestBody != null) {</span>
+<span class="fc" id="L113">            tokenToRefresh = requestBody.getRefreshToken();</span>
         }
-<span class="fc bfc" id="L88" title="All 4 branches covered.">        if (tokenToRefresh == null || tokenToRefresh.isBlank()) {</span>
-<span class="fc" id="L89">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
+<span class="fc bfc" id="L115" title="All 4 branches covered.">        if (tokenToRefresh == null || tokenToRefresh.isBlank()) {</span>
+<span class="fc" id="L116">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
         }
-<span class="fc" id="L91">        TokenResponse tokenResponse = authService.refreshToken(tokenToRefresh);</span>
-<span class="fc" id="L92">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
-<span class="fc" id="L93">        return ResponseEntity.ok(tokenResponse);</span>
+<span class="fc" id="L118">        TokenResponse tokenResponse = authService.refreshToken(tokenToRefresh);</span>
+<span class="fc" id="L119">        setRefreshTokenCookie(response, tokenResponse.getRefreshToken());</span>
+<span class="fc" id="L120">        return ResponseEntity.ok(tokenResponse);</span>
     }
 
+    /**
+     * Cierra la sesión del usuario invalidando su token JWT y su refresh token (blacklist en Redis y BD)
+     * y limpiando las cookies de sesión.
+     * @param request petición HTTP de la que se extrae el encabezado {@code Authorization} con el JWT activo
+     * @param refreshTokenCookie refresh token vigente leído de la cookie HttpOnly {@code refreshToken}
+     * @param response respuesta HTTP en la que se limpian las cookies de refresh token y de ticket pre-auth 2FA
+     * @return sin contenido (204) una vez invalidada la sesión
+     */
     @Operation(summary = &quot;Cerrar sesión e invalidar token JWT y Refresh Token en Redis Blacklist y BD&quot;, security = @SecurityRequirement(name = &quot;bearerAuth&quot;))
     @PostMapping(&quot;/logout&quot;)
     public ResponseEntity&lt;Void&gt; logout(HttpServletRequest request, @CookieValue(name = COOKIE_REFRESH, required = false) String refreshTokenCookie, HttpServletResponse response) {
-<span class="fc" id="L99">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
-<span class="fc" id="L100">        authService.logout(authHeader, refreshTokenCookie);</span>
-<span class="fc" id="L101">        clearRefreshTokenCookie(response);</span>
-<span class="fc" id="L102">        clearPreAuth2faCookie(response); // limpieza defensiva por si quedó un ticket sin consumir</span>
-<span class="fc" id="L103">        return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L134">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="fc" id="L135">        authService.logout(authHeader, refreshTokenCookie);</span>
+<span class="fc" id="L136">        clearRefreshTokenCookie(response);</span>
+<span class="fc" id="L137">        clearPreAuth2faCookie(response); // limpieza defensiva por si quedó un ticket sin consumir</span>
+<span class="fc" id="L138">        return ResponseEntity.noContent().build();</span>
     }
 
+    /**
+     * Genera y envía al correo del usuario un token de recuperación para restablecer su contraseña.
+     * @param request correo electrónico del usuario que solicita recuperar su contraseña
+     * @return mensaje de confirmación de que la solicitud fue procesada
+     */
     @Operation(summary = &quot;Solicitar enlace/token de recuperación de contraseña&quot;)
     @PostMapping(&quot;/forgot-password&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-<span class="fc" id="L109">        return ResponseEntity.ok(authService.forgotPassword(request));</span>
+<span class="fc" id="L149">        return ResponseEntity.ok(authService.forgotPassword(request));</span>
     }
 
+    /**
+     * Establece una nueva contraseña para el usuario a partir de un token de recuperación válido.
+     * @param request token de recuperación recibido por correo junto con la nueva contraseña a establecer
+     * @return mensaje de confirmación de que la contraseña fue actualizada
+     */
     @Operation(summary = &quot;Reestablecer contraseña utilizando token válido&quot;)
     @PostMapping(&quot;/reset-password&quot;)
     public ResponseEntity&lt;RespuestaMensaje&gt; resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-<span class="fc" id="L115">        return ResponseEntity.ok(authService.resetPassword(request));</span>
+<span class="fc" id="L160">        return ResponseEntity.ok(authService.resetPassword(request));</span>
     }
 
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-<span class="fc bfc" id="L119" title="All 2 branches covered.">        if (refreshToken != null) {</span>
-<span class="fc" id="L120">            escribirCookie(response, COOKIE_REFRESH, refreshToken, MAX_AGE_REFRESH_SEGUNDOS);</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (refreshToken != null) {</span>
+<span class="fc" id="L165">            escribirCookie(response, COOKIE_REFRESH, refreshToken, MAX_AGE_REFRESH_SEGUNDOS);</span>
         }
-<span class="fc" id="L122">    }</span>
+<span class="fc" id="L167">    }</span>
 
     private void clearRefreshTokenCookie(HttpServletResponse response) {
-<span class="fc" id="L125">        escribirCookie(response, COOKIE_REFRESH, &quot;&quot;, 0);</span>
-<span class="fc" id="L126">    }</span>
+<span class="fc" id="L170">        escribirCookie(response, COOKIE_REFRESH, &quot;&quot;, 0);</span>
+<span class="fc" id="L171">    }</span>
 
     private void setPreAuth2faCookie(HttpServletResponse response, String ticket) {
-<span class="fc bfc" id="L129" title="All 2 branches covered.">        if (ticket != null) {</span>
-<span class="fc" id="L130">            escribirCookie(response, COOKIE_PRE_AUTH_2FA, ticket, MAX_AGE_PRE_AUTH_2FA_SEGUNDOS);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (ticket != null) {</span>
+<span class="fc" id="L175">            escribirCookie(response, COOKIE_PRE_AUTH_2FA, ticket, MAX_AGE_PRE_AUTH_2FA_SEGUNDOS);</span>
         }
-<span class="fc" id="L132">    }</span>
+<span class="fc" id="L177">    }</span>
 
     private void clearPreAuth2faCookie(HttpServletResponse response) {
-<span class="fc" id="L135">        escribirCookie(response, COOKIE_PRE_AUTH_2FA, &quot;&quot;, 0);</span>
-<span class="fc" id="L136">    }</span>
+<span class="fc" id="L180">        escribirCookie(response, COOKIE_PRE_AUTH_2FA, &quot;&quot;, 0);</span>
+<span class="fc" id="L181">    }</span>
 
     private void escribirCookie(HttpServletResponse response, String nombre, String valor, int maxAgeSegundos) {
-<span class="fc" id="L139">        ResponseCookie cookie = ResponseCookie.from(nombre, valor)</span>
-<span class="fc" id="L140">                .httpOnly(true)</span>
-<span class="fc" id="L141">                .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)</span>
-<span class="fc" id="L142">                .path(&quot;/api/v1/auth&quot;)</span>
-<span class="fc" id="L143">                .maxAge(maxAgeSegundos)</span>
-<span class="fc" id="L144">                .sameSite(&quot;Lax&quot;)</span>
-<span class="fc" id="L145">                .build();</span>
-<span class="fc" id="L146">        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());</span>
-<span class="fc" id="L147">    }</span>
+<span class="fc" id="L184">        ResponseCookie cookie = ResponseCookie.from(nombre, valor)</span>
+<span class="fc" id="L185">                .httpOnly(true)</span>
+<span class="fc" id="L186">                .secure(cookieSecure) // Configurable dinámicamente según entorno (HTTPS en producción)</span>
+<span class="fc" id="L187">                .path(&quot;/api/v1/auth&quot;)</span>
+<span class="fc" id="L188">                .maxAge(maxAgeSegundos)</span>
+<span class="fc" id="L189">                .sameSite(&quot;Lax&quot;)</span>
+<span class="fc" id="L190">                .build();</span>
+<span class="fc" id="L191">        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());</span>
+<span class="fc" id="L192">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

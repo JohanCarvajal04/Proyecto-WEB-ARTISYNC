@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContratoIntegridadEjecutorServicio.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">ContratoIntegridadEjecutorServicio.java</span></div><h1>ContratoIntegridadEjecutorServicio.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
+import uteq.edu.ec.artisync.service.legal.IContratoServicio;
+
+/**
+ * Extraído de ContratoIntegridadScheduler para que REQUIRES_NEW funcione de
+ * verdad (mismo motivo documentado en SorteoEjecutorServicio). A diferencia de
+ * ReconciliacionPayPalEjecutorServicio y TicketRevisionExpiracionServicio, sí
+ * reutiliza el servicio principal (IContratoServicio.verificarIntegridadHash):
+ * es una lectura sin efectos secundarios financieros, así que el riesgo que
+ * justificaba autocontenerse en los otros dos casos no aplica aquí.
+ *
+ * Sin @Auditable a propósito: auditar cada pasada nocturna sin hallazgos
+ * sería ruido en la bitácora inmutable (REQ-NF-013 es para eventos con
+ * significado); solo se deja constancia (log ERROR) del caso raro de
+ * discrepancia.
+ */
+<span class="fc" id="L24">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class ContratoIntegridadEjecutorServicio {
+
+    private final IContratoServicio contratoServicio;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void verificar(Long idContrato) {
+<span class="nc" id="L33">        RespuestaVerificacionIntegridad resultado = contratoServicio.verificarIntegridadHash(idContrato);</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (!resultado.isIntegro()) {</span>
+<span class="nc" id="L35">            log.error(&quot;[ContratoIntegridadEjecutorServicio] Discrepancia de integridad detectada en el contrato {}&quot;,</span>
+                    idContrato);
+        }
+<span class="nc" id="L38">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

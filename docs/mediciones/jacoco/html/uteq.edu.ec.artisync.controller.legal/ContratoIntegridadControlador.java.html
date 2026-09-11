@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContratoIntegridadControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">ContratoIntegridadControlador.java</span></div><h1>ContratoIntegridadControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
+import uteq.edu.ec.artisync.service.legal.IContratoServicio;
+
+/**
+ * Verificación de integridad de contratos firmados (REQ-NF-020), gateada en
+ * PAGO_AUDITAR: mismo dominio de supervisión financiera/legal que ya
+ * gobierna ese permiso (ver PagoGarantiaAuditoriaControlador) — no se crea
+ * un permiso nuevo para esto.
+ */
+@Tag(name = &quot;Admin — Integridad de contratos&quot;, description = &quot;Re-verificación del hash de contenido de contratos firmados&quot;)
+@RestController
+@RequestMapping(&quot;/api/v1/admin/contratos&quot;)
+@RequiredArgsConstructor
+@SecurityRequirement(name = &quot;bearerAuth&quot;)
+public class ContratoIntegridadControlador {
+
+    private final IContratoServicio contratoServicio;
+
+    /**
+     * Recalcula el hash de contenido de un contrato y lo compara con el
+     * guardado al momento de la firma.
+     *
+     * @param idContrato id del contrato a verificar
+     * @return el resultado de la comparación
+     */
+    @Operation(summary = &quot;Verificar la integridad de un contrato firmado&quot;)
+    @PostMapping(&quot;/{idContrato}/verificar-integridad&quot;)
+    @PreAuthorize(&quot;hasAuthority('PAGO_AUDITAR') or hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;RespuestaVerificacionIntegridad&gt; verificarIntegridad(@PathVariable Long idContrato) {
+<span class="fc" id="L42">        return ResponseEntity.ok(contratoServicio.verificarIntegridadHash(idContrato));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RespaldoProgramacionScheduler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.scheduler</a> &gt; <span class="el_source">RespaldoProgramacionScheduler.java</span></div><h1>RespaldoProgramacionScheduler.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.scheduler;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import uteq.edu.ec.artisync.entity.respaldo.RespaldoProgramacion;
+import uteq.edu.ec.artisync.repository.respaldo.RespaldoProgramacionRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Tarea programada que dispara los respaldos cuya programación está vencida.
+ * Requiere @EnableScheduling en ArtisyncApplication (ya presente).
+ *
+ * Se ejecuta cada 60 segundos, mismo patrón que SorteoScheduler: sin
+ * @Transactional en el bucle (cada respaldo se procesa en su propia unidad de
+ * trabajo dentro de RespaldoEjecutorServicio) y try/catch por elemento, para
+ * que un fallo en una programación no bloquee el resto.
+ */
+<span class="fc" id="L22">@Slf4j</span>
+@Component
+@RequiredArgsConstructor
+public class RespaldoProgramacionScheduler {
+
+    private final RespaldoProgramacionRepository programacionRepository;
+    private final RespaldoEjecutorServicio respaldoEjecutorServicio;
+
+    @Scheduled(fixedRate = 60_000)
+    public void procesarProgramacionesPendientes() {
+<span class="fc" id="L32">        List&lt;RespaldoProgramacion&gt; pendientes =</span>
+<span class="fc" id="L33">                programacionRepository.findByActivoTrueAndProximaEjecucionLessThanEqual(LocalDateTime.now());</span>
+
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        if (pendientes.isEmpty()) {</span>
+<span class="fc" id="L36">            return;</span>
+        }
+
+<span class="nc" id="L39">        log.info(&quot;[RespaldoProgramacionScheduler] Procesando {} programación(es) vencida(s)...&quot;, pendientes.size());</span>
+
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        for (RespaldoProgramacion programacion : pendientes) {</span>
+            try {
+<span class="nc" id="L43">                respaldoEjecutorServicio.iniciarDesdeProgramacion(programacion);</span>
+<span class="nc" id="L44">            } catch (Exception e) {</span>
+<span class="nc" id="L45">                log.error(&quot;[RespaldoProgramacionScheduler] Error al iniciar la programación {}: {}&quot;,</span>
+<span class="nc" id="L46">                        programacion.getIdProgramacion(), e.getMessage(), e);</span>
+<span class="nc" id="L47">            }</span>
+<span class="nc" id="L48">        }</span>
+<span class="nc" id="L49">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -15,11 +15,18 @@ public class CreadorServicioControlador {
 
     private final IServicioCatalogoServicio servicioCatalogoServicio;
 
+    /**
+     * Lista los servicios publicados por un creador, opcionalmente filtrados por estado de publicación.
+     *
+     * @param idPerfilCreador identificador del perfil de creador
+     * @param estadoPublicacion estado de publicación por el cual filtrar (opcional)
+     * @return listado resumido de los servicios del creador
+     */
     @GetMapping(&quot;/{idPerfilCreador}/servicios&quot;)
     public ResponseEntity&lt;List&lt;RespuestaServicioResumido&gt;&gt; listarServiciosPorCreador(
             @PathVariable Long idPerfilCreador,
             @RequestParam(required = false) String estadoPublicacion) {
-<span class="nc" id="L22">        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));</span>
+<span class="nc" id="L29">        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

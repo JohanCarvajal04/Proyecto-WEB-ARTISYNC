@@ -19,6 +19,15 @@ public class PayPalWebhookControlador {
      * Endpoint público para recibir notificaciones de PayPal.
      * No requiere autenticación JWT (configurado en SecurityConfig).
      * PayPal envía headers de verificación de firma.
+     *
+     * @param payload cuerpo del evento enviado por PayPal
+     * @param transmissionId identificador de transmisión del webhook, usado en la verificación de firma
+     * @param transmissionTime marca de tiempo de la transmisión del webhook
+     * @param transmissionSig firma de la transmisión del webhook
+     * @param certUrl URL del certificado usado para verificar la firma
+     * @param authAlgo algoritmo de firma utilizado
+     * @param authVersion versión del esquema de autenticación utilizado
+     * @return respuesta de confirmación &quot;OK&quot; para PayPal
      */
     @PostMapping(&quot;/paypal&quot;)
     public ResponseEntity&lt;String&gt; recibirWebhook(
@@ -30,12 +39,12 @@ public class PayPalWebhookControlador {
             @RequestHeader(value = &quot;PAYPAL-AUTH-ALGO&quot;, required = false) String authAlgo,
             @RequestHeader(value = &quot;PAYPAL-AUTH-VERSION&quot;, required = false) String authVersion) {
 
-<span class="nc" id="L33">        log.info(&quot;Webhook PayPal recibido - transmissionId: {}&quot;, transmissionId);</span>
+<span class="nc" id="L42">        log.info(&quot;Webhook PayPal recibido - transmissionId: {}&quot;, transmissionId);</span>
 
-<span class="nc" id="L35">        pagoServicio.procesarWebhookPayPal(payload, transmissionId, transmissionTime,</span>
+<span class="nc" id="L44">        pagoServicio.procesarWebhookPayPal(payload, transmissionId, transmissionTime,</span>
                 transmissionSig, certUrl, authAlgo, authVersion);
 
-<span class="nc" id="L38">        return ResponseEntity.ok(&quot;OK&quot;);</span>
+<span class="nc" id="L47">        return ResponseEntity.ok(&quot;OK&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

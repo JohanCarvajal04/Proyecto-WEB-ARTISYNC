@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlantillaAcuerdoCreadorControlador.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.controller.legal</a> &gt; <span class="el_source">PlantillaAcuerdoCreadorControlador.java</span></div><h1>PlantillaAcuerdoCreadorControlador.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.controller.legal;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionActualizarPlantillaAcuerdoPropia;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaAcuerdoPropia;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.legal.IPlantillaAcuerdoCreadorServicio;
+
+import java.util.List;
+
+/**
+ * Autoservicio de plantillas de acuerdo propias (V45): el creador redacta y
+ * mantiene sus propias plantillas, aparte del catálogo general curado por
+ * ADMIN ({@link PlantillaContratoAdminControlador}). Cada plantilla creada
+ * aquí solo la puede usar, editar o desactivar su propio dueño.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/creador/plantillas-acuerdo&quot;)
+@RequiredArgsConstructor
+@PreAuthorize(&quot;hasAuthority('CONTRATO_PLANTILLA_PROPIA_GESTIONAR')&quot;)
+public class PlantillaAcuerdoCreadorControlador {
+
+    private final IPlantillaAcuerdoCreadorServicio plantillaAcuerdoCreadorServicio;
+
+    /**
+     * Crea una plantilla de acuerdo privada para el creador autenticado.
+     *
+     * @param peticion nombre y texto legal de la plantilla
+     * @param userDetails usuario autenticado dueño de la nueva plantilla
+     * @return la plantilla creada, con estado 201
+     */
+    @PostMapping
+    public ResponseEntity&lt;RespuestaPlantillaContrato&gt; crear(
+            @Valid @RequestBody PeticionCrearPlantillaAcuerdoPropia peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L44">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="fc" id="L45">                .body(plantillaAcuerdoCreadorServicio.crear(userDetails.getIdUsuario(), peticion));</span>
+    }
+
+    /**
+     * Edita una plantilla de acuerdo propia existente.
+     *
+     * @param id identificador de la plantilla a editar
+     * @param peticion datos actualizados de la plantilla
+     * @param userDetails usuario autenticado
+     * @return la plantilla actualizada
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe o no pertenece a este creador
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;RespuestaPlantillaContrato&gt; editar(
+            @PathVariable Long id,
+            @Valid @RequestBody PeticionActualizarPlantillaAcuerdoPropia peticion,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L62">        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.editar(userDetails.getIdUsuario(), id, peticion));</span>
+    }
+
+    /**
+     * Lista las plantillas de acuerdo propias del creador autenticado, activas e inactivas.
+     *
+     * @param userDetails usuario autenticado
+     * @return sus plantillas propias
+     */
+    @GetMapping
+    public ResponseEntity&lt;List&lt;RespuestaPlantillaContrato&gt;&gt; listarPropias(@AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L73">        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.listarPropias(userDetails.getIdUsuario()));</span>
+    }
+
+    /**
+     * Desactiva una plantilla de acuerdo propia.
+     *
+     * @param id identificador de la plantilla a desactivar
+     * @param userDetails usuario autenticado
+     * @return mensaje de confirmación
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe o no pertenece a este creador
+     */
+    @PatchMapping(&quot;/{id}/desactivar&quot;)
+    public ResponseEntity&lt;RespuestaMensaje&gt; desactivar(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+<span class="fc" id="L88">        return ResponseEntity.ok(plantillaAcuerdoCreadorServicio.desactivar(userDetails.getIdUsuario(), id));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -13,8 +13,10 @@ import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
+import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaPremio;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
 import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
+import uteq.edu.ec.artisync.entity.social.PremioSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
@@ -28,15 +30,18 @@ import uteq.edu.ec.artisync.repository.social.SorteoRepository;
 import uteq.edu.ec.artisync.service.social.SorteoService;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Implementación del servicio de sorteos.
  * RF-23: CRUD, participación con validaciones y selección de ganadores.
  */
-<span class="fc" id="L39">@Slf4j</span>
+<span class="fc" id="L44">@Slf4j</span>
 @Service
 @RequiredArgsConstructor
 public class SorteoServiceImpl implements SorteoService {
@@ -57,46 +62,78 @@ public class SorteoServiceImpl implements SorteoService {
             entidad = &quot;sorteos&quot;, idEntidad = &quot;#resultado.idSorteo&quot;,
             detalle = &quot;{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}&quot;)
     public RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion) {
-<span class="fc" id="L60">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
-<span class="fc" id="L61">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+<span class="fc" id="L65">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L66">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
                         &quot;No tienes un perfil de creador activo&quot;));
 
-<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (peticion.getFechaCierre().isBefore(peticion.getFechaInicio())) {</span>
-<span class="fc" id="L65">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (peticion.getFechaCierre().isBefore(peticion.getFechaInicio())) {</span>
+<span class="fc" id="L70">            throw new ExcepcionReglaNegocio(</span>
                     &quot;La fecha de cierre debe ser posterior a la fecha de inicio&quot;);
         }
 
-<span class="fc" id="L69">        Sorteo sorteo = Sorteo.builder()</span>
-<span class="fc" id="L70">                .perfilCreador(perfil)</span>
-<span class="fc" id="L71">                .tituloSorteo(peticion.getTituloSorteo())</span>
-<span class="fc" id="L72">                .descripcionPremios(peticion.getDescripcionPremios())</span>
-<span class="fc" id="L73">                .cantidadGanadores(peticion.getCantidadGanadores())</span>
-<span class="fc" id="L74">                .fechaInicio(peticion.getFechaInicio())</span>
-<span class="fc" id="L75">                .fechaCierre(peticion.getFechaCierre())</span>
-<span class="fc" id="L76">                .requiereSeguidor(peticion.isRequiereSeguidor())</span>
-<span class="fc" id="L77">                .estadoSorteo(&quot;Activo&quot;)</span>
-<span class="fc" id="L78">                .build();</span>
+<span class="fc" id="L74">        validarCantidadPremios(peticion.getPremios().size(), peticion.getCantidadGanadores());</span>
 
-<span class="fc" id="L80">        sorteo = sorteoRepository.save(sorteo);</span>
-<span class="fc" id="L81">        log.info(&quot;Sorteo '{}' creado por usuario {}&quot;, sorteo.getTituloSorteo(), idUsuario);</span>
-<span class="fc" id="L82">        return mapToResponse(sorteo, null, 0L, false);</span>
+<span class="fc" id="L76">        Sorteo sorteo = Sorteo.builder()</span>
+<span class="fc" id="L77">                .perfilCreador(perfil)</span>
+<span class="fc" id="L78">                .tituloSorteo(peticion.getTituloSorteo())</span>
+<span class="fc" id="L79">                .cantidadGanadores(peticion.getCantidadGanadores())</span>
+<span class="fc" id="L80">                .fechaInicio(peticion.getFechaInicio())</span>
+<span class="fc" id="L81">                .fechaCierre(peticion.getFechaCierre())</span>
+<span class="fc" id="L82">                .requiereSeguidor(peticion.isRequiereSeguidor())</span>
+<span class="fc" id="L83">                .estadoSorteo(&quot;Activo&quot;)</span>
+<span class="fc" id="L84">                .build();</span>
+<span class="fc" id="L85">        sorteo.setPremios(construirPremios(sorteo, peticion.getPremios()));</span>
+
+<span class="fc" id="L87">        sorteo = sorteoRepository.save(sorteo);</span>
+<span class="fc" id="L88">        log.info(&quot;Sorteo '{}' creado por usuario {}&quot;, sorteo.getTituloSorteo(), idUsuario);</span>
+<span class="fc" id="L89">        return mapToResponse(sorteo, null, 0L, false);</span>
+    }
+
+    /** REQ-F-023: la cantidad de ganadores debe coincidir exactamente con la cantidad de premios definidos. */
+    private void validarCantidadPremios(int cantidadPremios, int cantidadGanadores) {
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (cantidadPremios != cantidadGanadores) {</span>
+<span class="fc" id="L95">            throw new ExcepcionReglaNegocio(</span>
+                    &quot;La cantidad de ganadores (&quot; + cantidadGanadores
+                            + &quot;) debe coincidir con la cantidad de premios definidos (&quot; + cantidadPremios + &quot;)&quot;);
+        }
+<span class="fc" id="L99">    }</span>
+
+    private List&lt;PremioSorteo&gt; construirPremios(Sorteo sorteo, List&lt;String&gt; descripciones) {
+<span class="fc" id="L102">        List&lt;PremioSorteo&gt; premios = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (int i = 0; i &lt; descripciones.size(); i++) {</span>
+<span class="fc" id="L104">            premios.add(PremioSorteo.builder()</span>
+<span class="fc" id="L105">                    .sorteo(sorteo)</span>
+<span class="fc" id="L106">                    .descripcionPremio(descripciones.get(i))</span>
+<span class="fc" id="L107">                    .orden(i + 1)</span>
+<span class="fc" id="L108">                    .build());</span>
+        }
+<span class="fc" id="L110">        return premios;</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public RespuestaSorteo obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
-<span class="fc" id="L88">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
-<span class="fc" id="L89">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
-<span class="fc bfc" id="L90" title="All 2 branches covered.">        boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
-<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuarioActual);</span>
+<span class="fc" id="L116">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
+<span class="fc" id="L117">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">                participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuarioActual);</span>
 
-<span class="fc" id="L93">        List&lt;RespuestaGanador&gt; ganadores = null;</span>
-<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (&quot;Finalizado&quot;.equals(sorteo.getEstadoSorteo())) {</span>
-<span class="fc" id="L95">            ganadores = participanteSorteoRepository</span>
-<span class="fc" id="L96">                    .findBySorteoIdSorteoAndEsGanadorTrue(idSorteo)</span>
-<span class="fc" id="L97">                    .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());</span>
+<span class="fc" id="L121">        List&lt;RespuestaGanador&gt; ganadores = obtenerGanadoresSiFinalizado(sorteo);</span>
+<span class="fc" id="L122">        return mapToResponse(sorteo, ganadores, total, yoParticipo);</span>
+    }
+
+    /**
+     * Solo hay ganadores despues del cierre del sorteo. Se usa tanto en el detalle
+     * como en los listados, para que las tarjetas de la lista muestren el premio
+     * de cada quien sin depender de abrir el detalle del sorteo.
+     */
+    private List&lt;RespuestaGanador&gt; obtenerGanadoresSiFinalizado(Sorteo sorteo) {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (!&quot;Finalizado&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L132">            return null;</span>
         }
-<span class="fc" id="L99">        return mapToResponse(sorteo, ganadores, total, yoParticipo);</span>
+<span class="fc" id="L134">        return participanteSorteoRepository</span>
+<span class="fc" id="L135">                .findBySorteoIdSorteoAndEsGanadorTrue(sorteo.getIdSorteo())</span>
+<span class="fc" id="L136">                .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());</span>
     }
 
     @Override
@@ -104,18 +141,22 @@ public class SorteoServiceImpl implements SorteoService {
     @Auditable(accion = &quot;SORTEO_ACTUALIZAR&quot;, modulo = ModuloAuditoria.SOCIAL,
             entidad = &quot;sorteos&quot;, idEntidad = &quot;#idSorteo&quot;)
     public RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion) {
-<span class="fc" id="L107">        Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);</span>
-<span class="fc" id="L108">        boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);</span>
+<span class="fc" id="L144">        Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);</span>
+<span class="fc" id="L145">        boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);</span>
 
-<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (tieneParticipantes) {</span>
-<span class="fc bfc" id="L111" title="All 2 branches covered.">            if (peticion.getCantidadGanadores() != null &amp;&amp;</span>
-<span class="pc bpc" id="L112" title="1 of 2 branches missed.">                    !peticion.getCantidadGanadores().equals(sorteo.getCantidadGanadores())) {</span>
-<span class="fc" id="L113">                throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (tieneParticipantes) {</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">            if (peticion.getCantidadGanadores() != null &amp;&amp;</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">                    !peticion.getCantidadGanadores().equals(sorteo.getCantidadGanadores())) {</span>
+<span class="fc" id="L150">                throw new ExcepcionReglaNegocio(</span>
                         &quot;No se puede modificar este campo una vez iniciadas las inscripciones&quot;);
             }
-<span class="pc bpc" id="L116" title="1 of 2 branches missed.">            if (peticion.getFechaCierre() != null &amp;&amp;</span>
-<span class="pc bpc" id="L117" title="1 of 2 branches missed.">                    !peticion.getFechaCierre().equals(sorteo.getFechaCierre())) {</span>
-<span class="fc" id="L118">                throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">            if (peticion.getPremios() != null) {</span>
+<span class="fc" id="L154">                throw new ExcepcionReglaNegocio(</span>
+                        &quot;No se puede modificar este campo una vez iniciadas las inscripciones&quot;);
+            }
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">            if (peticion.getFechaCierre() != null &amp;&amp;</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">                    !peticion.getFechaCierre().equals(sorteo.getFechaCierre())) {</span>
+<span class="fc" id="L159">                throw new ExcepcionReglaNegocio(</span>
                         &quot;No se puede modificar la fecha de cierre una vez iniciadas las inscripciones&quot;);
             }
         }
@@ -125,21 +166,25 @@ public class SorteoServiceImpl implements SorteoService {
         // anterior a la fechaInicio original dejaba el sorteo en un estado
         // imposible — participar() rechaza tanto &quot;aún no ha comenzado&quot; como
         // &quot;el periodo de inscripción ha finalizado&quot; para cualquier instante.
-<span class="fc bfc" id="L128" title="All 4 branches covered.">        if (peticion.getFechaCierre() != null &amp;&amp; peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {</span>
-<span class="fc" id="L129">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L169" title="All 4 branches covered.">        if (peticion.getFechaCierre() != null &amp;&amp; peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {</span>
+<span class="fc" id="L170">            throw new ExcepcionReglaNegocio(</span>
                     &quot;La fecha de cierre debe ser posterior a la fecha de inicio del sorteo&quot;);
         }
 
-<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());</span>
-<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        if (peticion.getDescripcionPremios() != null) sorteo.setDescripcionPremios(peticion.getDescripcionPremios());</span>
-<span class="pc bpc" id="L135" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getCantidadGanadores() != null)</span>
-<span class="fc" id="L136">            sorteo.setCantidadGanadores(peticion.getCantidadGanadores());</span>
-<span class="pc bpc" id="L137" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getFechaCierre() != null)</span>
-<span class="fc" id="L138">            sorteo.setFechaCierre(peticion.getFechaCierre());</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (peticion.getTituloSorteo() != null) sorteo.setTituloSorteo(peticion.getTituloSorteo());</span>
+<span class="pc bpc" id="L175" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getCantidadGanadores() != null)</span>
+<span class="fc" id="L176">            sorteo.setCantidadGanadores(peticion.getCantidadGanadores());</span>
+<span class="pc bpc" id="L177" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getFechaCierre() != null)</span>
+<span class="fc" id="L178">            sorteo.setFechaCierre(peticion.getFechaCierre());</span>
+<span class="pc bpc" id="L179" title="1 of 4 branches missed.">        if (!tieneParticipantes &amp;&amp; peticion.getPremios() != null) {</span>
+<span class="nc" id="L180">            validarCantidadPremios(peticion.getPremios().size(), sorteo.getCantidadGanadores());</span>
+<span class="nc" id="L181">            sorteo.getPremios().clear();</span>
+<span class="nc" id="L182">            sorteo.getPremios().addAll(construirPremios(sorteo, peticion.getPremios()));</span>
+        }
 
-<span class="fc" id="L140">        sorteo = sorteoRepository.save(sorteo);</span>
-<span class="fc" id="L141">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
-<span class="fc" id="L142">        return mapToResponse(sorteo, null, total, false);</span>
+<span class="fc" id="L185">        sorteo = sorteoRepository.save(sorteo);</span>
+<span class="fc" id="L186">        long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();</span>
+<span class="fc" id="L187">        return mapToResponse(sorteo, null, total, false);</span>
     }
 
     @Override
@@ -147,44 +192,44 @@ public class SorteoServiceImpl implements SorteoService {
     @Auditable(accion = &quot;SORTEO_ELIMINAR&quot;, modulo = ModuloAuditoria.SOCIAL,
             entidad = &quot;sorteos&quot;, idEntidad = &quot;#idSorteo&quot;)
     public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
-<span class="fc" id="L150">        Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);</span>
-<span class="fc bfc" id="L151" title="All 2 branches covered.">        if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {</span>
-<span class="fc" id="L152">            throw new ExcepcionReglaNegocio(</span>
+<span class="fc" id="L195">        Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {</span>
+<span class="fc" id="L197">            throw new ExcepcionReglaNegocio(</span>
                     &quot;No se puede eliminar un sorteo con participantes inscritos&quot;);
         }
-<span class="fc" id="L155">        sorteoRepository.delete(sorteo);</span>
-<span class="fc" id="L156">        log.info(&quot;Sorteo {} eliminado por usuario {}&quot;, idSorteo, idUsuario);</span>
-<span class="fc" id="L157">        return new RespuestaMensaje(&quot;Sorteo eliminado correctamente&quot;);</span>
+<span class="fc" id="L200">        sorteoRepository.delete(sorteo);</span>
+<span class="fc" id="L201">        log.info(&quot;Sorteo {} eliminado por usuario {}&quot;, idSorteo, idUsuario);</span>
+<span class="fc" id="L202">        return new RespuestaMensaje(&quot;Sorteo eliminado correctamente&quot;);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaSorteo&gt; listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
-<span class="fc" id="L163">        return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)</span>
-<span class="fc" id="L164">                .stream()</span>
-<span class="fc" id="L165">                .map(s -&gt; {</span>
-<span class="fc" id="L166">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
-<span class="fc bfc" id="L167" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
-<span class="pc bpc" id="L168" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
-<span class="fc" id="L169">                                    s.getIdSorteo(), idUsuarioActual);</span>
-<span class="fc" id="L170">                    return mapToResponse(s, null, total, yoParticipo);</span>
+<span class="fc" id="L208">        return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)</span>
+<span class="fc" id="L209">                .stream()</span>
+<span class="fc" id="L210">                .map(s -&gt; {</span>
+<span class="fc" id="L211">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
+<span class="fc" id="L214">                                    s.getIdSorteo(), idUsuarioActual);</span>
+<span class="fc" id="L215">                    return mapToResponse(s, obtenerGanadoresSiFinalizado(s), total, yoParticipo);</span>
                 })
-<span class="fc" id="L172">                .collect(Collectors.toList());</span>
+<span class="fc" id="L217">                .collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaSorteo&gt; listarSorteosActivos(Long idUsuarioActual) {
-<span class="fc" id="L178">        return sorteoRepository.findByEstadoSorteo(&quot;Activo&quot;)</span>
-<span class="fc" id="L179">                .stream()</span>
-<span class="fc" id="L180">                .map(s -&gt; {</span>
-<span class="fc" id="L181">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
-<span class="fc bfc" id="L182" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
-<span class="pc bpc" id="L183" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
-<span class="fc" id="L184">                                    s.getIdSorteo(), idUsuarioActual);</span>
-<span class="fc" id="L185">                    return mapToResponse(s, null, total, yoParticipo);</span>
+<span class="fc" id="L223">        return sorteoRepository.findByEstadoSorteo(&quot;Activo&quot;)</span>
+<span class="fc" id="L224">                .stream()</span>
+<span class="fc" id="L225">                .map(s -&gt; {</span>
+<span class="fc" id="L226">                    long total = participanteSorteoRepository.findBySorteoIdSorteo(s.getIdSorteo()).size();</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">                    boolean yoParticipo = idUsuarioActual != null &amp;&amp;</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">                            participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(</span>
+<span class="fc" id="L229">                                    s.getIdSorteo(), idUsuarioActual);</span>
+<span class="fc" id="L230">                    return mapToResponse(s, obtenerGanadoresSiFinalizado(s), total, yoParticipo);</span>
                 })
-<span class="fc" id="L187">                .collect(Collectors.toList());</span>
+<span class="fc" id="L232">                .collect(Collectors.toList());</span>
     }
 
     // =========================================================================
@@ -194,84 +239,84 @@ public class SorteoServiceImpl implements SorteoService {
     @Override
     @Transactional
     public RespuestaParticipante participar(Long idSorteo, Long idUsuario) {
-<span class="fc" id="L197">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
+<span class="fc" id="L242">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
 
         // Validar estado
-<span class="fc bfc" id="L200" title="All 2 branches covered.">        if (!&quot;Activo&quot;.equals(sorteo.getEstadoSorteo())) {</span>
-<span class="fc" id="L201">            throw new ExcepcionReglaNegocio(&quot;El sorteo no está activo&quot;);</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">        if (!&quot;Activo&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L246">            throw new ExcepcionReglaNegocio(&quot;El sorteo no está activo&quot;);</span>
         }
 
         // Validar rango de fechas
-<span class="fc" id="L205">        LocalDateTime ahora = LocalDateTime.now();</span>
-<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (ahora.isBefore(sorteo.getFechaInicio())) {</span>
-<span class="fc" id="L207">            throw new ExcepcionReglaNegocio(&quot;El sorteo aún no ha comenzado&quot;);</span>
+<span class="fc" id="L250">        LocalDateTime ahora = LocalDateTime.now();</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        if (ahora.isBefore(sorteo.getFechaInicio())) {</span>
+<span class="fc" id="L252">            throw new ExcepcionReglaNegocio(&quot;El sorteo aún no ha comenzado&quot;);</span>
         }
-<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (ahora.isAfter(sorteo.getFechaCierre())) {</span>
-<span class="fc" id="L210">            throw new ExcepcionReglaNegocio(&quot;El periodo de inscripción ha finalizado&quot;);</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        if (ahora.isAfter(sorteo.getFechaCierre())) {</span>
+<span class="fc" id="L255">            throw new ExcepcionReglaNegocio(&quot;El periodo de inscripción ha finalizado&quot;);</span>
         }
 
         // Validar inscripción duplicada
-<span class="fc bfc" id="L214" title="All 2 branches covered.">        if (participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuario)) {</span>
-<span class="fc" id="L215">            throw new ExcepcionRecursoDuplicado(&quot;Ya estás inscrito en este sorteo&quot;);</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        if (participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuario)) {</span>
+<span class="fc" id="L260">            throw new ExcepcionRecursoDuplicado(&quot;Ya estás inscrito en este sorteo&quot;);</span>
         }
 
         // Validar requisito de seguidor
-<span class="fc bfc" id="L219" title="All 2 branches covered.">        if (Boolean.TRUE.equals(sorteo.getRequiereSeguidor())) {</span>
-<span class="fc" id="L220">            boolean esSeguidor = seguidorRepository.existsByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(</span>
-<span class="fc" id="L221">                    idUsuario, sorteo.getPerfilCreador().getIdPerfil());</span>
-<span class="fc bfc" id="L222" title="All 2 branches covered.">            if (!esSeguidor) {</span>
-<span class="fc" id="L223">                throw new ExcepcionReglaNegocio(</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">        if (Boolean.TRUE.equals(sorteo.getRequiereSeguidor())) {</span>
+<span class="fc" id="L265">            boolean esSeguidor = seguidorRepository.existsByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(</span>
+<span class="fc" id="L266">                    idUsuario, sorteo.getPerfilCreador().getIdPerfil());</span>
+<span class="fc bfc" id="L267" title="All 2 branches covered.">            if (!esSeguidor) {</span>
+<span class="fc" id="L268">                throw new ExcepcionReglaNegocio(</span>
                         &quot;Este sorteo requiere que sigas al creador para poder participar&quot;);
             }
         }
 
-<span class="fc" id="L228">        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);</span>
-<span class="fc" id="L229">        ParticipanteSorteo participante = ParticipanteSorteo.builder()</span>
-<span class="fc" id="L230">                .sorteo(sorteo)</span>
-<span class="fc" id="L231">                .usuario(usuario)</span>
-<span class="fc" id="L232">                .esGanador(false)</span>
-<span class="fc" id="L233">                .build();</span>
-<span class="fc" id="L234">        participante = participanteSorteoRepository.save(participante);</span>
-<span class="fc" id="L235">        log.info(&quot;Usuario {} inscrito en sorteo {}&quot;, idUsuario, idSorteo);</span>
-<span class="fc" id="L236">        return mapToParticipanteResponse(participante);</span>
+<span class="fc" id="L273">        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);</span>
+<span class="fc" id="L274">        ParticipanteSorteo participante = ParticipanteSorteo.builder()</span>
+<span class="fc" id="L275">                .sorteo(sorteo)</span>
+<span class="fc" id="L276">                .usuario(usuario)</span>
+<span class="fc" id="L277">                .esGanador(false)</span>
+<span class="fc" id="L278">                .build();</span>
+<span class="fc" id="L279">        participante = participanteSorteoRepository.save(participante);</span>
+<span class="fc" id="L280">        log.info(&quot;Usuario {} inscrito en sorteo {}&quot;, idUsuario, idSorteo);</span>
+<span class="fc" id="L281">        return mapToParticipanteResponse(participante);</span>
     }
 
     @Override
     @Transactional
     public RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario) {
-<span class="fc" id="L242">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
-<span class="fc bfc" id="L243" title="All 2 branches covered.">        if (!&quot;Activo&quot;.equals(sorteo.getEstadoSorteo())) {</span>
-<span class="fc" id="L244">            throw new ExcepcionReglaNegocio(&quot;No puedes cancelar la inscripción en un sorteo que ya ha finalizado&quot;);</span>
+<span class="fc" id="L287">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
+<span class="fc bfc" id="L288" title="All 2 branches covered.">        if (!&quot;Activo&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L289">            throw new ExcepcionReglaNegocio(&quot;No puedes cancelar la inscripción en un sorteo que ya ha finalizado&quot;);</span>
         }
-<span class="fc" id="L246">        ParticipanteSorteo participante = participanteSorteoRepository</span>
-<span class="fc" id="L247">                .findBySorteoIdSorteo(idSorteo)</span>
-<span class="fc" id="L248">                .stream()</span>
-<span class="fc" id="L249">                .filter(p -&gt; p.getUsuario().getIdUsuario().equals(idUsuario))</span>
-<span class="fc" id="L250">                .findFirst()</span>
-<span class="fc" id="L251">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
+<span class="fc" id="L291">        ParticipanteSorteo participante = participanteSorteoRepository</span>
+<span class="fc" id="L292">                .findBySorteoIdSorteo(idSorteo)</span>
+<span class="fc" id="L293">                .stream()</span>
+<span class="fc" id="L294">                .filter(p -&gt; p.getUsuario().getIdUsuario().equals(idUsuario))</span>
+<span class="fc" id="L295">                .findFirst()</span>
+<span class="fc" id="L296">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(</span>
                         &quot;No estás inscrito en este sorteo&quot;));
-<span class="fc" id="L253">        participanteSorteoRepository.delete(participante);</span>
-<span class="fc" id="L254">        return new RespuestaMensaje(&quot;Inscripción cancelada correctamente&quot;);</span>
+<span class="fc" id="L298">        participanteSorteoRepository.delete(participante);</span>
+<span class="fc" id="L299">        return new RespuestaMensaje(&quot;Inscripción cancelada correctamente&quot;);</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaParticipante&gt; listarParticipantes(Long idSorteo) {
-<span class="fc" id="L260">        findSorteoOrThrow(idSorteo); // Valida que existe</span>
-<span class="fc" id="L261">        return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)</span>
-<span class="fc" id="L262">                .stream().map(this::mapToParticipanteResponse).collect(Collectors.toList());</span>
+<span class="fc" id="L305">        findSorteoOrThrow(idSorteo); // Valida que existe</span>
+<span class="fc" id="L306">        return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)</span>
+<span class="fc" id="L307">                .stream().map(this::mapToParticipanteResponse).collect(Collectors.toList());</span>
     }
 
     @Override
     @Transactional(readOnly = true)
     public List&lt;RespuestaGanador&gt; listarGanadores(Long idSorteo) {
-<span class="fc" id="L268">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
-<span class="fc bfc" id="L269" title="All 2 branches covered.">        if (!&quot;Finalizado&quot;.equals(sorteo.getEstadoSorteo())) {</span>
-<span class="fc" id="L270">            throw new ResponseStatusException(HttpStatus.CONFLICT,</span>
+<span class="fc" id="L313">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
+<span class="fc bfc" id="L314" title="All 2 branches covered.">        if (!&quot;Finalizado&quot;.equals(sorteo.getEstadoSorteo())) {</span>
+<span class="fc" id="L315">            throw new ResponseStatusException(HttpStatus.CONFLICT,</span>
                     &quot;Los ganadores solo están disponibles después del cierre del sorteo&quot;);
         }
-<span class="fc" id="L273">        return participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(idSorteo)</span>
-<span class="fc" id="L274">                .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());</span>
+<span class="fc" id="L318">        return participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(idSorteo)</span>
+<span class="fc" id="L319">                .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());</span>
     }
 
     // =========================================================================
@@ -279,58 +324,80 @@ public class SorteoServiceImpl implements SorteoService {
     // =========================================================================
 
     private Sorteo findSorteoOrThrow(Long idSorteo) {
-<span class="fc" id="L282">        return sorteoRepository.findById(idSorteo)</span>
-<span class="fc" id="L283">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Sorteo no encontrado: &quot; + idSorteo));</span>
+<span class="fc" id="L327">        return sorteoRepository.findById(idSorteo)</span>
+<span class="fc" id="L328">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Sorteo no encontrado: &quot; + idSorteo));</span>
     }
 
     private Sorteo verificarPropietario(Long idSorteo, Long idUsuario) {
-<span class="fc" id="L287">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
-<span class="fc" id="L288">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
-<span class="fc" id="L289">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No tienes perfil de creador&quot;));</span>
-<span class="fc bfc" id="L290" title="All 2 branches covered.">        if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {</span>
-<span class="fc" id="L291">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
+<span class="fc" id="L332">        Sorteo sorteo = findSorteoOrThrow(idSorteo);</span>
+<span class="fc" id="L333">        var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)</span>
+<span class="fc" id="L334">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;No tienes perfil de creador&quot;));</span>
+<span class="fc bfc" id="L335" title="All 2 branches covered.">        if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {</span>
+<span class="fc" id="L336">            throw new ResponseStatusException(HttpStatus.FORBIDDEN,</span>
                     &quot;No tienes permiso para modificar este sorteo&quot;);
         }
-<span class="fc" id="L294">        return sorteo;</span>
+<span class="fc" id="L339">        return sorteo;</span>
     }
 
     private RespuestaSorteo mapToResponse(Sorteo sorteo, List&lt;RespuestaGanador&gt; ganadores,
                                           long total, boolean yoParticipo) {
-<span class="fc" id="L299">        return RespuestaSorteo.builder()</span>
-<span class="fc" id="L300">                .idSorteo(sorteo.getIdSorteo())</span>
-<span class="fc" id="L301">                .tituloSorteo(sorteo.getTituloSorteo())</span>
-<span class="fc" id="L302">                .descripcionPremios(sorteo.getDescripcionPremios())</span>
-<span class="fc" id="L303">                .cantidadGanadores(sorteo.getCantidadGanadores())</span>
-<span class="fc" id="L304">                .fechaInicio(sorteo.getFechaInicio())</span>
-<span class="fc" id="L305">                .fechaCierre(sorteo.getFechaCierre())</span>
-<span class="fc" id="L306">                .estadoSorteo(sorteo.getEstadoSorteo())</span>
-<span class="fc" id="L307">                .requiereSeguidor(sorteo.getRequiereSeguidor())</span>
-<span class="fc" id="L308">                .idPerfilCreador(sorteo.getPerfilCreador().getIdPerfil())</span>
-<span class="fc" id="L309">                .nombreCreador(sorteo.getPerfilCreador().getUsuario().getNombres()</span>
-<span class="fc" id="L310">                        + &quot; &quot; + sorteo.getPerfilCreador().getUsuario().getApellidos())</span>
-<span class="fc" id="L311">                .totalParticipantes(total)</span>
-<span class="fc" id="L312">                .yoParticipo(yoParticipo)</span>
-<span class="fc" id="L313">                .ganadores(ganadores)</span>
-<span class="fc" id="L314">                .build();</span>
+<span class="fc" id="L344">        return RespuestaSorteo.builder()</span>
+<span class="fc" id="L345">                .idSorteo(sorteo.getIdSorteo())</span>
+<span class="fc" id="L346">                .tituloSorteo(sorteo.getTituloSorteo())</span>
+<span class="fc" id="L347">                .cantidadGanadores(sorteo.getCantidadGanadores())</span>
+<span class="fc" id="L348">                .fechaInicio(sorteo.getFechaInicio())</span>
+<span class="fc" id="L349">                .fechaCierre(sorteo.getFechaCierre())</span>
+<span class="fc" id="L350">                .estadoSorteo(sorteo.getEstadoSorteo())</span>
+<span class="fc" id="L351">                .requiereSeguidor(sorteo.getRequiereSeguidor())</span>
+<span class="fc" id="L352">                .idPerfilCreador(sorteo.getPerfilCreador().getIdPerfil())</span>
+<span class="fc" id="L353">                .nombreCreador(sorteo.getPerfilCreador().getUsuario().getNombres()</span>
+<span class="fc" id="L354">                        + &quot; &quot; + sorteo.getPerfilCreador().getUsuario().getApellidos())</span>
+<span class="fc" id="L355">                .totalParticipantes(total)</span>
+<span class="fc" id="L356">                .yoParticipo(yoParticipo)</span>
+<span class="fc" id="L357">                .ganadores(ganadores)</span>
+<span class="fc" id="L358">                .premios(mapToPremiosResponse(sorteo, ganadores))</span>
+<span class="fc" id="L359">                .build();</span>
+    }
+
+    /** Cruza cada premio del sorteo con su ganador (si ya hubo sorteo y ese premio fue asignado). */
+    private List&lt;RespuestaPremio&gt; mapToPremiosResponse(Sorteo sorteo, List&lt;RespuestaGanador&gt; ganadores) {
+<span class="fc" id="L364">        Map&lt;Long, RespuestaGanador&gt; ganadorPorPremio = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">        if (ganadores != null) {</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">            for (RespuestaGanador g : ganadores) {</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">                if (g.getIdPremio() != null) {</span>
+<span class="fc" id="L368">                    ganadorPorPremio.put(g.getIdPremio(), g);</span>
+                }
+<span class="fc" id="L370">            }</span>
+        }
+<span class="fc" id="L372">        return sorteo.getPremios().stream()</span>
+<span class="fc" id="L373">                .map(p -&gt; RespuestaPremio.builder()</span>
+<span class="fc" id="L374">                        .idPremio(p.getIdPremio())</span>
+<span class="fc" id="L375">                        .descripcionPremio(p.getDescripcionPremio())</span>
+<span class="fc" id="L376">                        .orden(p.getOrden())</span>
+<span class="fc" id="L377">                        .ganador(ganadorPorPremio.get(p.getIdPremio()))</span>
+<span class="fc" id="L378">                        .build())</span>
+<span class="fc" id="L379">                .collect(Collectors.toList());</span>
     }
 
     private RespuestaParticipante mapToParticipanteResponse(ParticipanteSorteo p) {
-<span class="fc" id="L318">        return RespuestaParticipante.builder()</span>
-<span class="fc" id="L319">                .idParticipacion(p.getIdParticipacion())</span>
-<span class="fc" id="L320">                .idUsuario(p.getUsuario().getIdUsuario())</span>
-<span class="fc" id="L321">                .nombreUsuario(p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos())</span>
-<span class="fc" id="L322">                .fechaInscripcion(p.getFechaInscripcion())</span>
-<span class="fc" id="L323">                .esGanador(p.getEsGanador())</span>
-<span class="fc" id="L324">                .build();</span>
+<span class="fc" id="L383">        return RespuestaParticipante.builder()</span>
+<span class="fc" id="L384">                .idParticipacion(p.getIdParticipacion())</span>
+<span class="fc" id="L385">                .idUsuario(p.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L386">                .nombreUsuario(p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos())</span>
+<span class="fc" id="L387">                .fechaInscripcion(p.getFechaInscripcion())</span>
+<span class="fc" id="L388">                .esGanador(p.getEsGanador())</span>
+<span class="fc" id="L389">                .build();</span>
     }
 
     private RespuestaGanador mapToGanadorResponse(ParticipanteSorteo p) {
-<span class="fc" id="L328">        return RespuestaGanador.builder()</span>
-<span class="fc" id="L329">                .idParticipacion(p.getIdParticipacion())</span>
-<span class="fc" id="L330">                .idUsuario(p.getUsuario().getIdUsuario())</span>
-<span class="fc" id="L331">                .nombreUsuario(p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos())</span>
-<span class="fc" id="L332">                .fechaNotificacionPremio(p.getFechaNotificacionPremio())</span>
-<span class="fc" id="L333">                .build();</span>
+<span class="fc" id="L393">        return RespuestaGanador.builder()</span>
+<span class="fc" id="L394">                .idParticipacion(p.getIdParticipacion())</span>
+<span class="fc" id="L395">                .idUsuario(p.getUsuario().getIdUsuario())</span>
+<span class="fc" id="L396">                .nombreUsuario(p.getUsuario().getNombres() + &quot; &quot; + p.getUsuario().getApellidos())</span>
+<span class="fc" id="L397">                .fechaNotificacionPremio(p.getFechaNotificacionPremio())</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">                .idPremio(p.getPremio() != null ? p.getPremio().getIdPremio() : null)</span>
+<span class="fc bfc" id="L399" title="All 2 branches covered.">                .descripcionPremio(p.getPremio() != null ? p.getPremio().getDescripcionPremio() : null)</span>
+<span class="fc" id="L400">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

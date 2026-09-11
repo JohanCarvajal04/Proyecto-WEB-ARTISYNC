@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlantillaAcuerdoCreadorServicioImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report"></a> &gt; <a href="index.source.html" class="el_package">uteq.edu.ec.artisync.service.legal.impl</a> &gt; <span class="el_source">PlantillaAcuerdoCreadorServicioImpl.java</span></div><h1>PlantillaAcuerdoCreadorServicioImpl.java</h1><pre class="source lang-java linenums">package uteq.edu.ec.artisync.service.legal.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionActualizarPlantillaAcuerdoPropia;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaAcuerdoPropia;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
+import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
+import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
+import uteq.edu.ec.artisync.service.legal.IPlantillaAcuerdoCreadorServicio;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * Autoservicio de plantillas de acuerdo propias del creador (V45). No toca
+ * {@link PlantillaContratoAdminServicioImpl}: el catálogo general de ADMIN
+ * sigue intacto, esto es una vía adicional y aislada por id_creador.
+ */
+<span class="fc" id="L25">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCreadorServicio {
+
+    private final PlantillaContratoRepository plantillaContratoRepository;
+
+    @Override
+    @Transactional
+    public RespuestaPlantillaContrato crear(Long idUsuarioCreador, PeticionCrearPlantillaAcuerdoPropia peticion) {
+<span class="fc" id="L35">        PlantillaContrato plantilla = PlantillaContrato.builder()</span>
+<span class="fc" id="L36">                .nombrePlantilla(peticion.getNombrePlantilla().trim())</span>
+                // No es un dato de negocio para una plantilla privada (a diferencia
+                // del catálogo general, donde el admin la declara a mano para
+                // versionar cambios legales revisados) — se genera solo para
+                // satisfacer la columna version_legal NOT NULL UNIQUE heredada de V13.
+<span class="fc" id="L41">                .versionLegal(generarVersionLegalPropia(idUsuarioCreador))</span>
+<span class="fc" id="L42">                .cuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L43">                .esPredeterminada(false)</span>
+<span class="fc" id="L44">                .activa(true)</span>
+<span class="fc" id="L45">                .idCreador(idUsuarioCreador)</span>
+<span class="fc" id="L46">                .build();</span>
+
+<span class="fc" id="L48">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L49">        log.info(&quot;Plantilla de acuerdo propia '{}' creada (id {}) por el usuario {}&quot;,</span>
+<span class="fc" id="L50">                plantilla.getNombrePlantilla(), plantilla.getIdPlantilla(), idUsuarioCreador);</span>
+<span class="fc" id="L51">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaPlantillaContrato editar(Long idUsuarioCreador, Long idPlantilla, PeticionActualizarPlantillaAcuerdoPropia peticion) {
+<span class="fc" id="L57">        PlantillaContrato plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);</span>
+
+<span class="fc" id="L59">        plantilla.setNombrePlantilla(peticion.getNombrePlantilla().trim());</span>
+<span class="fc" id="L60">        plantilla.setCuerpoHtmlPlantilla(peticion.getCuerpoHtmlPlantilla());</span>
+<span class="fc" id="L61">        plantilla.setActiva(peticion.isActiva());</span>
+
+<span class="fc" id="L63">        plantilla = plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L64">        log.info(&quot;Plantilla de acuerdo propia {} actualizada por el usuario {}&quot;, idPlantilla, idUsuarioCreador);</span>
+<span class="fc" id="L65">        return mapToRespuesta(plantilla);</span>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List&lt;RespuestaPlantillaContrato&gt; listarPropias(Long idUsuarioCreador) {
+<span class="fc" id="L71">        return plantillaContratoRepository.findByIdCreadorOrderByNombrePlantillaAsc(idUsuarioCreador).stream()</span>
+<span class="fc" id="L72">                .map(this::mapToRespuesta)</span>
+<span class="fc" id="L73">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    @Transactional
+    public RespuestaMensaje desactivar(Long idUsuarioCreador, Long idPlantilla) {
+<span class="fc" id="L79">        PlantillaContrato plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);</span>
+<span class="fc" id="L80">        plantilla.setActiva(false);</span>
+<span class="fc" id="L81">        plantillaContratoRepository.save(plantilla);</span>
+<span class="fc" id="L82">        log.info(&quot;Plantilla de acuerdo propia {} desactivada por el usuario {}&quot;, idPlantilla, idUsuarioCreador);</span>
+<span class="fc" id="L83">        return new RespuestaMensaje(&quot;Plantilla desactivada correctamente&quot;);</span>
+    }
+
+    /** Mismo criterio &quot;no encontrado&quot; (no &quot;prohibido&quot;) que resolverBriefingPlantillaPropia/resolverFlujoPropio: no revela si el recurso existe a nombre de otro. */
+    private PlantillaContrato obtenerPropiaOFallar(Long idUsuarioCreador, Long idPlantilla) {
+<span class="fc" id="L88">        return plantillaContratoRepository.findByIdPlantillaAndIdCreador(idPlantilla, idUsuarioCreador)</span>
+<span class="fc" id="L89">                .orElseThrow(() -&gt; new ExcepcionRecursoNoEncontrado(&quot;Plantilla de acuerdo no encontrada: &quot; + idPlantilla));</span>
+    }
+
+    private String generarVersionLegalPropia(Long idUsuarioCreador) {
+<span class="fc" id="L93">        return &quot;propia-&quot; + idUsuarioCreador + &quot;-&quot; + UUID.randomUUID().toString().substring(0, 8);</span>
+    }
+
+    private RespuestaPlantillaContrato mapToRespuesta(PlantillaContrato plantilla) {
+<span class="fc" id="L97">        return RespuestaPlantillaContrato.builder()</span>
+<span class="fc" id="L98">                .idPlantilla(plantilla.getIdPlantilla())</span>
+<span class="fc" id="L99">                .nombrePlantilla(plantilla.getNombrePlantilla())</span>
+<span class="fc" id="L100">                .versionLegal(plantilla.getVersionLegal())</span>
+<span class="fc" id="L101">                .cuerpoHtmlPlantilla(plantilla.getCuerpoHtmlPlantilla())</span>
+<span class="fc" id="L102">                .esPredeterminada(plantilla.getEsPredeterminada())</span>
+<span class="fc" id="L103">                .activa(plantilla.getActiva())</span>
+<span class="fc" id="L104">                .idCreador(plantilla.getIdCreador())</span>
+<span class="fc" id="L105">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

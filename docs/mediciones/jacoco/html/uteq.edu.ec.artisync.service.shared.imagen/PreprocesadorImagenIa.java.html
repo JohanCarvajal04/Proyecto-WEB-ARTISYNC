@@ -97,7 +97,7 @@ import java.util.Set;
 <span class="fc" id="L97">        BufferedImage sinAlfa = quitarCanalAlfa(imagen);</span>
 <span class="fc" id="L98">        Iterator&lt;ImageWriter&gt; escritores = ImageIO.getImageWritersByFormatName(&quot;jpg&quot;);</span>
 <span class="pc bpc" id="L99" title="1 of 2 branches missed.">        if (!escritores.hasNext()) {</span>
-<span class="nc" id="L100">            throw new IllegalStateException(&quot;No hay un ImageWriter de JPEG disponible en esta JVM.&quot;);</span>
+<span class="nc" id="L100">            throw new RuntimeException(&quot;No hay un ImageWriter de JPEG disponible en esta JVM.&quot;);</span>
         }
 <span class="fc" id="L102">        ImageWriter escritor = escritores.next();</span>
 <span class="fc" id="L103">        ImageWriteParam parametros = escritor.getDefaultWriteParam();</span>
@@ -110,7 +110,7 @@ import java.util.Set;
 <span class="fc" id="L110">            escritor.write(null, new IIOImage(sinAlfa, null, null), parametros);</span>
 <span class="fc" id="L111">            return salida.toByteArray();</span>
 <span class="nc" id="L112">        } catch (IOException e) {</span>
-<span class="nc" id="L113">            throw new IllegalStateException(&quot;Error al comprimir la imagen del documento.&quot;, e);</span>
+<span class="nc" id="L113">            throw new RuntimeException(&quot;Error al comprimir la imagen del documento.&quot;, e);</span>
         } finally {
 <span class="fc" id="L115">            escritor.dispose();</span>
         }
