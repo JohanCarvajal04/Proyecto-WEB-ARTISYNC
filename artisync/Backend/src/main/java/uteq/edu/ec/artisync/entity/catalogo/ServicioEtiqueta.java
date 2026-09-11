@@ -1,9 +1,16 @@
-package uteq.edu.ec.artisync.entity.catalogo;
+﻿package uteq.edu.ec.artisync.entity.catalogo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Entidad asociativa pura entre Servicio y Etiqueta.
+ * 
+ * Ciclo de vida: Gestionada por JPA. Se crea y destruye en conjunto con la actualizacion de metadatos del servicio.
+ * 
+ * Relaciones principales: Tabla puente que consolida la busqueda cruzada de servicios por tag.
+ */
 @Entity
 @Table(name = "servicio_etiquetas")
 @Getter
@@ -32,3 +39,5 @@ public class ServicioEtiqueta {
     @Column(name = "actualizado_en")
     private java.time.LocalDateTime actualizadoEn;
 }
+
+

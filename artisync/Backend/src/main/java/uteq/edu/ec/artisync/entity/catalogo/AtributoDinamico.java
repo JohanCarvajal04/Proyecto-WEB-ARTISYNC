@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.catalogo;
+﻿package uteq.edu.ec.artisync.entity.catalogo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Propiedades configurables (ej. dimensiones, colores) para personalizar un servicio.
+ * 
+ * Ciclo de vida: Su persistencia es gestionada por JPA. Es un catalogo maestro estatico de referencia.
+ * 
+ * Relaciones principales: Actua como entidad fuerte, referenciada por multiples servicios a traves de relaciones N:M.
+ */
 @Entity
 @Table(name = "atributos_dinamicos")
 @Getter
@@ -33,3 +40,5 @@ public class AtributoDinamico {
     @Column(name = "actualizado_en")
     private java.time.LocalDateTime actualizadoEn;
 }
+
+

@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.legal;
+﻿package uteq.edu.ec.artisync.entity.legal;
 
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import jakarta.persistence.*;
@@ -8,6 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Comunicacion encriptada dentro de una sala de chat asociada a un pedido.
+ * 
+ * Ciclo de vida: Inmutable tras su emision. Constituye evidencia auditable en caso de disputas legales.
+ * 
+ * Relaciones principales: Entidad fuerte anidada dentro de una SalaChat y generada por un Usuario.
+ */
 @Entity
 @Table(name = "mensajes")
 @Getter
@@ -43,3 +50,5 @@ public class Mensaje {
     @Column(name = "leido", nullable = false)
     private Boolean leido = false;
 }
+
+

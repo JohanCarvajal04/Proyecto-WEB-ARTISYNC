@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.catalogo;
+﻿package uteq.edu.ec.artisync.entity.catalogo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Plantilla de hitos o etapas asociadas a la prestacion de un servicio.
+ * 
+ * Ciclo de vida: Gestionada por JPA. Representa una plantilla reutilizable que dicta como debe progresar un pedido.
+ * 
+ * Relaciones principales: Entidad raiz que agrupa multiples etapas de configuracion de flujo.
+ */
 @Entity
 @Table(name = "flujos_trabajo")
 @Getter
@@ -31,3 +38,5 @@ public class FlujoTrabajo {
     @JoinColumn(name = "id_usuario_creador", nullable = false)
     private uteq.edu.ec.artisync.entity.seguridad.Usuario creador;
 }
+
+

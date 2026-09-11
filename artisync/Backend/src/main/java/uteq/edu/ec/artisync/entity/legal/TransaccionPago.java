@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.legal;
+﻿package uteq.edu.ec.artisync.entity.legal;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -10,6 +10,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Registro auditable de cualquier movimiento financiero (depositos, liberaciones, reembolsos).
+ * 
+ * Ciclo de vida: Estrictamente inmutable. Constituye el ledger financiero interno del sistema.
+ * 
+ * Relaciones principales: Asociada a PagoGarantia y al Usuario receptor o emisor.
+ */
 @Entity
 @Table(name = "transacciones_pago")
 @Getter
@@ -42,3 +49,5 @@ public class TransaccionPago {
     @Column(name = "fecha_ejecucion", updatable = false)
     private LocalDateTime fechaEjecucion;
 }
+
+

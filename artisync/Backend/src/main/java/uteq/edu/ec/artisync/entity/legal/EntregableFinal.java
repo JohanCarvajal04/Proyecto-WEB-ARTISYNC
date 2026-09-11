@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.legal;
+﻿package uteq.edu.ec.artisync.entity.legal;
 
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import jakarta.persistence.*;
@@ -6,6 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Archivo o enlace final depositado por el creador como culminacion del servicio.
+ * 
+ * Ciclo de vida: Gestionada por JPA. Solo puede ser alterada mediante tickets de revision, finalizando cuando es aprobada.
+ * 
+ * Relaciones principales: Vincula el artefacto fisico (URL en la nube) con el Pedido.
+ */
 @Entity
 @Table(name = "entregables_finales")
 @Getter
@@ -37,3 +44,5 @@ public class EntregableFinal {
     @Column(name = "esta_liberado", nullable = false)
     private Boolean estaLiberado = false;
 }
+
+

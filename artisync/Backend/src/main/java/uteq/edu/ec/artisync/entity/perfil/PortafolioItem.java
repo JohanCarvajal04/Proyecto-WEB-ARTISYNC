@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.perfil;
+﻿package uteq.edu.ec.artisync.entity.perfil;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -9,6 +9,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Obra individual (imagen, audio, texto) exhibida publicamente.
+ * 
+ * Ciclo de vida: Ciclo de vida que soporta moderacion (puede ser ocultada por el sistema ante reportes).
+ * 
+ * Relaciones principales: Asociada a un Portafolio maestro y origen de likes/comentarios.
+ */
 @Entity
 @Table(name = "portafolio_items")
 @Getter
@@ -45,3 +52,5 @@ public class PortafolioItem {
     @Column(name = "fecha_subida", updatable = false)
     private LocalDateTime fechaSubida;
 }
+
+

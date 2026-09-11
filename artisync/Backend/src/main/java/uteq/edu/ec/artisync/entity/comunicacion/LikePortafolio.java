@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.comunicacion;
+﻿package uteq.edu.ec.artisync.entity.comunicacion;
 
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
@@ -13,6 +13,13 @@ import java.time.LocalDateTime;
 @Table(name = "likes_portafolio", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"id_item_portafolio", "id_usuario"})
 })
+/**
+ * Entidad del modelo de dominio que representa Interaccion positiva ('Me gusta') sobre obras del portafolio.
+ * 
+ * Ciclo de vida: Registro volatil (creacion/eliminacion directa) que altera los contadores de popularidad.
+ * 
+ * Relaciones principales: Entidad asociativa entre Usuario y PortafolioItem.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,3 +46,5 @@ public class LikePortafolio {
     @Column(name = "fecha_like", updatable = false)
     private LocalDateTime fechaLike;
 }
+
+

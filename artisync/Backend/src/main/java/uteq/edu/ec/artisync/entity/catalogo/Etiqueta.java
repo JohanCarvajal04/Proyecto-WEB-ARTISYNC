@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.catalogo;
+﻿package uteq.edu.ec.artisync.entity.catalogo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Categorizacion libre para mejorar la busqueda de servicios.
+ * 
+ * Ciclo de vida: Su persistencia es gestionada por JPA. Es inmutable tras su creacion y funciona como un tag de busqueda.
+ * 
+ * Relaciones principales: Actua como entidad independiente, mapeada a multiples servicios mediante la tabla puente ServicioEtiqueta.
+ */
 @Entity
 @Table(name = "etiquetas")
 @Getter
@@ -28,3 +35,5 @@ public class Etiqueta {
     @Column(name = "actualizado_en")
     private java.time.LocalDateTime actualizadoEn;
 }
+
+

@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.pedido;
+﻿package uteq.edu.ec.artisync.entity.pedido;
 
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Configuracion especifica de duracion o prerequisitos para una etapa.
+ * 
+ * Ciclo de vida: Depende del FlujoTrabajo maestro. Se inicializa al publicar un servicio.
+ * 
+ * Relaciones principales: Tabla de configuracion que une EtapaFlujo con FlujoTrabajo.
+ */
 @Entity
 @Table(name = "flujo_etapas_config")
 @Getter
@@ -41,3 +48,5 @@ public class FlujoEtapaConfig {
     @Column(name = "requiere_entregable", nullable = false)
     private Boolean requiereEntregable = false;
 }
+
+

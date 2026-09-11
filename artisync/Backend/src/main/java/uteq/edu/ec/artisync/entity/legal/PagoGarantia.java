@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.legal;
+﻿package uteq.edu.ec.artisync.entity.legal;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -7,6 +7,13 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/**
+ * Entidad del modelo de dominio que representa Fondos retenidos en Escrow (garantia) hasta la liberacion del entregable.
+ * 
+ * Ciclo de vida: Ciclo de vida estricto: INICIADO -> RETENIDO -> LIBERADO o REEMBOLSADO. Controla flujo financiero.
+ * 
+ * Relaciones principales: Asociada a un Pedido y dependiente de pasarelas de pago externas.
+ */
 @Entity
 @Table(name = "pagos_garantia")
 @Getter
@@ -39,3 +46,5 @@ public class PagoGarantia {
     @Column(name = "estado_fondos", length = 50)
     private String estadoFondos = "Retenido";
 }
+
+

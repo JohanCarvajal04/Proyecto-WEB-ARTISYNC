@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.pedido;
+﻿package uteq.edu.ec.artisync.entity.pedido;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Razonamiento estandarizado cuando un creador declina un encargo.
+ * 
+ * Ciclo de vida: Catalogo maestro gestionado por administradores. Ciclo de vida cuasi-estatico.
+ * 
+ * Relaciones principales: Vinculada a un pedido rechazado para metricas de cancelacion.
+ */
 @Entity
 @Table(name = "motivos_rechazo")
 @Getter
@@ -24,3 +31,5 @@ public class MotivoRechazo {
     @Column(name = "descripcion_motivo", nullable = false, unique = true, length = 150)
     private String descripcionMotivo;
 }
+
+

@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.perfil;
+﻿package uteq.edu.ec.artisync.entity.perfil;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMax;
@@ -13,6 +13,13 @@ import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Credencial que avala el uso etico o declarado de Inteligencia Artificial por el creador.
+ * 
+ * Ciclo de vida: Emitido tras aprobacion automatizada o manual. Puede ser REVOCADO si el creador infringe terminos.
+ * 
+ * Relaciones principales: Asociada de forma exclusiva (1:1 o 1:N) al PerfilCreador.
+ */
 @Entity
 @Table(name = "certificados_ia")
 @Getter
@@ -27,8 +34,8 @@ public class CertificadoIa {
     @Column(name = "id_certificado")
     private Long idCertificado;
 
-    // V21: generalizado de PerfilCreador a Usuario — cualquier usuario (Cliente
-    // o Creador) puede solicitar una verificación de identidad, no solo quien
+    // V21: generalizado de PerfilCreador a Usuario â€” cualquier usuario (Cliente
+    // o Creador) puede solicitar una verificaciÃ³n de identidad, no solo quien
     // ya tiene un perfil de creador. Para certificados de tipo CERTIFICADO
     // (profesional, inherentemente de creador), el perfil se deriva con un
     // JOIN contra perfiles_creadores.id_usuario cuando haga falta.
@@ -89,3 +96,5 @@ public class CertificadoIa {
     @Column(name = "fecha_analisis", updatable = false)
     private LocalDateTime fechaAnalisis;
 }
+
+

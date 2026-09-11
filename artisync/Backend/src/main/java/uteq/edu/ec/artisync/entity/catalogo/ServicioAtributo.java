@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.catalogo;
+﻿package uteq.edu.ec.artisync.entity.catalogo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -6,6 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Entidad asociativa (relacion NxM) entre Servicio y AtributoDinamico con valores por defecto.
+ * 
+ * Ciclo de vida: Gestionada por JPA. Su ciclo de vida esta ligado a la existencia del servicio principal (CascadeType.ALL).
+ * 
+ * Relaciones principales: Actua como tabla puente con payload (valorAsignado) uniendo Servicio y AtributoDinamico.
+ */
 @Entity
 @Table(name = "servicio_atributos")
 @Getter
@@ -39,3 +46,5 @@ public class ServicioAtributo {
     @Column(name = "actualizado_en")
     private java.time.LocalDateTime actualizadoEn;
 }
+
+

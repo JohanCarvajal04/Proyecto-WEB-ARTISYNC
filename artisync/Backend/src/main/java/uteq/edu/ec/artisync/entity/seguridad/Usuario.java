@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.seguridad;
+﻿package uteq.edu.ec.artisync.entity.seguridad;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -9,6 +9,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Entidad principal de identidad, credenciales y estado (activo, bloqueado).
+ * 
+ * Ciclo de vida: Ciclo vital continuo (CREADO, ACTIVO, BANEADO, ELIMINADO_LOGICAMENTE). Nucleo del sistema.
+ * 
+ * Relaciones principales: Entidad apex del sistema. Todo registro transaccional desciende estructuralmente de ella.
+ */
 @Entity
 @Table(name = "usuarios")
 @Getter
@@ -58,3 +65,5 @@ public class Usuario {
     @Column(name = "url_foto_perfil")
     private String urlFotoPerfil;
 }
+
+

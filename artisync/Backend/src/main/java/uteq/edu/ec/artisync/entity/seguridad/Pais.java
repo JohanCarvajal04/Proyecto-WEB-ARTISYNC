@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.seguridad;
+﻿package uteq.edu.ec.artisync.entity.seguridad;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Diccionario base para internacionalizacion y prefijos telefonicos.
+ * 
+ * Ciclo de vida: Catalogo maestro poblado inicialmente. Ciclo de vida estatico.
+ * 
+ * Relaciones principales: Referenciado globalmente por PerfilCreador y Usuario.
+ */
 @Entity
 @Table(name = "pais")
 @Getter
@@ -28,3 +35,5 @@ public class Pais {
     @Builder.Default
     private Boolean estado = true;
 }
+
+

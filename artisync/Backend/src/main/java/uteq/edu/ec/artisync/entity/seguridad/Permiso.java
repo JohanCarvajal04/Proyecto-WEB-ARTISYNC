@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.seguridad;
+﻿package uteq.edu.ec.artisync.entity.seguridad;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Privilegio atomico de acceso a recursos del sistema.
+ * 
+ * Ciclo de vida: Pre-poblado al iniciar el sistema. Inmutable a nivel de aplicacion (gestionado por codigo).
+ * 
+ * Relaciones principales: Relacion N:M con Rol.
+ */
 @Entity
 @Table(name = "permisos")
 @Getter
@@ -28,3 +35,5 @@ public class Permiso {
     @Column(name = "modulo_aplicacion", length = 50)
     private String moduloAplicacion;
 }
+
+

@@ -1,10 +1,17 @@
-package uteq.edu.ec.artisync.entity.comunicacion;
+﻿package uteq.edu.ec.artisync.entity.comunicacion;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Enumeracion de eventos notificables (ej. NUEVO_PEDIDO, PAGO_APROBADO).
+ * 
+ * Ciclo de vida: Constante enumerada del sistema, no persistida como tabla independiente.
+ * 
+ * Relaciones principales: Se incrusta como un valor escalar (@Enumerated) en los registros de notificacion.
+ */
 @Entity
 @Table(name = "tipos_notificacion")
 @Getter
@@ -27,3 +34,5 @@ public class TipoNotificacion {
     @Column(name = "formato_mensaje", columnDefinition = "TEXT")
     private String formatoMensaje;
 }
+
+

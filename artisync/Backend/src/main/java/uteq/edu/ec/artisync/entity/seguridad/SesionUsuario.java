@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.seguridad;
+﻿package uteq.edu.ec.artisync.entity.seguridad;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -9,6 +9,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Trazabilidad de accesos (tokens de refresco, IP, User-Agent).
+ * 
+ * Ciclo de vida: Ciclo volatil ligado al TTL del token. Invalida la conexion al expirar o ser revocada.
+ * 
+ * Relaciones principales: Mecanismo clave para garantizar la seguridad OAuth2 por Usuario.
+ */
 @Entity
 @Table(name = "sesiones_usuario")
 @Getter
@@ -28,8 +35,8 @@ public class SesionUsuario {
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;
 
-    // §2.5 / OBS-AUTO-06: se guarda unicamente el jti (identificador del token),
-    // nunca el JWT completo — una lectura de esta tabla ya no entrega tokens
+    // Â§2.5 / OBS-AUTO-06: se guarda unicamente el jti (identificador del token),
+    // nunca el JWT completo â€” una lectura de esta tabla ya no entrega tokens
     // utilizables. Ver V8__sesiones_usuario_jti.sql.
     @NotBlank(message = "El jti de la sesion es obligatorio")
     @Column(name = "jti", nullable = false, unique = true, length = 36)
@@ -47,3 +54,5 @@ public class SesionUsuario {
     @Column(name = "fecha_expiracion", nullable = false)
     private LocalDateTime fechaExpiracion;
 }
+
+

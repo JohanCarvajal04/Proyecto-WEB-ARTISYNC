@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.entity.comunicacion;
+﻿package uteq.edu.ec.artisync.entity.comunicacion;
 
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
@@ -11,6 +11,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Feedback textual dejado por usuarios en obras del portafolio de un creador.
+ * 
+ * Ciclo de vida: Gestionada por JPA. Es una interaccion temporal que puede ser eliminada por su autor o moderada.
+ * 
+ * Relaciones principales: Vincula al Usuario autor con una obra especifica del PortafolioItem.
+ */
 @Entity
 @Table(name = "comentarios_portafolio")
 @Getter
@@ -48,3 +55,5 @@ public class ComentarioPortafolio {
     @Column(name = "estado_moderacion", length = 50)
     private String estadoModeracion = "Activo";
 }
+
+
