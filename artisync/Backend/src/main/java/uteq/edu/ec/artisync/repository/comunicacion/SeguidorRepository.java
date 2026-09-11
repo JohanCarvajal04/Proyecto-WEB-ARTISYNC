@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.repository.comunicacion;
+﻿package uteq.edu.ec.artisync.repository.comunicacion;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +9,14 @@ import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Seguidor}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface SeguidorRepository extends JpaRepository<Seguidor, Long> {
 
@@ -41,5 +49,6 @@ public interface SeguidorRepository extends JpaRepository<Seguidor, Long> {
     @Query(value = "SELECT fn_conteo_seguidores(:idPerfil)", nativeQuery = true)
     Long ejecutarFnConteoSeguidores(@Param("idPerfil") Long idPerfil);
 }
+
 
 

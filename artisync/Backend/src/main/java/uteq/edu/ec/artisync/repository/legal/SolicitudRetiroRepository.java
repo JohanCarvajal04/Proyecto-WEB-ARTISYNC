@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.repository.legal;
+﻿package uteq.edu.ec.artisync.repository.legal;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +14,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link SolicitudRetiro}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface SolicitudRetiroRepository extends JpaRepository<SolicitudRetiro, Long>,
         JpaSpecificationExecutor<SolicitudRetiro> {
@@ -22,20 +30,21 @@ public interface SolicitudRetiroRepository extends JpaRepository<SolicitudRetiro
 
     boolean existsByUsuarioCreadorIdUsuarioAndEstadoIn(Long idUsuario, Collection<String> estados);
 
-    /** Suma de solicitudes "en curso" (no resueltas a favor del creador todavía): resta del saldo disponible. */
+    /** Suma de solicitudes "en curso" (no resueltas a favor del creador todavÃ­a): resta del saldo disponible. */
     @Query("SELECT COALESCE(SUM(s.montoSolicitado), 0) FROM SolicitudRetiro s " +
             "WHERE s.usuarioCreador.idUsuario = :idUsuario AND s.estado IN :estados")
     BigDecimal sumMontosEnCursoPorCreador(@Param("idUsuario") Long idUsuario, @Param("estados") Collection<String> estados);
 
     /**
      * Igual que findById, pero con bloqueo pesimista de fila (equivalente Java
-     * del SELECT ... FOR UPDATE, mismo patrón que
+     * del SELECT ... FOR UPDATE, mismo patrÃ³n que
      * EntregableFinalRepository.findByPedidoIdPedidoParaActualizar). Serializa
      * aprobar/rechazar/reintentar concurrentes sobre la misma solicitud: la
-     * segunda transacción espera a que la primera confirme antes de leer el
-     * estado, evitando una doble decisión o un doble payout.
+     * segunda transacciÃ³n espera a que la primera confirme antes de leer el
+     * estado, evitando una doble decisiÃ³n o un doble payout.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM SolicitudRetiro s WHERE s.idSolicitud = :idSolicitud")
     Optional<SolicitudRetiro> findByIdParaActualizar(@Param("idSolicitud") Long idSolicitud);
 }
+

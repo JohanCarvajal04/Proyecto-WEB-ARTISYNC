@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.repository.comunicacion;
+﻿package uteq.edu.ec.artisync.repository.comunicacion;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +10,14 @@ import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
 
 import java.time.LocalDateTime;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Infraccion}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface InfraccionRepository extends JpaRepository<InfraccionMensaje, Long> {
 
@@ -33,4 +41,5 @@ public interface InfraccionRepository extends JpaRepository<InfraccionMensaje, L
             @Param("p_mensaje_original") String mensajeOriginal,
             @Param("p_patron_detectado") String patronDetectado);
 }
+
 

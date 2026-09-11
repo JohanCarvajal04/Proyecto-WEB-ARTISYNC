@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.repository.perfil;
+﻿package uteq.edu.ec.artisync.repository.perfil;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +10,14 @@ import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link CertificadoIa}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface CertificadoIaRepository extends JpaRepository<CertificadoIa, Long> {
     boolean existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(Long idUsuario, String nombreEstado);
@@ -48,4 +56,5 @@ public interface CertificadoIaRepository extends JpaRepository<CertificadoIa, Lo
     List<CertificadoIa> findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(
             String nombreEstado, LocalDateTime limite);
 }
+
 

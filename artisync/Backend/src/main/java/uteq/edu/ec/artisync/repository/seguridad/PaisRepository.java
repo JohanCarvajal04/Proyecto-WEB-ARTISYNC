@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.repository.seguridad;
+﻿package uteq.edu.ec.artisync.repository.seguridad;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,13 +10,21 @@ import java.util.Optional;
 import java.util.List;
 import org.springframework.data.domain.Sort;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Pais}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface PaisRepository extends JpaRepository<Pais, Long> {
     Optional<Pais> findByNombrePais(String nombrePais);
     List<Pais> findByEstadoTrue(Sort sort);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§4) -
      * fn_guardar_pais: crea (p_id_pais NULL) o renombra (p_id_pais con valor)
      * un pais, capturando unique_violation sobre el nombre en vez de una
      * comprobacion findByNombrePais no atomica (A9). Devuelve el id_pais
@@ -32,4 +40,5 @@ public interface PaisRepository extends JpaRepository<Pais, Long> {
             @Param("p_id_pais") Long idPais,
             @Param("p_nombre_pais") String nombrePais);
 }
+
 

@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.repository.pedido;
+﻿package uteq.edu.ec.artisync.repository.pedido;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -6,6 +6,14 @@ import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 
 import java.util.List;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link FlujoEtapaConfig}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Delega la responsabilidad de persistencia a los métodos estándar y autogenerados por convención (Derived Queries) de Spring Data.
+ */
 @Repository
 public interface FlujoEtapaConfigRepository extends JpaRepository<FlujoEtapaConfig, Long> {
 
@@ -15,10 +23,11 @@ public interface FlujoEtapaConfigRepository extends JpaRepository<FlujoEtapaConf
 
     boolean existsByFlujoIdFlujoAndEtapaIdEtapa(Long idFlujo, Long idEtapa);
 
-    /** REQ-NF-018: ¿la etapa actual de un pedido es la etapa final de su flujo? Usado para bloquear la supresión de datos mientras el pedido sigue en curso. */
+    /** REQ-NF-018: Â¿la etapa actual de un pedido es la etapa final de su flujo? Usado para bloquear la supresiÃ³n de datos mientras el pedido sigue en curso. */
     boolean existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(Long idFlujo, Long idEtapa);
 
     boolean existsByFlujoIdFlujoAndNumeroOrden(Long idFlujo, Integer numeroOrden);
 
     void deleteByFlujoIdFlujo(Long idFlujo);
 }
+
