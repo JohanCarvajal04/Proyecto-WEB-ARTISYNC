@@ -53,10 +53,10 @@ import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificationService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -96,7 +96,7 @@ class OrderServiceImplTest {
     @Mock private OrderTermsProposalRepository propuestaTerminosPedidoRepository;
     @Mock private NotificationService notificacionService;
     @Mock private ChatService chatService;
-    @Mock private IServicioExportacion servicioExportacion;
+    @Mock private IExportService servicioExportacion;
     @Mock private IVerificationService verificacionServicio;
     @Mock private IContractService contratoServicio;
     @Mock private SentBriefingRepository briefingEnviadoRepository;
@@ -654,12 +654,12 @@ class OrderServiceImplTest {
         given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido, pedidoOtro));
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
         given(servicioExportacion.exportar(any(), any()))
-                .willReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+                .willReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
 
-        pedidoServicio.exportarMisComisiones(2L, null, FormatoReporte.CSV, "creador@test.dev");
+        pedidoServicio.exportarMisComisiones(2L, null, ReportFormat.CSV, "creador@test.dev");
 
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertThat(captor.getValue().getFilas()).hasSize(2);
     }
 
@@ -671,12 +671,12 @@ class OrderServiceImplTest {
         given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido, pedidoOtro));
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
         given(servicioExportacion.exportar(any(), any()))
-                .willReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+                .willReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
 
-        pedidoServicio.exportarMisComisiones(2L, List.of(10L), FormatoReporte.CSV, "creador@test.dev");
+        pedidoServicio.exportarMisComisiones(2L, List.of(10L), ReportFormat.CSV, "creador@test.dev");
 
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         List<OrderSummaryResponse> filas = captor.getValue().getFilas();
         assertThat(filas).hasSize(1);
         assertThat(filas.get(0).getIdPedido()).isEqualTo(10L);
@@ -688,12 +688,12 @@ class OrderServiceImplTest {
         given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido));
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
         given(servicioExportacion.exportar(any(), any()))
-                .willReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+                .willReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
 
-        pedidoServicio.exportarMisComisiones(2L, List.of(999L), FormatoReporte.CSV, "creador@test.dev");
+        pedidoServicio.exportarMisComisiones(2L, List.of(999L), ReportFormat.CSV, "creador@test.dev");
 
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertThat(captor.getValue().getFilas()).isEmpty();
     }
 

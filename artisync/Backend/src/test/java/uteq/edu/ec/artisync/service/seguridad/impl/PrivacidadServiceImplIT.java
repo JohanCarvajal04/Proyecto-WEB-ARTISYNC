@@ -17,9 +17,9 @@ import org.springframework.test.context.ActiveProfiles;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
-import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verify;
  * existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue, findByPedido...).
  *
  * @DataJpaTest, mismo criterio que AprobarEntregaConcurrenciaIT: TwoFactorService,
- * IntentosAutenticacionService, SessionRevocationService y AlmacenamientoDocumentos
+ * AuthAttemptsService, SessionRevocationService y DocumentStorage
  * no participan en las consultas JPA que se quieren ejercitar aquí, así que se
  * sustituyen por mocks en vez de levantar el contexto completo de Spring.
  *
@@ -56,8 +56,8 @@ class PrivacidadServiceImplIT {
         }
 
         @Bean
-        IntentosAutenticacionService intentosAutenticacionService() {
-            return Mockito.mock(IntentosAutenticacionService.class);
+        AuthAttemptsService intentosAutenticacionService() {
+            return Mockito.mock(AuthAttemptsService.class);
         }
 
         @Bean
@@ -66,8 +66,8 @@ class PrivacidadServiceImplIT {
         }
 
         @Bean
-        AlmacenamientoDocumentos almacenamientoDocumentos() {
-            return Mockito.mock(AlmacenamientoDocumentos.class);
+        DocumentStorage almacenamientoDocumentos() {
+            return Mockito.mock(DocumentStorage.class);
         }
     }
 

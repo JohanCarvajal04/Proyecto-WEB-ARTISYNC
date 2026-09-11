@@ -39,7 +39,7 @@ public interface RevisionTicketRepository extends JpaRepository<RevisionTicket, 
             "AND t.fechaCreacion < :limite AND (p IS NULL OR p.estadoPago <> 'Pagado')")
     List<RevisionTicket> findVencidosSinPagoConfirmado(@Param("limite") LocalDateTime limite);
 
-    /** Con bloqueo pesimista: serializa la carrera entre TicketRevisionExpiracionServicio y el webhook/creador. */
+    /** Con bloqueo pesimista: serializa la carrera entre RevisionTicketExpirationService y el webhook/creador. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM RevisionTicket t WHERE t.idTicket = :idTicket")
     Optional<RevisionTicket> findByIdParaActualizar(@Param("idTicket") Long idTicket);

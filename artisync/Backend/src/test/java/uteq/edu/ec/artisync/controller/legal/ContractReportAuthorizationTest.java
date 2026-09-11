@@ -18,8 +18,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
 import uteq.edu.ec.artisync.service.legal.IContractReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.Arrays;
@@ -53,7 +53,7 @@ class ContractReportAuthorizationTest {
                             .content(List.of()).pageNumber(0).pageSize(20).totalElements(0).totalPages(0).last(true)
                             .build());
             when(servicio.exportar(any(), any(), any()))
-                    .thenReturn(new DocumentoGenerado(new byte[0], "text/csv", "contratos.csv"));
+                    .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "contratos.csv"));
             return servicio;
         }
 
@@ -99,7 +99,7 @@ class ContractReportAuthorizationTest {
 
         assertDoesNotThrow(() -> controlador.listar(new ContractReportFilter(), 0, 20));
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new ContractReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -109,7 +109,7 @@ class ContractReportAuthorizationTest {
 
         assertThrows(AccessDeniedException.class, () -> controlador.listar(new ContractReportFilter(), 0, 20));
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new ContractReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -118,7 +118,7 @@ class ContractReportAuthorizationTest {
         autenticar("ROLE_ADMIN");
 
         assertDoesNotThrow(() -> controlador.listar(new ContractReportFilter(), 0, 20));
-        assertDoesNotThrow(() -> controlador.exportar(new ContractReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+        assertDoesNotThrow(() -> controlador.exportar(new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -128,6 +128,6 @@ class ContractReportAuthorizationTest {
 
         assertThrows(AccessDeniedException.class, () -> controlador.listar(new ContractReportFilter(), 0, 20));
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new ContractReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new ContractReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 }

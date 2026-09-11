@@ -111,7 +111,7 @@ public class BackupServiceImpl implements IBackupService {
         }
         // FileSystemResource -> Spring transmite el InputStream a la respuesta
         // en streaming, nunca un byte[] completo en memoria (a diferencia de
-        // DocumentoGenerado/DocumentResponse, pensados para reportes
+        // GeneratedDocument/DocumentResponse, pensados para reportes
         // pequeños; un dump de BD puede ser mucho más grande).
         return new BackupFile(new FileSystemResource(ruta), respaldo.getNombreArchivo(), tamano(ruta));
     }

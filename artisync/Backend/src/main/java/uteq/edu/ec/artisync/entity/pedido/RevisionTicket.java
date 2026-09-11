@@ -56,7 +56,7 @@ public class RevisionTicket {
     @Column(name = "estado_ticket", length = 50)
     private String estadoTicket = "Abierto";
 
-    /** REQ-F-022c: TicketRevisionExpiracionScheduler la usa para calcular "48h desde la creacion". */
+    /** REQ-F-022c: RevisionTicketExpirationScheduler la usa para calcular "48h desde la creacion". */
     @CreationTimestamp
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;

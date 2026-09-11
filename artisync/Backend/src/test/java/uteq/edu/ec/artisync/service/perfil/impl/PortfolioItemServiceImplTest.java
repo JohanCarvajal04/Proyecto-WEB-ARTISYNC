@@ -19,7 +19,7 @@ import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.perfil.PortfolioItemRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortfolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortfolioItemService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,7 +41,7 @@ class PortfolioItemServiceImplTest {
 
     @Mock private PortfolioItemRepository itemRepository;
     @Mock private PortfolioRepository portafolioRepository;
-    @Mock private AlmacenamientoDocumentos almacenamiento;
+    @Mock private DocumentStorage almacenamiento;
 
     @InjectMocks private PortfolioItemServiceImpl servicio;
 

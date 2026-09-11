@@ -13,10 +13,10 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionDetail;
 import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -55,7 +55,7 @@ class FinancialReportServiceImplTest {
     private PaymentTransactionRepository transaccionPagoRepository;
 
     @Mock
-    private IServicioExportacion servicioExportacion;
+    private IExportService servicioExportacion;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -136,7 +136,7 @@ class FinancialReportServiceImplTest {
     @DisplayName("exportar() lanza BusinessRuleException si el detalle supera el tope de filas del formato")
     void exportar_ExcedeTope_LanzaExcepcion() {
         StringBuilder detalle = new StringBuilder();
-        for (int i = 0; i < FormatoReporte.PDF.topeFilas() + 1; i++) {
+        for (int i = 0; i < ReportFormat.PDF.topeFilas() + 1; i++) {
             if (i > 0) {
                 detalle.append(',');
             }
@@ -145,7 +145,7 @@ class FinancialReportServiceImplTest {
                     .append("\"fechaEjecucion\": \"2026-01-01T00:00:00\"}");
         }
         String jsonEnorme = "{\"idPerfil\":7,\"fechaDesde\":null,\"fechaHasta\":null,\"tasaComision\":0.10,"
-                + "\"totalPedidos\":1,\"totalOperaciones\":" + (FormatoReporte.PDF.topeFilas() + 1)
+                + "\"totalPedidos\":1,\"totalOperaciones\":" + (ReportFormat.PDF.topeFilas() + 1)
                 + ",\"montoBruto\":1,\"comision\":0.1,\"montoNeto\":0.9,\"detalle\":[" + detalle + "]}";
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(jsonEnorme);
         servicio = crearServicio();
@@ -153,27 +153,27 @@ class FinancialReportServiceImplTest {
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
 
-        assertThatThrownBy(() -> servicio.exportar(filtro, FormatoReporte.PDF, "admin@artisync.dev"))
+        assertThatThrownBy(() -> servicio.exportar(filtro, ReportFormat.PDF, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining(String.valueOf(FormatoReporte.PDF.topeFilas()));
+                .hasMessageContaining(String.valueOf(ReportFormat.PDF.topeFilas()));
     }
 
     @Test
-    @DisplayName("exportar() construye el ModeloReporte con totales bruto/comisión/neto y delega en el común")
+    @DisplayName("exportar() construye el ReportModel con totales bruto/comisión/neto y delega en el común")
     void exportar_ConstruyeModeloConTotalesYDelega() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
-        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "text/csv", "comisiones.csv");
-        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.CSV))).thenReturn(esperado);
+        GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "comisiones.csv");
+        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        DocumentoGenerado resultado = servicio.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = servicio.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
-        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.CSV));
-        ModeloReporte<CommissionDetail> modelo = captor.getValue();
+        ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        ReportModel<CommissionDetail> modelo = captor.getValue();
         assertThat(modelo.getFilas()).hasSize(2);
         assertThat(modelo.getTotales()).hasSize(3);
         assertThat((BigDecimal) modelo.getTotales().get(0).valor()).isEqualByComparingTo("300.00");
@@ -185,17 +185,17 @@ class FinancialReportServiceImplTest {
     void exportar_conPaginacion_permiteExportarPorLotes() {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
-        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "application/pdf", "comisiones_7_parte_1.pdf");
-        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.PDF))).thenReturn(esperado);
+        GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "comisiones_7_parte_1.pdf");
+        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
-        DocumentoGenerado resultado = servicio.exportar(filtro, FormatoReporte.PDF, 0, 1, "admin@artisync.dev");
+        GeneratedDocument resultado = servicio.exportar(filtro, ReportFormat.PDF, 0, 1, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
-        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.PDF));
-        ModeloReporte<CommissionDetail> modelo = captor.getValue();
+        ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.PDF));
+        ReportModel<CommissionDetail> modelo = captor.getValue();
         assertThat(modelo.getFilas()).hasSize(1);
         assertThat(modelo.getTitulo()).isEqualTo("Comisiones - Parte 1");
         assertThat(modelo.getSubtitulo()).contains("Parte 1 de 2");

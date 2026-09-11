@@ -66,7 +66,7 @@ class AuthServiceImplTest {
     @Mock
     private SessionRevocationService sessionRevocationService;
     @Mock
-    private IntentosAutenticacionService intentosAutenticacionService;
+    private AuthAttemptsService intentosAutenticacionService;
     @Mock
     private PreAuth2faTicketService preAuth2faTicketService;
     @Mock

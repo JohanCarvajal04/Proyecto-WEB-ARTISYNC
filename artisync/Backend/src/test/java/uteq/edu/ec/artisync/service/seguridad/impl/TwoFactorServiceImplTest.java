@@ -22,7 +22,7 @@ import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationReposito
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorBackupCodeRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,7 +45,7 @@ class TwoFactorServiceImplTest {
     @Mock
     private AiCertificateRepository certificadoIaRepository;
     @Mock
-    private IntentosAutenticacionService intentosAutenticacionService;
+    private AuthAttemptsService intentosAutenticacionService;
 
     @InjectMocks
     private TwoFactorServiceImpl twoFactorService;

@@ -19,8 +19,8 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.TermsProposalResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderTrackingResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IOrderService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 
 import java.util.List;
@@ -107,9 +107,9 @@ public class OrderController {
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportarMisPedidos(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam FormatoReporte formato,
+            @RequestParam ReportFormat formato,
             Authentication authentication) {
-        DocumentoGenerado documento = pedidoServicio.exportarMisPedidos(
+        GeneratedDocument documento = pedidoServicio.exportarMisPedidos(
                 userDetails.getIdUsuario(), formato, authentication.getName());
         return DocumentResponse.de(documento);
     }
@@ -127,10 +127,10 @@ public class OrderController {
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportarMisComisiones(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam FormatoReporte formato,
+            @RequestParam ReportFormat formato,
             @RequestParam(required = false) List<Long> idsPedido,
             Authentication authentication) {
-        DocumentoGenerado documento = pedidoServicio.exportarMisComisiones(
+        GeneratedDocument documento = pedidoServicio.exportarMisComisiones(
                 userDetails.getIdUsuario(), idsPedido, formato, authentication.getName());
         return DocumentResponse.de(documento);
     }

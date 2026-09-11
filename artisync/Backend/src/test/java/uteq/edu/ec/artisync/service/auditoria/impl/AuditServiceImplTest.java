@@ -21,10 +21,10 @@ import uteq.edu.ec.artisync.entity.auditoria.AuditEvent;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.auditoria.AuditEventRepository;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.time.LocalDateTime;
@@ -46,7 +46,7 @@ class AuditServiceImplTest {
     private AuditEventRepository eventoAuditoriaRepository;
 
     @Mock
-    private IServicioExportacion servicioExportacion;
+    private IExportService servicioExportacion;
 
     @InjectMocks
     private AuditServiceImpl auditoriaServicio;
@@ -104,33 +104,33 @@ class AuditServiceImplTest {
     @DisplayName("exportar() lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
     void exportar_ExcedeTope_LanzaExcepcion() {
         Page<AuditEvent> paginaEnorme = new PageImpl<>(
-                List.of(eventoDe(1L, "X")), PageRequest.of(0, FormatoReporte.CSV.topeFilas()), 50_001);
+                List.of(eventoDe(1L, "X")), PageRequest.of(0, ReportFormat.CSV.topeFilas()), 50_001);
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(paginaEnorme);
 
-        assertThatThrownBy(() -> auditoriaServicio.exportar(new AuditFilter(), FormatoReporte.CSV, "admin@artisync.dev"))
+        assertThatThrownBy(() -> auditoriaServicio.exportar(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("50001")
                 .hasMessageContaining("Acote el rango de fechas");
     }
 
     @Test
-    @DisplayName("exportar() construye el ModeloReporte con las columnas y filas de la bitácora y delega en el común")
+    @DisplayName("exportar() construye el ReportModel con las columnas y filas de la bitácora y delega en el común")
     void exportar_ConstruyeModeloYDelegaEnElComun() {
         AuditEvent evento = eventoDe(1L, "PAIS_CREAR");
         evento.setCorreoActor("ana@artisync.dev");
         Page<AuditEvent> pagina = new PageImpl<>(List.of(evento));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
-        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "text/csv", "auditoria.csv");
-        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.CSV))).thenReturn(esperado);
+        GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "auditoria.csv");
+        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
 
-        DocumentoGenerado resultado = auditoriaServicio.exportar(new AuditFilter(), FormatoReporte.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = auditoriaServicio.exportar(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
-        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.CSV));
-        ModeloReporte<AuditEvent> modelo = captor.getValue();
+        ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        ReportModel<AuditEvent> modelo = captor.getValue();
         assertThat(modelo.getFilas()).containsExactly(evento);
         assertThat(modelo.getGeneradoPor()).isEqualTo("admin@artisync.dev");
         assertThat(modelo.getColumnas()).hasSize(9);
@@ -151,8 +151,8 @@ class AuditServiceImplTest {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
-        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.CSV)))
-                .thenReturn(new DocumentoGenerado(new byte[]{1}, "text/csv", "auditoria.csv"));
+        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV)))
+                .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "auditoria.csv"));
 
         AuditFilter filtro = new AuditFilter();
         filtro.setCorreoActor("ana@artisync.dev");
@@ -163,10 +163,10 @@ class AuditServiceImplTest {
         filtro.setDesde(LocalDateTime.of(2026, 1, 1, 0, 0));
         filtro.setHasta(LocalDateTime.of(2026, 1, 31, 23, 59));
 
-        auditoriaServicio.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+        auditoriaServicio.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
-        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.CSV));
+        ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
         Map<String, String> filtrosAplicados = captor.getValue().getFiltrosAplicados();
         assertThat(filtrosAplicados)
                 .containsEntry("Actor", "ana@artisync.dev")
@@ -216,14 +216,14 @@ class AuditServiceImplTest {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "TEST")), PageRequest.of(0, 5000), 50_000);
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
-        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "application/pdf", "auditoria_parte_1.pdf");
-        when(servicioExportacion.exportar(any(ModeloReporte.class), eq(FormatoReporte.PDF))).thenReturn(esperado);
+        GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "auditoria_parte_1.pdf");
+        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
 
-        DocumentoGenerado resultado = auditoriaServicio.exportar(new AuditFilter(), FormatoReporte.PDF, 0, 5000, "admin@artisync.dev");
+        GeneratedDocument resultado = auditoriaServicio.exportar(new AuditFilter(), ReportFormat.PDF, 0, 5000, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
-        ArgumentCaptor<ModeloReporte> captor = ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(FormatoReporte.PDF));
+        ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.PDF));
         assertThat(captor.getValue().getTitulo()).isEqualTo("Auditoría - Parte 1");
         assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 10");
     }

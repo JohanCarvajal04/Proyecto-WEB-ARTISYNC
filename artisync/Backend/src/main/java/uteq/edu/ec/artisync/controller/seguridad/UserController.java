@@ -19,9 +19,9 @@ import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FileExtensions;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.security.Principal;
@@ -36,7 +36,7 @@ public class UserController {
 
     private final UserService userService;
     private final PrivacyService privacidadService;
-    private final AlmacenamientoDocumentos almacenamientoDocumentos;
+    private final DocumentStorage almacenamientoDocumentos;
 
     /**
      * Obtiene el perfil completo del usuario autenticado actual.
@@ -159,11 +159,11 @@ public class UserController {
         String fullPath = request.getRequestURI();
         String prefix = "/api/v1/usuarios/foto/";
         String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());
-        if (!referencia.startsWith(PrefijoAlmacenamiento.PERFILES + "/")) {
+        if (!referencia.startsWith(StoragePrefix.PERFILES + "/")) {
             throw new ResourceNotFoundException("Documento no disponible: " + referencia);
         }
         byte[] contenido = almacenamientoDocumentos.leer(referencia);
-        String contentType = ExtensionesArchivo.contentTypeDe(referencia);
+        String contentType = FileExtensions.contentTypeDe(referencia);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=" + TimeUnit.DAYS.toSeconds(7))

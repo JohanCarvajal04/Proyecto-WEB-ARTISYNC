@@ -18,8 +18,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.AuditFilter;
 import uteq.edu.ec.artisync.service.auditoria.IAuditService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -56,7 +56,7 @@ class AuditAuthorizationTest {
             // nulo para que los casos "autorizado" del test puedan afirmar
             // assertDoesNotThrow sin que el propio mock rompa la aserción.
             when(servicio.exportar(any(), any(), any()))
-                    .thenReturn(new DocumentoGenerado(new byte[0], "text/csv", "auditoria.csv"));
+                    .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "auditoria.csv"));
             return servicio;
         }
 
@@ -98,7 +98,7 @@ class AuditAuthorizationTest {
 
         assertDoesNotThrow(() -> controlador.listar(new AuditFilter(), PageRequest.of(0, 20)));
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new AuditFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -109,7 +109,7 @@ class AuditAuthorizationTest {
         assertDoesNotThrow(() -> controlador.listar(new AuditFilter(), PageRequest.of(0, 20)));
         assertDoesNotThrow(() -> controlador.obtenerPorId(1L));
         assertDoesNotThrow(() -> controlador.listarAcciones());
-        assertDoesNotThrow(() -> controlador.exportar(new AuditFilter(), FormatoReporte.CSV, autenticacionActual()));
+        assertDoesNotThrow(() -> controlador.exportar(new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -121,7 +121,7 @@ class AuditAuthorizationTest {
         assertThrows(AccessDeniedException.class, () -> controlador.obtenerPorId(1L));
         assertThrows(AccessDeniedException.class, () -> controlador.listarAcciones());
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new AuditFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     private org.springframework.security.core.Authentication autenticacionActual() {

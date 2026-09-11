@@ -23,9 +23,9 @@ import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 import uteq.edu.ec.artisync.repository.perfil.VerificationStatusRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificationService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.ia.IaService;
-import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.ia.AiService;
+import uteq.edu.ec.artisync.service.shared.imagen.AiImagePreprocessor;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -43,9 +43,9 @@ public class VerificationServiceImpl implements IVerificationService {
     private final UserRepository usuarioRepository;
     private final VerificationStatusRepository estadoVerificacionRepository;
     private final AiCertificateRepository certificadoIaRepository;
-    private final AlmacenamientoDocumentos almacenamiento;
-    private final PreprocesadorImagenIa preprocesador;
-    private final IaService iaService;
+    private final DocumentStorage almacenamiento;
+    private final AiImagePreprocessor preprocesador;
+    private final AiService iaService;
     // Jackson 3, no com.fasterxml — usado desde la Tarea 16 para serializar
     // los datos que la IA extrae del documento (datos_extraidos_ia).
     private final ObjectMapper objectMapper;

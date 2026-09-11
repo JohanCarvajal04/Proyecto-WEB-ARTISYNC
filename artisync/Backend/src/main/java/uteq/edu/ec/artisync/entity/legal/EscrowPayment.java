@@ -58,7 +58,7 @@ public class EscrowPayment {
     private LocalDateTime fechaCreacion;
 
     /**
-     * Usada por ReconciliacionPayPalScheduler para detectar pagos 'Pendiente'
+     * Usada por PayPalReconciliationScheduler para detectar pagos 'Pendiente'
      * estancados: crearOrdenPayPal reutiliza esta misma fila en cada
      * reintento del cliente, así que lo relevante es la edad del ULTIMO
      * intento, no de la fila original.

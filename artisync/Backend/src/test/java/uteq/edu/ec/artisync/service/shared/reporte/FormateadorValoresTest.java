@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * usaba {@code String.format("%.2f", monto)}, que hereda el locale por defecto de la
  * JVM. En una JVM con locale es-ES eso produce "1234,56" — coma decimal — y parte la
  * columna de un CSV separado por comas. Este test corre explícitamente con locale
- * es-ES para probar que {@link FormateadorValores} no hereda ese comportamiento.
+ * es-ES para probar que {@link ValueFormatter} no hereda ese comportamiento.
  */
 class FormateadorValoresTest {
 
@@ -36,7 +36,7 @@ class FormateadorValoresTest {
     @Test
     @DisplayName("Con locale es-ES por defecto en la JVM, el monto sigue usando punto decimal")
     void texto_ConLocaleEspanol_UsaPuntoDecimal() {
-        String resultado = FormateadorValores.texto(new BigDecimal("1234.56"), TipoColumna.MONEDA);
+        String resultado = ValueFormatter.texto(new BigDecimal("1234.56"), ColumnType.MONEDA);
 
         assertThat(resultado).isEqualTo("1234.56");
         assertThat(resultado).doesNotContain(",");
@@ -45,7 +45,7 @@ class FormateadorValoresTest {
     @Test
     @DisplayName("moneda() redondea a 2 decimales con HALF_UP independientemente del locale")
     void moneda_RedondeaADosDecimales() {
-        BigDecimal resultado = FormateadorValores.moneda(new BigDecimal("999.999"));
+        BigDecimal resultado = ValueFormatter.moneda(new BigDecimal("999.999"));
 
         assertThat(resultado).isEqualByComparingTo("1000.00");
     }
@@ -53,7 +53,7 @@ class FormateadorValoresTest {
     @Test
     @DisplayName("Un decimal formateado como texto también usa punto, no coma")
     void texto_Decimal_UsaPuntoDecimal() {
-        String resultado = FormateadorValores.texto(new BigDecimal("42.5"), TipoColumna.DECIMAL);
+        String resultado = ValueFormatter.texto(new BigDecimal("42.5"), ColumnType.DECIMAL);
 
         assertThat(resultado).isEqualTo("42.50");
     }

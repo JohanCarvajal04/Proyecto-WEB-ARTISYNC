@@ -19,8 +19,8 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.TermsProposalResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderTrackingResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IOrderService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 
 import java.util.Collections;
 import java.util.List;
@@ -94,10 +94,10 @@ class OrderControllerTest {
         CustomUserDetails user = mockUserDetails();
         Authentication auth = mock(Authentication.class);
         when(auth.getName()).thenReturn("test@test.com");
-        DocumentoGenerado doc = new DocumentoGenerado(new byte[]{1, 2, 3}, "application/pdf", "pedidos.pdf");
-        when(pedidoServicio.exportarMisPedidos(1L, FormatoReporte.PDF, "test@test.com")).thenReturn(doc);
+        GeneratedDocument doc = new GeneratedDocument(new byte[]{1, 2, 3}, "application/pdf", "pedidos.pdf");
+        when(pedidoServicio.exportarMisPedidos(1L, ReportFormat.PDF, "test@test.com")).thenReturn(doc);
 
-        ResponseEntity<byte[]> res = controlador.exportarMisPedidos(user, FormatoReporte.PDF, auth);
+        ResponseEntity<byte[]> res = controlador.exportarMisPedidos(user, ReportFormat.PDF, auth);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -106,11 +106,11 @@ class OrderControllerTest {
         CustomUserDetails user = mockUserDetails();
         Authentication auth = mock(Authentication.class);
         when(auth.getName()).thenReturn("test@test.com");
-        DocumentoGenerado doc = new DocumentoGenerado(new byte[]{1, 2, 3}, "application/pdf", "comisiones.pdf");
+        GeneratedDocument doc = new GeneratedDocument(new byte[]{1, 2, 3}, "application/pdf", "comisiones.pdf");
         List<Long> ids = List.of(1L, 2L);
-        when(pedidoServicio.exportarMisComisiones(1L, ids, FormatoReporte.PDF, "test@test.com")).thenReturn(doc);
+        when(pedidoServicio.exportarMisComisiones(1L, ids, ReportFormat.PDF, "test@test.com")).thenReturn(doc);
 
-        ResponseEntity<byte[]> res = controlador.exportarMisComisiones(user, FormatoReporte.PDF, ids, auth);
+        ResponseEntity<byte[]> res = controlador.exportarMisComisiones(user, ReportFormat.PDF, ids, auth);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

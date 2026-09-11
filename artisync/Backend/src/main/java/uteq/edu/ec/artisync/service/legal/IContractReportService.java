@@ -2,8 +2,8 @@ package uteq.edu.ec.artisync.service.legal;
 
 import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 public interface IContractReportService {
@@ -27,7 +27,7 @@ public interface IContractReportService {
      * @return el documento generado con las filas filtradas
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el filtro devuelve más filas que el tope admitido por el formato
      */
-    DocumentoGenerado exportar(ContractReportFilter filtro, FormatoReporte formato, String correoSolicitante);
+    GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante);
 
     /**
      * Genera un documento con las filas del reporte de contratos que cumplen el filtro indicado,
@@ -40,5 +40,5 @@ public interface IContractReportService {
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con las filas filtradas
      */
-    DocumentoGenerado exportar(ContractReportFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
+    GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante);
 }

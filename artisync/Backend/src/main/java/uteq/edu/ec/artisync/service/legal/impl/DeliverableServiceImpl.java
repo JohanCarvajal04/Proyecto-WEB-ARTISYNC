@@ -8,10 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FileExtensions;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
@@ -37,7 +37,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
     private final EscrowPaymentRepository pagoGarantiaRepository;
     private final ContractRepository contratoRepository;
     private final PaymentTransactionRepository transaccionPagoRepository;
-    private final AlmacenamientoDocumentos almacenamiento;
+    private final DocumentStorage almacenamiento;
     private final ChatService chatService;
     private final NotificationService notificacionService;
 
@@ -61,8 +61,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
     @Transactional
     public DeliverableResponse subirEntregable(Long idPedido, Long idCreador,
                                                 MultipartFile versionMarcaAgua, MultipartFile versionLimpia) {
-        PoliticaArchivo.ENTREGABLE.validar(versionMarcaAgua);
-        PoliticaArchivo.ENTREGABLE.validar(versionLimpia);
+        FilePolicy.ENTREGABLE.validar(versionMarcaAgua);
+        FilePolicy.ENTREGABLE.validar(versionLimpia);
 
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -85,9 +85,9 @@ public class DeliverableServiceImpl implements IDeliverableService {
         String anteriorLimpia = entregable.getUrlVersionLimpia();
 
         entregable.setUrlVersionMarcaAgua(
-                almacenamiento.guardar(versionMarcaAgua, PrefijoAlmacenamiento.ENTREGABLES));
+                almacenamiento.guardar(versionMarcaAgua, StoragePrefix.ENTREGABLES));
         entregable.setUrlVersionLimpia(
-                almacenamiento.guardar(versionLimpia, PrefijoAlmacenamiento.ENTREGABLES));
+                almacenamiento.guardar(versionLimpia, StoragePrefix.ENTREGABLES));
 
         entregable = entregableRepository.save(entregable);
         eliminarSiExiste(anteriorMarcaAgua);
@@ -248,7 +248,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
         return new ArchivoDescargado(
                 almacenamiento.leer(referencia),
                 "entregable-pedido-" + idPedido + extensionDe(referencia),
-                ExtensionesArchivo.contentTypeDe(referencia));
+                FileExtensions.contentTypeDe(referencia));
     }
 
     @Override
@@ -281,7 +281,7 @@ public class DeliverableServiceImpl implements IDeliverableService {
         return new ArchivoDescargado(
                 almacenamiento.leer(referencia),
                 "vista-previa-pedido-" + idPedido + extensionDe(referencia),
-                ExtensionesArchivo.contentTypeDe(referencia));
+                FileExtensions.contentTypeDe(referencia));
     }
 
     private String extensionDe(String referencia) {

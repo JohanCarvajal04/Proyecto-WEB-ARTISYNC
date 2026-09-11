@@ -4,10 +4,10 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
 
 /**
- * Convierte un {@link DocumentoGenerado} en la respuesta HTTP de descarga.
+ * Convierte un {@link GeneratedDocument} en la respuesta HTTP de descarga.
  * Siempre {@code attachment}, nunca {@code inline} — mismo criterio que
  * {@code DeliverableController.responderArchivo}: un reporte puede incluir datos de
  * usuario, y servirlo inline abriría la puerta a XSS almacenado si el navegador
@@ -18,7 +18,7 @@ public final class DocumentResponse {
     private DocumentResponse() {
     }
 
-    public static ResponseEntity<byte[]> de(DocumentoGenerado documento) {
+    public static ResponseEntity<byte[]> de(GeneratedDocument documento) {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(documento.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,

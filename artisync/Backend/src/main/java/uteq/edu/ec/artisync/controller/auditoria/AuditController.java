@@ -13,8 +13,8 @@ import uteq.edu.ec.artisync.dto.peticion.auditoria.AuditFilter;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventResponse;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventSummaryResponse;
 import uteq.edu.ec.artisync.service.auditoria.IAuditService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 
@@ -94,11 +94,11 @@ public class AuditController {
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             AuditFilter filtro,
-            @RequestParam FormatoReporte formato,
+            @RequestParam ReportFormat formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
-        DocumentoGenerado documento = (page != null || size != null)
+        GeneratedDocument documento = (page != null || size != null)
                 ? auditoriaServicio.exportar(filtro, formato, page, size, authentication.getName())
                 : auditoriaServicio.exportar(filtro, formato, authentication.getName());
         return DocumentResponse.de(documento);
@@ -115,7 +115,7 @@ public class AuditController {
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             AuditFilter filtro,
-            FormatoReporte formato,
+            ReportFormat formato,
             Authentication authentication) {
         return exportar(filtro, formato, null, null, authentication);
     }

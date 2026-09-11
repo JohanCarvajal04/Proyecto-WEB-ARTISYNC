@@ -2,8 +2,8 @@ package uteq.edu.ec.artisync.service.legal;
 
 import uteq.edu.ec.artisync.dto.peticion.legal.FinancialReportFilter;
 import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 
 public interface IFinancialReportService {
 
@@ -24,7 +24,7 @@ public interface IFinancialReportService {
      * @return el documento generado con el detalle filtrado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el detalle supera el tope de filas del formato pedido
      */
-    DocumentoGenerado exportar(FinancialReportFilter filtro, FormatoReporte formato, String correoSolicitante);
+    GeneratedDocument exportar(FinancialReportFilter filtro, ReportFormat formato, String correoSolicitante);
 
     /**
      * Genera un documento con el detalle del reporte de comisiones que cumple el filtro indicado,
@@ -37,5 +37,5 @@ public interface IFinancialReportService {
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el detalle filtrado
      */
-    DocumentoGenerado exportar(FinancialReportFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
+    GeneratedDocument exportar(FinancialReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante);
 }

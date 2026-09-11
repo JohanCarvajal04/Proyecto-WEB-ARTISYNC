@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.legal.ContractReportFilter;
 import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
 import uteq.edu.ec.artisync.service.legal.IContractReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 
@@ -67,11 +67,11 @@ public class ContractReportController {
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             ContractReportFilter filtro,
-            @RequestParam FormatoReporte formato,
+            @RequestParam ReportFormat formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
-        DocumentoGenerado documento = (page != null || size != null)
+        GeneratedDocument documento = (page != null || size != null)
                 ? reporteContratoServicio.exportar(filtro, formato, page, size, authentication.getName())
                 : reporteContratoServicio.exportar(filtro, formato, authentication.getName());
         return DocumentResponse.de(documento);
@@ -88,7 +88,7 @@ public class ContractReportController {
     @PreAuthorize("hasAuthority('REPORTE_CONTRATO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             ContractReportFilter filtro,
-            FormatoReporte formato,
+            ReportFormat formato,
             Authentication authentication) {
         return exportar(filtro, formato, null, null, authentication);
     }

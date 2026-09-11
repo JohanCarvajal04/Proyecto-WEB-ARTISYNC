@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * sp_purgar_datos_seguridad es un PROCEDURE con COMMIT interno por lote, así
  * que no puede invocarse dentro de la transacción de prueba que @DataJpaTest
  * envuelve por defecto (fallaría con 2D000 invalid_transaction_termination,
- * el mismo motivo por el que SeguridadPurgaScheduler usa
+ * el mismo motivo por el que SecurityPurgeScheduler usa
  * Propagation.NOT_SUPPORTED en producción) — de ahí
  * {@code @Transactional(propagation = NOT_SUPPORTED)} a nivel de clase.
  *

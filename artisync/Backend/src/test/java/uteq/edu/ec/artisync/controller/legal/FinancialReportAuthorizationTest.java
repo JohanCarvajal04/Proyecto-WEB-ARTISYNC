@@ -19,8 +19,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import uteq.edu.ec.artisync.dto.peticion.legal.FinancialReportFilter;
 import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
 import uteq.edu.ec.artisync.service.legal.IFinancialReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +50,7 @@ class FinancialReportAuthorizationTest {
             when(servicio.obtenerReporteComisiones(any())).thenReturn(
                     new CommissionReportResponse(1L, null, null, null, 0, 0, null, null, null, List.of()));
             when(servicio.exportar(any(), any(), any()))
-                    .thenReturn(new DocumentoGenerado(new byte[0], "text/csv", "comisiones.csv"));
+                    .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
             return servicio;
         }
 
@@ -96,7 +96,7 @@ class FinancialReportAuthorizationTest {
 
         assertDoesNotThrow(() -> controlador.obtener(new FinancialReportFilter()));
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new FinancialReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -105,7 +105,7 @@ class FinancialReportAuthorizationTest {
         autenticar("ROLE_ADMIN");
 
         assertDoesNotThrow(() -> controlador.obtener(new FinancialReportFilter()));
-        assertDoesNotThrow(() -> controlador.exportar(new FinancialReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+        assertDoesNotThrow(() -> controlador.exportar(new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -115,6 +115,6 @@ class FinancialReportAuthorizationTest {
 
         assertThrows(AccessDeniedException.class, () -> controlador.obtener(new FinancialReportFilter()));
         assertThrows(AccessDeniedException.class, () -> controlador.exportar(
-                new FinancialReportFilter(), FormatoReporte.CSV, autenticacionActual()));
+                new FinancialReportFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 }

@@ -8,8 +8,8 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderSummaryResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.TermsProposalResponse;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.OrderTrackingResponse;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 
 import java.util.List;
 
@@ -67,7 +67,7 @@ public interface IOrderService {
      * @return el documento generado con el listado de pedidos del cliente
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
-    DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante);
+    GeneratedDocument exportarMisPedidos(Long idCliente, ReportFormat formato, String correoSolicitante);
 
     /**
      * 1.4 (INFORME-REVISION-COMPLETA.md): {@code idsPedido} nulo o vacío exporta
@@ -83,7 +83,7 @@ public interface IOrderService {
      * @return el documento generado con el listado de comisiones del creador
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
-    DocumentoGenerado exportarMisComisiones(Long idCreador, List<Long> idsPedido, FormatoReporte formato, String correoSolicitante);
+    GeneratedDocument exportarMisComisiones(Long idCreador, List<Long> idsPedido, ReportFormat formato, String correoSolicitante);
 
     /**
      * Avanza el pedido a la siguiente etapa del flujo de trabajo configurado,

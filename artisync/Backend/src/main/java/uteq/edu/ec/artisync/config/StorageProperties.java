@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Propiedades de almacenamiento de documentos, prefijo "documentos.*".
- * "proveedor" elige qué implementación de AlmacenamientoDocumentos se registra:
+ * "proveedor" elige qué implementación de DocumentStorage se registra:
  * "local" (volumen del contenedor, por defecto y en CI) o "azure" (Blob Storage).
  */
 @Data

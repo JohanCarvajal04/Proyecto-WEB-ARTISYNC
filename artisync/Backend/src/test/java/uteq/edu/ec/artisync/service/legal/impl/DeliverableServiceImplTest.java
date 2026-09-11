@@ -22,7 +22,7 @@ import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
 import java.util.Optional;
 
@@ -46,7 +46,7 @@ class DeliverableServiceImplTest {
     @Mock private EscrowPaymentRepository pagoGarantiaRepository;
     @Mock private ContractRepository contratoRepository;
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
-    @Mock private AlmacenamientoDocumentos almacenamiento;
+    @Mock private DocumentStorage almacenamiento;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificationService notificacionService;
 

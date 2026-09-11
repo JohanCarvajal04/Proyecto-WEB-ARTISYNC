@@ -21,8 +21,8 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
 import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 
@@ -74,12 +74,12 @@ public class AdminUserController {
     @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             UserFilter filtro,
-            @RequestParam FormatoReporte formato,
-            @RequestParam(required = false, defaultValue = "AMBAS") uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte grafica,
+            @RequestParam ReportFormat formato,
+            @RequestParam(required = false, defaultValue = "AMBAS") uteq.edu.ec.artisync.service.shared.reporte.ReportChartType grafica,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
-        DocumentoGenerado documento = adminUserService.exportar(filtro, formato, grafica, page, size, authentication.getName());
+        GeneratedDocument documento = adminUserService.exportar(filtro, formato, grafica, page, size, authentication.getName());
         return DocumentResponse.de(documento);
     }
 

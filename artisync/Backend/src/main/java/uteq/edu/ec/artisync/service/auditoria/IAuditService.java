@@ -5,8 +5,8 @@ import uteq.edu.ec.artisync.audit.AuditEventData;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.AuditFilter;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventResponse;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventSummaryResponse;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.List;
@@ -50,7 +50,7 @@ public interface IAuditService {
      * @return el documento generado con los eventos filtrados
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el filtro devuelve más filas que el tope admitido por el formato
      */
-    DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, String correoSolicitante);
+    GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, String correoSolicitante);
 
     /**
      * Genera un documento con los eventos de auditoría que cumplen el filtro indicado,
@@ -63,7 +63,7 @@ public interface IAuditService {
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con los eventos filtrados
      */
-    DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
+    GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante);
 
     /**
      * Lista los nombres de las acciones de auditoría ya registradas, distintos, para poblar filtros.

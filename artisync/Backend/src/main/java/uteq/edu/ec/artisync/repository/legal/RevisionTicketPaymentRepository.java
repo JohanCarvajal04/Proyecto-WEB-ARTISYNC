@@ -17,7 +17,7 @@ public interface RevisionTicketPaymentRepository extends JpaRepository<RevisionT
 
     Optional<RevisionTicketPayment> findByIdOrdenPaypal(String idOrdenPaypal);
 
-    /** Con bloqueo pesimista: serializa la carrera entre el webhook de PayPal y TicketRevisionExpiracionServicio. */
+    /** Con bloqueo pesimista: serializa la carrera entre el webhook de PayPal y RevisionTicketExpirationService. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM RevisionTicketPayment p WHERE p.ticket.idTicket = :idTicket")
     Optional<RevisionTicketPayment> findByTicketIdTicketParaActualizar(@Param("idTicket") Long idTicket);

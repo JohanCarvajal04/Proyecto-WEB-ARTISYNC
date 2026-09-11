@@ -19,14 +19,14 @@ import uteq.edu.ec.artisync.service.shared.UserMapper;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.legal.IPdfGenerationService;
 import uteq.edu.ec.artisync.service.legal.impl.PdfGenerationServiceImpl;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorCsv;
-import uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorGraficaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorPdf;
-import uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorXlsx;
-import uteq.edu.ec.artisync.service.shared.reporte.impl.ServicioExportacionImpl;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportChartType;
+import uteq.edu.ec.artisync.service.shared.reporte.impl.CsvGenerator;
+import uteq.edu.ec.artisync.service.shared.reporte.impl.ReportChartGenerator;
+import uteq.edu.ec.artisync.service.shared.reporte.impl.PdfGenerator;
+import uteq.edu.ec.artisync.service.shared.reporte.impl.XlsxGenerator;
+import uteq.edu.ec.artisync.service.shared.reporte.impl.ExportServiceImpl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,7 +41,7 @@ class AdminUserExportVisualIT {
 
     @Mock private UserRepository usuarioRepository;
     @Mock private UserMapper usuarioMapper;
-    @Spy private GeneradorGraficaReporte generadorGraficaReporte = new GeneradorGraficaReporte();
+    @Spy private ReportChartGenerator generadorGraficaReporte = new ReportChartGenerator();
 
     private AdminUserServiceImpl adminUserService;
 
@@ -61,11 +61,11 @@ class AdminUserExportVisualIT {
     void exportar_PdfYXlsx_GeneranDocumentosCompletosConGraficas() throws Exception {
         // Configurar generador real de PDF y XLSX
         IPdfGenerationService pdfService = new PdfGenerationServiceImpl();
-        GeneradorPdf generadorPdf = new GeneradorPdf(crearTemplateEngine(), pdfService);
-        GeneradorXlsx generadorXlsx = new GeneradorXlsx();
-        GeneradorCsv generadorCsv = new GeneradorCsv();
+        PdfGenerator generadorPdf = new PdfGenerator(crearTemplateEngine(), pdfService);
+        XlsxGenerator generadorXlsx = new XlsxGenerator();
+        CsvGenerator generadorCsv = new CsvGenerator();
 
-        ServicioExportacionImpl servicioExportacion = new ServicioExportacionImpl(
+        ExportServiceImpl servicioExportacion = new ExportServiceImpl(
                 List.of(generadorCsv, generadorXlsx, generadorPdf));
 
         adminUserService = new AdminUserServiceImpl(
@@ -97,13 +97,13 @@ class AdminUserExportVisualIT {
         UserFilter filtro = new UserFilter();
 
         // 1. Exportar en PDF
-        DocumentoGenerado docPdf = adminUserService.exportar(filtro, FormatoReporte.PDF, TipoGraficaReporte.AMBAS, "admin@artisync.com");
+        GeneratedDocument docPdf = adminUserService.exportar(filtro, ReportFormat.PDF, ReportChartType.AMBAS, "admin@artisync.com");
         assertThat(docPdf).isNotNull();
         assertThat(docPdf.contenido()).isNotEmpty();
         assertThat(docPdf.contentType()).isEqualTo("application/pdf");
 
         // 2. Exportar en XLSX
-        DocumentoGenerado docXlsx = adminUserService.exportar(filtro, FormatoReporte.XLSX, TipoGraficaReporte.AMBAS, "admin@artisync.com");
+        GeneratedDocument docXlsx = adminUserService.exportar(filtro, ReportFormat.XLSX, ReportChartType.AMBAS, "admin@artisync.com");
         assertThat(docXlsx).isNotNull();
         assertThat(docXlsx.contenido()).isNotEmpty();
         assertThat(docXlsx.contentType()).isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

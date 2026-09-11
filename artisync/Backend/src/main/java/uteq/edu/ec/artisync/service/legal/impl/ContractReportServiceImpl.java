@@ -14,13 +14,13 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 import uteq.edu.ec.artisync.service.legal.IContractReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.TipoColumna;
-import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnType;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportTotal;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
@@ -40,7 +40,7 @@ import java.util.Map;
 public class ContractReportServiceImpl implements IContractReportService {
 
     private final ContractRepository contratoRepository;
-    private final IServicioExportacion servicioExportacion;
+    private final IExportService servicioExportacion;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,7 +75,7 @@ public class ContractReportServiceImpl implements IContractReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(ContractReportFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+    public GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
         Page<ContractReportRow> pagina;
         String titulo = "Contratos";
         String subtitulo = "Reporte de contratos formalizados";
@@ -105,23 +105,23 @@ public class ContractReportServiceImpl implements IContractReportService {
 
         log.info("Reporte de contratos exportado en formato {} (page={}, size={}) por {}", formato, page, size, correoSolicitante);
 
-        ModeloReporte<ContractReportRow> modelo = ModeloReporte.<ContractReportRow>builder()
+        ReportModel<ContractReportRow> modelo = ReportModel.<ContractReportRow>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .columnas(List.of(
-                        ColumnaReporte.entero("Id. contrato", ContractReportRow::idContrato),
-                        ColumnaReporte.entero("Id. pedido", ContractReportRow::idPedido),
-                        ColumnaReporte.texto("Offering", ContractReportRow::servicio),
-                        ColumnaReporte.texto("Cliente", ContractReportRow::cliente),
-                        ColumnaReporte.texto("Creador", ContractReportRow::creador),
-                        ColumnaReporte.moneda("Precio pactado", ContractReportRow::precioPactado),
-                        ColumnaReporte.entero("Límite de revisiones", ContractReportRow::limiteRevisiones),
-                        ColumnaReporte.fechaHora("Formalizado", ContractReportRow::fechaFormalizacion),
-                        ColumnaReporte.booleano("Firmado (cliente)", ContractReportRow::firmadoCliente),
-                        ColumnaReporte.booleano("Firmado (creador)", ContractReportRow::firmadoCreador)))
+                        ReportColumn.entero("Id. contrato", ContractReportRow::idContrato),
+                        ReportColumn.entero("Id. pedido", ContractReportRow::idPedido),
+                        ReportColumn.texto("Offering", ContractReportRow::servicio),
+                        ReportColumn.texto("Cliente", ContractReportRow::cliente),
+                        ReportColumn.texto("Creador", ContractReportRow::creador),
+                        ReportColumn.moneda("Precio pactado", ContractReportRow::precioPactado),
+                        ReportColumn.entero("Límite de revisiones", ContractReportRow::limiteRevisiones),
+                        ReportColumn.fechaHora("Formalizado", ContractReportRow::fechaFormalizacion),
+                        ReportColumn.booleano("Firmado (cliente)", ContractReportRow::firmadoCliente),
+                        ReportColumn.booleano("Firmado (creador)", ContractReportRow::firmadoCreador)))
                 .filas(pagina.getContent())
-                .totales(List.of(new TotalReporte("Importe pactado total", sumarPrecios(pagina.getContent()), TipoColumna.MONEDA)))
+                .totales(List.of(new ReportTotal("Importe pactado total", sumarPrecios(pagina.getContent()), ColumnType.MONEDA)))
                 .generadoPor(correoSolicitante)
                 .build();
 
@@ -139,7 +139,7 @@ public class ContractReportServiceImpl implements IContractReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(ContractReportFilter filtro, FormatoReporte formato, String correoSolicitante) {
+    public GeneratedDocument exportar(ContractReportFilter filtro, ReportFormat formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }
 

@@ -55,7 +55,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     private final WorkflowRepository flujoTrabajoRepository;
     private final ContractTemplateRepository plantillaContratoRepository;
     private final BriefingTemplateRepository briefingPlantillaRepository;
-    private final uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos almacenamientoDocumentos;
+    private final uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage almacenamientoDocumentos;
 
     @Override
     @Transactional
@@ -274,8 +274,8 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo) {
-        uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo.PERFIL.validar(archivo);
-        String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento.SERVICIOS);
+        uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy.PERFIL.validar(archivo);
+        String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix.SERVICIOS);
         return "/api/v1/servicios/miniatura/" + referencia;
     }
 

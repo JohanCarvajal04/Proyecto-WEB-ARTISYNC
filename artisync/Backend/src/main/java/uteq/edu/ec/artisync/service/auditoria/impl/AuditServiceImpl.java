@@ -21,11 +21,11 @@ import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.auditoria.AuditEventRepository;
 import uteq.edu.ec.artisync.service.auditoria.IAuditService;
-import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 import uteq.edu.ec.artisync.specification.auditoria.AuditEventSpecification;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
@@ -45,7 +45,7 @@ public class AuditServiceImpl implements IAuditService {
     private static final Set<String> CAMPOS_ORDENABLES = Set.of("fechaEvento", "accionAuditoria", "correoActor");
 
     private final AuditEventRepository eventoAuditoriaRepository;
-    private final IServicioExportacion servicioExportacion;
+    private final IExportService servicioExportacion;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -126,7 +126,7 @@ public class AuditServiceImpl implements IAuditService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+    public GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
         Page<AuditEvent> pagina;
         String titulo = "Auditoría";
         String subtitulo = "Bitácora de eventos del sistema";
@@ -154,20 +154,20 @@ public class AuditServiceImpl implements IAuditService {
             }
         }
 
-        ModeloReporte<AuditEvent> modelo = ModeloReporte.<AuditEvent>builder()
+        ReportModel<AuditEvent> modelo = ReportModel.<AuditEvent>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .columnas(List.of(
-                        ColumnaReporte.fechaHora("Fecha", AuditEvent::getFechaEvento),
-                        ColumnaReporte.texto("Actor", AuditEvent::getCorreoActor),
-                        ColumnaReporte.texto("Módulo", AuditEvent::getModuloAuditoria),
-                        ColumnaReporte.texto("Acción", AuditEvent::getAccionAuditoria),
-                        ColumnaReporte.texto("Resultado", AuditEvent::getResultadoEvento),
-                        ColumnaReporte.texto("Entidad", AuditEvent::getEntidadAfectada),
-                        ColumnaReporte.entero("Id. entidad", AuditEvent::getIdEntidadAfectada),
-                        ColumnaReporte.texto("IP", AuditEvent::getDireccionIp),
-                        ColumnaReporte.texto("Message de error", AuditEvent::getMensajeError)))
+                        ReportColumn.fechaHora("Fecha", AuditEvent::getFechaEvento),
+                        ReportColumn.texto("Actor", AuditEvent::getCorreoActor),
+                        ReportColumn.texto("Módulo", AuditEvent::getModuloAuditoria),
+                        ReportColumn.texto("Acción", AuditEvent::getAccionAuditoria),
+                        ReportColumn.texto("Resultado", AuditEvent::getResultadoEvento),
+                        ReportColumn.texto("Entidad", AuditEvent::getEntidadAfectada),
+                        ReportColumn.entero("Id. entidad", AuditEvent::getIdEntidadAfectada),
+                        ReportColumn.texto("IP", AuditEvent::getDireccionIp),
+                        ReportColumn.texto("Message de error", AuditEvent::getMensajeError)))
                 .filas(pagina.getContent())
                 .generadoPor(correoSolicitante)
                 .build();
@@ -186,7 +186,7 @@ public class AuditServiceImpl implements IAuditService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, String correoSolicitante) {
+    public GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }
 

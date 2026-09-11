@@ -195,7 +195,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * llamar al endpoint en bucle e inflar el contador a voluntad; con esto una
      * cuenta solo suma una visita real por portafolio al día.
      *
-     * Fail-open ante caída de Redis (mismo criterio que IntentosAutenticacionService):
+     * Fail-open ante caída de Redis (mismo criterio que AuthAttemptsService):
      * si Redis no responde, se cuenta la visita en vez de bloquear la métrica.
      */
     private boolean marcarVisitaSiEsNueva(Long idPortafolio, Long idUsuario) {

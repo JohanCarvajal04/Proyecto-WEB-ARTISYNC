@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uteq.edu.ec.artisync.config.BackupProperties;
 import uteq.edu.ec.artisync.entity.respaldo.Backup;
-import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
+import uteq.edu.ec.artisync.service.shared.reporte.ValueFormatter;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,7 +44,7 @@ public class PgDumpExecutor {
      */
     public Path ejecutar(Backup respaldo) throws IOException, InterruptedException {
         BackupProperties.Db db = respaldoProperties.getDb();
-        String nombreArchivo = "respaldo_full_" + LocalDateTime.now(FormateadorValores.zona()).format(MARCA_TIEMPO) + ".dump";
+        String nombreArchivo = "respaldo_full_" + LocalDateTime.now(ValueFormatter.zona()).format(MARCA_TIEMPO) + ".dump";
         Path destino = storage.resolverRutaDestino(nombreArchivo);
         Path logError = storage.resolverRutaDestino(nombreArchivo + ".stderr.log");
 

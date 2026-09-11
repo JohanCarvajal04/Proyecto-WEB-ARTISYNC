@@ -24,9 +24,9 @@ import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
 import uteq.edu.ec.artisync.service.shared.UserMapper;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper usuarioMapper;
     private final SessionRevocationService sessionRevocationService;
-    private final AlmacenamientoDocumentos almacenamientoDocumentos;
+    private final DocumentStorage almacenamientoDocumentos;
 
     @Override
     @Transactional(readOnly = true)
@@ -176,7 +176,7 @@ public class UserServiceImpl implements UserService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
-        PoliticaArchivo.PERFIL.validar(file);
+        FilePolicy.PERFIL.validar(file);
 
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
@@ -189,7 +189,7 @@ public class UserServiceImpl implements UserService {
             }
         }
         
-        String nuevaReferencia = almacenamientoDocumentos.guardar(file, PrefijoAlmacenamiento.PERFILES);
+        String nuevaReferencia = almacenamientoDocumentos.guardar(file, StoragePrefix.PERFILES);
         usuario.setUrlFotoPerfil(nuevaReferencia);
         usuarioRepository.save(usuario);
         

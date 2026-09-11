@@ -22,7 +22,7 @@ import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
 import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
-import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -54,7 +54,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private final TwoFactorBackupCodeRepository codigoRespaldo2FaRepository;
     private final UserRoleRepository usuarioRolRepository;
     private final AiCertificateRepository certificadoIaRepository;
-    private final IntentosAutenticacionService intentosAutenticacionService;
+    private final AuthAttemptsService intentosAutenticacionService;
 
     // Revisión técnica 2026-09-01: los códigos de respaldo se hasheaban con
     // SHA-256 sin clave -- un volcado de codigo_respaldo_2fa permitía

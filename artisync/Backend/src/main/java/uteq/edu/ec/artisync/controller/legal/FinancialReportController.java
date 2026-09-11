@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.legal.FinancialReportFilter;
 import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
 import uteq.edu.ec.artisync.service.legal.IFinancialReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 
 /**
@@ -59,11 +59,11 @@ public class FinancialReportController {
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             FinancialReportFilter filtro,
-            @RequestParam FormatoReporte formato,
+            @RequestParam ReportFormat formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
-        DocumentoGenerado documento = (page != null || size != null)
+        GeneratedDocument documento = (page != null || size != null)
                 ? reporteFinancieroServicio.exportar(filtro, formato, page, size, authentication.getName())
                 : reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());
         return DocumentResponse.de(documento);
@@ -80,7 +80,7 @@ public class FinancialReportController {
     @PreAuthorize("hasAuthority('REPORTE_FINANCIERO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
             FinancialReportFilter filtro,
-            FormatoReporte formato,
+            ReportFormat formato,
             Authentication authentication) {
         return exportar(filtro, formato, null, null, authentication);
     }

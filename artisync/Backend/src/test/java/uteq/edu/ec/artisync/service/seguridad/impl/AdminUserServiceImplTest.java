@@ -38,10 +38,10 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.UserMapper;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.List;
@@ -73,9 +73,9 @@ class AdminUserServiceImplTest {
     @Mock
     private jakarta.persistence.EntityManager entityManager;
     @Mock
-    private IServicioExportacion servicioExportacion;
+    private IExportService servicioExportacion;
     @Mock
-    private uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorGraficaReporte generadorGraficaReporte;
+    private uteq.edu.ec.artisync.service.shared.reporte.impl.ReportChartGenerator generadorGraficaReporte;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
@@ -546,11 +546,11 @@ class AdminUserServiceImplTest {
 
     @Test
     void exportar_ShouldThrowReglaNegocio_WhenExcedeTopeDeFilas() {
-        when(usuarioRepository.count(any(Specification.class))).thenReturn((long) FormatoReporte.CSV.topeFilas() + 1);
+        when(usuarioRepository.count(any(Specification.class))).thenReturn((long) ReportFormat.CSV.topeFilas() + 1);
 
         UserFilter filtro = new UserFilter();
         assertThrows(uteq.edu.ec.artisync.exception.BusinessRuleException.class,
-                () -> adminUserService.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev"));
+                () -> adminUserService.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev"));
         verify(usuarioRepository, never()).findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class));
     }
 
@@ -561,8 +561,8 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
-        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "text/csv", "usuarios.csv");
-        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV)))
+        GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv");
+        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
                 .thenReturn(esperado);
 
         UserFilter filtro = new UserFilter();
@@ -570,12 +570,12 @@ class AdminUserServiceImplTest {
         filtro.setRol("ADMIN");
         filtro.setEstadoCuenta(true);
 
-        DocumentoGenerado resultado = adminUserService.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = adminUserService.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         assertSame(esperado, resultado);
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
-        ModeloReporte<UserResponse> modelo = captor.getValue();
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        ReportModel<UserResponse> modelo = captor.getValue();
         assertEquals(List.of(userResponse), modelo.getFilas());
         assertEquals("admin@artisync.dev", modelo.getGeneradoPor());
         assertEquals(Map.of("Búsqueda", "ana", "Role", "ADMIN", "Estado", "Activo"), modelo.getFiltrosAplicados());
@@ -587,16 +587,16 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
-        DocumentoGenerado esperado = new DocumentoGenerado(new byte[]{1}, "application/pdf", "usuarios_parte_1.pdf");
-        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.PDF)))
+        GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "usuarios_parte_1.pdf");
+        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF)))
                 .thenReturn(esperado);
 
-        DocumentoGenerado resultado = adminUserService.exportar(
-                new UserFilter(), FormatoReporte.PDF, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.NINGUNA, 0, 5000, "admin@artisync.dev");
+        GeneratedDocument resultado = adminUserService.exportar(
+                new UserFilter(), ReportFormat.PDF, uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.NINGUNA, 0, 5000, "admin@artisync.dev");
 
         assertSame(esperado, resultado);
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.PDF));
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF));
         assertEquals("Usuarios - Parte 1", captor.getValue().getTitulo());
         org.assertj.core.api.Assertions.assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 10");
     }
@@ -608,16 +608,16 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
-        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV)))
-                .thenReturn(new DocumentoGenerado(new byte[]{1}, "text/csv", "usuarios.csv"));
+        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
+                .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv"));
 
         UserFilter filtro = new UserFilter();
         filtro.setEstadoCuenta(false);
 
-        adminUserService.exportar(filtro, FormatoReporte.CSV, "admin@artisync.dev");
+        adminUserService.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertEquals("Suspendido", captor.getValue().getFiltrosAplicados().get("Estado"));
     }
 
@@ -628,18 +628,18 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
-        when(servicioExportacion.exportar(any(ModeloReporte.class), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV)))
-                .thenReturn(new DocumentoGenerado(new byte[]{1}, "text/csv", "usuarios.csv"));
+        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
+                .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv"));
 
-        adminUserService.exportar(new UserFilter(), FormatoReporte.CSV, "admin@artisync.dev");
+        adminUserService.exportar(new UserFilter(), ReportFormat.CSV, "admin@artisync.dev");
 
-        org.mockito.ArgumentCaptor<ModeloReporte> captor = org.mockito.ArgumentCaptor.forClass(ModeloReporte.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(FormatoReporte.CSV));
+        org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
+        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertTrue(captor.getValue().getFiltrosAplicados().isEmpty());
     }
 
     @Test
-    @org.junit.jupiter.api.DisplayName("exportar con TipoGraficaReporte genera métricas y gráficas esperadas")
+    @org.junit.jupiter.api.DisplayName("exportar con ReportChartType genera métricas y gráficas esperadas")
     void exportar_ConGraficas_GeneraModeloConGraficas() {
         when(usuarioRepository.count(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<User>>any())).thenReturn(2L);
 
@@ -658,18 +658,18 @@ class AdminUserServiceImplTest {
         when(generadorGraficaReporte.generarGraficaRol(any())).thenReturn(new byte[]{1, 2, 3});
         when(generadorGraficaReporte.generarGraficaPais(any())).thenReturn(new byte[]{4, 5, 6});
 
-        uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado esperado =
-                new uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado(new byte[]{1}, "application/pdf", "usuarios.pdf");
+        uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument esperado =
+                new uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument(new byte[]{1}, "application/pdf", "usuarios.pdf");
         when(servicioExportacion.exportar(any(), any())).thenReturn(esperado);
 
         uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter filtro = new uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter();
-        uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado resultado =
-                adminUserService.exportar(filtro, uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte.PDF,
-                        uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, "admin@artisync.com");
+        uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument resultado =
+                adminUserService.exportar(filtro, uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF,
+                        uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, "admin@artisync.com");
 
         assertNotNull(resultado);
         verify(generadorGraficaReporte).generarGraficaRol(any());
         verify(generadorGraficaReporte).generarGraficaPais(any());
-        verify(servicioExportacion).exportar(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte.PDF));
+        verify(servicioExportacion).exportar(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF));
     }
 }

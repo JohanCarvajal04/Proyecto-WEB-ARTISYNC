@@ -9,7 +9,7 @@ import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.seguridad.UserRole;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.ProfilePhotoUrl;
 
 import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 
@@ -103,7 +103,7 @@ public class UserMapper {
                 .roles(roles)
                 .permisos(permisos)
                 .dosFactoresHabilitado(dosFactoresHabilitado)
-                .urlFotoPerfil(UrlFotoPerfil.construir(usuario.getUrlFotoPerfil()))
+                .urlFotoPerfil(ProfilePhotoUrl.construir(usuario.getUrlFotoPerfil()))
                 .identidadVerificada(identidadVerificada)
                 .build();
     }

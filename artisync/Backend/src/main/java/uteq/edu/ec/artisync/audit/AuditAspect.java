@@ -18,8 +18,8 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import uteq.edu.ec.artisync.service.auditoria.IAuditService;
-import uteq.edu.ec.artisync.service.shared.ActorAutenticado;
-import uteq.edu.ec.artisync.service.shared.ContextoSolicitud;
+import uteq.edu.ec.artisync.service.shared.AuthenticatedActor;
+import uteq.edu.ec.artisync.service.shared.RequestContext;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -60,8 +60,8 @@ public class AuditAspect {
 
         // Snapshot ANTES de proceder, mientras el hilo aún tiene el contexto
         // HTTP y de seguridad del llamante original.
-        ActorAutenticado.Actor actorSesion = ActorAutenticado.actual();
-        ContextoSolicitud.Datos solicitud = ContextoSolicitud.actual();
+        AuthenticatedActor.Actor actorSesion = AuthenticatedActor.actual();
+        RequestContext.Datos solicitud = RequestContext.actual();
 
         Object resultado = null;
         Throwable error = null;
@@ -98,7 +98,7 @@ public class AuditAspect {
 
     private void registrarEvento(
             ProceedingJoinPoint pjp, Auditable auditable,
-            ActorAutenticado.Actor actorSesion, ContextoSolicitud.Datos solicitud,
+            AuthenticatedActor.Actor actorSesion, RequestContext.Datos solicitud,
             Object resultado, Throwable error, AuditResult resultadoEvento,
             long inicioNanos) {
         try {
@@ -162,7 +162,7 @@ public class AuditAspect {
         return contexto;
     }
 
-    private String resolverCorreoActor(Auditable auditable, ActorAutenticado.Actor actorSesion, StandardEvaluationContext contextoSpel) {
+    private String resolverCorreoActor(Auditable auditable, AuthenticatedActor.Actor actorSesion, StandardEvaluationContext contextoSpel) {
         if (!auditable.correoActor().isBlank()) {
             try {
                 Object valor = PARSER.parseExpression(auditable.correoActor()).getValue(contextoSpel);

@@ -7,10 +7,10 @@ import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
-import uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportChartType;
 
 public interface AdminUserService {
     /**
@@ -95,7 +95,7 @@ public interface AdminUserService {
      * @return el documento generado con el listado de usuarios
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado filtrado excede el tope de filas admitido por el formato
      */
-    DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, String correoSolicitante);
-    DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, String correoSolicitante);
-    DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, Integer page, Integer size, String correoSolicitante);
+    GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, String correoSolicitante);
+    GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, ReportChartType tipoGrafica, String correoSolicitante);
+    GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, ReportChartType tipoGrafica, Integer page, Integer size, String correoSolicitante);
 }

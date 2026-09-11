@@ -34,11 +34,11 @@ import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 import uteq.edu.ec.artisync.service.pedido.IOrderService;
 import uteq.edu.ec.artisync.service.perfil.IVerificationService;
-import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
 
 import java.time.LocalDateTime;
@@ -65,7 +65,7 @@ public class OrderServiceImpl implements IOrderService {
     private final OrderTermsProposalRepository propuestaTerminosPedidoRepository;
     private final NotificationService notificacionService;
     private final ChatService chatService;
-    private final IServicioExportacion servicioExportacion;
+    private final IExportService servicioExportacion;
     private final IVerificationService verificacionServicio;
     private final IContractService contratoServicio;
     private final SentBriefingRepository briefingEnviadoRepository;
@@ -568,7 +568,7 @@ public class OrderServiceImpl implements IOrderService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante) {
+    public GeneratedDocument exportarMisPedidos(Long idCliente, ReportFormat formato, String correoSolicitante) {
         return exportarResumen(listarMisPedidos(idCliente), "Mis pedidos", "Pedidos como cliente",
                 formato, correoSolicitante);
     }
@@ -582,7 +582,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public DocumentoGenerado exportarMisComisiones(Long idCreador, List<Long> idsPedido, FormatoReporte formato,
+    public GeneratedDocument exportarMisComisiones(Long idCreador, List<Long> idsPedido, ReportFormat formato,
                                                      String correoSolicitante) {
         List<OrderSummaryResponse> comisiones = listarMisComisiones(idCreador);
         if (idsPedido != null && !idsPedido.isEmpty()) {
@@ -598,27 +598,27 @@ public class OrderServiceImpl implements IOrderService {
                 formato, correoSolicitante);
     }
 
-    private DocumentoGenerado exportarResumen(List<OrderSummaryResponse> filas, String titulo, String subtitulo,
-                                               FormatoReporte formato, String correoSolicitante) {
+    private GeneratedDocument exportarResumen(List<OrderSummaryResponse> filas, String titulo, String subtitulo,
+                                               ReportFormat formato, String correoSolicitante) {
         if (filas.size() > formato.topeFilas()) {
             throw new BusinessRuleException(
                     "El listado tiene " + filas.size() + " pedidos, más de los " + formato.topeFilas()
                             + " que admite una exportación en " + formato + ".");
         }
 
-        ModeloReporte<OrderSummaryResponse> modelo = ModeloReporte.<OrderSummaryResponse>builder()
+        ReportModel<OrderSummaryResponse> modelo = ReportModel.<OrderSummaryResponse>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
                 .filtrosAplicados(Map.of())
                 .columnas(List.of(
-                        ColumnaReporte.entero("Id. pedido", OrderSummaryResponse::getIdPedido),
-                        ColumnaReporte.texto("Offering", OrderSummaryResponse::getTituloServicio),
-                        ColumnaReporte.texto("Etapa", OrderSummaryResponse::getEtapaActual),
-                        ColumnaReporte.moneda("Precio pactado", OrderSummaryResponse::getPrecioPactado),
-                        ColumnaReporte.fechaHora("Inicio", OrderSummaryResponse::getFechaInicio),
-                        ColumnaReporte.fechaHora("Entrega estimada", OrderSummaryResponse::getFechaEntregaEstimada),
-                        ColumnaReporte.texto("Creador", OrderSummaryResponse::getNombreCreador),
-                        ColumnaReporte.texto("Cliente", OrderSummaryResponse::getNombreCliente)))
+                        ReportColumn.entero("Id. pedido", OrderSummaryResponse::getIdPedido),
+                        ReportColumn.texto("Offering", OrderSummaryResponse::getTituloServicio),
+                        ReportColumn.texto("Etapa", OrderSummaryResponse::getEtapaActual),
+                        ReportColumn.moneda("Precio pactado", OrderSummaryResponse::getPrecioPactado),
+                        ReportColumn.fechaHora("Inicio", OrderSummaryResponse::getFechaInicio),
+                        ReportColumn.fechaHora("Entrega estimada", OrderSummaryResponse::getFechaEntregaEstimada),
+                        ReportColumn.texto("Creador", OrderSummaryResponse::getNombreCreador),
+                        ReportColumn.texto("Cliente", OrderSummaryResponse::getNombreCliente)))
                 .filas(filas)
                 .generadoPor(correoSolicitante)
                 .build();

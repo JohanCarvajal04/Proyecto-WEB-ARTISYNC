@@ -10,7 +10,7 @@ import java.nio.file.Path;
 
 /**
  * Almacenamiento local de archivos de respaldo. A propósito sin abstracción
- * de proveedor (a diferencia de AlmacenamientoDocumentos, que sí tiene
+ * de proveedor (a diferencia de DocumentStorage, que sí tiene
  * local/Azure): el alcance pedido es solo local por ahora. Este componente es
  * el punto de extensión natural si más adelante se quiere almacenamiento en
  * la nube, pero esa interfaz no se construye ahora sin necesidad real.

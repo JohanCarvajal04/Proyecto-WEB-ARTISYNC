@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
 import java.security.Principal;
 
@@ -33,7 +33,7 @@ class UserControllerTest {
     private UserService userService;
 
     @Mock
-    private AlmacenamientoDocumentos almacenamientoDocumentos;
+    private DocumentStorage almacenamientoDocumentos;
 
     @Mock
     private Principal principal;

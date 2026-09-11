@@ -15,10 +15,10 @@ import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.perfil.PortfolioItemRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortfolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortfolioItemService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FileExtensions;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix;
 
 import java.util.List;
 
@@ -35,7 +35,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
 
     private final PortfolioItemRepository itemRepository;
     private final PortfolioRepository portafolioRepository;
-    private final AlmacenamientoDocumentos almacenamiento;
+    private final DocumentStorage almacenamiento;
 
     /**
      * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
@@ -49,7 +49,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Transactional
     public PortfolioItemResponse subirItem(Long idPortafolio, Long idUsuario,
                                               CreatePortfolioItemRequest peticion, MultipartFile archivo) {
-        PoliticaArchivo.PORTAFOLIO.validar(archivo);
+        FilePolicy.PORTAFOLIO.validar(archivo);
 
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -62,7 +62,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
                     "El portafolio alcanzó el máximo de " + MAX_ITEMS_POR_PORTAFOLIO + " obras.");
         }
 
-        String referencia = almacenamiento.guardar(archivo, PrefijoAlmacenamiento.PORTAFOLIO);
+        String referencia = almacenamiento.guardar(archivo, StoragePrefix.PORTAFOLIO);
 
         PortfolioItem item = PortfolioItem.builder()
                 .portafolio(portafolio)
@@ -140,7 +140,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
         return new ArchivoItem(
                 almacenamiento.leer(referencia),
                 "obra-" + idItem + extensionDe(referencia),
-                ExtensionesArchivo.contentTypeDe(referencia));
+                FileExtensions.contentTypeDe(referencia));
     }
 
     @Override

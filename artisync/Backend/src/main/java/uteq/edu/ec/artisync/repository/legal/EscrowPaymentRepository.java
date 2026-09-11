@@ -36,12 +36,12 @@ public interface EscrowPaymentRepository extends JpaRepository<EscrowPayment, Lo
             "FROM EscrowPayment p GROUP BY p.estadoFondos")
     List<EscrowSummaryResponse> resumenPorEstado();
 
-    /** REQ-NF-019: pagos 'Pendiente' cuyo último intento fue antes del umbral configurable de ReconciliacionPayPalScheduler. */
+    /** REQ-NF-019: pagos 'Pendiente' cuyo último intento fue antes del umbral configurable de PayPalReconciliationScheduler. */
     List<EscrowPayment> findByEstadoFondosAndFechaActualizacionBefore(String estadoFondos, LocalDateTime limite);
 
     /**
      * Con bloqueo pesimista (mismo patrón que WithdrawalRequestRepository.findByIdParaActualizar):
-     * serializa la carrera entre el webhook de PayPal y ReconciliacionPayPalEjecutorServicio sobre
+     * serializa la carrera entre el webhook de PayPal y PayPalReconciliationExecutorService sobre
      * el mismo pago.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

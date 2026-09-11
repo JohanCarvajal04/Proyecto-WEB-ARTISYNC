@@ -31,9 +31,9 @@ import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
-import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
 import java.util.List;
 import java.util.Optional;
@@ -73,11 +73,11 @@ class PrivacyServiceImplTest {
     @Mock
     private TwoFactorService twoFactorService;
     @Mock
-    private IntentosAutenticacionService intentosAutenticacionService;
+    private AuthAttemptsService intentosAutenticacionService;
     @Mock
     private SessionRevocationService sessionRevocationService;
     @Mock
-    private AlmacenamientoDocumentos almacenamientoDocumentos;
+    private DocumentStorage almacenamientoDocumentos;
 
     @InjectMocks
     private PrivacyServiceImpl privacidadService;

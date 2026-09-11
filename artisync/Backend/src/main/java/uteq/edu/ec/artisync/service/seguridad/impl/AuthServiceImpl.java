@@ -38,7 +38,7 @@ import uteq.edu.ec.artisync.security.JwtService;
 import uteq.edu.ec.artisync.service.seguridad.AuthService;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 import uteq.edu.ec.artisync.service.shared.EmailService;
-import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
 import uteq.edu.ec.artisync.service.shared.PreAuth2faTicketService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
@@ -81,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
     private final SessionRevocationService sessionRevocationService;
     private final EmailService emailService;
     private final TwoFactorService twoFactorService;
-    private final IntentosAutenticacionService intentosAutenticacionService;
+    private final AuthAttemptsService intentosAutenticacionService;
     private final PreAuth2faTicketService preAuth2faTicketService;
     private final ObjectMapper objectMapper;
 

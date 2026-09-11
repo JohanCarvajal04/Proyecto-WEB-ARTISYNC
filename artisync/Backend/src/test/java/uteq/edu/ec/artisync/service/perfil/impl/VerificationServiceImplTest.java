@@ -22,9 +22,9 @@ import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 import uteq.edu.ec.artisync.repository.perfil.VerificationStatusRepository;
 import uteq.edu.ec.artisync.repository.perfil.VerificationQueueProjection;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.ia.IaService;
-import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.ia.AiService;
+import uteq.edu.ec.artisync.service.shared.imagen.AiImagePreprocessor;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,9 +42,9 @@ class VerificationServiceImplTest {
     @Mock private UserRepository usuarioRepository;
     @Mock private VerificationStatusRepository estadoVerificacionRepository;
     @Mock private AiCertificateRepository certificadoIaRepository;
-    @Mock private AlmacenamientoDocumentos almacenamiento;
-    @Mock private PreprocesadorImagenIa preprocesador;
-    @Mock private IaService iaService;
+    @Mock private DocumentStorage almacenamiento;
+    @Mock private AiImagePreprocessor preprocesador;
+    @Mock private AiService iaService;
     @Mock private jakarta.persistence.EntityManager entityManager;
 
     // Construcción manual, no @InjectMocks: VerificationServiceImpl toma un

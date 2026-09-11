@@ -24,7 +24,7 @@ import java.math.BigDecimal;
  * REQ-F-022b/c: cobro de la revisión adicional cuando un ticket de revisión
  * supera el límite del contrato. Deliberadamente autocontenido respecto a
  * PaymentServiceImpl (no reutiliza sus métodos privados de captura/creación):
- * mismo motivo que ReconciliacionPayPalEjecutorServicio, no arriesgar el
+ * mismo motivo que PayPalReconciliationExecutorService, no arriesgar el
  * flujo de escrow principal ya verificado a cambio de ahorrar ~15 líneas.
  */
 @Slf4j

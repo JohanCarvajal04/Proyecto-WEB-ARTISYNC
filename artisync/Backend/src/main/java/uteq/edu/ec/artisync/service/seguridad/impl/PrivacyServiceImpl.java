@@ -30,10 +30,10 @@ import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationReposito
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
-import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
+import uteq.edu.ec.artisync.service.shared.AuthAttemptsService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -102,9 +102,9 @@ public class PrivacyServiceImpl implements PrivacyService {
     private final WorkflowStageConfigRepository flujoEtapaConfigRepository;
     private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     private final TwoFactorService twoFactorService;
-    private final IntentosAutenticacionService intentosAutenticacionService;
+    private final AuthAttemptsService intentosAutenticacionService;
     private final SessionRevocationService sessionRevocationService;
-    private final AlmacenamientoDocumentos almacenamientoDocumentos;
+    private final DocumentStorage almacenamientoDocumentos;
 
     @Override
     @Transactional

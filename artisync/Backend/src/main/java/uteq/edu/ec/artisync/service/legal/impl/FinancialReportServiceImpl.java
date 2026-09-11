@@ -15,13 +15,13 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.CommissionReportResponse;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
 import uteq.edu.ec.artisync.service.legal.IFinancialReportService;
-import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.TipoColumna;
-import uteq.edu.ec.artisync.service.shared.reporte.TotalReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
+import uteq.edu.ec.artisync.service.shared.reporte.ColumnType;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportTotal;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,7 +39,7 @@ import java.util.Map;
  * formateaba el monto con String.format("%.2f", ...), que hereda el locale por
  * defecto de la JVM y en es-ES produce coma decimal — partiendo la columna de
  * un CSV separado por comas. Aquí el bruto/comisión/neto los calcula la
- * función SQL, y el detalle pasa por FormateadorValores (Locale fijo).
+ * función SQL, y el detalle pasa por ValueFormatter (Locale fijo).
  */
 @Slf4j
 @Service
@@ -49,7 +49,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
     private static final DateTimeFormatter FORMATO_FECHA_SQL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final PaymentTransactionRepository transaccionPagoRepository;
-    private final IServicioExportacion servicioExportacion;
+    private final IExportService servicioExportacion;
     private final ObjectMapper objectMapper;
 
     /**
@@ -89,7 +89,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(FinancialReportFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+    public GeneratedDocument exportar(FinancialReportFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
         CommissionReportResponse reporte = parsear(consultar(filtro));
         List<CommissionDetail> filas;
         String titulo = "Comisiones";
@@ -116,22 +116,22 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
             }
         }
 
-        ModeloReporte<CommissionDetail> modelo = ModeloReporte.<CommissionDetail>builder()
+        ReportModel<CommissionDetail> modelo = ReportModel.<CommissionDetail>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro, reporte))
                 .columnas(List.of(
-                        ColumnaReporte.fechaHora("Fecha", CommissionDetail::fechaEjecucion),
-                        ColumnaReporte.entero("Id. transacción", CommissionDetail::idTransaccion),
-                        ColumnaReporte.entero("Id. pedido", CommissionDetail::idPedido),
-                        ColumnaReporte.texto("Offering", CommissionDetail::servicio),
-                        ColumnaReporte.texto("Tipo", CommissionDetail::tipo),
-                        ColumnaReporte.moneda("Monto", CommissionDetail::monto)))
+                        ReportColumn.fechaHora("Fecha", CommissionDetail::fechaEjecucion),
+                        ReportColumn.entero("Id. transacción", CommissionDetail::idTransaccion),
+                        ReportColumn.entero("Id. pedido", CommissionDetail::idPedido),
+                        ReportColumn.texto("Offering", CommissionDetail::servicio),
+                        ReportColumn.texto("Tipo", CommissionDetail::tipo),
+                        ReportColumn.moneda("Monto", CommissionDetail::monto)))
                 .filas(filas)
                 .totales(List.of(
-                        new TotalReporte("Monto bruto", reporte.montoBruto(), TipoColumna.MONEDA),
-                        new TotalReporte("Comisión", reporte.comision(), TipoColumna.MONEDA),
-                        new TotalReporte("Monto neto", reporte.montoNeto(), TipoColumna.MONEDA)))
+                        new ReportTotal("Monto bruto", reporte.montoBruto(), ColumnType.MONEDA),
+                        new ReportTotal("Comisión", reporte.comision(), ColumnType.MONEDA),
+                        new ReportTotal("Monto neto", reporte.montoNeto(), ColumnType.MONEDA)))
                 .generadoPor(correoSolicitante)
                 .build();
 
@@ -149,7 +149,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(FinancialReportFilter filtro, FormatoReporte formato, String correoSolicitante) {
+    public GeneratedDocument exportar(FinancialReportFilter filtro, ReportFormat formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }
 

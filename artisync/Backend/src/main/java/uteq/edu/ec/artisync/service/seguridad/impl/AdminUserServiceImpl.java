@@ -33,11 +33,11 @@ import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.security.JwtService;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
-import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
-import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
-import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportColumn;
+import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
+import uteq.edu.ec.artisync.service.shared.reporte.IExportService;
+import uteq.edu.ec.artisync.service.shared.reporte.ReportModel;
 import uteq.edu.ec.artisync.specification.seguridad.UserSpecification;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
@@ -66,8 +66,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final SessionRevocationService sessionRevocationService;
     private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     private final EntityManager entityManager;
-    private final IServicioExportacion servicioExportacion;
-    private final uteq.edu.ec.artisync.service.shared.reporte.impl.GeneradorGraficaReporte generadorGraficaReporte;
+    private final IExportService servicioExportacion;
+    private final uteq.edu.ec.artisync.service.shared.reporte.impl.ReportChartGenerator generadorGraficaReporte;
 
     @Override
     @Transactional(readOnly = true)
@@ -349,8 +349,8 @@ public class AdminUserServiceImpl implements AdminUserService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, String correoSolicitante) {
-        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, null, null, correoSolicitante);
+    public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, String correoSolicitante) {
+        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, null, null, correoSolicitante);
     }
 
     /**
@@ -370,8 +370,8 @@ public class AdminUserServiceImpl implements AdminUserService {
      */
     @Override
     @Transactional(readOnly = true)
-    public DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato,
-                                      uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+    public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato,
+                                      uteq.edu.ec.artisync.service.shared.reporte.ReportChartType tipoGrafica,
                                       String correoSolicitante) {
         return exportar(filtro, formato, tipoGrafica, null, null, correoSolicitante);
     }
@@ -380,8 +380,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional(readOnly = true)
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = AuditModule.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato, grafica: #tipoGrafica, page: #page, size: #size}")
-    public DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato,
-                                      uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte tipoGrafica,
+    public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato,
+                                      uteq.edu.ec.artisync.service.shared.reporte.ReportChartType tipoGrafica,
                                       Integer page, Integer size,
                                       String correoSolicitante) {
         Specification<User> spec = UserSpecification.conFiltros(
@@ -414,12 +414,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         List<UserResponse> filas = usuarioMapper.toUserResponseList(pagina.getContent());
 
         // Calcular métricas (KPIs) y datos agregados para las gráficas
-        uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte graficaElegida =
-                tipoGrafica != null ? tipoGrafica : uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS;
-        List<uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte> graficas = new ArrayList<>();
-        List<uteq.edu.ec.artisync.service.shared.reporte.KpiReporte> kpis = new ArrayList<>();
+        uteq.edu.ec.artisync.service.shared.reporte.ReportChartType graficaElegida =
+                tipoGrafica != null ? tipoGrafica : uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS;
+        List<uteq.edu.ec.artisync.service.shared.reporte.ReportChart> graficas = new ArrayList<>();
+        List<uteq.edu.ec.artisync.service.shared.reporte.ReportKpi> kpis = new ArrayList<>();
 
-        if (!filas.isEmpty() && (formato == FormatoReporte.PDF || formato == FormatoReporte.XLSX)) {
+        if (!filas.isEmpty() && (formato == ReportFormat.PDF || formato == ReportFormat.XLSX)) {
             Map<String, Long> conteoRoles = new LinkedHashMap<>();
             Map<String, Long> conteoPaises = new LinkedHashMap<>();
             long activos = 0;
@@ -443,42 +443,42 @@ public class AdminUserServiceImpl implements AdminUserService {
             }
 
             // KPIs
-            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Total Usuarios", String.valueOf(filas.size()), "Registrados en listado"));
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportKpi("Total Usuarios", String.valueOf(filas.size()), "Registrados en listado"));
             double pctActivos = ((double) activos / filas.size()) * 100.0;
-            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Usuarios Activos", String.format("%d (%.0f%%)", activos, pctActivos), "Cuentas habilitadas"));
-            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Roles Representados", String.valueOf(conteoRoles.size()), "Roles distintos"));
-            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.KpiReporte("Países", String.valueOf(conteoPaises.size()), "Distribución geográfica"));
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportKpi("Usuarios Activos", String.format("%d (%.0f%%)", activos, pctActivos), "Cuentas habilitadas"));
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportKpi("Roles Representados", String.valueOf(conteoRoles.size()), "Roles distintos"));
+            kpis.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportKpi("Países", String.valueOf(conteoPaises.size()), "Distribución geográfica"));
 
             // Gráficas estadísticas
-            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.ROL
-                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS) {
+            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.ROL
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS) {
                 byte[] imgRol = generadorGraficaReporte.generarGraficaRol(conteoRoles);
-                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte("Distribución de Usuarios por Role",
+                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportChart("Distribución de Usuarios por Role",
                         "Proporción de usuarios según su rol asignado", imgRol, conteoRoles));
             }
-            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.PAIS
-                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS) {
+            if (graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.PAIS
+                    || graficaElegida == uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS) {
                 byte[] imgPais = generadorGraficaReporte.generarGraficaPais(conteoPaises);
-                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.GraficaReporte("Distribución de Usuarios por País",
+                graficas.add(new uteq.edu.ec.artisync.service.shared.reporte.ReportChart("Distribución de Usuarios por País",
                         "Concentración geográfica de los usuarios registrados", imgPais, conteoPaises));
             }
         }
 
-        ModeloReporte<UserResponse> modelo = ModeloReporte.<UserResponse>builder()
+        ReportModel<UserResponse> modelo = ReportModel.<UserResponse>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .kpis(kpis)
                 .graficas(graficas)
                 .columnas(List.of(
-                        ColumnaReporte.entero("Id", UserResponse::getIdUsuario),
-                        ColumnaReporte.texto("Nombres", UserResponse::getNombres),
-                        ColumnaReporte.texto("Apellidos", UserResponse::getApellidos),
-                        ColumnaReporte.texto("Correo", UserResponse::getCorreo),
-                        ColumnaReporte.texto("País", UserResponse::getNombrePais),
-                        ColumnaReporte.fechaHora("Registrado", UserResponse::getFechaRegistro),
-                        ColumnaReporte.booleano("Activo", UserResponse::getEstadoCuenta),
-                        ColumnaReporte.texto("Roles", u -> u.getRoles() == null ? "" : String.join(", ", u.getRoles()))))
+                        ReportColumn.entero("Id", UserResponse::getIdUsuario),
+                        ReportColumn.texto("Nombres", UserResponse::getNombres),
+                        ReportColumn.texto("Apellidos", UserResponse::getApellidos),
+                        ReportColumn.texto("Correo", UserResponse::getCorreo),
+                        ReportColumn.texto("País", UserResponse::getNombrePais),
+                        ReportColumn.fechaHora("Registrado", UserResponse::getFechaRegistro),
+                        ReportColumn.booleano("Activo", UserResponse::getEstadoCuenta),
+                        ReportColumn.texto("Roles", u -> u.getRoles() == null ? "" : String.join(", ", u.getRoles()))))
                 .filas(filas)
                 .generadoPor(correoSolicitante)
                 .build();

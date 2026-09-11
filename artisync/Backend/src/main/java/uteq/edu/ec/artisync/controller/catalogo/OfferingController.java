@@ -21,9 +21,9 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaUrl;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
-import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.FileExtensions;
+import uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 public class OfferingController {
 
     private final IOfferingCatalogService servicioCatalogoServicio;
-    private final AlmacenamientoDocumentos almacenamientoDocumentos;
+    private final DocumentStorage almacenamientoDocumentos;
 
     /**
      * Crea un nuevo servicio para el perfil de creador indicado.
@@ -208,11 +208,11 @@ public class OfferingController {
         String fullPath = request.getRequestURI();
         String prefix = "/api/v1/servicios/miniatura/";
         String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());
-        if (!referencia.startsWith(PrefijoAlmacenamiento.SERVICIOS + "/")) {
+        if (!referencia.startsWith(StoragePrefix.SERVICIOS + "/")) {
             throw new ResourceNotFoundException("Miniatura no disponible: " + referencia);
         }
         byte[] contenido = almacenamientoDocumentos.leer(referencia);
-        String contentType = ExtensionesArchivo.contentTypeDe(referencia);
+        String contentType = FileExtensions.contentTypeDe(referencia);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=" + TimeUnit.DAYS.toSeconds(7))
