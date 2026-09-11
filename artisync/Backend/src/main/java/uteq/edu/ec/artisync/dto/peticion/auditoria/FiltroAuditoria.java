@@ -1,12 +1,17 @@
-package uteq.edu.ec.artisync.dto.peticion.auditoria;
+﻿package uteq.edu.ec.artisync.dto.peticion.auditoria;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import uteq.edu.ec.artisync.dto.peticion.comun.FiltroRangoFechas;
 
 /**
- * Filtros de la pantalla de auditoría, ligados con @ModelAttribute. Todos son
- * opcionales.
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Parametros de busqueda para filtrar los eventos de la bitacora de auditoria.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -19,3 +24,5 @@ public class FiltroAuditoria extends FiltroRangoFechas {
     private String entidad;
     private Long idEntidad;
 }
+
+

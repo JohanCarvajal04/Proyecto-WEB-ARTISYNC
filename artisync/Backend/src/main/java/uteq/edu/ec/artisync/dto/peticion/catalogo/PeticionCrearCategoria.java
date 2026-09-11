@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.dto.peticion.catalogo;
+﻿package uteq.edu.ec.artisync.dto.peticion.catalogo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -7,6 +7,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Payload para registrar una nueva categoria principal en el catalogo.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,3 +29,6 @@ public class PeticionCrearCategoria {
     @Builder.Default
     private Boolean estadoActiva = true;
 }
+
+
+
