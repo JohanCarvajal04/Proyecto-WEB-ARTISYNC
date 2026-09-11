@@ -68,13 +68,13 @@ describe('AppShellComponent', () => {
     }
   });
 
-  it('"Mi Cuenta" resuelve a /cuenta/configuracion en el panel de creador', async () => {
+  it('"Configuración" resuelve a /cuenta/configuracion en el panel de creador', async () => {
     const { fixture } = crear('creador');
     await fixture.whenStable();
 
     const enlaces: HTMLAnchorElement[] = Array.from(fixture.nativeElement.querySelectorAll('nav a'));
-    const miCuenta = enlaces.find(a => a.textContent?.includes('Mi Cuenta'));
-    expect(miCuenta?.getAttribute('href')).toBe('/cuenta/configuracion');
+    const configuracion = enlaces.find(a => a.textContent?.includes('Configuración'));
+    expect(configuracion?.getAttribute('href')).toBe('/cuenta/configuracion');
   });
 
   it('la campana de notificaciones respeta el panel activo', async () => {
