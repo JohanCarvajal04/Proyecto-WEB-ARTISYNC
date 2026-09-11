@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.security;
+﻿package uteq.edu.ec.artisync.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -22,20 +22,11 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * OBS-AUTO-06 (A07 OWASP): limita por IP los intentos sobre las rutas publicas
- * de autenticacion mas expuestas a abuso (fuerza bruta de login/2FA, spam de
- * cuentas, mail-bombing vía forgot-password). Generaliza el antiguo
- * LoginRateLimitFilter, que solo cubria /api/v1/auth/login.
- *
- * La cuota POR IP vive aqui; la cuota POR CUENTA vive en
- * {@link uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService},
- * invocada desde AuthServiceImpl — un filtro de pre-autenticacion no puede
- * leer el cuerpo JSON de forma segura sin bufferizarlo, y AuthServiceImpl ya
- * tiene el correo validado y el resultado real de la autenticacion en mano.
- *
- * Fail-open ante caida de Redis: un control de mitigacion no debe bloquear
- * el acceso completo al sistema (a diferencia de la blacklist de JWT en
- * JwtAuthenticationFilter, que si es fail-closed).
+ * Componente de Seguridad: Filtro de limitacion de tasa (Rate Limiting).
+ * 
+ * Propósito: Prevenir ataques de fuerza bruta, denegacion de servicio (DoS) y abusos de endpoints publicos.
+ * 
+ * Flujo interno: Se ejecuta antes del filtro de autenticacion. Utiliza Redis y Bucket4j para descontar un token por peticion (basado en IP). Si se agota, rechaza con HTTP 429.
  */
 @Slf4j
 @Component
@@ -132,3 +123,4 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         objectMapper.writeValue(response.getWriter(), problemDetail);
     }
 }
+
