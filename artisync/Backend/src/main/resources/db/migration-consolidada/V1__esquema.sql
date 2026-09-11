@@ -589,13 +589,18 @@ CREATE TABLE plantillas_contrato (
     cuerpo_html_plantilla TEXT NOT NULL,
     nombre_plantilla VARCHAR(150) NOT NULL DEFAULT 'General',
     es_predeterminada BOOLEAN NOT NULL DEFAULT FALSE,
-    activa BOOLEAN NOT NULL DEFAULT TRUE
+    activa BOOLEAN NOT NULL DEFAULT TRUE,
+    -- NULL: catálogo general curado por ADMIN. No NULL: plantilla de acuerdo
+    -- privada de ese creador, solo usable por él mismo (origen V45).
+    id_creador BIGINT REFERENCES usuarios(id_usuario)
 );
 
 -- Solo una plantilla puede ser la predeterminada a la vez.
 CREATE UNIQUE INDEX ux_plantilla_contrato_predeterminada
     ON plantillas_contrato (es_predeterminada)
     WHERE es_predeterminada = TRUE;
+
+CREATE INDEX idx_plantillas_contrato_id_creador ON plantillas_contrato (id_creador);
 
 -- Cierra la relación servicio -> plantilla de contrato declarada en el
 -- Módulo 3 (origen V39). Nullable: sin plantilla asignada, cae a la

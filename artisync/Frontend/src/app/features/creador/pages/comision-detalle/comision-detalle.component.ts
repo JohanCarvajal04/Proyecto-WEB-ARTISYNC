@@ -198,11 +198,11 @@ export class ComisionDetalleComponent implements OnInit {
       next: (actualizado) => {
         this.contrato.set(actualizado);
         this.firmando.set(false);
-        this.toast.success('Contrato firmado');
+        this.toast.success('Acuerdo firmado');
       },
       error: (err) => {
         this.firmando.set(false);
-        this.toast.error(mensajeError(err, 'No se pudo firmar el contrato'));
+        this.toast.error(mensajeError(err, 'No se pudo firmar el acuerdo'));
       }
     });
   }

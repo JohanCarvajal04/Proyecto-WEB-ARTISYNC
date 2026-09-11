@@ -53,9 +53,24 @@ public interface IPlantillaContratoAdminServicio {
     RespuestaMensaje desactivar(Long idPlantilla);
 
     /**
-     * Para el selector del creador al crear/editar un servicio.
+     * Para el selector del creador al crear/editar un servicio: solo el
+     * catálogo general curado por ADMIN, sin las plantillas privadas de
+     * ningún creador (V45). Se conserva tal cual porque
+     * {@link uteq.edu.ec.artisync.controller.legal.PlantillaContratoControlador}
+     * ya no la usa (ver {@link #listarActivasVisiblesPara}), pero la firma
+     * pública no cambia sin necesidad.
      *
-     * @return las plantillas activas, en formato resumido
+     * @return las plantillas activas del catálogo general, en formato resumido
      */
     List<RespuestaPlantillaContratoResumen> listarActivas();
+
+    /**
+     * Para el selector del creador al crear/editar un servicio (V45): el
+     * catálogo general (ADMIN) más las plantillas privadas de ese creador,
+     * nunca las de otro creador.
+     *
+     * @param idUsuarioCreador id del usuario autenticado que consulta
+     * @return las plantillas activas visibles para ese creador, en formato resumido
+     */
+    List<RespuestaPlantillaContratoResumen> listarActivasVisiblesPara(Long idUsuarioCreador);
 }

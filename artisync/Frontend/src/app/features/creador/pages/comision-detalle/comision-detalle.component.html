@@ -220,11 +220,11 @@
           </div>
         </div>
 
-        <!-- Contrato -->
+        <!-- Acuerdo -->
         <div class="cr-card">
           <div class="cr-card__head">
             <div>
-              <h2 class="cr-card__title">Contrato</h2>
+              <h2 class="cr-card__title">Acuerdo</h2>
               <p class="cr-card__hint">Firma digital de ambas partes</p>
             </div>
           </div>
@@ -255,13 +255,13 @@
                 @if (!c.hashFirmaCreador) {
                   <button type="button" class="cr-btn cr-btn--primary cr-btn--sm cr-btn--block" [disabled]="firmando()" (click)="firmarContrato()">
                     @if (firmando()) { <span class="cr-spinner cr-spinner--sm"></span> }
-                    Firmar contrato
+                    Firmar acuerdo
                   </button>
                 }
-                <a [routerLink]="['/legal/contrato', c.idContrato]" class="cr-btn cr-btn--outline cr-btn--sm cr-btn--block">Ver contrato</a>
+                <a [routerLink]="['/legal/contrato', c.idContrato]" class="cr-btn cr-btn--outline cr-btn--sm cr-btn--block">Ver acuerdo</a>
               </div>
             } @else {
-              <p class="cr-hint">Todavía no se ha generado el contrato de esta comisión.</p>
+              <p class="cr-hint">Todavía no se ha generado el acuerdo de esta comisión.</p>
             }
           </div>
         </div>

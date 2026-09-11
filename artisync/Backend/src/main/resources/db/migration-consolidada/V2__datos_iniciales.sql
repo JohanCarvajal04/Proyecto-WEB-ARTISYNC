@@ -106,6 +106,8 @@ VALUES
     -- Catálogo de plantillas de contrato, curado por ADMIN (ver
     -- V39__catalogo_plantillas_contrato.sql).
     ('CONTRATO_PLANTILLA_GESTIONAR', 'SISTEMA'),
+    -- Plantillas de acuerdo propias del creador, aparte del catálogo general (V45).
+    ('CONTRATO_PLANTILLA_PROPIA_GESTIONAR', 'SISTEMA'),
 
     -- PORTAFOLIO
     ('PORTAFOLIO_CREAR', 'PORTAFOLIO'),
@@ -222,7 +224,7 @@ WHERE r.nombre_rol = 'CREADOR'
   AND p.nombre_permiso IN (
       'PORTAFOLIO_CREAR', 'SERVICIO_CREAR', 'PEDIDO_GESTIONAR', 'TICKET_REVISAR',
       'CONTRATO_VER', 'CONTRATO_FIRMAR', 'SALA_VER', 'MENSAJE_ENVIAR', 'SORTEO_CREAR',
-      'FLUJO_GESTIONAR', 'CATEGORIA_CREAR', 'RETIROS_SOLICITAR'
+      'FLUJO_GESTIONAR', 'CATEGORIA_CREAR', 'RETIROS_SOLICITAR', 'CONTRATO_PLANTILLA_PROPIA_GESTIONAR'
   )
 ON CONFLICT (id_rol, id_permiso) DO NOTHING;
 

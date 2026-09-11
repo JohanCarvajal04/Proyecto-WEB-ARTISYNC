@@ -136,5 +136,22 @@ class PlantillaContratoAdminServicioImplTest {
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getIdPlantilla()).isEqualTo(1L);
         assertThat(resultado.get(0).getNombrePlantilla()).isEqualTo("General (predeterminada)");
+        assertThat(resultado.get(0).isEsPropia()).isFalse();
+    }
+
+    @Test
+    @DisplayName("listarActivasVisiblesPara (V45) — marca esPropia solo en las plantillas privadas del creador que consulta")
+    void listarActivasVisiblesPara_marcaEsPropia() {
+        PlantillaContrato propia = PlantillaContrato.builder().idPlantilla(5L).versionLegal("propia-7-abcd1234")
+                .nombrePlantilla("Mi plantilla").cuerpoHtmlPlantilla("<html></html>")
+                .esPredeterminada(false).activa(true).idCreador(7L).build();
+        given(plantillaContratoRepository.findActivasVisiblesParaCreador(7L))
+                .willReturn(List.of(predeterminadaActual, propia));
+
+        var resultado = servicio.listarActivasVisiblesPara(7L);
+
+        assertThat(resultado).hasSize(2);
+        assertThat(resultado.get(0).isEsPropia()).isFalse();
+        assertThat(resultado.get(1).isEsPropia()).isTrue();
     }
 }

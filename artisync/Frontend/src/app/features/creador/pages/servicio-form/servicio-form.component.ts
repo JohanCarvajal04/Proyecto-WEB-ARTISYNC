@@ -84,9 +84,12 @@ export class ServicioFormComponent implements OnInit {
   formFlujo: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
   nuevaEtapaFlujo: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
 
-  // Plantilla de contrato: catálogo curado por ADMIN (REQ-F-017 ampliado).
-  // Opcional; sin elegir, el contrato del pedido usa la predeterminada.
+  // Plantilla de acuerdo: catálogo curado por ADMIN (REQ-F-017 ampliado) más
+  // las plantillas privadas del propio creador (V45). Opcional; sin elegir,
+  // el acuerdo del pedido usa la predeterminada del catálogo general.
   readonly plantillasContrato = signal<RespuestaPlantillaContratoResumen[]>([]);
+  readonly plantillasContratoGenerales = computed(() => this.plantillasContrato().filter(p => !p.esPropia));
+  readonly plantillasContratoPropias = computed(() => this.plantillasContrato().filter(p => p.esPropia));
 
   // Cuestionario (briefing): entre los propios del creador (REQ-F-016
   // ampliado). Opcional; sin elegir, crear un pedido no pide preguntas.
