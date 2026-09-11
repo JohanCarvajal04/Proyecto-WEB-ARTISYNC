@@ -6,17 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
-/**
- * Fila de la tabla de auditoría. Deliberadamente SIN detalleCambio: no tiene
- * sentido enviar kilobytes de JSON por cada una de las 20 filas de una
- * página; el detalle se pide aparte, por id, cuando el usuario lo abre.
- */
+/** Vista completa de un evento, para el modal de detalle. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RespuestaEventoAuditoriaResumen {
+public class AuditEventResponse {
     private Long idEventoAuditoria;
     private LocalDateTime fechaEvento;
     private Long idUsuarioActor;
@@ -26,5 +23,11 @@ public class RespuestaEventoAuditoriaResumen {
     private String resultadoEvento;
     private String entidadAfectada;
     private Long idEntidadAfectada;
+    private Map<String, Object> detalleCambio;
+    private String mensajeError;
     private String direccionIp;
+    private String agenteUsuario;
+    private String metodoHttp;
+    private String rutaSolicitud;
+    private Integer duracionMs;
 }

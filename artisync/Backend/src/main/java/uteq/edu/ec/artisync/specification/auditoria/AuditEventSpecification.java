@@ -2,15 +2,15 @@ package uteq.edu.ec.artisync.specification.auditoria;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
-import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
+import uteq.edu.ec.artisync.entity.auditoria.AuditEvent;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EventoAuditoriaSpecification {
+public class AuditEventSpecification {
 
-    public static Specification<EventoAuditoria> conFiltros(
+    public static Specification<AuditEvent> conFiltros(
             String correoActor,
             String accion,
             String modulo,

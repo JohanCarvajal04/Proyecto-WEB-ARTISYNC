@@ -4,13 +4,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
+import uteq.edu.ec.artisync.entity.auditoria.AuditEvent;
 
 import java.util.List;
 
 
 /**
- * Repositorio de acceso a datos para la entidad de dominio {@link EventoAuditoria}.
+ * Repositorio de acceso a datos para la entidad de dominio {@link AuditEvent}.
  * 
  * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
  * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
@@ -18,10 +18,10 @@ import java.util.List;
  * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
-public interface EventoAuditoriaRepository
-        extends JpaRepository<EventoAuditoria, Long>, JpaSpecificationExecutor<EventoAuditoria> {
+public interface AuditEventRepository
+        extends JpaRepository<AuditEvent, Long>, JpaSpecificationExecutor<AuditEvent> {
 
-    @Query("SELECT DISTINCT e.accionAuditoria FROM EventoAuditoria e ORDER BY e.accionAuditoria")
+    @Query("SELECT DISTINCT e.accionAuditoria FROM AuditEvent e ORDER BY e.accionAuditoria")
     List<String> listarAccionesDistintas();
 }
 

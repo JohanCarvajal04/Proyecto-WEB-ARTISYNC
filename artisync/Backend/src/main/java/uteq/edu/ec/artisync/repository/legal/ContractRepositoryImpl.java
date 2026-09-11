@@ -26,7 +26,7 @@ import java.util.List;
  * Implementación Criteria API de {@link ContractRepositoryCustom}: construye los
  * predicados condicionalmente en Java (solo se añade el predicado si el filtro
  * llegó, nunca se bindea un parámetro nulo a Postgres), igual patrón que
- * {@code EventoAuditoriaSpecification}. Se optó por esto en vez de un
+ * {@code AuditEventSpecification}. Se optó por esto en vez de un
  * {@code @Query} JPQL con {@code (:param is null or ...)} porque, en este JOIN
  * de 6 tablas, Postgres no lograba inferir el tipo de un parámetro cuyo único
  * uso era "$1 is null" (PSQLException: could not determine data type of

@@ -9,10 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
-import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.dto.peticion.auditoria.AuditFilter;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventResponse;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventSummaryResponse;
+import uteq.edu.ec.artisync.service.auditoria.IAuditService;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
@@ -34,9 +34,9 @@ import java.util.List;
 @RequestMapping("/api/v1/admin/auditoria")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
-public class AuditoriaControlador {
+public class AuditController {
 
-    private final IAuditoriaServicio auditoriaServicio;
+    private final IAuditService auditoriaServicio;
 
     /**
      * Lista de forma paginada la bitácora de auditoría, con filtros opcionales.
@@ -48,8 +48,8 @@ public class AuditoriaControlador {
     @Operation(summary = "Listado paginado y filtrado de la bitácora de auditoría")
     @GetMapping
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
-    public ResponseEntity<PagedResponse<RespuestaEventoAuditoriaResumen>> listar(
-            FiltroAuditoria filtro, Pageable pageable) {
+    public ResponseEntity<PagedResponse<AuditEventSummaryResponse>> listar(
+            AuditFilter filtro, Pageable pageable) {
         return ResponseEntity.ok(auditoriaServicio.listar(filtro, pageable));
     }
 
@@ -63,7 +63,7 @@ public class AuditoriaControlador {
     @Operation(summary = "Detalle completo de un evento, incluido el JSON del cambio")
     @GetMapping("/{idEvento}")
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaEventoAuditoria> obtenerPorId(@PathVariable Long idEvento) {
+    public ResponseEntity<AuditEventResponse> obtenerPorId(@PathVariable Long idEvento) {
         return ResponseEntity.ok(auditoriaServicio.obtenerPorId(idEvento));
     }
 
@@ -93,7 +93,7 @@ public class AuditoriaControlador {
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
-            FiltroAuditoria filtro,
+            AuditFilter filtro,
             @RequestParam FormatoReporte formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -114,7 +114,7 @@ public class AuditoriaControlador {
      */
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
-            FiltroAuditoria filtro,
+            AuditFilter filtro,
             FormatoReporte formato,
             Authentication authentication) {
         return exportar(filtro, formato, null, null, authentication);

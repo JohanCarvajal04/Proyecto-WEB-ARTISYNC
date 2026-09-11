@@ -15,7 +15,7 @@ import java.util.List;
  * Hallazgo 1.3 (INFORME-REVISION-COMPLETA.md): filtrado real en backend para
  * el listado y la exportación de usuarios — antes {@code AdminUserController.getAllUsers}
  * no aceptaba ningún filtro y la pantalla solo filtraba en memoria la página
- * cargada. Mismo patrón que {@code EventoAuditoriaSpecification}.
+ * cargada. Mismo patrón que {@code AuditEventSpecification}.
  */
 public class UserSpecification {
 

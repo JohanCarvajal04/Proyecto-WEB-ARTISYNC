@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.util;
 
 /**
- * Extraído de AuditServiceImpl (RNF-13) para que AuditoriaServicioImpl no
+ * Extraído de AuditServiceImpl (RNF-13) para que AuditServiceImpl no
  * duplique el mismo escapado.
  */
 public final class CsvUtil {

@@ -7,8 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
-import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventResponse;
+import uteq.edu.ec.artisync.service.auditoria.IAuditService;
 
 import java.util.List;
 
@@ -16,21 +16,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AuditoriaControladorTest {
+class AuditControllerTest {
 
     @Mock
-    private IAuditoriaServicio auditoriaServicio;
+    private IAuditService auditoriaServicio;
 
     @InjectMocks
-    private AuditoriaControlador auditoriaControlador;
+    private AuditController auditoriaControlador;
 
     @Test
     void obtenerPorId_DebeRetornarEvento() {
-        RespuestaEventoAuditoria evento = new RespuestaEventoAuditoria();
+        AuditEventResponse evento = new AuditEventResponse();
         evento.setIdEventoAuditoria(99L);
         when(auditoriaServicio.obtenerPorId(99L)).thenReturn(evento);
 
-        ResponseEntity<RespuestaEventoAuditoria> result = auditoriaControlador.obtenerPorId(99L);
+        ResponseEntity<AuditEventResponse> result = auditoriaControlador.obtenerPorId(99L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(99L, result.getBody().getIdEventoAuditoria());

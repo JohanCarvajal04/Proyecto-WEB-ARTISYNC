@@ -52,7 +52,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 @Immutable
-public class EventoAuditoria {
+public class AuditEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

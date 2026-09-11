@@ -2,21 +2,21 @@ package uteq.edu.ec.artisync.service.auditoria;
 
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.audit.AuditEventData;
-import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
+import uteq.edu.ec.artisync.dto.peticion.auditoria.AuditFilter;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventResponse;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventSummaryResponse;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 import java.util.List;
 
-public interface IAuditoriaServicio {
+public interface IAuditService {
 
     /**
      * Registra un evento de auditoría. Se ejecuta en una transacción nueva
      * (REQUIRES_NEW) para que el registro persista aunque la transacción que
-     * lo originó termine haciendo rollback; ver {@code AuditoriaServicioImpl}
+     * lo originó termine haciendo rollback; ver {@code AuditServiceImpl}
      * para el razonamiento completo.
      *
      * @param datos datos del evento a registrar
@@ -30,7 +30,7 @@ public interface IAuditoriaServicio {
      * @param pageable configuración de paginación y orden
      * @return la página de eventos que cumplen el filtro
      */
-    PagedResponse<RespuestaEventoAuditoriaResumen> listar(FiltroAuditoria filtro, Pageable pageable);
+    PagedResponse<AuditEventSummaryResponse> listar(AuditFilter filtro, Pageable pageable);
 
     /**
      * Obtiene el detalle de un evento de auditoría por su id.
@@ -39,7 +39,7 @@ public interface IAuditoriaServicio {
      * @return el detalle del evento
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el evento no existe
      */
-    RespuestaEventoAuditoria obtenerPorId(Long idEvento);
+    AuditEventResponse obtenerPorId(Long idEvento);
 
     /**
      * Genera un documento con los eventos de auditoría que cumplen el filtro indicado.
@@ -50,7 +50,7 @@ public interface IAuditoriaServicio {
      * @return el documento generado con los eventos filtrados
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el filtro devuelve más filas que el tope admitido por el formato
      */
-    DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante);
+    DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, String correoSolicitante);
 
     /**
      * Genera un documento con los eventos de auditoría que cumplen el filtro indicado,
@@ -63,7 +63,7 @@ public interface IAuditoriaServicio {
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con los eventos filtrados
      */
-    DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
+    DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante);
 
     /**
      * Lista los nombres de las acciones de auditoría ya registradas, distintos, para poblar filtros.

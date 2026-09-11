@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.dto.peticion.comun.FiltroRangoFechas;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class FiltroAuditoria extends FiltroRangoFechas {
+public class AuditFilter extends FiltroRangoFechas {
 
     private String correoActor;
     private String accion;

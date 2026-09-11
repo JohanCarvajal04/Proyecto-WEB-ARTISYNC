@@ -13,20 +13,20 @@ import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditEventData;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
-import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
-import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
+import uteq.edu.ec.artisync.dto.peticion.auditoria.AuditFilter;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventResponse;
+import uteq.edu.ec.artisync.dto.respuesta.auditoria.AuditEventSummaryResponse;
+import uteq.edu.ec.artisync.entity.auditoria.AuditEvent;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.auditoria.EventoAuditoriaRepository;
-import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.repository.auditoria.AuditEventRepository;
+import uteq.edu.ec.artisync.service.auditoria.IAuditService;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
 import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
-import uteq.edu.ec.artisync.specification.auditoria.EventoAuditoriaSpecification;
+import uteq.edu.ec.artisync.specification.auditoria.AuditEventSpecification;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.PagedResponseBuilder;
 
@@ -38,13 +38,13 @@ import java.util.Set;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuditoriaServicioImpl implements IAuditoriaServicio {
+public class AuditServiceImpl implements IAuditService {
 
     /** Campos que el cliente puede pedir para ordenar: todos los demás caerían
      *  en un sort sin índice. Ver los índices de V15__modulo_auditoria.sql. */
     private static final Set<String> CAMPOS_ORDENABLES = Set.of("fechaEvento", "accionAuditoria", "correoActor");
 
-    private final EventoAuditoriaRepository eventoAuditoriaRepository;
+    private final AuditEventRepository eventoAuditoriaRepository;
     private final IServicioExportacion servicioExportacion;
 
     @Override
@@ -56,7 +56,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void registrar(AuditEventData datos) {
-        EventoAuditoria evento = EventoAuditoria.builder()
+        AuditEvent evento = AuditEvent.builder()
                 .fechaEvento(datos.fechaEvento())
                 .idUsuarioActor(datos.idUsuarioActor())
                 .correoActor(datos.correoActor())
@@ -86,9 +86,9 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PagedResponse<RespuestaEventoAuditoriaResumen> listar(FiltroAuditoria filtro, Pageable pageable) {
+    public PagedResponse<AuditEventSummaryResponse> listar(AuditFilter filtro, Pageable pageable) {
         Pageable seguro = paginaSegura(pageable);
-        Page<EventoAuditoria> pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), seguro);
+        Page<AuditEvent> pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), seguro);
         return PagedResponseBuilder.buildAndMap(pagina, this::toResumen);
     }
 
@@ -101,8 +101,8 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaEventoAuditoria obtenerPorId(Long idEvento) {
-        EventoAuditoria evento = eventoAuditoriaRepository.findById(idEvento)
+    public AuditEventResponse obtenerPorId(Long idEvento) {
+        AuditEvent evento = eventoAuditoriaRepository.findById(idEvento)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe el evento de auditoría con id " + idEvento));
         return toDetalle(evento);
@@ -126,8 +126,8 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
-        Page<EventoAuditoria> pagina;
+    public DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
+        Page<AuditEvent> pagina;
         String titulo = "Auditoría";
         String subtitulo = "Bitácora de eventos del sistema";
 
@@ -154,20 +154,20 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
             }
         }
 
-        ModeloReporte<EventoAuditoria> modelo = ModeloReporte.<EventoAuditoria>builder()
+        ModeloReporte<AuditEvent> modelo = ModeloReporte.<AuditEvent>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro))
                 .columnas(List.of(
-                        ColumnaReporte.fechaHora("Fecha", EventoAuditoria::getFechaEvento),
-                        ColumnaReporte.texto("Actor", EventoAuditoria::getCorreoActor),
-                        ColumnaReporte.texto("Módulo", EventoAuditoria::getModuloAuditoria),
-                        ColumnaReporte.texto("Acción", EventoAuditoria::getAccionAuditoria),
-                        ColumnaReporte.texto("Resultado", EventoAuditoria::getResultadoEvento),
-                        ColumnaReporte.texto("Entidad", EventoAuditoria::getEntidadAfectada),
-                        ColumnaReporte.entero("Id. entidad", EventoAuditoria::getIdEntidadAfectada),
-                        ColumnaReporte.texto("IP", EventoAuditoria::getDireccionIp),
-                        ColumnaReporte.texto("Message de error", EventoAuditoria::getMensajeError)))
+                        ColumnaReporte.fechaHora("Fecha", AuditEvent::getFechaEvento),
+                        ColumnaReporte.texto("Actor", AuditEvent::getCorreoActor),
+                        ColumnaReporte.texto("Módulo", AuditEvent::getModuloAuditoria),
+                        ColumnaReporte.texto("Acción", AuditEvent::getAccionAuditoria),
+                        ColumnaReporte.texto("Resultado", AuditEvent::getResultadoEvento),
+                        ColumnaReporte.texto("Entidad", AuditEvent::getEntidadAfectada),
+                        ColumnaReporte.entero("Id. entidad", AuditEvent::getIdEntidadAfectada),
+                        ColumnaReporte.texto("IP", AuditEvent::getDireccionIp),
+                        ColumnaReporte.texto("Message de error", AuditEvent::getMensajeError)))
                 .filas(pagina.getContent())
                 .generadoPor(correoSolicitante)
                 .build();
@@ -186,11 +186,11 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante) {
+    public DocumentoGenerado exportar(AuditFilter filtro, FormatoReporte formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }
 
-    private Map<String, String> filtrosLegibles(FiltroAuditoria filtro) {
+    private Map<String, String> filtrosLegibles(AuditFilter filtro) {
         Map<String, String> filtros = new LinkedHashMap<>();
         if (filtro.getCorreoActor() != null) {
             filtros.put("Actor", filtro.getCorreoActor());
@@ -228,8 +228,8 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
         return eventoAuditoriaRepository.listarAccionesDistintas();
     }
 
-    private Specification<EventoAuditoria> especificacionDe(FiltroAuditoria filtro) {
-        return EventoAuditoriaSpecification.conFiltros(
+    private Specification<AuditEvent> especificacionDe(AuditFilter filtro) {
+        return AuditEventSpecification.conFiltros(
                 filtro.getCorreoActor(), filtro.getAccion(), filtro.getModulo(), filtro.getResultado(),
                 filtro.getEntidad(), filtro.getIdEntidad(), filtro.getDesde(), filtro.getHasta());
     }
@@ -244,8 +244,8 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), ordenSeguro);
     }
 
-    private RespuestaEventoAuditoriaResumen toResumen(EventoAuditoria e) {
-        return RespuestaEventoAuditoriaResumen.builder()
+    private AuditEventSummaryResponse toResumen(AuditEvent e) {
+        return AuditEventSummaryResponse.builder()
                 .idEventoAuditoria(e.getIdEventoAuditoria())
                 .fechaEvento(e.getFechaEvento())
                 .idUsuarioActor(e.getIdUsuarioActor())
@@ -259,8 +259,8 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
                 .build();
     }
 
-    private RespuestaEventoAuditoria toDetalle(EventoAuditoria e) {
-        return RespuestaEventoAuditoria.builder()
+    private AuditEventResponse toDetalle(AuditEvent e) {
+        return AuditEventResponse.builder()
                 .idEventoAuditoria(e.getIdEventoAuditoria())
                 .fechaEvento(e.getFechaEvento())
                 .idUsuarioActor(e.getIdUsuarioActor())

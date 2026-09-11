@@ -17,7 +17,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.service.auditoria.IAuditService;
 import uteq.edu.ec.artisync.service.shared.ActorAutenticado;
 import uteq.edu.ec.artisync.service.shared.ContextoSolicitud;
 
@@ -36,7 +36,7 @@ import java.util.Map;
  * HIGHEST_PRECEDENCE + 20 este aspecto queda MÁS EXTERNO. Cuando el método de
  * negocio lanza, su transacción ya hizo rollback y se cerró ANTES de que este
  * aspecto intente registrar el evento; el REQUIRES_NEW de
- * AuditoriaServicioImpl.registrar() abre entonces una transacción limpia. Si
+ * AuditServiceImpl.registrar() abre entonces una transacción limpia. Si
  * el aspecto estuviera por dentro de @Transactional, escribir en una
  * transacción ya marcada rollback-only lanzaría UnexpectedRollbackException
  * al confirmar la externa. No cambiar este @Order sin repetir el test de
@@ -52,7 +52,7 @@ public class AuditAspect {
     private static final ExpressionParser PARSER = new SpelExpressionParser();
     private static final DefaultParameterNameDiscoverer DESCUBRIDOR_PARAMETROS = new DefaultParameterNameDiscoverer();
 
-    private final IAuditoriaServicio auditoriaServicio;
+    private final IAuditService auditoriaServicio;
 
     @Around("@annotation(auditable)")
     public Object auditar(ProceedingJoinPoint pjp, Auditable auditable) throws Throwable {

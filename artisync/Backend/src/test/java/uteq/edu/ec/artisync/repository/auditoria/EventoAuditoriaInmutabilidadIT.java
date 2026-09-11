@@ -9,7 +9,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
+import uteq.edu.ec.artisync.entity.auditoria.AuditEvent;
 
 import java.time.LocalDateTime;
 
@@ -41,7 +41,7 @@ class EventoAuditoriaInmutabilidadIT {
     private static final String SQLSTATE_INSUFFICIENT_PRIVILEGE = "42501";
 
     @Autowired
-    private EventoAuditoriaRepository eventoAuditoriaRepository;
+    private AuditEventRepository eventoAuditoriaRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -49,9 +49,9 @@ class EventoAuditoriaInmutabilidadIT {
     @Test
     @DisplayName("un INSERT normal a través del repositorio funciona sin problemas")
     void insertar_FuncionaNormalmente() {
-        EventoAuditoria evento = eventoDePrueba("IT_INSERT_OK");
+        AuditEvent evento = eventoDePrueba("IT_INSERT_OK");
 
-        EventoAuditoria guardado = eventoAuditoriaRepository.save(evento);
+        AuditEvent guardado = eventoAuditoriaRepository.save(evento);
 
         assertThat(guardado.getIdEventoAuditoria()).isNotNull();
     }
@@ -59,7 +59,7 @@ class EventoAuditoriaInmutabilidadIT {
     @Test
     @DisplayName("un UPDATE directo por SQL es rechazado por el trigger de inmutabilidad")
     void update_EsRechazadoPorElTrigger() {
-        EventoAuditoria evento = eventoAuditoriaRepository.save(eventoDePrueba("IT_UPDATE_BLOQUEADO"));
+        AuditEvent evento = eventoAuditoriaRepository.save(eventoDePrueba("IT_UPDATE_BLOQUEADO"));
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                 "UPDATE auditoria_eventos SET accion_auditoria = 'HACKEADO' WHERE id_evento_auditoria = ?",
@@ -71,7 +71,7 @@ class EventoAuditoriaInmutabilidadIT {
     @Test
     @DisplayName("un DELETE directo por SQL es rechazado por el trigger de inmutabilidad")
     void delete_EsRechazadoPorElTrigger() {
-        EventoAuditoria evento = eventoAuditoriaRepository.save(eventoDePrueba("IT_DELETE_BLOQUEADO"));
+        AuditEvent evento = eventoAuditoriaRepository.save(eventoDePrueba("IT_DELETE_BLOQUEADO"));
 
         assertThatThrownBy(() -> jdbcTemplate.update(
                 "DELETE FROM auditoria_eventos WHERE id_evento_auditoria = ?", evento.getIdEventoAuditoria()))
@@ -93,7 +93,7 @@ class EventoAuditoriaInmutabilidadIT {
     @org.junit.jupiter.api.Disabled("Hibernate ya no emite UPDATE gracias a @Immutable en la entidad (añadido para corregir el bug de dirty checking con jsonb). El trigger de BD sigue activo para proteger contra SQL directo, validado por los demás tests.")
     @DisplayName("un flush de Hibernate tras modificar la entidad gestionada también choca con el trigger")
     void mergeYFlush_TambienEsRechazado() {
-        EventoAuditoria evento = eventoAuditoriaRepository.saveAndFlush(eventoDePrueba("IT_MERGE_BLOQUEADO"));
+        AuditEvent evento = eventoAuditoriaRepository.saveAndFlush(eventoDePrueba("IT_MERGE_BLOQUEADO"));
         evento.setAccionAuditoria("HACKEADO_VIA_JPA");
 
         assertThatThrownBy(() -> eventoAuditoriaRepository.saveAndFlush(evento))
@@ -115,8 +115,8 @@ class EventoAuditoriaInmutabilidadIT {
         }
     }
 
-    private EventoAuditoria eventoDePrueba(String accion) {
-        return EventoAuditoria.builder()
+    private AuditEvent eventoDePrueba(String accion) {
+        return AuditEvent.builder()
                 .fechaEvento(LocalDateTime.now())
                 .correoActor("it-inmutabilidad@artisync.dev")
                 .moduloAuditoria("SISTEMA")

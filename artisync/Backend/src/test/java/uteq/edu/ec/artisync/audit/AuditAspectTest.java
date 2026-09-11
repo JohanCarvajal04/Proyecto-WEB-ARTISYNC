@@ -12,7 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
+import uteq.edu.ec.artisync.service.auditoria.IAuditService;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -34,12 +34,12 @@ import static org.mockito.Mockito.when;
  */
 class AuditAspectTest {
 
-    private IAuditoriaServicio auditoriaServicio;
+    private IAuditService auditoriaServicio;
     private AuditAspect aspecto;
 
     @BeforeEach
     void setUp() {
-        auditoriaServicio = mock(IAuditoriaServicio.class);
+        auditoriaServicio = mock(IAuditService.class);
         aspecto = new AuditAspect(auditoriaServicio);
         autenticarComoUsuario(7L, "actor@artisync.dev");
     }
