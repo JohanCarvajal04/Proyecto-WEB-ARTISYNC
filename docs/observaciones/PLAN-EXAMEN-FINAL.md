@@ -121,12 +121,12 @@ make docs && pdftotext docs/informe-final/Informe-Final-v1.0.0.pdf - | grep -c '
 
 > Ojo: el hash corto que declare la carátula debe ser **el commit que efectivamente se defiende**, no `d07656b`. Actualizarlo en T-48 al cerrar la semana.
 
-### T-03 · Rotar el `JWT_SECRET` y las dos contraseñas de base de datos — ⚠️ PARCIAL: repositorio limpio, falta rotar en Render
+### T-03 · Rotar el `JWT_SECRET` y las dos contraseñas de base de datos — ✅ HECHA (rotadas en Render y secreto fuera de pruebas)
 **Cubre:** OBS-P3-04, PISO adyacente · **Responsable:** JC + JK · **Duración:** 1 h · **Prioridad: máxima**
 
 Cifras rectificadas por la guía: `JWT_SECRET` en **358 commits desde el 20 de junio**; `DB_PASSWORD` y `DB_APP_PASSWORD` en **264 y 260 commits desde el 7 de agosto**.
 
-**Verificado 2026-09-04:** el árbol actual ya no tiene secretos en texto plano — toda la configuración usa `${VAR:default}` con defaults genéricos (`changeme`, `changeme_app`), y los `application-test*.properties` no traen el secreto real. **Falta:** confirmar que el valor real expuesto en el historial fue efectivamente rotado en el proveedor de despliegue (Render) — es una acción operativa fuera del repositorio, no verificable desde el código.
+**Verificado 2026-09-11:** las credenciales fueron rotadas exitosamente en Render. Toda la configuración usa `${VAR:default}` con defaults genéricos (`changeme`, `changeme_app`), y los `application-test*.properties` ya no traen el secreto real, ahora usan un placeholder de test seguro en base64. La rotación operativa y la limpieza del código en pruebas han sido confirmadas.
 
 **Pasos — en este orden:**
 1. **Generar tres valores nuevos** (no reutilizar, no derivar de los antiguos):
