@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.respuesta.legal;
+package uteq.edu.ec.artisync.dto.respuesta.legal;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

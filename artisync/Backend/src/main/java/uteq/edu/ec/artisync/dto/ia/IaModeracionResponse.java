@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.ia;
+package uteq.edu.ec.artisync.dto.ia;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

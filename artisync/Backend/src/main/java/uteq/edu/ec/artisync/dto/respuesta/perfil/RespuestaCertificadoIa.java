@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.respuesta.perfil;
+package uteq.edu.ec.artisync.dto.respuesta.perfil;
 
 import lombok.Builder;
 import java.math.BigDecimal;

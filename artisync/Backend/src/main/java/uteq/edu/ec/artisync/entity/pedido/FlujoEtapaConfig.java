@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.pedido;
+package uteq.edu.ec.artisync.entity.pedido;
 
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import jakarta.persistence.*;

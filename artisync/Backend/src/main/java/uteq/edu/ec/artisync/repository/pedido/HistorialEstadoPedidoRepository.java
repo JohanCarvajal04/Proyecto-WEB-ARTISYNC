@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.pedido;
+package uteq.edu.ec.artisync.repository.pedido;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

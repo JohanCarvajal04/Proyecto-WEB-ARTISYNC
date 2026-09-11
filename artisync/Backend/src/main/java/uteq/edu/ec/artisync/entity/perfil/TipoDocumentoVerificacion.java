@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.perfil;
+package uteq.edu.ec.artisync.entity.perfil;
 
 /**
  * Entidad del modelo de dominio que representa Enumeracion de documentos KYC admitidos (CEDULA, PASAPORTE, RUC).

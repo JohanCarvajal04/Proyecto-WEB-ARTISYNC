@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.peticion.respaldo;
+package uteq.edu.ec.artisync.dto.peticion.respaldo;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

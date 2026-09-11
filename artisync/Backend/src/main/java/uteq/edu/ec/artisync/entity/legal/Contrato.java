@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.legal;
+package uteq.edu.ec.artisync.entity.legal;
 
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;

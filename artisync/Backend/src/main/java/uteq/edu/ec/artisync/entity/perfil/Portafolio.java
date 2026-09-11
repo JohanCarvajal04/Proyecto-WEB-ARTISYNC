@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.perfil;
+package uteq.edu.ec.artisync.entity.perfil;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

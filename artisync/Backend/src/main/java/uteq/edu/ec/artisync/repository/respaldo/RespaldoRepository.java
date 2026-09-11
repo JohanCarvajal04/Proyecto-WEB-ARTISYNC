@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.respaldo;
+package uteq.edu.ec.artisync.repository.respaldo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

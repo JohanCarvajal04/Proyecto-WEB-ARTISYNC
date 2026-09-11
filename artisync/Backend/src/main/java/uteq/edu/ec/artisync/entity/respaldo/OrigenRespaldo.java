@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.respaldo;
+package uteq.edu.ec.artisync.entity.respaldo;
 
 /**
  * Entidad del modelo de dominio que representa Disparador de un respaldo (CRON automatico o MANUAL).

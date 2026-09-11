@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.comunicacion;
+package uteq.edu.ec.artisync.entity.comunicacion;
 
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;

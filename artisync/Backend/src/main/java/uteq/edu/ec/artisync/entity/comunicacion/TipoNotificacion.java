@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.comunicacion;
+package uteq.edu.ec.artisync.entity.comunicacion;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;

@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.security;
+package uteq.edu.ec.artisync.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
