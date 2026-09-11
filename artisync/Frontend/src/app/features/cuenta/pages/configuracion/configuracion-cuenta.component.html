@@ -12,7 +12,9 @@
 
 
   <!-- Verificación de identidad -->
-  <app-solicitud-verificacion />
+  @if (mostrarVerificacion()) {
+    <app-solicitud-verificacion />
+  }
 
   <!-- PERSONALIZACIÓN DEL PORTAFOLIO -->
   @if (esCreador()) {

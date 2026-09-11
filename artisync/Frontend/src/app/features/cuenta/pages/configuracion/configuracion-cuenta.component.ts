@@ -62,6 +62,11 @@ export class ConfiguracionCuentaComponent implements OnInit, AfterViewInit {
 
   // Personalización del portafolio (colores + visibilidad).
   readonly esCreador = computed(() => this.authService.hasRole('CREADOR'));
+  readonly esCliente = computed(() => this.authService.hasRole('CLIENTE'));
+  readonly mostrarVerificacion = computed(() => {
+    const rol = this.authService.primaryRole();
+    return rol === 'CREADOR' || rol === 'CLIENTE';
+  });
   readonly portafolio = signal<Portafolio | null>(null);
   readonly cargandoPortafolio = signal<boolean>(false);
   readonly guardandoPersonalizacion = signal<boolean>(false);
