@@ -6,6 +6,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.test.context.ActiveProfiles;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.PagoTicketRevision;
@@ -29,11 +31,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * REQ-F-022c: findVencidosSinPagoConfirmado usa un LEFT JOIN con ON explícito
  * (PagoTicketRevision no tiene una relación mapeada de vuelta a TicketRevision)
- * que Mockito no valida — necesita ejecutar de verdad contra un motor JPA. No
- * requiere Postgres (JPQL puro, sin procedimiento almacenado): corre sobre el
- * H2 del perfil de test por defecto, igual que UsuarioSpecificationTest.
+ * que Mockito no valida — necesita ejecutar de verdad contra un motor JPA. La
+ * query es JPQL puro (sin procedimiento almacenado), pero corre contra
+ * Postgres real como el resto de *IT: sin Replace.NONE, @DataJpaTest sustituye
+ * el datasource por un H2 embebido aunque el perfil postgres-it este forzado
+ * externamente (CI: -Dtest='*IT' -Dspring.profiles.active=postgres-it), y
+ * Flyway migra Postgres mientras Hibernate valida contra el H2 vacio.
  */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("postgres-it")
 class TicketRevisionRepositoryIT {
 
     @Autowired private UsuarioRepository usuarioRepository;
