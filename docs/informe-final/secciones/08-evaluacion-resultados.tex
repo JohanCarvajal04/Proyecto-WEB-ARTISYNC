@@ -264,35 +264,53 @@ criterios de adecuación de pruebas. \textbf{Datos crudos:}
 
 \begin{table}[H]
 \centering
-\caption{Cobertura de código JaCoCo}
+\caption{Cobertura de código JaCoCo --- agregado global}
 \label{tab:jacoco}
 \begin{tabular}{@{}lllc@{}}
 \toprule
 \textbf{Métrica} & \textbf{Cobertura} & \textbf{Umbral} & \textbf{Cumple} \\
 \midrule
-Lines         & 72.0\,\% (2867/3981)   & $\geq$70\,\% & \checkmark \\
-Branches      & 62.5\,\% (703/1125)    & $\geq$70\,\% & $\times$ \\
-Instructions  & 69.7\,\% (12825/18404) & ---          & --- \\
-Complexity    & 56.5\,\% (775/1371)    & ---          & --- \\
+Lines         & 82.93\,\% (6023/7263)   & $\geq$70\,\% & \checkmark \\
+Branches      & 71.50\,\% (1548/2165)   & $\geq$70\,\% & \checkmark \\
+Instructions  & 81.10\,\% (27789/34263) & ---          & --- \\
+Complexity    & 70.32\,\% (1737/2470)   & ---          & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Interpretación:} la cobertura de líneas cumple el umbral de
-70\,\%; \textbf{la cobertura de ramas no lo alcanza} (62.5\,\% vs.
-70\,\%) --- declarado sin maquillaje, es una brecha real, no un redondeo
-favorable. Cabe además la advertencia empírica de Inozemtseva y
-Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura alto no implica
-por sí solo una suite de pruebas efectiva para detectar defectos, por lo
-que estas cifras deben leerse como una medida de exhaustividad estructural,
-no como un sustituto de la efectividad real de las 522 pruebas. La
-medición es un agregado global del backend; la guía exige desglose por
-módulo (dominio, servicios, controladores) que
-\texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md} no provee todavía de
-forma separada --- pendiente para el cierre. Además, \texttt{pom.xml}
-configura JaCoCo solo para reportar, sin \texttt{jacoco:check} que falle
-el build bajo el umbral (Capítulo~\ref{cap:diseno-arquitectura}, brecha
-declarada también en \texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}).
+\begin{table}[H]
+\centering
+\caption{Cobertura de código JaCoCo --- desglose por capa (OBS-P1-01)}
+\label{tab:jacoco-capas}
+\begin{tabular}{@{}lllc@{}}
+\toprule
+\textbf{Capa} & \textbf{Lines} & \textbf{Branches} & \textbf{Cumple ambas} \\
+\midrule
+Servicios      & 85.89\,\% (4778/5563) & 76.09\,\% (1273/1673) & \checkmark \\
+Controladores  & 86.18\,\% (393/456)   & 78.05\,\% (64/82)     & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Interpretación:} la cobertura de líneas y de ramas cumplen el
+umbral de 70\,\% tanto en el agregado global como en cada una de las
+capas exigidas por la guía (servicios, controladores) --- declarado sin
+maquillaje: el mismo día de esta medición (2026-09-11) una ronda anterior
+había detectado que la capa de Controladores caía a 67.07\,\% de ramas,
+por debajo del umbral, al incorporar funcionalidad nueva (plantillas de
+acuerdo por creador, reconciliación PayPal, expiración de tickets de
+revisión, integridad de contratos) sin pruebas equivalentes; se cerró la
+misma tarde añadiendo pruebas para los cinco controladores y el servicio
+sin cobertura propia (ver \texttt{docs/mediciones/jacoco/REPORTE-JACOCO.md}
+para el detalle de ambas rondas). Cabe además la advertencia empírica de
+Inozemtseva y Holmes~\cite{INOZEMTSEVA2014}: un porcentaje de cobertura
+alto no implica por sí solo una suite de pruebas efectiva para detectar
+defectos, por lo que estas cifras deben leerse como una medida de
+exhaustividad estructural, no como un sustituto de la efectividad real de
+las 1230 pruebas. Además, \texttt{pom.xml} configura JaCoCo solo para
+reportar, sin \texttt{jacoco:check} que falle el build bajo el umbral
+(Capítulo~\ref{cap:diseno-arquitectura}, brecha declarada también en
+\texttt{docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md}).
 
 \section{Calidad web (Lighthouse) --- RQ1}
 

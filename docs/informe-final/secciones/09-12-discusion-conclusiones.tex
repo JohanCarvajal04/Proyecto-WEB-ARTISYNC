@@ -7,17 +7,22 @@
 
 \textbf{RQ1 --- ¿Cumple el sistema los umbrales de rendimiento, seguridad,
 usabilidad, cobertura y calidad web declarados?} Parcialmente. De los
-cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), tres
+cinco bloques evaluados (Capítulo~\ref{cap:evaluacion-resultados}), cuatro
 cumplen sus umbrales por completo (rendimiento, seguridad
-manual+automatizada, calidad web en ambos perfiles). El
-bloque de cobertura cumple en líneas (72.0\,\% $\geq$70\,\%) pero
-\textbf{no en ramas} (62.5\,\% $<$70\,\%), y el bloque de usabilidad
+manual+automatizada, calidad web en ambos perfiles, y cobertura de
+código --- líneas 82.93\,\% y ramas 71.50\,\% $\geq$70\,\%, tanto en el
+agregado global como en cada una de las tres capas exigidas por
+OBS-P1-01). El bloque de cobertura no llegó limpio a esta cifra: el mismo
+día de la medición de cierre, una ronda anterior había detectado que la
+capa de Controladores caía a 67.07\,\% de ramas tras incorporar
+funcionalidad nueva sin pruebas equivalentes, y se cerró horas después
+--- una regresión real, declarada y resuelta el mismo día, no ocultada
+(Capítulo~\ref{cap:evaluacion-resultados}~\S8.6). El bloque de usabilidad
 \textbf{no alcanza} el umbral declarado (SUS medio 61.25 frente al umbral
 del proyecto de $>$68, IC~95\,\% [49.49, 73.01]) --- una respuesta honesta
-a RQ1 no puede ser ``sí'' sin matiz. El sistema cumple una parte
-sustancial de sus propiedades de calidad declaradas con evidencia
-reproducible, con dos brechas cuantificadas y no ocultas: cobertura de
-ramas y usabilidad percibida.
+a RQ1 no puede ser ``sí'' sin matiz. El sistema cumple la gran mayoría de
+sus propiedades de calidad declaradas con evidencia reproducible, con una
+brecha cuantificada y no oculta: la usabilidad percibida.
 
 \textbf{RQ2 --- ¿Es la estrategia híbrida de acceso a datos implementable
 y verificable dentro de las restricciones del proyecto?} Sí, parcialmente
@@ -186,11 +191,14 @@ backend, no una caché de aplicación potencialmente ya poblada.
     \texttt{fn\_reporte\_comisiones\_creador} pero agregan sobre un
     conjunto vacío, así que el resultado no captura el costo de agregar
     sobre un volumen transaccional realista.
-  \item \textbf{Elevar la cobertura de ramas de JaCoCo} del 62.5\,\%
-    actual al umbral de 70\,\% exigido, con desglose por módulo
-    (dominio/servicio/controlador) en vez del agregado global actual, y
-    activar \texttt{jacoco:check} en \texttt{pom.xml} para que el build
-    falle bajo el umbral en vez de solo reportarlo.
+  \item \textbf{Activar \texttt{jacoco:check} en \texttt{pom.xml}} para
+    que el build falle bajo el umbral de 70\,\% en vez de solo
+    reportarlo --- el umbral por líneas y ramas, tanto global como por
+    capa, ya se supera (82.93\,\%/71.50\,\% global; ver
+    \S\ref{cap:evaluacion-resultados}), pero nada en el pipeline impide
+    hoy que una regresión futura pase desapercibida hasta la siguiente
+    lectura manual del reporte, como ocurrió brevemente el mismo
+    2026-09-11 con la capa de Controladores.
   \item \textbf{Ejecutar una revisión de literatura reducida} (2--3 bases
     de datos, 10--15 términos clave) para completar el
     Capítulo~\ref{cap:trabajos-relacionados} con la tabla comparativa de

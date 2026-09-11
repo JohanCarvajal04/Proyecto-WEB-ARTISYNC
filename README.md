@@ -277,7 +277,7 @@ Todas las mediciones, con sus datos crudos, están versionadas bajo [`docs/medic
 | Controles OWASP evidenciados | 6 / 6 | 6 |
 | Escaneo OWASP ZAP baseline | 0 FAIL · 8 WARN · 59 PASS | 0 hallazgos altos |
 | Análisis estático SQL (SpotBugs + find-sec-bugs) | 0 hallazgos de inyección | 0 hallazgos |
-| Cobertura JaCoCo (líneas / ramas) | 72.0 % / 62.5 % | ≥ 70 % |
+| Cobertura JaCoCo (líneas / ramas, global; también ≥70 % en las tres capas: dominio/servicios/controladores) | 82.93 % / 71.50 % | ≥ 70 % |
 | Usabilidad SUS | 61.25 / 100 (n=16, Bangor D, no supera el umbral) | > 68 puntos, ≥ 10 participantes |
 
 Las cifras de Lighthouse son contra el **despliegue público real** (`https://artisync-frontend.onrender.com`, no localhost), sobre 3 rutas (`/explorar`, `/explorar/creadores`, `/auth/login`) y 3 corridas por ruta y perfil — ver el detalle completo, incluidos los hallazgos que no cumplen umbral con su diagnóstico de causa raíz, en [`docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md`](docs/mediciones/lighthouse/REPORTE-LIGHTHOUSE.md#adenda-obs-p4-01-2026-09-04--despliegue-público-3-rutas).

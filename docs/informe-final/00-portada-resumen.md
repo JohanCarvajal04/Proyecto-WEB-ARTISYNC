@@ -57,7 +57,9 @@ usabilidad (System Usability Scale, N=16), cobertura de código (JaCoCo) y calid
 perfiles mobile y desktop). **Resultados principales.** El sistema alcanza p95 de 50.17 ms bajo
 carga (umbral 200 ms), 0 % de errores HTTP ≥500, puntaje SUS de 61.25/100 (categoría D de Bangor,
 IC 95 % [49.49, 73.01], por debajo del umbral de aceptabilidad del proyecto), cobertura JaCoCo de
-72.0 % líneas / 62.5 % ramas, Lighthouse Performance
+82.93 % líneas / 71.50 % ramas (medición del 2026-09-11, con las tres capas —dominio,
+servicios, controladores— por encima del umbral de 70 % — ver
+`docs/mediciones/jacoco/REPORTE-JACOCO.md`), Lighthouse Performance
 100/100 en desktop y 80–81/100 en mobile con Accessibility/Best Practices/SEO ≥93 en ambos
 perfiles, los 6 controles OWASP mínimos evidenciados sin hallazgos altos en ZAP baseline
 (0 FAIL-NEW), y 7 procedimientos almacenados conectados end-to-end al código en ejecución vía
@@ -94,8 +96,9 @@ and SpotBugs/find-sec-bugs static analysis), usability (System Usability Scale, 
 coverage (JaCoCo), and web quality (Lighthouse, mobile and desktop profiles). **Main results.**
 The system achieves a p95 of 50.17 ms under load (200 ms threshold), 0% of HTTP ≥500 errors, a SUS
 score of 61.25/100 (Bangor grade D, 95% CI [49.49, 73.01], below the project's acceptability
-threshold), JaCoCo coverage of 72.0% lines / 62.5%
-branches, Lighthouse Performance of 100/100 on desktop and 80–81/100 on mobile with
+threshold), JaCoCo coverage of 82.93% lines / 71.50%
+branches (measured 2026-09-11, with all three layers —domain, services, controllers— above the
+70% threshold — see `docs/mediciones/jacoco/REPORTE-JACOCO.md`), Lighthouse Performance of 100/100 on desktop and 80–81/100 on mobile with
 Accessibility/Best Practices/SEO ≥93 on both profiles, all 6 minimum OWASP controls evidenced with
 no high findings in the ZAP baseline scan (0 FAIL-NEW), and 7 stored procedures connected
 end-to-end to the running code via JPA 2.1 (parameterized `@Query(nativeQuery=true)`), with no
