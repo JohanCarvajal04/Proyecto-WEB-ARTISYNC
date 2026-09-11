@@ -19,6 +19,9 @@ por escenario. \textbf{Datos crudos:}
 \texttt{k6-cold-run\{1,2,3\}.json} (frío); consolas en
 \texttt{k6-console-run*.txt}.
 
+El Cuadro~\ref{tab:k6} resume los dos escenarios de carga sobre el
+catálogo público, con la caché caliente y recién vaciada.
+
 \begin{table}[H]
 \centering
 \caption{Resultados de la prueba de carga k6 por escenario}
@@ -92,6 +95,10 @@ vaciando una caché de aplicación --- ver la nota metodológica en
 \texttt{docs/mediciones/perf/k6-auth-run\{1..5\}.json} (caliente),
 \texttt{k6-auth-cold-run\{1..5\}.json} (frío).
 
+El Cuadro~\ref{tab:k6-auth} recoge las cinco corridas por escenario sobre
+el endpoint autenticado, que son las que sustentan el contraste
+inferencial presentado a continuación.
+
 \begin{table}[H]
 \centering
 \caption{Resultados de la prueba de carga k6 sobre el endpoint protegido}
@@ -140,6 +147,9 @@ agregado del escaneo automatizado ZAP baseline y del análisis estático
 SpotBugs + find-sec-bugs~\cite{HALFOND2005,GOULD2004}. \textbf{Datos
 crudos:} \texttt{docs/mediciones/sec/owasp/*.txt}, \texttt{sec/zap/},
 \texttt{sec/static-analysis/}.
+
+El Cuadro~\ref{tab:owasp} detalla, control por control, la evidencia
+manual recogida para cada categoría del OWASP Top 10 verificada.
 
 \begin{table}[H]
 \centering
@@ -262,7 +272,12 @@ estimado (61.25) quede claramente por debajo. Script versionado:
 sobre los módulos de dominio, servicios y controladores --- las mismas
 tres dimensiones que Zhu, Hall y May~\cite{ZHU1997} sistematizan como
 criterios de adecuación de pruebas. \textbf{Datos crudos:}
-\texttt{docs/mediciones/jacoco/report.xml}, \texttt{html/jacoco.csv}.
+\texttt{docs/mediciones/jacoco/html/jacoco.xml},
+\texttt{jacoco/html/jacoco.csv}.
+
+El Cuadro~\ref{tab:jacoco} presenta el agregado global de cobertura y el
+Cuadro~\ref{tab:jacoco-capas} lo desglosa por capa arquitectónica, que es
+el nivel en el que la guía fija el umbral del 70\,\%.
 
 \begin{table}[H]
 \centering
@@ -324,6 +339,9 @@ corrección de OBS-P4-01, que señalaba que la Entrega Final había
 auditado solo la portada en local. \textbf{Datos crudos:}
 \texttt{docs/mediciones/lighthouse/lhci-20260904-1020-\{mobile,desktop\}-prod-\{explorar,explorar\_creadores,auth\_login\}-run\{1,2,3\}.report.json}
 (18 reportes, 175 auditorías cada uno).
+
+El Cuadro~\ref{tab:lighthouse} desglosa los resultados por perfil
+(\emph{mobile}/\emph{desktop}), ruta y categoría de auditoría.
 
 \begin{table}[H]
 \centering

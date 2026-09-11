@@ -4,6 +4,14 @@
 **Ventana de trabajo:** del 3 al 11 de septiembre de 2026 · **Examen: semana 19 (7–11 de septiembre)**
 **Punto de partida:** nota de equipo 6,60 / 10 · Figueroa 7,46 · Carvajal 7,71 · Ríos 6,46
 
+> ## 📌 Cifra única de observaciones acumuladas (11-09-2026)
+>
+> **28 de 30 resueltas = 93,3 %**, con 1 parcial (OBS-AUTO-10) y 1 pendiente justificada (OBS-14).
+>
+> Coincide fila a fila con `OBSERVACIONES.md`, con el Anexo A del informe final y con
+> `INFORME-BRECHAS-ENTREGA-FINAL.md`. Las cifras de 85,2 %, 89,7 % y 93,1 % que aparecen más
+> abajo (T-29, T-30) corresponden a cortes anteriores y no están vigentes.
+
 ---
 
 ## §0. Cómo usar este plan

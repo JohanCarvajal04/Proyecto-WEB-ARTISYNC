@@ -4,15 +4,21 @@
 **Referencia:** Guía de la Entrega Final (Cuarta Entrega), PPA 2026-2027, Aplicaciones Web — Quinto nivel, UTEQ-FCI.
 **Objetivo:** documentar, bloque por bloque, qué requisitos de la guía ya están cubiertos por el repositorio y cuáles faltan, con evidencia verificable (ruta de archivo, contenido leído, comandos ejecutados). No es un plan de implementación; es un diagnóstico.
 
-> ## ⚠ Actualización — 06 de septiembre de 2026: la cifra de 85,2 % (23/27) quedó obsoleta
+> ## 🕓 Corte histórico — 06 de septiembre de 2026: la cifra de 85,2 % (23/27) quedó obsoleta
+>
+> _(Superado. La cifra vigente es la del bloque siguiente: 28/30 = 93,3 %.)_
 >
 > `docs/observaciones/OBSERVACIONES.md` (fuente de verdad de este dato) corrigió el 06-09-2026 un error aritmético en sus párrafos de encabezado que había hecho circular tres porcentajes de transición distintos (72 % → 85,2 % → 86,2 %) para el mismo recuento. La cifra vigente en ese momento, verificada fila por fila contra la tabla de "Resumen" de esa bitácora, era **26 de 29 observaciones resueltas (89,7 %)**, con 1 parcial y 2 pendientes — no 85,2 % (23/27), que este informe seguía citando más abajo (Bloque 0) sin que su propia fuente ya la sostuviera.
 >
-> ## ⚠ Actualización — 07 de septiembre de 2026: sube a 93,1 % (27/29)
+> ## ✅ Cifra vigente — 11 de septiembre de 2026: 93,3 % (28/30)
 >
-> Con posterioridad a la corrección de arriba, se cerró **OBS-05** (retiro del wireframe genérico `Pantalla_principal.jpg`, sin reemplazo de dominio). La cifra vigente ahora es **27 de 29 observaciones resueltas (93,1 %)**, con 1 parcial (OBS-AUTO-10) y 1 pendiente (OBS-14).
+> Con posterioridad a la corrección de arriba, se cerró **OBS-05** (retiro del wireframe genérico `Pantalla_principal.jpg`, sin reemplazo de dominio).
+>
+> **Cifra vigente (re-verificada fila a fila el 11-09-2026): 28 de 30 observaciones resueltas (93,3 %)**, con 1 parcial (OBS-AUTO-10) y 1 pendiente justificada (OBS-14). El denominador es 30 porque la bitácora registra OBS-01 a OBS-16 (16 del docente) más OBS-AUTO-01 a OBS-AUTO-14 (14 de revisión técnica interna). Esta es la única cifra que debe citarse; las que aparecen más abajo en este documento corresponden a cortes anteriores y se conservan para trazar la evolución, no como estado actual. La misma cifra está publicada en el Anexo A del informe final (`docs/informe-final/secciones/anexos.tex`).
 
-> ## ⚠ Actualización — 18 de agosto de 2026: el Bloque 0 de este informe está superado
+> ## 🕓 Corte histórico — 18 de agosto de 2026: el Bloque 0 de este informe está superado
+>
+> _(Superado. La cifra vigente es 28/30 = 93,3 %, ver arriba.)_
 >
 > Las cifras del Bloque~0 que aparecen más abajo (**68 %**, 17/25 resueltas, «por debajo del 70 % que activa la regla transversal #10») corresponden al estado del 16–17 de agosto y **ya no son válidas**. Tras la re-verificación del 18-08-2026 la bitácora declara **23 de 27 observaciones resueltas (85,2 %)**, con 1 parcial y 3 pendientes.
 >

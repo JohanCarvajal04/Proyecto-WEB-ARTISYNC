@@ -11,7 +11,13 @@ fuente de verdad es \texttt{docs/observaciones/OBSERVACIONES.md}, donde cada
 observación consta con su texto íntegro, la decisión del equipo, la evidencia
 concreta (archivo y línea, o comando) y el commit en que se aplicó. Los
 porcentajes de abajo se corresponden con esa bitácora, re-verificada contra el
-repositorio el 7 de septiembre de 2026.
+repositorio el 11 de septiembre de 2026 contando fila a fila.
+
+\textbf{Cifra única de referencia:} \textbf{28 de 30 observaciones
+resueltas (93,3\,\%)}, con una parcial (OBS-AUTO-10) y una pendiente
+justificada (OBS-14). Cualquier otro porcentaje que aparezca en las
+bitácoras de \texttt{docs/observaciones/} corresponde a un corte anterior
+y está marcado como tal; esta es la cifra vigente del entregable.
 
 \begin{table}[H]
 \centering
@@ -26,18 +32,19 @@ repositorio el 7 de septiembre de 2026.
 Entrega 1A (09-06-2026)      & 5  & 5  & 0 & 0 & 100,0\,\% \\
 Entrega 1B (29-06-2026)      & 7  & 7  & 0 & 0 & 100,0\,\% \\
 Tercera Entrega              & 4  & 3  & 0 & 1 & 75,0\,\% \\
-Auto-detectadas (rev. téc.)  & 13 & 13 & 0 & 0 & 100,0\,\% \\
+Auto-detectadas (rev. téc.)  & 14 & 13 & 1 & 0 & 92,9\,\% \\
 \midrule
-\textbf{Total}               & \textbf{29} & \textbf{28} & \textbf{0} &
-\textbf{1} & \textbf{96,6\,\%} \\
+\textbf{Total}               & \textbf{30} & \textbf{28} & \textbf{1} &
+\textbf{1} & \textbf{93,3\,\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \section*{Razones de las no resueltas por completo}
 
-Dos observaciones siguen sin resolución completa, y ninguna se presenta
-como cerrada sin serlo. \textbf{OBS-AUTO-02} (procedimientos almacenados),
+Dos observaciones de las treinta siguen sin resolución completa ---una
+parcial y una pendiente---, y ninguna se presenta como cerrada sin serlo.
+\textbf{OBS-AUTO-02} (procedimientos almacenados),
 listada como parcial en entregas anteriores, se considera resuelta: 26
 rutinas están conectadas end-to-end al código Java (más 2 del módulo de
 verificación asistida por IA, fuera de \texttt{db/procs/}). De las 6
@@ -49,7 +56,8 @@ conectada desde el 26-08-2026.
 \begin{itemize}
   \item \textbf{OBS-14} (access-token en cookie \texttt{HttpOnly}, Tercera
     Entrega). \emph{Pendiente justificada}: el cambio toca el módulo de
-    autenticación, respaldado por 1230 pruebas, a muy poca distancia del cierre,
+    autenticación, respaldado por la suite de pruebas automatizadas, a muy
+    poca distancia del cierre,
     y el riesgo de regresión en el inicio de sesión supera la mejora marginal.
     Las mitigaciones vigentes ---HSTS, \texttt{SameSite}, expiración corta del
     access-token y revocación por \texttt{jti} en Redis--- acotan la
@@ -78,9 +86,13 @@ OBS-15), mientras que la misma revisión destapó dos brechas no registradas
 hasta entonces ---OBS-AUTO-10, la ausencia de \texttt{ai-disclosure.md}
 (hoy resuelta parcialmente, ver arriba), y OBS-AUTO-11, el mecanismo de
 invocación de las rutinas SQL que el Capítulo~\ref{cap:implementacion} ya
-señalaba---. El denominador subió por tanto de 25 a 27 observaciones. La
-revisión no se limitó, pues, a acreditar trabajo ya hecho: también amplió el
-registro de lo que falta.
+señalaba---. El denominador subió entonces de 25 a 27 observaciones, y
+siguió creciendo hasta las 30 actuales conforme revisiones posteriores
+registraron nuevas brechas (OBS-AUTO-12 a OBS-AUTO-14). La revisión no se
+limitó, pues, a acreditar trabajo ya hecho: también amplió el registro de
+lo que falta, y ese crecimiento del denominador explica por qué el
+porcentaje vigente (93,3\,\%) es inferior a algunos cortes intermedios
+citados en las bitácoras.
 
 \chapter{Checklist Ralph et al. 2021}
 \label{anexo:b}

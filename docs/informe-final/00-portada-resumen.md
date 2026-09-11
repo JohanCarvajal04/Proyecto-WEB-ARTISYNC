@@ -1,11 +1,20 @@
 <!--
-NOTA PARA EL EQUIPO (eliminar antes de la entrega final del PDF):
+NOTA PARA EL EQUIPO:
 Este borrador fue redactado con asistencia de Claude Code a partir del contenido ya
 verificado del repositorio (ver docs/etica/ai-disclosure.md). Campos marcados
 `[PENDIENTE — ...]` requieren un dato que el equipo debe completar y que no puede
 inferirse honestamente de lo que hay en el repositorio (ORCID, firma del docente,
 DOI del dataset, fecha real de defensa, etc.).
 -->
+
+> ## ⚠ Borrador superado — no es el texto entregado
+>
+> La versión vigente de la portada, el resumen y el abstract es
+> [`secciones/00-portada-resumen.tex`](secciones/00-portada-resumen.tex), que es la que compila
+> `main.tex` y la que aparece en `Informe-Final-v1.0.0.pdf`. **El resumen de este archivo es un
+> borrador extenso anterior y no coincide con el entregado** (el del PDF está ajustado al límite
+> de 200–250 palabras que exige la guía). Se conserva como rastro de redacción y por la
+> declaración de uso de asistentes de IA; no debe citarse como contenido del entregable.
 
 # UNIVERSIDAD TÉCNICA ESTATAL DE QUEVEDO
 

@@ -1,5 +1,60 @@
 # Diccionario de Datos — Mediciones Entrega Final (v1.0.0)
 
+Este diccionario tiene dos secciones. La **primera** documenta las *variables crudas*: las
+columnas tal como aparecen en cada archivo de datos primario, sin transformar. La **segunda**
+documenta las *variables derivadas*: las métricas calculadas a partir de esas columnas, que son
+las que se citan en el informe. La procedencia y las limitaciones de cada archivo están en
+[`DATA-PROVENANCE.md`](DATA-PROVENANCE.md).
+
+## 1. Variables crudas
+
+### 1.1 `sus/sus-raw.csv` — respuestas al cuestionario SUS (n=16)
+
+| Variable | Descripción | Tipo | Unidad | Rango |
+|---|---|---|---|---|
+| `participante` | Identificador seudonimizado del participante (`P01`–`P16`). No contiene datos personales; la correspondencia con personas reales no se conserva. | string | — | `P01`–`P16` |
+| `Q1` … `Q10` | Respuesta cruda a cada uno de los 10 ítems del instrumento SUS de Brooke, en el orden original del cuestionario. Los ítems impares son positivos y los pares negativos; la inversión de los pares se aplica al calcular el puntaje, no en este archivo. El enunciado literal de cada ítem está en las variables derivadas `sus_q1`–`sus_q10`. | int | puntos (Likert) | 1–5 |
+
+### 1.2 `sus/perfil-participantes.csv` — perfil demográfico de la muestra
+
+| Variable | Descripción | Tipo | Unidad | Rango/valores |
+|---|---|---|---|---|
+| `participante` | Clave de unión con `sus-raw.csv` y `registro-sesiones.csv`. | string | — | `P01`–`P16` |
+| `edad` | Edad declarada por el participante. | int | años | 18–60 |
+| `sexo` | Sexo declarado. Recogido para describir la muestra; no se usa como variable de análisis. | string | — | `Femenino`, `Masculino` |
+| `experiencia_web` | Autoevaluación de experiencia previa con aplicaciones web, en tres niveles. | string | — | `Alta`, `Media`, `Baja` |
+| `dispositivo` | Dispositivo con el que el participante realizó la sesión de prueba. | string | — | `Móvil`, `Desktop` |
+
+### 1.3 `sus/registro-sesiones.csv` — bitácora de las sesiones de prueba
+
+| Variable | Descripción | Tipo | Unidad | Rango/valores |
+|---|---|---|---|---|
+| `participante` | Clave de unión con los dos archivos anteriores. | string | — | `P01`–`P16` |
+| `fecha` | Marca temporal de inicio de la sesión, con desplazamiento horario explícito (`-05:00`, hora de Ecuador). | datetime ISO 8601 | — | 2026-08-16 en adelante |
+| `duracion_min` | Duración de la sesión de prueba. | int | minutos | ≥ 1 |
+| `tarea_completada` | Tarea del guion de prueba que el participante ejecutó en la sesión (p. ej. `crear usuario`, `activar el 2fa`). | string | — | texto libre controlado |
+| `paso_de_bloqueo` | Paso concreto en el que el participante se detuvo o necesitó reintentar; `ninguno` si completó la tarea sin fricción. Es la variable cualitativa que sustenta la interpretación por ítem del SUS. | string | — | texto libre; `ninguno` |
+| `observaciones` | Nota cualitativa del observador sobre el desarrollo de la sesión. | string | — | texto libre |
+
+### 1.4 `jacoco/html/jacoco.csv` — exportación de cobertura por clase
+
+Una fila por clase analizada. Cada par `*_MISSED` / `*_COVERED` es un conteo absoluto; los
+porcentajes del informe se obtienen como `COVERED / (MISSED + COVERED)` agregando sobre las filas
+de interés. Es la fuente de `jacoco_lines_pct`, `jacoco_branches_pct` y `jacoco_complexity_pct`.
+
+| Variable | Descripción | Tipo | Unidad |
+|---|---|---|---|
+| `GROUP` | Nombre del grupo de informes de JaCoCo. Vacío en esta exportación: hay un único módulo Maven. | string | — |
+| `PACKAGE` | Paquete Java de la clase. Es la columna que permite separar las tres capas (dominio, servicios, controladores) al calcular el desglose por capa. | string | — |
+| `CLASS` | Nombre simple de la clase analizada. | string | — |
+| `INSTRUCTION_MISSED` / `INSTRUCTION_COVERED` | Instrucciones de bytecode no cubiertas / cubiertas por la suite. | int | conteo |
+| `BRANCH_MISSED` / `BRANCH_COVERED` | Ramas de decisión no cubiertas / cubiertas. Base del umbral del 70 % de ramas. | int | conteo |
+| `LINE_MISSED` / `LINE_COVERED` | Líneas de código fuente no cubiertas / cubiertas. Base del umbral del 70 % de líneas. | int | conteo |
+| `COMPLEXITY_MISSED` / `COMPLEXITY_COVERED` | Complejidad ciclomática no cubierta / cubierta. | int | conteo |
+| `METHOD_MISSED` / `METHOD_COVERED` | Métodos no ejecutados / ejecutados por la suite. | int | conteo |
+
+## 2. Variables derivadas
+
 | Variable | Descripción | Tipo | Unidad | Fuente | Rango/umbral esperado | Valor medido |
 |---|---|---|---|---|---|---|
 | p95_latency_hot | Percentil 95 de latencia, cache caliente | float | ms | `perf/k6-run{1,2,3}.json` | < 200 | 50.17 |
