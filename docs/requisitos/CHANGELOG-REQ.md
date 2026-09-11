@@ -2,6 +2,133 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [v1.3.6] - 2026-09-11 — Cierre de la regresión de `[v1.3.5]`: REQ-NF-016 sube a 82,93 % / 71,50 %; OBS-P1-01 vuelve a cumplirse
+
+### Changed — REQ-NF-016: la regresión de Controladores declarada en `[v1.3.5]` se cerró el mismo día
+
+Commits `a6746df` (*"test(cobertura): cubrir 5 controladores y RespaldoServicioImpl sin
+pruebas propias"*) y `0cd7d50` (*"docs(jacoco): actualizar medicion de cobertura tras cerrar
+OBS-P1-01"*), ambos 2026-09-11, horas después de `[v1.3.5]`. Se añadió una clase de test por
+controlador (`RespaldoControlador`, `SubcategoriaControlador`, `PagoControlador`,
+`PlantillaAcuerdoCreadorControlador`, `EtiquetaControlador` — los cinco que quedaron en 0% de
+cobertura tras V45-V48) y una suite completa para `RespaldoServicioImpl` (0/14 ramas cubiertas
+hasta entonces), sin tocar ningún código de producción. Nueva medición (1230 pruebas, 129
+clases, 0 fallos):
+
+| Capa | Lines | Branches |
+|---|---|---|
+| Servicios | 85,89 % (4778/5563) | 76,09 % (1273/1673) |
+| Controladores | **86,18 % (393/456)** | **78,05 % (64/82)** |
+| Global | **82,93 % (6023/7263)** | **71,50 % (1548/2165)** |
+
+**`OBS-P1-01` vuelve a cumplirse**: las tres capas superan el 70% en líneas y ramas, con margen
+razonable en las tres. La entrada `[v1.3.5]` queda como registro histórico de una regresión que
+duró horas (de la mañana a la tarde del mismo 2026-09-11), no de un problema sin resolver —
+siguiendo la misma convención de no reescribir entradas pasadas que ya usó `[v1.1.1]` para
+corregir `[v1.0.0]`.
+
+Estado de `REQ-NF-016` en `matriz.csv`/`SRS.md`: sigue `verificado` (no cambió durante la
+regresión, porque el requisito exige solo líneas globales ≥70%, cumplidas en todo momento); esta
+entrada documenta la evidencia empírica actualizada que respalda ese estado, y el cierre del
+hallazgo de `OBS-P1-01` que la nota de `REQ-NF-016` en `SRS.md` declaraba como brecha activa.
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
+## [v1.3.5] - 2026-09-11 — REQ-NF-016: nueva medición JaCoCo (81,69 % / 70,44 %); regresión declarada en cobertura de Controladores
+
+### Changed — REQ-NF-016: re-medición tras las funcionalidades V45-V48
+
+Nueva corrida de `./mvnw.cmd -B clean test` (1187 pruebas, 0 fallos, 0 errores; 148 pruebas
+nuevas desde la medición del 2026-09-05, que incorporaron plantillas de acuerdo por creador
+(V45), reconciliación PayPal, cierre de tickets de revisión e integridad de contratos
+(V46-V48)). Cobertura global: **81,69 % líneas (5933/7263) / 70,44 % ramas (1525/2165)** —
+el requisito solo exige líneas ≥70 % según JaCoCo, y se cumple con margen. Ver
+`docs/mediciones/jacoco/REPORTE-JACOCO.md`.
+
+> **Nota:** al escribir esta entrada, la medición del 2026-09-11 seguía archivada en el
+> working tree (`docs/mediciones/jacoco/REPORTE-JACOCO.md` modificado, no comiteado sobre
+> `e84ab50`). Si el archivo cambia de nuevo antes de comitearse, esta entrada debe
+> releerse contra el archivo real antes de darse por definitiva — mismo estándar que exige
+> el resto de este documento.
+
+### Regresión declarada — cobertura de ramas de Controladores cae bajo el 70 % (OBS-P1-01)
+
+El corpus de la capa `controller` casi se duplicó desde el 2026-09-05 (377→456 líneas,
+50→82 ramas) por las funcionalidades V45-V48, y las pruebas nuevas de esta ronda se
+concentraron en `service` sin cubrir los controladores nuevos en la misma proporción:
+
+| Capa | Antes (2026-09-05, ronda 2) | Ahora (2026-09-11) |
+|---|---|---|
+| Servicios | 89,96 % líneas / 79,30 % ramas | 85,12 % líneas / **75,25 % ramas** |
+| Controladores | 86,47 % líneas / 86,00 % ramas | 76,10 % líneas / **67,07 % ramas ⚠** |
+| Global | 86,75 % líneas / 75,03 % ramas | 81,69 % líneas / 70,44 % ramas |
+
+Controladores queda por debajo del 70 % de ramas que exige `OBS-P1-01` (líneas Y ramas en
+las tres capas), arrastrado por `RespaldoControlador`, `SubcategoriaControlador`,
+`PagoControlador`, `PlantillaAcuerdoCreadorControlador` y `EtiquetaControlador` — los cinco
+en 0 % de cobertura de línea hoy. **No cambia el estado de `REQ-NF-016`** (que mide líneas
+globales, ya cumplido con margen), pero es la brecha activa que sustenta `OBS-P1-01` en
+`docs/observaciones/`. Pendiente: `@WebMvcTest` para esos cinco controladores antes de dar
+por cerrado `OBS-P1-01` de nuevo — no se aborda en esta entrada, que solo registra el
+estado real medido, sin ajustar el umbral ni excluir paquetes.
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
+## [v1.3.4] - 2026-09-10 — REQ-NF-020 y REQ-NF-024 suben a `verificado`; REQ-F-022b/REQ-F-022c suben a `implementado`
+
+### Changed — REQ-NF-020 pasa de `pendiente` a `verificado`
+
+Commit `a218ac4` (*"feat(legal,pedido): reconciliacion PayPal, cierre de tickets de revision
+e integridad de contratos (V46-V48)"*, 2026-09-10). Se introdujo un hash de **contenido**
+nuevo y separado del hash de firma existente (este último sigue intacto: es una huella
+evento/quién/cuándo con `Instant.now()`, nunca reproducible por diseño, y no debía
+confundirse con la integridad del contenido). El nuevo hash se calcula una sola vez sobre el
+HTML ya renderizado y congelado al completarse la segunda firma. `ContratoIntegridadScheduler`
+reverifica todos los contratos firmados cada noche; `POST
+/api/v1/admin/contratos/{id}/verificar-integridad` permite una verificación puntual bajo
+demanda. Probado con `ContratoServicioImplTest` (congelar al firmar, íntegro, discrepancia),
+`ContratoIntegridadSchedulerTest` y `ContratoIntegridadControladorTest`.
+
+### Changed — REQ-F-022b y REQ-F-022c pasan de `pendiente` a `implementado`
+
+Mismo commit `a218ac4`. **Corrección de una desincronización previa de este mismo
+documento**: la entrada `[v1.3.0]` (tabla "división de 2 requisitos compuestos") seguía
+citando ambos como `(pendiente)` — ese estado ya no era cierto desde este commit. Mismo caso
+que `[v1.1.1]` corrigió antes para el documento en su conjunto: el contenido técnico no era
+falso, pero una tabla concreta había quedado desincronizada con un cambio posterior.
+
+- **REQ-F-022b**: `PagoTicketRevisionServicioImpl` (nuevo) genera automáticamente la orden de
+  pago PayPal al crear un ticket de revisión que supera el límite configurado, con una
+  entidad propia `pagos_ticket_revision` para no competir con el escrow principal. Probado
+  con `PagoTicketRevisionServicioImplTest` y
+  `TicketRevisionServicioImplTest#crearTicketRevision_superaLimite_disparaCreacionDeOrdenDePago`.
+- **REQ-F-022c**: `TicketRevisionExpiracionScheduler`/`TicketRevisionExpiracionServicio`
+  (nuevos) rechazan automáticamente un ticket de revisión sin pago confirmado tras 48 horas
+  (umbral configurable vía `ticketrevision.expiracion-horas`). Probado con
+  `TicketRevisionExpiracionSchedulerTest`, `TicketRevisionExpiracionServicioTest` y
+  `TicketRevisionRepositoryIT` (esta última ejercita la query JPQL con `LEFT JOIN ON`
+  explícito contra un motor JPA real, no solo con mocks).
+
+Ninguno de los dos sube a `verificado`: ambos son `Should` y `implementado` ya cumple su
+mínimo formal, pero falta ejercitar el flujo completo contra el sandbox real de PayPal para
+subir el último tramo — excepción declarada por honestidad en
+`docs/trazabilidad/excepciones-estado.txt`.
+
+### Changed — REQ-NF-024 pasa de `implementado` a `verificado`
+
+Commit `804ed2d` (módulo de respaldos, panel admin) seguido de `c640c21` (*"docs: verificar y
+cerrar REQ-NF-024 tras restauración exitosa de prueba"*, 2026-09-10). El mecanismo de
+respaldo automatizado FULL/INCREMENTAL con frecuencia y retención declaradas (programación
+cron o disparo manual desde el panel de administración) ya estaba implementado; lo que
+faltaba era la restauración de prueba. Se ejecutó y documentó una real: respaldo FULL id=1
+generado por el panel admin, `pg_restore` exit 0 sin errores, validación post-restauración
+pedidos=4/usuarios=10/contratos=3 — ver `docs/despliegue/BACKUP.md §Registro de
+restauraciones de prueba`.
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62. §7.1-§7.3 de `SRS.md` y
+`docs/trazabilidad/matriz.csv` ya reflejaban estos tres estados; esta entrada solo cierra el
+historial que había quedado atrás.
+
 ## [v1.3.3] - 2026-09-10 — Evidencia real para REQ-NF-001a/b/c, REQ-NF-009, REQ-NF-005, REQ-NF-006; REQ-NF-005/006/011 suben a `verificado`; defecto real corregido en WebSocket
 
 ### Added — Exclusión explícita del reporte manual de contenido (A6)

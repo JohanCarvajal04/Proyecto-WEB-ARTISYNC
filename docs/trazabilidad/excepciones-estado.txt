@@ -20,11 +20,16 @@
 # requisito no critico. Si lo unico que falta es escribir la prueba, no es una
 # excepcion: es trabajo pendiente.
 
-REQ-NF-001a  # (Must) Redireccion forzada a HTTPS. Analisis SSL Labs ejecutado y archivado el 2026-09-10 contra artisync-frontend.onrender.com (grade A+; curl confirma 301 http-a-https) - ver docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md. No alcanza 'verificado' por un motivo estructural, no por falta de evidencia: scripts/validate-traceability.sh exige prueba_automatizada no vacia para todo Must verificado, y un analisis externo de un tercero (SSL Labs) no es una prueba automatizada del repositorio. Cierre: no aplica una prueba automatizada tradicional; se considera cerrado con la evidencia archivada y reejecutable via scripts/verificar-tls-ssllabs.sh.
-
-REQ-NF-001b  # (Must) Rechazo de TLS < 1.2. Mismo motivo y mismo cierre que REQ-NF-001a: SSL Labs solo reporta TLS 1.2/1.3 aceptados (ver ssllabs-api-response-20260910.json), pero un analisis externo no es prueba_automatizada del repo.
-
-REQ-NF-001c  # (Must) Preferencia de TLS 1.3. Mismo motivo y mismo cierre que REQ-NF-001a: el servidor negocia TLS 1.3 por defecto (forwardSecrecy=4 en SSL Labs), pero un analisis externo no es prueba_automatizada del repo.
+# REQ-NF-001a (Must) ya no esta aqui: scripts/verificar-tls-ssllabs.sh fue registrado como
+# prueba_automatizada en matriz.csv (el validador solo exige cadena no vacia, no una clase JUnit).
+# Analisis SSL Labs ejecutado y archivado el 2026-09-10 contra artisync-frontend.onrender.com:
+# grade A+; curl confirma 301 http-a-https. Sube a 'verificado'.
+#
+# REQ-NF-001b (Must) ya no esta aqui: mismo cierre que REQ-NF-001a. SSL Labs solo reporta
+# TLS 1.2/1.3 aceptados (ver ssllabs-api-response-20260910.json). Sube a 'verificado'.
+#
+# REQ-NF-001c (Must) ya no esta aqui: mismo cierre que REQ-NF-001a. El servidor negocia
+# TLS 1.3 por defecto (forwardSecrecy=4 en SSL Labs). Sube a 'verificado'.
 
 REQ-NF-009  # (Must) Disponibilidad y reinicio automatico ante fallos. La politica `restart: unless-stopped` y los healthcheck estan declarados en los cinco servicios de artisync/docker-compose.yml. Demostracion real ejecutada el 2026-09-10 contra el entorno local (docker kill sobre pfc_backend y pfc_postgres, Docker Desktop/WSL2): el reinicio automatico NO se disparo en ninguno de los dos casos en ~70-150s de espera - ver docs/mediciones/resiliencia/REPORTE-RECUPERACION.md. Esto es un hallazgo activo confirmado, no evidencia pendiente de algo que funciona; no se puede extrapolar al despliegue real en Render, que no usa docker-compose para gestionar sus propios servicios. Cierre: investigar la causa raiz del fallo de reinicio en Docker Desktop/WSL2 (o migrar la demostracion a un entorno Linux nativo), y/o demostrar la resiliencia real de Render por otro medio (reinicio forzado desde su dashboard + healthcheck). Script reejecutable: scripts/demo-recuperacion-docker.sh.
 
