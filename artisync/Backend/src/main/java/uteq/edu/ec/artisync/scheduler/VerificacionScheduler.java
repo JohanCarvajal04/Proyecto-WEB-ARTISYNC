@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +22,7 @@ public class VerificacionScheduler {
 
     private static final int DIAS_EXPIRACION = 30;
 
-    private final CertificadoIaRepository certificadoIaRepository;
+    private final AiCertificateRepository certificadoIaRepository;
     private final VerificacionExpiracionServicio verificacionExpiracionServicio;
 
     /**
@@ -38,7 +38,7 @@ public class VerificacionScheduler {
     @Scheduled(cron = "0 0 3 * * *")
     public void expirarPendientesAntiguas() {
         LocalDateTime limite = LocalDateTime.now().minusDays(DIAS_EXPIRACION);
-        List<CertificadoIa> vencidas = certificadoIaRepository
+        List<AiCertificate> vencidas = certificadoIaRepository
                 .findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore("PENDIENTE", limite);
 
         if (vencidas.isEmpty()) {
@@ -46,7 +46,7 @@ public class VerificacionScheduler {
         }
 
         log.info("[VerificacionScheduler] Expirando {} solicitud(es) PENDIENTE de más de {} días", vencidas.size(), DIAS_EXPIRACION);
-        for (CertificadoIa certificado : vencidas) {
+        for (AiCertificate certificado : vencidas) {
             try {
                 verificacionExpiracionServicio.expirarCertificado(certificado);
             } catch (Exception e) {

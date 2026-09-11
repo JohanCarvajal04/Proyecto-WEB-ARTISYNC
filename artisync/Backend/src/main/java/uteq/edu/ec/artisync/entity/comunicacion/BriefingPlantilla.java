@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -33,7 +33,7 @@ public class BriefingPlantilla {
     @NotNull(message = "El perfil creador es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_perfil", nullable = false)
-    private PerfilCreador perfilCreador;
+    private CreatorProfile perfilCreador;
 
     @NotBlank(message = "El nombre de la plantilla es obligatorio")
     @Size(max = 150, message = "El nombre de la plantilla no puede superar los 150 caracteres")

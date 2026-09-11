@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import java.time.LocalDateTime;
@@ -50,8 +50,8 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         Join<Contract, Order> p = c.join("pedido");
         Join<Order, Offering> s = p.join("servicio");
         Join<Order, User> cliente = p.join("usuarioCliente");
-        Join<Offering, PerfilCreador> perfil = s.join("perfil");
-        Join<PerfilCreador, User> creador = perfil.join("usuario");
+        Join<Offering, CreatorProfile> perfil = s.join("perfil");
+        Join<CreatorProfile, User> creador = perfil.join("usuario");
 
         cq.select(cb.construct(ContractReportRow.class,
                 c.get("idContrato"), p.get("idPedido"), s.get("tituloServicio"),
@@ -83,7 +83,7 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         Root<Contract> c = cq.from(Contract.class);
         Join<Contract, Order> p = c.join("pedido");
         Join<Order, Offering> s = p.join("servicio");
-        Join<Offering, PerfilCreador> perfil = s.join("perfil");
+        Join<Offering, CreatorProfile> perfil = s.join("perfil");
 
         cq.select(cb.count(c));
         List<Predicate> predicados = construirPredicados(cb, c, perfil, desde, hasta, idPerfilCreador, soloFirmados);
@@ -93,7 +93,7 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
         return entityManager.createQuery(cq).getSingleResult();
     }
 
-    private List<Predicate> construirPredicados(CriteriaBuilder cb, Root<Contract> c, Join<Offering, PerfilCreador> perfil,
+    private List<Predicate> construirPredicados(CriteriaBuilder cb, Root<Contract> c, Join<Offering, CreatorProfile> perfil,
                                                  LocalDateTime desde, LocalDateTime hasta,
                                                  Long idPerfilCreador, Boolean soloFirmados) {
         List<Predicate> predicados = new ArrayList<>();

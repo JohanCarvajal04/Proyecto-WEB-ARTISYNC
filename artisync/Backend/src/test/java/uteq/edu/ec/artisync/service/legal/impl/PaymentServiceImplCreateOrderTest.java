@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.http.HttpMethod;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
@@ -70,7 +70,7 @@ class PaymentServiceImplCreateOrderTest {
     void setUp() {
         User cliente = User.builder().idUsuario(ID_CLIENTE).build();
         User creador = User.builder().idUsuario(ID_CREADOR).build();
-        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().usuario(creador).build();
         Offering servicio = Offering.builder().perfil(perfil).build();
         Order pedido = Order.builder().idPedido(1L).precioPactado(new BigDecimal("40.00"))
                 .usuarioCliente(cliente).servicio(servicio).build();

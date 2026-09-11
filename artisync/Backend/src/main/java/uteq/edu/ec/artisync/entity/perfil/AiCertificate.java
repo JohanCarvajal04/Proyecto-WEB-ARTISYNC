@@ -1,0 +1,100 @@
+package uteq.edu.ec.artisync.entity.perfil;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * Entidad del modelo de dominio que representa Credencial que avala el uso etico o declarado de Inteligencia Artificial por el creador.
+ * 
+ * Ciclo de vida: Emitido tras aprobacion automatizada o manual. Puede ser REVOCADO si el creador infringe terminos.
+ * 
+ * Relaciones principales: Asociada de forma exclusiva (1:1 o 1:N) al CreatorProfile.
+ */
+@Entity
+@Table(name = "certificados_ia")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class AiCertificate {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_certificado")
+    private Long idCertificado;
+
+    // V21: generalizado de CreatorProfile a User â€” cualquier usuario (Cliente
+    // o Creador) puede solicitar una verificaciÃ³n de identidad, no solo quien
+    // ya tiene un perfil de creador. Para certificados de tipo CERTIFICADO
+    // (profesional, inherentemente de creador), el perfil se deriva con un
+    // JOIN contra perfiles_creadores.id_usuario cuando haga falta.
+    @NotNull(message = "El usuario es obligatorio")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private User usuario;
+
+    @NotNull(message = "El estado de verificacion es obligatorio")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_estado_verificacion", nullable = false)
+    private VerificationStatus estadoVerificacion;
+
+    @NotBlank(message = "La URL del documento es obligatoria")
+    @Size(max = 255, message = "La URL del documento no puede superar los 255 caracteres")
+    @Column(name = "url_documento_s3", nullable = false, length = 255)
+    private String urlDocumentoS3;
+
+    @DecimalMin(value = "0.00", message = "El puntaje de confianza no puede ser negativo")
+    @DecimalMax(value = "1.00", message = "El puntaje de confianza no puede superar 1.00")
+    @Column(name = "puntaje_confianza_ia", precision = 5, scale = 2)
+    private BigDecimal puntajeConfianzaIa;
+
+    @Column(name = "tipo_documento", nullable = false, length = 20)
+    @Builder.Default
+    private String tipoDocumento = "IDENTIDAD";
+
+    @Column(name = "hash_documento", length = 64)
+    private String hashDocumento;
+
+    @Column(name = "veredicto_ia", length = 30)
+    private String veredictoIa;
+
+    @Column(name = "razon_ia", columnDefinition = "TEXT")
+    private String razonIa;
+
+    @Column(name = "datos_extraidos_ia", columnDefinition = "TEXT")
+    private String datosExtraidosIa;
+
+    @Column(name = "fecha_dictamen_ia")
+    private LocalDateTime fechaDictamenIa;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_moderador")
+    private User moderador;
+
+    @Column(name = "fecha_decision")
+    private LocalDateTime fechaDecision;
+
+    @Column(name = "nota_moderador", columnDefinition = "TEXT")
+    private String notaModerador;
+
+    @Column(name = "documento_eliminado", nullable = false)
+    @Builder.Default
+    private boolean documentoEliminado = false;
+
+    @CreationTimestamp
+    @Column(name = "fecha_analisis", updatable = false)
+    private LocalDateTime fechaAnalisis;
+}
+
+

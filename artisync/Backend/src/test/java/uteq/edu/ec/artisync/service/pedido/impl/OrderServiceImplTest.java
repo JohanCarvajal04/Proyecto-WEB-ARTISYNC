@@ -33,7 +33,7 @@ import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.OrderTermsProposal;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
@@ -52,7 +52,7 @@ import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
@@ -97,7 +97,7 @@ class OrderServiceImplTest {
     @Mock private NotificacionService notificacionService;
     @Mock private ChatService chatService;
     @Mock private IServicioExportacion servicioExportacion;
-    @Mock private IVerificacionServicio verificacionServicio;
+    @Mock private IVerificationService verificacionServicio;
     @Mock private IContractService contratoServicio;
     @Mock private BriefingEnviadoRepository briefingEnviadoRepository;
     @Mock private BriefingRespuestaRepository briefingRespuestaRepository;
@@ -118,7 +118,7 @@ class OrderServiceImplTest {
         cliente = User.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").build();
         creador = User.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").build();
         flujo = Workflow.builder().idFlujo(1L).nombreFlujo("Flujo estandar").build();
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().idPerfil(1L).usuario(creador).build();
         servicio = Offering.builder().idServicio(1L).perfil(perfil)
                 .tituloServicio("Ilustracion").precioBase(new BigDecimal("20.00")).flujo(flujo).build();
         pedido = Order.builder().idPedido(10L).usuarioCliente(cliente).servicio(servicio)

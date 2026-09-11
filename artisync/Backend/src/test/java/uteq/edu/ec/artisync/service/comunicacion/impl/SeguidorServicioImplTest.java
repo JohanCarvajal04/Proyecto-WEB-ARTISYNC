@@ -11,12 +11,12 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaCreadorSeguidoNo
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoSeguimiento;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSeguidor;
 import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,12 +34,12 @@ class SeguidorServicioImplTest {
     private SeguidorRepository seguidorRepository;
 
     @Mock
-    private PerfilCreadorRepository perfilCreadorRepository;
+    private CreatorProfileRepository perfilCreadorRepository;
 
     @InjectMocks
     private SeguidorServicioImpl seguidorServicio;
 
-    private PerfilCreador perfilCreador;
+    private CreatorProfile perfilCreador;
     private User usuarioCreador;
 
     @BeforeEach
@@ -51,7 +51,7 @@ class SeguidorServicioImplTest {
                 .correo("valentina@artisync.com")
                 .build();
 
-        perfilCreador = PerfilCreador.builder()
+        perfilCreador = CreatorProfile.builder()
                 .idPerfil(1L)
                 .usuario(usuarioCreador)
                 .biografia("Ilustradora & Directora de Arte")
@@ -213,7 +213,7 @@ class SeguidorServicioImplTest {
     @DisplayName("listarCreadoresSeguidosNovedades — usa handle por defecto si el creador no tiene nombre")
     void listarCreadoresSeguidosNovedades_sinNombre_usaHandlePorDefecto() {
         User creadorSinNombre = User.builder().idUsuario(11L).build();
-        PerfilCreador perfilSinNombre = PerfilCreador.builder().idPerfil(2L).usuario(creadorSinNombre).build();
+        CreatorProfile perfilSinNombre = CreatorProfile.builder().idPerfil(2L).usuario(creadorSinNombre).build();
         Seguidor s = Seguidor.builder()
                 .idSeguimiento(6L).usuarioSeguidor(User.builder().idUsuario(20L).build())
                 .perfilCreador(perfilSinNombre).fechaSeguimiento(LocalDateTime.now()).build();

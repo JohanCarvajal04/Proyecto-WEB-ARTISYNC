@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -62,7 +62,7 @@ class ContractServiceImplTest {
     void setUp() {
         creador = User.builder().idUsuario(ID_CREADOR).nombres("Creador").apellidos("Uno").correo("creador@test.com").build();
         cliente = User.builder().idUsuario(ID_CLIENTE).nombres("Cliente").apellidos("Uno").correo("cliente@test.com").build();
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().idPerfil(1L).usuario(creador).build();
         Offering servicio = Offering.builder().idServicio(1L).perfil(perfil)
                 .tituloServicio("Logo").descripcionDetallada("Descripcion detallada de ejemplo con veinte caracteres")
                 .limiteRevisionesBase(2).build();
@@ -511,7 +511,7 @@ class ContractServiceImplTest {
         // Offering propio para este test: la descripcion detallada trae un
         // payload de SSRF/lectura de archivos como el que motivo el hallazgo
         // (ver docs del informe de seguridad, SEC-01).
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().idPerfil(1L).usuario(creador).build();
         Offering servicioMalicioso = Offering.builder().idServicio(2L).perfil(perfil)
                 .tituloServicio("Logo")
                 .descripcionDetallada("<img src=\"http://169.254.169.254/latest/meta-data/\">")

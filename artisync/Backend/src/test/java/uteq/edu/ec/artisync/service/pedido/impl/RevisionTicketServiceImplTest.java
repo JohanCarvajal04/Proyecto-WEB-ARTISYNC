@@ -19,7 +19,7 @@ import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.pedido.RejectionReason;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -61,7 +61,7 @@ class RevisionTicketServiceImplTest {
     void setUp() {
         cliente = User.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").correo("cliente@test.com").build();
         creador = User.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").correo("creador@test.com").build();
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().idPerfil(1L).usuario(creador).build();
         Offering servicio = Offering.builder().idServicio(1L).perfil(perfil).cargoRevisionAdicional(new BigDecimal("5.00")).build();
         pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).precioPactado(BigDecimal.TEN).build();
         motivo = RejectionReason.builder().idMotivo(1L).descripcionMotivo("Calidad insuficiente").build();

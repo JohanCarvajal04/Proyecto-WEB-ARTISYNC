@@ -7,8 +7,8 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
+import uteq.edu.ec.artisync.repository.perfil.PortfolioRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,10 +37,10 @@ class SincronizarRolesUsuarioIT {
     private UserRoleRepository usuarioRolRepository;
 
     @Autowired
-    private PerfilCreadorRepository perfilCreadorRepository;
+    private CreatorProfileRepository perfilCreadorRepository;
 
     @Autowired
-    private PortafolioRepository portafolioRepository;
+    private PortfolioRepository portafolioRepository;
 
     @Test
     @Sql(statements = SEED_USUARIO)

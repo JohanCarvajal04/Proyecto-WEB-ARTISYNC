@@ -14,12 +14,12 @@ import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
 import uteq.edu.ec.artisync.entity.pedido.RejectionReason;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.catalogo.WorkflowRepository;
 import uteq.edu.ec.artisync.repository.catalogo.OfferingRepository;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.math.BigDecimal;
@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TicketRevisionRepositoryIT {
 
     @Autowired private UserRepository usuarioRepository;
-    @Autowired private PerfilCreadorRepository perfilCreadorRepository;
+    @Autowired private CreatorProfileRepository perfilCreadorRepository;
     @Autowired private OfferingRepository servicioRepository;
     @Autowired private WorkflowRepository flujoTrabajoRepository;
     @Autowired private OrderRepository pedidoRepository;
@@ -64,7 +64,7 @@ class TicketRevisionRepositoryIT {
         User creador = usuarioRepository.save(User.builder()
                 .nombres("Creador").apellidos("Prueba").correo("creador-ticket-it@test.dev")
                 .contrasenaHash("x").estadoCuenta(true).build());
-        PerfilCreador perfil = perfilCreadorRepository.save(PerfilCreador.builder().usuario(creador).build());
+        CreatorProfile perfil = perfilCreadorRepository.save(CreatorProfile.builder().usuario(creador).build());
         Offering servicio = servicioRepository.save(Offering.builder()
                 .perfil(perfil).tituloServicio("Offering de prueba")
                 .descripcionDetallada("Descripcion de prueba con longitud suficiente para pasar validacion")

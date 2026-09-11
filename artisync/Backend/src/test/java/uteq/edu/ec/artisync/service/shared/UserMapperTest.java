@@ -11,7 +11,7 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.*;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +34,7 @@ class UserMapperTest {
 
     @Mock private UserRoleRepository usuarioRolRepository;
     @Mock private TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
-    @Mock private IVerificacionServicio verificacionServicio;
+    @Mock private IVerificationService verificacionServicio;
 
     @InjectMocks
     private UserMapper usuarioMapper;

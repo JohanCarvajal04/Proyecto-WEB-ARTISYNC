@@ -5,8 +5,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class VerificacionSchedulerTest {
 
-    @Mock private CertificadoIaRepository certificadoIaRepository;
+    @Mock private AiCertificateRepository certificadoIaRepository;
     @Mock private VerificacionExpiracionServicio verificacionExpiracionServicio;
 
     @InjectMocks
@@ -25,7 +25,7 @@ class VerificacionSchedulerTest {
 
     @Test
     void expirarPendientesAntiguas_delegaCadaCertificadoAlServicioDeExpiracion() {
-        CertificadoIa vencida = CertificadoIa.builder()
+        AiCertificate vencida = AiCertificate.builder()
                 .idCertificado(1L).urlDocumentoS3("ref.jpg").documentoEliminado(false).build();
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of(vencida));
@@ -47,8 +47,8 @@ class VerificacionSchedulerTest {
 
     @Test
     void expirarPendientesAntiguas_unCertificadoFallaOtroSiguelogueaYContinua() {
-        CertificadoIa a = CertificadoIa.builder().idCertificado(1L).urlDocumentoS3("a.jpg").build();
-        CertificadoIa b = CertificadoIa.builder().idCertificado(2L).urlDocumentoS3("b.jpg").build();
+        AiCertificate a = AiCertificate.builder().idCertificado(1L).urlDocumentoS3("a.jpg").build();
+        AiCertificate b = AiCertificate.builder().idCertificado(2L).urlDocumentoS3("b.jpg").build();
         when(certificadoIaRepository.findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(eq("PENDIENTE"), any()))
                 .thenReturn(List.of(a, b));
         doThrow(new RuntimeException("fallo simulado")).when(verificacionExpiracionServicio).expirarCertificado(a);

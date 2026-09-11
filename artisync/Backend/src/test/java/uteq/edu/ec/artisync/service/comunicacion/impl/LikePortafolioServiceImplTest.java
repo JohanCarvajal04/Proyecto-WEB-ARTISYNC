@@ -8,12 +8,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoLike;
 import uteq.edu.ec.artisync.entity.comunicacion.LikePortafolio;
-import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.perfil.PortfolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.LikePortafolioRepository;
-import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
+import uteq.edu.ec.artisync.repository.perfil.PortfolioItemRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.util.Optional;
@@ -32,7 +32,7 @@ class LikePortafolioServiceImplTest {
     private LikePortafolioRepository likeRepository;
 
     @Mock
-    private PortafolioItemRepository portafolioItemRepository;
+    private PortfolioItemRepository portafolioItemRepository;
 
     @Mock
     private UserRepository usuarioRepository;
@@ -40,11 +40,11 @@ class LikePortafolioServiceImplTest {
     @InjectMocks
     private LikePortafolioServiceImpl likePortafolioServicio;
 
-    private PortafolioItem item;
+    private PortfolioItem item;
     private User usuario;
 
     private void prepararItemYUsuario() {
-        item = PortafolioItem.builder().idItemPortafolio(1L).build();
+        item = PortfolioItem.builder().idItemPortafolio(1L).build();
         usuario = User.builder().idUsuario(20L).build();
     }
 

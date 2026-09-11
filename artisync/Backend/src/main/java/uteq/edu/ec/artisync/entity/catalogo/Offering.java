@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.entity.catalogo;
 
 import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
@@ -29,7 +29,7 @@ public class Offering {
     @NotNull(message = "El perfil del creador es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_perfil", nullable = false)
-    private PerfilCreador perfil;
+    private CreatorProfile perfil;
 
     @NotBlank(message = "El titulo del servicio es obligatorio")
     @Size(max = 150, message = "El titulo del servicio no puede superar los 150 caracteres")

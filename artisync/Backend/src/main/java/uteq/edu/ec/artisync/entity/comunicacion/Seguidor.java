@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -40,7 +40,7 @@ public class Seguidor {
     @NotNull(message = "El perfil del creador es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_perfil_creador", nullable = false)
-    private PerfilCreador perfilCreador;
+    private CreatorProfile perfilCreador;
 
     @CreationTimestamp
     @Column(name = "fecha_seguimiento", updatable = false)

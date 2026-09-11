@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
-import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.perfil.PortfolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * 
  * Ciclo de vida: Gestionada por JPA. Es una interaccion temporal que puede ser eliminada por su autor o moderada.
  * 
- * Relaciones principales: Vincula al User autor con una obra especifica del PortafolioItem.
+ * Relaciones principales: Vincula al User autor con una obra especifica del PortfolioItem.
  */
 @Entity
 @Table(name = "comentarios_portafolio")
@@ -35,7 +35,7 @@ public class ComentarioPortafolio {
     @NotNull(message = "El item de portafolio es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_item_portafolio", nullable = false)
-    private PortafolioItem itemPortafolio;
+    private PortfolioItem itemPortafolio;
 
     @NotNull(message = "El autor del comentario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)

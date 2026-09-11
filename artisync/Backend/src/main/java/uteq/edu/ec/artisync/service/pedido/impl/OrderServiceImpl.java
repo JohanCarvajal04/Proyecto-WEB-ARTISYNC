@@ -33,7 +33,7 @@ import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 import uteq.edu.ec.artisync.service.pedido.IOrderService;
-import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -66,7 +66,7 @@ public class OrderServiceImpl implements IOrderService {
     private final NotificacionService notificacionService;
     private final ChatService chatService;
     private final IServicioExportacion servicioExportacion;
-    private final IVerificacionServicio verificacionServicio;
+    private final IVerificationService verificacionServicio;
     private final IContractService contratoServicio;
     private final BriefingEnviadoRepository briefingEnviadoRepository;
     private final BriefingRespuestaRepository briefingRespuestaRepository;

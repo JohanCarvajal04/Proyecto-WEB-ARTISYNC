@@ -19,7 +19,7 @@ import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
@@ -66,7 +66,7 @@ class ReconciliacionPayPalEjecutorServicioTest {
     void setUp() {
         User cliente = User.builder().idUsuario(100L).build();
         User creador = User.builder().idUsuario(200L).build();
-        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().usuario(creador).build();
         Offering servicio = Offering.builder().perfil(perfil).tituloServicio("Offering de prueba").build();
         Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
         Contract contrato = Contract.builder().idContrato(5L).pedido(pedido).build();

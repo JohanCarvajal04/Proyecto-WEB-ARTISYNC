@@ -72,7 +72,7 @@ public class SecurityConfig {
                 // Un solo segmento ("/*", no "/**") a propósito: deja fuera
                 // /api/v1/perfiles/usuario/{idUsuario} (expondría la
                 // correspondencia usuario->perfil) y /api/v1/perfiles (listado
-                // completo). RespuestaPerfil solo lleva id, nombres, biografía y
+                // completo). ProfileResponse solo lleva id, nombres, biografía y
                 // red social, sin datos sensibles.
                 .requestMatchers(HttpMethod.GET, "/api/v1/perfiles/*").permitAll()
                 // Contador de visitas del portafolio: sin lógica de autorización

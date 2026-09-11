@@ -10,7 +10,7 @@ import lombok.*;
  * 
  * Ciclo de vida: Catalogo maestro poblado inicialmente. Ciclo de vida estatico.
  * 
- * Relaciones principales: Referenciado globalmente por PerfilCreador y User.
+ * Relaciones principales: Referenciado globalmente por CreatorProfile y User.
  */
 @Entity
 @Table(name = "pais")

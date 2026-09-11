@@ -11,7 +11,7 @@ import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationReposito
 import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
 
-import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 
 import java.util.HashSet;
 import java.util.List;
@@ -25,7 +25,7 @@ public class UserMapper {
 
     private final UserRoleRepository usuarioRolRepository;
     private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
-    private final IVerificacionServicio verificacionServicio;
+    private final IVerificationService verificacionServicio;
 
     /** Mapeo de una sola fila (getUserById, tras crear/editar un usuario): una consulta por usuario es aceptable aquí. */
     /**

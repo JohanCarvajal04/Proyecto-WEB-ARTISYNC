@@ -16,8 +16,8 @@ import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
 import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
-import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
+import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
+import uteq.edu.ec.artisync.entity.perfil.CreatorPaymentDetails;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -26,8 +26,8 @@ import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
-import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
@@ -55,9 +55,9 @@ class PrivacyServiceImplTest {
     @Mock
     private UserRepository usuarioRepository;
     @Mock
-    private CertificadoIaRepository certificadoIaRepository;
+    private AiCertificateRepository certificadoIaRepository;
     @Mock
-    private DatosPagoCreadorRepository datosPagoCreadorRepository;
+    private CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     @Mock
     private ContractRepository contratoRepository;
     @Mock
@@ -137,7 +137,7 @@ class PrivacyServiceImplTest {
     void solicitarSupresionPropia_declaraExcepcionLegal_conFondosRetenidos() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        DatosPagoCreador datosPago = DatosPagoCreador.builder().idDatosPago(5L).correoPaypal("ana@paypal.com").build();
+        CreatorPaymentDetails datosPago = CreatorPaymentDetails.builder().idDatosPago(5L).correoPaypal("ana@paypal.com").build();
         when(datosPagoCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(datosPago));
 
         Contract contrato = Contract.builder().idContrato(10L).build();
@@ -264,7 +264,7 @@ class PrivacyServiceImplTest {
     void anonimizarCertificados_limpiaDatosExtraidosYEliminaDocumentoPendiente() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        CertificadoIa certificado = CertificadoIa.builder()
+        AiCertificate certificado = AiCertificate.builder()
                 .idCertificado(30L)
                 .urlDocumentoS3("verificacion/doc.jpg")
                 .hashDocumento("abc123")

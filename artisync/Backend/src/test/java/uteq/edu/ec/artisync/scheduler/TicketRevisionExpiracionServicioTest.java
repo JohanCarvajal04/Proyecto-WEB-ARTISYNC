@@ -13,7 +13,7 @@ import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
 import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
 import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
@@ -46,7 +46,7 @@ class TicketRevisionExpiracionServicioTest {
     void setUp() {
         User cliente = User.builder().idUsuario(100L).build();
         User creador = User.builder().idUsuario(200L).build();
-        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().usuario(creador).build();
         Offering servicioCatalogo = Offering.builder().perfil(perfil).tituloServicio("Offering de prueba").build();
         Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicioCatalogo).build();
 

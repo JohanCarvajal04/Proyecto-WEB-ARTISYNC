@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 
 /**
@@ -20,11 +20,11 @@ import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocument
 @RequiredArgsConstructor
 public class VerificacionExpiracionServicio {
 
-    private final CertificadoIaRepository certificadoIaRepository;
+    private final AiCertificateRepository certificadoIaRepository;
     private final AlmacenamientoDocumentos almacenamiento;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void expirarCertificado(CertificadoIa certificado) {
+    public void expirarCertificado(AiCertificate certificado) {
         almacenamiento.eliminar(certificado.getUrlDocumentoS3());
         certificado.setDocumentoEliminado(true);
         certificadoIaRepository.save(certificado);

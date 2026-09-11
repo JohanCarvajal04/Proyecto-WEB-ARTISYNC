@@ -23,7 +23,7 @@ import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
@@ -48,7 +48,7 @@ public class SorteoServiceImpl implements SorteoService {
 
     private final SorteoRepository sorteoRepository;
     private final ParticipanteSorteoRepository participanteSorteoRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final CreatorProfileRepository perfilCreadorRepository;
     private final UserRepository usuarioRepository;
     private final SeguidorRepository seguidorRepository;
 

@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
 import uteq.edu.ec.artisync.entity.pedido.WorkflowStageConfig;
 import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.WorkflowRepository;
@@ -57,7 +57,7 @@ class OrderServiceImplWorkflowTest {
     @Mock private OrderStatusHistoryRepository historialRepository;
     @Mock private uteq.edu.ec.artisync.repository.pedido.WorkflowStageRepository etapaFlujoRepository;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
-    @Mock private uteq.edu.ec.artisync.service.perfil.IVerificacionServicio verificacionServicio;
+    @Mock private uteq.edu.ec.artisync.service.perfil.IVerificationService verificacionServicio;
 
     @InjectMocks
     private OrderServiceImpl pedidoServicio;
@@ -76,7 +76,7 @@ class OrderServiceImplWorkflowTest {
         cliente = User.builder().idUsuario(1L).build();
 
         User creador = User.builder().idUsuario(ID_CREADOR).build();
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().idPerfil(10L).usuario(creador).build();
 
         servicio = Offering.builder()
                 .idServicio(100L)

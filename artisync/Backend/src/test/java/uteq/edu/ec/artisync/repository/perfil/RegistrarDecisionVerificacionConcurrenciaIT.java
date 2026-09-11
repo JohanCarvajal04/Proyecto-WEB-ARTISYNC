@@ -57,7 +57,7 @@ class RegistrarDecisionVerificacionConcurrenciaIT {
     private static final int HILOS = 10;
 
     @Autowired
-    private CertificadoIaRepository certificadoIaRepository;
+    private AiCertificateRepository certificadoIaRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

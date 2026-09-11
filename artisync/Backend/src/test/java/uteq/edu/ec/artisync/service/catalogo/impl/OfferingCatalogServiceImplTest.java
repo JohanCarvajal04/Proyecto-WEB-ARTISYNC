@@ -24,13 +24,13 @@ import uteq.edu.ec.artisync.dto.respuesta.catalogo.AttributeResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.OfferingResponse;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.OfferingSummaryResponse;
 import uteq.edu.ec.artisync.entity.catalogo.*;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.*;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
+import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -53,20 +53,20 @@ import static org.mockito.Mockito.*;
 class OfferingCatalogServiceImplTest {
 
     @Mock private OfferingRepository servicioRepository;
-    @Mock private PerfilCreadorRepository perfilRepository;
+    @Mock private CreatorProfileRepository perfilRepository;
     @Mock private SubcategoryRepository subcategoriaRepository;
     @Mock private DynamicAttributeRepository atributoRepository;
     @Mock private OfferingAttributeRepository servicioAtributoRepository;
     @Mock private TagRepository etiquetaRepository;
     @Mock private OfferingTagRepository servicioEtiquetaRepository;
     @Mock private OfferingSubcategoryRepository servicioSubcategoriaRepository;
-    @Mock private IVerificacionServicio verificacionServicio;
+    @Mock private IVerificationService verificacionServicio;
 
     @InjectMocks
     private OfferingCatalogServiceImpl servicioCatalogoServicio;
 
     private User usuario;
-    private PerfilCreador perfil;
+    private CreatorProfile perfil;
     private Category categoria;
     private Subcategory subcategoria;
     private Offering servicio;
@@ -74,7 +74,7 @@ class OfferingCatalogServiceImplTest {
     @BeforeEach
     void setUp() {
         usuario = User.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").correo("ana@test.com").build();
-        perfil = PerfilCreador.builder().idPerfil(1L).usuario(usuario).build();
+        perfil = CreatorProfile.builder().idPerfil(1L).usuario(usuario).build();
         categoria = Category.builder().idCategoria(1L).nombreCategoria("Arte").build();
         subcategoria = Subcategory.builder().idSubcategoria(1L).categoria(categoria).nombreSubcategoria("Ilustracion").build();
         servicio = Offering.builder()
@@ -151,7 +151,7 @@ class OfferingCatalogServiceImplTest {
     @Test
     @DisplayName("crearServicio rechaza publicar si el perfil no tiene usuario asociado")
     void crearServicio_perfilSinUsuario_lanzaExcepcionReglaNegocio() {
-        PerfilCreador perfilSinUsuario = PerfilCreador.builder().idPerfil(2L).usuario(null).build();
+        CreatorProfile perfilSinUsuario = CreatorProfile.builder().idPerfil(2L).usuario(null).build();
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .tituloServicio("X").descripcionDetallada("Descripcion de mas de veinte caracteres")
                 .precioBase(new BigDecimal("15.00")).idsSubcategoria(List.of(1L)).build();
@@ -502,7 +502,7 @@ class OfferingCatalogServiceImplTest {
     @Test
     @DisplayName("obtenerServicioPorId usa 'Creador' como nombre por defecto si el perfil no tiene usuario asociado")
     void obtenerServicioPorId_perfilSinUsuario_usaNombrePorDefecto() {
-        PerfilCreador perfilSinUsuario = PerfilCreador.builder().idPerfil(2L).usuario(null).build();
+        CreatorProfile perfilSinUsuario = CreatorProfile.builder().idPerfil(2L).usuario(null).build();
         Offering servicioSinUsuario = Offering.builder()
                 .idServicio(20L).perfil(perfilSinUsuario)
                 .tituloServicio("X").precioBase(BigDecimal.TEN).build();

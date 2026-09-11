@@ -12,11 +12,11 @@ import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearComentario;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaComentario;
 import uteq.edu.ec.artisync.entity.comunicacion.ComentarioPortafolio;
-import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.perfil.PortfolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.ComentarioPortafolioRepository;
-import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
+import uteq.edu.ec.artisync.repository.perfil.PortfolioItemRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ComentarioPortafolioService;
 
@@ -38,7 +38,7 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     private static final String ESTADO_ELIMINADO = "Eliminado";
 
     private final ComentarioPortafolioRepository comentarioRepository;
-    private final PortafolioItemRepository portafolioItemRepository;
+    private final PortfolioItemRepository portafolioItemRepository;
     private final UserRepository usuarioRepository;
 
     @Override
@@ -55,7 +55,7 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaComentario crearComentario(Long idItemPortafolio, PeticionCrearComentario peticion, Long idUsuarioAutor) {
-        PortafolioItem item = portafolioItemRepository.findById(idItemPortafolio)
+        PortfolioItem item = portafolioItemRepository.findById(idItemPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Ítem de portafolio no encontrado: " + idItemPortafolio));
 

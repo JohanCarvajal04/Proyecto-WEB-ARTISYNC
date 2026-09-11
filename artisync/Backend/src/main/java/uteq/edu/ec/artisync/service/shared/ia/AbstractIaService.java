@@ -16,7 +16,7 @@ public abstract class AbstractIaService {
     /**
      * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
      * ver AiServiceUnavailableException#isReintentable). Mismo patrón que
-     * VerificacionServicioImpl#analizarConReintento, generalizado aquí para
+     * VerificationServiceImpl#analizarConReintento, generalizado aquí para
      * que moderarContenido/clasificarServicio/sugerirPreguntasBriefing/
      * analizarResena no descarten en silencio un 429 momentáneo del
      * proveedor (revisión técnica 2026-09-01: antes caían directo al

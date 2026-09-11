@@ -16,7 +16,7 @@ import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
 import uteq.edu.ec.artisync.entity.social.PremioSorteo;
@@ -24,7 +24,7 @@ import uteq.edu.ec.artisync.entity.social.Sorteo;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
@@ -50,7 +50,7 @@ class SorteoServiceImplTest {
 
     @Mock private SorteoRepository sorteoRepository;
     @Mock private ParticipanteSorteoRepository participanteSorteoRepository;
-    @Mock private PerfilCreadorRepository perfilCreadorRepository;
+    @Mock private CreatorProfileRepository perfilCreadorRepository;
     @Mock private UserRepository usuarioRepository;
     @Mock private SeguidorRepository seguidorRepository;
 
@@ -58,7 +58,7 @@ class SorteoServiceImplTest {
     private SorteoServiceImpl sorteoService;
 
     private User usuarioCreador;
-    private PerfilCreador perfilCreador;
+    private CreatorProfile perfilCreador;
     private Sorteo sorteoActivo;
 
     @BeforeEach
@@ -67,7 +67,7 @@ class SorteoServiceImplTest {
                 .idUsuario(1L).nombres("Maria").apellidos("Lopez")
                 .correo("maria@test.com").build();
 
-        perfilCreador = PerfilCreador.builder()
+        perfilCreador = CreatorProfile.builder()
                 .idPerfil(10L).usuario(usuarioCreador).build();
 
         sorteoActivo = Sorteo.builder()
@@ -473,7 +473,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — rechaza a un usuario que no es el propietario del sorteo")
     void actualizarSorteo_rechazaNoPropietario() {
-        PerfilCreador otroPerfil = PerfilCreador.builder().idPerfil(20L).build();
+        CreatorProfile otroPerfil = CreatorProfile.builder().idPerfil(20L).build();
         var peticion = PeticionActualizarSorteo.builder().tituloSorteo("x").build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));

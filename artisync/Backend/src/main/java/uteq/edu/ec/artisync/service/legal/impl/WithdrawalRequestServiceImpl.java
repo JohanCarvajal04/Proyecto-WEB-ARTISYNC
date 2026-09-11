@@ -20,13 +20,13 @@ import uteq.edu.ec.artisync.dto.peticion.legal.CreateWithdrawalRequest;
 import uteq.edu.ec.artisync.dto.respuesta.legal.CreatorBalanceResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
 import uteq.edu.ec.artisync.entity.legal.WithdrawalRequest;
-import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorPaymentDetails;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.WithdrawalRequestRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.legal.IWithdrawalRequestService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
@@ -57,7 +57,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     private static final List<String> BATCH_STATUS_EN_PROCESO = List.of("PENDING", "UNCLAIMED", "PROCESSING");
 
     private final WithdrawalRequestRepository solicitudRetiroRepository;
-    private final DatosPagoCreadorRepository datosPagoCreadorRepository;
+    private final CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     private final PaymentTransactionRepository transaccionPagoRepository;
     private final UserRepository usuarioRepository;
     private final PayPalClient payPalClient;
@@ -110,7 +110,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public WithdrawalRequestResponse solicitar(Long idUsuarioCreador, CreateWithdrawalRequest peticion) {
-        DatosPagoCreador datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)
+        CreatorPaymentDetails datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)
                 .orElseThrow(() -> new BusinessRuleException(
                         "Debes configurar tu correo de PayPal antes de solicitar un retiro"));
 

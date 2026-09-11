@@ -7,11 +7,11 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaCreadorSeguidoNo
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoSeguimiento;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSeguidor;
 import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ISeguidorServicio;
 
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 public class SeguidorServicioImpl implements ISeguidorServicio {
 
     private final SeguidorRepository seguidorRepository;
-    private final PerfilCreadorRepository perfilCreadorRepository;
+    private final CreatorProfileRepository perfilCreadorRepository;
 
     @Override
     @Transactional
@@ -36,7 +36,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoSeguimiento seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
-        PerfilCreador perfil = perfilCreadorRepository.findById(idPerfilCreador)
+        CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
         if (Objects.equals(perfil.getUsuario().getIdUsuario(), idUsuarioSeguidor)) {
@@ -92,7 +92,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoSeguimiento obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador) {
-        PerfilCreador perfil = perfilCreadorRepository.findById(idPerfilCreador)
+        CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
         boolean esPropioPerfil = idUsuarioConsulta != null && Objects.equals(perfil.getUsuario().getIdUsuario(), idUsuarioConsulta);
@@ -148,7 +148,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
         List<Seguidor> seguidos = seguidorRepository.findByUsuarioSeguidorIdUsuario(idUsuarioSeguidor);
         return seguidos.stream()
                 .map(s -> {
-                    PerfilCreador p = s.getPerfilCreador();
+                    CreatorProfile p = s.getPerfilCreador();
                     String nombre = (p.getUsuario().getNombres() + " " + p.getUsuario().getApellidos()).trim();
                     String handle = "@" + (p.getUsuario().getNombres() != null ? p.getUsuario().getNombres().toLowerCase().replace(" ", "") : "creador");
                     return RespuestaCreadorSeguidoNovedad.builder()
@@ -178,7 +178,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional) {
-        PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
+        CreatorProfile perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de creador asociado."));
 
         if (urlPortada != null) {

@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
-import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.perfil.PortfolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * 
  * Ciclo de vida: Registro volatil (creacion/eliminacion directa) que altera los contadores de popularidad.
  * 
- * Relaciones principales: Entidad asociativa entre User y PortafolioItem.
+ * Relaciones principales: Entidad asociativa entre User y PortfolioItem.
  */
 @Getter
 @Setter
@@ -35,7 +35,7 @@ public class LikePortafolio {
     @NotNull(message = "El item de portafolio es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_item_portafolio", nullable = false)
-    private PortafolioItem itemPortafolio;
+    private PortfolioItem itemPortafolio;
 
     @NotNull(message = "El usuario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)

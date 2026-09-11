@@ -12,7 +12,7 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -58,7 +58,7 @@ class DeliverableServiceImplTest {
     void setUp() {
         User creador = new User();
         creador.setIdUsuario(ID_CREADOR);
-        PerfilCreador perfil = new PerfilCreador();
+        CreatorProfile perfil = new CreatorProfile();
         perfil.setUsuario(creador);
         Offering servicioCatalogo = new Offering();
         servicioCatalogo.setPerfil(perfil);

@@ -17,7 +17,7 @@ import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.Role;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.seguridad.UserRole;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorBackupCodeRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
@@ -43,7 +43,7 @@ class TwoFactorServiceImplTest {
     @Mock
     private UserRoleRepository usuarioRolRepository;
     @Mock
-    private CertificadoIaRepository certificadoIaRepository;
+    private AiCertificateRepository certificadoIaRepository;
     @Mock
     private IntentosAutenticacionService intentosAutenticacionService;
 

@@ -17,7 +17,7 @@ public interface BriefingService {
 
     // --- Gestión de plantillas (CREADOR) ---
     // idUsuario: el del JWT del creador autenticado (CustomUserDetails), no el
-    // id_perfil — la implementación resuelve el PerfilCreador correspondiente.
+    // id_perfil — la implementación resuelve el CreatorProfile correspondiente.
 
     /**
      * Crea una plantilla de briefing (cuestionario) para el perfil de creador del usuario.

@@ -47,7 +47,7 @@ public class BriefingControlador {
     public ResponseEntity<RespuestaBriefing> crearPlantilla(
             @Valid @RequestBody PeticionCrearBriefingPlantilla peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        // BriefingServiceImpl resuelve el PerfilCreador propio a partir de este idUsuario.
+        // BriefingServiceImpl resuelve el CreatorProfile propio a partir de este idUsuario.
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));
     }

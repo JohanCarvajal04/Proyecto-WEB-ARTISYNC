@@ -19,7 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
@@ -64,7 +64,7 @@ class WebSocketAuthInterceptorTest {
 
         User cliente = User.builder().idUsuario(ID_CLIENTE).build();
         User creador = User.builder().idUsuario(ID_CREADOR).build();
-        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().usuario(creador).build();
         Offering servicio = Offering.builder().perfil(perfil).build();
         Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
         sala = ChatRoom.builder().idSala(ID_SALA).pedido(pedido).salaActiva(true).build();

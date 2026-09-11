@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationReposito
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorBackupCodeRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 
@@ -53,7 +53,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     private final TwoFactorBackupCodeRepository codigoRespaldo2FaRepository;
     private final UserRoleRepository usuarioRolRepository;
-    private final CertificadoIaRepository certificadoIaRepository;
+    private final AiCertificateRepository certificadoIaRepository;
     private final IntentosAutenticacionService intentosAutenticacionService;
 
     // Revisión técnica 2026-09-01: los códigos de respaldo se hasheaban con

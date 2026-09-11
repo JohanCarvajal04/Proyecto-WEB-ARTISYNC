@@ -18,7 +18,7 @@ import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
@@ -49,7 +49,7 @@ class EscrowPaymentAuditServiceImplTest {
     void setUp() {
         User cliente = User.builder().idUsuario(1L).nombres("Ana").apellidos("Cliente").correo("ana@test.com").build();
         User creador = User.builder().idUsuario(2L).nombres("Beto").apellidos("Creador").build();
-        PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().idPerfil(10L).usuario(creador).build();
         Offering servicioEntity = Offering.builder().idServicio(20L).perfil(perfil).tituloServicio("Ilustración").build();
         Order pedido = Order.builder().idPedido(30L).usuarioCliente(cliente).servicio(servicioEntity).build();
         Contract contrato = Contract.builder().idContrato(40L).pedido(pedido)

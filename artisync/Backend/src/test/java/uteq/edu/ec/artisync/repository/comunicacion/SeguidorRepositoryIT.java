@@ -9,7 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,7 +45,7 @@ class SeguidorRepositoryIT {
 
     private Seguidor nuevoSeguimiento() {
         User seguidor = entityManager.getReference(User.class, 9101L);
-        PerfilCreador perfil = entityManager.getReference(PerfilCreador.class, 9102L);
+        CreatorProfile perfil = entityManager.getReference(CreatorProfile.class, 9102L);
         return Seguidor.builder()
                 .usuarioSeguidor(seguidor)
                 .perfilCreador(perfil)

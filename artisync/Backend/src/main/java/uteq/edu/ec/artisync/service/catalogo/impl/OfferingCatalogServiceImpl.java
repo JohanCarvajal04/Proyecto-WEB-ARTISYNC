@@ -20,15 +20,15 @@ import uteq.edu.ec.artisync.dto.respuesta.catalogo.*;
 import uteq.edu.ec.artisync.entity.catalogo.*;
 import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
 import uteq.edu.ec.artisync.entity.pedido.ContractTemplate;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.*;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingPlantillaRepository;
 import uteq.edu.ec.artisync.repository.pedido.ContractTemplateRepository;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
-import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 import uteq.edu.ec.artisync.specification.catalogo.OfferingSpecification;
 
 import java.math.BigDecimal;
@@ -44,14 +44,14 @@ import java.util.stream.Collectors;
 public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
 
     private final OfferingRepository servicioRepository;
-    private final PerfilCreadorRepository perfilRepository;
+    private final CreatorProfileRepository perfilRepository;
     private final SubcategoryRepository subcategoriaRepository;
     private final DynamicAttributeRepository atributoRepository;
     private final OfferingAttributeRepository servicioAtributoRepository;
     private final TagRepository etiquetaRepository;
     private final OfferingTagRepository servicioEtiquetaRepository;
     private final OfferingSubcategoryRepository servicioSubcategoriaRepository;
-    private final IVerificacionServicio verificacionServicio;
+    private final IVerificationService verificacionServicio;
     private final WorkflowRepository flujoTrabajoRepository;
     private final ContractTemplateRepository plantillaContratoRepository;
     private final BriefingPlantillaRepository briefingPlantillaRepository;
@@ -76,7 +76,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
             throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
         }
 
-        PerfilCreador perfil = perfilRepository.findById(idPerfilCreador)
+        CreatorProfile perfil = perfilRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil creador no encontrado con ID: " + idPerfilCreador));
 
         validarPropiedadOAdmin(perfil);
@@ -611,7 +611,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * existe, o que existe pero pertenece a otro creador, se rechaza: un
      * creador solo puede asignarle a su servicio uno de sus propios flujos.
      */
-    private Workflow resolverFlujoPropio(Long idFlujo, PerfilCreador perfil) {
+    private Workflow resolverFlujoPropio(Long idFlujo, CreatorProfile perfil) {
         if (idFlujo == null) {
             return null;
         }
@@ -628,7 +628,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * debe pertenecerle a este mismo creador — un creador no puede asignarle
      * a su servicio la plantilla privada de otro.
      */
-    private ContractTemplate resolverPlantillaContratoActiva(Long idPlantillaContrato, PerfilCreador perfil) {
+    private ContractTemplate resolverPlantillaContratoActiva(Long idPlantillaContrato, CreatorProfile perfil) {
         if (idPlantillaContrato == null) {
             return null;
         }
@@ -651,7 +651,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * no existe, o que pertenece a otro creador, se rechaza: un creador solo
      * puede asignarle a su servicio uno de sus propios cuestionarios.
      */
-    private BriefingPlantilla resolverBriefingPlantillaPropia(Long idBriefingPlantilla, PerfilCreador perfil) {
+    private BriefingPlantilla resolverBriefingPlantillaPropia(Long idBriefingPlantilla, CreatorProfile perfil) {
         if (idBriefingPlantilla == null) {
             return null;
         }
@@ -714,7 +714,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * "crear/publicar un servicio" ocurre de verdad. Exigir identidad
      * verificada aquí es exigirla para publicar, tal como pide el requisito.
      */
-    private void validarIdentidadVerificada(PerfilCreador perfil) {
+    private void validarIdentidadVerificada(CreatorProfile perfil) {
         Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
         if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {
             throw new BusinessRuleException(
@@ -722,7 +722,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         }
     }
 
-    private void validarPropiedadOAdmin(PerfilCreador perfil) {
+    private void validarPropiedadOAdmin(CreatorProfile perfil) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             boolean esAdmin = auth.getAuthorities().stream()

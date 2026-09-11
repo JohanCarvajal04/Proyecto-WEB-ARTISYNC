@@ -8,12 +8,12 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoLike;
 import uteq.edu.ec.artisync.entity.comunicacion.LikePortafolio;
-import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
+import uteq.edu.ec.artisync.entity.perfil.PortfolioItem;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.LikePortafolioRepository;
-import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
+import uteq.edu.ec.artisync.repository.perfil.PortfolioItemRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.LikePortafolioService;
 
@@ -26,7 +26,7 @@ import uteq.edu.ec.artisync.service.comunicacion.LikePortafolioService;
 public class LikePortafolioServiceImpl implements LikePortafolioService {
 
     private final LikePortafolioRepository likeRepository;
-    private final PortafolioItemRepository portafolioItemRepository;
+    private final PortfolioItemRepository portafolioItemRepository;
     private final UserRepository usuarioRepository;
 
     @Override
@@ -42,7 +42,7 @@ public class LikePortafolioServiceImpl implements LikePortafolioService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoLike darLike(Long idItemPortafolio, Long idUsuario) {
-        PortafolioItem item = obtenerItem(idItemPortafolio);
+        PortfolioItem item = obtenerItem(idItemPortafolio);
 
         // La restricción UNIQUE de la tabla ya lo impide; se comprueba antes
         // para devolver un 409 con mensaje de dominio en vez de un error de
@@ -102,7 +102,7 @@ public class LikePortafolioServiceImpl implements LikePortafolioService {
     }
 
     // -------------------------------------------------------------------------
-    private PortafolioItem obtenerItem(Long idItemPortafolio) {
+    private PortfolioItem obtenerItem(Long idItemPortafolio) {
         return portafolioItemRepository.findById(idItemPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Ítem de portafolio no encontrado: " + idItemPortafolio));

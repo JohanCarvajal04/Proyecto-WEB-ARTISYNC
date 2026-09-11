@@ -21,7 +21,7 @@ import uteq.edu.ec.artisync.entity.legal.WithdrawalRequest;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.WithdrawalRequestRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
@@ -49,7 +49,7 @@ class WithdrawalRequestServiceImplPayoutTest {
     private static final Long ID_ADMIN = 900L;
 
     @Mock private WithdrawalRequestRepository solicitudRetiroRepository;
-    @Mock private DatosPagoCreadorRepository datosPagoCreadorRepository;
+    @Mock private CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
     @Mock private UserRepository usuarioRepository;
     @Mock private PayPalClient payPalClient;

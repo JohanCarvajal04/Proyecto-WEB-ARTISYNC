@@ -24,7 +24,7 @@ import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContractRepository;
@@ -87,7 +87,7 @@ class PaymentServiceImplCancellationTest {
     void setUp() {
         User cliente = User.builder().idUsuario(ID_CLIENTE).build();
         User creador = User.builder().idUsuario(ID_CREADOR).build();
-        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().usuario(creador).build();
         Offering servicio = Offering.builder().perfil(perfil).tituloServicio("Offering de prueba").build();
         Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
         Contract contrato = Contract.builder().idContrato(5L).pedido(pedido).build();

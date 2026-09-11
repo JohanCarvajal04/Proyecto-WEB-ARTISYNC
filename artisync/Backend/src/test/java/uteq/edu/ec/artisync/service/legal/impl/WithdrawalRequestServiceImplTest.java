@@ -15,13 +15,13 @@ import uteq.edu.ec.artisync.dto.peticion.legal.CreateWithdrawalRequest;
 import uteq.edu.ec.artisync.dto.respuesta.legal.CreatorBalanceResponse;
 import uteq.edu.ec.artisync.dto.respuesta.legal.WithdrawalRequestResponse;
 import uteq.edu.ec.artisync.entity.legal.WithdrawalRequest;
-import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorPaymentDetails;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.WithdrawalRequestRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
-import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.math.BigDecimal;
@@ -51,7 +51,7 @@ class WithdrawalRequestServiceImplTest {
     private static final BigDecimal MONTO_MINIMO = new BigDecimal("10.00");
 
     @Mock private WithdrawalRequestRepository solicitudRetiroRepository;
-    @Mock private DatosPagoCreadorRepository datosPagoCreadorRepository;
+    @Mock private CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
     @Mock private UserRepository usuarioRepository;
 
@@ -59,14 +59,14 @@ class WithdrawalRequestServiceImplTest {
     private WithdrawalRequestServiceImpl servicio;
 
     private User creador;
-    private DatosPagoCreador datosPago;
+    private CreatorPaymentDetails datosPago;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(servicio, "montoMinimo", MONTO_MINIMO);
 
         creador = User.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Creadora").build();
-        datosPago = DatosPagoCreador.builder().usuario(creador).correoPaypal("ana@paypal.test").build();
+        datosPago = CreatorPaymentDetails.builder().usuario(creador).correoPaypal("ana@paypal.test").build();
 
         given(datosPagoCreadorRepository.findByUsuarioIdUsuario(ID_CREADOR)).willReturn(Optional.of(datosPago));
         given(usuarioRepository.findById(ID_CREADOR)).willReturn(Optional.of(creador));

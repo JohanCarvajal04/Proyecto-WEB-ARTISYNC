@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.social;
 
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -29,7 +29,7 @@ public class Sorteo {
     @NotNull(message = "El perfil del creador es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_perfil_creador", nullable = false)
-    private PerfilCreador perfilCreador;
+    private CreatorProfile perfilCreador;
 
     @NotBlank(message = "El titulo del sorteo es obligatorio")
     @Size(max = 150, message = "El titulo del sorteo no puede superar los 150 caracteres")

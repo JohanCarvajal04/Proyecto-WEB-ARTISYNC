@@ -12,11 +12,11 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +38,12 @@ class BriefingServiceImplTest {
     @Mock private BriefingPlantillaRepository plantillaRepo;
     @Mock private BriefingEnviadoRepository   enviadoRepo;
     @Mock private BriefingRespuestaRepository respuestaRepo;
-    @Mock private PerfilCreadorRepository     perfilRepo;
+    @Mock private CreatorProfileRepository     perfilRepo;
 
     @InjectMocks
     private BriefingServiceImpl briefingService;
 
-    private PerfilCreador perfilCreador;
+    private CreatorProfile perfilCreador;
     private User       usuarioCreador;
     private Order        pedido;
 
@@ -56,7 +56,7 @@ class BriefingServiceImplTest {
                 .correo("ana@example.com")
                 .build();
 
-        perfilCreador = PerfilCreador.builder()
+        perfilCreador = CreatorProfile.builder()
                 .idPerfil(5L)
                 .usuario(usuarioCreador)
                 .build();
@@ -184,7 +184,7 @@ class BriefingServiceImplTest {
         BriefingPlantilla plantilla = BriefingPlantilla.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
                 .nombrePlantilla("Vieja").preguntas(new ArrayList<>()).build();
-        PerfilCreador otroPerfil = PerfilCreador.builder().idPerfil(6L)
+        CreatorProfile otroPerfil = CreatorProfile.builder().idPerfil(6L)
                 .usuario(User.builder().idUsuario(2L).build()).build();
 
         when(perfilRepo.findByUsuarioIdUsuario(2L)).thenReturn(Optional.of(otroPerfil));

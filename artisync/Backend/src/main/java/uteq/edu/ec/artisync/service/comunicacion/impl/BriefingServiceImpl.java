@@ -8,11 +8,11 @@ import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlant
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
-import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
 import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
 
@@ -37,7 +37,7 @@ public class BriefingServiceImpl implements BriefingService {
     private final BriefingPlantillaRepository plantillaRepo;
     private final BriefingEnviadoRepository   enviadoRepo;
     private final BriefingRespuestaRepository respuestaRepo;
-    private final PerfilCreadorRepository     perfilRepo;
+    private final CreatorProfileRepository     perfilRepo;
 
     // =========================================================================
     // Gestión de plantillas (CREADOR)
@@ -54,7 +54,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaBriefing crearPlantilla(Long idUsuario, PeticionCrearBriefingPlantilla peticion) {
-        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
 
         validarCantidadPreguntas(peticion.getPreguntas().size());
 
@@ -82,7 +82,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaBriefing> obtenerMisPlantillas(Long idUsuario) {
-        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
         return plantillaRepo.findByPerfilCreadorIdPerfil(perfil.getIdPerfil())
                 .stream()
                 .map(p -> mapPlantillaToResponse(p, null))
@@ -100,7 +100,7 @@ public class BriefingServiceImpl implements BriefingService {
     @Transactional
     public RespuestaBriefing editarPlantilla(Long idPlantilla, Long idUsuario,
                                              PeticionCrearBriefingPlantilla peticion) {
-        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
 
@@ -132,7 +132,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idUsuario) {
-        PerfilCreador perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
 
@@ -146,15 +146,15 @@ public class BriefingServiceImpl implements BriefingService {
     }
 
     /**
-     * id_perfil y id_usuario son secuencias independientes (PerfilCreador.idPerfil
+     * id_perfil y id_usuario son secuencias independientes (CreatorProfile.idPerfil
      * es su propio IDENTITY, no comparte clave con User) — resolver el
-     * PerfilCreador propio SIEMPRE pasa por esta búsqueda por id_usuario, nunca
-     * por un findById(idUsuario) directo sobre PerfilCreadorRepository (ese fue
+     * CreatorProfile propio SIEMPRE pasa por esta búsqueda por id_usuario, nunca
+     * por un findById(idUsuario) directo sobre CreatorProfileRepository (ese fue
      * el bug: buscaba una fila de perfil con el id de usuario como si fueran
      * el mismo id, y fallaba con "Perfil creador no encontrado" para cualquier
      * cuenta cuyos ids no coincidieran por casualidad).
      */
-    private PerfilCreador resolverPerfilPropio(Long idUsuario) {
+    private CreatorProfile resolverPerfilPropio(Long idUsuario) {
         return perfilRepo.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No tienes un perfil de creador configurado"));

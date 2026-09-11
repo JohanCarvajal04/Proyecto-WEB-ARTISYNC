@@ -14,7 +14,7 @@ import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.legal.Message;
 import uteq.edu.ec.artisync.entity.legal.ChatRoom;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
+import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -72,7 +72,7 @@ class ChatServiceImplTest {
         // remitente es el cliente del pedido; el creador es otro usuario, para
         // poder probar que ambas partes tienen acceso al chat y un tercero no.
         creador = User.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Gómez").build();
-        PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
+        CreatorProfile perfil = CreatorProfile.builder().usuario(creador).build();
         Offering servicio = Offering.builder().perfil(perfil).tituloServicio("Ilustración").build();
 
         pedido = Order.builder()

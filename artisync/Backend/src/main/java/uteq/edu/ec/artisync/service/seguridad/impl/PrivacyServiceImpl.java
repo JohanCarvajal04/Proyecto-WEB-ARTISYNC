@@ -14,8 +14,8 @@ import uteq.edu.ec.artisync.entity.legal.Contract;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
 import uteq.edu.ec.artisync.entity.pedido.Order;
-import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
-import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
+import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
+import uteq.edu.ec.artisync.entity.perfil.CreatorPaymentDetails;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -24,8 +24,8 @@ import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
-import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
-import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
+import uteq.edu.ec.artisync.repository.perfil.AiCertificateRepository;
+import uteq.edu.ec.artisync.repository.perfil.CreatorPaymentDetailsRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
@@ -93,8 +93,8 @@ public class PrivacyServiceImpl implements PrivacyService {
     private static final Duration VENTANA_INTENTOS_2FA = Duration.ofMinutes(15);
 
     private final UserRepository usuarioRepository;
-    private final CertificadoIaRepository certificadoIaRepository;
-    private final DatosPagoCreadorRepository datosPagoCreadorRepository;
+    private final AiCertificateRepository certificadoIaRepository;
+    private final CreatorPaymentDetailsRepository datosPagoCreadorRepository;
     private final ContractRepository contratoRepository;
     private final EscrowPaymentRepository pagoGarantiaRepository;
     private final OrderRepository pedidoRepository;
@@ -283,8 +283,8 @@ public class PrivacyServiceImpl implements PrivacyService {
     }
 
     private void anonimizarCertificados(Long idUsuario) {
-        List<CertificadoIa> certificados = certificadoIaRepository.findByUsuarioIdUsuario(idUsuario);
-        for (CertificadoIa certificado : certificados) {
+        List<AiCertificate> certificados = certificadoIaRepository.findByUsuarioIdUsuario(idUsuario);
+        for (AiCertificate certificado : certificados) {
             if (!certificado.isDocumentoEliminado() && certificado.getUrlDocumentoS3() != null) {
                 try {
                     almacenamientoDocumentos.eliminar(certificado.getUrlDocumentoS3());
@@ -306,7 +306,7 @@ public class PrivacyServiceImpl implements PrivacyService {
      * caso el dato de pago se conserva y la excepción legal queda declarada.
      */
     private void anonimizarDatosPago(Long idUsuario, List<String> excepciones) {
-        Optional<DatosPagoCreador> datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario);
+        Optional<CreatorPaymentDetails> datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario);
         if (datosPago.isEmpty()) {
             return;
         }
@@ -318,7 +318,7 @@ public class PrivacyServiceImpl implements PrivacyService {
             return;
         }
 
-        DatosPagoCreador entidad = datosPago.get();
+        CreatorPaymentDetails entidad = datosPago.get();
         entidad.setCorreoPaypal(CORREO_PAYPAL_ANONIMO);
         datosPagoCreadorRepository.save(entidad);
     }

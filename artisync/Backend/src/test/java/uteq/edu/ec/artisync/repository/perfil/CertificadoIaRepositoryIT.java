@@ -8,7 +8,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
-import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
+import uteq.edu.ec.artisync.entity.perfil.AiCertificate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CertificadoIaRepositoryIT {
 
     @Autowired
-    private CertificadoIaRepository certificadoIaRepository;
+    private AiCertificateRepository certificadoIaRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -63,7 +63,7 @@ class CertificadoIaRepositoryIT {
 
         certificadoIaRepository.registrarDecision(9002L, idEstadoAprobado, 9002L, "Documento verificado a simple vista.");
 
-        CertificadoIa actualizado = certificadoIaRepository.findById(9002L).orElseThrow();
+        AiCertificate actualizado = certificadoIaRepository.findById(9002L).orElseThrow();
         assertThat(actualizado.getEstadoVerificacion().getIdEstadoVerificacion()).isEqualTo(idEstadoAprobado);
         assertThat(actualizado.getModerador().getIdUsuario()).isEqualTo(9002L);
         assertThat(actualizado.isDocumentoEliminado()).isTrue();
@@ -85,7 +85,7 @@ class CertificadoIaRepositoryIT {
 
         certificadoIaRepository.registrarDecision(9004L, idEstadoRequiereAclaracion, 9004L, "Falta el reverso del documento.");
 
-        CertificadoIa actualizado = certificadoIaRepository.findById(9004L).orElseThrow();
+        AiCertificate actualizado = certificadoIaRepository.findById(9004L).orElseThrow();
         assertThat(actualizado.getEstadoVerificacion().getIdEstadoVerificacion()).isEqualTo(idEstadoRequiereAclaracion);
         assertThat(actualizado.isDocumentoEliminado()).isFalse();
     }
