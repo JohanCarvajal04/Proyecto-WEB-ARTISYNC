@@ -17,8 +17,8 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.service.shared.UserMapper;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
-import uteq.edu.ec.artisync.service.legal.impl.PdfGeneracionServicioImpl;
+import uteq.edu.ec.artisync.service.legal.IPdfGenerationService;
+import uteq.edu.ec.artisync.service.legal.impl.PdfGenerationServiceImpl;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte;
@@ -60,7 +60,7 @@ class AdminUserExportVisualIT {
     @DisplayName("Genera y valida reporte de usuarios completo en PDF y XLSX con branding morado, logo y gráficas")
     void exportar_PdfYXlsx_GeneranDocumentosCompletosConGraficas() throws Exception {
         // Configurar generador real de PDF y XLSX
-        IPdfGeneracionServicio pdfService = new PdfGeneracionServicioImpl();
+        IPdfGenerationService pdfService = new PdfGenerationServiceImpl();
         GeneradorPdf generadorPdf = new GeneradorPdf(crearTemplateEngine(), pdfService);
         GeneradorXlsx generadorXlsx = new GeneradorXlsx();
         GeneradorCsv generadorCsv = new GeneradorCsv();

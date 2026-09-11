@@ -13,7 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
-import uteq.edu.ec.artisync.service.legal.IEntregableServicio;
+import uteq.edu.ec.artisync.service.legal.IDeliverableService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 
 import java.util.concurrent.CountDownLatch;
@@ -26,13 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prueba de concurrencia para el hallazgo "el escrow puede liberarse dos
- * veces" (revisión técnica, 2026-09-01): EntregableServicioImpl.aprobarEntrega
+ * veces" (revisión técnica, 2026-09-01): DeliverableServiceImpl.aprobarEntrega
  * comprobaba entregable.getEstaLiberado() sin bloqueo de fila, así que dos
  * peticiones simultaneas (doble clic, reintento de red, dos pestañas) podían
  * leer estaLiberado=false antes de que ninguna confirmara, duplicando las
  * transacciones de "Egreso"/"Comision" en el libro contable.
  *
- * El arreglo usa EntregableFinalRepository.findByPedidoIdPedidoParaActualizar
+ * El arreglo usa FinalDeliverableRepository.findByPedidoIdPedidoParaActualizar
  * (@Lock(PESSIMISTIC_WRITE)), equivalente Java del SELECT ... FOR UPDATE que
  * ya usan fn_seleccionar_ganadores_sorteo y fn_registrar_infraccion. La
  * aserción es sobre el INVARIANTE de negocio -- "el escrow se libera una sola
@@ -58,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("postgres-it")
-@Import({EntregableServicioImpl.class, AprobarEntregaConcurrenciaIT.Colaboradores.class})
+@Import({DeliverableServiceImpl.class, AprobarEntregaConcurrenciaIT.Colaboradores.class})
 @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
 class AprobarEntregaConcurrenciaIT {
 
@@ -85,7 +85,7 @@ class AprobarEntregaConcurrenciaIT {
     private static final int HILOS = 10;
 
     @Autowired
-    private IEntregableServicio entregableServicio;
+    private IDeliverableService entregableServicio;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -115,13 +115,13 @@ class AprobarEntregaConcurrenciaIT {
 
         idCategoria = jdbcTemplate.queryForObject(
                 "INSERT INTO categorias (nombre_categoria) VALUES (?) RETURNING id_categoria",
-                Long.class, "Categoria concurrencia escrow " + System.nanoTime());
+                Long.class, "Category concurrencia escrow " + System.nanoTime());
         idSubcategoria = jdbcTemplate.queryForObject(
                 "INSERT INTO subcategorias (id_categoria, nombre_subcategoria) VALUES (?, ?) RETURNING id_subcategoria",
-                Long.class, idCategoria, "Subcategoria concurrencia escrow");
+                Long.class, idCategoria, "Subcategory concurrencia escrow");
         idServicio = jdbcTemplate.queryForObject(
                 "INSERT INTO servicios (id_perfil, titulo_servicio, descripcion_detallada, precio_base) " +
-                        "VALUES (?, 'Servicio concurrencia escrow', 'Descripcion de prueba', 100.00) RETURNING id_servicio",
+                        "VALUES (?, 'Offering concurrencia escrow', 'Descripcion de prueba', 100.00) RETURNING id_servicio",
                 Long.class, idPerfil);
         jdbcTemplate.update(
                 "INSERT INTO servicio_subcategorias (id_servicio, id_subcategoria) VALUES (?, ?)",

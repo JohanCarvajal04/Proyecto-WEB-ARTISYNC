@@ -15,7 +15,7 @@ import java.util.List;
 public class MockIaService extends AbstractIaService implements IaService {
 
     public MockIaService() {
-        log.info("Servicio de IA MOCK inicializado — no se realizarán llamadas reales a APIs de IA");
+        log.info("Offering de IA MOCK inicializado — no se realizarán llamadas reales a APIs de IA");
     }
 
     @Override

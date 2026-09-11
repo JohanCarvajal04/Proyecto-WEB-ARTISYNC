@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 /**
  * Implementación del servicio de briefing.
  * REQ-F-016 ampliado: la plantilla se asigna a un servicio y sus respuestas
- * se registran al crear el pedido (ver PedidoServicioImpl); este servicio
+ * se registran al crear el pedido (ver OrderServiceImpl); este servicio
  * conserva la gestión de plantillas del creador y la lectura de respuestas.
  */
 @Slf4j
@@ -164,9 +164,9 @@ public class BriefingServiceImpl implements BriefingService {
     // Lectura del briefing respondido (solo lectura)
     // =========================================================================
     // El envío y la respuesta ya no son endpoints propios: REQ-F-016 ampliado
-    // los colapsó en PedidoServicioImpl.crearPedido (validarRespuestasBriefingCompletas
+    // los colapsó en OrderServiceImpl.crearPedido (validarRespuestasBriefingCompletas
     // + registrarBriefingCompletado), porque el cuestionario ahora cuelga del
-    // servicio (Servicio.briefingPlantilla) y se responde al crear el pedido.
+    // servicio (Offering.briefingPlantilla) y se responde al crear el pedido.
 
     @Override
     @Transactional(readOnly = true)

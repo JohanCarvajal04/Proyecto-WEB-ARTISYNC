@@ -5,14 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
-import uteq.edu.ec.artisync.service.legal.IContratoServicio;
+import uteq.edu.ec.artisync.dto.respuesta.legal.IntegrityVerificationResponse;
+import uteq.edu.ec.artisync.service.legal.IContractService;
 
 /**
  * Extraído de ContratoIntegridadScheduler para que REQUIRES_NEW funcione de
  * verdad (mismo motivo documentado en SorteoEjecutorServicio). A diferencia de
  * ReconciliacionPayPalEjecutorServicio y TicketRevisionExpiracionServicio, sí
- * reutiliza el servicio principal (IContratoServicio.verificarIntegridadHash):
+ * reutiliza el servicio principal (IContractService.verificarIntegridadHash):
  * es una lectura sin efectos secundarios financieros, así que el riesgo que
  * justificaba autocontenerse en los otros dos casos no aplica aquí.
  *
@@ -26,11 +26,11 @@ import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 @RequiredArgsConstructor
 public class ContratoIntegridadEjecutorServicio {
 
-    private final IContratoServicio contratoServicio;
+    private final IContractService contratoServicio;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void verificar(Long idContrato) {
-        RespuestaVerificacionIntegridad resultado = contratoServicio.verificarIntegridadHash(idContrato);
+        IntegrityVerificationResponse resultado = contratoServicio.verificarIntegridadHash(idContrato);
         if (!resultado.isIntegro()) {
             log.error("[ContratoIntegridadEjecutorServicio] Discrepancia de integridad detectada en el contrato {}",
                     idContrato);

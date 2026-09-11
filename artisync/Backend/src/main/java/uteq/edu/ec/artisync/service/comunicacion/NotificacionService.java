@@ -6,7 +6,7 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaNotificacion;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 
 /**
- * Servicio transversal de notificaciones.
+ * Offering transversal de notificaciones.
  * Utilizado por todos los módulos para enviar alertas en tiempo real al usuario.
  */
 public interface NotificacionService {

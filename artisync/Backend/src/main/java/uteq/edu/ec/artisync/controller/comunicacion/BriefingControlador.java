@@ -103,7 +103,7 @@ public class BriefingControlador {
     // Lectura del briefing respondido de un pedido
     // =========================================================================
     // El cliente ya no responde aquí: las respuestas se dan al crear el
-    // pedido (POST /api/v1/pedidos, ver PedidoServicioImpl.crearPedido).
+    // pedido (POST /api/v1/pedidos, ver OrderServiceImpl.crearPedido).
 
     /**
      * Recupera las respuestas del cuestionario de briefing asociado a un pedido específico.

@@ -9,14 +9,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.legal.PagoTicketRevision;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
+import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.legal.RevisionTicketPayment;
+import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.repository.legal.PagoTicketRevisionRepository;
-import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
+import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
 import java.math.BigDecimal;
@@ -33,24 +33,24 @@ import static org.mockito.Mockito.verify;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class TicketRevisionExpiracionServicioTest {
 
-    @Mock private TicketRevisionRepository ticketRevisionRepository;
-    @Mock private PagoTicketRevisionRepository pagoTicketRevisionRepository;
+    @Mock private RevisionTicketRepository ticketRevisionRepository;
+    @Mock private RevisionTicketPaymentRepository pagoTicketRevisionRepository;
     @Mock private NotificacionService notificacionService;
 
     @InjectMocks
     private TicketRevisionExpiracionServicio servicio;
 
-    private TicketRevision ticketAbierto;
+    private RevisionTicket ticketAbierto;
 
     @BeforeEach
     void setUp() {
         User cliente = User.builder().idUsuario(100L).build();
         User creador = User.builder().idUsuario(200L).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
-        Servicio servicioCatalogo = Servicio.builder().perfil(perfil).tituloServicio("Servicio de prueba").build();
-        Pedido pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicioCatalogo).build();
+        Offering servicioCatalogo = Offering.builder().perfil(perfil).tituloServicio("Offering de prueba").build();
+        Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicioCatalogo).build();
 
-        ticketAbierto = TicketRevision.builder()
+        ticketAbierto = RevisionTicket.builder()
                 .idTicket(9L).pedido(pedido).estadoTicket("Abierto")
                 .costoAdicionalGenerado(new BigDecimal("5.00")).build();
 
@@ -60,7 +60,7 @@ class TicketRevisionExpiracionServicioTest {
     @Test
     @DisplayName("marca el ticket Rechazado y el pago pendiente Expirado")
     void marcaRechazado_yExpiraPago() {
-        PagoTicketRevision pagoPendiente = PagoTicketRevision.builder()
+        RevisionTicketPayment pagoPendiente = RevisionTicketPayment.builder()
                 .ticket(ticketAbierto).monto(new BigDecimal("5.00")).estadoPago("Pendiente").build();
         given(pagoTicketRevisionRepository.findByTicketIdTicketParaActualizar(9L))
                 .willReturn(Optional.of(pagoPendiente));

@@ -11,7 +11,7 @@ import java.time.LocalDate;
 /**
  * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
  * 
- * Propósito: Contrato de entrada para la creacion de nuevas identidades, sujeto a fuertes validaciones de Bean Validation.
+ * Propósito: Contract de entrada para la creacion de nuevas identidades, sujeto a fuertes validaciones de Bean Validation.
  * 
  * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
  * para asegurar la integridad estructural y de negocio de los datos recibidos 

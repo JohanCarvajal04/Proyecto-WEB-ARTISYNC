@@ -83,7 +83,7 @@ public class PreAuth2faTicketService {
         } catch (DataAccessException e) {
             log.error("No se pudo emitir el ticket pre-auth de 2FA en Redis (fail-closed): {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Servicio de autenticación temporalmente no disponible");
+                    "Offering de autenticación temporalmente no disponible");
         }
         return ticketPlano;
     }
@@ -118,7 +118,7 @@ public class PreAuth2faTicketService {
         } catch (DataAccessException e) {
             log.error("No se pudo validar el ticket pre-auth de 2FA en Redis (fail-closed): {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Servicio de autenticación temporalmente no disponible");
+                    "Offering de autenticación temporalmente no disponible");
         }
     }
 

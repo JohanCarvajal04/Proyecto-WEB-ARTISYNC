@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Componente de Seguridad: Servicio criptografico para tokens JWT.
+ * Componente de Seguridad: Offering criptografico para tokens JWT.
  * 
  * Propósito: Centralizar la logica de generacion, validacion, firma y extraccion de claims de los JSON Web Tokens.
  * 

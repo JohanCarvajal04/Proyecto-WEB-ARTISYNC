@@ -13,7 +13,7 @@ import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
@@ -103,7 +103,7 @@ class InfraccionServiceImplTest {
     @DisplayName("historialPorUsuario — filtra en la consulta, no devuelve infracciones de otros usuarios")
     void historialPorUsuario_filtraPorUsuarioEnLaQuery() {
         User usuario1 = User.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
-        Pedido pedido = Pedido.builder().idPedido(10L).build();
+        Order pedido = Order.builder().idPedido(10L).build();
         InfraccionMensaje infraccionDeUsuario1 = InfraccionMensaje.builder()
                 .idInfraccion(7L)
                 .usuario(usuario1)
@@ -128,7 +128,7 @@ class InfraccionServiceImplTest {
     @DisplayName("listarInfracciones — lista todas las infracciones del sistema, sin filtrar por usuario")
     void listarInfracciones_listaTodasSinFiltrarPorUsuario() {
         User usuario1 = User.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
-        Pedido pedido = Pedido.builder().idPedido(10L).build();
+        Order pedido = Order.builder().idPedido(10L).build();
         InfraccionMensaje infraccion = InfraccionMensaje.builder()
                 .idInfraccion(9L)
                 .usuario(usuario1)

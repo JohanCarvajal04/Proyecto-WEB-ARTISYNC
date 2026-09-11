@@ -13,10 +13,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionActualizarCategoria;
-import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearCategoria;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.UpdateCategoryRequest;
+import uteq.edu.ec.artisync.dto.peticion.catalogo.CreateCategoryRequest;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.catalogo.ICategoriaServicio;
+import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,18 +40,18 @@ class CategoriaAutorizacionTest {
     static class ContextoDePrueba {
 
         @Bean
-        ICategoriaServicio categoriaServicio() {
-            return mock(ICategoriaServicio.class);
+        ICategoryService categoriaServicio() {
+            return mock(ICategoryService.class);
         }
 
         @Bean
-        CategoriaControlador categoriaControlador(ICategoriaServicio servicio) {
-            return new CategoriaControlador(servicio);
+        CategoryController categoriaControlador(ICategoryService servicio) {
+            return new CategoryController(servicio);
         }
     }
 
     @Autowired
-    private CategoriaControlador controlador;
+    private CategoryController controlador;
 
     @AfterEach
     void limpiarContexto() {
@@ -71,8 +71,8 @@ class CategoriaAutorizacionTest {
         return new CustomUserDetails(1L, "usuario", "x", true, true, true, true, concedidas);
     }
 
-    private PeticionCrearCategoria peticion() {
-        return new PeticionCrearCategoria();
+    private CreateCategoryRequest peticion() {
+        return new CreateCategoryRequest();
     }
 
     @Test
@@ -107,7 +107,7 @@ class CategoriaAutorizacionTest {
     void actualizarYEliminar_moderadorConElPermiso_estanAutorizados() {
         autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
 
-        controlador.actualizarCategoria(1L, new PeticionActualizarCategoria());
+        controlador.actualizarCategoria(1L, new UpdateCategoryRequest());
         controlador.eliminarCategoria(1L, null);
     }
 

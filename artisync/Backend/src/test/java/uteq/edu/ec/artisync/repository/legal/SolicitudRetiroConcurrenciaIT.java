@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prueba de concurrencia para uq_solicitud_retiro_pendiente_por_creador
- * (V34__modulo_retiros.sql): SolicitudRetiroServicioImpl.solicitar() valida
+ * (V34__modulo_retiros.sql): WithdrawalRequestServiceImpl.solicitar() valida
  * en Java que el creador no tenga ya una solicitud Pendiente/Aprobada antes
  * de insertar, pero ese SELECT no bloquea fila (a diferencia de
  * findByIdParaActualizar, que sí usa PESSIMISTIC_WRITE para aprobar/rechazar).

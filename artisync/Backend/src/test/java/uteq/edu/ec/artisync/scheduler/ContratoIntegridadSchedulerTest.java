@@ -5,8 +5,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uteq.edu.ec.artisync.entity.legal.Contrato;
-import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.entity.legal.Contract;
+import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ContratoIntegridadSchedulerTest {
 
-    @Mock private ContratoRepository contratoRepository;
+    @Mock private ContractRepository contratoRepository;
     @Mock private ContratoIntegridadEjecutorServicio contratoIntegridadEjecutorServicio;
 
     @InjectMocks
@@ -24,7 +24,7 @@ class ContratoIntegridadSchedulerTest {
 
     @Test
     void verificarIntegridadDeTodos_delegaCadaContratoAlEjecutor() {
-        Contrato firmado = Contrato.builder().idContrato(1L).hashContenido("abc").build();
+        Contract firmado = Contract.builder().idContrato(1L).hashContenido("abc").build();
         when(contratoRepository.findByHashContenidoIsNotNull()).thenReturn(List.of(firmado));
 
         scheduler.verificarIntegridadDeTodos();
@@ -43,8 +43,8 @@ class ContratoIntegridadSchedulerTest {
 
     @Test
     void verificarIntegridadDeTodos_unContratoFallaOtroSigueLogueaYContinua() {
-        Contrato a = Contrato.builder().idContrato(1L).hashContenido("abc").build();
-        Contrato b = Contrato.builder().idContrato(2L).hashContenido("def").build();
+        Contract a = Contract.builder().idContrato(1L).hashContenido("abc").build();
+        Contract b = Contract.builder().idContrato(2L).hashContenido("def").build();
         when(contratoRepository.findByHashContenidoIsNotNull()).thenReturn(List.of(a, b));
         doThrow(new RuntimeException("fallo simulado")).when(contratoIntegridadEjecutorServicio).verificar(1L);
 

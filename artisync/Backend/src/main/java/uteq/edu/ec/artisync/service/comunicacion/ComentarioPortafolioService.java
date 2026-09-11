@@ -6,7 +6,7 @@ import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearComentario;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaComentario;
 
 /**
- * Servicio de comentarios sobre ítems de portafolio.
+ * Offering de comentarios sobre ítems de portafolio.
  * Cualquier usuario autenticado puede comentar una obra publicada;
  * el autor del comentario, el dueño del portafolio o un ADMIN pueden eliminarlo.
  */

@@ -9,7 +9,7 @@ import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 /**
  * Convierte un {@link DocumentoGenerado} en la respuesta HTTP de descarga.
  * Siempre {@code attachment}, nunca {@code inline} — mismo criterio que
- * {@code EntregableControlador.responderArchivo}: un reporte puede incluir datos de
+ * {@code DeliverableController.responderArchivo}: un reporte puede incluir datos de
  * usuario, y servirlo inline abriría la puerta a XSS almacenado si el navegador
  * llegara a interpretarlo en el dominio de la plataforma.
  */

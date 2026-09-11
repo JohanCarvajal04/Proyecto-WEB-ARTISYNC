@@ -10,20 +10,20 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditContext;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.entity.legal.Contrato;
-import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
-import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.legal.Contract;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
-import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
-import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
-import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
-import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.legal.ContractRepository;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
+import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
@@ -95,11 +95,11 @@ public class PrivacyServiceImpl implements PrivacyService {
     private final UserRepository usuarioRepository;
     private final CertificadoIaRepository certificadoIaRepository;
     private final DatosPagoCreadorRepository datosPagoCreadorRepository;
-    private final ContratoRepository contratoRepository;
-    private final PagoGarantiaRepository pagoGarantiaRepository;
-    private final PedidoRepository pedidoRepository;
-    private final HistorialEstadoPedidoRepository historialEstadoPedidoRepository;
-    private final FlujoEtapaConfigRepository flujoEtapaConfigRepository;
+    private final ContractRepository contratoRepository;
+    private final EscrowPaymentRepository pagoGarantiaRepository;
+    private final OrderRepository pedidoRepository;
+    private final OrderStatusHistoryRepository historialEstadoPedidoRepository;
+    private final WorkflowStageConfigRepository flujoEtapaConfigRepository;
     private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     private final TwoFactorService twoFactorService;
     private final IntentosAutenticacionService intentosAutenticacionService;
@@ -214,13 +214,13 @@ public class PrivacyServiceImpl implements PrivacyService {
      * como "en curso": no hay evidencia de que haya terminado.
      */
     private boolean tienePedidoEnCurso(Long idUsuario) {
-        List<Pedido> pedidos = Stream.concat(
+        List<Order> pedidos = Stream.concat(
                         pedidoRepository.findByUsuarioClienteIdUsuario(idUsuario).stream(),
                         pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idUsuario).stream())
                 .toList();
 
-        for (Pedido pedido : pedidos) {
-            Optional<HistorialEstadoPedido> ultimaTransicion =
+        for (Order pedido : pedidos) {
+            Optional<OrderStatusHistory> ultimaTransicion =
                     historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(pedido.getIdPedido());
 
             if (ultimaTransicion.isEmpty()) {
@@ -324,13 +324,13 @@ public class PrivacyServiceImpl implements PrivacyService {
     }
 
     private boolean tieneFondosRetenidos(Long idUsuario) {
-        List<Contrato> contratos = Stream.concat(
+        List<Contract> contratos = Stream.concat(
                         contratoRepository.findByPedidoUsuarioClienteIdUsuario(idUsuario).stream(),
                         contratoRepository.findByPedidoServicioPerfilUsuarioIdUsuario(idUsuario).stream())
                 .toList();
 
-        for (Contrato contrato : contratos) {
-            Optional<PagoGarantia> pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());
+        for (Contract contrato : contratos) {
+            Optional<EscrowPayment> pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());
             if (pago.isPresent() && ESTADO_FONDOS_RETENIDO.equalsIgnoreCase(pago.get().getEstadoFondos())) {
                 return true;
             }

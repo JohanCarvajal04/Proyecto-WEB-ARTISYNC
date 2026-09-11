@@ -38,7 +38,7 @@ public class NvidiaIaService extends AbstractIaService implements IaService {
                     "ia.provider=nvidia requiere ia.nvidia.api-key (variable NVIDIA_API_KEY); "
                             + "el backend no puede arrancar sin ella.");
         }
-        log.info("Servicio de IA NVIDIA NIM inicializado [modelo={}]", config.getModel());
+        log.info("Offering de IA NVIDIA NIM inicializado [modelo={}]", config.getModel());
     }
 
     @Override

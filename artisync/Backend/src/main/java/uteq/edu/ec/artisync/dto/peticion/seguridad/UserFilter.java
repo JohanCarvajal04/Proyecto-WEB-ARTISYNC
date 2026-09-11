@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * Filtros de GET /api/v1/admin/usuarios y su exportación (hallazgo 1.3,
  * INFORME-REVISION-COMPLETA.md). Se bindean como query params sin anotar
- * ({@code @ModelAttribute} implícito), igual estilo que {@code FiltroReporteContrato}.
+ * ({@code @ModelAttribute} implícito), igual estilo que {@code ContractReportFilter}.
  */
 @Data
 public class UserFilter {

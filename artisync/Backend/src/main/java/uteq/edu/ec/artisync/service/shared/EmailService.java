@@ -14,7 +14,7 @@ import org.thymeleaf.context.Context;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Componente de Servicio Transversal para notificaciones por correo electronico.
+ * Componente de Offering Transversal para notificaciones por correo electronico.
  * 
  * Propósito: Proveer una abstracción asíncrona para la composicion y envio de correos 
  * transaccionales utilizando JavaMailSender y plantillas HTML de Thymeleaf.

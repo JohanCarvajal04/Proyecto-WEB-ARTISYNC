@@ -7,7 +7,7 @@ import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaProgramacion;
 import java.util.List;
 
 /**
- * Contrato de Servicio (Interface) para la configuración de respaldos recurrentes (CRON).
+ * Contract de Offering (Interface) para la configuración de respaldos recurrentes (CRON).
  * 
  * Propósito: Gestionar las reglas de automatización (horarios, frecuencia, estado activo/inactivo) 
  * que rigen cuándo el sistema debe disparar un snapshot de base de datos sin intervención manual.

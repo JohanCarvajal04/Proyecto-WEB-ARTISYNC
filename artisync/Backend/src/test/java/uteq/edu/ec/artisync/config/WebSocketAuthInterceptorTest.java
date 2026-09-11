@@ -16,12 +16,12 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
-import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.legal.SalaChat;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.legal.ChatRoom;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
+import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
@@ -52,11 +52,11 @@ class WebSocketAuthInterceptorTest {
 
     @Mock private JwtService jwtService;
     @Mock private CustomUserDetailsService userDetailsService;
-    @Mock private SalaChatRepository salaChatRepository;
+    @Mock private ChatRoomRepository salaChatRepository;
     @Mock private Claims claims;
 
     private WebSocketAuthInterceptor interceptor;
-    private SalaChat sala;
+    private ChatRoom sala;
 
     @BeforeEach
     void setUp() {
@@ -65,9 +65,9 @@ class WebSocketAuthInterceptorTest {
         User cliente = User.builder().idUsuario(ID_CLIENTE).build();
         User creador = User.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
-        Servicio servicio = Servicio.builder().perfil(perfil).build();
-        Pedido pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
-        sala = SalaChat.builder().idSala(ID_SALA).pedido(pedido).salaActiva(true).build();
+        Offering servicio = Offering.builder().perfil(perfil).build();
+        Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
+        sala = ChatRoom.builder().idSala(ID_SALA).pedido(pedido).salaActiva(true).build();
     }
 
     // ---------- CONNECT ----------

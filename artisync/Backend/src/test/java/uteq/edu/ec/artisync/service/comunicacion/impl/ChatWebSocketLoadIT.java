@@ -110,13 +110,13 @@ class ChatWebSocketLoadIT {
 
         idCategoria = jdbcTemplate.queryForObject(
                 "INSERT INTO categorias (nombre_categoria) VALUES (?) RETURNING id_categoria",
-                Long.class, "Categoria WS load IT " + System.nanoTime());
+                Long.class, "Category WS load IT " + System.nanoTime());
         idSubcategoria = jdbcTemplate.queryForObject(
                 "INSERT INTO subcategorias (id_categoria, nombre_subcategoria) VALUES (?, ?) RETURNING id_subcategoria",
-                Long.class, idCategoria, "Subcategoria WS load IT");
+                Long.class, idCategoria, "Subcategory WS load IT");
         idServicio = jdbcTemplate.queryForObject(
                 "INSERT INTO servicios (id_perfil, titulo_servicio, descripcion_detallada, precio_base) " +
-                        "VALUES (?, 'Servicio WS load IT', 'Descripcion de prueba', 50.00) RETURNING id_servicio",
+                        "VALUES (?, 'Offering WS load IT', 'Descripcion de prueba', 50.00) RETURNING id_servicio",
                 Long.class, idPerfil);
         jdbcTemplate.update(
                 "INSERT INTO servicio_subcategorias (id_servicio, id_subcategoria) VALUES (?, ?)",

@@ -6,7 +6,7 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 
 /**
- * Servicio de gestión de infracciones y suspensiones de cuenta.
+ * Offering de gestión de infracciones y suspensiones de cuenta.
  * RF-15: 3 infracciones en 30 días → suspensión temporal de 15 días.
  */
 public interface InfraccionService {

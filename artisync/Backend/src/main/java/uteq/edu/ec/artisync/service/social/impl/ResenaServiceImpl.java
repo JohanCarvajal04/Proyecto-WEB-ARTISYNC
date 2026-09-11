@@ -10,14 +10,14 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
-import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.social.ResenaServicio;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
-import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.repository.social.ResenaServicioRepository;
 import uteq.edu.ec.artisync.service.social.ResenaService;
 
@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 public class ResenaServiceImpl implements ResenaService {
 
     private final ResenaServicioRepository resenaServicioRepository;
-    private final PedidoRepository pedidoRepository;
-    private final EntregableFinalRepository entregableFinalRepository;
+    private final OrderRepository pedidoRepository;
+    private final FinalDeliverableRepository entregableFinalRepository;
 
     @Override
     @Transactional
@@ -52,8 +52,8 @@ public class ResenaServiceImpl implements ResenaService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
-        Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado: " + idPedido));
+        Order pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado: " + idPedido));
 
         // Validar que es el cliente del pedido
         if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {
@@ -62,7 +62,7 @@ public class ResenaServiceImpl implements ResenaService {
         }
 
         // Validar que el entregable fue liberado (post-entrega)
-        EntregableFinal entregable = entregableFinalRepository.findByPedidoIdPedido(idPedido)
+        FinalDeliverable entregable = entregableFinalRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new BusinessRuleException(
                         "Solo puedes dejar una reseña después de recibir el entregable"));
 
@@ -188,7 +188,7 @@ public class ResenaServiceImpl implements ResenaService {
 
     // -------------------------------------------------------------------------
     private RespuestaResena mapToResponse(ResenaServicio resena) {
-        Pedido pedido = resena.getPedido();
+        Order pedido = resena.getPedido();
         String nombreCliente = pedido.getUsuarioCliente().getNombres()
                 + " " + pedido.getUsuarioCliente().getApellidos();
         String tituloServicio = pedido.getServicio().getTituloServicio();

@@ -10,22 +10,22 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
-import uteq.edu.ec.artisync.entity.legal.Contrato;
-import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
-import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
-import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.catalogo.Workflow;
+import uteq.edu.ec.artisync.entity.legal.Contract;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
+import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
 import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
-import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
-import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
-import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
-import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.legal.ContractRepository;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
+import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
 import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
@@ -59,15 +59,15 @@ class PrivacyServiceImplTest {
     @Mock
     private DatosPagoCreadorRepository datosPagoCreadorRepository;
     @Mock
-    private ContratoRepository contratoRepository;
+    private ContractRepository contratoRepository;
     @Mock
-    private PagoGarantiaRepository pagoGarantiaRepository;
+    private EscrowPaymentRepository pagoGarantiaRepository;
     @Mock
-    private PedidoRepository pedidoRepository;
+    private OrderRepository pedidoRepository;
     @Mock
-    private HistorialEstadoPedidoRepository historialEstadoPedidoRepository;
+    private OrderStatusHistoryRepository historialEstadoPedidoRepository;
     @Mock
-    private FlujoEtapaConfigRepository flujoEtapaConfigRepository;
+    private WorkflowStageConfigRepository flujoEtapaConfigRepository;
     @Mock
     private TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     @Mock
@@ -140,10 +140,10 @@ class PrivacyServiceImplTest {
         DatosPagoCreador datosPago = DatosPagoCreador.builder().idDatosPago(5L).correoPaypal("ana@paypal.com").build();
         when(datosPagoCreadorRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(datosPago));
 
-        Contrato contrato = Contrato.builder().idContrato(10L).build();
+        Contract contrato = Contract.builder().idContrato(10L).build();
         when(contratoRepository.findByPedidoServicioPerfilUsuarioIdUsuario(1L)).thenReturn(List.of(contrato));
 
-        PagoGarantia pagoGarantia = PagoGarantia.builder().idPago(20L).estadoFondos("Retenido").build();
+        EscrowPayment pagoGarantia = EscrowPayment.builder().idPago(20L).estadoFondos("Retenido").build();
         when(pagoGarantiaRepository.findByContratoIdContrato(10L)).thenReturn(Optional.of(pagoGarantia));
 
         RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, null);
@@ -159,12 +159,12 @@ class PrivacyServiceImplTest {
     void solicitarSupresionPropia_seRechaza_siHayPedidoEnCurso() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        FlujoTrabajo flujo = FlujoTrabajo.builder().idFlujo(7L).build();
-        Pedido pedido = Pedido.builder().idPedido(100L).flujo(flujo).build();
+        Workflow flujo = Workflow.builder().idFlujo(7L).build();
+        Order pedido = Order.builder().idPedido(100L).flujo(flujo).build();
         when(pedidoRepository.findByUsuarioClienteIdUsuario(1L)).thenReturn(List.of(pedido));
 
-        EtapaFlujo etapaActual = EtapaFlujo.builder().idEtapa(3L).build();
-        HistorialEstadoPedido ultimaTransicion = HistorialEstadoPedido.builder().etapa(etapaActual).build();
+        WorkflowStage etapaActual = WorkflowStage.builder().idEtapa(3L).build();
+        OrderStatusHistory ultimaTransicion = OrderStatusHistory.builder().etapa(etapaActual).build();
         when(historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(100L))
                 .thenReturn(Optional.of(ultimaTransicion));
         when(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(7L, 3L))
@@ -181,12 +181,12 @@ class PrivacyServiceImplTest {
     void solicitarSupresionPropia_permiteSuprimir_siElPedidoYaEstaEnEtapaFinal() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        FlujoTrabajo flujo = FlujoTrabajo.builder().idFlujo(7L).build();
-        Pedido pedido = Pedido.builder().idPedido(100L).flujo(flujo).build();
+        Workflow flujo = Workflow.builder().idFlujo(7L).build();
+        Order pedido = Order.builder().idPedido(100L).flujo(flujo).build();
         when(pedidoRepository.findByUsuarioClienteIdUsuario(1L)).thenReturn(List.of(pedido));
 
-        EtapaFlujo etapaActual = EtapaFlujo.builder().idEtapa(9L).build();
-        HistorialEstadoPedido ultimaTransicion = HistorialEstadoPedido.builder().etapa(etapaActual).build();
+        WorkflowStage etapaActual = WorkflowStage.builder().idEtapa(9L).build();
+        OrderStatusHistory ultimaTransicion = OrderStatusHistory.builder().etapa(etapaActual).build();
         when(historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(100L))
                 .thenReturn(Optional.of(ultimaTransicion));
         when(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(7L, 9L))
@@ -217,8 +217,8 @@ class PrivacyServiceImplTest {
     void anonimizarUsuarioAdmin_rechaza_siHayPedidoEnCurso() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        FlujoTrabajo flujo = FlujoTrabajo.builder().idFlujo(7L).build();
-        Pedido pedido = Pedido.builder().idPedido(100L).flujo(flujo).build();
+        Workflow flujo = Workflow.builder().idFlujo(7L).build();
+        Order pedido = Order.builder().idPedido(100L).flujo(flujo).build();
         when(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(1L)).thenReturn(List.of(pedido));
 
         when(historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(100L))

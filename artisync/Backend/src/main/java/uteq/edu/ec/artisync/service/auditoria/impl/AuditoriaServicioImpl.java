@@ -167,7 +167,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
                         ColumnaReporte.texto("Entidad", EventoAuditoria::getEntidadAfectada),
                         ColumnaReporte.entero("Id. entidad", EventoAuditoria::getIdEntidadAfectada),
                         ColumnaReporte.texto("IP", EventoAuditoria::getDireccionIp),
-                        ColumnaReporte.texto("Mensaje de error", EventoAuditoria::getMensajeError)))
+                        ColumnaReporte.texto("Message de error", EventoAuditoria::getMensajeError)))
                 .filas(pagina.getContent())
                 .generadoPor(correoSolicitante)
                 .build();

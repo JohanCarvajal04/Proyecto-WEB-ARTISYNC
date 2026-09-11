@@ -6,7 +6,7 @@ import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
 import java.util.List;
 
 /**
- * Servicio de reseñas de servicios.
+ * Offering de reseñas de servicios.
  * RF-09: Una reseña por pedido, solo post-entrega de entregable liberado.
  */
 public interface ResenaService {

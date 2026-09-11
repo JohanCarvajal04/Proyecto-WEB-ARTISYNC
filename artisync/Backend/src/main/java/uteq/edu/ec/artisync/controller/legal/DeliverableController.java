@@ -1,0 +1,131 @@
+package uteq.edu.ec.artisync.controller.legal;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
+import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
+import uteq.edu.ec.artisync.security.CustomUserDetails;
+import uteq.edu.ec.artisync.service.legal.IDeliverableService;
+
+@RestController
+@RequestMapping("/api/v1/pedidos")
+@RequiredArgsConstructor
+public class DeliverableController {
+
+    private final IDeliverableService entregableServicio;
+
+    /**
+     * Sube el entregable de un pedido, con su versión marcada de agua y su versión limpia.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que sube el entregable
+     * @param versionMarcaAgua archivo con la versión marcada de agua del entregable
+     * @param versionLimpia archivo con la versión limpia del entregable
+     * @return el entregable creado, con estado 201
+     * @throws ResourceNotFoundException si el pedido no existe
+     * @throws BusinessRuleException si el usuario no es el creador del servicio del pedido
+     */
+    @PostMapping(value = "/{idPedido}/entregable", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
+    public ResponseEntity<DeliverableResponse> subirEntregable(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("versionMarcaAgua") MultipartFile versionMarcaAgua,
+            @RequestParam("versionLimpia") MultipartFile versionLimpia) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(entregableServicio.subirEntregable(idPedido, userDetails.getIdUsuario(),
+                        versionMarcaAgua, versionLimpia));
+    }
+
+    /**
+     * Obtiene los datos del entregable asociado a un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que consulta el entregable
+     * @return el entregable del pedido
+     * @throws ResourceNotFoundException si no hay entregable para el pedido
+     */
+    @GetMapping("/{idPedido}/entregable")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DeliverableResponse> obtenerEntregable(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(
+                entregableServicio.obtenerEntregable(idPedido, userDetails.getIdUsuario()));
+    }
+
+    /**
+     * Aprueba la entrega de un pedido y libera los fondos correspondientes.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que aprueba la entrega
+     * @return mensaje de confirmación de la aprobación
+     * @throws ResourceNotFoundException si el pedido, el entregable o el contrato no existen
+     * @throws BusinessRuleException si el usuario no es el cliente del pedido o el entregable ya fue aprobado
+     */
+    @PostMapping("/{idPedido}/aprobar")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')")
+    public ResponseEntity<RespuestaMensaje> aprobarEntrega(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        entregableServicio.aprobarEntrega(idPedido, userDetails.getIdUsuario());
+        return ResponseEntity.ok(new RespuestaMensaje("Entrega aprobada exitosamente. Fondos liberados."));
+    }
+
+    /**
+     * Descarga la versión limpia (sin marca de agua) del entregable de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que solicita la descarga
+     * @return el contenido binario del archivo, como adjunto
+     * @throws ResourceNotFoundException si el pedido, el entregable, o el archivo asociado no existen
+     * @throws BusinessRuleException si el usuario no es el cliente del pedido o el entregable aún no está disponible
+     */
+    @GetMapping("/{idPedido}/entregable/descargar")
+    @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')")
+    public ResponseEntity<byte[]> descargarVersionLimpia(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return responderArchivo(
+                entregableServicio.descargarVersionLimpia(idPedido, userDetails.getIdUsuario()));
+    }
+
+    /**
+     * Descarga la versión con marca de agua del entregable de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param userDetails usuario autenticado que solicita la descarga
+     * @return el contenido binario del archivo, como adjunto
+     * @throws ResourceNotFoundException si no hay entregable para el pedido o no tiene versión con marca de agua
+     * @throws BusinessRuleException si el usuario no tiene acceso al entregable
+     */
+    @GetMapping("/{idPedido}/entregable/descargar/marca-agua")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> descargarVersionMarcaAgua(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return responderArchivo(
+                entregableServicio.descargarVersionMarcaAgua(idPedido, userDetails.getIdUsuario()));
+    }
+
+    /**
+     * Content-Disposition como attachment y no inline: un entregable puede ser
+     * HTML o SVG, y servirlo para que el navegador lo interprete en el dominio
+     * de la plataforma abriría la puerta a XSS almacenado.
+     */
+    private ResponseEntity<byte[]> responderArchivo(IDeliverableService.ArchivoDescargado archivo) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(archivo.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(archivo.nombreSugerido()).build().toString())
+                .body(archivo.contenido());
+    }
+}

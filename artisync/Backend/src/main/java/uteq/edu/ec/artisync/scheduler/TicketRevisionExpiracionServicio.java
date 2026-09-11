@@ -7,10 +7,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
-import uteq.edu.ec.artisync.repository.legal.PagoTicketRevisionRepository;
-import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
+import uteq.edu.ec.artisync.repository.legal.RevisionTicketPaymentRepository;
+import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
 /**
@@ -27,8 +27,8 @@ public class TicketRevisionExpiracionServicio {
     private static final String PAGO_PENDIENTE = "Pendiente";
     private static final String PAGO_EXPIRADO = "Expirado";
 
-    private final TicketRevisionRepository ticketRevisionRepository;
-    private final PagoTicketRevisionRepository pagoTicketRevisionRepository;
+    private final RevisionTicketRepository ticketRevisionRepository;
+    private final RevisionTicketPaymentRepository pagoTicketRevisionRepository;
     private final NotificacionService notificacionService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -39,7 +39,7 @@ public class TicketRevisionExpiracionServicio {
         // Relectura con lock: si el creador ya resolvió el ticket, o el
         // webhook de PayPal ya confirmó el pago, entre que el scheduler lo
         // leyó y esta transacción arrancó, no hay nada que hacer.
-        TicketRevision ticket = ticketRevisionRepository.findByIdParaActualizar(idTicket).orElse(null);
+        RevisionTicket ticket = ticketRevisionRepository.findByIdParaActualizar(idTicket).orElse(null);
         if (ticket == null || !ESTADO_ABIERTO.equals(ticket.getEstadoTicket())) {
             return;
         }
@@ -57,7 +57,7 @@ public class TicketRevisionExpiracionServicio {
         log.info("[TicketRevisionExpiracionServicio] Ticket {} rechazado automáticamente: sin pago confirmado a tiempo",
                 idTicket);
 
-        Pedido pedido = ticket.getPedido();
+        Order pedido = ticket.getPedido();
         String mensaje = "Tu solicitud de revisión adicional del pedido \"" + pedido.getServicio().getTituloServicio()
                 + "\" fue rechazada automáticamente por falta de pago.";
         notificacionService.notificar(pedido.getUsuarioCliente(), "TICKET_RECHAZADO", mensaje);

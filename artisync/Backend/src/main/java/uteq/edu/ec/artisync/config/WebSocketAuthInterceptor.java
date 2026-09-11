@@ -15,9 +15,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.legal.SalaChat;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
+import uteq.edu.ec.artisync.entity.legal.ChatRoom;
+import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
@@ -86,7 +86,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
-    private final SalaChatRepository salaChatRepository;
+    private final ChatRoomRepository salaChatRepository;
 
     /**
      * {@code readOnly}: la autorización de SUBSCRIBE navega
@@ -189,13 +189,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             throw new MessagingException("Destino de suscripción inválido");
         }
 
-        SalaChat sala = salaChatRepository.findById(idSala).orElse(null);
+        ChatRoom sala = salaChatRepository.findById(idSala).orElse(null);
         if (sala == null) {
             log.warn("SUBSCRIBE rechazado: sala {} no existe (usuario {})", idSala, idUsuario);
             throw new MessagingException("Sala no encontrada");
         }
 
-        Pedido pedido = sala.getPedido();
+        Order pedido = sala.getPedido();
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
         if (!esCliente && !esCreador) {

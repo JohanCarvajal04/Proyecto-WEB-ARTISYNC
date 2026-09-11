@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Briefing enviado por el Creador a un Pedido específico.
+ * Briefing enviado por el Creador a un Order específico.
  * RF-16: Una copia del briefing por pedido; una vez completado, las respuestas son inmutables.
  */
 @Entity
@@ -31,7 +31,7 @@ public class BriefingEnviado {
     @NotNull(message = "El pedido es obligatorio")
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_pedido", nullable = false, unique = true)
-    private Pedido pedido;
+    private Order pedido;
 
     @NotNull(message = "La plantilla es obligatoria")
     @ManyToOne(fetch = FetchType.LAZY)

@@ -7,8 +7,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
-import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
+import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
 
 import java.util.List;
 
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TicketRevisionExpiracionSchedulerTest {
 
-    @Mock private TicketRevisionRepository ticketRevisionRepository;
+    @Mock private RevisionTicketRepository ticketRevisionRepository;
     @Mock private TicketRevisionExpiracionServicio ticketRevisionExpiracionServicio;
 
     @InjectMocks
@@ -32,7 +32,7 @@ class TicketRevisionExpiracionSchedulerTest {
 
     @Test
     void expirarTicketsSinPagar_delegaCadaTicketAlServicioDeExpiracion() {
-        TicketRevision vencido = TicketRevision.builder().idTicket(1L).estadoTicket("Abierto").build();
+        RevisionTicket vencido = RevisionTicket.builder().idTicket(1L).estadoTicket("Abierto").build();
         when(ticketRevisionRepository.findVencidosSinPagoConfirmado(any())).thenReturn(List.of(vencido));
 
         scheduler.expirarTicketsSinPagar();
@@ -51,8 +51,8 @@ class TicketRevisionExpiracionSchedulerTest {
 
     @Test
     void expirarTicketsSinPagar_unTicketFallaOtroSigueLogueaYContinua() {
-        TicketRevision a = TicketRevision.builder().idTicket(1L).estadoTicket("Abierto").build();
-        TicketRevision b = TicketRevision.builder().idTicket(2L).estadoTicket("Abierto").build();
+        RevisionTicket a = RevisionTicket.builder().idTicket(1L).estadoTicket("Abierto").build();
+        RevisionTicket b = RevisionTicket.builder().idTicket(2L).estadoTicket("Abierto").build();
         when(ticketRevisionRepository.findVencidosSinPagoConfirmado(any())).thenReturn(List.of(a, b));
         doThrow(new RuntimeException("fallo simulado")).when(ticketRevisionExpiracionServicio).expirarTicket(1L);
 

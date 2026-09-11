@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
-import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReconciliacionPayPalScheduler {
 
-    private final PagoGarantiaRepository pagoGarantiaRepository;
+    private final EscrowPaymentRepository pagoGarantiaRepository;
     private final ReconciliacionPayPalEjecutorServicio reconciliacionPayPalEjecutorServicio;
 
     @Value("${paypal.reconciliacion.umbral-minutos:30}")
@@ -41,7 +41,7 @@ public class ReconciliacionPayPalScheduler {
     @Scheduled(fixedRateString = "${paypal.reconciliacion.intervalo-ms:900000}") // 15 min
     public void reconciliarPagosPendientes() {
         LocalDateTime limite = LocalDateTime.now().minusMinutes(umbralMinutos);
-        List<PagoGarantia> pendientes = pagoGarantiaRepository
+        List<EscrowPayment> pendientes = pagoGarantiaRepository
                 .findByEstadoFondosAndFechaActualizacionBefore("Pendiente", limite);
 
         if (pendientes.isEmpty()) {
@@ -51,7 +51,7 @@ public class ReconciliacionPayPalScheduler {
         log.info("[ReconciliacionPayPalScheduler] Reconciliando {} pago(s) pendiente(s) de más de {} min",
                 pendientes.size(), umbralMinutos);
 
-        for (PagoGarantia pago : pendientes) {
+        for (EscrowPayment pago : pendientes) {
             try {
                 reconciliacionPayPalEjecutorServicio.reconciliar(pago.getIdPago());
             } catch (Exception e) {

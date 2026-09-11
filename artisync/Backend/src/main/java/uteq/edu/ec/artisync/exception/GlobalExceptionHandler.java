@@ -92,7 +92,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> manejarExcepcionServicioIaNoDisponible(
             AiServiceUnavailableException ex, HttpServletRequest peticion) {
 
-        log.warn("Servicio de IA no disponible en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        log.warn("Offering de IA no disponible en {}: {}", peticion.getRequestURI(), ex.getMessage());
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.SERVICE_UNAVAILABLE, "ia-no-disponible", ex.getMessage(), peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);

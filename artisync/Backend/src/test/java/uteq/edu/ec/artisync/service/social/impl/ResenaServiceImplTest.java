@@ -10,15 +10,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
-import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.social.ResenaServicio;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
-import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
+import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
 import uteq.edu.ec.artisync.repository.social.ResenaServicioRepository;
 
 import java.time.LocalDateTime;
@@ -39,16 +39,16 @@ import static org.mockito.Mockito.verify;
 class ResenaServiceImplTest {
 
     @Mock private ResenaServicioRepository resenaServicioRepository;
-    @Mock private PedidoRepository pedidoRepository;
-    @Mock private EntregableFinalRepository entregableFinalRepository;
+    @Mock private OrderRepository pedidoRepository;
+    @Mock private FinalDeliverableRepository entregableFinalRepository;
 
     @InjectMocks
     private ResenaServiceImpl resenaService;
 
     private User cliente;
-    private Servicio servicio;
-    private Pedido pedido;
-    private EntregableFinal entregableLiberado;
+    private Offering servicio;
+    private Order pedido;
+    private FinalDeliverable entregableLiberado;
 
     @BeforeEach
     void setUp() {
@@ -56,13 +56,13 @@ class ResenaServiceImplTest {
                 .idUsuario(1L).nombres("Carlos").apellidos("Ruiz")
                 .correo("carlos@test.com").build();
 
-        servicio = Servicio.builder()
+        servicio = Offering.builder()
                 .idServicio(5L).tituloServicio("Diseño de Logo").build();
 
-        pedido = Pedido.builder()
+        pedido = Order.builder()
                 .idPedido(50L).usuarioCliente(cliente).servicio(servicio).build();
 
-        entregableLiberado = EntregableFinal.builder()
+        entregableLiberado = FinalDeliverable.builder()
                 .idEntregable(1L).pedido(pedido).estaLiberado(true).build();
     }
 

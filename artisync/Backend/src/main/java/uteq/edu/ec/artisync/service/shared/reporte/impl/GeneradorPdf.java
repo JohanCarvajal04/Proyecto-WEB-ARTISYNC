@@ -6,7 +6,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
+import uteq.edu.ec.artisync.service.legal.IPdfGenerationService;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * PDF vía plantilla Thymeleaf (mismo motor que {@code EmailService}) + el
- * {@link IPdfGeneracionServicio} ya existente para contratos — no se añade un
+ * {@link IPdfGenerationService} ya existente para contratos — no se añade un
  * segundo renderizador de PDF. Thymeleaf escapa con {@code th:text} sin que el
  * dominio tenga que llamar a {@code HtmlUtils.htmlEscape} a mano.
  */
@@ -37,7 +37,7 @@ public class GeneradorPdf implements GeneradorReporte {
     private static final String RUTA_LOGO = "reportes/logo-artisync.png";
 
     private final TemplateEngine templateEngine;
-    private final IPdfGeneracionServicio pdfGeneracionServicio;
+    private final IPdfGenerationService pdfGeneracionServicio;
 
     @Override
     /**
@@ -94,7 +94,7 @@ public class GeneradorPdf implements GeneradorReporte {
     }
 
     /** El logo se codifica como {@code data:} URI para que el candado anti-SSRF de
-     *  {@link IPdfGeneracionServicio} no tenga que abrir el esquema {@code classpath:}. */
+     *  {@link IPdfGenerationService} no tenga que abrir el esquema {@code classpath:}. */
     private String logoComoDataUri() {
         try (InputStream is = new ClassPathResource(RUTA_LOGO).getInputStream()) {
             byte[] bytes = is.readAllBytes();

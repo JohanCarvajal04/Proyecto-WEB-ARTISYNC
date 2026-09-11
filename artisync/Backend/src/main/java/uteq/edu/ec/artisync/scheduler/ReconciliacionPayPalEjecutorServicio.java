@@ -11,11 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
-import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
-import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
+import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
+import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
@@ -24,7 +24,7 @@ import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
  * verdad (mismo motivo documentado en SorteoEjecutorServicio: this.metodo()
  * dentro de la misma clase se salta el proxy de Spring AOP).
  *
- * No reutiliza los métodos privados de PagoServicioImpl (capturarOrden,
+ * No reutiliza los métodos privados de PaymentServiceImpl (capturarOrden,
  * firmaVerificada, etc.): se mantiene deliberadamente autocontenido para no
  * arriesgar la lógica de idempotencia del webhook, ya verificada (REQ-NF-014),
  * a costa de duplicar ~15 líneas de captura.
@@ -37,8 +37,8 @@ public class ReconciliacionPayPalEjecutorServicio {
     private static final String FONDOS_PENDIENTE = "Pendiente";
     private static final String FONDOS_RETENIDO = "Retenido";
 
-    private final PagoGarantiaRepository pagoGarantiaRepository;
-    private final TransaccionPagoRepository transaccionPagoRepository;
+    private final EscrowPaymentRepository pagoGarantiaRepository;
+    private final PaymentTransactionRepository transaccionPagoRepository;
     private final NotificacionService notificacionService;
     private final PayPalClient payPalClient;
 
@@ -52,7 +52,7 @@ public class ReconciliacionPayPalEjecutorServicio {
         // Relectura con lock: si el webhook confirmó el pago entre que el
         // scheduler lo leyó y esta transacción arrancó, gana el webhook y aquí
         // no hay nada que hacer.
-        PagoGarantia pago = pagoGarantiaRepository.findByIdParaActualizar(idPago).orElse(null);
+        EscrowPayment pago = pagoGarantiaRepository.findByIdParaActualizar(idPago).orElse(null);
         if (pago == null || !FONDOS_PENDIENTE.equalsIgnoreCase(pago.getEstadoFondos())) {
             return;
         }
@@ -82,7 +82,7 @@ public class ReconciliacionPayPalEjecutorServicio {
         }
     }
 
-    private void capturarYConfirmar(PagoGarantia pago) {
+    private void capturarYConfirmar(EscrowPayment pago) {
         try {
             JsonNode respuesta = payPalClient.llamarPayPal(
                     "/v2/checkout/orders/" + pago.getIdOrdenPaypal() + "/capture",
@@ -107,11 +107,11 @@ public class ReconciliacionPayPalEjecutorServicio {
         }
     }
 
-    private void confirmarPago(PagoGarantia pago, String motivo) {
+    private void confirmarPago(EscrowPayment pago, String motivo) {
         pago.setEstadoFondos(FONDOS_RETENIDO);
         pagoGarantiaRepository.save(pago);
 
-        transaccionPagoRepository.save(TransaccionPago.builder()
+        transaccionPagoRepository.save(PaymentTransaction.builder()
                 .pago(pago)
                 .tipoTransaccion("Ingreso")
                 .monto(pago.getMontoRetenido())
@@ -120,7 +120,7 @@ public class ReconciliacionPayPalEjecutorServicio {
         log.info("[ReconciliacionPayPalEjecutorServicio] Pago {} confirmado por {}. Fondos retenidos: ${}",
                 pago.getIdPago(), motivo, pago.getMontoRetenido());
 
-        Pedido pedido = pago.getContrato().getPedido();
+        Order pedido = pago.getContrato().getPedido();
         String mensaje = "El pago de tu pedido \"" + pedido.getServicio().getTituloServicio()
                 + "\" fue confirmado. Los fondos quedan en garantía hasta la aprobación de la entrega.";
         notificacionService.notificar(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);

@@ -5,7 +5,7 @@ import uteq.edu.ec.artisync.dto.ia.*;
 import java.util.List;
 
 /**
- * Contrato Strategy de IA. Los seis métodos existen aunque hoy solo se
+ * Contract Strategy de IA. Los seis métodos existen aunque hoy solo se
  * cableen verificarIdentidad/analizarCertificado (REQ-F-006/007); el resto
  * queda listo para futuras herramientas del moderador sin romper la interfaz.
  */

@@ -11,8 +11,8 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
-import uteq.edu.ec.artisync.service.legal.impl.PdfGeneracionServicioImpl;
+import uteq.edu.ec.artisync.service.legal.IPdfGenerationService;
+import uteq.edu.ec.artisync.service.legal.impl.PdfGenerationServiceImpl;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 class GeneradorPdfTest {
 
     @Mock
-    private IPdfGeneracionServicio pdfGeneracionServicio;
+    private IPdfGenerationService pdfGeneracionServicio;
 
     @Captor
     private ArgumentCaptor<String> htmlCaptor;
@@ -100,7 +100,7 @@ class GeneradorPdfTest {
     @Test
     @DisplayName("Extremo a extremo con el renderizador real: produce un PDF válido y el logo data: no dispara SSRF")
     void generar_ExtremoAExtremoProduceDocumentoPdfValido() {
-        GeneradorPdf generador = new GeneradorPdf(crearTemplateEngine(), new PdfGeneracionServicioImpl());
+        GeneradorPdf generador = new GeneradorPdf(crearTemplateEngine(), new PdfGenerationServiceImpl());
 
         ModeloReporte<ReporteDePrueba> modelo = ModeloReporte.<ReporteDePrueba>builder()
                 .titulo("Reporte E2E")

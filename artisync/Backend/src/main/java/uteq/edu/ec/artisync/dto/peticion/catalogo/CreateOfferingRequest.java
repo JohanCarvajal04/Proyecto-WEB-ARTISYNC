@@ -1,0 +1,57 @@
+package uteq.edu.ec.artisync.dto.peticion.catalogo;
+
+import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateOfferingRequest {
+
+    @NotBlank(message = "El titulo del servicio es obligatorio")
+    @Size(max = 150, message = "El titulo del servicio no puede superar los 150 caracteres")
+    private String tituloServicio;
+
+    @NotBlank(message = "La descripcion detallada es obligatoria")
+    @Size(min = 20, max = 2000, message = "La descripcion detallada debe tener entre 20 y 2000 caracteres")
+    private String descripcionDetallada;
+
+    @NotNull(message = "El precio base es un campo obligatorio")
+    @DecimalMin(value = "0.01", message = "El precio es un campo obligatorio y debe ser al menos 0.01 USD")
+    private BigDecimal precioBase;
+
+    @NotEmpty(message = "El servicio necesita al menos una subcategoria")
+    private List<Long> idsSubcategoria;
+
+    @NotBlank(message = "El tipo de item es obligatorio")
+    @Pattern(regexp = "PRODUCTO|SERVICIO", message = "El tipo de item debe ser PRODUCTO o SERVICIO")
+    private String tipoItem;
+
+    @Size(max = 255, message = "La URL de la miniatura no puede superar los 255 caracteres")
+    private String urlMiniatura;
+
+    @DecimalMin(value = "0.00", message = "El cargo de revision adicional no puede ser negativo")
+    private BigDecimal cargoRevisionAdicional;
+
+    @Min(value = 0, message = "El limite de revisiones no puede ser negativo")
+    @Max(value = 100, message = "El limite de revisiones no puede superar 100")
+    private Integer limiteRevisionesBase;
+
+    /** Opcional: uno de los flujos propios del creador. Si no se indica, los pedidos caen al flujo por defecto. */
+    private Long idFlujo;
+
+    /** Opcional: una plantilla del catálogo curado por ADMIN. Si no se indica, el contrato usa la predeterminada. */
+    private Long idPlantillaContrato;
+
+    /** Opcional: uno de los cuestionarios propios del creador. Si no se indica, crear un pedido no pide preguntas extra. */
+    private Long idBriefingPlantilla;
+
+    private List<Long> etiquetaIds;
+}

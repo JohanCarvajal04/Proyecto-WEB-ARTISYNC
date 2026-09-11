@@ -10,7 +10,7 @@ import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
 import java.util.List;
 
 /**
- * Servicio de sorteos configurables.
+ * Offering de sorteos configurables.
  * RF-23: CRUD de sorteos, inscripción con validaciones y selección automática de ganadores.
  */
 public interface SorteoService {

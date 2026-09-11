@@ -4,17 +4,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.entity.legal.SalaChat;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.legal.ChatRoom;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 
 /**
- * Servicio de mensajería de chat vinculado a pedidos.
+ * Offering de mensajería de chat vinculado a pedidos.
  * RF-14: Mensajería en tiempo real. RF-15: Filtrado de datos de contacto.
  */
 public interface ChatService {
 
     /** Crea la sala de chat al firmarse el contrato de un pedido. */
-    SalaChat crearSala(Pedido pedido);
+    ChatRoom crearSala(Order pedido);
 
     /** Cierra la sala y notifica vía WebSocket cuando el pedido finaliza. */
     void cerrarSala(Long idPedido);

@@ -37,7 +37,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
             throw new IllegalStateException(
                     "ia.provider=gemini requiere ia.gemini.api-key (variable GEMINI_API_KEY).");
         }
-        log.info("Servicio de IA GEMINI inicializado [modelo={}]", config.getModel());
+        log.info("Offering de IA GEMINI inicializado [modelo={}]", config.getModel());
     }
 
     @Override

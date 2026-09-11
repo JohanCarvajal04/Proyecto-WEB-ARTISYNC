@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.comunicacion;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoLike;
 
 /**
- * Servicio de "me gusta" sobre ítems de portafolio.
+ * Offering de "me gusta" sobre ítems de portafolio.
  * Cualquier usuario autenticado puede dar o quitar like; el conteo y si el
  * visitante ya dio like son datos públicos (el segundo, null-safe si no hay
  * sesión).

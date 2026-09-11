@@ -3,12 +3,12 @@ package uteq.edu.ec.artisync.util;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 
 /**
- * Extraído de PedidoServicioImpl/TicketRevisionServicioImpl (duplicado
+ * Extraído de OrderServiceImpl/RevisionTicketServiceImpl (duplicado
  * literal en ambos, OBS-08) para que cualquier servicio que exponga un
- * recurso colgado de un Pedido (tickets, contratos, entregables, ...)
+ * recurso colgado de un Order (tickets, contratos, entregables, ...)
  * valide titularidad de la misma forma, en vez de reimplementar el chequeo
  * y arriesgarse a un IDOR por omisión (H-02).
  */
@@ -22,7 +22,7 @@ public final class OrderOwnershipValidator {
      * ADMIN pueden acceder al recurso. Lanza AccessDeniedException (403) en
      * cualquier otro caso.
      */
-    public static void validarPertenenciaOAdmin(Pedido pedido, Long idUsuarioSolicitante) {
+    public static void validarPertenenciaOAdmin(Order pedido, Long idUsuarioSolicitante) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
 

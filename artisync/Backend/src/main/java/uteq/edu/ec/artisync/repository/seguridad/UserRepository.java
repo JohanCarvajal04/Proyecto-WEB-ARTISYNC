@@ -35,7 +35,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     /**
      * REQ-NF-018: igual que findById, pero con bloqueo pesimista de fila
-     * (mismo patrÃ³n que ContratoRepository.findByIdParaFirmar). Sin esto, dos
+     * (mismo patrÃ³n que ContractRepository.findByIdParaFirmar). Sin esto, dos
      * solicitudes de supresiÃ³n casi simultÃ¡neas para el mismo usuario (doble
      * clic, autoservicio + admin a la vez) podÃ­an pasar ambas el chequeo de
      * "Â¿ya estÃ¡ anonimizado?" antes de que la primera confirmara su cambio,

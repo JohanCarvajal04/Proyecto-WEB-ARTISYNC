@@ -9,9 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionCrearBriefingPlantilla;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
-import uteq.edu.ec.artisync.entity.catalogo.Servicio;
+import uteq.edu.ec.artisync.entity.catalogo.Offering;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
@@ -45,7 +45,7 @@ class BriefingServiceImplTest {
 
     private PerfilCreador perfilCreador;
     private User       usuarioCreador;
-    private Pedido        pedido;
+    private Order        pedido;
 
     @BeforeEach
     void setUp() {
@@ -64,8 +64,8 @@ class BriefingServiceImplTest {
         // OrderOwnershipValidator evalúa cliente y creador sin cortocircuito,
         // así que el pedido necesita un servicio/perfil/usuario completos aunque
         // el caso bajo prueba solo ejercite la ruta del cliente.
-        Servicio servicioPedido = Servicio.builder().idServicio(1L).perfil(perfilCreador).build();
-        pedido = Pedido.builder()
+        Offering servicioPedido = Offering.builder().idServicio(1L).perfil(perfilCreador).build();
+        pedido = Order.builder()
                 .idPedido(10L)
                 .usuarioCliente(User.builder().idUsuario(2L).build())
                 .servicio(servicioPedido)

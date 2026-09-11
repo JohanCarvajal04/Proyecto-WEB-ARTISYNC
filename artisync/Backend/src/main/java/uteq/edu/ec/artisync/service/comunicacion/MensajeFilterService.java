@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.comunicacion;
 
 /**
- * Servicio de filtrado de mensajes para detección de datos de contacto.
+ * Offering de filtrado de mensajes para detección de datos de contacto.
  * RF-15: Detecta teléfonos y correos electrónicos en el cuerpo del mensaje.
  */
 public interface MensajeFilterService {

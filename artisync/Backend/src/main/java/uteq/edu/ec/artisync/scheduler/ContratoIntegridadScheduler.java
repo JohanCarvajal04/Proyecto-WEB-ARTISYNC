@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.legal.Contrato;
-import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
+import uteq.edu.ec.artisync.entity.legal.Contract;
+import uteq.edu.ec.artisync.repository.legal.ContractRepository;
 
 import java.util.List;
 
@@ -23,12 +23,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContratoIntegridadScheduler {
 
-    private final ContratoRepository contratoRepository;
+    private final ContractRepository contratoRepository;
     private final ContratoIntegridadEjecutorServicio contratoIntegridadEjecutorServicio;
 
     @Scheduled(cron = "${contrato.integridad.cron:0 30 4 * * *}")
     public void verificarIntegridadDeTodos() {
-        List<Contrato> contratosFirmados = contratoRepository.findByHashContenidoIsNotNull();
+        List<Contract> contratosFirmados = contratoRepository.findByHashContenidoIsNotNull();
 
         if (contratosFirmados.isEmpty()) {
             return;
@@ -37,7 +37,7 @@ public class ContratoIntegridadScheduler {
         log.info("[ContratoIntegridadScheduler] Verificando la integridad de {} contrato(s) firmado(s)",
                 contratosFirmados.size());
 
-        for (Contrato contrato : contratosFirmados) {
+        for (Contract contrato : contratosFirmados) {
             try {
                 contratoIntegridadEjecutorServicio.verificar(contrato.getIdContrato());
             } catch (Exception e) {

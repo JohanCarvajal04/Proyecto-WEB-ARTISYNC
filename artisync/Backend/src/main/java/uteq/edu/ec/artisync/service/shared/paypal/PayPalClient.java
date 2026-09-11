@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * Cliente HTTP para la API REST de PayPal (checkout/orders y payouts),
- * compartido por PagoServicioImpl y SolicitudRetiroServicioImpl. Antes estaba
+ * compartido por PaymentServiceImpl y WithdrawalRequestServiceImpl. Antes estaba
  * duplicado palabra por palabra entre ambos.
  */
 @Component
@@ -76,7 +76,7 @@ public class PayPalClient {
      * cabecera `PayPal-Request-Id` (REQ-NF-019): un reembolso reintentado con
      * la misma clave no se procesa dos veces del lado de PayPal, mismo
      * principio que el `sender_batch_id` idempotente de los payouts en
-     * SolicitudRetiroServicioImpl, aplicado aquí vía el mecanismo propio que
+     * WithdrawalRequestServiceImpl, aplicado aquí vía el mecanismo propio que
      * PayPal expone para checkout/orders y captures/refund.
      */
     public JsonNode llamarPayPalIdempotente(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {

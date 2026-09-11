@@ -75,7 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             } catch (org.springframework.dao.DataAccessException e) {
                 log.error("ðŸš¨ ALERTA CRÃTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).", e);
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Servicio de autenticaciÃ³n temporalmente no disponible (Redis Blacklist inalcanzable).");
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Offering de autenticaciÃ³n temporalmente no disponible (Redis Blacklist inalcanzable).");
                 return;
             }
 

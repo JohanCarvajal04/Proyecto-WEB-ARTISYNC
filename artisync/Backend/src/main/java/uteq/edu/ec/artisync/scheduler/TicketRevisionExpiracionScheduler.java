@@ -5,8 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
-import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.entity.pedido.RevisionTicket;
+import uteq.edu.ec.artisync.repository.pedido.RevisionTicketRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TicketRevisionExpiracionScheduler {
 
-    private final TicketRevisionRepository ticketRevisionRepository;
+    private final RevisionTicketRepository ticketRevisionRepository;
     private final TicketRevisionExpiracionServicio ticketRevisionExpiracionServicio;
 
     @Value("${ticketrevision.expiracion-horas:48}")
@@ -35,7 +35,7 @@ public class TicketRevisionExpiracionScheduler {
     @Scheduled(fixedRateString = "${ticketrevision.expiracion.intervalo-ms:1800000}") // 30 min
     public void expirarTicketsSinPagar() {
         LocalDateTime limite = LocalDateTime.now().minusHours(expiracionHoras);
-        List<TicketRevision> vencidos = ticketRevisionRepository.findVencidosSinPagoConfirmado(limite);
+        List<RevisionTicket> vencidos = ticketRevisionRepository.findVencidosSinPagoConfirmado(limite);
 
         if (vencidos.isEmpty()) {
             return;
@@ -44,7 +44,7 @@ public class TicketRevisionExpiracionScheduler {
         log.info("[TicketRevisionExpiracionScheduler] Rechazando {} ticket(s) sin pagar de más de {}h",
                 vencidos.size(), expiracionHoras);
 
-        for (TicketRevision ticket : vencidos) {
+        for (RevisionTicket ticket : vencidos) {
             try {
                 ticketRevisionExpiracionServicio.expirarTicket(ticket.getIdTicket());
             } catch (Exception e) {

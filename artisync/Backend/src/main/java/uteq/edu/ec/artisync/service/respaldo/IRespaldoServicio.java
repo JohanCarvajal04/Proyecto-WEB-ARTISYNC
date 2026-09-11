@@ -7,7 +7,7 @@ import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 /**
- * Contrato de Servicio (Interface) para la gestión del ciclo de vida de los backups.
+ * Contract de Offering (Interface) para la gestión del ciclo de vida de los backups.
  * 
  * Propósito: Proveer operaciones transaccionales para desencadenar respaldos manuales, 
  * restaurar la base de datos a partir de una instantánea (snapshot) y listar el historial 

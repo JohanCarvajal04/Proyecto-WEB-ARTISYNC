@@ -14,15 +14,15 @@ import org.mockito.quality.Strictness;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpStatusCodeException;
-import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.legal.Contrato;
-import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
-import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.legal.Contract;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
-import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
+import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
@@ -42,15 +42,15 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ReconciliacionPayPalEjecutorServicioTest {
 
-    @Mock private PagoGarantiaRepository pagoGarantiaRepository;
-    @Mock private TransaccionPagoRepository transaccionPagoRepository;
+    @Mock private EscrowPaymentRepository pagoGarantiaRepository;
+    @Mock private PaymentTransactionRepository transaccionPagoRepository;
     @Mock private NotificacionService notificacionService;
     @Mock private PayPalClient payPalClient;
 
     @InjectMocks
     private ReconciliacionPayPalEjecutorServicio ejecutor;
 
-    private PagoGarantia pagoPendiente;
+    private EscrowPayment pagoPendiente;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -67,11 +67,11 @@ class ReconciliacionPayPalEjecutorServicioTest {
         User cliente = User.builder().idUsuario(100L).build();
         User creador = User.builder().idUsuario(200L).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
-        Servicio servicio = Servicio.builder().perfil(perfil).tituloServicio("Servicio de prueba").build();
-        Pedido pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
-        Contrato contrato = Contrato.builder().idContrato(5L).pedido(pedido).build();
+        Offering servicio = Offering.builder().perfil(perfil).tituloServicio("Offering de prueba").build();
+        Order pedido = Order.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
+        Contract contrato = Contract.builder().idContrato(5L).pedido(pedido).build();
 
-        pagoPendiente = PagoGarantia.builder()
+        pagoPendiente = EscrowPayment.builder()
                 .idPago(1L)
                 .contrato(contrato)
                 .idOrdenPaypal("ORDER-123")
@@ -93,7 +93,7 @@ class ReconciliacionPayPalEjecutorServicioTest {
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
         verify(pagoGarantiaRepository).save(pagoPendiente);
-        verify(transaccionPagoRepository).save(any(TransaccionPago.class));
+        verify(transaccionPagoRepository).save(any(PaymentTransaction.class));
         verify(payPalClient, never()).llamarPayPal(contains("/capture"), any(), any());
     }
 
@@ -110,7 +110,7 @@ class ReconciliacionPayPalEjecutorServicioTest {
         ejecutor.reconciliar(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
-        verify(transaccionPagoRepository).save(any(TransaccionPago.class));
+        verify(transaccionPagoRepository).save(any(PaymentTransaction.class));
     }
 
     @Test
@@ -127,7 +127,7 @@ class ReconciliacionPayPalEjecutorServicioTest {
         ejecutor.reconciliar(1L);
 
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
-        verify(transaccionPagoRepository).save(any(TransaccionPago.class));
+        verify(transaccionPagoRepository).save(any(PaymentTransaction.class));
     }
 
     @Test

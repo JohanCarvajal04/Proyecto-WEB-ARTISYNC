@@ -7,8 +7,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
-import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
+import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
+import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ReconciliacionPayPalSchedulerTest {
 
-    @Mock private PagoGarantiaRepository pagoGarantiaRepository;
+    @Mock private EscrowPaymentRepository pagoGarantiaRepository;
     @Mock private ReconciliacionPayPalEjecutorServicio reconciliacionPayPalEjecutorServicio;
 
     @InjectMocks
@@ -33,7 +33,7 @@ class ReconciliacionPayPalSchedulerTest {
 
     @Test
     void reconciliarPagosPendientes_delegaCadaPagoAlEjecutor() {
-        PagoGarantia vencido = PagoGarantia.builder().idPago(1L).estadoFondos("Pendiente").build();
+        EscrowPayment vencido = EscrowPayment.builder().idPago(1L).estadoFondos("Pendiente").build();
         when(pagoGarantiaRepository.findByEstadoFondosAndFechaActualizacionBefore(eq("Pendiente"), any()))
                 .thenReturn(List.of(vencido));
 
@@ -54,8 +54,8 @@ class ReconciliacionPayPalSchedulerTest {
 
     @Test
     void reconciliarPagosPendientes_unPagoFallaOtroSigueLogueaYContinua() {
-        PagoGarantia a = PagoGarantia.builder().idPago(1L).estadoFondos("Pendiente").build();
-        PagoGarantia b = PagoGarantia.builder().idPago(2L).estadoFondos("Pendiente").build();
+        EscrowPayment a = EscrowPayment.builder().idPago(1L).estadoFondos("Pendiente").build();
+        EscrowPayment b = EscrowPayment.builder().idPago(2L).estadoFondos("Pendiente").build();
         when(pagoGarantiaRepository.findByEstadoFondosAndFechaActualizacionBefore(eq("Pendiente"), any()))
                 .thenReturn(List.of(a, b));
         doThrow(new RuntimeException("fallo simulado")).when(reconciliacionPayPalEjecutorServicio).reconciliar(1L);

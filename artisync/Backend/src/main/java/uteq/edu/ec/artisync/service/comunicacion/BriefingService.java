@@ -7,10 +7,10 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import java.util.List;
 
 /**
- * Servicio de briefing interactivo.
+ * Offering de briefing interactivo.
  * REQ-F-016 ampliado: el cuestionario se asigna a un servicio
- * (Servicio.briefingPlantilla) y el Cliente lo responde al crear el pedido
- * (ver PedidoServicioImpl.crearPedido), no con un envío manual posterior del
+ * (Offering.briefingPlantilla) y el Cliente lo responde al crear el pedido
+ * (ver OrderServiceImpl.crearPedido), no con un envío manual posterior del
  * Creador. Las respuestas son inmutables una vez creado el pedido.
  */
 public interface BriefingService {

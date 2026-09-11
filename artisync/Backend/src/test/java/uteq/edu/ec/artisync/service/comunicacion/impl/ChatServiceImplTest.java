@@ -10,16 +10,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.legal.Mensaje;
-import uteq.edu.ec.artisync.entity.legal.SalaChat;
-import uteq.edu.ec.artisync.entity.pedido.Pedido;
+import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.legal.Message;
+import uteq.edu.ec.artisync.entity.legal.ChatRoom;
+import uteq.edu.ec.artisync.entity.pedido.Order;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
-import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
-import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
+import uteq.edu.ec.artisync.repository.legal.MessageRepository;
+import uteq.edu.ec.artisync.repository.legal.ChatRoomRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
@@ -40,8 +40,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ChatServiceImplTest {
 
-    @Mock private SalaChatRepository    salaChatRepo;
-    @Mock private MensajeRepository     mensajeRepo;
+    @Mock private ChatRoomRepository    salaChatRepo;
+    @Mock private MessageRepository     mensajeRepo;
     @Mock private UserRepository     usuarioRepo;
     @Mock private InfraccionService     infraccionService;
     @Mock private MensajeFilterService  mensajeFilterService;
@@ -56,8 +56,8 @@ class ChatServiceImplTest {
 
     private User remitente;
     private User creador;
-    private Pedido  pedido;
-    private SalaChat sala;
+    private Order  pedido;
+    private ChatRoom sala;
 
     @BeforeEach
     void setUp() {
@@ -73,15 +73,15 @@ class ChatServiceImplTest {
         // poder probar que ambas partes tienen acceso al chat y un tercero no.
         creador = User.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Gómez").build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
-        Servicio servicio = Servicio.builder().perfil(perfil).tituloServicio("Ilustración").build();
+        Offering servicio = Offering.builder().perfil(perfil).tituloServicio("Ilustración").build();
 
-        pedido = Pedido.builder()
+        pedido = Order.builder()
                 .idPedido(10L)
                 .usuarioCliente(remitente)
                 .servicio(servicio)
                 .build();
 
-        sala = SalaChat.builder()
+        sala = ChatRoom.builder()
                 .idSala(100L)
                 .pedido(pedido)
                 .salaActiva(true)
@@ -97,13 +97,13 @@ class ChatServiceImplTest {
     @DisplayName("crearSala — crea nueva sala cuando no existe")
     void crearSala_cuandoNoExiste_creaYRetorna() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.empty());
-        when(salaChatRepo.save(any(SalaChat.class))).thenReturn(sala);
+        when(salaChatRepo.save(any(ChatRoom.class))).thenReturn(sala);
 
-        SalaChat resultado = chatService.crearSala(pedido);
+        ChatRoom resultado = chatService.crearSala(pedido);
 
         assertThat(resultado.getIdSala()).isEqualTo(100L);
         assertThat(resultado.getSalaActiva()).isTrue();
-        verify(salaChatRepo).save(any(SalaChat.class));
+        verify(salaChatRepo).save(any(ChatRoom.class));
     }
 
     @Test
@@ -111,7 +111,7 @@ class ChatServiceImplTest {
     void crearSala_cuandoYaExiste_retornaSalaExistente() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        SalaChat resultado = chatService.crearSala(pedido);
+        ChatRoom resultado = chatService.crearSala(pedido);
 
         assertThat(resultado.getIdSala()).isEqualTo(100L);
         verify(salaChatRepo, never()).save(any());
@@ -125,7 +125,7 @@ class ChatServiceImplTest {
     @DisplayName("cerrarSala — desactiva sala y notifica vía WebSocket")
     void cerrarSala_desactivaSalaYNotifica() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
-        when(salaChatRepo.save(any(SalaChat.class))).thenReturn(sala);
+        when(salaChatRepo.save(any(ChatRoom.class))).thenReturn(sala);
 
         chatService.cerrarSala(10L);
 
@@ -147,7 +147,7 @@ class ChatServiceImplTest {
     @Test
     @DisplayName("enviarMensaje — mensaje limpio se persiste y publica en WebSocket")
     void enviarMensaje_sinContacto_persisteYPublica() {
-        Mensaje msg = Mensaje.builder()
+        Message msg = Message.builder()
                 .idMensaje(1L)
                 .sala(sala)
                 .remitente(remitente)
@@ -159,7 +159,7 @@ class ChatServiceImplTest {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(mensajeFilterService.contieneContacto(anyString())).thenReturn(false);
         when(usuarioRepo.getReferenceById(1L)).thenReturn(remitente);
-        when(mensajeRepo.save(any(Mensaje.class))).thenReturn(msg);
+        when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
         RespuestaMensajeChat respuesta = chatService.enviarMensaje(10L, 1L, "Hola, ¿cómo va el proyecto?");
 
@@ -173,7 +173,7 @@ class ChatServiceImplTest {
     @Test
     @DisplayName("enviarMensaje — cuando escribe el creador, notifica al cliente")
     void enviarMensaje_delCreador_notificaAlCliente() {
-        Mensaje msg = Mensaje.builder()
+        Message msg = Message.builder()
                 .idMensaje(2L)
                 .sala(sala)
                 .remitente(creador)
@@ -185,7 +185,7 @@ class ChatServiceImplTest {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(mensajeFilterService.contieneContacto(anyString())).thenReturn(false);
         when(usuarioRepo.getReferenceById(ID_CREADOR)).thenReturn(creador);
-        when(mensajeRepo.save(any(Mensaje.class))).thenReturn(msg);
+        when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
         chatService.enviarMensaje(10L, ID_CREADOR, "Ya tengo el boceto listo");
 
@@ -196,7 +196,7 @@ class ChatServiceImplTest {
     @DisplayName("enviarMensaje — el mensaje de la notificacion se trunca si es muy largo")
     void enviarMensaje_notificacionTruncaMensajesLargos() {
         String mensajeLargo = "a".repeat(200);
-        Mensaje msg = Mensaje.builder()
+        Message msg = Message.builder()
                 .idMensaje(3L)
                 .sala(sala)
                 .remitente(remitente)
@@ -208,7 +208,7 @@ class ChatServiceImplTest {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(mensajeFilterService.contieneContacto(anyString())).thenReturn(false);
         when(usuarioRepo.getReferenceById(1L)).thenReturn(remitente);
-        when(mensajeRepo.save(any(Mensaje.class))).thenReturn(msg);
+        when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
         chatService.enviarMensaje(10L, 1L, mensajeLargo);
 

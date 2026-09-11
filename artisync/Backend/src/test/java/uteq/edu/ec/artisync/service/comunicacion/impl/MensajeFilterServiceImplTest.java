@@ -61,7 +61,7 @@ class MensajeFilterServiceImplTest {
     // =========================================================================
 
     @Test
-    @DisplayName("Mensaje sin datos de contacto retorna false")
+    @DisplayName("Message sin datos de contacto retorna false")
     void contieneContacto_mensajeLimpio_retornaFalse() {
         assertThat(filterService.contieneContacto("Hola, ¿puedes enviarme el diseño esta semana?")).isFalse();
     }

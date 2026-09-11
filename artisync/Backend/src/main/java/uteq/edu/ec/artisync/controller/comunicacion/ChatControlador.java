@@ -111,7 +111,7 @@ public class ChatControlador {
             @Payload PeticionEnviarMensaje peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         if (peticion.getIdPedido() == null) {
-            log.warn("Mensaje STOMP recibido sin idPedido, usuario {}", userDetails.getIdUsuario());
+            log.warn("Message STOMP recibido sin idPedido, usuario {}", userDetails.getIdUsuario());
             throw new BusinessRuleException("idPedido es obligatorio para enviar mensajes por WebSocket");
         }
         chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());

@@ -1,0 +1,383 @@
+package uteq.edu.ec.artisync.service.pedido.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uteq.edu.ec.artisync.dto.peticion.pedido.CreateWorkflowRequest;
+import uteq.edu.ec.artisync.dto.peticion.pedido.StageConfigRequest;
+import uteq.edu.ec.artisync.dto.peticion.pedido.SwapStagesRequest;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.StageConfigResponse;
+import uteq.edu.ec.artisync.dto.respuesta.pedido.WorkflowResponse;
+import uteq.edu.ec.artisync.entity.catalogo.Workflow;
+import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
+import uteq.edu.ec.artisync.entity.pedido.WorkflowStageConfig;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.repository.catalogo.WorkflowRepository;
+import uteq.edu.ec.artisync.repository.pedido.WorkflowStageRepository;
+import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.service.pedido.IWorkflowService;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class WorkflowServiceImpl implements IWorkflowService {
+
+    private final WorkflowRepository flujoTrabajoRepository;
+    private final WorkflowStageRepository etapaFlujoRepository;
+    private final WorkflowStageConfigRepository flujoEtapaConfigRepository;
+    private final UserRepository usuarioRepository;
+    private final OrderStatusHistoryRepository historialEstadoPedidoRepository;
+
+    @Override
+    @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public WorkflowResponse crearFlujoTrabajo(Long idUsuario, CreateWorkflowRequest peticion) {
+        if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario(peticion.getNombreFlujo(), idUsuario)) {
+            throw new DuplicateResourceException("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
+        }
+
+        validarEtapasSinDuplicados(peticion.getEtapas());
+
+        uteq.edu.ec.artisync.entity.seguridad.User creador = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
+
+        Workflow flujo = Workflow.builder()
+                .nombreFlujo(peticion.getNombreFlujo())
+                .descripcionFlujo(peticion.getDescripcionFlujo())
+                .creador(creador)
+                .build();
+
+        flujo = flujoTrabajoRepository.save(flujo);
+
+        // Crear etapas si se proporcionaron
+        if (peticion.getEtapas() != null && !peticion.getEtapas().isEmpty()) {
+            for (StageConfigRequest etapaReq : peticion.getEtapas()) {
+                WorkflowStage etapa = obtenerOCrearEtapa(etapaReq.getNombreEtapa());
+
+                WorkflowStageConfig config = WorkflowStageConfig.builder()
+                        .flujo(flujo)
+                        .etapa(etapa)
+                        .numeroOrden(etapaReq.getNumeroOrden())
+                        .esEtapaFinal(etapaReq.isEsEtapaFinal())
+                        .requiereEntregable(etapaReq.isRequiereEntregable())
+                        .build();
+
+                flujoEtapaConfigRepository.save(config);
+            }
+        }
+
+        log.info("Flujo de trabajo '{}' creado con ID {}", flujo.getNombreFlujo(), flujo.getIdFlujo());
+        return mapToRespuesta(flujo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public List<WorkflowResponse> listarFlujosTrabajo(Long idUsuario, boolean puedeVerTodos) {
+        List<Workflow> flujos = puedeVerTodos
+                ? flujoTrabajoRepository.findAllByOrderByIdFlujoAsc()
+                : flujoTrabajoRepository.findByCreadorIdUsuario(idUsuario);
+        return flujos.stream()
+                .map(this::mapToRespuesta)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public WorkflowResponse obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
+        return mapToRespuesta(buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos));
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public WorkflowResponse actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, CreateWorkflowRequest peticion) {
+        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+
+        // La unicidad de nombre es por dueño real del flujo (V25:
+        // UNIQUE(id_usuario_creador, nombre_flujo)), no por quien lo edita.
+        if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuarioAndIdFlujoNot(
+                peticion.getNombreFlujo(), flujo.getCreador().getIdUsuario(), idFlujo)) {
+            throw new DuplicateResourceException("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
+        }
+
+        flujo.setNombreFlujo(peticion.getNombreFlujo());
+        flujo.setDescripcionFlujo(peticion.getDescripcionFlujo());
+        flujoTrabajoRepository.save(flujo);
+
+        log.info("Flujo de trabajo '{}' actualizado", flujo.getNombreFlujo());
+        return mapToRespuesta(flujo);
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public WorkflowResponse agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
+        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+
+        WorkflowStage etapa = obtenerOCrearEtapa(peticion.getNombreEtapa());
+
+        if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(idFlujo, etapa.getIdEtapa())) {
+            throw new DuplicateResourceException("La etapa '" + peticion.getNombreEtapa() + "' ya existe en este flujo");
+        }
+
+        if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndNumeroOrden(idFlujo, peticion.getNumeroOrden())) {
+            throw new BusinessRuleException(
+                    "Ya hay una etapa con el número de orden " + peticion.getNumeroOrden() + " en este flujo.");
+        }
+
+        WorkflowStageConfig config = WorkflowStageConfig.builder()
+                .flujo(flujo)
+                .etapa(etapa)
+                .numeroOrden(peticion.getNumeroOrden())
+                .esEtapaFinal(peticion.isEsEtapaFinal())
+                .requiereEntregable(peticion.isRequiereEntregable())
+                .build();
+
+        flujoEtapaConfigRepository.save(config);
+        log.info("Etapa '{}' agregada al flujo '{}'", etapa.getNombreEtapa(), flujo.getNombreFlujo());
+
+        return mapToRespuesta(flujo);
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public WorkflowResponse actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
+        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+
+        WorkflowStageConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
+
+        if (!config.getFlujo().getIdFlujo().equals(idFlujo)) {
+            throw new BusinessRuleException("La etapa no pertenece al flujo especificado");
+        }
+
+        // Solo valida si el orden realmente cambia: alternarEtapaFinal reenvía
+        // el mismo numeroOrden en cada toggle, y compararlo contra sí mismo
+        // siempre "colisionaría". Reordenar de verdad usa intercambiarOrdenEtapas,
+        // que hace el swap atómico — este chequeo es para llamadas directas a la
+        // API que intenten mover una etapa a un orden ya ocupado por OTRA.
+        if (!config.getNumeroOrden().equals(peticion.getNumeroOrden())
+                && flujoEtapaConfigRepository.existsByFlujoIdFlujoAndNumeroOrden(idFlujo, peticion.getNumeroOrden())) {
+            throw new BusinessRuleException(
+                    "Ya hay una etapa con el número de orden " + peticion.getNumeroOrden() + " en este flujo.");
+        }
+
+        config.setNumeroOrden(peticion.getNumeroOrden());
+        config.setEsEtapaFinal(peticion.isEsEtapaFinal());
+        config.setRequiereEntregable(peticion.isRequiereEntregable());
+
+        flujoEtapaConfigRepository.save(config);
+        log.info("Etapa {} actualizada en flujo {}", idFlujoEtapa, idFlujo);
+
+        return mapToRespuesta(flujo);
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public WorkflowResponse intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, SwapStagesRequest peticion) {
+        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+
+        if (peticion.getIdFlujoEtapaA().equals(peticion.getIdFlujoEtapaB())) {
+            throw new BusinessRuleException("No se puede intercambiar una etapa consigo misma");
+        }
+
+        WorkflowStageConfig a = flujoEtapaConfigRepository.findById(peticion.getIdFlujoEtapaA())
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
+        WorkflowStageConfig b = flujoEtapaConfigRepository.findById(peticion.getIdFlujoEtapaB())
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
+
+        if (!a.getFlujo().getIdFlujo().equals(idFlujo) || !b.getFlujo().getIdFlujo().equals(idFlujo)) {
+            throw new BusinessRuleException("Las etapas no pertenecen al flujo especificado");
+        }
+
+        Integer ordenA = a.getNumeroOrden();
+        a.setNumeroOrden(b.getNumeroOrden());
+        b.setNumeroOrden(ordenA);
+        flujoEtapaConfigRepository.save(a);
+        flujoEtapaConfigRepository.save(b);
+
+        log.info("Etapas {} y {} intercambiaron orden en flujo {}", a.getIdFlujoEtapa(), b.getIdFlujoEtapa(), idFlujo);
+        return mapToRespuesta(flujo);
+    }
+
+    @Override
+    @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
+    public void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos) {
+        WorkflowStageConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
+
+        boolean esDueno = config.getFlujo().getCreador().getIdUsuario().equals(idUsuario);
+        if (!config.getFlujo().getIdFlujo().equals(idFlujo) || (!esDueno && !puedeVerTodos)) {
+            throw new BusinessRuleException("La etapa no pertenece al flujo especificado o no tiene permisos");
+        }
+
+        // Un pedido detenido en esta etapa dejaría de encontrarla en la
+        // configuración del flujo al borrarla, y "retrocedería" a la primera
+        // etapa en el siguiente avance (OrderServiceImpl.obtenerOrdenActual).
+        if (historialEstadoPedidoRepository.existePedidoEnEtapaActual(idFlujo, config.getEtapa().getIdEtapa())) {
+            throw new BusinessRuleException(
+                    "No se puede eliminar la etapa '" + config.getEtapa().getNombreEtapa()
+                            + "': hay pedidos actualmente detenidos en ella.");
+        }
+
+        flujoEtapaConfigRepository.delete(config);
+        log.info("Etapa {} eliminada del flujo {}", idFlujoEtapa, idFlujo);
+    }
+
+    // ── Métodos auxiliares ───────────────────────────────────────────────────
+
+    /** Con puedeVerTodos=true (FLUJO_MODERAR/ADMIN) accede a cualquier flujo; si no, solo a los propios. */
+    private Workflow buscarFlujoAccesible(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
+        if (puedeVerTodos) {
+            return flujoTrabajoRepository.findById(idFlujo)
+                    .orElseThrow(() -> new ResourceNotFoundException("Flujo de trabajo no encontrado con ID: " + idFlujo));
+        }
+        return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Flujo de trabajo no encontrado con ID: " + idFlujo));
+    }
+
+    /**
+     * Antes de crear un flujo con varias etapas de una vez, nada impedía
+     * mandar dos con el mismo nombre o el mismo numeroOrden. Un nombre
+     * repetido reventaba con un 500 crudo al chocar contra el UNIQUE
+     * (id_flujo, id_etapa) de flujo_etapas_config (V25); un numeroOrden
+     * repetido no tenía ninguna restricción y dejaba avanzarEtapa eligiendo
+     * entre etapas empatadas sin desempate determinista.
+     */
+    private void validarEtapasSinDuplicados(List<StageConfigRequest> etapas) {
+        if (etapas == null || etapas.isEmpty()) {
+            return;
+        }
+
+        java.util.Set<String> nombresVistos = new java.util.HashSet<>();
+        java.util.Set<Integer> ordenesVistos = new java.util.HashSet<>();
+
+        for (StageConfigRequest etapa : etapas) {
+            String nombreNormalizado = etapa.getNombreEtapa().trim().toLowerCase();
+            if (!nombresVistos.add(nombreNormalizado)) {
+                throw new BusinessRuleException(
+                        "Hay etapas repetidas: '" + etapa.getNombreEtapa() + "' aparece más de una vez.");
+            }
+            if (!ordenesVistos.add(etapa.getNumeroOrden())) {
+                throw new BusinessRuleException(
+                        "Hay etapas con el mismo número de orden (" + etapa.getNumeroOrden()
+                                + "): cada etapa debe tener un orden distinto.");
+            }
+        }
+    }
+
+    private WorkflowStage obtenerOCrearEtapa(String nombreEtapa) {
+        return etapaFlujoRepository.findByNombreEtapa(nombreEtapa)
+                .orElseGet(() -> {
+                    WorkflowStage nueva = WorkflowStage.builder()
+                            .nombreEtapa(nombreEtapa)
+                            .build();
+                    return etapaFlujoRepository.save(nueva);
+                });
+    }
+
+    private WorkflowResponse mapToRespuesta(Workflow flujo) {
+        List<WorkflowStageConfig> etapas = flujoEtapaConfigRepository
+                .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());
+
+        return WorkflowResponse.builder()
+                .idFlujo(flujo.getIdFlujo())
+                .nombreFlujo(flujo.getNombreFlujo())
+                .descripcionFlujo(flujo.getDescripcionFlujo())
+                .etapas(etapas.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))
+                .idUsuarioCreador(flujo.getCreador().getIdUsuario())
+                .nombreCreador(flujo.getCreador().getNombres() + " " + flujo.getCreador().getApellidos())
+                .build();
+    }
+
+    private StageConfigResponse mapEtapaConfig(WorkflowStageConfig config) {
+        return StageConfigResponse.builder()
+                .idFlujoEtapa(config.getIdFlujoEtapa())
+                .idEtapa(config.getEtapa().getIdEtapa())
+                .nombreEtapa(config.getEtapa().getNombreEtapa())
+                .numeroOrden(config.getNumeroOrden())
+                .esEtapaFinal(config.getEsEtapaFinal())
+                .requiereEntregable(config.getRequiereEntregable())
+                .build();
+    }
+}

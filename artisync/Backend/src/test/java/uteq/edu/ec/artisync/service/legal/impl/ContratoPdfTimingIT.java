@@ -23,9 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * por una prueba re-ejecutable: basta con correr esta clase para reverificar
  * el umbral, sin repetir pasos manuales (login, curl, cronómetro).
  *
- * @DataJpaTest, mismo criterio que PrivacidadServiceImplIT: ContratoServicioImpl
+ * @DataJpaTest, mismo criterio que PrivacidadServiceImplIT: ContractServiceImpl
  * solo depende de 3 repositorios JPA (ya disponibles bajo @DataJpaTest) y de
- * IPdfGeneracionServicio, cuya única implementación (PdfGeneracionServicioImpl)
+ * IPdfGenerationService, cuya única implementación (PdfGenerationServiceImpl)
  * no tiene dependencias propias — no hace falta mockear nada.
  *
  * Requiere Postgres real (mide el tiempo real de carga del contrato + render +
@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("postgres-it")
-@Import({ContratoServicioImpl.class, PdfGeneracionServicioImpl.class})
+@Import({ContractServiceImpl.class, PdfGenerationServiceImpl.class})
 // Deshabilitado en CI (GitHub Actions) porque las máquinas compartidas 
 // suelen superar el umbral de 5000ms para generar el PDF, causando fallos intermitentes.
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
@@ -55,7 +55,7 @@ class ContratoPdfTimingIT {
     private static final int NUMERO_CORRIDAS = 5;
 
     @Autowired
-    private ContratoServicioImpl contratoServicio;
+    private ContractServiceImpl contratoServicio;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -85,13 +85,13 @@ class ContratoPdfTimingIT {
 
         idCategoria = jdbcTemplate.queryForObject(
                 "INSERT INTO categorias (nombre_categoria) VALUES (?) RETURNING id_categoria",
-                Long.class, "Categoria PDF timing IT " + System.nanoTime());
+                Long.class, "Category PDF timing IT " + System.nanoTime());
         idSubcategoria = jdbcTemplate.queryForObject(
                 "INSERT INTO subcategorias (id_categoria, nombre_subcategoria) VALUES (?, ?) RETURNING id_subcategoria",
-                Long.class, idCategoria, "Subcategoria PDF timing IT");
+                Long.class, idCategoria, "Subcategory PDF timing IT");
         idServicio = jdbcTemplate.queryForObject(
                 "INSERT INTO servicios (id_perfil, titulo_servicio, descripcion_detallada, precio_base) " +
-                        "VALUES (?, 'Servicio PDF timing IT', 'Descripcion de prueba', 50.00) RETURNING id_servicio",
+                        "VALUES (?, 'Offering PDF timing IT', 'Descripcion de prueba', 50.00) RETURNING id_servicio",
                 Long.class, idPerfil);
         jdbcTemplate.update(
                 "INSERT INTO servicio_subcategorias (id_servicio, id_subcategoria) VALUES (?, ?)",
