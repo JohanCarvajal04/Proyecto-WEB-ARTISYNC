@@ -108,7 +108,10 @@ ADR-006 & Estrategia híbrida de acceso a datos & CRUD elementales vía
   procedimientos/funciones PL/pgSQL versionados en \texttt{db/procs/},
   invocados exclusivamente mediante JPA~2.1. Ampliado el 16 de agosto de
   2026 con 7 rutinas nuevas conectadas end-to-end (ver
-  Capítulo~\ref{cap:implementacion}). \\
+  Capítulo~\ref{cap:implementacion}); fases posteriores de concurrencia,
+  rendimiento, mantenimiento y el módulo de seguidores llevaron el total a
+  26 rutinas activas en \texttt{db/procs/} (ver
+  \texttt{docs/basedatos/CATALOGO-SP.md}). \\
 ADR-007 & Almacenamiento de archivos en la nube & Azure Blob Storage como
   único destino en la nube (sobre un esquema híbrido Cloudinary+Azure Blob
   o mantener el volumen local), detrás de la interfaz

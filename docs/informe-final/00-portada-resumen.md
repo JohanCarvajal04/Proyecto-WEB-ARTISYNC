@@ -23,7 +23,7 @@ DOI del dataset, fecha real de defensa, etc.).
 
 | Nombre | Afiliación | ORCID |
 |---|---|---|
-| Bone Arroyo, Niurca Scarleth | UTEQ, FCI, Ingeniería de Software | https://orcid.org/0009-0006-1387-5019 |
+| Bone Arroyo, Niurca Scarleth | UTEQ, FCI, Ingeniería de Software | https://orcid.org/0009-0002-2219-2800 |
 | Carvajal Loor, Johan Stalin | UTEQ, FCI, Ingeniería de Software | https://orcid.org/0009-0008-9229-382X |
 | Figueroa Morales, Bryan Javier | UTEQ, FCI, Ingeniería de Software | https://orcid.org/0009-0009-6357-4996 |
 | Rios Cuyabazo, Jhon Kevin | UTEQ, FCI, Ingeniería de Software | https://orcid.org/0009-0003-7446-9450 |
@@ -62,14 +62,13 @@ servicios, controladores— por encima del umbral de 70 % — ver
 `docs/mediciones/jacoco/REPORTE-JACOCO.md`), Lighthouse Performance
 100/100 en desktop y 80–81/100 en mobile con Accessibility/Best Practices/SEO ≥93 en ambos
 perfiles, los 6 controles OWASP mínimos evidenciados sin hallazgos altos en ZAP baseline
-(0 FAIL-NEW), y 7 procedimientos almacenados conectados end-to-end al código en ejecución vía
+(0 FAIL-NEW), y 26 procedimientos almacenados conectados end-to-end al código en ejecución vía
 JPA 2.1 (`@Query(nativeQuery=true)` parametrizado), sin concatenación de SQL dinámico detectada.
 **Conclusiones.** La estrategia híbrida de acceso a datos y la verificación asistida por IA son
 técnicamente viables dentro de las restricciones de un proyecto académico de 17 semanas, con
 evidencia empírica reproducible; quedan como
 brechas honestamente declaradas la usabilidad medida (por debajo del umbral de aceptabilidad), la
-conexión completa de los procedimientos heredados de la
-Tercera Entrega, la ejecución de tests inferenciales sobre las comparaciones de rendimiento, y el
+ejecución de tests inferenciales sobre las comparaciones de rendimiento, y el
 despliegue en un ambiente de producción con dominio público.
 
 **Palabras clave:** ingeniería de requisitos; procedimientos almacenados; verificación de
@@ -100,14 +99,13 @@ threshold), JaCoCo coverage of 82.93% lines / 71.50%
 branches (measured 2026-09-11, with all three layers —domain, services, controllers— above the
 70% threshold — see `docs/mediciones/jacoco/REPORTE-JACOCO.md`), Lighthouse Performance of 100/100 on desktop and 80–81/100 on mobile with
 Accessibility/Best Practices/SEO ≥93 on both profiles, all 6 minimum OWASP controls evidenced with
-no high findings in the ZAP baseline scan (0 FAIL-NEW), and 7 stored procedures connected
+no high findings in the ZAP baseline scan (0 FAIL-NEW), and 26 stored procedures connected
 end-to-end to the running code via JPA 2.1 (parameterized `@Query(nativeQuery=true)`), with no
 dynamic SQL concatenation detected. **Conclusions.** The hybrid data-access strategy and
 AI-assisted verification are technically viable within the constraints of a 17-week academic
 project, backed by reproducible empirical evidence; honestly
-declared gaps remain in the measured usability (below the acceptability threshold), fully
-connecting the stored procedures inherited from the third
-deliverable, running inferential tests on the performance comparisons, and deploying to a
+declared gaps remain in the measured usability (below the acceptability threshold),
+running inferential tests on the performance comparisons, and deploying to a
 production environment with a public domain.
 
 **Keywords:** requirements engineering; stored procedures; identity verification; microservices

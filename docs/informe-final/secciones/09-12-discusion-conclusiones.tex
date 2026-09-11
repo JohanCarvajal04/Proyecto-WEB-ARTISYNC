@@ -26,13 +26,17 @@ brecha cuantificada y no oculta: la usabilidad percibida.
 
 \textbf{RQ2 --- ¿Es la estrategia híbrida de acceso a datos implementable
 y verificable dentro de las restricciones del proyecto?} Sí, parcialmente
-y con matices declarados. Se conectaron 7 procedimientos/funciones
+y con matices declarados. Se conectaron 26 procedimientos/funciones
 end-to-end al código en ejecución (por encima del mínimo de 6 exigido por
 la guía), sin concatenación de SQL dinámico detectada por análisis
 estático ni por auditoría manual (Capítulo~\ref{cap:evaluacion-resultados}~\S8.2).
-Sin embargo, las 6 rutinas originales de la Tercera Entrega siguen sin
-conectar (Capítulo~\ref{cap:diseno-arquitectura}, ADR-006), y existe una
-nuance de conformidad literal sobre el mecanismo de invocación
+De las 6 rutinas originales de la Tercera Entrega, 5 se retiraron
+formalmente del catálogo por no tener nunca un consumidor real desde
+código Java (decisión documentada en
+Capítulo~\ref{cap:diseno-arquitectura}, ADR-006) y la sexta,
+\texttt{fn\_reporte\_comisiones\_creador}, está conectada desde el
+26-08-2026; existe además una nuance de conformidad literal sobre el
+mecanismo de invocación
 (\texttt{@Query(nativeQuery=true)} parametrizado en vez de
 \texttt{@Procedure}/\texttt{@NamedStoredProcedureQuery} estrictos,
 Capítulo~\ref{cap:implementacion}~\S7.4) que el equipo debe resolver antes
@@ -164,17 +168,6 @@ backend, no una caché de aplicación potencialmente ya poblada.
 \label{cap:trabajo-futuro}
 
 \begin{enumerate}
-  \item \textbf{Conectar las 6 rutinas SQL originales de la Tercera
-    Entrega} (\texttt{fn\_catalogo\_filtrado},
-    \texttt{fn\_calificacion\_promedio\_creador},
-    \texttt{fn\_reporte\_comisiones\_creador},
-    \texttt{fn\_cerrar\_pedidos\_vencidos},
-    \texttt{fn\_liberar\_fondos\_escrow},
-    \texttt{fn\_generar\_codigo\_pedido}) al código Java en ejecución,
-    cerrando la deuda técnica admitida en \texttt{ADR-006}. Quedó fuera
-    del alcance de la ampliación del 16 de agosto porque esa ampliación
-    priorizó sumar rutinas nuevas del módulo de seguridad, no reparar las
-    existentes.
   \item \textbf{Rediseñar el script de carga k6 del catálogo}
     (\texttt{k6/catalogo-load.js}) para forzar \emph{cache misses} reales
     y medibles por iteración (variar página/categoría), de forma que el

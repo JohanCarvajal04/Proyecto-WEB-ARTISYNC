@@ -70,6 +70,10 @@ completo de cada retiro en
 | `fn_guardar_pais.sql` | Validaciones cruzadas (Fase 3 concurrencia) | lectura fantasma |
 | `sp_purgar_datos_seguridad.sql` | Actualizaciones masivas (Fase 4 mantenimiento) | crecimiento sin límite |
 | `sp_purgar_notificaciones.sql` | Actualizaciones masivas (mantenimiento, H-08) | crecimiento sin límite |
+| `fn_seguir_creador.sql` | Validaciones cruzadas + escritura multi-tabla (módulo de seguidores) | REQ social |
+| `fn_dejar_de_seguir_creador.sql` | Actualizaciones masivas / eliminación (módulo de seguidores) | REQ social |
+| `fn_es_seguidor.sql` | Consultas multi-tabla / validaciones (módulo de seguidores) | REQ social |
+| `fn_conteo_seguidores.sql` | Cálculos agregados (módulo de seguidores) | REQ social |
 
 Las siete primeras filas son las rutinas originales de la Tercera Entrega (módulos
 catálogo/pedido/legal/social). Las siete siguientes son la ampliación descrita en
@@ -119,6 +123,13 @@ storage externo que quedarían huérfanos. Ver la cabecera del archivo y
 [`docs/basedatos/POLITICA-RETENCION.md`](../../docs/basedatos/POLITICA-RETENCION.md) para el
 detalle completo. Se invoca desde `NotificacionesPurgaScheduler` con el mismo mecanismo
 (`Propagation.NOT_SUPPORTED`, `GRANT EXECUTE ON PROCEDURE` propio).
+
+Las cuatro filas finales son el módulo de seguidores, incorporado el 24-08-2026 para la
+funcionalidad social de seguir creadores: `fn_seguir_creador` y `fn_dejar_de_seguir_creador`
+escriben la relación `seguidores` (inserción/eliminación validada), mientras que `fn_es_seguidor`
+y `fn_conteo_seguidores` son consultas de solo lectura usadas por el perfil público del creador y
+por el listado de "a quién sigo". Documentadas en detalle en
+[`docs/basedatos/CATALOGO-SP.md`](../../docs/basedatos/CATALOGO-SP.md), sección 20.
 
 Aparte del catálogo de `db/procs/`, el módulo de verificación asistida por IA ya tenía, desde antes
 de esta ampliación, un par de rutinas conectadas end-to-end:

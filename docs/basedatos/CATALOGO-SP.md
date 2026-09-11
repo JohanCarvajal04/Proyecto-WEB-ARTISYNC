@@ -365,7 +365,7 @@ uno de los roles base protegidos del sistema y que no tiene usuarios activos asi
 
 ## 11. `fn_restablecer_contrasena`
 
-**Categoría:** validaciones cruzadas + escritura multi-tabla · **Requisito:** REQ-F-005 · **Archivo:** [`db/procs/fn_restablecer_contrasena.sql`](../../db/procs/fn_restablecer_contrasena.sql)
+**Categoría:** validaciones cruzadas + escritura multi-tabla · **Requisito:** REQ-F-005 · **Archivo:** [`db/procs/sp_restablecer_contrasena.sql`](../../db/procs/sp_restablecer_contrasena.sql)
 
 Aplica un restablecimiento de contraseña a partir de un token de recuperación: valida (con
 `SELECT ... FOR UPDATE`) que exista, no esté usado y no haya expirado (ventana de 60 minutos), y
@@ -876,7 +876,7 @@ existe o está inactiva.
 
 ### 17c. `fn_cambiar_contrasena`
 
-**Archivo:** [`db/procs/fn_cambiar_contrasena.sql`](../../db/procs/fn_cambiar_contrasena.sql)
+**Archivo:** [`db/procs/sp_cambiar_contrasena.sql`](../../db/procs/sp_cambiar_contrasena.sql)
 
 Sustituye la parte de escritura de `UserServiceImpl.changePassword`. BCrypt permanece fuera del
 motor (la comparación de la contraseña actual se sigue haciendo en Java); lo que se traslada es la
