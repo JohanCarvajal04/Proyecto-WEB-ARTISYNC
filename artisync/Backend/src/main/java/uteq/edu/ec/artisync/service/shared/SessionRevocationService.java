@@ -6,9 +6,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.repository.seguridad.SesionRevocadaProyeccion;
-import uteq.edu.ec.artisync.repository.seguridad.SesionUsuarioRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.RevokedSessionProjection;
+import uteq.edu.ec.artisync.repository.seguridad.UserSessionRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.security.JwtService;
 
 import java.time.Duration;
@@ -19,8 +19,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SessionRevocationService {
 
-    private final SesionUsuarioRepository sesionUsuarioRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserSessionRepository sesionUsuarioRepository;
+    private final UserRepository usuarioRepository;
     private final JwtService jwtService;
     private final StringRedisTemplate redisTemplate;
 
@@ -36,8 +36,8 @@ public class SessionRevocationService {
      */
     @Transactional
     public void revocarSesionesUsuario(Long idUsuario) {
-        List<SesionRevocadaProyeccion> revocadas = sesionUsuarioRepository.revocarSesionesUsuario(idUsuario);
-        for (SesionRevocadaProyeccion sesion : revocadas) {
+        List<RevokedSessionProjection> revocadas = sesionUsuarioRepository.revocarSesionesUsuario(idUsuario);
+        for (RevokedSessionProjection sesion : revocadas) {
             revocarJtiEnRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
         }
     }
@@ -55,13 +55,13 @@ public class SessionRevocationService {
      */
     @Transactional
     public void cambiarEstadoCuenta(Long idUsuario, boolean estado) {
-        List<SesionRevocadaProyeccion> revocadas;
+        List<RevokedSessionProjection> revocadas;
         try {
             revocadas = usuarioRepository.cambiarEstadoCuenta(idUsuario, estado);
         } catch (RuntimeException e) {
             throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.NOT_FOUND);
         }
-        for (SesionRevocadaProyeccion sesion : revocadas) {
+        for (RevokedSessionProjection sesion : revocadas) {
             revocarJtiEnRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
         }
     }
@@ -71,7 +71,7 @@ public class SessionRevocationService {
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param tokenHeader parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void revocarTokenPorCabecera(String tokenHeader) {
         if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
@@ -85,7 +85,7 @@ public class SessionRevocationService {
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param token parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void revocarToken(String token) {
         try {

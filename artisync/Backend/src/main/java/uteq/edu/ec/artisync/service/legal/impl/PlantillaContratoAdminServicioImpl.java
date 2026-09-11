@@ -10,8 +10,8 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContratoResumen;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.service.legal.IPlantillaContratoAdminServicio;
 
@@ -32,11 +32,11 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
      *
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPlantillaContrato crear(PeticionCrearPlantillaContrato peticion) {
         if (plantillaContratoRepository.findByVersionLegal(peticion.getVersionLegal()).isPresent()) {
-            throw new ExcepcionReglaNegocio("Ya existe una plantilla con la version legal '" + peticion.getVersionLegal() + "'");
+            throw new BusinessRuleException("Ya existe una plantilla con la version legal '" + peticion.getVersionLegal() + "'");
         }
 
         if (peticion.isEsPredeterminada()) {
@@ -64,17 +64,17 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
      * @param idPlantilla identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPlantillaContrato editar(Long idPlantilla, PeticionActualizarPlantillaContrato peticion) {
         PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantilla)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla de contrato no encontrada: " + idPlantilla));
+                .orElseThrow(() -> new ResourceNotFoundException("Plantilla de contrato no encontrada: " + idPlantilla));
 
         if (peticion.isEsPredeterminada() && !Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
             limpiarPredeterminadaActual();
         }
         if (!peticion.isEsPredeterminada() && Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Debe existir siempre una plantilla predeterminada; marca otra como predeterminada antes de quitarle esta condición");
         }
 
@@ -95,7 +95,7 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPlantillaContrato> listarTodas() {
         return plantillaContratoRepository.findAll().stream()
@@ -110,14 +110,14 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
      *
      * @param idPlantilla identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje desactivar(Long idPlantilla) {
         PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantilla)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla de contrato no encontrada: " + idPlantilla));
+                .orElseThrow(() -> new ResourceNotFoundException("Plantilla de contrato no encontrada: " + idPlantilla));
 
         if (Boolean.TRUE.equals(plantilla.getEsPredeterminada())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "No se puede desactivar la plantilla predeterminada; marca otra como predeterminada primero");
         }
 
@@ -133,7 +133,7 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPlantillaContratoResumen> listarActivas() {
         return plantillaContratoRepository.findByActivaTrueOrderByNombrePlantillaAsc().stream()
@@ -152,7 +152,7 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
      *
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPlantillaContratoResumen> listarActivasVisiblesPara(Long idUsuarioCreador) {
         return plantillaContratoRepository.findActivasVisiblesParaCreador(idUsuarioCreador).stream()

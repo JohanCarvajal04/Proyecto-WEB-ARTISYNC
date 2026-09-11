@@ -21,9 +21,9 @@ import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
@@ -53,15 +53,15 @@ class ContratoServicioImplTest {
     private static final Long ID_CLIENTE = 2L;
     private static final Long ID_AJENO = 999L;
 
-    private Usuario creador;
-    private Usuario cliente;
+    private User creador;
+    private User cliente;
     private Pedido pedido;
     private PlantillaContrato plantilla;
 
     @BeforeEach
     void setUp() {
-        creador = Usuario.builder().idUsuario(ID_CREADOR).nombres("Creador").apellidos("Uno").correo("creador@test.com").build();
-        cliente = Usuario.builder().idUsuario(ID_CLIENTE).nombres("Cliente").apellidos("Uno").correo("cliente@test.com").build();
+        creador = User.builder().idUsuario(ID_CREADOR).nombres("Creador").apellidos("Uno").correo("creador@test.com").build();
+        cliente = User.builder().idUsuario(ID_CLIENTE).nombres("Cliente").apellidos("Uno").correo("cliente@test.com").build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
         Servicio servicio = Servicio.builder().idServicio(1L).perfil(perfil)
                 .tituloServicio("Logo").descripcionDetallada("Descripcion detallada de ejemplo con veinte caracteres")
@@ -154,7 +154,7 @@ class ContratoServicioImplTest {
         given(pedidoRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.generarContrato(1L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -164,7 +164,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(new Contrato()));
 
         assertThatThrownBy(() -> contratoServicio.generarContrato(1L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -175,7 +175,7 @@ class ContratoServicioImplTest {
         given(plantillaContratoRepository.findByEsPredeterminadaTrue()).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.generarContrato(1L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -291,7 +291,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
 
         assertThatThrownBy(() -> contratoServicio.verificarIntegridadHash(10L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     private static String sha256(String data) {
@@ -318,7 +318,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_CREADOR))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("El creador ya firmo");
     }
 
@@ -330,7 +330,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("El cliente ya firmo");
     }
 
@@ -351,7 +351,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.firmarContrato(10L, ID_CREADOR))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -389,7 +389,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.obtenerContrato(10L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -417,7 +417,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.obtenerContratoPorPedido(1L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -478,7 +478,7 @@ class ContratoServicioImplTest {
         given(contratoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.obtenerEstadoFirma(10L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -539,6 +539,6 @@ class ContratoServicioImplTest {
         given(contratoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> contratoServicio.generarPdf(10L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

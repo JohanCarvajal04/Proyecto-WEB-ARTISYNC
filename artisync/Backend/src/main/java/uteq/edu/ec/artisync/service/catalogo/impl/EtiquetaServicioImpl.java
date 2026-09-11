@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearEtiqueta;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaEtiqueta;
 import uteq.edu.ec.artisync.entity.catalogo.Etiqueta;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.EtiquetaRepository;
 import uteq.edu.ec.artisync.service.catalogo.IEtiquetaServicio;
 
@@ -28,7 +28,7 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaEtiqueta> listarEtiquetas() {
         return etiquetaRepository.findAll()
@@ -44,17 +44,17 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
      *
      * @param idEtiqueta identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEtiqueta obtenerPorId(Long idEtiqueta) {
         Etiqueta et = etiquetaRepository.findById(idEtiqueta)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Etiqueta no encontrada con ID: " + idEtiqueta));
+                .orElseThrow(() -> new ResourceNotFoundException("Etiqueta no encontrada con ID: " + idEtiqueta));
         return mapearAEtiquetaRespuesta(et);
     }
 
     @Override
     @Transactional
-    @Auditable(accion = "ETIQUETA_CREAR", modulo = ModuloAuditoria.CATALOGO,
+    @Auditable(accion = "ETIQUETA_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "etiquetas", idEntidad = "#resultado.idEtiqueta",
             detalle = "{nombreEtiqueta: #peticion.nombreEtiqueta}")
     /**
@@ -62,11 +62,11 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
      *
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEtiqueta crearEtiqueta(PeticionCrearEtiqueta peticion) {
         if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {
-            throw new ExcepcionReglaNegocio("Ya existe la etiqueta: " + peticion.getNombreEtiqueta());
+            throw new BusinessRuleException("Ya existe la etiqueta: " + peticion.getNombreEtiqueta());
         }
         Etiqueta et = Etiqueta.builder()
                 .nombreEtiqueta(peticion.getNombreEtiqueta().trim())
@@ -77,17 +77,17 @@ public class EtiquetaServicioImpl implements IEtiquetaServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "ETIQUETA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+    @Auditable(accion = "ETIQUETA_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "etiquetas", idEntidad = "#idEtiqueta")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idEtiqueta identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarEtiqueta(Long idEtiqueta) {
         if (!etiquetaRepository.existsById(idEtiqueta)) {
-            throw new ExcepcionRecursoNoEncontrado("Etiqueta no encontrada con ID: " + idEtiqueta);
+            throw new ResourceNotFoundException("Etiqueta no encontrada con ID: " + idEtiqueta);
         }
         etiquetaRepository.deleteById(idEtiqueta);
     }

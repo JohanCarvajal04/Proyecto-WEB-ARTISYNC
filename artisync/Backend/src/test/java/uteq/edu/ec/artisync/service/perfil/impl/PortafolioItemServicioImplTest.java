@@ -13,9 +13,9 @@ import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolioItem;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortafolioItemServicio;
@@ -49,7 +49,7 @@ class PortafolioItemServicioImplTest {
 
     @BeforeEach
     void setUp() {
-        Usuario duenio = new Usuario();
+        User duenio = new User();
         duenio.setIdUsuario(ID_DUENIO);
         PerfilCreador perfil = new PerfilCreador();
         perfil.setUsuario(duenio);
@@ -104,7 +104,7 @@ class PortafolioItemServicioImplTest {
     void subirItem_usuarioQueNoEsElDuenio_esRechazadoSinSubirNada() {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.subirItem(ID_PORTAFOLIO, ID_OTRO, datos(), imagen()));
 
         verify(almacenamiento, never()).guardar(any(), anyString());
@@ -115,7 +115,7 @@ class PortafolioItemServicioImplTest {
         MockMultipartFile pdf = new MockMultipartFile(
                 "archivo", "doc.pdf", "application/pdf", "%PDF".getBytes());
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), pdf));
 
         verifyNoInteractions(portafolioRepository, itemRepository, almacenamiento);
@@ -126,7 +126,7 @@ class PortafolioItemServicioImplTest {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
         when(itemRepository.countByPortafolioIdPortafolio(ID_PORTAFOLIO)).thenReturn(50L);
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
 
         verify(almacenamiento, never()).guardar(any(), anyString());
@@ -150,7 +150,7 @@ class PortafolioItemServicioImplTest {
     void subirItem_portafolioInexistente_reportaRecursoNoEncontrado() {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class,
+        assertThrows(ResourceNotFoundException.class,
                 () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
     }
 
@@ -171,7 +171,7 @@ class PortafolioItemServicioImplTest {
         portafolio.setEsPublico(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
+        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
     }
 
     @Test
@@ -179,7 +179,7 @@ class PortafolioItemServicioImplTest {
         portafolio.setEsPublico(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_OTRO));
+        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_OTRO));
     }
 
     @Test
@@ -199,7 +199,7 @@ class PortafolioItemServicioImplTest {
         portafolio.getPerfil().getUsuario().setEstadoCuenta(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
+        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
     }
 
     @Test
@@ -208,7 +208,7 @@ class PortafolioItemServicioImplTest {
         portafolio.getPerfil().getUsuario().setEstadoCuenta(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_DUENIO));
+        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_DUENIO));
     }
 
     // ── Descarga ─────────────────────────────────────────────────────────────
@@ -230,7 +230,7 @@ class PortafolioItemServicioImplTest {
         portafolio.setEsPublico(false);
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.mp4")));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.descargarArchivo(ID_ITEM, ID_OTRO));
+        assertThrows(BusinessRuleException.class, () -> servicio.descargarArchivo(ID_ITEM, ID_OTRO));
 
         verify(almacenamiento, never()).leer(anyString());
     }
@@ -255,7 +255,7 @@ class PortafolioItemServicioImplTest {
     void actualizarItem_porQuienNoEsElDuenio_esRechazado() {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.png")));
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.actualizarItem(ID_ITEM, ID_OTRO, datos()));
 
         verify(itemRepository, never()).save(any());
@@ -278,7 +278,7 @@ class PortafolioItemServicioImplTest {
     void eliminarItem_porQuienNoEsElDuenio_esRechazado() {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.png")));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.eliminarItem(ID_ITEM, ID_OTRO));
+        assertThrows(BusinessRuleException.class, () -> servicio.eliminarItem(ID_ITEM, ID_OTRO));
 
         verify(itemRepository, never()).delete(any());
         verify(almacenamiento, never()).eliminar(anyString());
@@ -289,7 +289,7 @@ class PortafolioItemServicioImplTest {
     void eliminarItem_siFallaBorrarElArchivo_laFilaIgualSeElimina() {
         PortafolioItem existente = item("portafolio/obra.png");
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(existente));
-        doThrow(new ExcepcionReglaNegocio("Azure caido")).when(almacenamiento).eliminar(anyString());
+        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
 
         servicio.eliminarItem(ID_ITEM, ID_DUENIO);
 

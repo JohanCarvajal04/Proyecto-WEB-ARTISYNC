@@ -7,14 +7,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.respaldo.FiltroRespaldo;
 import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaRespaldo;
 import uteq.edu.ec.artisync.entity.respaldo.EstadoRespaldo;
 import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
 import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.respaldo.RespaldoRepository;
 import uteq.edu.ec.artisync.scheduler.RespaldoEjecutorServicio;
 import uteq.edu.ec.artisync.scheduler.RespaldoRetencionScheduler;
@@ -43,7 +43,7 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
      * fila -- si este método llevara @Transactional, el hilo async podría
      * arrancar antes de que el commit sea visible.
      */
-    @Auditable(accion = "RESPALDO_CREAR", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "RESPALDO_CREAR", modulo = AuditModule.SISTEMA,
             entidad = "respaldos", idEntidad = "#resultado.idRespaldo",
             detalle = "{tipoRespaldo: #tipo}")
     @Override
@@ -53,11 +53,11 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
      * @param tipo parametro requerido para la correcta ejecucion del procedimiento
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaRespaldo solicitarRespaldo(TipoRespaldo tipo, String correoSolicitante) {
         if (respaldoRepository.existsByEstadoRespaldo(EstadoRespaldo.EN_PROGRESO)) {
-            throw new ExcepcionReglaNegocio("Ya hay un respaldo en progreso. Espere a que termine antes de iniciar otro.");
+            throw new BusinessRuleException("Ya hay un respaldo en progreso. Espere a que termine antes de iniciar otro.");
         }
         Respaldo respaldo = respaldoEjecutorServicio.iniciarManual(tipo, correoSolicitante);
         return aRespuesta(respaldo);
@@ -71,7 +71,7 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
      * @param filtro criterios de busqueda y filtrado dinamico a aplicar
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public PagedResponse<RespuestaRespaldo> listar(FiltroRespaldo filtro, Pageable pageable) {
         Page<Respaldo> pagina = respaldoRepository.findAll(RespaldoSpecification.conFiltro(filtro), pageable);
@@ -85,7 +85,7 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
      *
      * @param idRespaldo identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaRespaldo obtenerPorId(Long idRespaldo) {
         return aRespuesta(obtenerOFallar(idRespaldo));
@@ -98,25 +98,25 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
      *
      * @param idRespaldo identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public ArchivoRespaldo descargar(Long idRespaldo) {
         Respaldo respaldo = obtenerOFallar(idRespaldo);
         if (respaldo.getRutaArchivo() == null) {
-            throw new ExcepcionRecursoNoEncontrado("El respaldo " + idRespaldo + " todavía no tiene un archivo generado");
+            throw new ResourceNotFoundException("El respaldo " + idRespaldo + " todavía no tiene un archivo generado");
         }
         Path ruta = Path.of(respaldo.getRutaArchivo());
         if (!Files.exists(ruta)) {
-            throw new ExcepcionRecursoNoEncontrado("El archivo del respaldo " + idRespaldo + " no existe en disco");
+            throw new ResourceNotFoundException("El archivo del respaldo " + idRespaldo + " no existe en disco");
         }
         // FileSystemResource -> Spring transmite el InputStream a la respuesta
         // en streaming, nunca un byte[] completo en memoria (a diferencia de
-        // DocumentoGenerado/RespuestaDocumento, pensados para reportes
+        // DocumentoGenerado/DocumentResponse, pensados para reportes
         // pequeños; un dump de BD puede ser mucho más grande).
         return new ArchivoRespaldo(new FileSystemResource(ruta), respaldo.getNombreArchivo(), tamano(ruta));
     }
 
-    @Auditable(accion = "RESPALDO_ELIMINAR", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "RESPALDO_ELIMINAR", modulo = AuditModule.SISTEMA,
             entidad = "respaldos", idEntidad = "#idRespaldo")
     @Override
     @Transactional
@@ -124,15 +124,15 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idRespaldo identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminar(Long idRespaldo) {
         Respaldo respaldo = obtenerOFallar(idRespaldo);
         if (respaldo.getEstadoRespaldo() == EstadoRespaldo.EN_PROGRESO) {
-            throw new ExcepcionReglaNegocio("No se puede eliminar un respaldo en progreso.");
+            throw new BusinessRuleException("No se puede eliminar un respaldo en progreso.");
         }
         if (!retencionScheduler.esSeguroEliminar(respaldo)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "No se puede eliminar: existen respaldos incrementales que dependen de este FULL. Elimínelos primero.");
         }
         if (respaldo.getRutaArchivo() != null) {
@@ -147,7 +147,7 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
 
     private Respaldo obtenerOFallar(Long idRespaldo) {
         return respaldoRepository.findById(idRespaldo)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Respaldo no encontrado con ID: " + idRespaldo));
+                .orElseThrow(() -> new ResourceNotFoundException("Respaldo no encontrado con ID: " + idRespaldo));
     }
 
     private long tamano(Path ruta) {

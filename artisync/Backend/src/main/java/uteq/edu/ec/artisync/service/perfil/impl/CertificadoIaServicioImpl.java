@@ -4,16 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearCertificadoIa;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaCertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.ICertificadoIaServicio;
 
 import java.util.List;
@@ -24,12 +24,12 @@ import java.util.stream.Collectors;
 public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
 
     private final CertificadoIaRepository certificadoRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final EstadoVerificacionRepository estadoRepository;
 
     @Override
     @Transactional
-    @Auditable(accion = "CERTIFICADO_EMITIR", modulo = ModuloAuditoria.PORTAFOLIO,
+    @Auditable(accion = "CERTIFICADO_EMITIR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
             detalle = "{idUsuario: #peticion.idUsuario, idEstadoVerificacion: #peticion.idEstadoVerificacion}")
     /**
@@ -37,14 +37,14 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
      *
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaCertificadoIa emitirCertificado(PeticionCrearCertificadoIa peticion) {
-        Usuario usuario = usuarioRepository.findById(peticion.idUsuario())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado con ID: " + peticion.idUsuario()));
+        User usuario = usuarioRepository.findById(peticion.idUsuario())
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado con ID: " + peticion.idUsuario()));
 
         EstadoVerificacion estado = estadoRepository.findById(peticion.idEstadoVerificacion())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Estado de verificación no encontrado con ID: " + peticion.idEstadoVerificacion()));
+                .orElseThrow(() -> new ResourceNotFoundException("Estado de verificación no encontrado con ID: " + peticion.idEstadoVerificacion()));
 
         CertificadoIa certificado = CertificadoIa.builder()
                 .usuario(usuario)
@@ -64,11 +64,11 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
      *
      * @param idCertificado identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaCertificadoIa obtenerCertificadoPorId(Long idCertificado) {
         CertificadoIa certificado = certificadoRepository.findById(idCertificado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Certificado IA no encontrado con ID: " + idCertificado));
+                .orElseThrow(() -> new ResourceNotFoundException("Certificado IA no encontrado con ID: " + idCertificado));
         return mapearARespuesta(certificado);
     }
 
@@ -79,7 +79,7 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaCertificadoIa> listarCertificadosPorUsuario(Long idUsuario) {
         return certificadoRepository.findByUsuarioIdUsuario(idUsuario).stream()
@@ -93,7 +93,7 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaCertificadoIa> listarTodosLosCertificados() {
         return certificadoRepository.findAll().stream()
@@ -103,17 +103,17 @@ public class CertificadoIaServicioImpl implements ICertificadoIaServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "CERTIFICADO_ELIMINAR", modulo = ModuloAuditoria.PORTAFOLIO,
+    @Auditable(accion = "CERTIFICADO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#idCertificado")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idCertificado identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarCertificado(Long idCertificado) {
         if (!certificadoRepository.existsById(idCertificado)) {
-            throw new ExcepcionRecursoNoEncontrado("Certificado IA no encontrado con ID: " + idCertificado);
+            throw new ResourceNotFoundException("Certificado IA no encontrado con ID: " + idCertificado);
         }
         certificadoRepository.deleteById(idCertificado);
     }

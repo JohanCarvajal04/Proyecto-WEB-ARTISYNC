@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.shared.ia;
 
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.JsonNode;
-import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,7 +15,7 @@ public abstract class AbstractIaService {
 
     /**
      * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
-     * ver ExcepcionServicioIaNoDisponible#isReintentable). Mismo patrón que
+     * ver AiServiceUnavailableException#isReintentable). Mismo patrón que
      * VerificacionServicioImpl#analizarConReintento, generalizado aquí para
      * que moderarContenido/clasificarServicio/sugerirPreguntasBriefing/
      * analizarResena no descarten en silencio un 429 momentáneo del
@@ -25,7 +25,7 @@ public abstract class AbstractIaService {
     protected <T> T conReintentoTransitorio(Supplier<T> llamada) {
         try {
             return llamada.get();
-        } catch (ExcepcionServicioIaNoDisponible e) {
+        } catch (AiServiceUnavailableException e) {
             if (!e.isReintentable()) {
                 throw e;
             }

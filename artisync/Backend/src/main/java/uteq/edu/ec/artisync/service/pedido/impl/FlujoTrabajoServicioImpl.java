@@ -12,14 +12,14 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaFlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.pedido.EtapaFlujoRepository;
 import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.pedido.IFlujoTrabajoServicio;
 
 import java.util.List;
@@ -33,7 +33,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
     private final FlujoTrabajoRepository flujoTrabajoRepository;
     private final EtapaFlujoRepository etapaFlujoRepository;
     private final FlujoEtapaConfigRepository flujoEtapaConfigRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final HistorialEstadoPedidoRepository historialEstadoPedidoRepository;
 
     @Override
@@ -44,17 +44,17 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaFlujoTrabajo crearFlujoTrabajo(Long idUsuario, PeticionCrearFlujoTrabajo peticion) {
         if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario(peticion.getNombreFlujo(), idUsuario)) {
-            throw new ExcepcionRecursoDuplicado("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
+            throw new DuplicateResourceException("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
         }
 
         validarEtapasSinDuplicados(peticion.getEtapas());
 
-        uteq.edu.ec.artisync.entity.seguridad.Usuario creador = usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado"));
+        uteq.edu.ec.artisync.entity.seguridad.User creador = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
 
         FlujoTrabajo flujo = FlujoTrabajo.builder()
                 .nombreFlujo(peticion.getNombreFlujo())
@@ -93,7 +93,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaFlujoTrabajo> listarFlujosTrabajo(Long idUsuario, boolean puedeVerTodos) {
         List<FlujoTrabajo> flujos = puedeVerTodos
@@ -113,7 +113,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaFlujoTrabajo obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
         return mapToRespuesta(buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos));
@@ -129,7 +129,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaFlujoTrabajo actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionCrearFlujoTrabajo peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
@@ -138,7 +138,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
         // UNIQUE(id_usuario_creador, nombre_flujo)), no por quien lo edita.
         if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuarioAndIdFlujoNot(
                 peticion.getNombreFlujo(), flujo.getCreador().getIdUsuario(), idFlujo)) {
-            throw new ExcepcionRecursoDuplicado("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
+            throw new DuplicateResourceException("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
         }
 
         flujo.setNombreFlujo(peticion.getNombreFlujo());
@@ -159,7 +159,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaFlujoTrabajo agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionEtapaConfig peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
@@ -167,11 +167,11 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
         EtapaFlujo etapa = obtenerOCrearEtapa(peticion.getNombreEtapa());
 
         if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(idFlujo, etapa.getIdEtapa())) {
-            throw new ExcepcionRecursoDuplicado("La etapa '" + peticion.getNombreEtapa() + "' ya existe en este flujo");
+            throw new DuplicateResourceException("La etapa '" + peticion.getNombreEtapa() + "' ya existe en este flujo");
         }
 
         if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndNumeroOrden(idFlujo, peticion.getNumeroOrden())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Ya hay una etapa con el número de orden " + peticion.getNumeroOrden() + " en este flujo.");
         }
 
@@ -200,16 +200,16 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaFlujoTrabajo actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, PeticionEtapaConfig peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
         FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Configuracion de etapa no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
 
         if (!config.getFlujo().getIdFlujo().equals(idFlujo)) {
-            throw new ExcepcionReglaNegocio("La etapa no pertenece al flujo especificado");
+            throw new BusinessRuleException("La etapa no pertenece al flujo especificado");
         }
 
         // Solo valida si el orden realmente cambia: alternarEtapaFinal reenvía
@@ -219,7 +219,7 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
         // API que intenten mover una etapa a un orden ya ocupado por OTRA.
         if (!config.getNumeroOrden().equals(peticion.getNumeroOrden())
                 && flujoEtapaConfigRepository.existsByFlujoIdFlujoAndNumeroOrden(idFlujo, peticion.getNumeroOrden())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Ya hay una etapa con el número de orden " + peticion.getNumeroOrden() + " en este flujo.");
         }
 
@@ -243,22 +243,22 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaFlujoTrabajo intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionSwapEtapas peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
         if (peticion.getIdFlujoEtapaA().equals(peticion.getIdFlujoEtapaB())) {
-            throw new ExcepcionReglaNegocio("No se puede intercambiar una etapa consigo misma");
+            throw new BusinessRuleException("No se puede intercambiar una etapa consigo misma");
         }
 
         FlujoEtapaConfig a = flujoEtapaConfigRepository.findById(peticion.getIdFlujoEtapaA())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Configuracion de etapa no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
         FlujoEtapaConfig b = flujoEtapaConfigRepository.findById(peticion.getIdFlujoEtapaB())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Configuracion de etapa no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
 
         if (!a.getFlujo().getIdFlujo().equals(idFlujo) || !b.getFlujo().getIdFlujo().equals(idFlujo)) {
-            throw new ExcepcionReglaNegocio("Las etapas no pertenecen al flujo especificado");
+            throw new BusinessRuleException("Las etapas no pertenecen al flujo especificado");
         }
 
         Integer ordenA = a.getNumeroOrden();
@@ -280,22 +280,22 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
      * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos) {
         FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Configuracion de etapa no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
 
         boolean esDueno = config.getFlujo().getCreador().getIdUsuario().equals(idUsuario);
         if (!config.getFlujo().getIdFlujo().equals(idFlujo) || (!esDueno && !puedeVerTodos)) {
-            throw new ExcepcionReglaNegocio("La etapa no pertenece al flujo especificado o no tiene permisos");
+            throw new BusinessRuleException("La etapa no pertenece al flujo especificado o no tiene permisos");
         }
 
         // Un pedido detenido en esta etapa dejaría de encontrarla en la
         // configuración del flujo al borrarla, y "retrocedería" a la primera
         // etapa en el siguiente avance (PedidoServicioImpl.obtenerOrdenActual).
         if (historialEstadoPedidoRepository.existePedidoEnEtapaActual(idFlujo, config.getEtapa().getIdEtapa())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "No se puede eliminar la etapa '" + config.getEtapa().getNombreEtapa()
                             + "': hay pedidos actualmente detenidos en ella.");
         }
@@ -310,10 +310,10 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
     private FlujoTrabajo buscarFlujoAccesible(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
         if (puedeVerTodos) {
             return flujoTrabajoRepository.findById(idFlujo)
-                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Flujo de trabajo no encontrado con ID: " + idFlujo));
+                    .orElseThrow(() -> new ResourceNotFoundException("Flujo de trabajo no encontrado con ID: " + idFlujo));
         }
         return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Flujo de trabajo no encontrado con ID: " + idFlujo));
+                .orElseThrow(() -> new ResourceNotFoundException("Flujo de trabajo no encontrado con ID: " + idFlujo));
     }
 
     /**
@@ -335,11 +335,11 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
         for (PeticionEtapaConfig etapa : etapas) {
             String nombreNormalizado = etapa.getNombreEtapa().trim().toLowerCase();
             if (!nombresVistos.add(nombreNormalizado)) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "Hay etapas repetidas: '" + etapa.getNombreEtapa() + "' aparece más de una vez.");
             }
             if (!ordenesVistos.add(etapa.getNumeroOrden())) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "Hay etapas con el mismo número de orden (" + etapa.getNumeroOrden()
                                 + "): cada etapa debe tener un orden distinto.");
             }

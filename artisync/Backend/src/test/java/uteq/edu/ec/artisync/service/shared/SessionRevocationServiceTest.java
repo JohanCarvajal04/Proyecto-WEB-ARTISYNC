@@ -7,9 +7,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import uteq.edu.ec.artisync.repository.seguridad.SesionRevocadaProyeccion;
-import uteq.edu.ec.artisync.repository.seguridad.SesionUsuarioRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.RevokedSessionProjection;
+import uteq.edu.ec.artisync.repository.seguridad.UserSessionRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.security.JwtService;
 
 import java.time.Duration;
@@ -26,9 +26,9 @@ import static org.mockito.Mockito.*;
 class SessionRevocationServiceTest {
 
     @Mock
-    private SesionUsuarioRepository sesionUsuarioRepository;
+    private UserSessionRepository sesionUsuarioRepository;
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
     @Mock
     private JwtService jwtService;
     @Mock
@@ -39,8 +39,8 @@ class SessionRevocationServiceTest {
     @InjectMocks
     private SessionRevocationService servicio;
 
-    private SesionRevocadaProyeccion mockProyeccion(String jti, int segundosRestantes) {
-        return new SesionRevocadaProyeccion() {
+    private RevokedSessionProjection mockProyeccion(String jti, int segundosRestantes) {
+        return new RevokedSessionProjection() {
             @Override
             public String getJti() { return jti; }
             @Override
@@ -50,7 +50,7 @@ class SessionRevocationServiceTest {
 
     @Test
     void revocarSesionesUsuario_ok() {
-        SesionRevocadaProyeccion proy = mockProyeccion("jti-1", 100);
+        RevokedSessionProjection proy = mockProyeccion("jti-1", 100);
         when(sesionUsuarioRepository.revocarSesionesUsuario(1L)).thenReturn(List.of(proy));
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
@@ -61,7 +61,7 @@ class SessionRevocationServiceTest {
     
     @Test
     void revocarSesionesUsuario_sinJti_ok() {
-        SesionRevocadaProyeccion proy = mockProyeccion(null, 100);
+        RevokedSessionProjection proy = mockProyeccion(null, 100);
         when(sesionUsuarioRepository.revocarSesionesUsuario(1L)).thenReturn(List.of(proy));
 
         servicio.revocarSesionesUsuario(1L); // No debería fallar ni llamar redis
@@ -70,7 +70,7 @@ class SessionRevocationServiceTest {
 
     @Test
     void cambiarEstadoCuenta_ok() {
-        SesionRevocadaProyeccion proy = mockProyeccion("jti-2", 200);
+        RevokedSessionProjection proy = mockProyeccion("jti-2", 200);
         when(usuarioRepository.cambiarEstadoCuenta(1L, false)).thenReturn(List.of(proy));
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 

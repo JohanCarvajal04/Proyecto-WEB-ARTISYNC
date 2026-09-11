@@ -15,12 +15,12 @@ import uteq.edu.ec.artisync.entity.legal.Mensaje;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
 import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
@@ -42,7 +42,7 @@ class ChatServiceImplTest {
 
     @Mock private SalaChatRepository    salaChatRepo;
     @Mock private MensajeRepository     mensajeRepo;
-    @Mock private UsuarioRepository     usuarioRepo;
+    @Mock private UserRepository     usuarioRepo;
     @Mock private InfraccionService     infraccionService;
     @Mock private MensajeFilterService  mensajeFilterService;
     @Mock private NotificacionService   notificacionService;
@@ -54,14 +54,14 @@ class ChatServiceImplTest {
     private static final Long ID_CREADOR = 2L;
     private static final Long ID_AJENO = 999L;
 
-    private Usuario remitente;
-    private Usuario creador;
+    private User remitente;
+    private User creador;
     private Pedido  pedido;
     private SalaChat sala;
 
     @BeforeEach
     void setUp() {
-        remitente = Usuario.builder()
+        remitente = User.builder()
                 .idUsuario(1L)
                 .nombres("Juan")
                 .apellidos("Pérez")
@@ -71,7 +71,7 @@ class ChatServiceImplTest {
 
         // remitente es el cliente del pedido; el creador es otro usuario, para
         // poder probar que ambas partes tienen acceso al chat y un tercero no.
-        creador = Usuario.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Gómez").build();
+        creador = User.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Gómez").build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
         Servicio servicio = Servicio.builder().perfil(perfil).tituloServicio("Ilustración").build();
 
@@ -230,7 +230,7 @@ class ChatServiceImplTest {
         when(mensajeFilterService.contieneContacto(mensajeConTelefono)).thenReturn(true);
 
         assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, mensajeConTelefono))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("datos de contacto");
 
         // El registro de la infraccion se delega a InfraccionService, que corre
@@ -249,20 +249,20 @@ class ChatServiceImplTest {
         when(mensajeFilterService.contieneContacto(mensajeConEmail)).thenReturn(true);
 
         assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, mensajeConEmail))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(mensajeRepo, never()).save(any());
         verify(notificacionService, never()).notificar(any(), eq("MENSAJE_RECIBIDO"), anyString());
     }
 
     @Test
-    @DisplayName("enviarMensaje en sala cerrada lanza ExcepcionReglaNegocio")
+    @DisplayName("enviarMensaje en sala cerrada lanza BusinessRuleException")
     void enviarMensaje_salaCerrada_lanzaExcepcion() {
         sala.setSalaActiva(false);
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
         assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, "Hola"))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("cerrada");
     }
 
@@ -293,16 +293,16 @@ class ChatServiceImplTest {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
         assertThatThrownBy(() -> chatService.obtenerEstadoSala(10L, ID_AJENO))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("obtenerEstadoSala — sala inexistente lanza ExcepcionRecursoNoEncontrado")
+    @DisplayName("obtenerEstadoSala — sala inexistente lanza ResourceNotFoundException")
     void obtenerEstadoSala_sinSala_lanzaExcepcion() {
         when(salaChatRepo.findByPedidoIdPedido(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> chatService.obtenerEstadoSala(99L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // =========================================================================
@@ -326,7 +326,7 @@ class ChatServiceImplTest {
 
         assertThatThrownBy(() -> chatService.obtenerMensajes(
                 10L, ID_AJENO, org.springframework.data.domain.PageRequest.of(0, 10)))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     // =========================================================================
@@ -339,7 +339,7 @@ class ChatServiceImplTest {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
         assertThatThrownBy(() -> chatService.enviarMensaje(10L, ID_AJENO, "Hola"))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(mensajeRepo, never()).save(any());
     }

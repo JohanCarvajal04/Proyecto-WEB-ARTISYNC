@@ -19,7 +19,7 @@ public interface ComentarioPortafolioService {
      * @param peticion         texto del comentario
      * @param idUsuarioAutor   id del usuario autor del comentario
      * @return el comentario recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el ítem de portafolio o el usuario no existen
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio o el usuario no existen
      */
     RespuestaComentario crearComentario(Long idItemPortafolio, PeticionCrearComentario peticion, Long idUsuarioAutor);
 
@@ -64,7 +64,7 @@ public interface ComentarioPortafolioService {
      *
      * @param idComentario id del comentario a ocultar
      * @return el comentario ya marcado como oculto
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el comentario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     RespuestaComentario ocultarComentario(Long idComentario);
 
@@ -73,7 +73,7 @@ public interface ComentarioPortafolioService {
      *
      * @param idComentario id del comentario a reactivar
      * @return el comentario ya marcado como activo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el comentario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     RespuestaComentario reactivarComentario(Long idComentario);
 }

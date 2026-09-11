@@ -25,7 +25,7 @@ public class GeneradorCsv implements GeneradorReporte {
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public FormatoReporte formato() {
         return FormatoReporte.CSV;

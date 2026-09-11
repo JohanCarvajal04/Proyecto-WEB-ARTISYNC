@@ -10,15 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ContextoAuditoria;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditContext;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
@@ -38,7 +38,7 @@ public class InfraccionServiceImpl implements InfraccionService {
     private static final int SUSPENSION_DIAS   = 15;
 
     private final InfraccionRepository    infraccionRepo;
-    private final UsuarioRepository       usuarioRepo;
+    private final UserRepository       usuarioRepo;
     private final MensajeFilterService    mensajeFilterService;
     private final NotificacionService     notificacionService;
     private final ObjectMapper            objectMapper;
@@ -57,7 +57,7 @@ public class InfraccionServiceImpl implements InfraccionService {
     // duplicarlo en una bitácora que ni el ADMIN puede borrar empeoraría la
     // posición de privacidad. Solo se registra su longitud y el patrón.
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Auditable(accion = "INFRACCION_REGISTRAR", modulo = ModuloAuditoria.COMUNICACION,
+    @Auditable(accion = "INFRACCION_REGISTRAR", modulo = AuditModule.COMUNICACION,
             entidad = "pedidos", idEntidad = "#idPedido")
     /**
      * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
@@ -65,7 +65,7 @@ public class InfraccionServiceImpl implements InfraccionService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param mensaje parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
         // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
@@ -74,9 +74,9 @@ public class InfraccionServiceImpl implements InfraccionService {
         // entre el COUNT y el UPDATE condicional que tenia la version en tres
         // llamadas independientes al repositorio).
         String patron = mensajeFilterService.detectarPatron(mensaje);
-        ContextoAuditoria.aportar("idUsuarioInfractor", idUsuario);
-        ContextoAuditoria.aportar("patronDetectado", patron);
-        ContextoAuditoria.aportar("longitudMensaje", mensaje != null ? mensaje.length() : 0);
+        AuditContext.aportar("idUsuarioInfractor", idUsuario);
+        AuditContext.aportar("patronDetectado", patron);
+        AuditContext.aportar("longitudMensaje", mensaje != null ? mensaje.length() : 0);
 
         String resultadoJson = infraccionRepo.registrarInfraccion(idUsuario, idPedido, mensaje, patron);
         JsonNode resultado = parseResultado(resultadoJson);
@@ -87,8 +87,8 @@ public class InfraccionServiceImpl implements InfraccionService {
                 idUsuario, PERIODO_DIAS, totalPeriodo);
 
         if (cuentaSuspendida) {
-            Usuario usuario = usuarioRepo.findById(idUsuario)
-                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuario));
+            User usuario = usuarioRepo.findById(idUsuario)
+                    .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuario));
             notificarSuspension(usuario);
         }
     }
@@ -108,7 +108,7 @@ public class InfraccionServiceImpl implements InfraccionService {
      *
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaInfraccion> listarInfracciones(Pageable pageable) {
         return infraccionRepo.findAll(pageable).map(this::mapToResponse);
@@ -122,7 +122,7 @@ public class InfraccionServiceImpl implements InfraccionService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaInfraccion> historialPorUsuario(Long idUsuario, Pageable pageable) {
         return infraccionRepo.findByUsuarioIdUsuario(idUsuario, pageable)
@@ -131,18 +131,18 @@ public class InfraccionServiceImpl implements InfraccionService {
 
     @Override
     @Transactional
-    @Auditable(accion = "SUSPENSION_REVERTIR", modulo = ModuloAuditoria.COMUNICACION,
+    @Auditable(accion = "SUSPENSION_REVERTIR", modulo = AuditModule.COMUNICACION,
             entidad = "usuarios", idEntidad = "#idUsuario")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje revertirSuspension(Long idUsuario) {
-        Usuario usuario = usuarioRepo.findById(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuario));
+        User usuario = usuarioRepo.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuario));
         usuario.setEstadoCuenta(true);
         usuarioRepo.save(usuario);
         log.info("Suspensión revertida para usuario {} por admin", idUsuario);
@@ -152,7 +152,7 @@ public class InfraccionServiceImpl implements InfraccionService {
     // -------------------------------------------------------------------------
 
     /** El estado_cuenta ya lo actualizo fn_registrar_infraccion; aqui solo se notifica. */
-    private void notificarSuspension(Usuario usuario) {
+    private void notificarSuspension(User usuario) {
         LocalDateTime hastaFecha = LocalDateTime.now().plusDays(SUSPENSION_DIAS);
         String mensajeNotif = "Tu cuenta está suspendida hasta " + hastaFecha.toLocalDate()
                 + " por superar el límite de infracciones de datos de contacto.";

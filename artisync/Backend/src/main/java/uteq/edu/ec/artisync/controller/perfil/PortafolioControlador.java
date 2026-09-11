@@ -29,9 +29,9 @@ public class PortafolioControlador {
      * @param peticion datos del portafolio a crear
      * @param userDetails usuario autenticado que crea el portafolio
      * @return el portafolio creado, con estado 201
-     * @throws ExcepcionRecursoDuplicado si el perfil de creador ya cuenta con un portafolio registrado
-     * @throws ExcepcionRecursoNoEncontrado si el perfil de creador no existe
-     * @throws ExcepcionReglaNegocio si el usuario no tiene permisos para crear un portafolio para ese perfil
+     * @throws DuplicateResourceException si el perfil de creador ya cuenta con un portafolio registrado
+     * @throws ResourceNotFoundException si el perfil de creador no existe
+     * @throws BusinessRuleException si el usuario no tiene permisos para crear un portafolio para ese perfil
      */
     @PostMapping
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
@@ -47,7 +47,7 @@ public class PortafolioControlador {
      *
      * @param id identificador del portafolio
      * @return el portafolio solicitado
-     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ResourceNotFoundException si el portafolio no existe
      */
     @GetMapping("/{id}")
     public ResponseEntity<RespuestaPortafolio> obtenerPortafolioPorId(@PathVariable Long id) {
@@ -59,7 +59,7 @@ public class PortafolioControlador {
      *
      * @param idPerfil identificador del perfil de creador
      * @return el portafolio del perfil
-     * @throws ExcepcionRecursoNoEncontrado si no existe portafolio para el perfil
+     * @throws ResourceNotFoundException si no existe portafolio para el perfil
      */
     @GetMapping("/perfil/{idPerfil}")
     public ResponseEntity<RespuestaPortafolio> obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
@@ -83,8 +83,8 @@ public class PortafolioControlador {
      * @param peticion datos actualizados del portafolio
      * @param userDetails usuario autenticado que solicita la actualización
      * @return el portafolio actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
-     * @throws ExcepcionReglaNegocio si el usuario no tiene permisos para modificar el portafolio
+     * @throws ResourceNotFoundException si el portafolio no existe
+     * @throws BusinessRuleException si el usuario no tiene permisos para modificar el portafolio
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
@@ -101,7 +101,7 @@ public class PortafolioControlador {
      * @param id identificador del portafolio visitado
      * @param userDetails usuario autenticado que registra la visita
      * @return mensaje de confirmación del registro de la visita
-     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ResourceNotFoundException si el portafolio no existe
      */
     @PostMapping("/{id}/visita")
     @PreAuthorize("isAuthenticated()")
@@ -117,7 +117,7 @@ public class PortafolioControlador {
      *
      * @param id identificador del portafolio a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws ResourceNotFoundException si el portafolio no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')")

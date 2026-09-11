@@ -4,8 +4,8 @@ import uteq.edu.ec.artisync.repository.perfil.*;
 
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
-import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
-import uteq.edu.ec.artisync.dto.seguridad.response.RolResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.PermissionResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.RoleResponse;
 
 import java.util.List;
 
@@ -16,14 +16,14 @@ public interface RolePermissionService {
      *
      * @return los roles existentes
      */
-    List<RolResponse> getAllRoles();
+    List<RoleResponse> getAllRoles();
 
     /**
      * Lista todos los permisos disponibles en el sistema.
      *
      * @return los permisos existentes
      */
-    List<PermisoResponse> getAllPermisos();
+    List<PermissionResponse> getAllPermisos();
 
     /**
      * Lista los códigos de permiso asignados a un rol.
@@ -49,7 +49,7 @@ public interface RolePermissionService {
      * @param request nombre, descripción y permisos iniciales del rol
      * @return el rol recién creado
      */
-    RolResponse createRole(CreateRoleRequest request);
+    RoleResponse createRole(CreateRoleRequest request);
 
     /**
      * Actualiza la descripción de un rol existente.
@@ -58,7 +58,7 @@ public interface RolePermissionService {
      * @param request nueva descripción del rol
      * @return el rol ya actualizado
      */
-    RolResponse updateRole(Long idRol, UpdateRoleRequest request);
+    RoleResponse updateRole(Long idRol, UpdateRoleRequest request);
 
     /**
      * Elimina un rol personalizado, siempre que no sea un rol base protegido ni tenga usuarios activos asignados.

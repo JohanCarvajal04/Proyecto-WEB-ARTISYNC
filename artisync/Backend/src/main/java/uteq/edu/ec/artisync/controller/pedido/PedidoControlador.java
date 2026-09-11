@@ -21,7 +21,7 @@ import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.pedido.IPedidoServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.util.RespuestaDocumento;
+import uteq.edu.ec.artisync.util.DocumentResponse;
 
 import java.util.List;
 
@@ -111,7 +111,7 @@ public class PedidoControlador {
             Authentication authentication) {
         DocumentoGenerado documento = pedidoServicio.exportarMisPedidos(
                 userDetails.getIdUsuario(), formato, authentication.getName());
-        return RespuestaDocumento.de(documento);
+        return DocumentResponse.de(documento);
     }
 
     /**
@@ -132,7 +132,7 @@ public class PedidoControlador {
             Authentication authentication) {
         DocumentoGenerado documento = pedidoServicio.exportarMisComisiones(
                 userDetails.getIdUsuario(), idsPedido, formato, authentication.getName());
-        return RespuestaDocumento.de(documento);
+        return DocumentResponse.de(documento);
     }
 
     /**

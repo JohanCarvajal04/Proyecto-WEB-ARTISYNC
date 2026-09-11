@@ -9,8 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.PeticionCrearEtiqueta;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaEtiqueta;
 import uteq.edu.ec.artisync.entity.catalogo.Etiqueta;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.EtiquetaRepository;
 
 import java.util.List;
@@ -56,7 +56,7 @@ class EtiquetaServicioImplTest {
         given(etiquetaRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> etiquetaServicio.obtenerPorId(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -78,7 +78,7 @@ class EtiquetaServicioImplTest {
         given(etiquetaRepository.existsByNombreEtiquetaIgnoreCase("Digital")).willReturn(true);
 
         assertThatThrownBy(() -> etiquetaServicio.crearEtiqueta(peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -97,6 +97,6 @@ class EtiquetaServicioImplTest {
         given(etiquetaRepository.existsById(1L)).willReturn(false);
 
         assertThatThrownBy(() -> etiquetaServicio.eliminarEtiqueta(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

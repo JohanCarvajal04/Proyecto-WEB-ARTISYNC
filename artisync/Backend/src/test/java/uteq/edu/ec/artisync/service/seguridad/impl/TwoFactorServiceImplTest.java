@@ -13,15 +13,15 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
-import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
-import uteq.edu.ec.artisync.entity.seguridad.Rol;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
+import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
+import uteq.edu.ec.artisync.entity.seguridad.Role;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.seguridad.UserRole;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
-import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
-import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
+import uteq.edu.ec.artisync.repository.seguridad.TwoFactorBackupCodeRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
 import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 
 import java.util.List;
@@ -35,13 +35,13 @@ import static org.mockito.Mockito.*;
 class TwoFactorServiceImplTest {
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
     @Mock
-    private AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+    private TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
     @Mock
-    private CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
+    private TwoFactorBackupCodeRepository codigoRespaldo2FaRepository;
     @Mock
-    private UsuarioRolRepository usuarioRolRepository;
+    private UserRoleRepository usuarioRolRepository;
     @Mock
     private CertificadoIaRepository certificadoIaRepository;
     @Mock
@@ -50,11 +50,11 @@ class TwoFactorServiceImplTest {
     @InjectMocks
     private TwoFactorServiceImpl twoFactorService;
 
-    private Usuario usuario;
+    private User usuario;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder()
+        usuario = User.builder()
                 .idUsuario(1L)
                 .correo("creador@example.com")
                 .build();
@@ -66,8 +66,8 @@ class TwoFactorServiceImplTest {
     @Test
     void setup2Fa_ShouldThrowForbidden_WhenUserIsCreadorAndNotApproved() {
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
-        Rol rolCreador = Rol.builder().nombreRol("CREADOR").build();
-        UsuarioRol ur = UsuarioRol.builder().rol(rolCreador).build();
+        Role rolCreador = Role.builder().nombreRol("CREADOR").build();
+        UserRole ur = UserRole.builder().rol(rolCreador).build();
         when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(ur));
         
         when(certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(1L, "IDENTIDAD", "APROBADO")).thenReturn(false);
@@ -83,8 +83,8 @@ class TwoFactorServiceImplTest {
     // del secreto + reemplazo de codigos de respaldo en una sola transaccion.
     void setup2Fa_ShouldSucceed_WhenUserIsCliente() {
         when(usuarioRepository.findByCorreo("cliente@example.com")).thenReturn(Optional.of(usuario));
-        Rol rolCliente = Rol.builder().nombreRol("CLIENTE").build();
-        UsuarioRol ur = UsuarioRol.builder().rol(rolCliente).build();
+        Role rolCliente = Role.builder().nombreRol("CLIENTE").build();
+        UserRole ur = UserRole.builder().rol(rolCliente).build();
         when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(ur));
 
         TwoFactorSetupResponse response = twoFactorService.setup2Fa("cliente@example.com");
@@ -103,7 +103,7 @@ class TwoFactorServiceImplTest {
 
     @Test
     void validarCodigoOBackup_ShouldReturnTrue_WhenCodigoDeRespaldoNoUsado() {
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder()
                 .llaveSecreta("SECRETO").estaHabilitado(true).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
@@ -120,7 +120,7 @@ class TwoFactorServiceImplTest {
         // Simula la anomalia que la Fase 1 cierra: el UPDATE atomico ya no
         // encuentra la fila (otra transaccion la marco usado = TRUE primero) y
         // devuelve FALSE en vez de "true" dos veces.
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder()
                 .llaveSecreta("SECRETO").estaHabilitado(true).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
@@ -137,7 +137,7 @@ class TwoFactorServiceImplTest {
 
     @Test
     void disable2Fa_ShouldIncrementarCuota_WhenCodigoIncorrecto() {
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder()
                 .llaveSecreta("SECRETO").estaHabilitado(true).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
@@ -154,7 +154,7 @@ class TwoFactorServiceImplTest {
 
     @Test
     void disable2Fa_ShouldLimpiarCuota_WhenCodigoCorrecto() {
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder()
                 .llaveSecreta("SECRETO").estaHabilitado(true).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
@@ -190,7 +190,7 @@ class TwoFactorServiceImplTest {
 
     @Test
     void disable2Fa_ShouldThrowBadRequest_WhenNoEstaActivo() {
-        AutenticacionDosFactores dosFactoresInactivo = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactoresInactivo = TwoFactorAuthentication.builder()
                 .llaveSecreta("SECRETO").estaHabilitado(false).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactoresInactivo));
@@ -227,7 +227,7 @@ class TwoFactorServiceImplTest {
 
     @Test
     void confirm2Fa_ShouldIncrementarCuota_WhenCodigoTotpInvalido() {
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder()
                 .llaveSecreta("SECRETO").estaHabilitado(false).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
@@ -248,7 +248,7 @@ class TwoFactorServiceImplTest {
         String secreto = key.getKey();
         String codigoValido = String.format("%06d", gAuth.getTotpPassword(secreto));
 
-        AutenticacionDosFactores dosFactores = AutenticacionDosFactores.builder()
+        TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder()
                 .llaveSecreta(secreto).estaHabilitado(false).build();
         when(usuarioRepository.findByCorreo("creador@example.com")).thenReturn(Optional.of(usuario));
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));

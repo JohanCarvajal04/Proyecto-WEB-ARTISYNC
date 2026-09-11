@@ -8,11 +8,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.legal.FiltroReporteFinanciero;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DetalleComision;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaReporteComisiones;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.legal.IReporteFinancieroServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
@@ -68,7 +68,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
      *
      * @param filtro criterios de busqueda y filtrado dinamico a aplicar
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaReporteComisiones obtenerReporteComisiones(FiltroReporteFinanciero filtro) {
         return parsear(consultar(filtro));
@@ -76,7 +76,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
 
     @Override
     @Transactional(readOnly = true)
-    @Auditable(accion = "REPORTE_FINANCIERO_EXPORTAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "REPORTE_FINANCIERO_EXPORTAR", modulo = AuditModule.FINANZAS,
             entidad = "perfiles_creadores", idEntidad = "#filtro.idPerfil", detalle = "{formato: #formato, page: #page, size: #size}")
     /**
      * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
@@ -87,7 +87,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
      * @param size parametro requerido para la correcta ejecucion del procedimiento
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
         RespuestaReporteComisiones reporte = parsear(consultar(filtro));
@@ -109,7 +109,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
         } else {
             filas = reporte.detalle();
             if (filas.size() > formato.topeFilas()) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "El reporte devuelve " + filas.size() + " transacciones, más de las "
                                 + formato.topeFilas() + " que admite una exportación en " + formato
                                 + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
@@ -147,7 +147,7 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
      * @param formato parametro requerido para la correcta ejecucion del procedimiento
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);

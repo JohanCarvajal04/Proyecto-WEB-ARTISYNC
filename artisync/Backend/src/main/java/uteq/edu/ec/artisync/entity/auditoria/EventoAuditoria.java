@@ -22,7 +22,7 @@ import java.util.Map;
  * Bitácora inmutable de eventos (REQ-NF-013). Ver V15__modulo_auditoria.sql
  * para la tabla, el trigger de inmutabilidad y los GRANTs restringidos.
  *
- * fechaEvento NO lleva @CreationTimestamp: la estampa AspectoAuditoria en el
+ * fechaEvento NO lleva @CreationTimestamp: la estampa AuditAspect en el
  * hilo de la petición original, antes de que la escritura pase a su propia
  * transacción REQUIRES_NEW, para que el orden temporal de los eventos refleje
  * el orden real en que ocurrieron y no el orden en que se persistieron.
@@ -39,7 +39,7 @@ import java.util.Map;
  * ya el trigger trg_auditoria_eventos_inmutable Y el GRANT restringido a
  * SELECT+INSERT (V15__modulo_auditoria.sql) -- ambos hacian su trabajo -- pero
  * el resultado era que CADA evento de auditoria se perdia (capturado como
- * AUDITORIA_PERDIDA en AspectoAuditoria) sin que la operacion de negocio se
+ * AUDITORIA_PERDIDA en AuditAspect) sin que la operacion de negocio se
  * enterara. @Immutable le dice a Hibernate que esta entidad nunca se
  * actualiza ni se borra tras crearse, así que directamente no genera ese
  * UPDATE.

@@ -40,7 +40,7 @@ public class MensajeFilterServiceImpl implements MensajeFilterService {
      *
      * @param texto parametro requerido para la correcta ejecucion del procedimiento
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public boolean contieneContacto(String texto) {
         if (texto == null || texto.isBlank()) {
@@ -56,7 +56,7 @@ public class MensajeFilterServiceImpl implements MensajeFilterService {
      *
      * @param texto parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String detectarPatron(String texto) {
         if (texto == null || texto.isBlank()) {

@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -25,7 +25,7 @@ public class NotificacionSistema {
     @NotNull(message = "El usuario destinatario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
-    private Usuario usuario;
+    private User usuario;
 
     @NotNull(message = "El tipo de notificacion es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)

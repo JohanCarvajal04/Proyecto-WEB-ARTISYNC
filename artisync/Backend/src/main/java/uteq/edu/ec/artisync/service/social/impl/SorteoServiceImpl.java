@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
@@ -18,13 +18,13 @@ import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
 import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
 import uteq.edu.ec.artisync.entity.social.PremioSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
 import uteq.edu.ec.artisync.service.social.SorteoService;
@@ -49,7 +49,7 @@ public class SorteoServiceImpl implements SorteoService {
     private final SorteoRepository sorteoRepository;
     private final ParticipanteSorteoRepository participanteSorteoRepository;
     private final PerfilCreadorRepository perfilCreadorRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final SeguidorRepository seguidorRepository;
 
     // =========================================================================
@@ -58,7 +58,7 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
-    @Auditable(accion = "SORTEO_CREAR", modulo = ModuloAuditoria.SOCIAL,
+    @Auditable(accion = "SORTEO_CREAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#resultado.idSorteo",
             detalle = "{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}")
     /**
@@ -67,15 +67,15 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion) {
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No tienes un perfil de creador activo"));
 
         if (peticion.getFechaCierre().isBefore(peticion.getFechaInicio())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "La fecha de cierre debe ser posterior a la fecha de inicio");
         }
 
@@ -100,7 +100,7 @@ public class SorteoServiceImpl implements SorteoService {
     /** REQ-F-023: la cantidad de ganadores debe coincidir exactamente con la cantidad de premios definidos. */
     private void validarCantidadPremios(int cantidadPremios, int cantidadGanadores) {
         if (cantidadPremios != cantidadGanadores) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "La cantidad de ganadores (" + cantidadGanadores
                             + ") debe coincidir con la cantidad de premios definidos (" + cantidadPremios + ")");
         }
@@ -126,7 +126,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idSorteo identificador unico que referencia de manera univoca al registro
      * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSorteo obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
@@ -154,7 +154,7 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
-    @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = ModuloAuditoria.SOCIAL,
+    @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
     /**
      * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
@@ -163,7 +163,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion) {
         Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
@@ -172,16 +172,16 @@ public class SorteoServiceImpl implements SorteoService {
         if (tieneParticipantes) {
             if (peticion.getCantidadGanadores() != null &&
                     !peticion.getCantidadGanadores().equals(sorteo.getCantidadGanadores())) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "No se puede modificar este campo una vez iniciadas las inscripciones");
             }
             if (peticion.getPremios() != null) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "No se puede modificar este campo una vez iniciadas las inscripciones");
             }
             if (peticion.getFechaCierre() != null &&
                     !peticion.getFechaCierre().equals(sorteo.getFechaCierre())) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "No se puede modificar la fecha de cierre una vez iniciadas las inscripciones");
             }
         }
@@ -192,7 +192,7 @@ public class SorteoServiceImpl implements SorteoService {
         // imposible — participar() rechaza tanto "aún no ha comenzado" como
         // "el periodo de inscripción ha finalizado" para cualquier instante.
         if (peticion.getFechaCierre() != null && peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "La fecha de cierre debe ser posterior a la fecha de inicio del sorteo");
         }
 
@@ -214,7 +214,7 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
-    @Auditable(accion = "SORTEO_ELIMINAR", modulo = ModuloAuditoria.SOCIAL,
+    @Auditable(accion = "SORTEO_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
@@ -222,12 +222,12 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idSorteo identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "No se puede eliminar un sorteo con participantes inscritos");
         }
         sorteoRepository.delete(sorteo);
@@ -243,7 +243,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaSorteo> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
         return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)
@@ -265,7 +265,7 @@ public class SorteoServiceImpl implements SorteoService {
      *
      * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaSorteo> listarSorteosActivos(Long idUsuarioActual) {
         return sorteoRepository.findByEstadoSorteo("Activo")
@@ -292,28 +292,28 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idSorteo identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaParticipante participar(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
 
         // Validar estado
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
-            throw new ExcepcionReglaNegocio("El sorteo no está activo");
+            throw new BusinessRuleException("El sorteo no está activo");
         }
 
         // Validar rango de fechas
         LocalDateTime ahora = LocalDateTime.now();
         if (ahora.isBefore(sorteo.getFechaInicio())) {
-            throw new ExcepcionReglaNegocio("El sorteo aún no ha comenzado");
+            throw new BusinessRuleException("El sorteo aún no ha comenzado");
         }
         if (ahora.isAfter(sorteo.getFechaCierre())) {
-            throw new ExcepcionReglaNegocio("El periodo de inscripción ha finalizado");
+            throw new BusinessRuleException("El periodo de inscripción ha finalizado");
         }
 
         // Validar inscripción duplicada
         if (participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuario)) {
-            throw new ExcepcionRecursoDuplicado("Ya estás inscrito en este sorteo");
+            throw new DuplicateResourceException("Ya estás inscrito en este sorteo");
         }
 
         // Validar requisito de seguidor
@@ -321,19 +321,19 @@ public class SorteoServiceImpl implements SorteoService {
             boolean esSeguidor = seguidorRepository.existsByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(
                     idUsuario, sorteo.getPerfilCreador().getIdPerfil());
             if (!esSeguidor) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "Este sorteo requiere que sigas al creador para poder participar");
             }
         }
 
-        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
+        User usuario = usuarioRepository.getReferenceById(idUsuario);
         ParticipanteSorteo participante = ParticipanteSorteo.builder()
                 .sorteo(sorteo)
                 .usuario(usuario)
                 .esGanador(false)
                 .build();
         participante = participanteSorteoRepository.save(participante);
-        log.info("Usuario {} inscrito en sorteo {}", idUsuario, idSorteo);
+        log.info("User {} inscrito en sorteo {}", idUsuario, idSorteo);
         return mapToParticipanteResponse(participante);
     }
 
@@ -345,19 +345,19 @@ public class SorteoServiceImpl implements SorteoService {
      * @param idSorteo identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
-            throw new ExcepcionReglaNegocio("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
+            throw new BusinessRuleException("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
         }
         ParticipanteSorteo participante = participanteSorteoRepository
                 .findBySorteoIdSorteo(idSorteo)
                 .stream()
                 .filter(p -> p.getUsuario().getIdUsuario().equals(idUsuario))
                 .findFirst()
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No estás inscrito en este sorteo"));
         participanteSorteoRepository.delete(participante);
         return new RespuestaMensaje("Inscripción cancelada correctamente");
@@ -370,7 +370,7 @@ public class SorteoServiceImpl implements SorteoService {
      *
      * @param idSorteo identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaParticipante> listarParticipantes(Long idSorteo) {
         findSorteoOrThrow(idSorteo); // Valida que existe
@@ -385,7 +385,7 @@ public class SorteoServiceImpl implements SorteoService {
      *
      * @param idSorteo identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaGanador> listarGanadores(Long idSorteo) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
@@ -403,13 +403,13 @@ public class SorteoServiceImpl implements SorteoService {
 
     private Sorteo findSorteoOrThrow(Long idSorteo) {
         return sorteoRepository.findById(idSorteo)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Sorteo no encontrado: " + idSorteo));
+                .orElseThrow(() -> new ResourceNotFoundException("Sorteo no encontrado: " + idSorteo));
     }
 
     private Sorteo verificarPropietario(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No tienes perfil de creador"));
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes perfil de creador"));
         if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "No tienes permiso para modificar este sorteo");

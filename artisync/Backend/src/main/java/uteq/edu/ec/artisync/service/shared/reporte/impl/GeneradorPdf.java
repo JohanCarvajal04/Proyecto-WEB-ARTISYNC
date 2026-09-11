@@ -44,7 +44,7 @@ public class GeneradorPdf implements GeneradorReporte {
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public FormatoReporte formato() {
         return FormatoReporte.PDF;
@@ -112,7 +112,7 @@ public class GeneradorPdf implements GeneradorReporte {
      * @param etiqueta parametro requerido para la correcta ejecucion del procedimiento
      * @param valorTexto parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public record TotalConTexto(String etiqueta, String valorTexto) {
     }
@@ -125,7 +125,7 @@ public class GeneradorPdf implements GeneradorReporte {
      * @param subtitulo parametro requerido para la correcta ejecucion del procedimiento
      * @param dataUri parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public record GraficaConDataUri(String titulo, String subtitulo, String dataUri) {
     }

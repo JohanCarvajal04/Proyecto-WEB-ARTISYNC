@@ -50,7 +50,7 @@ public class PagoGarantiaAuditoriaControlador {
      *
      * @param idPago identificador del pago en garantía
      * @return el detalle del pago en garantía
-     * @throws ExcepcionRecursoNoEncontrado si el pago en garantía no existe
+     * @throws ResourceNotFoundException si el pago en garantía no existe
      */
     @Operation(summary = "Detalle de un pago en garantía, con su historial de transacciones")
     @GetMapping("/{idPago}")

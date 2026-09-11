@@ -52,7 +52,7 @@ public class PlantillaAcuerdoCreadorControlador {
      * @param peticion datos actualizados de la plantilla
      * @param userDetails usuario autenticado
      * @return la plantilla actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe o no pertenece a este creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no pertenece a este creador
      */
     @PutMapping("/{id}")
     public ResponseEntity<RespuestaPlantillaContrato> editar(
@@ -79,7 +79,7 @@ public class PlantillaAcuerdoCreadorControlador {
      * @param id identificador de la plantilla a desactivar
      * @param userDetails usuario autenticado
      * @return mensaje de confirmación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe o no pertenece a este creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no pertenece a este creador
      */
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<RespuestaMensaje> desactivar(

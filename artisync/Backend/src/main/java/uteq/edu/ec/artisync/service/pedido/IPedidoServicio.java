@@ -23,8 +23,8 @@ public interface IPedidoServicio {
      * @param idCliente id del usuario que actúa como cliente
      * @param peticion  datos del pedido a crear (servicio, precio ofrecido, respuestas de briefing, etc.)
      * @return el pedido recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el cliente o el servicio no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la identidad no está verificada, el cliente es dueño del servicio, el flujo no tiene etapas configuradas o falta responder el cuestionario
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el cliente o el servicio no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la identidad no está verificada, el cliente es dueño del servicio, el flujo no tiene etapas configuradas o falta responder el cuestionario
      */
     RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion);
 
@@ -35,7 +35,7 @@ public interface IPedidoServicio {
      * @param idPedido            id del pedido
      * @param idUsuarioSolicitante id del usuario que consulta
      * @return el detalle del pedido
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
     RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante);
 
@@ -65,7 +65,7 @@ public interface IPedidoServicio {
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el listado de pedidos del cliente
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el listado excede el tope de filas admitido por el formato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
     DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante);
 
@@ -81,7 +81,7 @@ public interface IPedidoServicio {
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el listado de comisiones del creador
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el listado excede el tope de filas admitido por el formato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
     DocumentoGenerado exportarMisComisiones(Long idCreador, List<Long> idsPedido, FormatoReporte formato, String correoSolicitante);
 
@@ -94,8 +94,8 @@ public interface IPedidoServicio {
      * @param idCreador id del creador que solicita el avance
      * @param peticion  observación asociada a la transición
      * @return el pedido con su etapa ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el creador del servicio, la etapa actual ya no está en el flujo, exige un entregable pendiente o el pedido ya está en la etapa final
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el creador del servicio, la etapa actual ya no está en el flujo, exige un entregable pendiente o el pedido ya está en la etapa final
      */
     RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion);
 
@@ -109,8 +109,8 @@ public interface IPedidoServicio {
      * @param idUsuario id del usuario que propone (cliente o creador del pedido)
      * @param peticion  precio y/o fecha de entrega propuestos
      * @return la propuesta de términos recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si no se indica ningún término, el usuario no es parte del pedido, el contrato ya tiene alguna firma o ya existe una propuesta pendiente
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica ningún término, el usuario no es parte del pedido, el contrato ya tiene alguna firma o ya existe una propuesta pendiente
      */
     RespuestaPropuestaTerminos proponerTerminos(Long idPedido, Long idUsuario, PeticionCrearPropuestaTerminos peticion);
 
@@ -123,8 +123,8 @@ public interface IPedidoServicio {
      * @param idPropuesta id de la propuesta pendiente a aceptar
      * @param idUsuario   id del usuario que acepta (debe ser la contraparte del proponente)
      * @return el pedido con los términos ya aplicados
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido o la propuesta no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario es el propio proponente, no es parte del pedido, el contrato ya tiene alguna firma o la propuesta ya fue resuelta
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o la propuesta no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario es el propio proponente, no es parte del pedido, el contrato ya tiene alguna firma o la propuesta ya fue resuelta
      */
     RespuestaPedido aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
 
@@ -135,8 +135,8 @@ public interface IPedidoServicio {
      * @param idPropuesta id de la propuesta pendiente a rechazar
      * @param idUsuario   id del usuario que rechaza (debe ser la contraparte del proponente)
      * @return la propuesta ya marcada como rechazada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido o la propuesta no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario es el propio proponente, no es parte del pedido o la propuesta ya fue resuelta
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o la propuesta no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario es el propio proponente, no es parte del pedido o la propuesta ya fue resuelta
      */
     RespuestaPropuestaTerminos rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
 
@@ -147,18 +147,18 @@ public interface IPedidoServicio {
      * @param idPropuesta id de la propuesta pendiente a cancelar
      * @param idUsuario   id del usuario que cancela (debe ser quien la propuso)
      * @return la propuesta ya marcada como cancelada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la propuesta no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario no es quien propuso los términos o la propuesta ya fue resuelta
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la propuesta no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es quien propuso los términos o la propuesta ya fue resuelta
      */
     RespuestaPropuestaTerminos cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
 
     /**
-     * Lanza ExcepcionRecursoNoEncontrado si no hay ninguna propuesta pendiente.
+     * Lanza ResourceNotFoundException si no hay ninguna propuesta pendiente.
      *
      * @param idPedido             id del pedido
      * @param idUsuarioSolicitante id del usuario que consulta (debe ser parte del pedido o admin)
      * @return la propuesta de términos actualmente pendiente
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe o no hay ninguna propuesta pendiente
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe o no hay ninguna propuesta pendiente
      */
     RespuestaPropuestaTerminos obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante);
 
@@ -168,7 +168,7 @@ public interface IPedidoServicio {
      * @param idPedido             id del pedido
      * @param idUsuarioSolicitante id del usuario que consulta (debe ser parte del pedido o admin)
      * @return el historial de estados del pedido
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
     List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante);
 
@@ -179,7 +179,7 @@ public interface IPedidoServicio {
      * @param idPedido             id del pedido
      * @param idUsuarioSolicitante id del usuario que consulta (debe ser parte del pedido o admin)
      * @return el resumen de seguimiento del pedido
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
     RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante);
 }

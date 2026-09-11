@@ -42,8 +42,8 @@ public class SubcategoriaControlador {
      * @param peticion datos de la subcategoría a crear
      * @param userDetails usuario autenticado que crea la subcategoría
      * @return la subcategoría creada, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si la categoría indicada no existe
-     * @throws ExcepcionReglaNegocio si ya existe una subcategoría con el mismo nombre en la categoría
+     * @throws ResourceNotFoundException si la categoría indicada no existe
+     * @throws BusinessRuleException si ya existe una subcategoría con el mismo nombre en la categoría
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')")
@@ -60,8 +60,8 @@ public class SubcategoriaControlador {
      * @param id identificador de la subcategoría a eliminar
      * @param motivo motivo de la eliminación, obligatorio si la subcategoría fue creada por un creador
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si la subcategoría no existe
-     * @throws ExcepcionReglaNegocio si no se indica motivo siendo obligatorio, o la subcategoría no puede eliminarse
+     * @throws ResourceNotFoundException si la subcategoría no existe
+     * @throws BusinessRuleException si no se indica motivo siendo obligatorio, o la subcategoría no puede eliminarse
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
@@ -88,7 +88,7 @@ public class SubcategoriaControlador {
      *
      * @param id identificador de la subcategoría a marcar como revisada
      * @return la subcategoría actualizada
-     * @throws ExcepcionRecursoNoEncontrado si la subcategoría no existe
+     * @throws ResourceNotFoundException si la subcategoría no existe
      */
     @PatchMapping("/{id}/revisar")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")

@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.config.RespaldoProperties;
+import uteq.edu.ec.artisync.config.BackupProperties;
 import uteq.edu.ec.artisync.entity.respaldo.EstadoRespaldo;
 import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
 import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 public class RespaldoRetencionScheduler {
 
     private final RespaldoRepository respaldoRepository;
-    private final RespaldoProperties respaldoProperties;
+    private final BackupProperties respaldoProperties;
     private final RespaldoArchivoStorage storage;
 
     @Scheduled(cron = "0 0 4 * * *")

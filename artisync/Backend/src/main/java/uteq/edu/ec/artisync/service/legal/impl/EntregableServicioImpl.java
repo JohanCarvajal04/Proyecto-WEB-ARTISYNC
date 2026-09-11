@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
@@ -17,8 +17,8 @@ import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
@@ -65,12 +65,12 @@ public class EntregableServicioImpl implements IEntregableServicio {
         PoliticaArchivo.ENTREGABLE.validar(versionLimpia);
 
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
         // Verificar que el usuario es el creador del servicio
         Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();
         if (!idCreadorServicio.equals(idCreador)) {
-            throw new ExcepcionReglaNegocio("Solo el creador del servicio puede subir entregables");
+            throw new BusinessRuleException("Solo el creador del servicio puede subir entregables");
         }
 
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
@@ -121,11 +121,11 @@ public class EntregableServicioImpl implements IEntregableServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEntregable obtenerEntregable(Long idPedido, Long idUsuario) {
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
         // El creador siempre ve ambas versiones; el cliente solo la marca de agua hasta aprobación
         Pedido pedido = entregable.getPedido();
@@ -141,34 +141,34 @@ public class EntregableServicioImpl implements IEntregableServicio {
     // garantía. Es exactamente el tipo de operación que REQ-NF-013 exige
     // poder auditar, incluidos los intentos fallidos (cliente equivocado,
     // entregable ya liberado).
-    @Auditable(accion = "FONDOS_LIBERAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "FONDOS_LIBERAR", modulo = AuditModule.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idCliente identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void aprobarEntrega(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
         // Verificar que el usuario es el cliente
         if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {
-            throw new ExcepcionReglaNegocio("Solo el cliente puede aprobar la entrega");
+            throw new BusinessRuleException("Solo el cliente puede aprobar la entrega");
         }
 
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedidoParaActualizar(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
         if (entregable.getEstaLiberado()) {
-            throw new ExcepcionReglaNegocio("El entregable ya fue aprobado");
+            throw new BusinessRuleException("El entregable ya fue aprobado");
         }
 
         // Liberar fondos
         var contrato = contratoRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
 
         var pagoOpt = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());
         if (pagoOpt.isPresent()) {
@@ -179,7 +179,7 @@ public class EntregableServicioImpl implements IEntregableServicio {
             // aquí después y pagar al creador una segunda vez sobre el mismo
             // dinero, o liberar fondos que ya se le devolvieron al cliente.
             if (!"Retenido".equalsIgnoreCase(pago.getEstadoFondos())) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "No se puede aprobar: el pago de este pedido no está en estado Retenido (estado actual: "
                                 + pago.getEstadoFondos() + ")");
             }
@@ -214,7 +214,7 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
     @Override
     @Transactional(readOnly = true)
-    @Auditable(accion = "ENTREGABLE_DESCARGAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "ENTREGABLE_DESCARGAR", modulo = AuditModule.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido")
     /**
      * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
@@ -222,26 +222,26 @@ public class EntregableServicioImpl implements IEntregableServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
         if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {
-            throw new ExcepcionReglaNegocio("Solo el cliente puede descargar el entregable");
+            throw new BusinessRuleException("Solo el cliente puede descargar el entregable");
         }
 
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
         if (!entregable.getEstaLiberado()) {
-            throw new ExcepcionReglaNegocio("El entregable no esta disponible hasta que el pago sea liberado");
+            throw new BusinessRuleException("El entregable no esta disponible hasta que el pago sea liberado");
         }
 
         String referencia = entregable.getUrlVersionLimpia();
         if (referencia == null || referencia.isBlank()) {
-            throw new ExcepcionRecursoNoEncontrado("El entregable no tiene un archivo asociado");
+            throw new ResourceNotFoundException("El entregable no tiene un archivo asociado");
         }
 
         log.info("Descarga de version limpia para pedido {}", idPedido);
@@ -259,23 +259,23 @@ public class EntregableServicioImpl implements IEntregableServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario) {
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No hay entregable para este pedido"));
 
         // La ve el cliente que la debe revisar y el creador que la subió; nadie más.
         Pedido pedido = entregable.getPedido();
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
         if (!esCliente && !esCreador) {
-            throw new ExcepcionReglaNegocio("No tiene acceso a este entregable");
+            throw new BusinessRuleException("No tiene acceso a este entregable");
         }
 
         String referencia = entregable.getUrlVersionMarcaAgua();
         if (referencia == null || referencia.isBlank()) {
-            throw new ExcepcionRecursoNoEncontrado("El entregable no tiene version con marca de agua");
+            throw new ResourceNotFoundException("El entregable no tiene version con marca de agua");
         }
 
         return new ArchivoDescargado(

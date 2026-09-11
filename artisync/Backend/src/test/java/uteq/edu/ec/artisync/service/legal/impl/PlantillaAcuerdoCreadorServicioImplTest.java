@@ -12,7 +12,7 @@ import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaAcuerdoProp
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 
 import java.util.List;
@@ -96,7 +96,7 @@ class PlantillaAcuerdoCreadorServicioImplTest {
                 .nombrePlantilla("x").cuerpoHtmlPlantilla("<html></html>").activa(true).build();
 
         assertThatThrownBy(() -> servicio.editar(999L, 10L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 
@@ -132,7 +132,7 @@ class PlantillaAcuerdoCreadorServicioImplTest {
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicio.desactivar(999L, 10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 }

@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import uteq.edu.ec.artisync.exception.ExcepcionCuotaExcedida;
+import uteq.edu.ec.artisync.exception.QuotaExceededException;
 
 import java.time.Duration;
 
@@ -59,13 +59,13 @@ class IntentosAutenticacionServiceTest {
     }
 
     @Test
-    @DisplayName("verificarCuota — supera el limite y lanza ExcepcionCuotaExcedida")
+    @DisplayName("verificarCuota — supera el limite y lanza QuotaExceededException")
     void verificarCuota_superaLimite_lanzaExcepcion() {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.increment(anyString())).willReturn(6L);
 
         assertThatThrownBy(() -> intentosAutenticacionService.verificarCuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
-                .isInstanceOf(ExcepcionCuotaExcedida.class);
+                .isInstanceOf(QuotaExceededException.class);
     }
 
     @Test

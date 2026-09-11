@@ -25,7 +25,7 @@ public interface IReporteContratoServicio {
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con las filas filtradas
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el filtro devuelve más filas que el tope admitido por el formato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el filtro devuelve más filas que el tope admitido por el formato
      */
     DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante);
 

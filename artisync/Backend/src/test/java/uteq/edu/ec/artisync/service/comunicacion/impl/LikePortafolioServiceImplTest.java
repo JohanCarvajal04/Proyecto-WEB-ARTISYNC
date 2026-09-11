@@ -9,12 +9,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoLike;
 import uteq.edu.ec.artisync.entity.comunicacion.LikePortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.LikePortafolioRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.util.Optional;
 
@@ -35,17 +35,17 @@ class LikePortafolioServiceImplTest {
     private PortafolioItemRepository portafolioItemRepository;
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
 
     @InjectMocks
     private LikePortafolioServiceImpl likePortafolioServicio;
 
     private PortafolioItem item;
-    private Usuario usuario;
+    private User usuario;
 
     private void prepararItemYUsuario() {
         item = PortafolioItem.builder().idItemPortafolio(1L).build();
-        usuario = Usuario.builder().idUsuario(20L).build();
+        usuario = User.builder().idUsuario(20L).build();
     }
 
     @Test
@@ -70,7 +70,7 @@ class LikePortafolioServiceImplTest {
         given(portafolioItemRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> likePortafolioServicio.darLike(99L, 20L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -81,7 +81,7 @@ class LikePortafolioServiceImplTest {
         given(likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(1L, 20L)).willReturn(true);
 
         assertThatThrownBy(() -> likePortafolioServicio.darLike(1L, 20L))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class);
+                .isInstanceOf(DuplicateResourceException.class);
         verify(likeRepository, never()).save(any(LikePortafolio.class));
     }
 
@@ -94,7 +94,7 @@ class LikePortafolioServiceImplTest {
         given(usuarioRepository.findById(20L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> likePortafolioServicio.darLike(1L, 20L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -119,7 +119,7 @@ class LikePortafolioServiceImplTest {
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> likePortafolioServicio.quitarLike(1L, 20L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

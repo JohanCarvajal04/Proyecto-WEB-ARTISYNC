@@ -16,7 +16,7 @@ import lombok.*;
  * 
  * Ciclo de vida: Dependiente del evento sorteo (ACTIVO o RECLAMADO).
  * 
- * Relaciones principales: Vincula un beneficio logico o fisico a un Usuario ganador.
+ * Relaciones principales: Vincula un beneficio logico o fisico a un User ganador.
  */
 @Getter
 @Setter

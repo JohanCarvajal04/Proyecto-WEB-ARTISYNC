@@ -14,13 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
@@ -84,7 +84,7 @@ public class PagoServicioImpl implements IPagoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "PAGO_ORDEN_CREAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "PAGO_ORDEN_CREAR", modulo = AuditModule.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{monto: #monto}")
     /**
@@ -94,28 +94,28 @@ public class PagoServicioImpl implements IPagoServicio {
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @param monto parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPago crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
 
         // @PreAuthorize solo exige el rol CLIENTE, no que el pedido sea suyo:
         // sin esto, cualquier cliente autenticado podía crear (y ver el estado
         // de) la orden de pago de un pedido ajeno.
         if (!contrato.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
-            throw new ExcepcionReglaNegocio("Solo el cliente del pedido puede iniciar el pago");
+            throw new BusinessRuleException("Solo el cliente del pedido puede iniciar el pago");
         }
 
         if (contrato.getHashFirmaCreador() == null || contrato.getHashFirmaCliente() == null) {
-            throw new ExcepcionReglaNegocio("El contrato debe estar firmado por ambas partes antes de realizar el pago");
+            throw new BusinessRuleException("El contrato debe estar firmado por ambas partes antes de realizar el pago");
         }
 
         Optional<PagoGarantia> existente = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());
 
         // Un pago ya confirmado no se vuelve a cobrar.
         if (existente.isPresent() && !FONDOS_PENDIENTE.equalsIgnoreCase(existente.get().getEstadoFondos())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Este pedido ya tiene un pago en estado " + existente.get().getEstadoFondos());
         }
 
@@ -141,7 +141,7 @@ public class PagoServicioImpl implements IPagoServicio {
                 // simultáneos sobre el mismo contrato no pueden colar dos filas
                 // en pagos_garantia. Mismo patrón que
                 // SolicitudRetiroServicioImpl.solicitar.
-                throw new ExcepcionReglaNegocio("Este pedido ya tiene un pago en curso");
+                throw new BusinessRuleException("Este pedido ya tiene un pago en curso");
             }
 
             log.info("Orden PayPal {} creada para pedido {} por ${}", orderId, idPedido, montoFinal);
@@ -155,11 +155,11 @@ public class PagoServicioImpl implements IPagoServicio {
                     .approvalUrl(approvalUrl)
                     .build();
 
-        } catch (ExcepcionReglaNegocio | ExcepcionRecursoNoEncontrado e) {
+        } catch (BusinessRuleException | ResourceNotFoundException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error al crear orden PayPal para pedido {}", idPedido, e);
-            throw new ExcepcionReglaNegocio("Error al comunicarse con PayPal: " + e.getMessage());
+            throw new BusinessRuleException("Error al comunicarse con PayPal: " + e.getMessage());
         }
     }
 
@@ -216,7 +216,7 @@ public class PagoServicioImpl implements IPagoServicio {
     // Jamás #payload en el detalle: es el cuerpo crudo del webhook y puede
     // llevar datos de la orden completos. Solo se registra transmissionId,
     // suficiente para correlacionar con los logs de PayPal si hace falta.
-    @Auditable(accion = "PAGO_WEBHOOK_RECIBIR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "PAGO_WEBHOOK_RECIBIR", modulo = AuditModule.FINANZAS,
             correoActor = "'sistema:paypal'",
             detalle = "{transmissionId: #transmissionId}")
     /**
@@ -384,11 +384,11 @@ public class PagoServicioImpl implements IPagoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPago obtenerEstadoPago(Long idPedido, Long idUsuario) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
 
         // El controlador solo exige isAuthenticated(): sin esta verificación,
         // cualquier usuario logueado podía consultar el monto retenido y el id
@@ -397,11 +397,11 @@ public class PagoServicioImpl implements IPagoServicio {
         boolean esCliente = pedidoDelContrato.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         boolean esCreador = pedidoDelContrato.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
         if (!esCliente && !esCreador) {
-            throw new ExcepcionReglaNegocio("No tiene acceso al pago de este pedido");
+            throw new BusinessRuleException("No tiene acceso al pago de este pedido");
         }
 
         PagoGarantia pago = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe pago registrado para este pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe pago registrado para este pedido"));
 
         return RespuestaPago.builder()
                 .idPago(pago.getIdPago())
@@ -426,7 +426,7 @@ public class PagoServicioImpl implements IPagoServicio {
      */
     @Override
     @Transactional
-    @Auditable(accion = "PAGO_CANCELAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "PAGO_CANCELAR", modulo = AuditModule.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{accionFondos: #accionFondos, motivo: #motivo}")
     /**
@@ -439,7 +439,7 @@ public class PagoServicioImpl implements IPagoServicio {
     public RespuestaPago cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,
                                                            String accionFondos, String motivo) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido"));
 
         Pedido pedido = contrato.getPedido();
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
@@ -447,27 +447,27 @@ public class PagoServicioImpl implements IPagoServicio {
         // El creador nunca puede cancelar-y-cobrar su propio reembolso o
         // liberación: solo quien pagó, o un administrador que arbitra la disputa.
         if (!esCliente && !esAdmin) {
-            throw new ExcepcionReglaNegocio("Solo el cliente del pedido o un administrador pueden cancelar este pago");
+            throw new BusinessRuleException("Solo el cliente del pedido o un administrador pueden cancelar este pago");
         }
 
         String accion = (accionFondos == null || accionFondos.isBlank())
                 ? ACCION_REEMBOLSAR : accionFondos.trim().toUpperCase();
         if (!ACCION_REEMBOLSAR.equals(accion) && !ACCION_LIBERAR.equals(accion)) {
-            throw new ExcepcionReglaNegocio("accionFondos debe ser REEMBOLSAR o LIBERAR");
+            throw new BusinessRuleException("accionFondos debe ser REEMBOLSAR o LIBERAR");
         }
         if (ACCION_LIBERAR.equals(accion) && !esAdmin) {
-            throw new ExcepcionReglaNegocio("Solo un administrador puede liberar los fondos sin reembolsarlos");
+            throw new BusinessRuleException("Solo un administrador puede liberar los fondos sin reembolsarlos");
         }
 
         PagoGarantia pago = pagoGarantiaRepository.findByContratoIdContratoParaActualizar(contrato.getIdContrato())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe pago registrado para este pedido"));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe pago registrado para este pedido"));
 
         // Reintentable: un reembolso que falló localmente (ReembolsoFallido)
         // puede reintentarse llamando este mismo endpoint, sin un endpoint
         // "reintentar" aparte (mismo enfoque que SolicitudRetiroServicioImpl).
         if (!FONDOS_RETENIDO.equalsIgnoreCase(pago.getEstadoFondos())
                 && !FONDOS_REEMBOLSO_FALLIDO.equalsIgnoreCase(pago.getEstadoFondos())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "No se puede cancelar: el pago no está retenido (estado actual: " + pago.getEstadoFondos() + ")");
         }
 

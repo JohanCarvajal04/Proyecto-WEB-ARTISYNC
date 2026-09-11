@@ -9,7 +9,7 @@ import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaAcuerdoProp
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.service.legal.IPlantillaAcuerdoCreadorServicio;
 
@@ -37,7 +37,7 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPlantillaContrato crear(Long idUsuarioCreador, PeticionCrearPlantillaAcuerdoPropia peticion) {
         PlantillaContrato plantilla = PlantillaContrato.builder()
@@ -68,7 +68,7 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
      * @param idPlantilla identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPlantillaContrato editar(Long idUsuarioCreador, Long idPlantilla, PeticionActualizarPlantillaAcuerdoPropia peticion) {
         PlantillaContrato plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);
@@ -89,7 +89,7 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
      *
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPlantillaContrato> listarPropias(Long idUsuarioCreador) {
         return plantillaContratoRepository.findByIdCreadorOrderByNombrePlantillaAsc(idUsuarioCreador).stream()
@@ -105,7 +105,7 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @param idPlantilla identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje desactivar(Long idUsuarioCreador, Long idPlantilla) {
         PlantillaContrato plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);
@@ -118,7 +118,7 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
     /** Mismo criterio "no encontrado" (no "prohibido") que resolverBriefingPlantillaPropia/resolverFlujoPropio: no revela si el recurso existe a nombre de otro. */
     private PlantillaContrato obtenerPropiaOFallar(Long idUsuarioCreador, Long idPlantilla) {
         return plantillaContratoRepository.findByIdPlantillaAndIdCreador(idPlantilla, idUsuarioCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla de acuerdo no encontrada: " + idPlantilla));
+                .orElseThrow(() -> new ResourceNotFoundException("Plantilla de acuerdo no encontrada: " + idPlantilla));
     }
 
     private String generarVersionLegalPropia(Long idUsuarioCreador) {

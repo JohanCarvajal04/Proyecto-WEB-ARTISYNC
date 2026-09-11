@@ -11,7 +11,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import uteq.edu.ec.artisync.dto.peticion.legal.FiltroReporteFinanciero;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DetalleComision;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaReporteComisiones;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -133,7 +133,7 @@ class ReporteFinancieroServicioImplTest {
     }
 
     @Test
-    @DisplayName("exportar() lanza ExcepcionReglaNegocio si el detalle supera el tope de filas del formato")
+    @DisplayName("exportar() lanza BusinessRuleException si el detalle supera el tope de filas del formato")
     void exportar_ExcedeTope_LanzaExcepcion() {
         StringBuilder detalle = new StringBuilder();
         for (int i = 0; i < FormatoReporte.PDF.topeFilas() + 1; i++) {
@@ -154,7 +154,7 @@ class ReporteFinancieroServicioImplTest {
         filtro.setIdPerfil(7L);
 
         assertThatThrownBy(() -> servicio.exportar(filtro, FormatoReporte.PDF, "admin@artisync.dev"))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining(String.valueOf(FormatoReporte.PDF.topeFilas()));
     }
 

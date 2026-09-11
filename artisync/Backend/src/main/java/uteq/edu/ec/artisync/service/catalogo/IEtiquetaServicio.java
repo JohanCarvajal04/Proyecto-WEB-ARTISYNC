@@ -19,7 +19,7 @@ public interface IEtiquetaServicio {
      *
      * @param idEtiqueta id de la etiqueta
      * @return la etiqueta encontrada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
     RespuestaEtiqueta obtenerPorId(Long idEtiqueta);
 
@@ -28,7 +28,7 @@ public interface IEtiquetaServicio {
      *
      * @param peticion nombre de la etiqueta a crear
      * @return la etiqueta recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe una etiqueta con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una etiqueta con el mismo nombre
      */
     RespuestaEtiqueta crearEtiqueta(PeticionCrearEtiqueta peticion);
 
@@ -36,7 +36,7 @@ public interface IEtiquetaServicio {
      * Elimina una etiqueta del catálogo.
      *
      * @param idEtiqueta id de la etiqueta a eliminar
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
     void eliminarEtiqueta(Long idEtiqueta);
 }

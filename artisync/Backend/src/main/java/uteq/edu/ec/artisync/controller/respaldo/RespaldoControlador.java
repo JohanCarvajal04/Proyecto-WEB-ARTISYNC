@@ -77,7 +77,7 @@ public class RespaldoControlador {
      * Obtiene el detalle completo de un respaldo específico registrado en el sistema.
      * @param idRespaldo identificador único del respaldo
      * @return detalle del respaldo solicitado
-     * @throws ExcepcionRecursoNoEncontrado si el respaldo indicado no existe
+     * @throws ResourceNotFoundException si el respaldo indicado no existe
      */
     @Operation(summary = "Detalle de un respaldo")
     @GetMapping("/{idRespaldo}")
@@ -90,7 +90,7 @@ public class RespaldoControlador {
      * Descarga físicamente el archivo del respaldo generado desde el sistema de almacenamiento.
      * @param idRespaldo identificador único del respaldo a descargar
      * @return el archivo comprimido del respaldo como un stream de octetos
-     * @throws ExcepcionRecursoNoEncontrado si el archivo físico no existe en disco
+     * @throws ResourceNotFoundException si el archivo físico no existe en disco
      */
     @Operation(summary = "Descarga el archivo generado de un respaldo")
     @GetMapping("/{idRespaldo}/descargar")
@@ -109,7 +109,7 @@ public class RespaldoControlador {
      * Elimina el registro y el archivo físico de un respaldo del sistema.
      * @param idRespaldo identificador del respaldo a eliminar
      * @return respuesta sin contenido confirmando la eliminación exitosa
-     * @throws ExcepcionReglaNegocio si es un respaldo FULL y existen respaldos INCREMENTALES que dependen de él
+     * @throws BusinessRuleException si es un respaldo FULL y existen respaldos INCREMENTALES que dependen de él
      */
     @Operation(summary = "Elimina un respaldo guardado (rechaza si aún tiene incrementales que dependen de él)")
     @DeleteMapping("/{idRespaldo}")
@@ -149,7 +149,7 @@ public class RespaldoControlador {
      * Obtiene los detalles de una programación de respaldo específica.
      * @param idProgramacion identificador de la programación a consultar
      * @return detalles de la programación
-     * @throws ExcepcionRecursoNoEncontrado si la programación indicada no existe
+     * @throws ResourceNotFoundException si la programación indicada no existe
      */
     @Operation(summary = "Detalle de una programación de respaldo")
     @GetMapping("/programaciones/{idProgramacion}")
@@ -163,7 +163,7 @@ public class RespaldoControlador {
      * @param idProgramacion identificador de la programación a modificar
      * @param peticion nuevos parámetros de configuración para la programación
      * @return la programación actualizada con los nuevos valores
-     * @throws ExcepcionRecursoNoEncontrado si la programación no existe
+     * @throws ResourceNotFoundException si la programación no existe
      */
     @Operation(summary = "Actualiza una programación de respaldo existente")
     @PutMapping("/programaciones/{idProgramacion}")
@@ -178,7 +178,7 @@ public class RespaldoControlador {
      * @param idProgramacion identificador de la programación a alternar
      * @param peticion estado deseado (activo/inactivo) para la programación
      * @return la programación actualizada con su nuevo estado
-     * @throws ExcepcionRecursoNoEncontrado si la programación no existe
+     * @throws ResourceNotFoundException si la programación no existe
      */
     @Operation(summary = "Activa o desactiva una programación de respaldo")
     @PatchMapping("/programaciones/{idProgramacion}/estado")
@@ -192,7 +192,7 @@ public class RespaldoControlador {
      * Elimina definitivamente una tarea programada de respaldos automáticos.
      * @param idProgramacion identificador de la programación a borrar
      * @return respuesta sin contenido confirmando la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si la programación indicada no existe
+     * @throws ResourceNotFoundException si la programación indicada no existe
      */
     @Operation(summary = "Elimina una programación de respaldo")
     @DeleteMapping("/programaciones/{idProgramacion}")

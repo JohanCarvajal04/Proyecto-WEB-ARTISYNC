@@ -52,7 +52,7 @@ public class PreAuth2faTicketService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public record DatosTicket(Long idUsuario, String correo) {
     }
@@ -64,7 +64,7 @@ public class PreAuth2faTicketService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String emitir(Long idUsuario, String correo) {
         byte[] bytes = new byte[LONGITUD_BYTES];

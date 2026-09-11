@@ -14,14 +14,14 @@ import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
 import uteq.edu.ec.artisync.repository.perfil.VerificacionColaProyeccion;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
 import uteq.edu.ec.artisync.service.shared.imagen.PreprocesadorImagenIa;
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class VerificacionServicioImplTest {
 
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private EstadoVerificacionRepository estadoVerificacionRepository;
     @Mock private CertificadoIaRepository certificadoIaRepository;
     @Mock private AlmacenamientoDocumentos almacenamiento;
@@ -51,12 +51,12 @@ class VerificacionServicioImplTest {
     // ObjectMapper real de Jackson 3 (Tarea 16) que no tiene sentido mockear.
     private VerificacionServicioImpl servicio;
 
-    private Usuario usuario;
+    private User usuario;
     private EstadoVerificacion pendiente;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Creadora").build();
+        usuario = User.builder().idUsuario(1L).nombres("Ana").apellidos("Creadora").build();
         pendiente = EstadoVerificacion.builder().idEstadoVerificacion(1L).nombreEstado("PENDIENTE").build();
         servicio = new VerificacionServicioImpl(usuarioRepository, estadoVerificacionRepository,
                 certificadoIaRepository, almacenamiento, preprocesador, iaService,
@@ -84,7 +84,7 @@ class VerificacionServicioImplTest {
         MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class,
+        assertThrows(ResourceNotFoundException.class,
                 () -> servicio.subir(99L, TipoDocumentoVerificacion.IDENTIDAD, documento));
         verifyNoInteractions(iaService, almacenamiento);
     }
@@ -95,7 +95,7 @@ class VerificacionServicioImplTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
         when(estadoVerificacionRepository.findByNombreEstado("PENDIENTE")).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.subir(1L, TipoDocumentoVerificacion.IDENTIDAD, documento));
         verify(estadoVerificacionRepository, never()).save(any());
     }
@@ -107,7 +107,7 @@ class VerificacionServicioImplTest {
         when(certificadoIaRepository.existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(1L, "PENDIENTE"))
                 .thenReturn(true);
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.subir(1L, TipoDocumentoVerificacion.IDENTIDAD, documento));
 
         verifyNoInteractions(almacenamiento, preprocesador, iaService);
@@ -142,7 +142,7 @@ class VerificacionServicioImplTest {
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").documentoEliminado(true).build();
         when(certificadoIaRepository.findById(11L)).thenReturn(Optional.of(certificado));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.analizarConIa(11L));
+        assertThrows(BusinessRuleException.class, () -> servicio.analizarConIa(11L));
         verifyNoInteractions(iaService);
     }
 
@@ -155,9 +155,9 @@ class VerificacionServicioImplTest {
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.verificarIdentidad(any(), any()))
-                .thenThrow(new ExcepcionServicioIaNoDisponible("timeout", null));
+                .thenThrow(new AiServiceUnavailableException("timeout", null));
 
-        assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(12L));
+        assertThrows(AiServiceUnavailableException.class, () -> servicio.analizarConIa(12L));
         verify(certificadoIaRepository, never()).save(any());
         // No reintentable (constructor de 2 argumentos): un solo intento, sin reintento.
         verify(iaService, times(1)).verificarIdentidad(any(), any());
@@ -172,7 +172,7 @@ class VerificacionServicioImplTest {
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.verificarIdentidad(any(), any()))
-                .thenThrow(new ExcepcionServicioIaNoDisponible("429", null, true))
+                .thenThrow(new AiServiceUnavailableException("429", null, true))
                 .thenReturn(IaVerificacionResponse.builder()
                         .aprobado(true).confianza(new BigDecimal("0.9")).build());
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -192,9 +192,9 @@ class VerificacionServicioImplTest {
         when(almacenamiento.leer("ref.jpg")).thenReturn("bytes".getBytes());
         when(preprocesador.comprimirParaIa(any())).thenReturn("bytes".getBytes());
         when(iaService.verificarIdentidad(any(), any()))
-                .thenThrow(new ExcepcionServicioIaNoDisponible("401", null, false));
+                .thenThrow(new AiServiceUnavailableException("401", null, false));
 
-        assertThrows(ExcepcionServicioIaNoDisponible.class, () -> servicio.analizarConIa(15L));
+        assertThrows(AiServiceUnavailableException.class, () -> servicio.analizarConIa(15L));
         verify(iaService, times(1)).verificarIdentidad(any(), any());
     }
 
@@ -226,7 +226,7 @@ class VerificacionServicioImplTest {
         when(estadoVerificacionRepository.findById(2L)).thenReturn(Optional.of(aprobado));
         doAnswer(inv -> {
             certificado.setEstadoVerificacion(aprobado);
-            certificado.setModerador(Usuario.builder().idUsuario(99L).build());
+            certificado.setModerador(User.builder().idUsuario(99L).build());
             certificado.setDocumentoEliminado(true);
             return null;
         }).when(entityManager).refresh(certificado);
@@ -251,7 +251,7 @@ class VerificacionServicioImplTest {
         when(estadoVerificacionRepository.findById(4L)).thenReturn(Optional.of(requiereAclaracion));
         doAnswer(inv -> {
             certificado.setEstadoVerificacion(requiereAclaracion);
-            certificado.setModerador(Usuario.builder().idUsuario(99L).build());
+            certificado.setModerador(User.builder().idUsuario(99L).build());
             certificado.setDocumentoEliminado(false); // el SP no marca documento_eliminado para este estado
             return null;
         }).when(entityManager).refresh(certificado);
@@ -268,7 +268,7 @@ class VerificacionServicioImplTest {
     void registrarDecision_certificadoInexistente_lanza404_yNoLlamaAlProcedimiento() {
         when(certificadoIaRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class,
+        assertThrows(ResourceNotFoundException.class,
                 () -> servicio.registrarDecision(999L, 99L, 2L, "nota"));
         verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
     }
@@ -281,7 +281,7 @@ class VerificacionServicioImplTest {
         when(certificadoIaRepository.findById(21L)).thenReturn(Optional.of(certificado));
         when(estadoVerificacionRepository.findById(777L)).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class,
+        assertThrows(ResourceNotFoundException.class,
                 () -> servicio.registrarDecision(21L, 99L, 777L, "nota"));
         verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
     }

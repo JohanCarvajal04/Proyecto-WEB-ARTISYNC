@@ -4,9 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
-import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.config.StorageProperties;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import java.nio.file.Path;
 
@@ -22,7 +22,7 @@ class AlmacenamientoLocalTest {
 
     @BeforeEach
     void setUp() {
-        AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        StorageProperties propiedades = new StorageProperties();
         propiedades.setRutaBase(directorioTemporal.toString());
         almacenamiento = new AlmacenamientoLocal(propiedades);
     }
@@ -41,12 +41,12 @@ class AlmacenamientoLocalTest {
 
     @Test
     void leer_referenciaInexistente_lanzaExcepcionRecursoNoEncontrado() {
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> almacenamiento.leer("no-existe.jpg"));
+        assertThrows(ResourceNotFoundException.class, () -> almacenamiento.leer("no-existe.jpg"));
     }
 
     @Test
     void leer_intentoDeEscapeFueraDeLaRutaBase_esRechazado() {
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.leer("../../etc/passwd"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("../../etc/passwd"));
     }
 
     @Test
@@ -57,7 +57,7 @@ class AlmacenamientoLocalTest {
 
         almacenamiento.eliminar(referencia);
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> almacenamiento.leer(referencia));
+        assertThrows(ResourceNotFoundException.class, () -> almacenamiento.leer(referencia));
     }
 
     @Test
@@ -89,7 +89,7 @@ class AlmacenamientoLocalTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "archivo", "doc.pdf", "application/pdf", "contenido".getBytes());
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.guardar(archivo, "../escape"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.guardar(archivo, "../escape"));
     }
 
     /** El almacenamiento local no firma URLs; el consumidor debe servir los bytes. */

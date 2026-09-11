@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
@@ -45,7 +45,7 @@ public class ReconciliacionPayPalEjecutorServicio {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Auditable(accion = "PAGO_RECONCILIAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "PAGO_RECONCILIAR", modulo = AuditModule.FINANZAS,
             correoActor = "'sistema:paypal'",
             entidad = "pagos_garantia", idEntidad = "#idPago")
     public void reconciliar(Long idPago) {

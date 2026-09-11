@@ -46,8 +46,8 @@ public class SolicitudRetiroAdminControlador {
      * @param idSolicitud identificador de la solicitud de retiro
      * @param userDetails administrador autenticado que aprueba la solicitud
      * @return la solicitud de retiro con su estado actualizado
-     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
-     * @throws ExcepcionReglaNegocio si la solicitud no está en estado pendiente
+     * @throws ResourceNotFoundException si la solicitud o el administrador no existen
+     * @throws BusinessRuleException si la solicitud no está en estado pendiente
      */
     @PostMapping("/{idSolicitud}/aprobar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
@@ -64,8 +64,8 @@ public class SolicitudRetiroAdminControlador {
      * @param userDetails administrador autenticado que rechaza la solicitud
      * @param peticion nota administrativa con el motivo del rechazo
      * @return la solicitud de retiro con su estado actualizado
-     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
-     * @throws ExcepcionReglaNegocio si no se indica motivo de rechazo, o la solicitud no está en estado pendiente
+     * @throws ResourceNotFoundException si la solicitud o el administrador no existen
+     * @throws BusinessRuleException si no se indica motivo de rechazo, o la solicitud no está en estado pendiente
      */
     @PostMapping("/{idSolicitud}/rechazar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")
@@ -83,8 +83,8 @@ public class SolicitudRetiroAdminControlador {
      * @param idSolicitud identificador de la solicitud de retiro
      * @param userDetails administrador autenticado que reintenta la solicitud
      * @return la solicitud de retiro con su estado actualizado
-     * @throws ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
-     * @throws ExcepcionReglaNegocio si la solicitud no está en estado fallido
+     * @throws ResourceNotFoundException si la solicitud o el administrador no existen
+     * @throws BusinessRuleException si la solicitud no está en estado fallido
      */
     @PostMapping("/{idSolicitud}/reintentar")
     @PreAuthorize("hasAuthority('RETIROS_GESTIONAR') or hasRole('ADMIN')")

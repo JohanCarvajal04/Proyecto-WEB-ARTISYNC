@@ -9,7 +9,7 @@ import java.util.Collection;
 /**
  * Componente de Seguridad: Implementacion personalizada de UserDetails.
  * 
- * Propósito: Adaptar la entidad Usuario del dominio interno a la estructura de contrato exigida por Spring Security.
+ * Propósito: Adaptar la entidad User del dominio interno a la estructura de contrato exigida por Spring Security.
  * 
  * Flujo interno: Alberga la identidad, credenciales y coleccion de autoridades (roles/permisos) del usuario en sesion, facilitando el acceso a propiedades personalizadas desde el SecurityContext.
  */

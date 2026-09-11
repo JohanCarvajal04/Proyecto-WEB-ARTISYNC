@@ -3,7 +3,7 @@ import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.repository.perfil.*;
 
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
@@ -20,7 +20,7 @@ public interface AdminUserService {
      * @param pageable paginación y orden solicitados
      * @return la página de usuarios que cumplen el filtro
      */
-    PagedResponse<UserResponse> getAllUsers(FiltroUsuario filtro, Pageable pageable);
+    PagedResponse<UserResponse> getAllUsers(UserFilter filtro, Pageable pageable);
 
     /**
      * Obtiene el detalle de un usuario por su id.
@@ -54,7 +54,7 @@ public interface AdminUserService {
      * @param request        nuevo estado de cuenta
      * @param idAdminActual  id del administrador que ejecuta la acción
      * @return el usuario con su estado ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el administrador intenta desactivar su propia cuenta
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta desactivar su propia cuenta
      */
     UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual);
 
@@ -65,7 +65,7 @@ public interface AdminUserService {
      * @param request        nuevo conjunto de roles
      * @param idAdminActual  id del administrador que ejecuta la acción
      * @return el usuario con sus roles ya actualizados
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el administrador intenta cambiar sus propios roles
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta cambiar sus propios roles
      */
     UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual);
 
@@ -82,7 +82,7 @@ public interface AdminUserService {
      *
      * @param id            id del usuario a desactivar
      * @param idAdminActual id del administrador que ejecuta la acción
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el administrador intenta eliminar su propia cuenta
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta eliminar su propia cuenta
      */
     void deleteUser(Long id, Long idAdminActual);
 
@@ -93,9 +93,9 @@ public interface AdminUserService {
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el listado de usuarios
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el listado filtrado excede el tope de filas admitido por el formato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado filtrado excede el tope de filas admitido por el formato
      */
-    DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante);
-    DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, String correoSolicitante);
-    DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, Integer page, Integer size, String correoSolicitante);
+    DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, String correoSolicitante);
+    DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, String correoSolicitante);
+    DocumentoGenerado exportar(UserFilter filtro, FormatoReporte formato, TipoGraficaReporte tipoGrafica, Integer page, Integer size, String correoSolicitante);
 }

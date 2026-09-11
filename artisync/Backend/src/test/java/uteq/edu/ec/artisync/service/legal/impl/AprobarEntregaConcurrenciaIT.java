@@ -193,7 +193,7 @@ class AprobarEntregaConcurrenciaIT {
                     entregableServicio.aprobarEntrega(idPedido, ID_CLIENTE);
                     exitos.incrementAndGet();
                 } catch (Exception ignorada) {
-                    // Se espera que HILOS-1 lancen ExcepcionReglaNegocio
+                    // Se espera que HILOS-1 lancen BusinessRuleException
                     // ("El entregable ya fue aprobado"): es el comportamiento
                     // correcto, no un fallo de la prueba.
                 }

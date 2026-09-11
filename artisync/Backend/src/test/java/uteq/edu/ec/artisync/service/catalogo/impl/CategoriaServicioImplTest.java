@@ -14,13 +14,13 @@ import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaCategoria;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaSubcategoria;
 import uteq.edu.ec.artisync.entity.catalogo.Categoria;
 import uteq.edu.ec.artisync.entity.catalogo.Subcategoria;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.CategoriaRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioSubcategoriaRepository;
 import uteq.edu.ec.artisync.repository.catalogo.SubcategoriaRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
 import java.util.List;
@@ -40,19 +40,19 @@ class CategoriaServicioImplTest {
     @Mock private CategoriaRepository categoriaRepository;
     @Mock private SubcategoriaRepository subcategoriaRepository;
     @Mock private ServicioSubcategoriaRepository servicioSubcategoriaRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private NotificacionService notificacionService;
 
     @InjectMocks
     private CategoriaServicioImpl categoriaServicio;
 
     private Categoria categoria;
-    private Usuario creador;
+    private User creador;
 
     @BeforeEach
     void setUp() {
         categoria = Categoria.builder().idCategoria(1L).nombreCategoria("Arte").estadoActiva(true).build();
-        creador = Usuario.builder().idUsuario(9L).nombres("Ana").apellidos("Perez").build();
+        creador = User.builder().idUsuario(9L).nombres("Ana").apellidos("Perez").build();
     }
 
     @Test
@@ -76,7 +76,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Arte")).willReturn(true);
 
         assertThatThrownBy(() -> categoriaServicio.crearCategoria(null, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -124,7 +124,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Musica")).willReturn(true);
 
         assertThatThrownBy(() -> categoriaServicio.actualizarCategoria(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -133,7 +133,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoriaServicio.actualizarCategoria(1L, PeticionActualizarCategoria.builder().build()))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -153,7 +153,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(1L, null))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -163,7 +163,7 @@ class CategoriaServicioImplTest {
         given(servicioSubcategoriaRepository.existsBySubcategoriaCategoriaIdCategoria(1L)).willReturn(true);
 
         assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(1L, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(categoriaRepository, never()).deleteById(any());
     }
 
@@ -174,7 +174,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.findById(2L)).willReturn(Optional.of(deCreador));
 
         assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(2L, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(categoriaRepository, never()).deleteById(any());
 
         categoriaServicio.eliminarCategoria(2L, "Rubro duplicado con Arte");
@@ -230,7 +230,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoriaServicio.obtenerCategoriaPorId(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -251,7 +251,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.existsById(1L)).willReturn(false);
 
         assertThatThrownBy(() -> categoriaServicio.listarSubcategoriasPorCategoria(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -299,7 +299,7 @@ class CategoriaServicioImplTest {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoriaServicio.crearSubcategoria(null, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -310,7 +310,7 @@ class CategoriaServicioImplTest {
         given(subcategoriaRepository.existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(1L, "Ilustracion")).willReturn(true);
 
         assertThatThrownBy(() -> categoriaServicio.crearSubcategoria(null, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -331,7 +331,7 @@ class CategoriaServicioImplTest {
         given(subcategoriaRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(1L, null))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -342,7 +342,7 @@ class CategoriaServicioImplTest {
         given(servicioSubcategoriaRepository.existsBySubcategoriaIdSubcategoria(1L)).willReturn(true);
 
         assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(1L, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(subcategoriaRepository, never()).deleteById(any());
     }
 
@@ -354,7 +354,7 @@ class CategoriaServicioImplTest {
         given(subcategoriaRepository.findById(5L)).willReturn(Optional.of(deCreador));
 
         assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(5L, " "))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(subcategoriaRepository, never()).deleteById(any());
 
         categoriaServicio.eliminarSubcategoria(5L, "No corresponde a esta categoria");

@@ -14,8 +14,8 @@ public interface IEntregableServicio {
      * @param versionMarcaAgua archivo con marca de agua, visible antes de la aprobación
      * @param versionLimpia    archivo final, visible tras la aprobación y liberación del pago
      * @return el entregable recién registrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el creador del servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el creador del servicio
      */
     RespuestaEntregable subirEntregable(Long idPedido, Long idCreador,
                                          MultipartFile versionMarcaAgua, MultipartFile versionLimpia);
@@ -26,7 +26,7 @@ public interface IEntregableServicio {
      * @param idPedido  id del pedido
      * @param idUsuario id del usuario que consulta
      * @return el detalle del entregable
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene entregable
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable
      */
     RespuestaEntregable obtenerEntregable(Long idPedido, Long idUsuario);
 
@@ -36,8 +36,8 @@ public interface IEntregableServicio {
      *
      * @param idPedido  id del pedido
      * @param idCliente id del usuario que aprueba, debe ser el cliente del pedido
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido, el entregable o su contrato no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el cliente del pedido, o si el entregable ya fue aprobado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido, el entregable o su contrato no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, o si el entregable ya fue aprobado
      */
     void aprobarEntrega(Long idPedido, Long idCliente);
 
@@ -48,8 +48,8 @@ public interface IEntregableServicio {
      * @param idPedido  id del pedido
      * @param idCliente id del usuario que descarga, debe ser el cliente del pedido
      * @return el archivo final del entregable
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene entregable, o si el entregable no tiene un archivo asociado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el cliente del pedido, o si el pago aún no ha sido liberado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable, o si el entregable no tiene un archivo asociado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, o si el pago aún no ha sido liberado
      */
     ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente);
 
@@ -60,8 +60,8 @@ public interface IEntregableServicio {
      * @param idPedido  id del pedido
      * @param idUsuario id del usuario que descarga, debe ser cliente o creador del pedido
      * @return el archivo con marca de agua del entregable
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene entregable, o si el entregable no tiene versión con marca de agua
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no tiene acceso a este entregable
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene entregable, o si el entregable no tiene versión con marca de agua
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso a este entregable
      */
     ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario);
 

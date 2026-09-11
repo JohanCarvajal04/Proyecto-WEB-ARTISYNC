@@ -23,8 +23,8 @@ public interface IVerificacionServicio {
      * @param tipo                 tipo de documento (identidad o certificado)
      * @param documento            archivo del documento a verificar
      * @return la verificación recién creada, en estado PENDIENTE
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe una verificación pendiente para el usuario, o si el estado PENDIENTE no está sembrado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una verificación pendiente para el usuario, o si el estado PENDIENTE no está sembrado
      */
     RespuestaVerificacion subir(Long idUsuarioSolicitante, TipoDocumentoVerificacion tipo, MultipartFile documento);
 
@@ -45,7 +45,7 @@ public interface IVerificacionServicio {
      * @param idUsuarioSolicitante id del usuario que consulta
      * @param esRevisor            si el solicitante tiene permiso de revisión
      * @return el detalle de la verificación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la verificación no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
      */
     RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor);
 
@@ -54,7 +54,7 @@ public interface IVerificacionServicio {
      *
      * @param idCertificado id de la verificación
      * @return los bytes del documento almacenado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la verificación no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
      */
     byte[] obtenerDocumento(Long idCertificado);
 
@@ -64,9 +64,9 @@ public interface IVerificacionServicio {
      *
      * @param idCertificado id de la verificación a analizar
      * @return la verificación con el dictamen de IA ya registrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la verificación no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el documento ya fue eliminado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible si el servicio de IA falla y el fallo no es reintentable, o falla también en el reintento
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el documento ya fue eliminado
+     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si el servicio de IA falla y el fallo no es reintentable, o falla también en el reintento
      */
     RespuestaVerificacion analizarConIa(Long idCertificado);
 
@@ -80,7 +80,7 @@ public interface IVerificacionServicio {
      * @param idNuevoEstado  id del nuevo estado de verificación
      * @param notaModerador  nota opcional del moderador
      * @return la verificación con la decisión ya registrada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la verificación no existe o el estado indicado no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe o el estado indicado no existe
      */
     RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador);
 

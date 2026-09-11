@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.auditoria;
 
 import org.springframework.data.domain.Pageable;
-import uteq.edu.ec.artisync.audit.DatosEventoAuditoria;
+import uteq.edu.ec.artisync.audit.AuditEventData;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
@@ -21,7 +21,7 @@ public interface IAuditoriaServicio {
      *
      * @param datos datos del evento a registrar
      */
-    void registrar(DatosEventoAuditoria datos);
+    void registrar(AuditEventData datos);
 
     /**
      * Lista los eventos de auditoría que cumplen el filtro indicado, paginados.
@@ -37,7 +37,7 @@ public interface IAuditoriaServicio {
      *
      * @param idEvento id del evento
      * @return el detalle del evento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el evento no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el evento no existe
      */
     RespuestaEventoAuditoria obtenerPorId(Long idEvento);
 
@@ -48,7 +48,7 @@ public interface IAuditoriaServicio {
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con los eventos filtrados
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el filtro devuelve más filas que el tope admitido por el formato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el filtro devuelve más filas que el tope admitido por el formato
      */
     DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante);
 

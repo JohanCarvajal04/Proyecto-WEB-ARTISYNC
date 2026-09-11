@@ -12,11 +12,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.service.shared.UserMapper;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
 import uteq.edu.ec.artisync.service.legal.impl.PdfGeneracionServicioImpl;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
@@ -39,8 +39,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AdminUserExportVisualIT {
 
-    @Mock private UsuarioRepository usuarioRepository;
-    @Mock private UsuarioMapper usuarioMapper;
+    @Mock private UserRepository usuarioRepository;
+    @Mock private UserMapper usuarioMapper;
     @Spy private GeneradorGraficaReporte generadorGraficaReporte = new GeneradorGraficaReporte();
 
     private AdminUserServiceImpl adminUserService;
@@ -87,14 +87,14 @@ class AdminUserExportVisualIT {
                 UserResponse.builder().idUsuario(10L).nombres("Diego").apellidos("Salinas").correo("diego@artisync.demo").nombrePais("Ecuador").fechaRegistro(LocalDateTime.now().minusDays(2)).estadoCuenta(true).roles(List.of("CLIENTE")).build()
         );
 
-        when(usuarioRepository.count(org.mockito.ArgumentMatchers.<Specification<Usuario>>any())).thenReturn(10L);
+        when(usuarioRepository.count(org.mockito.ArgumentMatchers.<Specification<User>>any())).thenReturn(10L);
         when(usuarioRepository.findAll(
-                org.mockito.ArgumentMatchers.<Specification<Usuario>>any(),
+                org.mockito.ArgumentMatchers.<Specification<User>>any(),
                 org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(new PageImpl<>(new ArrayList<>()));
         when(usuarioMapper.toUserResponseList(any())).thenReturn(usuarios);
 
-        FiltroUsuario filtro = new FiltroUsuario();
+        UserFilter filtro = new UserFilter();
 
         // 1. Exportar en PDF
         DocumentoGenerado docPdf = adminUserService.exportar(filtro, FormatoReporte.PDF, TipoGraficaReporte.AMBAS, "admin@artisync.com");

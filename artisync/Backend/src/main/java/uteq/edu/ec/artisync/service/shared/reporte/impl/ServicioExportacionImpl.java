@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.shared.reporte.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -46,7 +46,7 @@ public class ServicioExportacionImpl implements IServicioExportacion {
     public <T> DocumentoGenerado exportar(ModeloReporte<T> modelo, FormatoReporte formato) {
         int totalFilas = modelo.getFilas().size();
         if (totalFilas > formato.topeFilas()) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El reporte '" + modelo.getTitulo() + "' tiene " + totalFilas + " filas, más de las "
                             + formato.topeFilas() + " que admite una exportación en " + formato
                             + ". Acote los filtros aplicados.");

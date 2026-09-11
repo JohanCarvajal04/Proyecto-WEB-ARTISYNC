@@ -10,7 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import java.util.Base64;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class PayPalClient {
      * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
      *
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String getPayPalBaseUrl() {
         return "sandbox".equalsIgnoreCase(paypalMode)
@@ -65,7 +65,7 @@ public class PayPalClient {
      * @param metodo parametro requerido para la correcta ejecucion del procedimiento
      * @param cuerpo parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
         return llamarPayPal(ruta, metodo, cuerpo, null);
@@ -99,7 +99,7 @@ public class PayPalClient {
         try {
             return objectMapper.readTree(respuesta.getBody());
         } catch (Exception e) {
-            throw new ExcepcionReglaNegocio("Respuesta ilegible de PayPal en " + ruta);
+            throw new BusinessRuleException("Respuesta ilegible de PayPal en " + ruta);
         }
     }
 

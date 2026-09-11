@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.comunicacion;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaNotificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 /**
  * Servicio transversal de notificaciones.
@@ -18,7 +18,7 @@ public interface NotificacionService {
      * @param tipoEvento   clave del tipo de evento (ej. "CUENTA_SUSPENDIDA")
      * @param mensajeTexto texto visible para el usuario
      */
-    void notificar(Usuario destinatario, String tipoEvento, String mensajeTexto);
+    void notificar(User destinatario, String tipoEvento, String mensajeTexto);
 
     Page<RespuestaNotificacion> listarMisNotificaciones(Long idUsuario, Pageable pageable);
 

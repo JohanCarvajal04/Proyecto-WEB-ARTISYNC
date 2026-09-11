@@ -14,17 +14,17 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.seguridad.FiltroUsuario;
+import uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.seguridad.AdminUserService;
-import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
+import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
-import uteq.edu.ec.artisync.util.RespuestaDocumento;
+import uteq.edu.ec.artisync.util.DocumentResponse;
 
 @RestController
 @RequestMapping("/api/v1/admin/usuarios")
@@ -34,7 +34,7 @@ import uteq.edu.ec.artisync.util.RespuestaDocumento;
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
-    private final PrivacidadService privacidadService;
+    private final PrivacyService privacidadService;
 
     /**
      * Lista todos los usuarios de forma paginada, con filtros opcionales.
@@ -50,7 +50,7 @@ public class AdminUserController {
     @GetMapping
     @PreAuthorize("hasAuthority('USUARIO_VER') or hasRole('ADMIN')")
     public ResponseEntity<PagedResponse<UserResponse>> getAllUsers(
-            FiltroUsuario filtro,
+            UserFilter filtro,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "idUsuario") String sortBy,
@@ -73,14 +73,14 @@ public class AdminUserController {
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportar(
-            FiltroUsuario filtro,
+            UserFilter filtro,
             @RequestParam FormatoReporte formato,
             @RequestParam(required = false, defaultValue = "AMBAS") uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte grafica,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
         DocumentoGenerado documento = adminUserService.exportar(filtro, formato, grafica, page, size, authentication.getName());
-        return RespuestaDocumento.de(documento);
+        return DocumentResponse.de(documento);
     }
 
     /**
@@ -130,7 +130,7 @@ public class AdminUserController {
      * @param request nuevo estado a aplicar sobre la cuenta
      * @param userDetails administrador autenticado que realiza el cambio
      * @return el usuario con su estado actualizado
-     * @throws ExcepcionReglaNegocio si el administrador intenta desactivar su propia cuenta
+     * @throws BusinessRuleException si el administrador intenta desactivar su propia cuenta
      */
     @Operation(summary = "Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)")
     @PatchMapping("/{id}/estado")
@@ -147,7 +147,7 @@ public class AdminUserController {
      * @param request roles a asignar
      * @param userDetails administrador autenticado que realiza la asignación
      * @return el usuario con sus roles actualizados
-     * @throws ExcepcionReglaNegocio si el administrador intenta cambiar sus propios roles
+     * @throws BusinessRuleException si el administrador intenta cambiar sus propios roles
      */
     @Operation(summary = "Asignar roles a un usuario")
     @PutMapping("/{id}/roles")
@@ -176,7 +176,7 @@ public class AdminUserController {
      * @param id identificador del usuario a eliminar
      * @param userDetails administrador autenticado que solicita la eliminación
      * @return respuesta vacía con estado 204
-     * @throws ExcepcionReglaNegocio si el administrador intenta eliminar su propia cuenta
+     * @throws BusinessRuleException si el administrador intenta eliminar su propia cuenta
      */
     @Operation(summary = "Eliminar lógicamente a un usuario (Soft Delete)")
     @DeleteMapping("/{id}")
@@ -196,7 +196,7 @@ public class AdminUserController {
      * @param id            identificador del usuario cuyos datos se suprimen
      * @param userDetails   administrador autenticado que ejecuta la acción
      * @return mensaje de confirmación, incluyendo excepciones legales si las hay
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario ya tiene la supresión ejecutada, o si el admin se apunta a sí mismo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene la supresión ejecutada, o si el admin se apunta a sí mismo
      */
     @Operation(summary = "Suprimir (anonimizar) los datos personales de un usuario, en nombre del titular")
     @PostMapping("/{id}/supresion")

@@ -41,8 +41,8 @@ public class SolicitudRetiroControlador {
      * @param userDetails usuario autenticado que solicita el retiro
      * @param peticion datos de la solicitud de retiro
      * @return la solicitud de retiro creada
-     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
-     * @throws ExcepcionReglaNegocio si el creador no ha configurado su correo de PayPal, ya tiene una solicitud
+     * @throws ResourceNotFoundException si el usuario no existe
+     * @throws BusinessRuleException si el creador no ha configurado su correo de PayPal, ya tiene una solicitud
      *      en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
      */
     @PostMapping

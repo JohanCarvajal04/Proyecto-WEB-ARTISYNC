@@ -8,8 +8,8 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoSeguimient
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSeguidor;
 import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ISeguidorServicio;
@@ -33,14 +33,14 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoSeguimiento seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
         PerfilCreador perfil = perfilCreadorRepository.findById(idPerfilCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil de creador no encontrado con ID: " + idPerfilCreador));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
         if (Objects.equals(perfil.getUsuario().getIdUsuario(), idUsuarioSeguidor)) {
-            throw new ExcepcionReglaNegocio("Un creador no puede seguirse a sí mismo.");
+            throw new BusinessRuleException("Un creador no puede seguirse a sí mismo.");
         }
 
         // Ejecutar función SQL fn_seguir_creador en PostgreSQL
@@ -63,11 +63,11 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoSeguimiento dejarDeSeguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
         perfilCreadorRepository.findById(idPerfilCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil de creador no encontrado con ID: " + idPerfilCreador));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
         // Ejecutar función SQL fn_dejar_de_seguir_creador en PostgreSQL
         seguidorRepository.ejecutarFnDejarDeSeguirCreador(idUsuarioSeguidor, idPerfilCreador);
@@ -89,11 +89,11 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @param idUsuarioConsulta identificador unico que referencia de manera univoca al registro
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoSeguimiento obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador) {
         PerfilCreador perfil = perfilCreadorRepository.findById(idPerfilCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil de creador no encontrado con ID: " + idPerfilCreador));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
         boolean esPropioPerfil = idUsuarioConsulta != null && Objects.equals(perfil.getUsuario().getIdUsuario(), idUsuarioConsulta);
         boolean esSeguidor = false;
@@ -119,7 +119,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      *
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaSeguidor> listarSeguidores(Long idPerfilCreador) {
         List<Seguidor> lista = seguidorRepository.findByPerfilCreadorIdPerfil(idPerfilCreador);
@@ -142,7 +142,7 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      *
      * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaCreadorSeguidoNovedad> listarCreadoresSeguidosNovedades(Long idUsuarioSeguidor) {
         List<Seguidor> seguidos = seguidorRepository.findByUsuarioSeguidorIdUsuario(idUsuarioSeguidor);
@@ -175,11 +175,11 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
      * @param urlPortada parametro requerido para la correcta ejecucion del procedimiento
      * @param tituloProfesional parametro requerido para la correcta ejecucion del procedimiento
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional) {
         PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No tienes un perfil de creador asociado."));
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de creador asociado."));
 
         if (urlPortada != null) {
             perfil.setUrlPortada(urlPortada);

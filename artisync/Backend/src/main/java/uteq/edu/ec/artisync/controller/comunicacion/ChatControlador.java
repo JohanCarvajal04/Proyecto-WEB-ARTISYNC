@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 
@@ -40,8 +40,8 @@ public class ChatControlador {
      * @param pageable configuración de paginación
      * @param userDetails usuario autenticado que solicita el historial
      * @return página con los mensajes de la sala de chat
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
-     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe sala de chat para el pedido
+     * @throws BusinessRuleException si el usuario no participa en el pedido
      */
     @Operation(summary = "Historial de mensajes de un pedido (paginado)")
     @GetMapping("/mensajes")
@@ -60,8 +60,8 @@ public class ChatControlador {
      * @param peticion cuerpo del mensaje a enviar
      * @param userDetails usuario autenticado que envía el mensaje
      * @return el mensaje enviado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
-     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido, la sala está cerrada o el mensaje contiene datos de contacto
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe sala de chat para el pedido
+     * @throws BusinessRuleException si el usuario no participa en el pedido, la sala está cerrada o el mensaje contiene datos de contacto
      */
     @Operation(summary = "Enviar mensaje por REST (fallback sin WebSocket)")
     @PostMapping("/mensajes")
@@ -81,8 +81,8 @@ public class ChatControlador {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que consulta el estado
      * @return el estado de la sala de chat
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si no existe sala de chat para el pedido
-     * @throws ExcepcionReglaNegocio si el usuario no participa en el pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe sala de chat para el pedido
+     * @throws BusinessRuleException si el usuario no participa en el pedido
      */
     @Operation(summary = "Estado actual de la sala de chat de un pedido")
     @GetMapping("/estado")
@@ -103,7 +103,7 @@ public class ChatControlador {
      *
      * @param peticion mensaje entrante con el identificador del pedido y el cuerpo del mensaje
      * @param userDetails usuario autenticado que envía el mensaje
-     * @throws ExcepcionReglaNegocio si no se indica el identificador del pedido, el usuario no participa en él,
+     * @throws BusinessRuleException si no se indica el identificador del pedido, el usuario no participa en él,
      *      la sala está cerrada o el mensaje contiene datos de contacto
      */
     @MessageMapping("/chat.enviar")
@@ -112,7 +112,7 @@ public class ChatControlador {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         if (peticion.getIdPedido() == null) {
             log.warn("Mensaje STOMP recibido sin idPedido, usuario {}", userDetails.getIdUsuario());
-            throw new ExcepcionReglaNegocio("idPedido es obligatorio para enviar mensajes por WebSocket");
+            throw new BusinessRuleException("idPedido es obligatorio para enviar mensajes por WebSocket");
         }
         chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());
     }

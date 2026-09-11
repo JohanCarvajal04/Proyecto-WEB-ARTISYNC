@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.pedido;
 
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -40,7 +40,7 @@ public class PropuestaTerminosPedido {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_propuso", nullable = false)
-    private Usuario propuestoPor;
+    private User propuestoPor;
 
     @Column(name = "precio_propuesto", precision = 10, scale = 2)
     private BigDecimal precioPropuesto;

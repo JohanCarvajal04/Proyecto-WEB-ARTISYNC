@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,7 +34,7 @@ public class CertificadoIa {
     @Column(name = "id_certificado")
     private Long idCertificado;
 
-    // V21: generalizado de PerfilCreador a Usuario â€” cualquier usuario (Cliente
+    // V21: generalizado de PerfilCreador a User â€” cualquier usuario (Cliente
     // o Creador) puede solicitar una verificaciÃ³n de identidad, no solo quien
     // ya tiene un perfil de creador. Para certificados de tipo CERTIFICADO
     // (profesional, inherentemente de creador), el perfil se deriva con un
@@ -42,7 +42,7 @@ public class CertificadoIa {
     @NotNull(message = "El usuario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
-    private Usuario usuario;
+    private User usuario;
 
     @NotNull(message = "El estado de verificacion es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -80,7 +80,7 @@ public class CertificadoIa {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_moderador")
-    private Usuario moderador;
+    private User moderador;
 
     @Column(name = "fecha_decision")
     private LocalDateTime fechaDecision;

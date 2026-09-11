@@ -43,7 +43,7 @@ public class CertificadoIaControlador {
      *
      * @param peticion datos del certificado a emitir
      * @return el certificado emitido, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el usuario o el estado de verificación indicados no existen
+     * @throws ResourceNotFoundException si el usuario o el estado de verificación indicados no existen
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -57,7 +57,7 @@ public class CertificadoIaControlador {
      *
      * @param id identificador del certificado
      * @return el certificado solicitado
-     * @throws ExcepcionRecursoNoEncontrado si el certificado no existe
+     * @throws ResourceNotFoundException si el certificado no existe
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -93,7 +93,7 @@ public class CertificadoIaControlador {
      *
      * @param id identificador del certificado a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el certificado no existe
+     * @throws ResourceNotFoundException si el certificado no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")

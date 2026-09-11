@@ -10,8 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaNotificacion;
 import uteq.edu.ec.artisync.entity.comunicacion.NotificacionSistema;
 import uteq.edu.ec.artisync.entity.comunicacion.TipoNotificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.NotificacionSistemaRepository;
 import uteq.edu.ec.artisync.repository.comunicacion.TipoNotificacionRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
@@ -33,9 +33,9 @@ public class NotificacionServiceImpl implements NotificacionService {
      * @param destinatario parametro requerido para la correcta ejecucion del procedimiento
      * @param tipoEvento parametro requerido para la correcta ejecucion del procedimiento
      * @param mensajeTexto parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void notificar(Usuario destinatario, String tipoEvento, String mensajeTexto) {
+    public void notificar(User destinatario, String tipoEvento, String mensajeTexto) {
         // notificar() casi siempre se llama desde dentro de la transacción de
         // una operación de negocio real (pago confirmado, ganador de sorteo,
         // etc.). Sin este try/catch, un fallo aquí (choque de UNIQUE al crear
@@ -84,7 +84,7 @@ public class NotificacionServiceImpl implements NotificacionService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaNotificacion> listarMisNotificaciones(Long idUsuario, Pageable pageable) {
         return notificacionRepo
@@ -100,12 +100,12 @@ public class NotificacionServiceImpl implements NotificacionService {
      * @param idNotificacion identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaNotificacion marcarComoLeida(Long idNotificacion, Long idUsuario) {
         NotificacionSistema notificacion = notificacionRepo.findById(idNotificacion)
                 .filter(n -> n.getUsuario().getIdUsuario().equals(idUsuario))
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Notificación no encontrada o no pertenece al usuario"));
         notificacion.setEstaLeida(true);
         notificacion = notificacionRepo.save(notificacion);
@@ -119,7 +119,7 @@ public class NotificacionServiceImpl implements NotificacionService {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public int marcarTodasLeidas(Long idUsuario) {
         return notificacionRepo.marcarTodasLeidas(idUsuario);
@@ -132,7 +132,7 @@ public class NotificacionServiceImpl implements NotificacionService {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public long contarNoLeidas(Long idUsuario) {
         return notificacionRepo.countByUsuarioIdUsuarioAndEstaLeidaFalse(idUsuario);

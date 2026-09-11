@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 
@@ -115,7 +115,7 @@ class UserControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/api/v1/usuarios/foto/privado/archivo.jpg");
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> userController.servirFotoPerfil(request));
+        assertThrows(ResourceNotFoundException.class, () -> userController.servirFotoPerfil(request));
     }
 
     @Test

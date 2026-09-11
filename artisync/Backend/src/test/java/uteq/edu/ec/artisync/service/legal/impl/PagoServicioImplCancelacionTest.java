@@ -25,8 +25,8 @@ import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
@@ -85,8 +85,8 @@ class PagoServicioImplCancelacionTest {
 
     @BeforeEach
     void setUp() {
-        Usuario cliente = Usuario.builder().idUsuario(ID_CLIENTE).build();
-        Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
+        User cliente = User.builder().idUsuario(ID_CLIENTE).build();
+        User creador = User.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
         Servicio servicio = Servicio.builder().perfil(perfil).tituloServicio("Servicio de prueba").build();
         Pedido pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();
@@ -146,7 +146,7 @@ class PagoServicioImplCancelacionTest {
     void clienteNoPuedeLiberar_rechaza() {
         assertThatThrownBy(() ->
                 pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, "LIBERAR", null))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("administrador");
 
         verify(pagoGarantiaRepository, never()).save(any());
@@ -171,7 +171,7 @@ class PagoServicioImplCancelacionTest {
     void usuarioAjeno_rechaza() {
         assertThatThrownBy(() ->
                 pagoServicio.cancelarPedidoConFondosRetenidos(1L, 999L, null, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(pagoGarantiaRepository, never()).save(any());
     }
@@ -183,7 +183,7 @@ class PagoServicioImplCancelacionTest {
 
         assertThatThrownBy(() ->
                 pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, null, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Pendiente");
     }
 
@@ -192,7 +192,7 @@ class PagoServicioImplCancelacionTest {
     void accionInvalida_rechaza() {
         assertThatThrownBy(() ->
                 pagoServicio.cancelarPedidoConFondosRetenidos(1L, ID_CLIENTE, "OTRACOSA", null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test

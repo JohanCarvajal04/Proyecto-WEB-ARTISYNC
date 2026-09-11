@@ -10,7 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,7 +44,7 @@ class SeguidorRepositoryIT {
     private jakarta.persistence.EntityManager entityManager;
 
     private Seguidor nuevoSeguimiento() {
-        Usuario seguidor = entityManager.getReference(Usuario.class, 9101L);
+        User seguidor = entityManager.getReference(User.class, 9101L);
         PerfilCreador perfil = entityManager.getReference(PerfilCreador.class, 9102L);
         return Seguidor.builder()
                 .usuarioSeguidor(seguidor)

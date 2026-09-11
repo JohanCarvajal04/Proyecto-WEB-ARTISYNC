@@ -11,9 +11,9 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import uteq.edu.ec.artisync.config.IaProperties;
+import uteq.edu.ec.artisync.config.AiProperties;
 import uteq.edu.ec.artisync.dto.ia.*;
-import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -24,11 +24,11 @@ import java.util.*;
 public class GeminiIaService extends AbstractIaService implements IaService {
 
     private final RestClient restClient;
-    private final IaProperties.GeminiConfig config;
+    private final AiProperties.GeminiConfig config;
     private final ObjectMapper objectMapper;
 
     public GeminiIaService(@Qualifier("iaRestClient") RestClient restClient,
-                            IaProperties iaProperties,
+                            AiProperties iaProperties,
                             ObjectMapper objectMapper) {
         this.restClient = restClient;
         this.config = iaProperties.getGemini();
@@ -47,7 +47,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
      * @param imagenBytes objeto binario multipart representando el documento o medio fisico
      * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
         String prompt = cargarPrompt("prompt_verificacion_identidad.md");
@@ -61,7 +61,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
      * @param imagenBytes objeto binario multipart representando el documento o medio fisico
      * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
         String prompt = cargarPrompt("prompt_verificacion_certificado.md");
@@ -74,7 +74,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
      *
      * @param textoMensaje parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         String prompt = cargarPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
@@ -102,7 +102,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
      * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
      * @param categoriasDisponibles parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
@@ -134,7 +134,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
      * @param titulo parametro requerido para la correcta ejecucion del procedimiento
      * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         String prompt = cargarPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
@@ -158,7 +158,7 @@ public class GeminiIaService extends AbstractIaService implements IaService {
      * @param textoResena parametro requerido para la correcta ejecucion del procedimiento
      * @param estrellas parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public IaResenaResponse analizarResena(String textoResena, int estrellas) {
         String prompt = cargarPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
@@ -208,24 +208,24 @@ public class GeminiIaService extends AbstractIaService implements IaService {
             return raiz.path("candidates").path(0).path("content").path("parts").path(0).path("text").asString("");
         } catch (HttpClientErrorException.Unauthorized e) {
             log.warn("[GEMINI] 401 Unauthorized. Body de respuesta: {}", e.getResponseBodyAsString());
-            throw new ExcepcionServicioIaNoDisponible("Gemini rechazó la API key configurada (401).", e);
+            throw new AiServiceUnavailableException("Gemini rechazó la API key configurada (401).", e);
         } catch (HttpClientErrorException.TooManyRequests e) {
             log.warn("[GEMINI] 429 Too Many Requests. Body de respuesta: {}", e.getResponseBodyAsString());
-            throw new ExcepcionServicioIaNoDisponible("Se alcanzó el límite de solicitudes de Gemini (429).", e, true);
+            throw new AiServiceUnavailableException("Se alcanzó el límite de solicitudes de Gemini (429).", e, true);
         } catch (HttpClientErrorException e) {
             log.warn("[GEMINI] {} de cliente. Body de respuesta: {}", e.getStatusCode().value(), e.getResponseBodyAsString());
-            throw new ExcepcionServicioIaNoDisponible(
+            throw new AiServiceUnavailableException(
                     "Gemini rechazó la solicitud (" + e.getStatusCode().value() + ").", e);
         } catch (HttpServerErrorException e) {
             log.warn("[GEMINI] Error de servidor {}. Body de respuesta: {}", e.getStatusCode().value(), e.getResponseBodyAsString());
-            throw new ExcepcionServicioIaNoDisponible("Gemini respondió con un error de servidor.", e);
+            throw new AiServiceUnavailableException("Gemini respondió con un error de servidor.", e);
         } catch (ResourceAccessException e) {
             log.warn("[GEMINI] Tiempo de espera agotado: {}", e.getMessage());
-            throw new ExcepcionServicioIaNoDisponible("Tiempo de espera agotado al contactar a Gemini.", e, true);
-        } catch (ExcepcionServicioIaNoDisponible e) {
+            throw new AiServiceUnavailableException("Tiempo de espera agotado al contactar a Gemini.", e, true);
+        } catch (AiServiceUnavailableException e) {
             throw e;
         } catch (Exception e) {
-            throw new ExcepcionServicioIaNoDisponible("Error inesperado al comunicarse con Gemini.", e);
+            throw new AiServiceUnavailableException("Error inesperado al comunicarse con Gemini.", e);
         }
     }
 
@@ -255,10 +255,10 @@ public class GeminiIaService extends AbstractIaService implements IaService {
                     .fechaEmision(esIdentidad ? null : textoONull(nodo, "fecha_emision"))
                     .razonRechazo(textoONull(nodo, "razon_rechazo"))
                     .build();
-        } catch (ExcepcionServicioIaNoDisponible e) {
+        } catch (AiServiceUnavailableException e) {
             throw e;
         } catch (Exception e) {
-            throw new ExcepcionServicioIaNoDisponible("No se pudo interpretar la respuesta de Gemini.", e);
+            throw new AiServiceUnavailableException("No se pudo interpretar la respuesta de Gemini.", e);
         }
     }
 }

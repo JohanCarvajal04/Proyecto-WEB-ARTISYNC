@@ -14,20 +14,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.legal.FiltroSolicitudRetiro;
 import uteq.edu.ec.artisync.dto.peticion.legal.PeticionSolicitudRetiro;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSaldoCreador;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSolicitudRetiro;
 import uteq.edu.ec.artisync.entity.legal.SolicitudRetiro;
 import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.SolicitudRetiroRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.legal.ISolicitudRetiroServicio;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 import uteq.edu.ec.artisync.specification.legal.SolicitudRetiroSpecification;
@@ -59,7 +59,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     private final SolicitudRetiroRepository solicitudRetiroRepository;
     private final DatosPagoCreadorRepository datosPagoCreadorRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final PayPalClient payPalClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -74,7 +74,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      *
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSaldoCreador obtenerSaldo(Long idUsuarioCreador) {
         boolean tieneCorreo = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador).isPresent();
@@ -98,7 +98,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "RETIRO_SOLICITAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "RETIRO_SOLICITAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#resultado.idSolicitud",
             detalle = "{monto: #peticion.montoSolicitado}")
     /**
@@ -107,29 +107,29 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSolicitudRetiro solicitar(Long idUsuarioCreador, PeticionSolicitudRetiro peticion) {
         DatosPagoCreador datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)
-                .orElseThrow(() -> new ExcepcionReglaNegocio(
+                .orElseThrow(() -> new BusinessRuleException(
                         "Debes configurar tu correo de PayPal antes de solicitar un retiro"));
 
         if (solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(idUsuarioCreador, ESTADOS_EN_CURSO)) {
-            throw new ExcepcionReglaNegocio("Ya tienes una solicitud de retiro en curso");
+            throw new BusinessRuleException("Ya tienes una solicitud de retiro en curso");
         }
 
         BigDecimal monto = peticion.getMontoSolicitado();
         if (monto.compareTo(montoMinimo) < 0) {
-            throw new ExcepcionReglaNegocio("El monto mínimo de retiro es $" + montoMinimo);
+            throw new BusinessRuleException("El monto mínimo de retiro es $" + montoMinimo);
         }
 
         BigDecimal saldoDisponible = calcularSaldoDisponible(idUsuarioCreador);
         if (monto.compareTo(saldoDisponible) > 0) {
-            throw new ExcepcionReglaNegocio("El monto solicitado supera tu saldo disponible");
+            throw new BusinessRuleException("El monto solicitado supera tu saldo disponible");
         }
 
-        Usuario usuario = usuarioRepository.findById(idUsuarioCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado"));
+        User usuario = usuarioRepository.findById(idUsuarioCreador)
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
 
         SolicitudRetiro solicitud = SolicitudRetiro.builder()
                 .usuarioCreador(usuario)
@@ -146,7 +146,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
             // Última línea de defensa: uq_solicitud_retiro_pendiente_por_creador
             // atrapa la carrera entre el existsBy de arriba y este insert si dos
             // solicitudes del mismo creador llegan casi simultáneas.
-            throw new ExcepcionReglaNegocio("Ya tienes una solicitud de retiro en curso");
+            throw new BusinessRuleException("Ya tienes una solicitud de retiro en curso");
         }
 
         log.info("Solicitud de retiro {} creada por creador {} por ${}",
@@ -162,7 +162,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      *
      * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaSolicitudRetiro> misSolicitudes(Long idUsuarioCreador) {
         return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)
@@ -179,7 +179,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      * @param filtro criterios de busqueda y filtrado dinamico a aplicar
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaSolicitudRetiro> listarCola(FiltroSolicitudRetiro filtro, Pageable pageable) {
         var spec = SolicitudRetiroSpecification.conFiltros(
@@ -190,7 +190,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "RETIRO_APROBAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "RETIRO_APROBAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -198,11 +198,11 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      * @param idSolicitud identificador unico que referencia de manera univoca al registro
      * @param idAdmin identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSolicitudRetiro aprobar(Long idSolicitud, Long idAdmin) {
         SolicitudRetiro solicitud = obtenerConEstado(idSolicitud, ESTADO_PENDIENTE);
-        Usuario admin = obtenerAdmin(idAdmin);
+        User admin = obtenerAdmin(idAdmin);
 
         solicitud.setAdminDecisor(admin);
         solicitud.setFechaDecision(LocalDateTime.now());
@@ -216,7 +216,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "RETIRO_RECHAZAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "RETIRO_RECHAZAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud", detalle = "{nota: #notaAdmin}")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -225,15 +225,15 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      * @param idAdmin identificador unico que referencia de manera univoca al registro
      * @param notaAdmin parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSolicitudRetiro rechazar(Long idSolicitud, Long idAdmin, String notaAdmin) {
         if (notaAdmin == null || notaAdmin.isBlank()) {
-            throw new ExcepcionReglaNegocio("Debes indicar un motivo para rechazar la solicitud");
+            throw new BusinessRuleException("Debes indicar un motivo para rechazar la solicitud");
         }
 
         SolicitudRetiro solicitud = obtenerConEstado(idSolicitud, ESTADO_PENDIENTE);
-        Usuario admin = obtenerAdmin(idAdmin);
+        User admin = obtenerAdmin(idAdmin);
 
         solicitud.setEstado(ESTADO_RECHAZADO);
         solicitud.setNotaAdmin(notaAdmin);
@@ -247,7 +247,7 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "RETIRO_REINTENTAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "RETIRO_REINTENTAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -255,11 +255,11 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
      * @param idSolicitud identificador unico que referencia de manera univoca al registro
      * @param idAdmin identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSolicitudRetiro reintentar(Long idSolicitud, Long idAdmin) {
         SolicitudRetiro solicitud = obtenerConEstado(idSolicitud, ESTADO_FALLIDO);
-        Usuario admin = obtenerAdmin(idAdmin);
+        User admin = obtenerAdmin(idAdmin);
 
         solicitud.setAdminDecisor(admin);
         solicitud.setFechaDecision(LocalDateTime.now());
@@ -336,22 +336,22 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     /** Con bloqueo pesimista (ver SolicitudRetiroRepository.findByIdParaActualizar): serializa decisiones concurrentes. */
     private SolicitudRetiro obtenerConEstado(Long idSolicitud, String estadoEsperado) {
         SolicitudRetiro solicitud = solicitudRetiroRepository.findByIdParaActualizar(idSolicitud)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Solicitud de retiro no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitud de retiro no encontrada"));
 
         if (!estadoEsperado.equals(solicitud.getEstado())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "La solicitud no está en estado " + estadoEsperado + " (estado actual: " + solicitud.getEstado() + ")");
         }
         return solicitud;
     }
 
-    private Usuario obtenerAdmin(Long idAdmin) {
+    private User obtenerAdmin(Long idAdmin) {
         return usuarioRepository.findById(idAdmin)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
     }
 
     private RespuestaSolicitudRetiro mapear(SolicitudRetiro s) {
-        Usuario creador = s.getUsuarioCreador();
+        User creador = s.getUsuarioCreador();
         return RespuestaSolicitudRetiro.builder()
                 .idSolicitud(s.getIdSolicitud())
                 .idUsuarioCreador(creador.getIdUsuario())

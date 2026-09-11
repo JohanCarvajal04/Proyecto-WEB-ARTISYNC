@@ -29,7 +29,7 @@ public interface ICategoriaServicio {
      *
      * @param idCategoria id de la categoría
      * @return la categoría encontrada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      */
     RespuestaCategoria obtenerCategoriaPorId(Long idCategoria);
 
@@ -40,8 +40,8 @@ public interface ICategoriaServicio {
      * @param idUsuarioCreador id del creador que la propone, o {@code null} si la crea un administrador
      * @param peticion         nombre y estado inicial de la categoría
      * @return la categoría recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si {@code idUsuarioCreador} no corresponde a un usuario existente
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe una categoría con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si {@code idUsuarioCreador} no corresponde a un usuario existente
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una categoría con el mismo nombre
      */
     RespuestaCategoria crearCategoria(Long idUsuarioCreador, PeticionCrearCategoria peticion);
 
@@ -51,8 +51,8 @@ public interface ICategoriaServicio {
      * @param idCategoria id de la categoría a actualizar
      * @param peticion    campos a modificar; los nulos se dejan sin cambios
      * @return la categoría ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la categoría no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el nuevo nombre ya lo usa otra categoría
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el nuevo nombre ya lo usa otra categoría
      */
     RespuestaCategoria actualizarCategoria(Long idCategoria, PeticionActualizarCategoria peticion);
 
@@ -61,8 +61,8 @@ public interface ICategoriaServicio {
      *
      * @param idCategoria id de la categoría a eliminar
      * @param motivo obligatorio si la categoria la creó un creador (se le notifica).
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la categoría no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si alguna subcategoría tiene servicios publicados, o si la categoría la creó un creador y no se indicó motivo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si alguna subcategoría tiene servicios publicados, o si la categoría la creó un creador y no se indicó motivo
      */
     void eliminarCategoria(Long idCategoria, String motivo);
 
@@ -71,7 +71,7 @@ public interface ICategoriaServicio {
      *
      * @param idCategoria id de la categoría padre
      * @return las subcategorías de la categoría
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      */
     List<RespuestaSubcategoria> listarSubcategoriasPorCategoria(Long idCategoria);
 
@@ -89,8 +89,8 @@ public interface ICategoriaServicio {
      * @param idUsuarioCreador id del creador que la propone, o {@code null} si la crea un administrador
      * @param peticion         categoría padre y nombre de la subcategoría
      * @return la subcategoría recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la categoría padre no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe una subcategoría con el mismo nombre en esa categoría
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría padre no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una subcategoría con el mismo nombre en esa categoría
      */
     RespuestaSubcategoria crearSubcategoria(Long idUsuarioCreador, PeticionCrearSubcategoria peticion);
 
@@ -99,8 +99,8 @@ public interface ICategoriaServicio {
      *
      * @param idSubcategoria id de la subcategoría a eliminar
      * @param motivo obligatorio si la subcategoria la creó un creador (se le notifica).
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la subcategoría no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si tiene servicios publicados, o si la subcategoría la creó un creador y no se indicó motivo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si tiene servicios publicados, o si la subcategoría la creó un creador y no se indicó motivo
      */
     void eliminarSubcategoria(Long idSubcategoria, String motivo);
 
@@ -123,7 +123,7 @@ public interface ICategoriaServicio {
      *
      * @param idCategoria id de la categoría a marcar
      * @return la categoría ya marcada como revisada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      */
     RespuestaCategoria marcarCategoriaRevisada(Long idCategoria);
 
@@ -132,7 +132,7 @@ public interface ICategoriaServicio {
      *
      * @param idSubcategoria id de la subcategoría a marcar
      * @return la subcategoría ya marcada como revisada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la subcategoría no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
      */
     RespuestaSubcategoria marcarSubcategoriaRevisada(Long idSubcategoria);
 }

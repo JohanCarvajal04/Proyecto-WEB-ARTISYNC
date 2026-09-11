@@ -13,7 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import uteq.edu.ec.artisync.dto.peticion.legal.FiltroReporteContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.FilaReporteContrato;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -64,7 +64,7 @@ class ReporteContratoServicioImplTest {
     }
 
     @Test
-    @DisplayName("exportar lanza ExcepcionReglaNegocio cuando el filtro supera el tope de filas del formato")
+    @DisplayName("exportar lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
     void exportar_excedeTope_lanzaExcepcion() {
         Page<FilaReporteContrato> paginaEnorme = new PageImpl<>(
                 List.of(filaDe(1L, BigDecimal.TEN)), PageRequest.of(0, FormatoReporte.CSV.topeFilas()), 50_001);
@@ -72,7 +72,7 @@ class ReporteContratoServicioImplTest {
                 .willReturn(paginaEnorme);
 
         assertThatThrownBy(() -> reporteContratoServicio.exportar(new FiltroReporteContrato(), FormatoReporte.CSV, "admin@artisync.dev"))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("50001")
                 .hasMessageContaining("Acote el rango de fechas");
     }

@@ -4,14 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionDatosPago;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaDatosPago;
 import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IDatosPagoServicio;
 
 @Service
@@ -19,7 +19,7 @@ import uteq.edu.ec.artisync.service.perfil.IDatosPagoServicio;
 public class DatosPagoServicioImpl implements IDatosPagoServicio {
 
     private final DatosPagoCreadorRepository datosPagoCreadorRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -28,7 +28,7 @@ public class DatosPagoServicioImpl implements IDatosPagoServicio {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaDatosPago obtenerMisDatosPago(Long idUsuario) {
         return datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
@@ -38,7 +38,7 @@ public class DatosPagoServicioImpl implements IDatosPagoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "RETIRO_DATOS_PAGO_ACTUALIZAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "RETIRO_DATOS_PAGO_ACTUALIZAR", modulo = AuditModule.FINANZAS,
             entidad = "datos_pago_creador", idEntidad = "#idUsuario")
     /**
      * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
@@ -46,13 +46,13 @@ public class DatosPagoServicioImpl implements IDatosPagoServicio {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaDatosPago actualizarCorreoPaypal(Long idUsuario, PeticionDatosPago peticion) {
         DatosPagoCreador datos = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseGet(() -> {
-                    Usuario usuario = usuarioRepository.findById(idUsuario)
-                            .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado"));
+                    User usuario = usuarioRepository.findById(idUsuario)
+                            .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
                     return DatosPagoCreador.builder().usuario(usuario).build();
                 });
 

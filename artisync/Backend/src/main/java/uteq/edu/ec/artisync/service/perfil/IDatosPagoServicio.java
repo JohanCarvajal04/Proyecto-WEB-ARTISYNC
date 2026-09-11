@@ -20,7 +20,7 @@ public interface IDatosPagoServicio {
      * @param idUsuario id del usuario
      * @param peticion  nuevo correo de PayPal
      * @return los datos de pago ya actualizados
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
      */
     RespuestaDatosPago actualizarCorreoPaypal(Long idUsuario, PeticionDatosPago peticion);
 }

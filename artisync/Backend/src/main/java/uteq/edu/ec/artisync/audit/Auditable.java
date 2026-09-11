@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marca un método de servicio para que {@link AspectoAuditoria} registre un
+ * Marca un método de servicio para que {@link AuditAspect} registre un
  * evento en la bitácora de auditoria_eventos (REQ-NF-013) cada vez que se
  * invoque a través del proxy Spring.
  *
@@ -30,7 +30,7 @@ public @interface Auditable {
     String accion();
 
     /** Módulo de negocio. Va a modulo_auditoria. */
-    ModuloAuditoria modulo();
+    AuditModule modulo();
 
     /** Nombre de la tabla/entidad afectada, p. ej. "pedidos". Opcional. */
     String entidad() default "";

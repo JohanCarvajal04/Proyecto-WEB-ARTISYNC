@@ -35,9 +35,9 @@ public class ResenaControlador {
      * @param peticion calificación y texto de la reseña
      * @param userDetails usuario autenticado (cliente del pedido) que crea la reseña
      * @return la reseña creada, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
-     * @throws ExcepcionReglaNegocio si el entregable del pedido aún no fue liberado
-     * @throws ExcepcionRecursoDuplicado si ya existe una reseña para el pedido
+     * @throws ResourceNotFoundException si el pedido no existe
+     * @throws BusinessRuleException si el entregable del pedido aún no fue liberado
+     * @throws DuplicateResourceException si ya existe una reseña para el pedido
      */
     @Operation(summary = "Crear reseña de un pedido entregado (CLIENTE)")
     @PostMapping("/api/v1/pedidos/{idPedido}/resena")
@@ -75,7 +75,7 @@ public class ResenaControlador {
      * @param peticion calificación y texto actualizados de la reseña
      * @param userDetails usuario autenticado (cliente que dejó la reseña)
      * @return la reseña actualizada
-     * @throws ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     * @throws ResourceNotFoundException si el pedido no tiene una reseña
      */
     @Operation(summary = "Editar mi reseña de un pedido (CLIENTE)")
     @PutMapping("/api/v1/pedidos/{idPedido}/resena")
@@ -92,7 +92,7 @@ public class ResenaControlador {
      *
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado (cliente que dejó la reseña)
-     * @throws ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     * @throws ResourceNotFoundException si el pedido no tiene una reseña
      */
     @Operation(summary = "Eliminar mi reseña de un pedido (CLIENTE)")
     @DeleteMapping("/api/v1/pedidos/{idPedido}/resena")

@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.shared.imagen;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -20,7 +20,7 @@ class PreprocesadorImagenIaTest {
     void validarFormato_pdfRechazado() {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "doc.pdf", "application/pdf", "contenido".getBytes());
-        assertThrows(ExcepcionReglaNegocio.class, () -> preprocesador.validarFormato(archivo));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.validarFormato(archivo));
     }
 
     @Test
@@ -33,13 +33,13 @@ class PreprocesadorImagenIaTest {
     @Test
     void validarFormato_archivoVacio_esRechazado() {
         MockMultipartFile archivo = new MockMultipartFile("documento", "doc.jpg", "image/jpeg", new byte[0]);
-        assertThrows(ExcepcionReglaNegocio.class, () -> preprocesador.validarFormato(archivo));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.validarFormato(archivo));
     }
 
     @Test
     void validarFormato_contentTypeNulo_esRechazado() {
         MockMultipartFile archivo = new MockMultipartFile("documento", "doc", null, "contenido".getBytes());
-        assertThrows(ExcepcionReglaNegocio.class, () -> preprocesador.validarFormato(archivo));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.validarFormato(archivo));
     }
 
     /**
@@ -51,7 +51,7 @@ class PreprocesadorImagenIaTest {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "cedula.jpg", "image/jpeg", new byte[6 * 1024 * 1024]);
 
-        ExcepcionReglaNegocio error = assertThrows(ExcepcionReglaNegocio.class,
+        BusinessRuleException error = assertThrows(BusinessRuleException.class,
                 () -> preprocesador.validarFormato(archivo));
 
         assertThat(error).hasMessageContaining("5 MB");
@@ -86,7 +86,7 @@ class PreprocesadorImagenIaTest {
 
     @Test
     void comprimirParaIa_bytesNoSonUnaImagen_lanzaExcepcionReglaNegocio() {
-        assertThrows(ExcepcionReglaNegocio.class, () -> preprocesador.comprimirParaIa("no soy una imagen".getBytes()));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.comprimirParaIa("no soy una imagen".getBytes()));
     }
 
     /**
@@ -105,7 +105,7 @@ class PreprocesadorImagenIaTest {
             byte[] resultado = preprocesador.comprimirParaIa(original);
             assertThat(resultado.length).isLessThanOrEqualTo(180_000);
             assertThat(ImageIO.read(new ByteArrayInputStream(resultado))).isNotNull();
-        } catch (ExcepcionReglaNegocio e) {
+        } catch (BusinessRuleException e) {
             // Documenta el límite real: si esto se dispara, es evidencia de que
             // MAX_INTENTOS/LIMITE_BYTES sí puede fallar con fotos reales de
             // alta entropía, no solo en teoría.

@@ -13,12 +13,12 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
 import uteq.edu.ec.artisync.entity.legal.Mensaje;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.MensajeRepository;
 import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.InfraccionService;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
@@ -39,7 +39,7 @@ public class ChatServiceImpl implements ChatService {
 
     private final SalaChatRepository      salaChatRepo;
     private final MensajeRepository       mensajeRepo;
-    private final UsuarioRepository       usuarioRepo;
+    private final UserRepository       usuarioRepo;
     private final InfraccionService       infraccionService;
     private final MensajeFilterService    mensajeFilterService;
     private final NotificacionService     notificacionService;
@@ -56,7 +56,7 @@ public class ChatServiceImpl implements ChatService {
      *
      * @param pedido parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public SalaChat crearSala(Pedido pedido) {
         // Prevenir duplicados: un pedido → una sala
@@ -77,7 +77,7 @@ public class ChatServiceImpl implements ChatService {
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void cerrarSala(Long idPedido) {
         salaChatRepo.findByPedidoIdPedido(idPedido).ifPresent(sala -> {
@@ -106,11 +106,11 @@ public class ChatServiceImpl implements ChatService {
      * @param idRemitente identificador unico que referencia de manera univoca al registro
      * @param cuerpoMensaje parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensajeChat enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
 
         // Los controladores (REST y @MessageMapping) solo exigen
@@ -119,7 +119,7 @@ public class ChatServiceImpl implements ChatService {
         verificarParticipante(sala.getPedido(), idRemitente);
 
         if (Boolean.FALSE.equals(sala.getSalaActiva())) {
-            throw new ExcepcionReglaNegocio("Esta sala ha sido cerrada");
+            throw new BusinessRuleException("Esta sala ha sido cerrada");
         }
 
         // RF-15: Filtrar datos de contacto antes de persistir el mensaje.
@@ -129,11 +129,11 @@ public class ChatServiceImpl implements ChatService {
         // transaccion de enviarMensaje pero no de la de la infraccion.
         if (mensajeFilterService.contieneContacto(cuerpoMensaje)) {
             infraccionService.registrarInfraccion(idRemitente, sala.getPedido().getIdPedido(), cuerpoMensaje);
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Tu mensaje no fue entregado porque contiene datos de contacto. Infracción registrada.");
         }
 
-        Usuario remitente = usuarioRepo.getReferenceById(idRemitente);
+        User remitente = usuarioRepo.getReferenceById(idRemitente);
         Mensaje mensaje = Mensaje.builder()
                 .sala(sala)
                 .remitente(remitente)
@@ -151,7 +151,7 @@ public class ChatServiceImpl implements ChatService {
         // esto, la otra parte no se enteraba de un mensaje nuevo salvo que
         // entrara a revisar el pedido por su cuenta.
         Pedido pedido = sala.getPedido();
-        Usuario destinatario = idRemitente.equals(pedido.getUsuarioCliente().getIdUsuario())
+        User destinatario = idRemitente.equals(pedido.getUsuarioCliente().getIdUsuario())
                 ? pedido.getServicio().getPerfil().getUsuario()
                 : pedido.getUsuarioCliente();
         notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO",
@@ -177,11 +177,11 @@ public class ChatServiceImpl implements ChatService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaMensajeChat> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
 
         // El controlador solo exige isAuthenticated(): sin esto, cualquier
@@ -207,11 +207,11 @@ public class ChatServiceImpl implements ChatService {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario) {
         SalaChat sala = salaChatRepo.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
 
         // El controlador solo exige isAuthenticated(): sin esto, cualquier
@@ -235,12 +235,12 @@ public class ChatServiceImpl implements ChatService {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
         if (!esCliente && !esCreador) {
-            throw new ExcepcionReglaNegocio("No tiene acceso al chat de este pedido");
+            throw new BusinessRuleException("No tiene acceso al chat de este pedido");
         }
     }
 
     // -------------------------------------------------------------------------
-    private RespuestaMensajeChat mapToResponse(Mensaje m, Usuario remitente) {
+    private RespuestaMensajeChat mapToResponse(Mensaje m, User remitente) {
         return RespuestaMensajeChat.builder()
                 .idMensaje(m.getIdMensaje())
                 .idSala(m.getSala().getIdSala())

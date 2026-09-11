@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionResponderBriefing;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionAvanzarEtapa;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearPedido;
@@ -18,9 +18,9 @@ import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
 import uteq.edu.ec.artisync.entity.comunicacion.BriefingPregunta;
 import uteq.edu.ec.artisync.entity.comunicacion.BriefingRespuesta;
 import uteq.edu.ec.artisync.entity.pedido.*;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
@@ -28,7 +28,7 @@ import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.*;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
@@ -39,7 +39,7 @@ import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.IServicioExportacion;
 import uteq.edu.ec.artisync.service.shared.reporte.ModeloReporte;
-import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
+import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -55,7 +55,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     private final PedidoRepository pedidoRepository;
     private final ServicioRepository servicioRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final FlujoTrabajoRepository flujoTrabajoRepository;
     private final FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     private final HistorialEstadoPedidoRepository historialRepository;
@@ -73,7 +73,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "PEDIDO_CREAR", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "PEDIDO_CREAR", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#resultado.idPedido",
             detalle = "{idServicio: #peticion.idServicio}")
     /**
@@ -82,23 +82,23 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion) {
-        Usuario cliente = usuarioRepository.findById(idCliente)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario cliente no encontrado"));
+        User cliente = usuarioRepository.findById(idCliente)
+                .orElseThrow(() -> new ResourceNotFoundException("User cliente no encontrado"));
 
         if (!verificacionServicio.estaIdentidadVerificada(idCliente)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Debes verificar tu identidad antes de crear un pedido. Sube tu documento de identidad desde tu perfil.");
         }
 
         Servicio servicio = servicioRepository.findById(peticion.getIdServicio())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
 
         // Verificar que el cliente no sea el mismo creador del servicio
         if (servicio.getPerfil().getUsuario().getIdUsuario().equals(idCliente)) {
-            throw new ExcepcionReglaNegocio("No puedes crear un pedido para tu propio servicio");
+            throw new BusinessRuleException("No puedes crear un pedido para tu propio servicio");
         }
 
         FlujoTrabajo flujo = resolverFlujoDelServicio(servicio);
@@ -107,7 +107,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
         List<FlujoEtapaConfig> etapas = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(flujo.getIdFlujo());
         if (etapas.isEmpty()) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El flujo '" + flujo.getNombreFlujo() + "' no tiene etapas configuradas");
         }
 
@@ -160,7 +160,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "PEDIDO_PROPONER_TERMINOS", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "PEDIDO_PROPONER_TERMINOS", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -169,23 +169,23 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPropuestaTerminos proponerTerminos(Long idPedido, Long idUsuario, PeticionCrearPropuestaTerminos peticion) {
         if (peticion.getPrecioPropuesto() == null && peticion.getFechaEntregaPropuesta() == null) {
-            throw new ExcepcionReglaNegocio("Debes indicar al menos un término a proponer");
+            throw new BusinessRuleException("Debes indicar al menos un término a proponer");
         }
 
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
-        Usuario proponente = obtenerParteDelPedido(pedido, idUsuario,
+        User proponente = obtenerParteDelPedido(pedido, idUsuario,
                 "No tienes permiso para proponer términos de este pedido");
 
         validarContratoSinFirmar(idPedido);
 
         if (propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(idPedido, PropuestaTerminosPedido.PENDIENTE).isPresent()) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Ya existe una propuesta de cambio de términos pendiente; resuélvela antes de crear otra");
         }
 
@@ -200,7 +200,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
         log.info("Pedido {} recibió propuesta de términos {} (usuario {}): precio={}, entrega={}",
                 idPedido, propuesta.getIdPropuesta(), idUsuario, propuesta.getPrecioPropuesto(), propuesta.getFechaEntregaPropuesta());
 
-        Usuario otraParte = obtenerContraparte(pedido, idUsuario);
+        User otraParte = obtenerContraparte(pedido, idUsuario);
         notificacionService.notificar(otraParte, "PEDIDO_PROPUESTA_TERMINOS_CREADA",
                 "Te proponen nuevos términos para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
 
@@ -209,7 +209,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "PEDIDO_ACEPTAR_PROPUESTA_TERMINOS", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "PEDIDO_ACEPTAR_PROPUESTA_TERMINOS", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -218,15 +218,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPropuesta identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPedido aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
         PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
 
         if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {
-            throw new ExcepcionReglaNegocio("No puedes aceptar tu propia propuesta; debe hacerlo la otra parte");
+            throw new BusinessRuleException("No puedes aceptar tu propia propuesta; debe hacerlo la otra parte");
         }
         obtenerParteDelPedido(pedido, idUsuario, "No tienes permiso para aceptar esta propuesta");
 
@@ -274,15 +274,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPropuesta identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPropuestaTerminos rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
         PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
 
         if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {
-            throw new ExcepcionReglaNegocio("No puedes rechazar tu propia propuesta; debe hacerlo la otra parte");
+            throw new BusinessRuleException("No puedes rechazar tu propia propuesta; debe hacerlo la otra parte");
         }
         obtenerParteDelPedido(pedido, idUsuario, "No tienes permiso para rechazar esta propuesta");
 
@@ -307,13 +307,13 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPropuesta identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPropuestaTerminos cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
 
         if (!propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {
-            throw new ExcepcionReglaNegocio("Solo quien propuso los términos puede cancelar la propuesta");
+            throw new BusinessRuleException("Solo quien propuso los términos puede cancelar la propuesta");
         }
 
         propuesta.setEstado(PropuestaTerminosPedido.CANCELADA);
@@ -333,33 +333,33 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPropuestaTerminos obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
+        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository
                 .findByPedidoIdPedidoAndEstado(idPedido, PropuestaTerminosPedido.PENDIENTE)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay ninguna propuesta de términos pendiente para el pedido con ID: " + idPedido));
+                .orElseThrow(() -> new ResourceNotFoundException("No hay ninguna propuesta de términos pendiente para el pedido con ID: " + idPedido));
 
         return mapPropuesta(propuesta);
     }
 
     private PropuestaTerminosPedido obtenerPropuestaPendienteDelPedido(Long idPedido, Long idPropuesta) {
         PropuestaTerminosPedido propuesta = propuestaTerminosPedidoRepository.findById(idPropuesta)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Propuesta no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Propuesta no encontrada"));
         if (!propuesta.getPedido().getIdPedido().equals(idPedido)) {
-            throw new ExcepcionRecursoNoEncontrado("Propuesta no encontrada");
+            throw new ResourceNotFoundException("Propuesta no encontrada");
         }
         if (!PropuestaTerminosPedido.PENDIENTE.equals(propuesta.getEstado())) {
-            throw new ExcepcionReglaNegocio("Esta propuesta ya fue resuelta");
+            throw new BusinessRuleException("Esta propuesta ya fue resuelta");
         }
         return propuesta;
     }
 
-    private Usuario obtenerParteDelPedido(Pedido pedido, Long idUsuario, String mensajeError) {
+    private User obtenerParteDelPedido(Pedido pedido, Long idUsuario, String mensajeError) {
         Long idCliente = pedido.getUsuarioCliente().getIdUsuario();
         Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();
         if (idCliente.equals(idUsuario)) {
@@ -368,10 +368,10 @@ public class PedidoServicioImpl implements IPedidoServicio {
         if (idCreador.equals(idUsuario)) {
             return pedido.getServicio().getPerfil().getUsuario();
         }
-        throw new ExcepcionReglaNegocio(mensajeError);
+        throw new BusinessRuleException(mensajeError);
     }
 
-    private Usuario obtenerContraparte(Pedido pedido, Long idUsuario) {
+    private User obtenerContraparte(Pedido pedido, Long idUsuario) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         return esCliente ? pedido.getServicio().getPerfil().getUsuario() : pedido.getUsuarioCliente();
     }
@@ -386,14 +386,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private void validarContratoSinFirmar(Long idPedido) {
         contratoRepository.findByPedidoIdPedido(idPedido).ifPresent(contrato -> {
             if (contrato.getHashFirmaCreador() != null || contrato.getHashFirmaCliente() != null) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "No se pueden modificar los términos: el contrato ya tiene al menos una firma");
             }
         });
     }
 
     private RespuestaPropuestaTerminos mapPropuesta(PropuestaTerminosPedido propuesta) {
-        Usuario propuestoPor = propuesta.getPropuestoPor();
+        User propuestoPor = propuesta.getPropuestoPor();
         return RespuestaPropuestaTerminos.builder()
                 .idPropuesta(propuesta.getIdPropuesta())
                 .idPedido(propuesta.getPedido().getIdPedido())
@@ -445,7 +445,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
      */
     private FlujoTrabajo obtenerFlujoPorDefecto() {
         return flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()
-                .orElseThrow(() -> new ExcepcionReglaNegocio(
+                .orElseThrow(() -> new BusinessRuleException(
                         "No hay flujos de trabajo configurados en el sistema"));
     }
 
@@ -459,7 +459,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private void validarRespuestasBriefingCompletas(BriefingPlantilla plantilla,
                                                       List<PeticionResponderBriefing.RespuestaItem> respuestas) {
         if (respuestas == null || respuestas.isEmpty()) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Este servicio tiene un cuestionario: responde todas sus preguntas para crear el pedido");
         }
 
@@ -470,7 +470,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
         for (BriefingPregunta pregunta : plantilla.getPreguntas()) {
             if (!idsRespondidos.contains(pregunta.getIdPregunta())) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "Falta responder la pregunta del cuestionario: \"" + pregunta.getTextoPregunta() + "\"");
             }
         }
@@ -515,13 +515,13 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + idPedido));
         // OBS-08 / H-02: evita el acceso indebido (IDOR) a pedidos ajenos.
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
         return mapToRespuesta(pedido);
     }
 
@@ -532,7 +532,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
      *
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPedidoResumido> listarMisPedidos(Long idCliente) {
         return pedidoRepository.findByUsuarioClienteIdUsuario(idCliente)
@@ -548,7 +548,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
      *
      * @param idCreador identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPedidoResumido> listarMisComisiones(Long idCreador) {
         return pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idCreador)
@@ -566,7 +566,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param formato parametro requerido para la correcta ejecucion del procedimiento
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante) {
         return exportarResumen(listarMisPedidos(idCliente), "Mis pedidos", "Pedidos como cliente",
@@ -601,7 +601,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     private DocumentoGenerado exportarResumen(List<RespuestaPedidoResumido> filas, String titulo, String subtitulo,
                                                FormatoReporte formato, String correoSolicitante) {
         if (filas.size() > formato.topeFilas()) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El listado tiene " + filas.size() + " pedidos, más de los " + formato.topeFilas()
                             + " que admite una exportación en " + formato + ".");
         }
@@ -630,7 +630,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     @Transactional
     // Las transiciones de flujo: incluye los intentos FALLIDOS, que
     // historial_estados_pedido (tabla de dominio) nunca registra.
-    @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{observacion: #peticion.observacion}")
     /**
@@ -640,22 +640,22 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idCreador identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
         // Verificar que el creador es el dueño del servicio del pedido
         Long idCreadorServicio = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();
         if (!idCreadorServicio.equals(idCreador)) {
-            throw new ExcepcionReglaNegocio("Solo el creador del servicio puede avanzar las etapas del pedido");
+            throw new BusinessRuleException("Solo el creador del servicio puede avanzar las etapas del pedido");
         }
 
         // Obtener etapa actual del historial
         HistorialEstadoPedido ultimoEstado = historialRepository
                 .findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)
-                .orElseThrow(() -> new ExcepcionReglaNegocio("Pedido sin estado inicial"));
+                .orElseThrow(() -> new BusinessRuleException("Pedido sin estado inicial"));
 
         // Obtener configuracion de la etapa actual (orden + si exige entregable).
         // Si ya no está en la configuración del flujo (p. ej. se borró la
@@ -663,7 +663,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
         // orden 0 avanzaría el pedido a la primera etapa en vez de fallar.
         FlujoEtapaConfig configActual = obtenerConfigActual(pedido, ultimoEstado);
         if (configActual == null) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "La etapa actual del pedido ('" + ultimoEstado.getEtapa().getNombreEtapa()
                             + "') ya no forma parte del flujo de trabajo configurado. Contacta a soporte.");
         }
@@ -674,7 +674,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
         // revisión del cliente); sin él, el creador no puede avanzar.
         if (Boolean.TRUE.equals(configActual.getRequiereEntregable())
                 && !entregableFinalRepository.existsByPedidoIdPedido(idPedido)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Debes subir el entregable antes de avanzar de la etapa '"
                             + configActual.getEtapa().getNombreEtapa() + "'");
         }
@@ -685,7 +685,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
                         pedido.getFlujo().getIdFlujo(), ordenActual);
 
         if (siguientes.isEmpty()) {
-            throw new ExcepcionReglaNegocio("El pedido ya se encuentra en la etapa final");
+            throw new BusinessRuleException("El pedido ya se encuentra en la etapa final");
         }
 
         FlujoEtapaConfig siguienteConfig = siguientes.get(0);
@@ -715,13 +715,13 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + idPedido));
         // Evita que cualquier autenticado lea el historial de un pedido ajeno.
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         return historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido)
                 .stream()
@@ -737,13 +737,13 @@ public class PedidoServicioImpl implements IPedidoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
         // Evita que cualquier autenticado lea el seguimiento de un pedido ajeno.
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         List<FlujoEtapaConfig> etapasConfig = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());
@@ -823,7 +823,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
                 .map(this::mapHistorial)
                 .collect(Collectors.toList());
 
-        Usuario creador = pedido.getServicio().getPerfil().getUsuario();
+        User creador = pedido.getServicio().getPerfil().getUsuario();
 
         return RespuestaPedido.builder()
                 .idPedido(pedido.getIdPedido())
@@ -845,7 +845,7 @@ public class PedidoServicioImpl implements IPedidoServicio {
     }
 
     private RespuestaPedidoResumido mapToResumido(Pedido pedido) {
-        Usuario creador = pedido.getServicio().getPerfil().getUsuario();
+        User creador = pedido.getServicio().getPerfil().getUsuario();
 
         return RespuestaPedidoResumido.builder()
                 .idPedido(pedido.getIdPedido())

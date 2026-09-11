@@ -13,8 +13,8 @@ import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 
@@ -44,12 +44,12 @@ class BriefingServiceImplTest {
     private BriefingServiceImpl briefingService;
 
     private PerfilCreador perfilCreador;
-    private Usuario       usuarioCreador;
+    private User       usuarioCreador;
     private Pedido        pedido;
 
     @BeforeEach
     void setUp() {
-        usuarioCreador = Usuario.builder()
+        usuarioCreador = User.builder()
                 .idUsuario(1L)
                 .nombres("Ana")
                 .apellidos("Creadora")
@@ -61,13 +61,13 @@ class BriefingServiceImplTest {
                 .usuario(usuarioCreador)
                 .build();
 
-        // ValidadorPertenenciaPedido evalúa cliente y creador sin cortocircuito,
+        // OrderOwnershipValidator evalúa cliente y creador sin cortocircuito,
         // así que el pedido necesita un servicio/perfil/usuario completos aunque
         // el caso bajo prueba solo ejercite la ruta del cliente.
         Servicio servicioPedido = Servicio.builder().idServicio(1L).perfil(perfilCreador).build();
         pedido = Pedido.builder()
                 .idPedido(10L)
-                .usuarioCliente(Usuario.builder().idUsuario(2L).build())
+                .usuarioCliente(User.builder().idUsuario(2L).build())
                 .servicio(servicioPedido)
                 .build();
     }
@@ -124,12 +124,12 @@ class BriefingServiceImplTest {
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
 
         assertThatThrownBy(() -> briefingService.crearPlantilla(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("10 preguntas");
     }
 
     @Test
-    @DisplayName("crearPlantilla — usuario sin perfil de creador lanza ExcepcionRecursoNoEncontrado")
+    @DisplayName("crearPlantilla — usuario sin perfil de creador lanza ResourceNotFoundException")
     void crearPlantilla_sinPerfilCreador_lanzaExcepcion() {
         PeticionCrearBriefingPlantilla peticion = PeticionCrearBriefingPlantilla.builder()
                 .nombrePlantilla("X").preguntas(List.of(new PeticionCrearBriefingPlantilla.PreguntaRequest("¿?", 1)))
@@ -137,7 +137,7 @@ class BriefingServiceImplTest {
         when(perfilRepo.findByUsuarioIdUsuario(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> briefingService.crearPlantilla(999L, peticion))
-                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ResourceNotFoundException.class);
     }
 
     // =========================================================================
@@ -185,7 +185,7 @@ class BriefingServiceImplTest {
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
                 .nombrePlantilla("Vieja").preguntas(new ArrayList<>()).build();
         PerfilCreador otroPerfil = PerfilCreador.builder().idPerfil(6L)
-                .usuario(Usuario.builder().idUsuario(2L).build()).build();
+                .usuario(User.builder().idUsuario(2L).build()).build();
 
         when(perfilRepo.findByUsuarioIdUsuario(2L)).thenReturn(Optional.of(otroPerfil));
         when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
@@ -194,7 +194,7 @@ class BriefingServiceImplTest {
                 .nombrePlantilla("Nueva").preguntas(List.of()).build();
 
         assertThatThrownBy(() -> briefingService.editarPlantilla(1L, 2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("permiso");
     }
 
@@ -216,12 +216,12 @@ class BriefingServiceImplTest {
     // =========================================================================
 
     @Test
-    @DisplayName("obtenerBriefing — briefing inexistente lanza ExcepcionRecursoNoEncontrado")
+    @DisplayName("obtenerBriefing — briefing inexistente lanza ResourceNotFoundException")
     void obtenerBriefing_noExiste_lanzaExcepcion() {
         when(enviadoRepo.findByPedidoIdPedido(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> briefingService.obtenerBriefing(99L, 2L))
-                .isInstanceOf(uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(uteq.edu.ec.artisync.exception.ResourceNotFoundException.class);
     }
 
     @Test

@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.seguridad.impl;
 import uteq.edu.ec.artisync.service.seguridad.*;
 
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -70,9 +70,9 @@ public class AuthServiceImpl implements AuthService {
     private static final int LIMITE_INTENTOS_RECUPERACION = 3;
     private static final Duration VENTANA_INTENTOS_RECUPERACION = Duration.ofHours(1);
 
-    private final UsuarioRepository usuarioRepository;
-    private final UsuarioRolRepository usuarioRolRepository;
-    private final SesionUsuarioRepository sesionUsuarioRepository;
+    private final UserRepository usuarioRepository;
+    private final UserRoleRepository usuarioRolRepository;
+    private final UserSessionRepository sesionUsuarioRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -87,7 +87,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    @Auditable(accion = "Usuario registrado desde el panel de crear cuenta", modulo = ModuloAuditoria.SEGURIDAD,
+    @Auditable(accion = "User registrado desde el panel de crear cuenta", modulo = AuditModule.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#resultado.idUsuario",
             correoActor = "#request.correo",
             detalle = "{rol: #request.rol}")
@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
      *
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public UserResponse register(RegisterRequest request) {
         String rolNombre = request.getRol() != null && !request.getRol().isBlank()
@@ -118,7 +118,7 @@ public class AuthServiceImpl implements AuthService {
             throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.BAD_REQUEST);
         }
 
-        Usuario usuario = usuarioRepository.findById(idUsuario)
+        User usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al registrar el usuario"));
 
         return UserResponse.builder()
@@ -136,14 +136,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    @Auditable(accion = "AUTENTICACION_LOGIN", modulo = ModuloAuditoria.SEGURIDAD,
+    @Auditable(accion = "AUTENTICACION_LOGIN", modulo = AuditModule.SEGURIDAD,
             correoActor = "#request.correo")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public TokenResponse login(LoginRequest request) {
         String ip = obtenerIpActual();
@@ -170,14 +170,14 @@ public class AuthServiceImpl implements AuthService {
         // en vez de tres consultas separadas.
         String estadoLoginJson = usuarioRepository.resolverEstadoLogin(request.getCorreo());
         if (estadoLoginJson == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado");
         }
         JsonNode estado = parseEstadoLogin(estadoLoginJson);
         Long idUsuario = estado.get("idUsuario").asLong();
         String correoUsuario = estado.get("correo").asText();
         boolean dosFactoresHabilitado = estado.get("dosFactoresHabilitado").asBoolean();
 
-        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
+        User usuario = usuarioRepository.getReferenceById(idUsuario);
 
         if (dosFactoresHabilitado) {
             log.info("evento=LOGIN resultado=PENDIENTE_2FA correo={} ip={} sub={}", correoUsuario, ip, idUsuario);
@@ -227,14 +227,14 @@ public class AuthServiceImpl implements AuthService {
     // (preAuthTicket), no está disponible como parámetro para el SpEL de
     // correoActor; el evento queda con actor "anonimo", que es correcto: en
     // este punto el usuario aún no tiene una sesión completa.
-    @Auditable(accion = "AUTENTICACION_2FA_VERIFICAR", modulo = ModuloAuditoria.SEGURIDAD)
+    @Auditable(accion = "AUTENTICACION_2FA_VERIFICAR", modulo = AuditModule.SEGURIDAD)
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param preAuthTicket parametro requerido para la correcta ejecucion del procedimiento
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
@@ -248,7 +248,7 @@ public class AuthServiceImpl implements AuthService {
         // en una sola llamada en vez de findByCorreo + findByUsuarioIdUsuario.
         String estadoLoginJson = usuarioRepository.resolverEstadoLogin(datos.correo());
         if (estadoLoginJson == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado");
         }
         JsonNode estado = parseEstadoLogin(estadoLoginJson);
         Long idUsuario = estado.get("idUsuario").asLong();
@@ -258,7 +258,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no se encuentra habilitado para este usuario");
         }
 
-        Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
+        User usuario = usuarioRepository.getReferenceById(idUsuario);
 
         if (!twoFactorService.validarCodigoOBackup(datos.correo(), request.getCodigo())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
@@ -303,7 +303,7 @@ public class AuthServiceImpl implements AuthService {
      *
      * @param refreshToken parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -326,8 +326,8 @@ public class AuthServiceImpl implements AuthService {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido");
             }
 
-            Usuario usuario = usuarioRepository.findByCorreo(username)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+            User usuario = usuarioRepository.findByCorreo(username)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
             if (!Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta del usuario está inactiva");
@@ -373,14 +373,14 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     // tokenHeader y refreshToken son secretos: nunca en detalle. No hace falta
     // correoActor explícito, hay SecurityContext porque se llama autenticado.
-    @Auditable(accion = "AUTENTICACION_LOGOUT", modulo = ModuloAuditoria.SEGURIDAD)
+    @Auditable(accion = "AUTENTICACION_LOGOUT", modulo = AuditModule.SEGURIDAD)
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param tokenHeader parametro requerido para la correcta ejecucion del procedimiento
      * @param refreshToken parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
@@ -402,14 +402,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    @Auditable(accion = "CONTRASENA_SOLICITAR_RESET", modulo = ModuloAuditoria.SEGURIDAD,
+    @Auditable(accion = "CONTRASENA_SOLICITAR_RESET", modulo = AuditModule.SEGURIDAD,
             correoActor = "#request.correo")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
@@ -442,13 +442,13 @@ public class AuthServiceImpl implements AuthService {
     // request.getToken() y la nueva contraseña son secretos: jamás #request
     // completo en detalle. El usuario se resuelve dentro por el token, no hay
     // correo disponible como parámetro.
-    @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = ModuloAuditoria.SEGURIDAD)
+    @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = AuditModule.SEGURIDAD)
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
         // REQ-F-005: sp_restablecer_contrasena valida (con FOR UPDATE) que el
@@ -479,7 +479,7 @@ public class AuthServiceImpl implements AuthService {
      * sesiones); si falla, el usuario ya tiene su access token en la respuesta y
      * puede seguir operando con él con normalidad.
      */
-    private void registrarSesionMejorEsfuerzo(Usuario usuario, String jti, long expirationMs) {
+    private void registrarSesionMejorEsfuerzo(User usuario, String jti, long expirationMs) {
         try {
             registrarSesion(usuario, jti, expirationMs);
         } catch (Exception e) {
@@ -495,13 +495,13 @@ public class AuthServiceImpl implements AuthService {
      * usuario con un refresh token que el sistema rechazaría como "revocado o
      * expirado" en el siguiente intento, sin ninguna pista del motivo real.
      */
-    private void registrarSesionObligatoria(Usuario usuario, String jti, long expirationMs) {
+    private void registrarSesionObligatoria(User usuario, String jti, long expirationMs) {
         registrarSesion(usuario, jti, expirationMs);
     }
 
-    private void registrarSesion(Usuario usuario, String jti, long expirationMs) {
+    private void registrarSesion(User usuario, String jti, long expirationMs) {
         String ip = obtenerIpActual();
-        SesionUsuario sesion = SesionUsuario.builder()
+        UserSession sesion = UserSession.builder()
                 .usuario(usuario)
                 .jti(jti)
                 .direccionIp(ip)

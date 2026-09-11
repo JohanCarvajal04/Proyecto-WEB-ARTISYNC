@@ -5,13 +5,13 @@ import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionActualizarProgramacion;
 import uteq.edu.ec.artisync.dto.peticion.respaldo.PeticionCrearProgramacion;
 import uteq.edu.ec.artisync.dto.respuesta.respaldo.RespuestaProgramacion;
 import uteq.edu.ec.artisync.entity.respaldo.RespaldoProgramacion;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.respaldo.RespaldoProgramacionRepository;
 import uteq.edu.ec.artisync.service.respaldo.IRespaldoProgramacionServicio;
 
@@ -24,7 +24,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
 
     private final RespaldoProgramacionRepository programacionRepository;
 
-    @Auditable(accion = "RESPALDO_PROGRAMACION_CREAR", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "RESPALDO_PROGRAMACION_CREAR", modulo = AuditModule.SISTEMA,
             entidad = "respaldo_programaciones", idEntidad = "#resultado.idProgramacion",
             detalle = "{nombre: #peticion.nombre, tipoRespaldo: #peticion.tipoRespaldo}")
     @Override
@@ -35,7 +35,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @param creadoPor parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaProgramacion crear(PeticionCrearProgramacion peticion, String creadoPor) {
         LocalDateTime proximaEjecucion = calcularProximaEjecucion(peticion.getExpresionCron());
@@ -56,7 +56,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
         return aRespuesta(programacionRepository.save(programacion));
     }
 
-    @Auditable(accion = "RESPALDO_PROGRAMACION_ACTUALIZAR", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "RESPALDO_PROGRAMACION_ACTUALIZAR", modulo = AuditModule.SISTEMA,
             entidad = "respaldo_programaciones", idEntidad = "#idProgramacion",
             detalle = "{nombre: #peticion.nombre, tipoRespaldo: #peticion.tipoRespaldo}")
     @Override
@@ -67,7 +67,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
      * @param idProgramacion identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaProgramacion actualizar(Long idProgramacion, PeticionActualizarProgramacion peticion) {
         RespaldoProgramacion programacion = obtenerOFallar(idProgramacion);
@@ -82,7 +82,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
         return aRespuesta(programacionRepository.save(programacion));
     }
 
-    @Auditable(accion = "RESPALDO_PROGRAMACION_CAMBIAR_ESTADO", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "RESPALDO_PROGRAMACION_CAMBIAR_ESTADO", modulo = AuditModule.SISTEMA,
             entidad = "respaldo_programaciones", idEntidad = "#idProgramacion", detalle = "{activo: #activo}")
     @Override
     @Transactional
@@ -92,7 +92,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
      * @param idProgramacion identificador unico que referencia de manera univoca al registro
      * @param activo parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaProgramacion cambiarEstado(Long idProgramacion, boolean activo) {
         RespaldoProgramacion programacion = obtenerOFallar(idProgramacion);
@@ -101,7 +101,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
         return aRespuesta(programacionRepository.save(programacion));
     }
 
-    @Auditable(accion = "RESPALDO_PROGRAMACION_ELIMINAR", modulo = ModuloAuditoria.SISTEMA,
+    @Auditable(accion = "RESPALDO_PROGRAMACION_ELIMINAR", modulo = AuditModule.SISTEMA,
             entidad = "respaldo_programaciones", idEntidad = "#idProgramacion")
     @Override
     @Transactional
@@ -109,7 +109,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idProgramacion identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminar(Long idProgramacion) {
         RespaldoProgramacion programacion = obtenerOFallar(idProgramacion);
@@ -122,7 +122,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaProgramacion> listar() {
         return programacionRepository.findAll().stream().map(this::aRespuesta).toList();
@@ -135,7 +135,7 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
      *
      * @param idProgramacion identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaProgramacion obtenerPorId(Long idProgramacion) {
         return aRespuesta(obtenerOFallar(idProgramacion));
@@ -145,17 +145,17 @@ public class RespaldoProgramacionServicioImpl implements IRespaldoProgramacionSe
         try {
             LocalDateTime siguiente = CronExpression.parse(expresionCron).next(LocalDateTime.now());
             if (siguiente == null) {
-                throw new ExcepcionReglaNegocio("La expresión cron no produce ninguna ejecución futura.");
+                throw new BusinessRuleException("La expresión cron no produce ninguna ejecución futura.");
             }
             return siguiente;
         } catch (IllegalArgumentException e) {
-            throw new ExcepcionReglaNegocio("Expresión cron inválida: " + e.getMessage());
+            throw new BusinessRuleException("Expresión cron inválida: " + e.getMessage());
         }
     }
 
     private RespaldoProgramacion obtenerOFallar(Long idProgramacion) {
         return programacionRepository.findById(idProgramacion)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Programación de respaldo no encontrada con ID: " + idProgramacion));
+                .orElseThrow(() -> new ResourceNotFoundException("Programación de respaldo no encontrada con ID: " + idProgramacion));
     }
 
     private RespuestaProgramacion aRespuesta(RespaldoProgramacion programacion) {

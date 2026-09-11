@@ -23,8 +23,8 @@ public interface SorteoService {
      * @param idUsuario id del usuario autenticado, dueño del perfil de creador
      * @param peticion  título, fechas, cantidad de ganadores y premios del sorteo
      * @return el sorteo recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no tiene un perfil de creador activo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la fecha de cierre no es posterior a la de inicio o la cantidad de premios no coincide con la cantidad de ganadores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador activo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la fecha de cierre no es posterior a la de inicio o la cantidad de premios no coincide con la cantidad de ganadores
      */
     RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion);
 
@@ -34,7 +34,7 @@ public interface SorteoService {
      * @param idSorteo        id del sorteo
      * @param idUsuarioActual id del usuario que consulta, o {@code null} si es anónimo
      * @return el detalle del sorteo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
     RespuestaSorteo obtenerSorteo(Long idSorteo, Long idUsuarioActual);
 
@@ -46,8 +46,8 @@ public interface SorteoService {
      * @param idUsuario id del usuario autenticado, debe ser el creador del sorteo
      * @param peticion  campos a modificar; los nulos se dejan sin cambios
      * @return el sorteo ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe o el usuario no tiene perfil de creador
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si se intenta modificar cantidad de ganadores, premios o fecha de cierre con participantes ya inscritos, o la nueva fecha de cierre es anterior a la de inicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no tiene perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta modificar cantidad de ganadores, premios o fecha de cierre con participantes ya inscritos, o la nueva fecha de cierre es anterior a la de inicio
      */
     RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion);
 
@@ -57,8 +57,8 @@ public interface SorteoService {
      * @param idSorteo  id del sorteo a eliminar
      * @param idUsuario id del usuario autenticado, debe ser el creador del sorteo
      * @return mensaje de confirmación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe o el usuario no tiene perfil de creador
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el sorteo ya tiene participantes inscritos
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no tiene perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya tiene participantes inscritos
      */
     RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario);
 
@@ -87,9 +87,9 @@ public interface SorteoService {
      * @param idSorteo  id del sorteo
      * @param idUsuario id del usuario que se inscribe
      * @return la participación recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el usuario ya está inscrito en el sorteo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el sorteo no está activo, está fuera del rango de fechas o exige seguir al creador y el usuario no lo sigue
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito en el sorteo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no está activo, está fuera del rango de fechas o exige seguir al creador y el usuario no lo sigue
      */
     RespuestaParticipante participar(Long idSorteo, Long idUsuario);
 
@@ -99,8 +99,8 @@ public interface SorteoService {
      * @param idSorteo  id del sorteo
      * @param idUsuario id del usuario cuya inscripción se cancela
      * @return mensaje de confirmación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe o el usuario no está inscrito
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el sorteo ya finalizó
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no está inscrito
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya finalizó
      */
     RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario);
 
@@ -109,7 +109,7 @@ public interface SorteoService {
      *
      * @param idSorteo id del sorteo
      * @return los participantes inscritos en el sorteo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
     List<RespuestaParticipante> listarParticipantes(Long idSorteo);
 
@@ -118,7 +118,7 @@ public interface SorteoService {
      *
      * @param idSorteo id del sorteo
      * @return los ganadores del sorteo, con su premio asignado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
     List<RespuestaGanador> listarGanadores(Long idSorteo);
 }

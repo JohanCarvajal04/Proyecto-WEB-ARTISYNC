@@ -11,11 +11,11 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearCertificadoIa;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaCertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,19 +31,19 @@ import static org.mockito.Mockito.verify;
 class CertificadoIaServicioImplTest {
 
     @Mock private CertificadoIaRepository certificadoRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private EstadoVerificacionRepository estadoRepository;
 
     @InjectMocks
     private CertificadoIaServicioImpl certificadoIaServicio;
 
-    private Usuario usuario;
+    private User usuario;
     private EstadoVerificacion estado;
     private CertificadoIa certificado;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder().idUsuario(1L).build();
+        usuario = User.builder().idUsuario(1L).build();
         estado = EstadoVerificacion.builder().idEstadoVerificacion(2L).nombreEstado("Pendiente").build();
         certificado = CertificadoIa.builder().idCertificado(10L).usuario(usuario).estadoVerificacion(estado)
                 .urlDocumentoS3("s3://doc.pdf").puntajeConfianzaIa(new BigDecimal("0.90")).build();
@@ -70,7 +70,7 @@ class CertificadoIaServicioImplTest {
         given(usuarioRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> certificadoIaServicio.emitirCertificado(peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -81,7 +81,7 @@ class CertificadoIaServicioImplTest {
         given(estadoRepository.findById(2L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> certificadoIaServicio.emitirCertificado(peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -98,7 +98,7 @@ class CertificadoIaServicioImplTest {
         given(certificadoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> certificadoIaServicio.obtenerCertificadoPorId(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -133,6 +133,6 @@ class CertificadoIaServicioImplTest {
         given(certificadoRepository.existsById(10L)).willReturn(false);
 
         assertThatThrownBy(() -> certificadoIaServicio.eliminarCertificado(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

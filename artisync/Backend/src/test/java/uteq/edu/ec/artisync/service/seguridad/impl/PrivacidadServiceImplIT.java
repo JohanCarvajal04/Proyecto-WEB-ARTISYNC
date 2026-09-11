@@ -14,8 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verify;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("postgres-it")
-@Import({PrivacidadServiceImpl.class, PrivacidadServiceImplIT.Colaboradores.class})
+@Import({PrivacyServiceImpl.class, PrivacidadServiceImplIT.Colaboradores.class})
 class PrivacidadServiceImplIT {
 
     @TestConfiguration
@@ -76,7 +76,7 @@ class PrivacidadServiceImplIT {
     private static final long ID_CREADOR = 9303L;
 
     @Autowired
-    private PrivacidadService privacidadService;
+    private PrivacyService privacidadService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -219,7 +219,7 @@ class PrivacidadServiceImplIT {
         // sessionRevocationService esta mockeado (no participa en las
         // consultas JPA que se ejercitan aqui): el efecto real de desactivar
         // la cuenta lo cubre SessionRevocationServiceTest por separado; aqui
-        // solo se verifica que PrivacidadServiceImpl lo invoca correctamente.
+        // solo se verifica que PrivacyServiceImpl lo invoca correctamente.
         verify(sessionRevocationService).cambiarEstadoCuenta(ID_CREADOR, false);
 
         String correoPaypal = jdbcTemplate.queryForObject(
@@ -236,7 +236,7 @@ class PrivacidadServiceImplIT {
         sembrarDatos(false, false);
 
         assertThatThrownBy(() -> privacidadService.anonimizarUsuarioAdmin(ID_CREADOR, ID_ADMIN))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("pedido en curso");
 
         String correo = jdbcTemplate.queryForObject(

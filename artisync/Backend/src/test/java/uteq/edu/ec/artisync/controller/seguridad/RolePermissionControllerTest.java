@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.seguridad.request.CreateRoleRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateRoleRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.seguridad.response.RolResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.RoleResponse;
 import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 
 import java.util.List;
@@ -36,10 +36,10 @@ class RolePermissionControllerTest {
     @Test
     void getAllRoles_Success() {
         when(service.getAllRoles()).thenReturn(List.of(
-                RolResponse.builder().idRol(1L).nombreRol("ADMIN").build()
+                RoleResponse.builder().idRol(1L).nombreRol("ADMIN").build()
         ));
 
-        ResponseEntity<List<RolResponse>> response = controller.getAllRoles();
+        ResponseEntity<List<RoleResponse>> response = controller.getAllRoles();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
@@ -50,10 +50,10 @@ class RolePermissionControllerTest {
     void createRole_Success() {
         CreateRoleRequest req = new CreateRoleRequest("GESTOR", "Gestor general", List.of());
         when(service.createRole(any())).thenReturn(
-                RolResponse.builder().idRol(5L).nombreRol("GESTOR").descripcionRol("Gestor general").build()
+                RoleResponse.builder().idRol(5L).nombreRol("GESTOR").descripcionRol("Gestor general").build()
         );
 
-        ResponseEntity<RolResponse> response = controller.createRole(req);
+        ResponseEntity<RoleResponse> response = controller.createRole(req);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals("GESTOR", response.getBody().getNombreRol());
@@ -63,10 +63,10 @@ class RolePermissionControllerTest {
     void updateRole_Success() {
         UpdateRoleRequest req = new UpdateRoleRequest("Nueva desc");
         when(service.updateRole(eq(5L), any())).thenReturn(
-                RolResponse.builder().idRol(5L).nombreRol("GESTOR").descripcionRol("Nueva desc").build()
+                RoleResponse.builder().idRol(5L).nombreRol("GESTOR").descripcionRol("Nueva desc").build()
         );
 
-        ResponseEntity<RolResponse> response = controller.updateRole(5L, req);
+        ResponseEntity<RoleResponse> response = controller.updateRole(5L, req);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("Nueva desc", response.getBody().getDescripcionRol());
@@ -77,7 +77,7 @@ class RolePermissionControllerTest {
         ResponseEntity<RespuestaMensaje> response = controller.deleteRole(5L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Rol eliminado exitosamente", response.getBody().getMensaje());
+        assertEquals("Role eliminado exitosamente", response.getBody().getMensaje());
         verify(service).deleteRole(5L);
     }
 }

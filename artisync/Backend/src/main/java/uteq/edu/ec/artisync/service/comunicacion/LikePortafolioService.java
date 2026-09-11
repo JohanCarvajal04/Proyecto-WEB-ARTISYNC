@@ -16,8 +16,8 @@ public interface LikePortafolioService {
      * @param idItemPortafolio id del ítem de portafolio
      * @param idUsuario        id del usuario que da like
      * @return el estado de likes resultante
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el usuario ya le había dado like
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el ítem de portafolio o el usuario no existen
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya le había dado like
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio o el usuario no existen
      */
     RespuestaEstadoLike darLike(Long idItemPortafolio, Long idUsuario);
 
@@ -27,7 +27,7 @@ public interface LikePortafolioService {
      * @param idItemPortafolio id del ítem de portafolio
      * @param idUsuario        id del usuario que quita el like
      * @return el estado de likes resultante
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no le había dado like a ese ítem
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no le había dado like a ese ítem
      */
     RespuestaEstadoLike quitarLike(Long idItemPortafolio, Long idUsuario);
 
@@ -38,7 +38,7 @@ public interface LikePortafolioService {
      * @param idItemPortafolio id del ítem de portafolio
      * @param idUsuario        id del usuario consultante, o {@code null} si no hay sesión
      * @return el estado de likes del ítem
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el ítem de portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio no existe
      */
     RespuestaEstadoLike obtenerEstado(Long idItemPortafolio, Long idUsuario);
 }

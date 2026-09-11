@@ -22,7 +22,7 @@ public interface IReporteFinancieroServicio {
      * @param formato           formato del documento a generar
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el detalle filtrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el detalle supera el tope de filas del formato pedido
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el detalle supera el tope de filas del formato pedido
      */
     DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante);
 

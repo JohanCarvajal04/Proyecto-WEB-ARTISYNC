@@ -19,8 +19,8 @@ import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 
@@ -47,8 +47,8 @@ class PagoGarantiaAuditoriaServicioImplTest {
 
     @BeforeEach
     void setUp() {
-        Usuario cliente = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Cliente").correo("ana@test.com").build();
-        Usuario creador = Usuario.builder().idUsuario(2L).nombres("Beto").apellidos("Creador").build();
+        User cliente = User.builder().idUsuario(1L).nombres("Ana").apellidos("Cliente").correo("ana@test.com").build();
+        User creador = User.builder().idUsuario(2L).nombres("Beto").apellidos("Creador").build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(creador).build();
         Servicio servicioEntity = Servicio.builder().idServicio(20L).perfil(perfil).tituloServicio("Ilustración").build();
         Pedido pedido = Pedido.builder().idPedido(30L).usuarioCliente(cliente).servicio(servicioEntity).build();
@@ -95,7 +95,7 @@ class PagoGarantiaAuditoriaServicioImplTest {
         given(pagoGarantiaRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicio.obtenerDetalle(999L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

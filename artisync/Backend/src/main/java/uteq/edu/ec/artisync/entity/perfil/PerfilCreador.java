@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.perfil;
 
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,7 +11,7 @@ import lombok.*;
  * 
  * Ciclo de vida: Mantenida activamente por el usuario. Evoluciona con su reputacion y metricas acumuladas.
  * 
- * Relaciones principales: Extension 1:1 de la identidad del Usuario. Actua como puerta de entrada a sus Servicios y Portafolio.
+ * Relaciones principales: Extension 1:1 de la identidad del User. Actua como puerta de entrada a sus Servicios y Portafolio.
  */
 @Entity
 @Table(name = "perfiles_creadores")
@@ -30,7 +30,7 @@ public class PerfilCreador {
     @NotNull(message = "El usuario es obligatorio")
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false, unique = true)
-    private Usuario usuario;
+    private User usuario;
 
     @Size(max = 500, message = "La biografia no puede superar los 500 caracteres")
     @Column(name = "biografia", columnDefinition = "TEXT")

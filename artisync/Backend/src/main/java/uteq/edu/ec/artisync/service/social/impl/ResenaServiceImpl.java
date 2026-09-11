@@ -7,15 +7,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.social.ResenaServicio;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.social.ResenaServicioRepository;
@@ -39,7 +39,7 @@ public class ResenaServiceImpl implements ResenaService {
 
     @Override
     @Transactional
-    @Auditable(accion = "RESENA_CREAR", modulo = ModuloAuditoria.SOCIAL,
+    @Auditable(accion = "RESENA_CREAR", modulo = AuditModule.SOCIAL,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{calificacionEstrellas: #peticion.calificacionEstrellas}")
     /**
@@ -49,11 +49,11 @@ public class ResenaServiceImpl implements ResenaService {
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado: " + idPedido));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado: " + idPedido));
 
         // Validar que es el cliente del pedido
         if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {
@@ -63,17 +63,17 @@ public class ResenaServiceImpl implements ResenaService {
 
         // Validar que el entregable fue liberado (post-entrega)
         EntregableFinal entregable = entregableFinalRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionReglaNegocio(
+                .orElseThrow(() -> new BusinessRuleException(
                         "Solo puedes dejar una reseña después de recibir el entregable"));
 
         if (!Boolean.TRUE.equals(entregable.getEstaLiberado())) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Solo puedes dejar una reseña después de recibir el entregable");
         }
 
         // Validar que no existe ya una reseña para este pedido (UNIQUE en BD)
         if (resenaServicioRepository.existsByPedidoIdPedido(idPedido)) {
-            throw new ExcepcionRecursoDuplicado("Ya has dejado una reseña para este pedido");
+            throw new DuplicateResourceException("Ya has dejado una reseña para este pedido");
         }
 
         ResenaServicio resena = ResenaServicio.builder()
@@ -95,7 +95,7 @@ public class ResenaServiceImpl implements ResenaService {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaResena obtenerMiResena(Long idPedido, Long idCliente) {
         return resenaServicioRepository.findByPedidoIdPedido(idPedido)
@@ -106,7 +106,7 @@ public class ResenaServiceImpl implements ResenaService {
 
     @Override
     @Transactional
-    @Auditable(accion = "RESENA_EDITAR", modulo = ModuloAuditoria.SOCIAL,
+    @Auditable(accion = "RESENA_EDITAR", modulo = AuditModule.SOCIAL,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{calificacionEstrellas: #peticion.calificacionEstrellas}")
     /**
@@ -116,11 +116,11 @@ public class ResenaServiceImpl implements ResenaService {
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @param idCliente identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaResena actualizarResena(Long idPedido, PeticionCrearResena peticion, Long idCliente) {
         ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Este pedido no tiene una reseña"));
+                .orElseThrow(() -> new ResourceNotFoundException("Este pedido no tiene una reseña"));
 
         if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -136,18 +136,18 @@ public class ResenaServiceImpl implements ResenaService {
 
     @Override
     @Transactional
-    @Auditable(accion = "RESENA_ELIMINAR", modulo = ModuloAuditoria.SOCIAL,
+    @Auditable(accion = "RESENA_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "pedidos", idEntidad = "#idPedido")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idCliente identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarResena(Long idPedido, Long idCliente) {
         ResenaServicio resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Este pedido no tiene una reseña"));
+                .orElseThrow(() -> new ResourceNotFoundException("Este pedido no tiene una reseña"));
 
         if (!resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -165,7 +165,7 @@ public class ResenaServiceImpl implements ResenaService {
      *
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaResena> listarResenasPorCreador(Long idPerfilCreador) {
         return resenaServicioRepository.findByCreadorIdPerfil(idPerfilCreador)
@@ -179,7 +179,7 @@ public class ResenaServiceImpl implements ResenaService {
      *
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Double calcularPromedioPorCreador(Long idPerfilCreador) {
         Double promedio = resenaServicioRepository.calcularPromedioByCreadorIdPerfil(idPerfilCreador);

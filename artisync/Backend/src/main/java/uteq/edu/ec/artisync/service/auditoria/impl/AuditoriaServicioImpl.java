@@ -11,14 +11,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.DatosEventoAuditoria;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditEventData;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoriaResumen;
 import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.auditoria.EventoAuditoriaRepository;
 import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
@@ -53,9 +53,9 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
      *
      * @param datos parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void registrar(DatosEventoAuditoria datos) {
+    public void registrar(AuditEventData datos) {
         EventoAuditoria evento = EventoAuditoria.builder()
                 .fechaEvento(datos.fechaEvento())
                 .idUsuarioActor(datos.idUsuarioActor())
@@ -84,7 +84,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @param filtro criterios de busqueda y filtrado dinamico a aplicar
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public PagedResponse<RespuestaEventoAuditoriaResumen> listar(FiltroAuditoria filtro, Pageable pageable) {
         Pageable seguro = paginaSegura(pageable);
@@ -99,11 +99,11 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      *
      * @param idEvento identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEventoAuditoria obtenerPorId(Long idEvento) {
         EventoAuditoria evento = eventoAuditoriaRepository.findById(idEvento)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe el evento de auditoría con id " + idEvento));
         return toDetalle(evento);
     }
@@ -114,7 +114,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
     // formato pedido en el detalle.
     @Override
     @Transactional(readOnly = true)
-    @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, detalle = "{formato: #formato, page: #page, size: #size}")
+    @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = AuditModule.SEGURIDAD, detalle = "{formato: #formato, page: #page, size: #size}")
     /**
      * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
      *
@@ -124,7 +124,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @param size parametro requerido para la correcta ejecucion del procedimiento
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
         Page<EventoAuditoria> pagina;
@@ -147,7 +147,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
             pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), primeraPaginaConTope);
 
             if (pagina.getTotalElements() > formato.topeFilas()) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "El filtro actual devuelve " + pagina.getTotalElements() + " eventos, más de los "
                                 + formato.topeFilas() + " que admite una exportación en " + formato
                                 + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
@@ -184,7 +184,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * @param formato parametro requerido para la correcta ejecucion del procedimiento
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public DocumentoGenerado exportar(FiltroAuditoria filtro, FormatoReporte formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
@@ -222,7 +222,7 @@ public class AuditoriaServicioImpl implements IAuditoriaServicio {
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<String> listarAccionesDisponibles() {
         return eventoAuditoriaRepository.listarAccionesDistintas();

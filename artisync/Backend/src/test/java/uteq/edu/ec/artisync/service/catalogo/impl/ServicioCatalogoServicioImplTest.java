@@ -25,9 +25,9 @@ import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicio;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicioResumido;
 import uteq.edu.ec.artisync.entity.catalogo.*;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.*;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
@@ -47,7 +47,7 @@ import static org.mockito.Mockito.*;
  * Pruebas unitarias de {@link ServicioCatalogoServicioImpl}: alta, edición,
  * borrado y atributos dinámicos del catálogo, con la autorización de
  * propiedad-o-admin verificada explícitamente porque decide si se lanza
- * {@link ExcepcionReglaNegocio}.
+ * {@link BusinessRuleException}.
  */
 @ExtendWith(MockitoExtension.class)
 class ServicioCatalogoServicioImplTest {
@@ -65,7 +65,7 @@ class ServicioCatalogoServicioImplTest {
     @InjectMocks
     private ServicioCatalogoServicioImpl servicioCatalogoServicio;
 
-    private Usuario usuario;
+    private User usuario;
     private PerfilCreador perfil;
     private Categoria categoria;
     private Subcategoria subcategoria;
@@ -73,7 +73,7 @@ class ServicioCatalogoServicioImplTest {
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").correo("ana@test.com").build();
+        usuario = User.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").correo("ana@test.com").build();
         perfil = PerfilCreador.builder().idPerfil(1L).usuario(usuario).build();
         categoria = Categoria.builder().idCategoria(1L).nombreCategoria("Arte").build();
         subcategoria = Subcategoria.builder().idSubcategoria(1L).categoria(categoria).nombreSubcategoria("Ilustracion").build();
@@ -134,7 +134,7 @@ class ServicioCatalogoServicioImplTest {
         PeticionCrearServicio peticion = PeticionCrearServicio.builder().precioBase(new BigDecimal("0.00")).build();
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verifyNoInteractions(perfilRepository);
     }
 
@@ -145,7 +145,7 @@ class ServicioCatalogoServicioImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -158,7 +158,7 @@ class ServicioCatalogoServicioImplTest {
         given(perfilRepository.findById(2L)).willReturn(Optional.of(perfilSinUsuario));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
     }
 
@@ -196,7 +196,7 @@ class ServicioCatalogoServicioImplTest {
         given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
         verifyNoInteractions(subcategoriaRepository);
         verify(servicioRepository, never()).save(any());
@@ -211,7 +211,7 @@ class ServicioCatalogoServicioImplTest {
         given(subcategoriaRepository.findAllById(List.of(99L))).willReturn(List.of());
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -223,7 +223,7 @@ class ServicioCatalogoServicioImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -330,7 +330,7 @@ class ServicioCatalogoServicioImplTest {
         given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
         assertThat(servicio.getEstadoPublicacion()).isEqualTo("PAUSADO");
         verify(servicioRepository, never()).save(any());
@@ -385,7 +385,7 @@ class ServicioCatalogoServicioImplTest {
         PeticionActualizarServicio peticion = PeticionActualizarServicio.builder().precioBase(null).build();
 
         assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -395,7 +395,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -427,7 +427,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(servicioRepository, never()).save(any());
     }
 
@@ -496,7 +496,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicioCatalogoServicio.obtenerServicioPorId(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -548,7 +548,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.eliminarServicio(10L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(servicioRepository, never()).delete(any(Servicio.class));
     }
 
@@ -609,7 +609,7 @@ class ServicioCatalogoServicioImplTest {
         given(perfilRepository.existsById(1L)).willReturn(false);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.listarServiciosPorCreador(1L, null))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // ---------- buscarCatalogoServicios ----------
@@ -701,7 +701,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioRepository.existsById(10L)).willReturn(false);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.listarAtributosPorServicio(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -752,7 +752,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioAtributoRepository.countByServicioIdServicio(10L)).willReturn(10L);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.agregarAtributo(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -769,7 +769,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioAtributoRepository.findByServicioIdServicioAndAtributoIdAtributo(10L, 1L)).willReturn(Optional.of(existente));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.agregarAtributo(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -800,7 +800,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.of(sa));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.actualizarAtributo(10L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -811,7 +811,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicioCatalogoServicio.actualizarAtributo(10L, 1L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -839,7 +839,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.of(sa));
 
         assertThatThrownBy(() -> servicioCatalogoServicio.eliminarAtributo(10L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(servicioAtributoRepository, never()).delete(any());
     }
 
@@ -866,7 +866,7 @@ class ServicioCatalogoServicioImplTest {
         given(servicioSubcategoriaRepository.countByServicioIdServicio(10L)).willReturn(1L);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.quitarSubcategoria(10L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(servicioSubcategoriaRepository, never()).deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(any(), any());
     }
 

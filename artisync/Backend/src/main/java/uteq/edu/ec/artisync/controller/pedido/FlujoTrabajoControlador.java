@@ -37,9 +37,9 @@ public class FlujoTrabajoControlador {
      * @param peticion datos del flujo de trabajo a crear, incluyendo sus etapas
      * @param userDetails usuario autenticado propietario del flujo
      * @return el flujo de trabajo creado, con estado 201
-     * @throws ExcepcionRecursoDuplicado si ya existe un flujo con el mismo nombre
-     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
-     * @throws ExcepcionReglaNegocio si las etapas indicadas tienen nombres o números de orden repetidos
+     * @throws DuplicateResourceException si ya existe un flujo con el mismo nombre
+     * @throws ResourceNotFoundException si el usuario no existe
+     * @throws BusinessRuleException si las etapas indicadas tienen nombres o números de orden repetidos
      */
     @PostMapping
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
@@ -71,7 +71,7 @@ public class FlujoTrabajoControlador {
      * @param id identificador del flujo de trabajo
      * @param userDetails usuario autenticado que consulta el flujo
      * @return el flujo de trabajo solicitado
-     * @throws ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el usuario
+     * @throws ResourceNotFoundException si el flujo no existe o no es accesible para el usuario
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
@@ -89,8 +89,8 @@ public class FlujoTrabajoControlador {
      * @param peticion datos actualizados del flujo de trabajo
      * @param userDetails usuario autenticado que solicita la actualización
      * @return el flujo de trabajo actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el usuario
-     * @throws ExcepcionRecursoDuplicado si ya existe otro flujo con el mismo nombre
+     * @throws ResourceNotFoundException si el flujo no existe o no es accesible para el usuario
+     * @throws DuplicateResourceException si ya existe otro flujo con el mismo nombre
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
@@ -109,9 +109,9 @@ public class FlujoTrabajoControlador {
      * @param peticion datos de la etapa a agregar
      * @param userDetails usuario autenticado que solicita agregar la etapa
      * @return el flujo de trabajo actualizado, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el usuario
-     * @throws ExcepcionRecursoDuplicado si ya existe una etapa con el mismo nombre en el flujo
-     * @throws ExcepcionReglaNegocio si el número de orden de la etapa ya está en uso
+     * @throws ResourceNotFoundException si el flujo no existe o no es accesible para el usuario
+     * @throws DuplicateResourceException si ya existe una etapa con el mismo nombre en el flujo
+     * @throws BusinessRuleException si el número de orden de la etapa ya está en uso
      */
     @PostMapping("/{id}/etapas")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
@@ -132,8 +132,8 @@ public class FlujoTrabajoControlador {
      * @param peticion datos actualizados de la etapa
      * @param userDetails usuario autenticado que solicita la actualización
      * @return el flujo de trabajo actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el flujo o la configuración de etapa no existen
-     * @throws ExcepcionReglaNegocio si la etapa no pertenece al flujo especificado
+     * @throws ResourceNotFoundException si el flujo o la configuración de etapa no existen
+     * @throws BusinessRuleException si la etapa no pertenece al flujo especificado
      */
     @PutMapping("/{id}/etapas/{etapaId}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
@@ -153,8 +153,8 @@ public class FlujoTrabajoControlador {
      * @param peticion identificadores de las dos etapas a intercambiar
      * @param userDetails usuario autenticado que solicita el intercambio
      * @return el flujo de trabajo actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el flujo o alguna de las configuraciones de etapa no existen
-     * @throws ExcepcionReglaNegocio si se intenta intercambiar una etapa consigo misma, o las etapas no pertenecen al flujo
+     * @throws ResourceNotFoundException si el flujo o alguna de las configuraciones de etapa no existen
+     * @throws BusinessRuleException si se intenta intercambiar una etapa consigo misma, o las etapas no pertenecen al flujo
      */
     @PutMapping("/{id}/etapas/reordenar")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
@@ -173,8 +173,8 @@ public class FlujoTrabajoControlador {
      * @param etapaId identificador de la configuración de etapa a eliminar
      * @param userDetails usuario autenticado que solicita la eliminación
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el flujo o la configuración de etapa no existen
-     * @throws ExcepcionReglaNegocio si la etapa no pertenece al flujo o hay pedidos actualmente detenidos en ella
+     * @throws ResourceNotFoundException si el flujo o la configuración de etapa no existen
+     * @throws BusinessRuleException si la etapa no pertenece al flujo o hay pedidos actualmente detenidos en ella
      */
     @DeleteMapping("/{id}/etapas/{etapaId}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")

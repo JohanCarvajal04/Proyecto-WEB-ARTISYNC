@@ -14,9 +14,9 @@ public interface IPortafolioServicio {
      * @param peticion         id del perfil y datos iniciales del portafolio
      * @param idUsuarioLogueado id del usuario autenticado, debe ser dueño del perfil indicado
      * @return el portafolio recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil indicado no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el perfil ya tiene un portafolio
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no tiene permiso sobre el perfil indicado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil indicado no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el perfil ya tiene un portafolio
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene permiso sobre el perfil indicado
      */
     RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion, Long idUsuarioLogueado);
 
@@ -25,7 +25,7 @@ public interface IPortafolioServicio {
      *
      * @param idPortafolio id del portafolio
      * @return el portafolio encontrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio);
 
@@ -34,7 +34,7 @@ public interface IPortafolioServicio {
      *
      * @param idPerfil id del perfil de creador
      * @return el portafolio del perfil
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no tiene portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no tiene portafolio
      */
     RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil);
 
@@ -52,8 +52,8 @@ public interface IPortafolioServicio {
      * @param peticion          campos a modificar
      * @param idUsuarioLogueado id del usuario autenticado, debe ser el dueño del portafolio
      * @return el portafolio ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el portafolio no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el dueño del portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio
      */
     RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion, Long idUsuarioLogueado);
 
@@ -62,7 +62,7 @@ public interface IPortafolioServicio {
      *
      * @param idPortafolio id del portafolio visitado
      * @param idUsuario    id del usuario visitante, o {@code null} si no hay sesión
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     void incrementarVisitas(Long idPortafolio, Long idUsuario);
 
@@ -70,7 +70,7 @@ public interface IPortafolioServicio {
      * Elimina un portafolio.
      *
      * @param idPortafolio id del portafolio a eliminar
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     void eliminarPortafolio(Long idPortafolio);
 }

@@ -41,7 +41,7 @@ public class SorteoControlador {
      * @param peticion datos del sorteo a crear
      * @param userDetails usuario autenticado que crea el sorteo
      * @return el sorteo creado, con estado 201
-     * @throws ExcepcionReglaNegocio si los datos del sorteo violan alguna regla de negocio
+     * @throws BusinessRuleException si los datos del sorteo violan alguna regla de negocio
      */
     @Operation(summary = "Crear un nuevo sorteo (CREADOR)")
     @PostMapping("/api/v1/sorteos")
@@ -60,7 +60,7 @@ public class SorteoControlador {
      * @param idSorteo identificador del sorteo
      * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
      * @return el detalle del sorteo solicitado
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ResourceNotFoundException si el sorteo no existe
      */
     @Operation(summary = "Obtener detalle de un sorteo (público)")
     @GetMapping("/api/v1/sorteos/{idSorteo}")
@@ -78,8 +78,8 @@ public class SorteoControlador {
      * @param peticion datos actualizados del sorteo
      * @param userDetails usuario autenticado que solicita la edición
      * @return el sorteo actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
-     * @throws ExcepcionReglaNegocio si el sorteo no puede editarse en su estado actual
+     * @throws ResourceNotFoundException si el sorteo no existe
+     * @throws BusinessRuleException si el sorteo no puede editarse en su estado actual
      */
     @Operation(summary = "Editar un sorteo (CREADOR, con restricciones)")
     @PutMapping("/api/v1/sorteos/{idSorteo}")
@@ -98,8 +98,8 @@ public class SorteoControlador {
      * @param idSorteo identificador del sorteo a eliminar
      * @param userDetails usuario autenticado que solicita la eliminación
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
-     * @throws ExcepcionReglaNegocio si el sorteo ya tiene participantes
+     * @throws ResourceNotFoundException si el sorteo no existe
+     * @throws BusinessRuleException si el sorteo ya tiene participantes
      */
     @Operation(summary = "Eliminar un sorteo sin participantes (CREADOR)")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}")
@@ -150,9 +150,9 @@ public class SorteoControlador {
      * @param idSorteo identificador del sorteo
      * @param userDetails usuario autenticado que se inscribe
      * @return la participación creada, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
-     * @throws ExcepcionReglaNegocio si el sorteo no está activo, aún no ha comenzado o el periodo de inscripción ha finalizado
-     * @throws ExcepcionRecursoDuplicado si el usuario ya está inscrito en el sorteo
+     * @throws ResourceNotFoundException si el sorteo no existe
+     * @throws BusinessRuleException si el sorteo no está activo, aún no ha comenzado o el periodo de inscripción ha finalizado
+     * @throws DuplicateResourceException si el usuario ya está inscrito en el sorteo
      */
     @Operation(summary = "Inscribirse en un sorteo")
     @PostMapping("/api/v1/sorteos/{idSorteo}/participar")
@@ -171,8 +171,8 @@ public class SorteoControlador {
      * @param idSorteo identificador del sorteo
      * @param userDetails usuario autenticado que cancela su inscripción
      * @return mensaje de confirmación de la cancelación
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
-     * @throws ExcepcionReglaNegocio si el sorteo ya ha finalizado
+     * @throws ResourceNotFoundException si el sorteo no existe
+     * @throws BusinessRuleException si el sorteo ya ha finalizado
      */
     @Operation(summary = "Cancelar inscripción en un sorteo")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}/participar")
@@ -189,7 +189,7 @@ public class SorteoControlador {
      *
      * @param idSorteo identificador del sorteo
      * @return listado de participantes del sorteo
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ResourceNotFoundException si el sorteo no existe
      */
     @Operation(summary = "Listar participantes de un sorteo")
     @GetMapping("/api/v1/sorteos/{idSorteo}/participantes")
@@ -203,7 +203,7 @@ public class SorteoControlador {
      *
      * @param idSorteo identificador del sorteo
      * @return listado de ganadores del sorteo
-     * @throws ExcepcionRecursoNoEncontrado si el sorteo no existe
+     * @throws ResourceNotFoundException si el sorteo no existe
      */
     @Operation(summary = "Ver ganadores del sorteo (solo post-cierre)")
     @GetMapping("/api/v1/sorteos/{idSorteo}/ganadores")

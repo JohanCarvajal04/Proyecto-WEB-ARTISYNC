@@ -13,10 +13,10 @@ import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.social.ResenaServicio;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.social.ResenaServicioRepository;
@@ -45,14 +45,14 @@ class ResenaServiceImplTest {
     @InjectMocks
     private ResenaServiceImpl resenaService;
 
-    private Usuario cliente;
+    private User cliente;
     private Servicio servicio;
     private Pedido pedido;
     private EntregableFinal entregableLiberado;
 
     @BeforeEach
     void setUp() {
-        cliente = Usuario.builder()
+        cliente = User.builder()
                 .idUsuario(1L).nombres("Carlos").apellidos("Ruiz")
                 .correo("carlos@test.com").build();
 
@@ -108,7 +108,7 @@ class ResenaServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearResena — lanza ExcepcionReglaNegocio si entregable no está liberado")
+    @DisplayName("crearResena — lanza BusinessRuleException si entregable no está liberado")
     void crearResena_entregableNoLiberado_lanzaExcepcion() {
         entregableLiberado.setEstaLiberado(false);
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
@@ -117,24 +117,24 @@ class ResenaServiceImplTest {
 
         assertThatThrownBy(() -> resenaService.crearResena(50L,
                 new PeticionCrearResena(3, "Regular"), 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("después de recibir el entregable");
     }
 
     @Test
-    @DisplayName("crearResena — lanza ExcepcionReglaNegocio si no hay entregable")
+    @DisplayName("crearResena — lanza BusinessRuleException si no hay entregable")
     void crearResena_sinEntregable_lanzaExcepcion() {
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
         given(entregableFinalRepository.findByPedidoIdPedido(50L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> resenaService.crearResena(50L,
                 new PeticionCrearResena(3, "Regular"), 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("después de recibir el entregable");
     }
 
     @Test
-    @DisplayName("crearResena — lanza ExcepcionRecursoDuplicado si ya existe reseña")
+    @DisplayName("crearResena — lanza DuplicateResourceException si ya existe reseña")
     void crearResena_yaExisteResena_lanzaExcepcion() {
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
         given(entregableFinalRepository.findByPedidoIdPedido(50L))
@@ -143,7 +143,7 @@ class ResenaServiceImplTest {
 
         assertThatThrownBy(() -> resenaService.crearResena(50L,
                 new PeticionCrearResena(5, "De nuevo"), 1L))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class)
+                .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Ya has dejado una reseña");
     }
 

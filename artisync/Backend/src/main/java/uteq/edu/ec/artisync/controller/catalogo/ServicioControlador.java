@@ -19,7 +19,7 @@ import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicio;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.RespuestaServicioResumido;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaUrl;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.catalogo.IServicioCatalogoServicio;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
@@ -42,8 +42,8 @@ public class ServicioControlador {
      * @param idPerfilCreador identificador del perfil de creador propietario del servicio
      * @param peticion datos del servicio a crear
      * @return el servicio creado, con estado 201
-     * @throws ExcepcionReglaNegocio si el precio es menor a 0.01 USD
-     * @throws ExcepcionRecursoNoEncontrado si el perfil de creador no existe
+     * @throws BusinessRuleException si el precio es menor a 0.01 USD
+     * @throws ResourceNotFoundException si el perfil de creador no existe
      */
     @PostMapping("/creador/{idPerfilCreador}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
@@ -60,8 +60,8 @@ public class ServicioControlador {
      * @param id identificador del servicio a actualizar
      * @param peticion datos actualizados del servicio
      * @return el servicio actualizado
-     * @throws ExcepcionReglaNegocio si el precio es menor a 0.01 USD o si el servicio queda sin subcategorías
-     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws BusinessRuleException si el precio es menor a 0.01 USD o si el servicio queda sin subcategorías
+     * @throws ResourceNotFoundException si el servicio no existe
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
@@ -76,7 +76,7 @@ public class ServicioControlador {
      *
      * @param id identificador del servicio
      * @return el servicio solicitado
-     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws ResourceNotFoundException si el servicio no existe
      */
     @GetMapping("/{id}")
     public ResponseEntity<RespuestaServicio> obtenerServicioPorId(@PathVariable Long id) {
@@ -88,7 +88,7 @@ public class ServicioControlador {
      *
      * @param id identificador del servicio a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws ResourceNotFoundException si el servicio no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
@@ -103,7 +103,7 @@ public class ServicioControlador {
      * @param idPerfilCreador identificador del perfil de creador
      * @param estadoPublicacion estado de publicación por el cual filtrar (opcional)
      * @return listado resumido de los servicios del creador
-     * @throws ExcepcionRecursoNoEncontrado si el perfil de creador no existe
+     * @throws ResourceNotFoundException si el perfil de creador no existe
      */
     @GetMapping("/creador/{idPerfilCreador}")
     public ResponseEntity<List<RespuestaServicioResumido>> listarServiciosPorCreador(
@@ -117,7 +117,7 @@ public class ServicioControlador {
      *
      * @param id identificador del servicio
      * @return listado de atributos del servicio
-     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws ResourceNotFoundException si el servicio no existe
      */
     @GetMapping("/{id}/atributos")
     public ResponseEntity<List<RespuestaAtributo>> listarAtributosPorServicio(@PathVariable Long id) {
@@ -130,8 +130,8 @@ public class ServicioControlador {
      * @param id identificador del servicio
      * @param peticion datos del atributo a agregar
      * @return el atributo creado, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
-     * @throws ExcepcionReglaNegocio si se alcanzó el límite de atributos permitidos o el atributo ya está asociado al servicio
+     * @throws ResourceNotFoundException si el servicio no existe
+     * @throws BusinessRuleException si se alcanzó el límite de atributos permitidos o el atributo ya está asociado al servicio
      */
     @PostMapping("/{id}/atributos")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
@@ -149,8 +149,8 @@ public class ServicioControlador {
      * @param idAtributo identificador del atributo a actualizar
      * @param peticion datos actualizados del atributo
      * @return el atributo actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el servicio o el atributo no existen
-     * @throws ExcepcionReglaNegocio si el atributo no pertenece al servicio indicado
+     * @throws ResourceNotFoundException si el servicio o el atributo no existen
+     * @throws BusinessRuleException si el atributo no pertenece al servicio indicado
      */
     @PutMapping("/{id}/atributos/{idAtributo}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
@@ -167,8 +167,8 @@ public class ServicioControlador {
      * @param id identificador del servicio
      * @param idAtributo identificador del atributo a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el servicio o el atributo no existen
-     * @throws ExcepcionReglaNegocio si el atributo no pertenece al servicio indicado
+     * @throws ResourceNotFoundException si el servicio o el atributo no existen
+     * @throws BusinessRuleException si el atributo no pertenece al servicio indicado
      */
     @DeleteMapping("/{id}/atributos/{idAtributo}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
@@ -201,7 +201,7 @@ public class ServicioControlador {
      *
      * @param request petición HTTP, de la cual se extrae la referencia de la miniatura solicitada
      * @return el contenido binario de la miniatura con su tipo de contenido y cabecera de caché
-     * @throws ExcepcionRecursoNoEncontrado si la referencia no corresponde a una miniatura bajo el prefijo "servicios/"
+     * @throws ResourceNotFoundException si la referencia no corresponde a una miniatura bajo el prefijo "servicios/"
      */
     @GetMapping("/miniatura/**")
     public ResponseEntity<byte[]> servirMiniatura(HttpServletRequest request) {
@@ -209,7 +209,7 @@ public class ServicioControlador {
         String prefix = "/api/v1/servicios/miniatura/";
         String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());
         if (!referencia.startsWith(PrefijoAlmacenamiento.SERVICIOS + "/")) {
-            throw new ExcepcionRecursoNoEncontrado("Miniatura no disponible: " + referencia);
+            throw new ResourceNotFoundException("Miniatura no disponible: " + referencia);
         }
         byte[] contenido = almacenamientoDocumentos.leer(referencia);
         String contentType = ExtensionesArchivo.contentTypeDe(referencia);

@@ -31,7 +31,7 @@ public class PlantillaContratoAdminControlador {
      *
      * @param peticion datos de la plantilla a crear
      * @return la plantilla creada, con estado 201
-     * @throws ExcepcionReglaNegocio si ya existe una plantilla con la misma versión legal
+     * @throws BusinessRuleException si ya existe una plantilla con la misma versión legal
      */
     @PostMapping
     public ResponseEntity<RespuestaPlantillaContrato> crear(@Valid @RequestBody PeticionCrearPlantillaContrato peticion) {
@@ -44,8 +44,8 @@ public class PlantillaContratoAdminControlador {
      * @param id identificador de la plantilla a editar
      * @param peticion datos actualizados de la plantilla
      * @return la plantilla actualizada
-     * @throws ExcepcionRecursoNoEncontrado si la plantilla no existe
-     * @throws ExcepcionReglaNegocio si la plantilla no puede editarse en su estado actual
+     * @throws ResourceNotFoundException si la plantilla no existe
+     * @throws BusinessRuleException si la plantilla no puede editarse en su estado actual
      */
     @PutMapping("/{id}")
     public ResponseEntity<RespuestaPlantillaContrato> editar(
@@ -69,8 +69,8 @@ public class PlantillaContratoAdminControlador {
      *
      * @param id identificador de la plantilla a desactivar
      * @return mensaje de confirmación de la desactivación
-     * @throws ExcepcionRecursoNoEncontrado si la plantilla no existe
-     * @throws ExcepcionReglaNegocio si la plantilla no puede desactivarse en su estado actual
+     * @throws ResourceNotFoundException si la plantilla no existe
+     * @throws BusinessRuleException si la plantilla no puede desactivarse en su estado actual
      */
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<RespuestaMensaje> desactivar(@PathVariable Long id) {

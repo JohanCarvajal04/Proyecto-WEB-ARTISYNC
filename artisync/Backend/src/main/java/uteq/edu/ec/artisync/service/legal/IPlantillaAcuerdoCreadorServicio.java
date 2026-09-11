@@ -32,7 +32,7 @@ public interface IPlantillaAcuerdoCreadorServicio {
      * @param idPlantilla id de la plantilla a editar
      * @param peticion nuevos datos de la plantilla
      * @return la plantilla ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe o no es propia de este creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no es propia de este creador
      */
     RespuestaPlantillaContrato editar(Long idUsuarioCreador, Long idPlantilla, PeticionActualizarPlantillaAcuerdoPropia peticion);
 
@@ -50,7 +50,7 @@ public interface IPlantillaAcuerdoCreadorServicio {
      * @param idUsuarioCreador id del usuario autenticado
      * @param idPlantilla id de la plantilla a desactivar
      * @return mensaje de confirmación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe o no es propia de este creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe o no es propia de este creador
      */
     RespuestaMensaje desactivar(Long idUsuarioCreador, Long idPlantilla);
 }

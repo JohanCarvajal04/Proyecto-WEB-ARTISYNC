@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.entity.legal;
 
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * 
  * Ciclo de vida: Inmutable tras su emision. Constituye evidencia auditable en caso de disputas legales.
  * 
- * Relaciones principales: Entidad fuerte anidada dentro de una SalaChat y generada por un Usuario.
+ * Relaciones principales: Entidad fuerte anidada dentro de una SalaChat y generada por un User.
  */
 @Entity
 @Table(name = "mensajes")
@@ -37,7 +37,7 @@ public class Mensaje {
     @NotNull(message = "El remitente es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_remitente", nullable = false)
-    private Usuario remitente;
+    private User remitente;
 
     @Column(name = "cuerpo_mensaje", columnDefinition = "TEXT")
     private String cuerpoMensaje;

@@ -16,14 +16,14 @@ import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
 import uteq.edu.ec.artisync.entity.pedido.HistorialEstadoPedido;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -51,7 +51,7 @@ class PedidoServicioImplFlujoTest {
 
     @Mock private PedidoRepository pedidoRepository;
     @Mock private ServicioRepository servicioRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private FlujoTrabajoRepository flujoTrabajoRepository;
     @Mock private FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     @Mock private HistorialEstadoPedidoRepository historialRepository;
@@ -64,7 +64,7 @@ class PedidoServicioImplFlujoTest {
 
     private static final Long ID_CREADOR = 2L;
 
-    private Usuario cliente;
+    private User cliente;
     private Servicio servicio;
     private FlujoTrabajo flujoDelServicio;
     private FlujoTrabajo flujoDelCreador;
@@ -73,9 +73,9 @@ class PedidoServicioImplFlujoTest {
 
     @BeforeEach
     void setUp() {
-        cliente = Usuario.builder().idUsuario(1L).build();
+        cliente = User.builder().idUsuario(1L).build();
 
-        Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
+        User creador = User.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(10L).usuario(creador).build();
 
         servicio = Servicio.builder()
@@ -181,7 +181,7 @@ class PedidoServicioImplFlujoTest {
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("No hay flujos de trabajo configurados");
     }
 
@@ -193,7 +193,7 @@ class PedidoServicioImplFlujoTest {
                 .willReturn(List.of());
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Flujo ilustracion");
     }
 }

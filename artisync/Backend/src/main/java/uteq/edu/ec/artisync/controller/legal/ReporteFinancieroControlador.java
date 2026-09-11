@@ -13,7 +13,7 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaReporteComisiones;
 import uteq.edu.ec.artisync.service.legal.IReporteFinancieroServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
-import uteq.edu.ec.artisync.util.RespuestaDocumento;
+import uteq.edu.ec.artisync.util.DocumentResponse;
 
 /**
  * Reporte financiero por creador, sobre fn_reporte_comisiones_creador
@@ -66,7 +66,7 @@ public class ReporteFinancieroControlador {
         DocumentoGenerado documento = (page != null || size != null)
                 ? reporteFinancieroServicio.exportar(filtro, formato, page, size, authentication.getName())
                 : reporteFinancieroServicio.exportar(filtro, formato, authentication.getName());
-        return RespuestaDocumento.de(documento);
+        return DocumentResponse.de(documento);
     }
 
     /**

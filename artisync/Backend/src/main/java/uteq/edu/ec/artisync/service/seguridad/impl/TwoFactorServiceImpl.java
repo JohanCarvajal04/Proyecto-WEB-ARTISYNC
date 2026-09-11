@@ -11,15 +11,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.TwoFactorSetupResponse;
-import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresRepository;
-import uteq.edu.ec.artisync.repository.seguridad.CodigoRespaldo2FaRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
+import uteq.edu.ec.artisync.entity.seguridad.TwoFactorAuthentication;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.repository.seguridad.TwoFactorAuthenticationRepository;
+import uteq.edu.ec.artisync.repository.seguridad.TwoFactorBackupCodeRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRoleRepository;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 import uteq.edu.ec.artisync.service.shared.IntentosAutenticacionService;
@@ -49,10 +49,10 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     private static final int LIMITE_INTENTOS_2FA = 5;
     private static final Duration VENTANA_INTENTOS_2FA = Duration.ofMinutes(15);
 
-    private final UsuarioRepository usuarioRepository;
-    private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
-    private final CodigoRespaldo2FaRepository codigoRespaldo2FaRepository;
-    private final UsuarioRolRepository usuarioRolRepository;
+    private final UserRepository usuarioRepository;
+    private final TwoFactorAuthenticationRepository autenticacionDosFactoresRepository;
+    private final TwoFactorBackupCodeRepository codigoRespaldo2FaRepository;
+    private final UserRoleRepository usuarioRolRepository;
     private final CertificadoIaRepository certificadoIaRepository;
     private final IntentosAutenticacionService intentosAutenticacionService;
 
@@ -75,17 +75,17 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Transactional
     // Nunca el secreto TOTP ni los códigos de respaldo en el detalle: solo el
     // hecho de que se inició la configuración.
-    @Auditable(accion = "SEGURIDAD_2FA_CONFIGURAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
+    @Auditable(accion = "SEGURIDAD_2FA_CONFIGURAR", modulo = AuditModule.SEGURIDAD, correoActor = "#correo")
     /**
      * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
      *
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public TwoFactorSetupResponse setup2Fa(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         boolean esCreador = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
                 .anyMatch(ur -> "CREADOR".equalsIgnoreCase(ur.getRol().getNombreRol()));
@@ -128,20 +128,20 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
-    @Auditable(accion = "SEGURIDAD_2FA_ACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
+    @Auditable(accion = "SEGURIDAD_2FA_ACTIVAR", modulo = AuditModule.SEGURIDAD, correoActor = "#correo")
     /**
      * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
      *
      * @param correo direccion de correo electronico del actor o usuario principal
      * @param codigo parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje confirm2Fa(String correo, String codigo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
-        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
+        TwoFactorAuthentication dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se ha iniciado la configuración de 2FA"));
 
         if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {
@@ -159,20 +159,20 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
-    @Auditable(accion = "SEGURIDAD_2FA_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
+    @Auditable(accion = "SEGURIDAD_2FA_DESACTIVAR", modulo = AuditModule.SEGURIDAD, correoActor = "#correo")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param correo direccion de correo electronico del actor o usuario principal
      * @param codigo parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje disable2Fa(String correo, String codigo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
-        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
+        TwoFactorAuthentication dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no está configurado"));
 
         if (!Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {
@@ -202,18 +202,18 @@ public class TwoFactorServiceImpl implements TwoFactorService {
      * @param correo direccion de correo electronico del actor o usuario principal
      * @param codigoIngresado parametro requerido para la correcta ejecucion del procedimiento
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public boolean validarCodigoOBackup(String correo, String codigoIngresado) {
         if (codigoIngresado == null || codigoIngresado.isBlank()) {
             return false;
         }
 
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
+        User usuario = usuarioRepository.findByCorreo(correo)
                 .orElse(null);
         if (usuario == null) return false;
 
-        AutenticacionDosFactores dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
+        TwoFactorAuthentication dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
                 .orElse(null);
 
         if (dosFactores == null || !Boolean.TRUE.equals(dosFactores.getEstaHabilitado())) {

@@ -37,7 +37,7 @@ public class ComentarioPortafolioControlador {
      * @param peticion contenido del comentario
      * @param userDetails usuario autenticado que comenta
      * @return el comentario creado, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el ítem de portafolio o el usuario autor no existen
+     * @throws ResourceNotFoundException si el ítem de portafolio o el usuario autor no existen
      */
     @Operation(summary = "Comentar un ítem de portafolio")
     @PostMapping("/{idItemPortafolio}/comentarios")
@@ -86,7 +86,7 @@ public class ComentarioPortafolioControlador {
      *
      * @param idComentario identificador del comentario a eliminar
      * @param userDetails usuario autenticado que solicita la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si el comentario no existe
+     * @throws ResourceNotFoundException si el comentario no existe
      */
     @Operation(summary = "Eliminar un comentario propio, del portafolio, o como ADMIN")
     @DeleteMapping("/comentarios/{idComentario}")

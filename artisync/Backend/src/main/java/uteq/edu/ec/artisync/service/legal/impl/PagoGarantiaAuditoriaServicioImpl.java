@@ -12,8 +12,8 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaResumenEscrow;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaTransaccionPago;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.legal.IPagoGarantiaAuditoriaServicio;
@@ -36,7 +36,7 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
      * @param filtro criterios de busqueda y filtrado dinamico a aplicar
      * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaPagoGarantia> listar(FiltroPagoGarantia filtro, Pageable pageable) {
         var spec = PagoGarantiaSpecification.conFiltros(
@@ -53,15 +53,15 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
      *
      * @param idPago identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPagoGarantiaDetalle obtenerDetalle(Long idPago) {
         PagoGarantia pago = pagoGarantiaRepository.findById(idPago)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pago de garantía no encontrado: " + idPago));
+                .orElseThrow(() -> new ResourceNotFoundException("Pago de garantía no encontrado: " + idPago));
 
         Pedido pedido = pago.getContrato().getPedido();
-        Usuario cliente = pedido.getUsuarioCliente();
-        Usuario creador = pedido.getServicio().getPerfil().getUsuario();
+        User cliente = pedido.getUsuarioCliente();
+        User creador = pedido.getServicio().getPerfil().getUsuario();
 
         List<RespuestaTransaccionPago> transacciones = transaccionPagoRepository
                 .findByPagoIdPagoOrderByFechaEjecucionDesc(idPago).stream()
@@ -97,7 +97,7 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
      * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaResumenEscrow> obtenerResumen() {
         return pagoGarantiaRepository.resumenPorEstado();
@@ -105,8 +105,8 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
 
     private RespuestaPagoGarantia mapearAResumen(PagoGarantia pago) {
         Pedido pedido = pago.getContrato().getPedido();
-        Usuario cliente = pedido.getUsuarioCliente();
-        Usuario creador = pedido.getServicio().getPerfil().getUsuario();
+        User cliente = pedido.getUsuarioCliente();
+        User creador = pedido.getServicio().getPerfil().getUsuario();
 
         return RespuestaPagoGarantia.builder()
                 .idPago(pago.getIdPago())

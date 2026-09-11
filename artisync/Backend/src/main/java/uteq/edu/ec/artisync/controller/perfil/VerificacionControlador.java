@@ -40,8 +40,8 @@ public class VerificacionControlador {
      * @param documento archivo del documento a verificar
      * @param userDetails usuario autenticado que solicita la verificación
      * @return la verificación creada, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el usuario solicitante no existe
-     * @throws ExcepcionReglaNegocio si el usuario ya tiene una solicitud de este tipo en curso, o el documento no puede leerse
+     * @throws ResourceNotFoundException si el usuario solicitante no existe
+     * @throws BusinessRuleException si el usuario ya tiene una solicitud de este tipo en curso, o el documento no puede leerse
      */
     @Operation(summary = "Solicitar una verificación de identidad o certificado")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -92,7 +92,7 @@ public class VerificacionControlador {
      * @param id identificador de la verificación
      * @param userDetails usuario autenticado que consulta la verificación
      * @return el detalle de la verificación
-     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     * @throws ResourceNotFoundException si la verificación no existe
      */
     @Operation(summary = "Detalle de una verificación")
     @GetMapping("/{id}")
@@ -110,7 +110,7 @@ public class VerificacionControlador {
      *
      * @param id identificador de la verificación
      * @return el contenido binario del documento en formato JPEG
-     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
+     * @throws ResourceNotFoundException si la verificación no existe
      */
     @Operation(summary = "Descargar el documento original para revisión")
     @GetMapping("/{id}/documento")
@@ -125,9 +125,9 @@ public class VerificacionControlador {
      *
      * @param id identificador de la verificación
      * @return la verificación con el dictamen de la IA
-     * @throws ExcepcionRecursoNoEncontrado si la verificación no existe
-     * @throws ExcepcionReglaNegocio si el documento de la verificación ya fue eliminado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible si el servicio de IA no está disponible
+     * @throws ResourceNotFoundException si la verificación no existe
+     * @throws BusinessRuleException si el documento de la verificación ya fue eliminado
+     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si el servicio de IA no está disponible
      */
     @Operation(summary = "Pedir a la IA un dictamen orientativo (no decide)")
     @PostMapping("/{id}/analisis-ia")
@@ -143,7 +143,7 @@ public class VerificacionControlador {
      * @param peticion decisión del moderador, con el nuevo estado y una nota opcional
      * @param userDetails moderador autenticado que registra la decisión
      * @return la verificación con su estado actualizado
-     * @throws ExcepcionRecursoNoEncontrado si la verificación o el estado de verificación indicado no existen
+     * @throws ResourceNotFoundException si la verificación o el estado de verificación indicado no existen
      */
     @Operation(summary = "Registrar la decisión del moderador (único punto que cambia el estado)")
     @PatchMapping("/{id}/decision")

@@ -15,11 +15,11 @@ import uteq.edu.ec.artisync.entity.comunicacion.ComentarioPortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.ComentarioPortafolioRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -37,7 +37,7 @@ class ComentarioPortafolioServiceImplTest {
     @Mock
     private PortafolioItemRepository portafolioItemRepository;
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
 
     @InjectMocks
     private ComentarioPortafolioServiceImpl servicio;
@@ -50,7 +50,7 @@ class ComentarioPortafolioServiceImplTest {
         PortafolioItem item = new PortafolioItem();
         item.setIdItemPortafolio(10L);
 
-        Usuario autor = new Usuario();
+        User autor = new User();
         autor.setIdUsuario(1L);
         autor.setNombres("A");
         autor.setApellidos("B");
@@ -75,7 +75,7 @@ class ComentarioPortafolioServiceImplTest {
         PeticionCrearComentario peticion = new PeticionCrearComentario();
         when(portafolioItemRepository.findById(10L)).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> servicio.crearComentario(10L, peticion, 1L));
+        assertThrows(ResourceNotFoundException.class, () -> servicio.crearComentario(10L, peticion, 1L));
     }
 
     @Test
@@ -84,7 +84,7 @@ class ComentarioPortafolioServiceImplTest {
         when(portafolioItemRepository.findById(10L)).thenReturn(Optional.of(new PortafolioItem()));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> servicio.crearComentario(10L, peticion, 1L));
+        assertThrows(ResourceNotFoundException.class, () -> servicio.crearComentario(10L, peticion, 1L));
     }
 
     @Test
@@ -115,7 +115,7 @@ class ComentarioPortafolioServiceImplTest {
 
     @Test
     void eliminarComentario_comoAutor_borradoLogico() {
-        Usuario u = new Usuario();
+        User u = new User();
         u.setIdUsuario(1L);
         ComentarioPortafolio c = new ComentarioPortafolio();
         c.setUsuarioAutor(u);
@@ -127,7 +127,7 @@ class ComentarioPortafolioServiceImplTest {
 
     @Test
     void eliminarComentario_comoDueno_borradoLogico() {
-        Usuario dueno = new Usuario();
+        User dueno = new User();
         dueno.setIdUsuario(2L);
         PerfilCreador perfil = new PerfilCreador();
         perfil.setUsuario(dueno);
@@ -184,7 +184,7 @@ class ComentarioPortafolioServiceImplTest {
     @Test
     void ocultarComentario_noEncontrado() {
         when(comentarioRepository.findByIdParaModerar(99L)).thenReturn(Optional.empty());
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> servicio.ocultarComentario(99L));
+        assertThrows(ResourceNotFoundException.class, () -> servicio.ocultarComentario(99L));
     }
 
     @Test

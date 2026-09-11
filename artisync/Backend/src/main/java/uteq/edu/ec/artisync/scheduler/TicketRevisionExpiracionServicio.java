@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
 import uteq.edu.ec.artisync.repository.legal.PagoTicketRevisionRepository;
@@ -32,7 +32,7 @@ public class TicketRevisionExpiracionServicio {
     private final NotificacionService notificacionService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Auditable(accion = "TICKET_EXPIRAR", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "TICKET_EXPIRAR", modulo = AuditModule.PEDIDOS,
             correoActor = "'sistema:scheduler'",
             entidad = "tickets_revision", idEntidad = "#idTicket")
     public void expirarTicket(Long idTicket) {

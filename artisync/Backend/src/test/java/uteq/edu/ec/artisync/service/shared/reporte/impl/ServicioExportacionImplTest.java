@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.shared.reporte.impl;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.service.shared.reporte.ColumnaReporte;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -46,7 +46,7 @@ class ServicioExportacionImplTest {
     }
 
     @Test
-    @DisplayName("Lanza ExcepcionReglaNegocio (422) si las filas superan el tope del formato")
+    @DisplayName("Lanza BusinessRuleException (422) si las filas superan el tope del formato")
     void exportar_SuperaTopeDeFilas_LanzaExcepcion() {
         List<ReporteDePrueba> filas = IntStream.range(0, FormatoReporte.PDF.topeFilas() + 1)
                 .mapToObj(i -> new ReporteDePrueba("Fila " + i, BigDecimal.ONE, LocalDateTime.now(), (long) i))
@@ -59,7 +59,7 @@ class ServicioExportacionImplTest {
                 .build();
 
         assertThatThrownBy(() -> servicio.exportar(modelo, FormatoReporte.PDF))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining(String.valueOf(FormatoReporte.PDF.topeFilas()));
     }
 

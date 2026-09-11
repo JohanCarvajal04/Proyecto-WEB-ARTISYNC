@@ -14,8 +14,8 @@ public interface IPagoServicio {
      * @param idCliente id del usuario que inicia el pago, debe ser el cliente del pedido
      * @param monto     monto a pagar
      * @return la orden de pago creada, con la URL de aprobación de PayPal
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene contrato
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el cliente del pedido, si el contrato no está firmado por ambas partes, si el pedido ya tiene un pago en curso, o si falla la comunicación con PayPal
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, si el contrato no está firmado por ambas partes, si el pedido ya tiene un pago en curso, o si falla la comunicación con PayPal
      */
     RespuestaPago crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto);
 
@@ -43,8 +43,8 @@ public interface IPagoServicio {
      * @param idPedido  id del pedido
      * @param idUsuario id del usuario que consulta, debe ser cliente o creador del pedido
      * @return el estado actual del pago
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene contrato, o no tiene pago registrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no tiene acceso al pago de este pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato, o no tiene pago registrado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene acceso al pago de este pedido
      */
     RespuestaPago obtenerEstadoPago(Long idPedido, Long idUsuario);
 
@@ -57,8 +57,8 @@ public interface IPagoServicio {
      * @param accionFondos           "REEMBOLSAR" (default si es null/blank) o "LIBERAR" (solo administrador)
      * @param motivo                 motivo de la cancelación, solo para registro/auditoría
      * @return el estado final del pago tras la cancelación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene contrato o pago registrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no tiene permiso, la acción no es válida,
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato o pago registrado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene permiso, la acción no es válida,
      *      o el pago no está en un estado cancelable
      */
     RespuestaPago cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,

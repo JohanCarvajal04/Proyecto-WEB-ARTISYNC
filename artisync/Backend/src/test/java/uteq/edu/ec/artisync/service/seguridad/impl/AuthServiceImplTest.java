@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,9 +26,9 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.dto.seguridad.request.ForgotPasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.ResetPasswordRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.entity.seguridad.Rol;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.entity.seguridad.UsuarioRol;
+import uteq.edu.ec.artisync.entity.seguridad.Role;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.entity.seguridad.UserRole;
 import uteq.edu.ec.artisync.repository.seguridad.*;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
 import uteq.edu.ec.artisync.security.JwtService;
@@ -51,11 +50,11 @@ import static org.mockito.Mockito.*;
 class AuthServiceImplTest {
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
     @Mock
-    private UsuarioRolRepository usuarioRolRepository;
+    private UserRoleRepository usuarioRolRepository;
     @Mock
-    private SesionUsuarioRepository sesionUsuarioRepository;
+    private UserSessionRepository sesionUsuarioRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
@@ -81,8 +80,8 @@ class AuthServiceImplTest {
     private AuthServiceImpl authService;
 
     private RegisterRequest registerRequest;
-    private Usuario usuario;
-    private Rol rolCliente;
+    private User usuario;
+    private Role rolCliente;
 
     @BeforeEach
     void setUp() {
@@ -94,7 +93,7 @@ class AuthServiceImplTest {
         registerRequest.setFechaNacimiento(LocalDate.of(2000, 1, 1));
         registerRequest.setRol("CLIENTE");
 
-        usuario = Usuario.builder()
+        usuario = User.builder()
                 .idUsuario(1L)
                 .nombres("Juan")
                 .apellidos("Perez")
@@ -103,7 +102,7 @@ class AuthServiceImplTest {
                 .estadoCuenta(true)
                 .build();
 
-        rolCliente = Rol.builder()
+        rolCliente = Role.builder()
                 .idRol(1L)
                 .nombreRol("CLIENTE")
                 .build();
@@ -189,7 +188,7 @@ class AuthServiceImplTest {
         registerRequest.setRol("ADMIN");
         when(passwordEncoder.encode(anyString())).thenReturn("hashed");
         when(usuarioRepository.registrarUsuario(any(), any(), any(), any(), any(), eq("ADMIN")))
-                .thenThrow(excepcionSql("23514", "Rol no permitido en registro. Solo se permiten CLIENTE o CREADOR: ADMIN"));
+                .thenThrow(excepcionSql("23514", "Role no permitido en registro. Solo se permiten CLIENTE o CREADOR: ADMIN"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.register(registerRequest));
@@ -219,7 +218,7 @@ class AuthServiceImplTest {
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", false, "CLIENTE"));
         when(usuarioRepository.getReferenceById(1L)).thenReturn(usuario);
 
-        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.generarToken(userDetails)).thenReturn("access-token");
         when(jwtService.generarRefreshToken(userDetails)).thenReturn("refresh-token");
@@ -325,7 +324,7 @@ class AuthServiceImplTest {
         when(twoFactorService.validarCodigoOBackup("juan@example.com", "123456")).thenReturn(true);
         when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(true);
 
-        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.generarToken(userDetails)).thenReturn("access-token");
         when(jwtService.generarRefreshToken(userDetails)).thenReturn("refresh-token");
@@ -413,9 +412,9 @@ class AuthServiceImplTest {
     @Test
     void refreshToken_ShouldThrowUnauthorized_WhenTokenInvalido() {
         when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
-        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.SesionUsuario.builder().build()));
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.UserSession.builder().build()));
         when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
-        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(false);
 
@@ -426,12 +425,12 @@ class AuthServiceImplTest {
 
     @Test
     void refreshToken_ShouldThrowForbidden_WhenCuentaInactiva() {
-        Usuario inactivo = Usuario.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
+        User inactivo = User.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
 
         when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
-        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.SesionUsuario.builder().build()));
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.UserSession.builder().build()));
         when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
-        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(true);
         when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(inactivo));
@@ -444,9 +443,9 @@ class AuthServiceImplTest {
     @Test
     void refreshToken_ShouldSucceed_WhenTodoValido() {
         when(jwtService.extraerJti("refresh-token")).thenReturn("jti-1");
-        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.SesionUsuario.builder().build()));
+        when(sesionUsuarioRepository.findByJti("jti-1")).thenReturn(Optional.of(uteq.edu.ec.artisync.entity.seguridad.UserSession.builder().build()));
         when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
-        UserDetails userDetails = new User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
         when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(true);
         when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
@@ -454,7 +453,7 @@ class AuthServiceImplTest {
         when(jwtService.generarRefreshToken(userDetails)).thenReturn("nuevo-refresh");
         when(jwtService.extraerJti("nuevo-access")).thenReturn("jti-access");
         when(jwtService.extraerJti("nuevo-refresh")).thenReturn("jti-refresh");
-        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(UsuarioRol.builder().rol(rolCliente).build()));
+        when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(UserRole.builder().rol(rolCliente).build()));
 
         TokenResponse response = authService.refreshToken("refresh-token");
 

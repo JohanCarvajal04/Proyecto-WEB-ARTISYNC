@@ -1,0 +1,172 @@
+package uteq.edu.ec.artisync.exception;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Componente transversal de infraestructura: Controlador de asesoramiento (ControllerAdvice).
+ * 
+ * Propósito: Centralizar y capturar las excepciones lanzadas desde cualquier capa de la aplicacion para estandarizarlas bajo el formato ProblemDetails (RFC 7807).
+ * 
+ * Flujo interno: Intercepta excepciones (via @ExceptionHandler) y devuelve un payload JSON coherente con el codigo HTTP apropiado (400, 401, 404, 500), evitando la filtracion de stacktraces.
+ */
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final String BASE_TIPO = "https://artisync.dev/errors/";
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionesValidacion(
+            MethodArgumentNotValidException ex, HttpServletRequest peticion) {
+
+        Map<String, String> erroresCampos = new HashMap<>();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            erroresCampos.put(error.getField(), error.getDefaultMessage());
+        }
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "validacion",
+                "Error de validaciÃ³n en los datos de entrada",
+                peticion.getRequestURI()
+        );
+        pd.setProperty("fieldErrors", erroresCampos);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionRecursoNoEncontrado(
+            ResourceNotFoundException ex, HttpServletRequest peticion) {
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.NOT_FOUND, "recurso-no-encontrado", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ProblemDetail> manejarNoResourceFoundException(
+            NoResourceFoundException ex, HttpServletRequest peticion) {
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.NOT_FOUND, "ruta-no-encontrada", "Recurso no encontrado o ruta inexistente", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionRecursoDuplicado(
+            DuplicateResourceException ex, HttpServletRequest peticion) {
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.CONFLICT, "recurso-duplicado", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionReglaNegocio(
+            BusinessRuleException ex, HttpServletRequest peticion) {
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.UNPROCESSABLE_ENTITY, "regla-de-negocio", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
+
+    @ExceptionHandler(AiServiceUnavailableException.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionServicioIaNoDisponible(
+            AiServiceUnavailableException ex, HttpServletRequest peticion) {
+
+        log.warn("Servicio de IA no disponible en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "ia-no-disponible", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ProblemDetail> manejarResponseStatusException(
+            ResponseStatusException ex, HttpServletRequest peticion) {
+
+        HttpStatus estado = HttpStatus.valueOf(ex.getStatusCode().value());
+        ProblemDetail pd = construirProblemDetail(
+                estado, "peticion-rechazada",
+                ex.getReason() != null ? ex.getReason() : ex.getMessage(),
+                peticion.getRequestURI());
+        return ResponseEntity.status(estado).body(pd);
+    }
+
+    @ExceptionHandler(QuotaExceededException.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionCuotaExcedida(
+            QuotaExceededException ex, HttpServletRequest peticion) {
+
+        log.warn("Cuota de intentos por cuenta excedida en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.TOO_MANY_REQUESTS, "cuota-excedida", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSegundos()))
+                .body(pd);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> manejarAccessDeniedException(
+            AccessDeniedException ex, HttpServletRequest peticion) {
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.FORBIDDEN, "acceso-denegado",
+                "No tienes permisos suficientes para realizar esta acciÃ³n", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
+    }
+
+    @ExceptionHandler({AuthenticationException.class, JwtException.class})
+    public ResponseEntity<ProblemDetail> manejarExcepcionAutenticacion(
+            Exception ex, HttpServletRequest peticion) {
+        log.warn("Error de autenticaciÃ³n/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.UNAUTHORIZED, "autenticacion",
+                "Credenciales invÃ¡lidas o token expirado/malformado", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ProblemDetail> manejarExcepcionesPeticionIncorrecta(
+            RuntimeException ex, HttpServletRequest peticion) {
+
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.BAD_REQUEST, "peticion-invalida", ex.getMessage(), peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> manejarExcepcionGeneral(
+            Exception ex, HttpServletRequest peticion) {
+        log.error("Error interno no controlado en {}: ", peticion.getRequestURI(), ex);
+        ProblemDetail pd = construirProblemDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR, "error-interno",
+                "Ha ocurrido un error interno en el servidor", peticion.getRequestURI());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(pd);
+    }
+
+    private ProblemDetail construirProblemDetail(HttpStatus estado, String tipoSlug, String detalle, String instancia) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(estado, detalle);
+        pd.setType(URI.create(BASE_TIPO + tipoSlug));
+        pd.setTitle(estado.getReasonPhrase());
+        pd.setInstance(URI.create(instancia));
+        return pd;
+    }
+}
+

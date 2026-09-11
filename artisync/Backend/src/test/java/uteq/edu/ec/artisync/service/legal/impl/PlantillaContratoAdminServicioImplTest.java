@@ -12,8 +12,8 @@ import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCrearPlantillaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPlantillaContrato;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 
 import java.util.List;
@@ -76,7 +76,7 @@ class PlantillaContratoAdminServicioImplTest {
                 .nombrePlantilla("Otra").versionLegal("v1.0").cuerpoHtmlPlantilla("<html></html>").build();
         given(plantillaContratoRepository.findByVersionLegal("v1.0")).willReturn(Optional.of(predeterminadaActual));
 
-        assertThatThrownBy(() -> servicio.crear(peticion)).isInstanceOf(ExcepcionReglaNegocio.class);
+        assertThatThrownBy(() -> servicio.crear(peticion)).isInstanceOf(BusinessRuleException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 
@@ -90,7 +90,7 @@ class PlantillaContratoAdminServicioImplTest {
                 .esPredeterminada(false).activa(true)
                 .build();
 
-        assertThatThrownBy(() -> servicio.editar(1L, peticion)).isInstanceOf(ExcepcionReglaNegocio.class);
+        assertThatThrownBy(() -> servicio.editar(1L, peticion)).isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -98,7 +98,7 @@ class PlantillaContratoAdminServicioImplTest {
     void desactivar_predeterminada_rechaza() {
         given(plantillaContratoRepository.findById(1L)).willReturn(Optional.of(predeterminadaActual));
 
-        assertThatThrownBy(() -> servicio.desactivar(1L)).isInstanceOf(ExcepcionReglaNegocio.class);
+        assertThatThrownBy(() -> servicio.desactivar(1L)).isInstanceOf(BusinessRuleException.class);
         verify(plantillaContratoRepository, never()).save(any());
     }
 
@@ -122,7 +122,7 @@ class PlantillaContratoAdminServicioImplTest {
     void desactivar_inexistente_lanzaExcepcion() {
         given(plantillaContratoRepository.findById(99L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.desactivar(99L)).isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+        assertThatThrownBy(() -> servicio.desactivar(99L)).isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

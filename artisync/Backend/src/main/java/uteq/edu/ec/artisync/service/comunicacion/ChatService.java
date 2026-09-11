@@ -21,7 +21,7 @@ public interface ChatService {
 
     /**
      * Envía un mensaje aplicando el filtro RF-15.
-     * Lanza ExcepcionReglaNegocio si la sala está cerrada o el mensaje contiene datos de contacto.
+     * Lanza BusinessRuleException si la sala está cerrada o el mensaje contiene datos de contacto.
      */
     RespuestaMensajeChat enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje);
 
@@ -29,7 +29,7 @@ public interface ChatService {
      * Historial de mensajes paginado de un pedido (por su sala).
      *
      * @param idUsuario quien consulta; debe ser el cliente o el creador del
-     *                  pedido, o se rechaza (ver ExcepcionReglaNegocio).
+     *                  pedido, o se rechaza (ver BusinessRuleException).
      */
     Page<RespuestaMensajeChat> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable);
 
@@ -37,7 +37,7 @@ public interface ChatService {
      * Estado actual de la sala (activa/cerrada).
      *
      * @param idUsuario quien consulta; debe ser el cliente o el creador del
-     *                  pedido, o se rechaza (ver ExcepcionReglaNegocio).
+     *                  pedido, o se rechaza (ver BusinessRuleException).
      */
     RespuestaSalaChat obtenerEstadoSala(Long idPedido, Long idUsuario);
 }

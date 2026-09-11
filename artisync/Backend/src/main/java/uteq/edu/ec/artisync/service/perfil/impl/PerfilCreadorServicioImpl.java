@@ -8,10 +8,10 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPerfil;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPerfil;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPerfil;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.perfil.IPerfilCreadorServicio;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
 
     private final PerfilCreadorRepository perfilRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final IVerificacionServicio verificacionServicio;
 
     @Override
@@ -37,7 +37,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      * @param correoSolicitante direccion de correo electronico del actor o usuario principal
      * @param esAdmin parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion, String correoSolicitante, boolean esAdmin) {
         // El idUsuario del cuerpo solo se honra para un ADMIN. Antes se confiaba
@@ -48,11 +48,11 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
                 : resolverPorCorreo(correoSolicitante).getIdUsuario();
 
         if (perfilRepository.findByUsuarioIdUsuario(idDestino).isPresent()) {
-            throw new ExcepcionRecursoDuplicado("El usuario ya tiene un perfil de creador asignado.");
+            throw new DuplicateResourceException("El usuario ya tiene un perfil de creador asignado.");
         }
 
-        Usuario usuario = usuarioRepository.findById(idDestino)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado con ID: " + idDestino));
+        User usuario = usuarioRepository.findById(idDestino)
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado con ID: " + idDestino));
 
         PerfilCreador perfil = PerfilCreador.builder()
                 .usuario(usuario)
@@ -72,11 +72,11 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      *
      * @param idPerfil identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPerfil obtenerPerfilPorId(Long idPerfil) {
         PerfilCreador perfil = perfilRepository.findById(idPerfil)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + idPerfil));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil));
         exigirCuentaActiva(perfil);
         return mapearARespuesta(perfil);
     }
@@ -88,11 +88,11 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario) {
         PerfilCreador perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No se encontró perfil para el usuario con ID: " + idUsuario));
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró perfil para el usuario con ID: " + idUsuario));
         exigirCuentaActiva(perfil);
         return mapearARespuesta(perfil);
     }
@@ -107,9 +107,9 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      * nunca existió.
      */
     private void exigirCuentaActiva(PerfilCreador perfil) {
-        Usuario usuario = perfil.getUsuario();
+        User usuario = perfil.getUsuario();
         if (usuario != null && !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
-            throw new ExcepcionRecursoNoEncontrado("Perfil no disponible");
+            throw new ResourceNotFoundException("Perfil no disponible");
         }
     }
 
@@ -119,7 +119,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPerfil> listarPerfiles() {
         return perfilRepository.findAll().stream()
@@ -133,7 +133,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPerfil> listarPerfilesActivos() {
         return perfilRepository.findByUsuarioEstadoCuentaTrue().stream()
@@ -153,7 +153,7 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
     public RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion,
                                             String correoSolicitante, boolean esAdmin) {
         PerfilCreador perfil = perfilRepository.findById(idPerfil)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + idPerfil));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil));
 
         // El @PreAuthorize del controlador comprueba el ROL, no la propiedad. Sin
         // esta verificación cualquier CREADOR podía sobrescribir la biografía y la
@@ -185,19 +185,19 @@ public class PerfilCreadorServicioImpl implements IPerfilCreadorServicio {
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idPerfil identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarPerfil(Long idPerfil) {
         if (!perfilRepository.existsById(idPerfil)) {
-            throw new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + idPerfil);
+            throw new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil);
         }
         perfilRepository.deleteById(idPerfil);
     }
 
-    /** Usuario autenticado a partir del correo que viaja en el token. */
-    private Usuario resolverPorCorreo(String correo) {
+    /** User autenticado a partir del correo que viaja en el token. */
+    private User resolverPorCorreo(String correo) {
         return usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario autenticado no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("User autenticado no encontrado"));
     }
 
     private RespuestaPerfil mapearARespuesta(PerfilCreador perfil) {

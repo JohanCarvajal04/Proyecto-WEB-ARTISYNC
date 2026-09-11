@@ -12,9 +12,9 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaEstadoSeguimient
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSeguidor;
 import uteq.edu.ec.artisync.entity.comunicacion.Seguidor;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 
@@ -40,11 +40,11 @@ class SeguidorServicioImplTest {
     private SeguidorServicioImpl seguidorServicio;
 
     private PerfilCreador perfilCreador;
-    private Usuario usuarioCreador;
+    private User usuarioCreador;
 
     @BeforeEach
     void setUp() {
-        usuarioCreador = Usuario.builder()
+        usuarioCreador = User.builder()
                 .idUsuario(10L)
                 .nombres("Valentina")
                 .apellidos("Ríos")
@@ -80,7 +80,7 @@ class SeguidorServicioImplTest {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
 
         assertThatThrownBy(() -> seguidorServicio.seguirCreador(10L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("no puede seguirse a sí mismo");
     }
 
@@ -90,7 +90,7 @@ class SeguidorServicioImplTest {
         given(perfilCreadorRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> seguidorServicio.seguirCreador(20L, 99L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -126,7 +126,7 @@ class SeguidorServicioImplTest {
         given(perfilCreadorRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> seguidorServicio.dejarDeSeguirCreador(20L, 99L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -181,7 +181,7 @@ class SeguidorServicioImplTest {
     @Test
     @DisplayName("listarSeguidores — mapea la lista de seguidores del perfil")
     void listarSeguidores_mapeaLista() {
-        Usuario seguidor = Usuario.builder().idUsuario(30L).nombres("Carlos").apellidos("Pino").build();
+        User seguidor = User.builder().idUsuario(30L).nombres("Carlos").apellidos("Pino").build();
         Seguidor s = Seguidor.builder()
                 .idSeguimiento(5L).usuarioSeguidor(seguidor).perfilCreador(perfilCreador)
                 .notificacionesActivas(true).fechaSeguimiento(LocalDateTime.now()).build();
@@ -198,7 +198,7 @@ class SeguidorServicioImplTest {
     @DisplayName("listarCreadoresSeguidosNovedades — genera el handle a partir del nombre")
     void listarCreadoresSeguidosNovedades_generaHandle() {
         Seguidor s = Seguidor.builder()
-                .idSeguimiento(5L).usuarioSeguidor(Usuario.builder().idUsuario(20L).build())
+                .idSeguimiento(5L).usuarioSeguidor(User.builder().idUsuario(20L).build())
                 .perfilCreador(perfilCreador).fechaSeguimiento(LocalDateTime.now()).build();
         given(seguidorRepository.findByUsuarioSeguidorIdUsuario(20L)).willReturn(List.of(s));
 
@@ -212,10 +212,10 @@ class SeguidorServicioImplTest {
     @Test
     @DisplayName("listarCreadoresSeguidosNovedades — usa handle por defecto si el creador no tiene nombre")
     void listarCreadoresSeguidosNovedades_sinNombre_usaHandlePorDefecto() {
-        Usuario creadorSinNombre = Usuario.builder().idUsuario(11L).build();
+        User creadorSinNombre = User.builder().idUsuario(11L).build();
         PerfilCreador perfilSinNombre = PerfilCreador.builder().idPerfil(2L).usuario(creadorSinNombre).build();
         Seguidor s = Seguidor.builder()
-                .idSeguimiento(6L).usuarioSeguidor(Usuario.builder().idUsuario(20L).build())
+                .idSeguimiento(6L).usuarioSeguidor(User.builder().idUsuario(20L).build())
                 .perfilCreador(perfilSinNombre).fechaSeguimiento(LocalDateTime.now()).build();
         given(seguidorRepository.findByUsuarioSeguidorIdUsuario(20L)).willReturn(List.of(s));
 
@@ -230,7 +230,7 @@ class SeguidorServicioImplTest {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> seguidorServicio.actualizarPortadaYTitulo(99L, "url", "titulo"))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

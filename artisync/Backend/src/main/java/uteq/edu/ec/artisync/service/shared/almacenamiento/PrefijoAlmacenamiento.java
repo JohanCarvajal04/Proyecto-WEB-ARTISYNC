@@ -1,6 +1,6 @@
 package uteq.edu.ec.artisync.service.shared.almacenamiento;
 
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 /**
  * Prefijos con los que se agrupan los archivos por caso de uso. Son parte de la
@@ -29,7 +29,7 @@ public final class PrefijoAlmacenamiento {
         }
         String limpio = prefijo.trim();
         if (!limpio.matches("[a-z0-9-]+")) {
-            throw new ExcepcionReglaNegocio("Prefijo de almacenamiento inválido: " + prefijo);
+            throw new BusinessRuleException("Prefijo de almacenamiento inválido: " + prefijo);
         }
         return limpio + "/" + nombre;
     }

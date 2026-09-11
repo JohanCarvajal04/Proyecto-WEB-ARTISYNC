@@ -11,9 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.config.StorageProperties;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,8 +40,8 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
     private final long sasMinutos;
     private volatile boolean contenedorVerificado = false;
 
-    public AlmacenamientoAzure(AlmacenamientoProperties propiedades) {
-        AlmacenamientoProperties.Azure config = propiedades.getAzure();
+    public AlmacenamientoAzure(StorageProperties propiedades) {
+        StorageProperties.Azure config = propiedades.getAzure();
         if (config.getConnectionString() == null || config.getConnectionString().isBlank()) {
             throw new IllegalStateException(
                     "documentos.proveedor=azure requiere documentos.azure.connection-string "
@@ -75,7 +75,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
                 }
                 contenedorVerificado = true;
             } catch (BlobStorageException e) {
-                throw new ExcepcionReglaNegocio(
+                throw new BusinessRuleException(
                         "No se pudo acceder al contenedor de Azure: " + e.getServiceMessage());
             }
         }
@@ -87,7 +87,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
      *
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String guardar(MultipartFile archivo) {
         return guardar(archivo, "");
@@ -100,7 +100,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @param prefijo parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String guardar(MultipartFile archivo, String prefijo) {
         asegurarContenedor();
@@ -112,7 +112,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
             blob.upload(entrada, archivo.getSize(), true);
             blob.setHttpHeaders(new BlobHttpHeaders().setContentType(archivo.getContentType()));
         } catch (IOException | BlobStorageException e) {
-            throw new ExcepcionReglaNegocio("No se pudo guardar el documento: " + e.getMessage());
+            throw new BusinessRuleException("No se pudo guardar el documento: " + e.getMessage());
         }
 
         log.info("Documento guardado en Azure: {}", nombreBlob);
@@ -129,9 +129,9 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
             blob.downloadStream(salida);
         } catch (BlobStorageException e) {
             if (e.getStatusCode() == 404) {
-                throw new ExcepcionRecursoNoEncontrado("Documento no disponible: " + referencia);
+                throw new ResourceNotFoundException("Documento no disponible: " + referencia);
             }
-            throw new ExcepcionReglaNegocio("No se pudo leer el documento: " + e.getServiceMessage());
+            throw new BusinessRuleException("No se pudo leer el documento: " + e.getServiceMessage());
         }
         return salida.toByteArray();
     }
@@ -141,7 +141,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param referencia parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminar(String referencia) {
         validarReferencia(referencia);
@@ -150,7 +150,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
         try {
             blob.deleteIfExists();
         } catch (BlobStorageException e) {
-            throw new ExcepcionReglaNegocio("No se pudo eliminar el documento: " + e.getServiceMessage());
+            throw new BusinessRuleException("No se pudo eliminar el documento: " + e.getServiceMessage());
         }
     }
 
@@ -178,7 +178,7 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
         if (referencia == null || referencia.isBlank()
                 || referencia.startsWith("/")
                 || referencia.contains("..")) {
-            throw new ExcepcionReglaNegocio("Referencia de documento inválida.");
+            throw new BusinessRuleException("Referencia de documento inválida.");
         }
     }
 }

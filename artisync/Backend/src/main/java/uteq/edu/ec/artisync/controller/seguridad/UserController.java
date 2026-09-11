@@ -15,9 +15,9 @@ import uteq.edu.ec.artisync.dto.seguridad.request.TwoFactorConfirmRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.seguridad.PrivacidadService;
+import uteq.edu.ec.artisync.service.seguridad.PrivacyService;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.ExtensionesArchivo;
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class UserController {
 
     private final UserService userService;
-    private final PrivacidadService privacidadService;
+    private final PrivacyService privacidadService;
     private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
     /**
@@ -151,7 +151,7 @@ public class UserController {
      *
      * @param request petición HTTP, de la cual se extrae la referencia de la foto solicitada
      * @return el contenido binario de la foto con su tipo de contenido y cabecera de caché
-     * @throws ExcepcionRecursoNoEncontrado si la referencia no corresponde a una foto bajo el prefijo "perfiles/"
+     * @throws ResourceNotFoundException si la referencia no corresponde a una foto bajo el prefijo "perfiles/"
      */
     @Operation(summary = "Servir la foto de perfil de un usuario (público)")
     @GetMapping("/foto/**")
@@ -160,7 +160,7 @@ public class UserController {
         String prefix = "/api/v1/usuarios/foto/";
         String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());
         if (!referencia.startsWith(PrefijoAlmacenamiento.PERFILES + "/")) {
-            throw new ExcepcionRecursoNoEncontrado("Documento no disponible: " + referencia);
+            throw new ResourceNotFoundException("Documento no disponible: " + referencia);
         }
         byte[] contenido = almacenamientoDocumentos.leer(referencia);
         String contentType = ExtensionesArchivo.contentTypeDe(referencia);

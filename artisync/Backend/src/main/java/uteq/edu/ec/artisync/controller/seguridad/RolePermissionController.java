@@ -10,8 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.dto.seguridad.request.*;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.seguridad.response.PermisoResponse;
-import uteq.edu.ec.artisync.dto.seguridad.response.RolResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.PermissionResponse;
+import uteq.edu.ec.artisync.dto.seguridad.response.RoleResponse;
 import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 
 import java.util.List;
@@ -33,7 +33,7 @@ public class RolePermissionController {
     @Operation(summary = "Listar todos los roles y sus permisos asignados")
     @GetMapping("/roles")
     @PreAuthorize("hasAuthority('ROL_VER') or hasAuthority('ROL_GESTIONAR') or hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')")
-    public ResponseEntity<List<RolResponse>> getAllRoles() {
+    public ResponseEntity<List<RoleResponse>> getAllRoles() {
         return ResponseEntity.ok(service.getAllRoles());
     }
 
@@ -45,7 +45,7 @@ public class RolePermissionController {
     @Operation(summary = "Listar el catálogo completo de permisos disponibles por módulo")
     @GetMapping("/permisos")
     @PreAuthorize("hasAuthority('PERMISO_VER') or hasAuthority('ROL_GESTIONAR') or hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')")
-    public ResponseEntity<List<PermisoResponse>> getAllPermisos() {
+    public ResponseEntity<List<PermissionResponse>> getAllPermisos() {
         return ResponseEntity.ok(service.getAllPermisos());
     }
 
@@ -85,7 +85,7 @@ public class RolePermissionController {
     @Operation(summary = "Crear un nuevo rol personalizado con su matriz inicial de permisos")
     @PostMapping("/roles")
     @PreAuthorize("hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RolResponse> createRole(@Valid @RequestBody CreateRoleRequest request) {
+    public ResponseEntity<RoleResponse> createRole(@Valid @RequestBody CreateRoleRequest request) {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(service.createRole(request));
     }
 
@@ -99,7 +99,7 @@ public class RolePermissionController {
     @Operation(summary = "Actualizar descripción de un rol")
     @PutMapping("/roles/{idRol}")
     @PreAuthorize("hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RolResponse> updateRole(@PathVariable Long idRol, @Valid @RequestBody UpdateRoleRequest request) {
+    public ResponseEntity<RoleResponse> updateRole(@PathVariable Long idRol, @Valid @RequestBody UpdateRoleRequest request) {
         return ResponseEntity.ok(service.updateRole(idRol, request));
     }
 
@@ -114,7 +114,7 @@ public class RolePermissionController {
     @PreAuthorize("hasAuthority('ROL_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<RespuestaMensaje> deleteRole(@PathVariable Long idRol) {
         service.deleteRole(idRol);
-        return ResponseEntity.ok(new RespuestaMensaje("Rol eliminado exitosamente"));
+        return ResponseEntity.ok(new RespuestaMensaje("Role eliminado exitosamente"));
     }
 }
 

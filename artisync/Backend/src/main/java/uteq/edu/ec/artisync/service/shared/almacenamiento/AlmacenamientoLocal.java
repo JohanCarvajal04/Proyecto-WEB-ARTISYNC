@@ -4,9 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.config.StorageProperties;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +24,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
 
     private final Path rutaBase;
 
-    public AlmacenamientoLocal(AlmacenamientoProperties propiedades) {
+    public AlmacenamientoLocal(StorageProperties propiedades) {
         this.rutaBase = Paths.get(propiedades.getRutaBase()).toAbsolutePath().normalize();
         log.info("Almacenamiento local de documentos configurado en {}", rutaBase);
     }
@@ -43,7 +43,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
      *
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String guardar(MultipartFile archivo) {
         return guardar(archivo, "");
@@ -56,7 +56,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @param prefijo parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String guardar(MultipartFile archivo, String prefijo) {
         asegurarDirectorio();
@@ -68,7 +68,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
             Files.createDirectories(destino.getParent());
             Files.copy(in, destino, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new ExcepcionReglaNegocio("No se pudo guardar el documento: " + e.getMessage());
+            throw new BusinessRuleException("No se pudo guardar el documento: " + e.getMessage());
         }
         return nombre;
     }
@@ -80,7 +80,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
      *
      * @param referencia parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Optional<String> urlTemporal(String referencia) {
         return Optional.empty();
@@ -92,7 +92,7 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
         try {
             return Files.readAllBytes(ruta);
         } catch (IOException e) {
-            throw new ExcepcionRecursoNoEncontrado("Documento no disponible: " + referencia);
+            throw new ResourceNotFoundException("Documento no disponible: " + referencia);
         }
     }
 
@@ -101,21 +101,21 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param referencia parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminar(String referencia) {
         Path ruta = resolverDentroDeBase(referencia);
         try {
             Files.deleteIfExists(ruta);
         } catch (IOException e) {
-            throw new ExcepcionReglaNegocio("No se pudo eliminar el documento: " + e.getMessage());
+            throw new BusinessRuleException("No se pudo eliminar el documento: " + e.getMessage());
         }
     }
 
     private Path resolverDentroDeBase(String referencia) {
         Path ruta = rutaBase.resolve(referencia).normalize();
         if (!ruta.startsWith(rutaBase)) {
-            throw new ExcepcionReglaNegocio("Referencia de documento inválida.");
+            throw new BusinessRuleException("Referencia de documento inválida.");
         }
         return ruta;
     }

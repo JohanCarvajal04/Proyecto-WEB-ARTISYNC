@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -20,14 +20,14 @@ import static org.mockito.BDDMockito.given;
  * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8):
  * {@link CustomUserDetailsService} ahora construye el {@link UserDetails} a
  * partir del JSONB de fn_permisos_efectivos_usuario en vez de recorrer
- * usuario_roles + Rol.permisos en Java, asi que estas pruebas fijan el
+ * usuario_roles + Role.permisos en Java, asi que estas pruebas fijan el
  * contrato de ese JSON en vez de mockear repositorios de roles/permisos.
  */
 @ExtendWith(MockitoExtension.class)
 class CustomUserDetailsServiceTest {
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
 
     private CustomUserDetailsService service;
 

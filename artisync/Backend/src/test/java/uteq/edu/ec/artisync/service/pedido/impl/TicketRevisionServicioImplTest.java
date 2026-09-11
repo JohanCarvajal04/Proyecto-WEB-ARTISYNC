@@ -20,9 +20,9 @@ import uteq.edu.ec.artisync.entity.pedido.MotivoRechazo;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
@@ -52,15 +52,15 @@ class TicketRevisionServicioImplTest {
     @InjectMocks
     private TicketRevisionServicioImpl ticketRevisionServicio;
 
-    private Usuario cliente;
-    private Usuario creador;
+    private User cliente;
+    private User creador;
     private Pedido pedido;
     private MotivoRechazo motivo;
 
     @BeforeEach
     void setUp() {
-        cliente = Usuario.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").correo("cliente@test.com").build();
-        creador = Usuario.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").correo("creador@test.com").build();
+        cliente = User.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").correo("cliente@test.com").build();
+        creador = User.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").correo("creador@test.com").build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
         Servicio servicio = Servicio.builder().idServicio(1L).perfil(perfil).cargoRevisionAdicional(new BigDecimal("5.00")).build();
         pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).precioPactado(BigDecimal.TEN).build();
@@ -94,7 +94,7 @@ class TicketRevisionServicioImplTest {
         given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
 
         assertThatThrownBy(() -> ticketRevisionServicio.crearTicketRevision(1L, 99L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -103,7 +103,7 @@ class TicketRevisionServicioImplTest {
         given(pedidoRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> ticketRevisionServicio.crearTicketRevision(1L, 1L, PeticionCrearTicketRevision.builder().build()))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -114,7 +114,7 @@ class TicketRevisionServicioImplTest {
         given(motivoRechazoRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> ticketRevisionServicio.crearTicketRevision(1L, 1L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -226,7 +226,7 @@ class TicketRevisionServicioImplTest {
         given(pedidoRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> ticketRevisionServicio.listarTicketsPorPedido(1L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -283,7 +283,7 @@ class TicketRevisionServicioImplTest {
         given(ticketRevisionRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> ticketRevisionServicio.cambiarEstadoTicket(1L, 2L, "Resuelto"))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     private void autenticarComo(String correo, String... authorities) {

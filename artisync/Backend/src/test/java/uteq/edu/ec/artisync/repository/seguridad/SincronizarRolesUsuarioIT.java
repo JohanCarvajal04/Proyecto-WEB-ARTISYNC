@@ -34,7 +34,7 @@ class SincronizarRolesUsuarioIT {
                     "VALUES (9201, 'Carla', 'Ascendida', 'carla.ascendida@test.dev', 'x', true)";
 
     @Autowired
-    private UsuarioRolRepository usuarioRolRepository;
+    private UserRoleRepository usuarioRolRepository;
 
     @Autowired
     private PerfilCreadorRepository perfilCreadorRepository;

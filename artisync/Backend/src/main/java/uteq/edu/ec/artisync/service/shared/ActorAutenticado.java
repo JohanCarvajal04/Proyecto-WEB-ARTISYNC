@@ -6,7 +6,7 @@ import uteq.edu.ec.artisync.security.CustomUserDetails;
 
 /**
  * Resuelve el usuario autenticado a partir de SecurityContextHolder, para uso
- * exclusivo de infraestructura transversal (AspectoAuditoria).
+ * exclusivo de infraestructura transversal (AuditAspect).
  *
  * ADVERTENCIA DE CONVENCIÓN: desde 626f955 ("exige propiedad del perfil de
  * creador") la regla del proyecto es que los SERVICIOS de negocio no lean
@@ -34,7 +34,7 @@ public final class ActorAutenticado {
      * @param id identificador unico que referencia de manera univoca al registro
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public record Actor(Long id, String correo) {
     }

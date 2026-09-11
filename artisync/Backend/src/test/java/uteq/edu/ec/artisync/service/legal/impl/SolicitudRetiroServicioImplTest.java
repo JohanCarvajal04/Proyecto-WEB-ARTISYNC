@@ -16,13 +16,13 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSaldoCreador;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSolicitudRetiro;
 import uteq.edu.ec.artisync.entity.legal.SolicitudRetiro;
 import uteq.edu.ec.artisync.entity.perfil.DatosPagoCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.SolicitudRetiroRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -53,25 +53,25 @@ class SolicitudRetiroServicioImplTest {
     @Mock private SolicitudRetiroRepository solicitudRetiroRepository;
     @Mock private DatosPagoCreadorRepository datosPagoCreadorRepository;
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
 
     @InjectMocks
     private SolicitudRetiroServicioImpl servicio;
 
-    private Usuario creador;
+    private User creador;
     private DatosPagoCreador datosPago;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(servicio, "montoMinimo", MONTO_MINIMO);
 
-        creador = Usuario.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Creadora").build();
+        creador = User.builder().idUsuario(ID_CREADOR).nombres("Ana").apellidos("Creadora").build();
         datosPago = DatosPagoCreador.builder().usuario(creador).correoPaypal("ana@paypal.test").build();
 
         given(datosPagoCreadorRepository.findByUsuarioIdUsuario(ID_CREADOR)).willReturn(Optional.of(datosPago));
         given(usuarioRepository.findById(ID_CREADOR)).willReturn(Optional.of(creador));
         given(usuarioRepository.findById(ID_ADMIN))
-                .willReturn(Optional.of(Usuario.builder().idUsuario(ID_ADMIN).nombres("Admin").apellidos("X").build()));
+                .willReturn(Optional.of(User.builder().idUsuario(ID_ADMIN).nombres("Admin").apellidos("X").build()));
         given(solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(anyLong(), any())).willReturn(false);
         given(transaccionPagoRepository.sumEgresosPorCreador(ID_CREADOR)).willReturn(new BigDecimal("100.00"));
         given(solicitudRetiroRepository.sumMontosEnCursoPorCreador(anyLong(), any())).willReturn(BigDecimal.ZERO);
@@ -104,7 +104,7 @@ class SolicitudRetiroServicioImplTest {
         given(datosPagoCreadorRepository.findByUsuarioIdUsuario(ID_CREADOR)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("20.00")))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("correo de PayPal");
         verify(solicitudRetiroRepository, never()).save(any());
     }
@@ -113,7 +113,7 @@ class SolicitudRetiroServicioImplTest {
     @DisplayName("un monto bajo el mínimo configurado se rechaza")
     void solicitar_bajoMontoMinimo_rechaza() {
         assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("5.00")))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("mínimo");
         verify(solicitudRetiroRepository, never()).save(any());
     }
@@ -124,7 +124,7 @@ class SolicitudRetiroServicioImplTest {
         given(transaccionPagoRepository.sumEgresosPorCreador(ID_CREADOR)).willReturn(new BigDecimal("50.00"));
 
         assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("80.00")))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("saldo disponible");
         verify(solicitudRetiroRepository, never()).save(any());
     }
@@ -135,7 +135,7 @@ class SolicitudRetiroServicioImplTest {
         given(solicitudRetiroRepository.existsByUsuarioCreadorIdUsuarioAndEstadoIn(anyLong(), any())).willReturn(true);
 
         assertThatThrownBy(() -> servicio.solicitar(ID_CREADOR, peticion("20.00")))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("en curso");
         verify(solicitudRetiroRepository, never()).save(any());
     }
@@ -157,7 +157,7 @@ class SolicitudRetiroServicioImplTest {
     @DisplayName("rechazar sin nota es rechazado")
     void rechazar_sinNota_rechaza() {
         assertThatThrownBy(() -> servicio.rechazar(1L, ID_ADMIN, "  "))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("motivo");
         verify(solicitudRetiroRepository, never()).findByIdParaActualizar(any());
     }
@@ -168,7 +168,7 @@ class SolicitudRetiroServicioImplTest {
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicio.rechazar(1L, ID_ADMIN, "motivo válido"))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -180,7 +180,7 @@ class SolicitudRetiroServicioImplTest {
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.of(solicitud));
 
         assertThatThrownBy(() -> servicio.rechazar(1L, ID_ADMIN, "motivo válido"))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Pendiente");
     }
 
@@ -213,7 +213,7 @@ class SolicitudRetiroServicioImplTest {
         given(solicitudRetiroRepository.findByIdParaActualizar(1L)).willReturn(Optional.of(solicitud));
 
         assertThatThrownBy(() -> servicio.aprobar(1L, ID_ADMIN))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(solicitudRetiroRepository, never()).save(any());
     }
 

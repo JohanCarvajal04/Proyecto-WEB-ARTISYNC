@@ -17,8 +17,8 @@ public interface IPortafolioItemServicio {
      * @param peticion     título y descripción de la obra
      * @param archivo      imagen o video de la obra
      * @return la obra recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el portafolio no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el dueño del portafolio, o si ya alcanzó el máximo de obras permitido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio, o si ya alcanzó el máximo de obras permitido
      */
     RespuestaPortafolioItem subirItem(Long idPortafolio, Long idUsuario,
                                        PeticionCrearPortafolioItem peticion, MultipartFile archivo);
@@ -29,8 +29,8 @@ public interface IPortafolioItemServicio {
      * @param idPortafolio id del portafolio
      * @param idUsuario    id del usuario consultante, o {@code null} si no hay sesión
      * @return las obras del portafolio
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el portafolio no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el portafolio no es público y el solicitante no es su dueño
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
     List<RespuestaPortafolioItem> listarItems(Long idPortafolio, Long idUsuario);
 
@@ -40,8 +40,8 @@ public interface IPortafolioItemServicio {
      * @param idItem    id de la obra
      * @param idUsuario id del usuario consultante, o {@code null} si no hay sesión
      * @return la obra encontrada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el portafolio no es público y el solicitante no es su dueño
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
     RespuestaPortafolioItem obtenerItem(Long idItem, Long idUsuario);
 
@@ -53,8 +53,8 @@ public interface IPortafolioItemServicio {
      * @param idUsuario id del usuario que edita, debe ser el dueño del portafolio
      * @param peticion  nuevo título y descripción
      * @return la obra ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el dueño del portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio
      */
     RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion);
 
@@ -64,8 +64,8 @@ public interface IPortafolioItemServicio {
      * @param idItem    id de la obra
      * @param idUsuario id del usuario consultante, o {@code null} si no hay sesión
      * @return el contenido del archivo, listo para responder al cliente HTTP
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el portafolio no es público y el solicitante no es su dueño
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
     ArchivoItem descargarArchivo(Long idItem, Long idUsuario);
 
@@ -74,8 +74,8 @@ public interface IPortafolioItemServicio {
      *
      * @param idItem    id de la obra a eliminar
      * @param idUsuario id del usuario que elimina, debe ser el dueño del portafolio
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la obra no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es el dueño del portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio
      */
     void eliminarItem(Long idItem, Long idUsuario);
 

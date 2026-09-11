@@ -12,8 +12,8 @@ public interface IContratoServicio {
      * @param idPedido             id del pedido a contratar
      * @param idUsuarioSolicitante id del usuario que solicita la generación
      * @return el contrato recién generado, sin firmas
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe un contrato para este pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe un contrato para este pedido
      */
     RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante);
 
@@ -23,8 +23,8 @@ public interface IContratoServicio {
      * @param idContrato id del contrato a firmar
      * @param idUsuario  id del usuario que firma, debe ser el cliente o el creador del pedido
      * @return el contrato con la firma ya registrada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si esa parte ya había firmado el contrato
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si esa parte ya había firmado el contrato
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es parte del contrato
      */
     RespuestaContrato firmarContrato(Long idContrato, Long idUsuario);
@@ -35,7 +35,7 @@ public interface IContratoServicio {
      * @param idContrato           id del contrato
      * @param idUsuarioSolicitante id del usuario que consulta
      * @return el detalle del contrato
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      */
     RespuestaContrato obtenerContrato(Long idContrato, Long idUsuarioSolicitante);
 
@@ -45,7 +45,7 @@ public interface IContratoServicio {
      * @param idPedido             id del pedido
      * @param idUsuarioSolicitante id del usuario que consulta
      * @return el contrato del pedido
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene contrato
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato
      */
     RespuestaContrato obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante);
 
@@ -55,7 +55,7 @@ public interface IContratoServicio {
      * @param idContrato           id del contrato
      * @param idUsuarioSolicitante id del usuario que consulta
      * @return el estado de firma del contrato
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      */
     RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante);
 
@@ -65,7 +65,7 @@ public interface IContratoServicio {
      * @param idContrato           id del contrato
      * @param idUsuarioSolicitante id del usuario que solicita el PDF
      * @return los bytes del PDF generado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
      */
     byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante);
 
@@ -75,8 +75,8 @@ public interface IContratoServicio {
      *
      * @param idContrato id del contrato a verificar
      * @return el resultado de la comparación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el contrato aún no está firmado por ambas partes
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el contrato aún no está firmado por ambas partes
      */
     RespuestaVerificacionIntegridad verificarIntegridadHash(Long idContrato);
 }

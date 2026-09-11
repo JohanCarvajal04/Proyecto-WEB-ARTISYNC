@@ -14,15 +14,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.catalogo.*;
 import uteq.edu.ec.artisync.dto.respuesta.catalogo.*;
 import uteq.edu.ec.artisync.entity.catalogo.*;
 import uteq.edu.ec.artisync.entity.comunicacion.BriefingPlantilla;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.*;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingPlantillaRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
@@ -60,7 +60,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
-    @Auditable(accion = "SERVICIO_CREAR", modulo = ModuloAuditoria.CATALOGO,
+    @Auditable(accion = "SERVICIO_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#resultado.idServicio",
             detalle = "{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}")
     /**
@@ -69,15 +69,15 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaServicio crearServicio(Long idPerfilCreador, PeticionCrearServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
-            throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
+            throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
         }
 
         PerfilCreador perfil = perfilRepository.findById(idPerfilCreador)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil creador no encontrado con ID: " + idPerfilCreador));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil creador no encontrado con ID: " + idPerfilCreador));
 
         validarPropiedadOAdmin(perfil);
         validarIdentidadVerificada(perfil);
@@ -110,7 +110,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
-    @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
+    @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio",
             detalle = "{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}")
     /**
@@ -119,22 +119,22 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param idServicio identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaServicio actualizarServicio(Long idServicio, PeticionActualizarServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
-            throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
+            throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
         }
 
         Servicio servicio = servicioRepository.findById(idServicio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio));
 
         validarPropiedadOAdmin(servicio.getPerfil());
 
         List<Subcategoria> nuevasSubcategorias = null;
         if (peticion.getIdsSubcategoria() != null) {
             if (peticion.getIdsSubcategoria().isEmpty()) {
-                throw new ExcepcionReglaNegocio("El servicio necesita al menos una subcategoria");
+                throw new BusinessRuleException("El servicio necesita al menos una subcategoria");
             }
             nuevasSubcategorias = resolverSubcategorias(peticion.getIdsSubcategoria());
         }
@@ -193,28 +193,28 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      *
      * @param idServicio identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaServicio obtenerServicioPorId(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio));
         return mapearAServicioRespuestaCompleta(servicio);
     }
 
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
-    @Auditable(accion = "SERVICIO_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
+    @Auditable(accion = "SERVICIO_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarServicio(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio));
 
         validarPropiedadOAdmin(servicio.getPerfil());
 
@@ -226,7 +226,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
-    @Auditable(accion = "SERVICIO_QUITAR_SUBCATEGORIA", modulo = ModuloAuditoria.CATALOGO,
+    @Auditable(accion = "SERVICIO_QUITAR_SUBCATEGORIA", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio", detalle = "{idSubcategoria: #idSubcategoria}")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -234,14 +234,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param idServicio identificador unico que referencia de manera univoca al registro
      * @param idSubcategoria identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaServicio quitarSubcategoria(Long idServicio, Long idSubcategoria) {
         if (!servicioRepository.existsById(idServicio)) {
-            throw new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio);
+            throw new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio);
         }
         if (servicioSubcategoriaRepository.countByServicioIdServicio(idServicio) <= 1) {
-            throw new ExcepcionReglaNegocio("Un servicio necesita al menos una subcategoria");
+            throw new BusinessRuleException("Un servicio necesita al menos una subcategoria");
         }
         servicioSubcategoriaRepository.deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(idServicio, idSubcategoria);
         return obtenerServicioPorId(idServicio);
@@ -256,7 +256,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param page parametro requerido para la correcta ejecucion del procedimiento
      * @param size parametro requerido para la correcta ejecucion del procedimiento
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Page<RespuestaServicioResumido> listarParaModeracion(String textoBusqueda, int page, int size) {
         Specification<Servicio> spec = ServicioSpecification.conFiltros(
@@ -271,7 +271,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      *
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo) {
         uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo.PERFIL.validar(archivo);
@@ -287,11 +287,11 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
      * @param estadoPublicacion parametro requerido para la correcta ejecucion del procedimiento
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaServicioResumido> listarServiciosPorCreador(Long idPerfilCreador, String estadoPublicacion) {
         if (!perfilRepository.existsById(idPerfilCreador)) {
-            throw new ExcepcionRecursoNoEncontrado("Perfil creador no encontrado con ID: " + idPerfilCreador);
+            throw new ResourceNotFoundException("Perfil creador no encontrado con ID: " + idPerfilCreador);
         }
         List<Servicio> servicios;
         if (estadoPublicacion != null && !estadoPublicacion.isBlank()) {
@@ -385,11 +385,11 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      *
      * @param idServicio identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaAtributo> listarAtributosPorServicio(Long idServicio) {
         if (!servicioRepository.existsById(idServicio)) {
-            throw new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio);
+            throw new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio);
         }
         return servicioAtributoRepository.findByServicioIdServicio(idServicio)
                 .stream()
@@ -405,17 +405,17 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param idServicio identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaAtributo agregarAtributo(Long idServicio, PeticionCrearAtributo peticion) {
         Servicio servicio = servicioRepository.findById(idServicio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio));
 
         validarPropiedadOAdmin(servicio.getPerfil());
 
         long count = servicioAtributoRepository.countByServicioIdServicio(idServicio);
         if (count >= 10) {
-            throw new ExcepcionReglaNegocio("Se ha alcanzado el límite de 10 atributos personalizados por ítem");
+            throw new BusinessRuleException("Se ha alcanzado el límite de 10 atributos personalizados por ítem");
         }
 
         AtributoDinamico atributo = atributoRepository.findByNombreAtributoIgnoreCase(peticion.getNombreAtributo().trim())
@@ -428,7 +428,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 });
 
         if (servicioAtributoRepository.findByServicioIdServicioAndAtributoIdAtributo(idServicio, atributo.getIdAtributo()).isPresent()) {
-            throw new ExcepcionReglaNegocio("El atributo '" + atributo.getNombreAtributo() + "' ya se encuentra asociado a este servicio");
+            throw new BusinessRuleException("El atributo '" + atributo.getNombreAtributo() + "' ya se encuentra asociado a este servicio");
         }
 
         ServicioAtributo sa = ServicioAtributo.builder()
@@ -450,19 +450,19 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      * @param idServicioAtributo identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaAtributo actualizarAtributo(Long idServicio, Long idServicioAtributo, PeticionActualizarAtributo peticion) {
         Servicio servicio = servicioRepository.findById(idServicio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio));
 
         validarPropiedadOAdmin(servicio.getPerfil());
 
         ServicioAtributo sa = servicioAtributoRepository.findById(idServicioAtributo)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Atributo del servicio no encontrado con ID: " + idServicioAtributo));
+                .orElseThrow(() -> new ResourceNotFoundException("Atributo del servicio no encontrado con ID: " + idServicioAtributo));
 
         if (!sa.getServicio().getIdServicio().equals(idServicio)) {
-            throw new ExcepcionReglaNegocio("El atributo no pertenece a este servicio");
+            throw new BusinessRuleException("El atributo no pertenece a este servicio");
         }
 
         sa.setValorAsignado(peticion.getValorAsignado().trim());
@@ -478,19 +478,19 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
      *
      * @param idServicio identificador unico que referencia de manera univoca al registro
      * @param idServicioAtributo identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarAtributo(Long idServicio, Long idServicioAtributo) {
         Servicio servicio = servicioRepository.findById(idServicio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
+                .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + idServicio));
 
         validarPropiedadOAdmin(servicio.getPerfil());
 
         ServicioAtributo sa = servicioAtributoRepository.findById(idServicioAtributo)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Atributo del servicio no encontrado con ID: " + idServicioAtributo));
+                .orElseThrow(() -> new ResourceNotFoundException("Atributo del servicio no encontrado con ID: " + idServicioAtributo));
 
         if (!sa.getServicio().getIdServicio().equals(idServicio)) {
-            throw new ExcepcionReglaNegocio("El atributo no pertenece a este servicio");
+            throw new BusinessRuleException("El atributo no pertenece a este servicio");
         }
 
         servicioAtributoRepository.delete(sa);
@@ -512,7 +512,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private List<Subcategoria> resolverSubcategorias(List<Long> idsSubcategoria) {
         List<Subcategoria> subcategorias = subcategoriaRepository.findAllById(idsSubcategoria);
         if (subcategorias.size() != new java.util.HashSet<>(idsSubcategoria).size()) {
-            throw new ExcepcionRecursoNoEncontrado("Una o más subcategorias indicadas no existen");
+            throw new ResourceNotFoundException("Una o más subcategorias indicadas no existen");
         }
         return subcategorias;
     }
@@ -616,7 +616,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             return null;
         }
         return flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(idFlujo, perfil.getUsuario().getIdUsuario())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Flujo de trabajo no encontrado con ID: " + idFlujo));
     }
 
@@ -633,14 +633,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             return null;
         }
         PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantillaContrato)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Plantilla de contrato no encontrada con ID: " + idPlantillaContrato));
         if (plantilla.getIdCreador() != null && !plantilla.getIdCreador().equals(perfil.getUsuario().getIdUsuario())) {
-            throw new ExcepcionRecursoNoEncontrado(
+            throw new ResourceNotFoundException(
                     "Plantilla de contrato no encontrada con ID: " + idPlantillaContrato);
         }
         if (!Boolean.TRUE.equals(plantilla.getActiva())) {
-            throw new ExcepcionReglaNegocio("La plantilla de contrato elegida ya no está activa");
+            throw new BusinessRuleException("La plantilla de contrato elegida ya no está activa");
         }
         return plantilla;
     }
@@ -657,7 +657,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
         }
         return briefingPlantillaRepository.findByIdBriefingPlantillaAndPerfilCreadorIdPerfil(
                         idBriefingPlantilla, perfil.getIdPerfil())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Cuestionario de briefing no encontrado con ID: " + idBriefingPlantilla));
     }
 
@@ -717,7 +717,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     private void validarIdentidadVerificada(PerfilCreador perfil) {
         Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
         if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Debes verificar tu identidad antes de publicar un servicio. Sube tu documento de identidad desde tu perfil.");
         }
     }
@@ -730,7 +730,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             if (!esAdmin && perfil.getUsuario() != null) {
                 String correoActual = auth.getName();
                 if (!correoActual.equalsIgnoreCase(perfil.getUsuario().getCorreo())) {
-                    throw new ExcepcionReglaNegocio("No tiene permisos para gestionar servicios de este perfil del creador");
+                    throw new BusinessRuleException("No tiene permisos para gestionar servicios de este perfil del creador");
                 }
             }
         }

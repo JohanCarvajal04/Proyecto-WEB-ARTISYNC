@@ -1,8 +1,8 @@
 package uteq.edu.ec.artisync.service.shared.almacenamiento;
 
 import org.junit.jupiter.api.Test;
-import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.config.StorageProperties;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,7 +22,7 @@ class AlmacenamientoAzureTest {
                     + "EndpointSuffix=core.windows.net";
 
     private AlmacenamientoAzure almacenamientoConCuentaFicticia() {
-        AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        StorageProperties propiedades = new StorageProperties();
         propiedades.setProveedor("azure");
         propiedades.getAzure().setConnectionString(CONEXION_FICTICIA);
         propiedades.getAzure().setContenedor("documentos-prueba");
@@ -31,7 +31,7 @@ class AlmacenamientoAzureTest {
 
     @Test
     void constructor_sinCadenaDeConexion_fallaAlArrancar() {
-        AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        StorageProperties propiedades = new StorageProperties();
         propiedades.setProveedor("azure");
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
@@ -49,16 +49,16 @@ class AlmacenamientoAzureTest {
     void leer_referenciaQueIntentaEscapar_esRechazadaAntesDeLlamarAAzure() {
         AlmacenamientoAzure almacenamiento = almacenamientoConCuentaFicticia();
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.leer("../otro-contenedor/secreto.jpg"));
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.leer("/absoluto.jpg"));
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.leer("  "));
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.leer(null));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("../otro-contenedor/secreto.jpg"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("/absoluto.jpg"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer("  "));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.leer(null));
     }
 
     @Test
     void eliminar_referenciaInvalida_esRechazadaAntesDeLlamarAAzure() {
         AlmacenamientoAzure almacenamiento = almacenamientoConCuentaFicticia();
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> almacenamiento.eliminar("../passwd"));
+        assertThrows(BusinessRuleException.class, () -> almacenamiento.eliminar("../passwd"));
     }
 }

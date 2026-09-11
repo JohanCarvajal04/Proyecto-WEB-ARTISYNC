@@ -19,10 +19,10 @@ public interface ResenaService {
      * @param peticion calificación y comentario de la reseña
      * @param idCliente id del usuario que reseña, debe ser el cliente del pedido
      * @return la reseña recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      * @throws org.springframework.web.server.ResponseStatusException {@code FORBIDDEN} si el solicitante no es el cliente del pedido
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el entregable del pedido no está liberado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el cliente ya dejó una reseña para este pedido
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el entregable del pedido no está liberado
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el cliente ya dejó una reseña para este pedido
      */
     RespuestaResena crearResena(Long idPedido, PeticionCrearResena peticion, Long idCliente);
 
@@ -43,7 +43,7 @@ public interface ResenaService {
      * @param peticion  nueva calificación y comentario
      * @param idCliente id del usuario que edita, debe ser quien creó la reseña
      * @return la reseña ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene una reseña
      * @throws org.springframework.web.server.ResponseStatusException {@code FORBIDDEN} si el solicitante no es el autor de la reseña
      */
     RespuestaResena actualizarResena(Long idPedido, PeticionCrearResena peticion, Long idCliente);
@@ -53,7 +53,7 @@ public interface ResenaService {
      *
      * @param idPedido  id del pedido reseñado
      * @param idCliente id del usuario que elimina, debe ser quien creó la reseña
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene una reseña
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene una reseña
      * @throws org.springframework.web.server.ResponseStatusException {@code FORBIDDEN} si el solicitante no es el autor de la reseña
      */
     void eliminarResena(Long idPedido, Long idCliente);

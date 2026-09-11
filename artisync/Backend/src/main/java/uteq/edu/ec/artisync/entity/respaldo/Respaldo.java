@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 /**
  * Metadatos de una ejecución de respaldo (FULL o INCREMENTAL). El archivo en
- * sí vive en disco (rutaArchivo, dentro de RespaldoProperties.rutaBase), esta
+ * sí vive en disco (rutaArchivo, dentro de BackupProperties.rutaBase), esta
  * fila es el registro de qué se generó, cuándo, y con qué resultado.
  */
 @Entity

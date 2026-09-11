@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaComentario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.service.comunicacion.ComentarioPortafolioService;
 
 import java.util.Collections;
@@ -63,9 +63,9 @@ class AdminComentarioControladorTest {
     @Test
     void ocultarComentario_propagaExcepcion_siNoExiste() {
         when(comentarioService.ocultarComentario(99L))
-                .thenThrow(new ExcepcionRecursoNoEncontrado("Comentario no encontrado: 99"));
+                .thenThrow(new ResourceNotFoundException("Comentario no encontrado: 99"));
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> controlador.ocultarComentario(99L));
+        assertThrows(ResourceNotFoundException.class, () -> controlador.ocultarComentario(99L));
     }
 
     @Test
@@ -82,9 +82,9 @@ class AdminComentarioControladorTest {
     @Test
     void reactivarComentario_propagaExcepcion_siNoExiste() {
         when(comentarioService.reactivarComentario(99L))
-                .thenThrow(new ExcepcionRecursoNoEncontrado("Comentario no encontrado: 99"));
+                .thenThrow(new ResourceNotFoundException("Comentario no encontrado: 99"));
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> controlador.reactivarComentario(99L));
+        assertThrows(ResourceNotFoundException.class, () -> controlador.reactivarComentario(99L));
     }
 
     @Test

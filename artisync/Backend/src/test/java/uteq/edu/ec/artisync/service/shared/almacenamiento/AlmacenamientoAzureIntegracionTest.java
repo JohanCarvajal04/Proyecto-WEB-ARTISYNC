@@ -3,8 +3,8 @@ package uteq.edu.ec.artisync.service.shared.almacenamiento;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import uteq.edu.ec.artisync.config.AlmacenamientoProperties;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.config.StorageProperties;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -50,7 +50,7 @@ class AlmacenamientoAzureIntegracionTest {
     }
 
     private AlmacenamientoAzure almacenamiento() {
-        AlmacenamientoProperties propiedades = new AlmacenamientoProperties();
+        StorageProperties propiedades = new StorageProperties();
         propiedades.setProveedor("azure");
         propiedades.getAzure().setConnectionString(CONEXION_AZURITE);
         // Un contenedor por ejecución evita que dos corridas se pisen.
@@ -72,7 +72,7 @@ class AlmacenamientoAzureIntegracionTest {
 
         azure.eliminar(referencia);
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> azure.leer(referencia));
+        assertThrows(ResourceNotFoundException.class, () -> azure.leer(referencia));
     }
 
     @Test
@@ -115,6 +115,6 @@ class AlmacenamientoAzureIntegracionTest {
     void leer_referenciaInexistente_reportaRecursoNoEncontrado() {
         AlmacenamientoAzure azure = almacenamiento();
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class, () -> azure.leer("no-existe.jpg"));
+        assertThrows(ResourceNotFoundException.class, () -> azure.leer("no-existe.jpg"));
     }
 }

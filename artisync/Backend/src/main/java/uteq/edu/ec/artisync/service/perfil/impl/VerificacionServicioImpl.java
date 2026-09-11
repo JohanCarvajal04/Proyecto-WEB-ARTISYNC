@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaColaVerificacion;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaEstadoIdentidad;
@@ -15,13 +15,13 @@ import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.CertificadoIa;
 import uteq.edu.ec.artisync.entity.perfil.EstadoVerificacion;
 import uteq.edu.ec.artisync.entity.perfil.TipoDocumentoVerificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 import uteq.edu.ec.artisync.repository.perfil.CertificadoIaRepository;
 import uteq.edu.ec.artisync.repository.perfil.EstadoVerificacionRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.ia.IaService;
@@ -40,7 +40,7 @@ import java.util.List;
 @Slf4j
 public class VerificacionServicioImpl implements IVerificacionServicio {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final EstadoVerificacionRepository estadoVerificacionRepository;
     private final CertificadoIaRepository certificadoIaRepository;
     private final AlmacenamientoDocumentos almacenamiento;
@@ -55,7 +55,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     @Transactional
     // Nunca el contenido ni el nombre del documento: REQ-F-006 exige
     // eliminarlo tras la respuesta, y guardarlo aquí lo contradiría.
-    @Auditable(accion = "VERIFICACION_SOLICITAR", modulo = ModuloAuditoria.PORTAFOLIO,
+    @Auditable(accion = "VERIFICACION_SOLICITAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
             detalle = "{tipoDocumento: #tipo}")
     /**
@@ -65,22 +65,22 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      * @param tipo parametro requerido para la correcta ejecucion del procedimiento
      * @param documento parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaVerificacion subir(Long idUsuarioSolicitante, TipoDocumentoVerificacion tipo, MultipartFile documento) {
-        Usuario usuario = usuarioRepository.findById(idUsuarioSolicitante)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuarioSolicitante));
+        User usuario = usuarioRepository.findById(idUsuarioSolicitante)
+                .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuarioSolicitante));
 
         if (certificadoIaRepository.existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(
                 idUsuarioSolicitante, "PENDIENTE")) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Ya existe una verificación pendiente para tu cuenta. Espera a que sea revisada antes de subir otra.");
         }
 
         preprocesador.validarFormato(documento);
 
         EstadoVerificacion pendiente = estadoVerificacionRepository.findByNombreEstado("PENDIENTE")
-                .orElseThrow(() -> new ExcepcionReglaNegocio(
+                .orElseThrow(() -> new BusinessRuleException(
                         "El estado PENDIENTE no está sembrado en estados_verificacion (ver migración V6)."));
 
         String hash = calcularHash(documento);
@@ -109,7 +109,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      * @param limite parametro requerido para la correcta ejecucion del procedimiento
      * @param offset parametro requerido para la correcta ejecucion del procedimiento
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaColaVerificacion> listarCola(String nombreEstado, int limite, int offset) {
         return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
@@ -135,7 +135,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @param esRevisor parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
         CertificadoIa certificado = buscarPorId(idCertificado);
@@ -160,13 +160,13 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      *
      * @param idCertificado identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaVerificacion analizarConIa(Long idCertificado) {
         CertificadoIa certificado = buscarPorId(idCertificado);
 
         if (certificado.isDocumentoEliminado()) {
-            throw new ExcepcionReglaNegocio("El documento ya fue eliminado; no se puede reanalizar.");
+            throw new BusinessRuleException("El documento ya fue eliminado; no se puede reanalizar.");
         }
 
         byte[] original = almacenamiento.leer(certificado.getUrlDocumentoS3());
@@ -188,7 +188,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "VERIFICACION_DECIDIR", modulo = ModuloAuditoria.PORTAFOLIO,
+    @Auditable(accion = "VERIFICACION_DECIDIR", modulo = AuditModule.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#idCertificado",
             detalle = "{idNuevoEstado: #idNuevoEstado}")
     /**
@@ -199,13 +199,13 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      * @param idNuevoEstado identificador unico que referencia de manera univoca al registro
      * @param notaModerador parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
         CertificadoIa certificado = buscarPorId(idCertificado);
 
         estadoVerificacionRepository.findById(idNuevoEstado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Estado de verificación " + idNuevoEstado + " no existe."));
+                .orElseThrow(() -> new ResourceNotFoundException("Estado de verificación " + idNuevoEstado + " no existe."));
 
         certificadoIaRepository.registrarDecision(idCertificado, idNuevoEstado, idModerador, notaModerador);
 
@@ -228,7 +228,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     /**
      * Un intento + 1 reintento, solo si el fallo es transitorio (429/timeout,
-     * ver ExcepcionServicioIaNoDisponible#isReintentable). 401/413 fallarían
+     * ver AiServiceUnavailableException#isReintentable). 401/413 fallarían
      * exactamente igual en el segundo intento y solo duplicarían la espera
      * del moderador, así que se propagan de inmediato.
      */
@@ -238,7 +238,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
             return esCertificado
                     ? iaService.analizarCertificado(comprimido, "image/jpeg")
                     : iaService.verificarIdentidad(comprimido, "image/jpeg");
-        } catch (ExcepcionServicioIaNoDisponible e) {
+        } catch (AiServiceUnavailableException e) {
             if (!e.isReintentable()) {
                 throw e;
             }
@@ -258,7 +258,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     private CertificadoIa buscarPorId(Long idCertificado) {
         return certificadoIaRepository.findById(idCertificado)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Verificación " + idCertificado + " no encontrada."));
+                .orElseThrow(() -> new ResourceNotFoundException("Verificación " + idCertificado + " no encontrada."));
     }
 
     private String calcularHash(MultipartFile documento) {
@@ -267,7 +267,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
             byte[] hash = digest.digest(documento.getBytes());
             return HexFormat.of().formatHex(hash);
         } catch (IOException e) {
-            throw new ExcepcionReglaNegocio("No se pudo leer el documento para calcular su huella.");
+            throw new BusinessRuleException("No se pudo leer el documento para calcular su huella.");
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 no disponible en esta JVM.", e);
         }
@@ -297,7 +297,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public boolean estaIdentidadVerificada(Long idUsuario) {
         return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
@@ -311,7 +311,7 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoIdentidad obtenerEstadoIdentidad(Long idUsuario) {
         boolean verificado = estaIdentidadVerificada(idUsuario);

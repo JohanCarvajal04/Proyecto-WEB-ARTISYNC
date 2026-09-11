@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 
  * Ciclo de vida: Registro inmutable. Una vez persistida, no debe alterarse, garantizando la auditoria de moderacion.
  * 
- * Relaciones principales: Vinculada a un Mensaje especifico y al Usuario infractor.
+ * Relaciones principales: Vinculada a un Mensaje especifico y al User infractor.
  */
 @Entity
 @Table(name = "infracciones_mensaje")
@@ -34,7 +34,7 @@ public class InfraccionMensaje {
     @NotNull(message = "El usuario infractor es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
-    private Usuario usuario;
+    private User usuario;
 
     @NotNull(message = "El pedido es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)

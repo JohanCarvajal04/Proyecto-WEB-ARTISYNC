@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.legal.TransaccionPago;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
@@ -82,8 +82,8 @@ class PagoServicioImplWebhookTest {
 
     @BeforeEach
     void setUp() {
-        Usuario cliente = Usuario.builder().idUsuario(100L).build();
-        Usuario creador = Usuario.builder().idUsuario(200L).build();
+        User cliente = User.builder().idUsuario(100L).build();
+        User creador = User.builder().idUsuario(200L).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
         Servicio servicio = Servicio.builder().perfil(perfil).tituloServicio("Servicio de prueba").build();
         Pedido pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();

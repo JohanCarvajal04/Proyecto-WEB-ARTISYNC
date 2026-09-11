@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  * 
  * Ciclo de vida: Estrictamente inmutable. Constituye el ledger financiero interno del sistema.
  * 
- * Relaciones principales: Asociada a PagoGarantia y al Usuario receptor o emisor.
+ * Relaciones principales: Asociada a PagoGarantia y al User receptor o emisor.
  */
 @Entity
 @Table(name = "transacciones_pago")

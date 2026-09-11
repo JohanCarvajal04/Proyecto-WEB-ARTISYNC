@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +20,13 @@ import java.util.List;
  * 
  * Propósito: Servir como el origen principal de datos de usuario para el proveedor de autenticacion durante el login y validacion de tokens.
  * 
- * Flujo interno: Consulta la base de datos (UsuarioRepository) por correo electronico, valida el estado de la cuenta, y mapea los privilegios para retornar un CustomUserDetails.
+ * Flujo interno: Consulta la base de datos (UserRepository) por correo electronico, valida el estado de la cuenta, y mapea los privilegios para retornar un CustomUserDetails.
  */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final ObjectMapper objectMapper;
 
     /**
@@ -34,7 +34,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * fn_permisos_efectivos_usuario resuelve en una unica llamada STABLE lo
      * que antes eran 4-8 consultas separadas por peticion: findByCorreo +
      * findByUsuarioIdUsuario en usuario_roles + un SELECT por cada rol al
-     * acceder a Rol.permisos (FetchType.EAGER). Al resolverse en una sola
+     * acceder a Role.permisos (FetchType.EAGER). Al resolverse en una sola
      * sentencia en el motor, roles y permisos quedan garantizados coherentes
      * entre si (mismo snapshot), algo que las consultas independientes no
      * garantizaban bajo READ COMMITTED si una sincronizacion de roles o
@@ -45,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
         String permisosJson = usuarioRepository.permisosEfectivos(correo);
         if (permisosJson == null) {
-            throw new UsernameNotFoundException("Usuario no encontrado con correo: " + correo);
+            throw new UsernameNotFoundException("User no encontrado con correo: " + correo);
         }
 
         JsonNode nodo;

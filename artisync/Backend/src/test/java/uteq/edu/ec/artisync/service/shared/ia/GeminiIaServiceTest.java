@@ -7,9 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-import uteq.edu.ec.artisync.config.IaProperties;
+import uteq.edu.ec.artisync.config.AiProperties;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,7 @@ class GeminiIaServiceTest {
         RestClient.Builder builder = RestClient.builder();
         servidorSimulado = MockRestServiceServer.bindTo(builder).build();
 
-        IaProperties propiedades = new IaProperties();
+        AiProperties propiedades = new AiProperties();
         propiedades.getGemini().setApiKey("gemini-test-key");
         propiedades.getGemini().setBaseUrl("https://generativelanguage.googleapis.com/v1beta");
         propiedades.getGemini().setModel("gemini-2.0-flash");
@@ -61,7 +61,7 @@ class GeminiIaServiceTest {
         servidorSimulado.expect(method(org.springframework.http.HttpMethod.POST))
                 .andRespond(withServerError());
 
-        assertThrows(ExcepcionServicioIaNoDisponible.class,
+        assertThrows(AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
     }
 
@@ -70,7 +70,7 @@ class GeminiIaServiceTest {
         servidorSimulado.expect(method(org.springframework.http.HttpMethod.POST))
                 .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
-        ExcepcionServicioIaNoDisponible error = assertThrows(ExcepcionServicioIaNoDisponible.class,
+        AiServiceUnavailableException error = assertThrows(AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isTrue();
@@ -81,7 +81,7 @@ class GeminiIaServiceTest {
         servidorSimulado.expect(method(org.springframework.http.HttpMethod.POST))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
-        ExcepcionServicioIaNoDisponible error = assertThrows(ExcepcionServicioIaNoDisponible.class,
+        AiServiceUnavailableException error = assertThrows(AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isFalse();

@@ -13,9 +13,9 @@ import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.EntregableFinal;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.EntregableFinalRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
@@ -56,14 +56,14 @@ class EntregableServicioImplTest {
 
     @BeforeEach
     void setUp() {
-        Usuario creador = new Usuario();
+        User creador = new User();
         creador.setIdUsuario(ID_CREADOR);
         PerfilCreador perfil = new PerfilCreador();
         perfil.setUsuario(creador);
         Servicio servicioCatalogo = new Servicio();
         servicioCatalogo.setPerfil(perfil);
 
-        Usuario cliente = new Usuario();
+        User cliente = new User();
         cliente.setIdUsuario(ID_CLIENTE);
 
         pedido = new Pedido();
@@ -113,7 +113,7 @@ class EntregableServicioImplTest {
     void subirEntregable_usuarioQueNoEsElCreador_esRechazado() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.subirEntregable(
+        assertThrows(BusinessRuleException.class, () -> servicio.subirEntregable(
                 ID_PEDIDO, ID_TERCERO, imagen("marca"), imagen("limpia")));
 
         verify(almacenamiento, never()).guardar(any(), anyString());
@@ -124,7 +124,7 @@ class EntregableServicioImplTest {
         MockMultipartFile ejecutable = new MockMultipartFile(
                 "versionLimpia", "virus.exe", "application/x-msdownload", "MZ".getBytes());
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.subirEntregable(
+        assertThrows(BusinessRuleException.class, () -> servicio.subirEntregable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), ejecutable));
 
         verifyNoInteractions(pedidoRepository, almacenamiento);
@@ -157,7 +157,7 @@ class EntregableServicioImplTest {
                 .thenReturn("entregables/nueva.png", "entregables/nueva2.png");
         when(entregableRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
-        doThrow(new ExcepcionReglaNegocio("Azure caido")).when(almacenamiento).eliminar(anyString());
+        doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
 
         RespuestaEntregable respuesta = servicio.subirEntregable(
                 ID_PEDIDO, ID_CREADOR, imagen("marca"), imagen("limpia"));
@@ -173,7 +173,7 @@ class EntregableServicioImplTest {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.descargarVersionLimpia(ID_PEDIDO, ID_CLIENTE));
 
         verify(almacenamiento, never()).leer(anyString());
@@ -198,7 +198,7 @@ class EntregableServicioImplTest {
     void descargarVersionLimpia_usuarioQueNoEsElCliente_esRechazado() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.descargarVersionLimpia(ID_PEDIDO, ID_TERCERO));
     }
 
@@ -219,7 +219,7 @@ class EntregableServicioImplTest {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("entregables/m.png", "entregables/l.png", false)));
 
-        assertThrows(ExcepcionReglaNegocio.class,
+        assertThrows(BusinessRuleException.class,
                 () -> servicio.descargarVersionMarcaAgua(ID_PEDIDO, ID_TERCERO));
 
         verify(almacenamiento, never()).leer(anyString());
@@ -230,7 +230,7 @@ class EntregableServicioImplTest {
         when(entregableRepository.findByPedidoIdPedido(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado(null, "entregables/l.png", false)));
 
-        assertThrows(ExcepcionRecursoNoEncontrado.class,
+        assertThrows(ResourceNotFoundException.class,
                 () -> servicio.descargarVersionMarcaAgua(ID_PEDIDO, ID_CLIENTE));
     }
 
@@ -351,7 +351,7 @@ class EntregableServicioImplTest {
         pago.setEstadoFondos("Reembolsado");
         when(pagoGarantiaRepository.findByContratoIdContrato(1L)).thenReturn(Optional.of(pago));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
+        assertThrows(BusinessRuleException.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
 
         verify(transaccionPagoRepository, never()).save(any());
         verify(entregableRepository, never()).save(any());
@@ -361,7 +361,7 @@ class EntregableServicioImplTest {
     void aprobarEntrega_noEsCliente_error() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_TERCERO));
+        assertThrows(BusinessRuleException.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_TERCERO));
     }
 
     @Test
@@ -370,6 +370,6 @@ class EntregableServicioImplTest {
         when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("m", "l", true)));
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
+        assertThrows(BusinessRuleException.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
     }
 }

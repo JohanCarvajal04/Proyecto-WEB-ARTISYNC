@@ -15,17 +15,17 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
 import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
 import uteq.edu.ec.artisync.entity.social.PremioSorteo;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.SeguidorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
 
@@ -51,19 +51,19 @@ class SorteoServiceImplTest {
     @Mock private SorteoRepository sorteoRepository;
     @Mock private ParticipanteSorteoRepository participanteSorteoRepository;
     @Mock private PerfilCreadorRepository perfilCreadorRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private SeguidorRepository seguidorRepository;
 
     @InjectMocks
     private SorteoServiceImpl sorteoService;
 
-    private Usuario usuarioCreador;
+    private User usuarioCreador;
     private PerfilCreador perfilCreador;
     private Sorteo sorteoActivo;
 
     @BeforeEach
     void setUp() {
-        usuarioCreador = Usuario.builder()
+        usuarioCreador = User.builder()
                 .idUsuario(1L).nombres("Maria").apellidos("Lopez")
                 .correo("maria@test.com").build();
 
@@ -114,7 +114,7 @@ class SorteoServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearSorteo — lanza ExcepcionReglaNegocio si fechaCierre es antes de fechaInicio")
+    @DisplayName("crearSorteo — lanza BusinessRuleException si fechaCierre es antes de fechaInicio")
     void crearSorteo_fechaCierreAntesInicio_lanzaExcepcion() {
         PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
                 .tituloSorteo("Mal sorteo")
@@ -128,12 +128,12 @@ class SorteoServiceImplTest {
                 .willReturn(Optional.of(perfilCreador));
 
         assertThatThrownBy(() -> sorteoService.crearSorteo(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("posterior a la fecha de inicio");
     }
 
     @Test
-    @DisplayName("crearSorteo — lanza ExcepcionReglaNegocio si la cantidad de premios no coincide con cantidadGanadores")
+    @DisplayName("crearSorteo — lanza BusinessRuleException si la cantidad de premios no coincide con cantidadGanadores")
     void crearSorteo_premiosNoCoincidenConCantidadGanadores_lanzaExcepcion() {
         PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
                 .tituloSorteo("Sorteo desalineado")
@@ -148,13 +148,13 @@ class SorteoServiceImplTest {
                 .willReturn(Optional.of(perfilCreador));
 
         assertThatThrownBy(() -> sorteoService.crearSorteo(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("debe coincidir con la cantidad de premios");
         verify(sorteoRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("actualizarSorteo — lanza ExcepcionReglaNegocio si los premios enviados no coinciden con cantidadGanadores")
+    @DisplayName("actualizarSorteo — lanza BusinessRuleException si los premios enviados no coinciden con cantidadGanadores")
     void actualizarSorteo_premiosNoCoincidenConCantidadGanadores_lanzaExcepcion() {
         var peticion = PeticionActualizarSorteo.builder()
                 .premios(List.of("Solo un premio")) // sorteoActivo tiene cantidadGanadores=2
@@ -165,7 +165,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
 
         assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("debe coincidir con la cantidad de premios");
     }
 
@@ -181,7 +181,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(true);
 
         assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("No se puede modificar este campo");
     }
 
@@ -195,7 +195,7 @@ class SorteoServiceImplTest {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> sorteoService.crearSorteo(99L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -223,7 +223,7 @@ class SorteoServiceImplTest {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 99L, peticion))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -257,7 +257,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("participar — inscripción exitosa en sorteo activo sin requisito de seguidor")
     void participar_sorteoActivoSinRequisito_inscribeCorrectamente() {
-        Usuario usuarioParticipante = Usuario.builder()
+        User usuarioParticipante = User.builder()
                 .idUsuario(2L).nombres("Juan").apellidos("Perez").build();
 
         ParticipanteSorteo participante = ParticipanteSorteo.builder()
@@ -279,30 +279,30 @@ class SorteoServiceImplTest {
     }
 
     @Test
-    @DisplayName("participar — lanza ExcepcionRecursoDuplicado si el usuario ya está inscrito")
+    @DisplayName("participar — lanza DuplicateResourceException si el usuario ya está inscrito")
     void participar_yaInscrito_lanzaExcepcion() {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L))
                 .willReturn(true);
 
         assertThatThrownBy(() -> sorteoService.participar(100L, 2L))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class)
+                .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Ya estás inscrito");
     }
 
     @Test
-    @DisplayName("participar — lanza ExcepcionReglaNegocio si el sorteo no está activo")
+    @DisplayName("participar — lanza BusinessRuleException si el sorteo no está activo")
     void participar_sorteoFinalizado_lanzaExcepcion() {
         sorteoActivo.setEstadoSorteo("Finalizado");
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
 
         assertThatThrownBy(() -> sorteoService.participar(100L, 2L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("no está activo");
     }
 
     @Test
-    @DisplayName("participar — lanza ExcepcionReglaNegocio si requiere seguidor y no lo es")
+    @DisplayName("participar — lanza BusinessRuleException si requiere seguidor y no lo es")
     void participar_requiereSeguidor_noEsSeguidor_lanzaExcepcion() {
         sorteoActivo.setRequiereSeguidor(true);
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
@@ -312,7 +312,7 @@ class SorteoServiceImplTest {
                 .willReturn(false);
 
         assertThatThrownBy(() -> sorteoService.participar(100L, 2L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("sigas al creador");
     }
 
@@ -321,7 +321,7 @@ class SorteoServiceImplTest {
     // =========================================================================
 
     @Test
-    @DisplayName("actualizarSorteo — lanza ExcepcionReglaNegocio al modificar cantidadGanadores con participantes")
+    @DisplayName("actualizarSorteo — lanza BusinessRuleException al modificar cantidadGanadores con participantes")
     void actualizarSorteo_cambiarCantidadGanadoresConParticipantes_lanzaExcepcion() {
         var peticion = uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo.builder()
                 .cantidadGanadores(5) // diferente al actual (2)
@@ -333,7 +333,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(true);
 
         assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("No se puede modificar este campo");
     }
 
@@ -357,7 +357,7 @@ class SorteoServiceImplTest {
     @DisplayName("obtenerSorteo — incluye ganadores cuando el sorteo esta finalizado")
     void obtenerSorteo_finalizado_incluyeGanadores() {
         sorteoActivo.setEstadoSorteo("Finalizado");
-        Usuario ganador = Usuario.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
+        User ganador = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
         ParticipanteSorteo participanteGanador = ParticipanteSorteo.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(ganador).esGanador(true).build();
 
@@ -376,8 +376,8 @@ class SorteoServiceImplTest {
     @DisplayName("obtenerSorteo — cada premio queda con su propio ganador, no todos agrupados")
     void obtenerSorteo_finalizado_cadaPremioConSuGanador() {
         sorteoActivo.setEstadoSorteo("Finalizado");
-        Usuario ganador1 = Usuario.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
-        Usuario ganador2 = Usuario.builder().idUsuario(3L).nombres("Ana").apellidos("Diaz").build();
+        User ganador1 = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
+        User ganador2 = User.builder().idUsuario(3L).nombres("Ana").apellidos("Diaz").build();
         PremioSorteo premioA = sorteoActivo.getPremios().get(0);
         PremioSorteo premioB = sorteoActivo.getPremios().get(1);
         ParticipanteSorteo p1 = ParticipanteSorteo.builder()
@@ -414,7 +414,7 @@ class SorteoServiceImplTest {
         given(sorteoRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> sorteoService.obtenerSorteo(999L, null))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // =========================================================================
@@ -450,7 +450,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(true);
 
         assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("fecha de cierre");
     }
 
@@ -466,7 +466,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
 
         assertThatThrownBy(() -> sorteoService.actualizarSorteo(100L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("posterior a la fecha de inicio");
     }
 
@@ -509,7 +509,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(true);
 
         assertThatThrownBy(() -> sorteoService.eliminarSorteo(100L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(sorteoRepository, never()).delete(any());
     }
 
@@ -537,7 +537,7 @@ class SorteoServiceImplTest {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
 
         assertThatThrownBy(() -> sorteoService.participar(100L, 2L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("aún no ha comenzado");
     }
 
@@ -548,7 +548,7 @@ class SorteoServiceImplTest {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
 
         assertThatThrownBy(() -> sorteoService.participar(100L, 2L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("finalizado");
     }
 
@@ -556,7 +556,7 @@ class SorteoServiceImplTest {
     @DisplayName("participar — inscribe cuando requiere seguidor y el usuario ya lo es")
     void participar_requiereSeguidor_esSeguidor() {
         sorteoActivo.setRequiereSeguidor(true);
-        Usuario usuarioParticipante = Usuario.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
+        User usuarioParticipante = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
         ParticipanteSorteo participante = ParticipanteSorteo.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(usuarioParticipante).esGanador(false).build();
 
@@ -576,7 +576,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("cancelarParticipacion — cancela la inscripcion existente")
     void cancelarParticipacion_cancela() {
-        Usuario usuarioParticipante = Usuario.builder().idUsuario(2L).build();
+        User usuarioParticipante = User.builder().idUsuario(2L).build();
         ParticipanteSorteo participante = ParticipanteSorteo.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(usuarioParticipante).build();
 
@@ -596,7 +596,7 @@ class SorteoServiceImplTest {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
 
         assertThatThrownBy(() -> sorteoService.cancelarParticipacion(100L, 2L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -606,7 +606,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
 
         assertThatThrownBy(() -> sorteoService.cancelarParticipacion(100L, 2L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // =========================================================================
@@ -616,7 +616,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("listarParticipantes — mapea los participantes del sorteo")
     void listarParticipantes_mapea() {
-        Usuario usuarioParticipante = Usuario.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
+        User usuarioParticipante = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
         ParticipanteSorteo participante = ParticipanteSorteo.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(usuarioParticipante).esGanador(false).build();
 
@@ -630,7 +630,7 @@ class SorteoServiceImplTest {
     @DisplayName("listarGanadores — devuelve ganadores cuando el sorteo esta finalizado")
     void listarGanadores_finalizado_devuelveLista() {
         sorteoActivo.setEstadoSorteo("Finalizado");
-        Usuario ganador = Usuario.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
+        User ganador = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
         ParticipanteSorteo participanteGanador = ParticipanteSorteo.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(ganador).esGanador(true).build();
 

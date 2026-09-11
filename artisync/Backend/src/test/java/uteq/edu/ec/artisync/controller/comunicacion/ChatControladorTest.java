@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import uteq.edu.ec.artisync.dto.peticion.comunicacion.PeticionEnviarMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaMensajeChat;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaSalaChat;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 
@@ -82,7 +82,7 @@ class ChatControladorTest {
         peticion.setCuerpoMensaje("hola");
         // idPedido es null
 
-        assertThrows(ExcepcionReglaNegocio.class, () -> controlador.enviarMensajeWs(peticion, user));
+        assertThrows(BusinessRuleException.class, () -> controlador.enviarMensajeWs(peticion, user));
     }
 
     @Test

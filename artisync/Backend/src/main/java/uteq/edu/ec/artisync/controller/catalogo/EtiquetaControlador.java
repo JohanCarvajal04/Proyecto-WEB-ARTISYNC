@@ -35,7 +35,7 @@ public class EtiquetaControlador {
      *
      * @param id identificador de la etiqueta
      * @return la etiqueta solicitada
-     * @throws ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     * @throws ResourceNotFoundException si la etiqueta no existe
      */
     @GetMapping("/{id}")
     public ResponseEntity<RespuestaEtiqueta> obtenerPorId(@PathVariable Long id) {
@@ -47,7 +47,7 @@ public class EtiquetaControlador {
      *
      * @param peticion datos de la etiqueta a crear
      * @return la etiqueta creada, con estado 201
-     * @throws ExcepcionReglaNegocio si ya existe una etiqueta con el mismo nombre
+     * @throws BusinessRuleException si ya existe una etiqueta con el mismo nombre
      */
     @PostMapping
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
@@ -63,7 +63,7 @@ public class EtiquetaControlador {
      *
      * @param id identificador de la etiqueta a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ExcepcionRecursoNoEncontrado si la etiqueta no existe
+     * @throws ResourceNotFoundException si la etiqueta no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")

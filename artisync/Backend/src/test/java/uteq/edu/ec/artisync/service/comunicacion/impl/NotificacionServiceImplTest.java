@@ -16,7 +16,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaNotificacion;
 import uteq.edu.ec.artisync.entity.comunicacion.NotificacionSistema;
 import uteq.edu.ec.artisync.entity.comunicacion.TipoNotificacion;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.comunicacion.NotificacionSistemaRepository;
 import uteq.edu.ec.artisync.repository.comunicacion.TipoNotificacionRepository;
 
@@ -48,12 +48,12 @@ class NotificacionServiceImplTest {
     @InjectMocks
     private NotificacionServiceImpl notificacionService;
 
-    private Usuario destinatario;
+    private User destinatario;
     private TipoNotificacion tipo;
 
     @BeforeEach
     void setUp() {
-        destinatario = Usuario.builder().idUsuario(1L).correo("user@test.com").build();
+        destinatario = User.builder().idUsuario(1L).correo("user@test.com").build();
         tipo = TipoNotificacion.builder().idTipoNotificacion(1L).nombreEvento("MENSAJE_RECIBIDO")
                 .formatoMensaje("primer mensaje que disparó el tipo").build();
     }

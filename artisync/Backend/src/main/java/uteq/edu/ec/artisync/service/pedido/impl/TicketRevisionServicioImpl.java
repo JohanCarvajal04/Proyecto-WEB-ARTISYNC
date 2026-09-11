@@ -8,20 +8,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.pedido.PeticionCrearTicketRevision;
 import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaTicketRevision;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
 import uteq.edu.ec.artisync.service.legal.IPagoTicketRevisionServicio;
 import uteq.edu.ec.artisync.service.pedido.ITicketRevisionServicio;
-import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
+import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +39,7 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "TICKET_CREAR", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "TICKET_CREAR", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{idMotivo: #peticion.idMotivo}")
     /**
@@ -52,15 +52,15 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
     public RespuestaTicketRevision crearTicketRevision(Long idPedido, Long idCliente,
                                                         PeticionCrearTicketRevision peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
         // Verificar que el usuario es el cliente del pedido
         if (!pedido.getUsuarioCliente().getIdUsuario().equals(idCliente)) {
-            throw new ExcepcionReglaNegocio("Solo el cliente del pedido puede crear tickets de revision");
+            throw new BusinessRuleException("Solo el cliente del pedido puede crear tickets de revision");
         }
 
         var motivo = motivoRechazoRepository.findById(peticion.getIdMotivo())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Motivo de rechazo no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Motivo de rechazo no encontrado"));
 
         TicketRevision ticket = TicketRevision.builder()
                 .pedido(pedido)
@@ -105,13 +105,13 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaTicketRevision> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + idPedido));
         // OBS-08 / H-02: evita el acceso indebido (IDOR) a tickets de un pedido ajeno.
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         return ticketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc(idPedido)
                 .stream()
@@ -121,7 +121,7 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "TICKET_CAMBIAR_ESTADO", modulo = ModuloAuditoria.PEDIDOS,
+    @Auditable(accion = "TICKET_CAMBIAR_ESTADO", modulo = AuditModule.PEDIDOS,
             entidad = "tickets_revision", idEntidad = "#idTicket",
             detalle = "{nuevoEstado: #nuevoEstado}")
     /**
@@ -131,11 +131,11 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
      * @param idCreador identificador unico que referencia de manera univoca al registro
      * @param nuevoEstado parametro requerido para la correcta ejecucion del procedimiento
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaTicketRevision cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado) {
         TicketRevision ticket = ticketRevisionRepository.findById(idTicket)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Ticket de revision no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket de revision no encontrado"));
 
         // El creador del servicio siempre puede resolver sus propios tickets.
         // Además, el controlador autoriza aquí a SOPORTE (TICKET_RESOLVER) y a

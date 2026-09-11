@@ -20,7 +20,7 @@ import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.SalaChat;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.SalaChatRepository;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.security.CustomUserDetailsService;
@@ -62,8 +62,8 @@ class WebSocketAuthInterceptorTest {
     void setUp() {
         interceptor = new WebSocketAuthInterceptor(jwtService, userDetailsService, salaChatRepository);
 
-        Usuario cliente = Usuario.builder().idUsuario(ID_CLIENTE).build();
-        Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
+        User cliente = User.builder().idUsuario(ID_CLIENTE).build();
+        User creador = User.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
         Servicio servicio = Servicio.builder().perfil(perfil).build();
         Pedido pedido = Pedido.builder().idPedido(1L).usuarioCliente(cliente).servicio(servicio).build();

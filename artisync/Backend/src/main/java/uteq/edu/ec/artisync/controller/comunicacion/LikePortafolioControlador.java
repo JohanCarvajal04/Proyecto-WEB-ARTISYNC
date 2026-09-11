@@ -29,8 +29,8 @@ public class LikePortafolioControlador {
      * @param idItemPortafolio identificador del ítem de portafolio
      * @param userDetails usuario autenticado que da el like
      * @return el estado de likes actualizado, con estado 201
-     * @throws ExcepcionRecursoDuplicado si el usuario ya le dio like al ítem
-     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     * @throws DuplicateResourceException si el usuario ya le dio like al ítem
+     * @throws ResourceNotFoundException si el usuario no existe
      */
     @Operation(summary = "Dar like a un ítem de portafolio")
     @PostMapping("/{idItemPortafolio}/likes")
@@ -49,7 +49,7 @@ public class LikePortafolioControlador {
      * @param idItemPortafolio identificador del ítem de portafolio
      * @param userDetails usuario autenticado que quita el like
      * @return el estado de likes actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el usuario no le había dado like al ítem
+     * @throws ResourceNotFoundException si el usuario no le había dado like al ítem
      */
     @Operation(summary = "Quitar el like de un ítem de portafolio")
     @DeleteMapping("/{idItemPortafolio}/likes")
@@ -66,7 +66,7 @@ public class LikePortafolioControlador {
      * @param idItemPortafolio identificador del ítem de portafolio
      * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
      * @return el estado de likes del ítem, incluyendo si el usuario actual ya dio like
-     * @throws ExcepcionRecursoNoEncontrado si el ítem de portafolio no existe
+     * @throws ResourceNotFoundException si el ítem de portafolio no existe
      */
     @Operation(summary = "Estado de likes de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/likes")

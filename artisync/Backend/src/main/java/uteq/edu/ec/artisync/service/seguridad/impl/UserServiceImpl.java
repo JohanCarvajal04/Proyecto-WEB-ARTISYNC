@@ -23,7 +23,7 @@ import uteq.edu.ec.artisync.repository.social.*;
 import uteq.edu.ec.artisync.service.seguridad.UserService;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
 import uteq.edu.ec.artisync.service.shared.StoredProcedureExceptionTranslator;
-import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
+import uteq.edu.ec.artisync.service.shared.UserMapper;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.AlmacenamientoDocumentos;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento;
@@ -35,10 +35,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private final UsuarioRepository usuarioRepository;
-    private final PaisRepository paisRepository;
+    private final UserRepository usuarioRepository;
+    private final CountryRepository paisRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UsuarioMapper usuarioMapper;
+    private final UserMapper usuarioMapper;
     private final SessionRevocationService sessionRevocationService;
     private final AlmacenamientoDocumentos almacenamientoDocumentos;
 
@@ -49,11 +49,11 @@ public class UserServiceImpl implements UserService {
      *
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public UserResponse getCurrentUser(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         return usuarioMapper.toUserResponse(usuario);
     }
@@ -66,11 +66,11 @@ public class UserServiceImpl implements UserService {
      * @param correo direccion de correo electronico del actor o usuario principal
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public UserResponse updateCurrentUser(String correo, UpdateUserRequest request) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         if (request.getNombres() != null && !request.getNombres().isBlank()) {
             usuario.setNombres(request.getNombres());
@@ -82,7 +82,7 @@ public class UserServiceImpl implements UserService {
             usuario.setFechaNacimiento(request.getFechaNacimiento());
         }
         if (request.getIdPais() != null) {
-            Pais pais = paisRepository.findById(request.getIdPais())
+            Country pais = paisRepository.findById(request.getIdPais())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "País no encontrado"));
             usuario.setPais(pais);
         }
@@ -100,11 +100,11 @@ public class UserServiceImpl implements UserService {
      * @param correo direccion de correo electronico del actor o usuario principal
      * @param request estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje changePassword(String correo, ChangePasswordRequest request) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         if (!passwordEncoder.matches(request.getContrasenaActual(), usuario.getContrasenaHash())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña actual es incorrecta");
@@ -135,11 +135,11 @@ public class UserServiceImpl implements UserService {
      *
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje deleteOwnAccount(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
         // fn_cambiar_estado_cuenta desactiva la cuenta (soft delete) y revoca
@@ -156,11 +156,11 @@ public class UserServiceImpl implements UserService {
      *
      * @param correo direccion de correo electronico del actor o usuario principal
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje revokeAllMySessions(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
         return new RespuestaMensaje("Todas las sesiones activas han sido cerradas.");
     }
@@ -173,13 +173,13 @@ public class UserServiceImpl implements UserService {
      * @param correo direccion de correo electronico del actor o usuario principal
      * @param file objeto binario multipart representando el documento o medio fisico
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
         PoliticaArchivo.PERFIL.validar(file);
 
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        User usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
         if (usuario.getUrlFotoPerfil() != null) {
             try {

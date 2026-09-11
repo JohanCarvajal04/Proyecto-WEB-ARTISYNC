@@ -51,7 +51,7 @@ class AuditoriaAutorizacionTest {
         @Bean
         IAuditoriaServicio auditoriaServicio() {
             IAuditoriaServicio servicio = mock(IAuditoriaServicio.class);
-            // Un mock de exportar() sin stub devuelve null y RespuestaDocumento.de(null)
+            // Un mock de exportar() sin stub devuelve null y DocumentResponse.de(null)
             // reventaría con NPE en documento.contentType() — se stubea un documento no
             // nulo para que los casos "autorizado" del test puedan afirmar
             // assertDoesNotThrow sin que el propio mock rompa la aserción.

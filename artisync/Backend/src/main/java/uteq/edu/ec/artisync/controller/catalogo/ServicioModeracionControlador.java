@@ -45,8 +45,8 @@ public class ServicioModeracionControlador {
      * @param idServicio identificador del servicio
      * @param idSubcategoria identificador de la subcategoría a quitar
      * @return el servicio actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el servicio no existe
-     * @throws ExcepcionReglaNegocio si el servicio quedaría sin subcategorías tras la operación
+     * @throws ResourceNotFoundException si el servicio no existe
+     * @throws BusinessRuleException si el servicio quedaría sin subcategorías tras la operación
      */
     @DeleteMapping("/{idServicio}/subcategorias/{idSubcategoria}")
     @PreAuthorize("hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')")

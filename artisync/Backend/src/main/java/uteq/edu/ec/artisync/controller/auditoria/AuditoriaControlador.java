@@ -16,7 +16,7 @@ import uteq.edu.ec.artisync.service.auditoria.IAuditoriaServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
-import uteq.edu.ec.artisync.util.RespuestaDocumento;
+import uteq.edu.ec.artisync.util.DocumentResponse;
 
 import java.util.List;
 
@@ -58,7 +58,7 @@ public class AuditoriaControlador {
      *
      * @param idEvento identificador del evento de auditoría
      * @return el detalle del evento de auditoría
-     * @throws ExcepcionRecursoNoEncontrado si el evento no existe
+     * @throws ResourceNotFoundException si el evento no existe
      */
     @Operation(summary = "Detalle completo de un evento, incluido el JSON del cambio")
     @GetMapping("/{idEvento}")
@@ -101,7 +101,7 @@ public class AuditoriaControlador {
         DocumentoGenerado documento = (page != null || size != null)
                 ? auditoriaServicio.exportar(filtro, formato, page, size, authentication.getName())
                 : auditoriaServicio.exportar(filtro, formato, authentication.getName());
-        return RespuestaDocumento.de(documento);
+        return DocumentResponse.de(documento);
     }
 
     /**

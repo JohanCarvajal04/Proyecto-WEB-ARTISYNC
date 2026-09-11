@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.entity.comunicacion;
 
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * 
  * Ciclo de vida: Registro volatil (creacion/eliminacion directa) que altera los contadores de popularidad.
  * 
- * Relaciones principales: Entidad asociativa entre Usuario y PortafolioItem.
+ * Relaciones principales: Entidad asociativa entre User y PortafolioItem.
  */
 @Getter
 @Setter
@@ -40,7 +40,7 @@ public class LikePortafolio {
     @NotNull(message = "El usuario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
-    private Usuario usuario;
+    private User usuario;
 
     @CreationTimestamp
     @Column(name = "fecha_like", updatable = false)

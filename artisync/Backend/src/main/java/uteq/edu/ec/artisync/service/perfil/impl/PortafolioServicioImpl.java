@@ -7,16 +7,16 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortafolioServicio;
@@ -45,18 +45,18 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @param idUsuarioLogueado identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPortafolio crearPortafolio(PeticionCrearPortafolio peticion, Long idUsuarioLogueado) {
         if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {
-            throw new ExcepcionRecursoDuplicado("El perfil de creador ya cuenta con un portafolio registrado.");
+            throw new DuplicateResourceException("El perfil de creador ya cuenta con un portafolio registrado.");
         }
 
         PerfilCreador perfil = perfilRepository.findById(peticion.idPerfil())
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil no encontrado con ID: " + peticion.idPerfil()));
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con ID: " + peticion.idPerfil()));
 
         if (!perfil.getUsuario().getIdUsuario().equals(idUsuarioLogueado)) {
-            throw new ExcepcionReglaNegocio("No tiene permisos para crear un portafolio para este perfil.");
+            throw new BusinessRuleException("No tiene permisos para crear un portafolio para este perfil.");
         }
 
         Portafolio portafolio = Portafolio.builder()
@@ -83,11 +83,11 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      *
      * @param idPortafolio identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPortafolio obtenerPortafolioPorId(Long idPortafolio) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
+                .orElseThrow(() -> new ResourceNotFoundException("Portafolio no encontrado con ID: " + idPortafolio));
         exigirCuentaActiva(portafolio);
         return mapearARespuesta(portafolio);
     }
@@ -99,11 +99,11 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      *
      * @param idPerfil identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPortafolio obtenerPortafolioPorPerfil(Long idPerfil) {
         Portafolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No se encontró portafolio para el perfil con ID: " + idPerfil));
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró portafolio para el perfil con ID: " + idPerfil));
         exigirCuentaActiva(portafolio);
         return mapearARespuesta(portafolio);
     }
@@ -116,9 +116,9 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      * dueño identificado y su cuenta está inactiva.
      */
     private void exigirCuentaActiva(Portafolio portafolio) {
-        Usuario usuario = portafolio.getPerfil() != null ? portafolio.getPerfil().getUsuario() : null;
+        User usuario = portafolio.getPerfil() != null ? portafolio.getPerfil().getUsuario() : null;
         if (usuario != null && !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
-            throw new ExcepcionRecursoNoEncontrado("Portafolio no disponible");
+            throw new ResourceNotFoundException("Portafolio no disponible");
         }
     }
 
@@ -128,7 +128,7 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
      *
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPortafolio> listarPortafolios() {
         return portafolioRepository.findAll().stream()
@@ -138,7 +138,7 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = ModuloAuditoria.PORTAFOLIO,
+    @Auditable(accion = "PORTAFOLIO_ACTUALIZAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "portafolios", idEntidad = "#idPortafolio",
             detalle = "{esPublico: #peticion.esPublico}")
     /**
@@ -148,15 +148,15 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @param idUsuarioLogueado identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPortafolio actualizarPortafolio(Long idPortafolio, PeticionActualizarPortafolio peticion, Long idUsuarioLogueado) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
+                .orElseThrow(() -> new ResourceNotFoundException("Portafolio no encontrado con ID: " + idPortafolio));
 
         Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();
         if (!idDuenio.equals(idUsuarioLogueado)) {
-            throw new ExcepcionReglaNegocio("No tiene permisos para modificar este portafolio.");
+            throw new BusinessRuleException("No tiene permisos para modificar este portafolio.");
         }
 
         if (peticion.esPublico() != null) {
@@ -177,14 +177,14 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
      *
      * @param idPortafolio identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void incrementarVisitas(Long idPortafolio, Long idUsuario) {
         if (!marcarVisitaSiEsNueva(idPortafolio, idUsuario)) {
             return;
         }
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio));
+                .orElseThrow(() -> new ResourceNotFoundException("Portafolio no encontrado con ID: " + idPortafolio));
         portafolio.setTotalVisitasAcumuladas(portafolio.getTotalVisitasAcumuladas() + 1);
         portafolioRepository.save(portafolio);
     }
@@ -212,17 +212,17 @@ public class PortafolioServicioImpl implements IPortafolioServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = ModuloAuditoria.PORTAFOLIO,
+    @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "portafolios", idEntidad = "#idPortafolio")
     /**
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param idPortafolio identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarPortafolio(Long idPortafolio) {
         if (!portafolioRepository.existsById(idPortafolio)) {
-            throw new ExcepcionRecursoNoEncontrado("Portafolio no encontrado con ID: " + idPortafolio);
+            throw new ResourceNotFoundException("Portafolio no encontrado con ID: " + idPortafolio);
         }
         portafolioRepository.deleteById(idPortafolio);
     }

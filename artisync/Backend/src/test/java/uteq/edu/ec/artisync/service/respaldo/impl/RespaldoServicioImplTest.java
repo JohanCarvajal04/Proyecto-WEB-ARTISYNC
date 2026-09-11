@@ -17,8 +17,8 @@ import uteq.edu.ec.artisync.entity.respaldo.OrigenRespaldo;
 import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
 import uteq.edu.ec.artisync.entity.respaldo.RespaldoProgramacion;
 import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.respaldo.RespaldoRepository;
 import uteq.edu.ec.artisync.scheduler.RespaldoEjecutorServicio;
 import uteq.edu.ec.artisync.scheduler.RespaldoRetencionScheduler;
@@ -84,7 +84,7 @@ class RespaldoServicioImplTest {
         when(respaldoRepository.existsByEstadoRespaldo(EstadoRespaldo.EN_PROGRESO)).thenReturn(true);
 
         assertThatThrownBy(() -> servicio.solicitarRespaldo(TipoRespaldo.FULL, "admin@artisync.dev"))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(respaldoEjecutorServicio, never()).iniciarManual(any(), any());
     }
 
@@ -115,7 +115,7 @@ class RespaldoServicioImplTest {
         when(respaldoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> servicio.obtenerPorId(99L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -138,7 +138,7 @@ class RespaldoServicioImplTest {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
         assertThatThrownBy(() -> servicio.descargar(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -148,7 +148,7 @@ class RespaldoServicioImplTest {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
         assertThatThrownBy(() -> servicio.descargar(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -173,7 +173,7 @@ class RespaldoServicioImplTest {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
         assertThatThrownBy(() -> servicio.eliminar(1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(respaldoRepository, never()).delete(any(Respaldo.class));
     }
 
@@ -184,7 +184,7 @@ class RespaldoServicioImplTest {
         when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(false);
 
         assertThatThrownBy(() -> servicio.eliminar(1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(respaldoRepository, never()).delete(any(Respaldo.class));
     }
 

@@ -26,8 +26,8 @@ public interface ISolicitudRetiroServicio {
      * @param idUsuarioCreador id del usuario creador que solicita el retiro
      * @param peticion         monto solicitado
      * @return la solicitud recién creada, en estado "Pendiente"
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el creador no ha configurado su correo de PayPal, ya tiene una solicitud en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador no ha configurado su correo de PayPal, ya tiene una solicitud en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
      */
     RespuestaSolicitudRetiro solicitar(Long idUsuarioCreador, PeticionSolicitudRetiro peticion);
 
@@ -57,8 +57,8 @@ public interface ISolicitudRetiroServicio {
      * @param idSolicitud id de la solicitud a aprobar, debe estar en estado "Pendiente"
      * @param idAdmin     id del administrador que aprueba
      * @return la solicitud con su estado final ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la solicitud no está en estado "Pendiente"
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el administrador no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado "Pendiente"
      */
     RespuestaSolicitudRetiro aprobar(Long idSolicitud, Long idAdmin);
 
@@ -69,8 +69,8 @@ public interface ISolicitudRetiroServicio {
      * @param idAdmin     id del administrador que rechaza
      * @param notaAdmin   motivo del rechazo, obligatorio
      * @return la solicitud ya marcada como rechazada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si no se indica un motivo, o si la solicitud no está en estado "Pendiente"
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el administrador no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica un motivo, o si la solicitud no está en estado "Pendiente"
      */
     RespuestaSolicitudRetiro rechazar(Long idSolicitud, Long idAdmin, String notaAdmin);
 
@@ -83,8 +83,8 @@ public interface ISolicitudRetiroServicio {
      * @param idSolicitud id de la solicitud a reintentar, debe estar en estado "Fallido"
      * @param idAdmin     id del administrador que reintenta
      * @return la solicitud con su estado final ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la solicitud o el administrador no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la solicitud no está en estado "Fallido"
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el administrador no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado "Fallido"
      */
     RespuestaSolicitudRetiro reintentar(Long idSolicitud, Long idAdmin);
 }

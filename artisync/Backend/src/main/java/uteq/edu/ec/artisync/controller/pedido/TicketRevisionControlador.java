@@ -28,8 +28,8 @@ public class TicketRevisionControlador {
      * @param userDetails usuario autenticado que crea el ticket
      * @param peticion datos del ticket de revisión, incluyendo el motivo de rechazo
      * @return el ticket de revisión creado, con estado 201
-     * @throws ExcepcionRecursoNoEncontrado si el pedido o el motivo de rechazo no existen
-     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido
+     * @throws ResourceNotFoundException si el pedido o el motivo de rechazo no existen
+     * @throws BusinessRuleException si el usuario no es el cliente del pedido
      */
     @PostMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')")
@@ -47,7 +47,7 @@ public class TicketRevisionControlador {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que consulta los tickets
      * @return listado de tickets de revisión del pedido
-     * @throws ExcepcionRecursoNoEncontrado si el pedido no existe
+     * @throws ResourceNotFoundException si el pedido no existe
      */
     @GetMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("isAuthenticated()")
@@ -64,7 +64,7 @@ public class TicketRevisionControlador {
      * @param userDetails usuario autenticado que solicita el cambio de estado
      * @param nuevoEstado nuevo estado a asignar al ticket
      * @return el ticket de revisión con su estado actualizado
-     * @throws ExcepcionRecursoNoEncontrado si el ticket no existe
+     * @throws ResourceNotFoundException si el ticket no existe
      */
     @PutMapping("/tickets-revision/{idTicket}/estado")
     @PreAuthorize("hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")

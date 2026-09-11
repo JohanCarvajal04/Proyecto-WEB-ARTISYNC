@@ -14,15 +14,15 @@ import uteq.edu.ec.artisync.dto.respuesta.pedido.RespuestaFlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.pedido.EtapaFlujo;
 import uteq.edu.ec.artisync.entity.pedido.FlujoEtapaConfig;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.pedido.EtapaFlujoRepository;
 import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,18 +40,18 @@ class FlujoTrabajoServicioImplTest {
     @Mock private FlujoTrabajoRepository flujoTrabajoRepository;
     @Mock private EtapaFlujoRepository etapaFlujoRepository;
     @Mock private FlujoEtapaConfigRepository flujoEtapaConfigRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private HistorialEstadoPedidoRepository historialEstadoPedidoRepository;
 
     @InjectMocks
     private FlujoTrabajoServicioImpl flujoTrabajoServicio;
 
     private FlujoTrabajo flujo;
-    private Usuario creador;
+    private User creador;
 
     @BeforeEach
     void setUp() {
-        creador = Usuario.builder().idUsuario(10L).nombres("Test").build();
+        creador = User.builder().idUsuario(10L).nombres("Test").build();
         flujo = FlujoTrabajo.builder().idFlujo(1L).nombreFlujo("Flujo estandar").descripcionFlujo("desc").creador(creador).build();
     }
 
@@ -77,7 +77,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario("Flujo estandar", 10L)).willReturn(true);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.crearFlujoTrabajo(10L, peticion))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class);
+                .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
@@ -91,7 +91,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario("Flujo con etapas", 10L)).willReturn(false);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.crearFlujoTrabajo(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("repetidas");
         verify(flujoTrabajoRepository, never()).save(any());
     }
@@ -107,7 +107,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario("Flujo con etapas", 10L)).willReturn(false);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.crearFlujoTrabajo(10L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("mismo número de orden");
         verify(flujoTrabajoRepository, never()).save(any());
     }
@@ -165,7 +165,7 @@ class FlujoTrabajoServicioImplTest {
     @DisplayName("listarFlujosTrabajo devuelve los de todos los creadores cuando puedeVerTodos=true (FLUJO_MODERAR)")
     void listarFlujosTrabajo_puedeVerTodos_listaTodos() {
         FlujoTrabajo flujoDeOtro = FlujoTrabajo.builder().idFlujo(2L).nombreFlujo("Otro").creador(
-                Usuario.builder().idUsuario(99L).nombres("Otra").apellidos("Persona").build()).build();
+                User.builder().idUsuario(99L).nombres("Otra").apellidos("Persona").build()).build();
         given(flujoTrabajoRepository.findAllByOrderByIdFlujoAsc()).willReturn(List.of(flujo, flujoDeOtro));
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of());
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(2L)).willReturn(List.of());
@@ -182,7 +182,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(1L, 10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> flujoTrabajoServicio.obtenerFlujoPorId(1L, 10L, false))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -221,7 +221,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(1L, 1L)).willReturn(true);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.agregarEtapa(1L, 10L, false, peticion))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class);
+                .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
@@ -251,7 +251,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndNumeroOrden(1L, 1)).willReturn(true);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.agregarEtapa(1L, 10L, false, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("número de orden");
         verify(flujoEtapaConfigRepository, never()).save(any(FlujoEtapaConfig.class));
     }
@@ -302,7 +302,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.findById(5L)).willReturn(Optional.of(config));
 
         assertThatThrownBy(() -> flujoTrabajoServicio.actualizarEtapa(1L, 5L, 10L, false, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -316,7 +316,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndNumeroOrden(1L, 2)).willReturn(true);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.actualizarEtapa(1L, 5L, 10L, false, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("número de orden");
         verify(flujoEtapaConfigRepository, never()).save(any(FlujoEtapaConfig.class));
     }
@@ -370,7 +370,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(1L, 10L)).willReturn(Optional.of(flujo));
 
         assertThatThrownBy(() -> flujoTrabajoServicio.intercambiarOrdenEtapas(1L, 10L, false, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(flujoEtapaConfigRepository, never()).findById(any());
     }
 
@@ -389,7 +389,7 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.findById(6L)).willReturn(Optional.of(configB));
 
         assertThatThrownBy(() -> flujoTrabajoServicio.intercambiarOrdenEtapas(1L, 10L, false, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(flujoEtapaConfigRepository, never()).save(any(FlujoEtapaConfig.class));
     }
 
@@ -415,7 +415,7 @@ class FlujoTrabajoServicioImplTest {
         given(historialEstadoPedidoRepository.existePedidoEnEtapaActual(1L, 7L)).willReturn(true);
 
         assertThatThrownBy(() -> flujoTrabajoServicio.eliminarEtapa(1L, 5L, 10L, false))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("pedidos actualmente detenidos");
         verify(flujoEtapaConfigRepository, never()).delete(any(FlujoEtapaConfig.class));
     }
@@ -428,14 +428,14 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.findById(5L)).willReturn(Optional.of(config));
 
         assertThatThrownBy(() -> flujoTrabajoServicio.eliminarEtapa(1L, 5L, 10L, false))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
         verify(flujoEtapaConfigRepository, never()).delete(any(FlujoEtapaConfig.class));
     }
 
     @Test
     @DisplayName("eliminarEtapa permite borrar la etapa de un flujo ajeno cuando puedeVerTodos=true")
     void eliminarEtapa_puedeVerTodos_borraDeFlujoAjeno() {
-        Usuario otroCreador = Usuario.builder().idUsuario(77L).nombres("Otro").build();
+        User otroCreador = User.builder().idUsuario(77L).nombres("Otro").build();
         FlujoTrabajo flujoAjeno = FlujoTrabajo.builder().idFlujo(1L).creador(otroCreador).build();
         EtapaFlujo etapa = EtapaFlujo.builder().idEtapa(7L).nombreEtapa("Revision").build();
         FlujoEtapaConfig config = FlujoEtapaConfig.builder().idFlujoEtapa(5L).flujo(flujoAjeno).etapa(etapa).build();
@@ -453,6 +453,6 @@ class FlujoTrabajoServicioImplTest {
         given(flujoEtapaConfigRepository.findById(5L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> flujoTrabajoServicio.eliminarEtapa(1L, 5L, 10L, false))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

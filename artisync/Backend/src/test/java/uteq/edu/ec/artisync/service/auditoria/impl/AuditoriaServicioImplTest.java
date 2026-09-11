@@ -12,14 +12,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import uteq.edu.ec.artisync.audit.DatosEventoAuditoria;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
-import uteq.edu.ec.artisync.audit.ResultadoAuditoria;
+import uteq.edu.ec.artisync.audit.AuditEventData;
+import uteq.edu.ec.artisync.audit.AuditModule;
+import uteq.edu.ec.artisync.audit.AuditResult;
 import uteq.edu.ec.artisync.dto.peticion.auditoria.FiltroAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.auditoria.RespuestaEventoAuditoria;
 import uteq.edu.ec.artisync.entity.auditoria.EventoAuditoria;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.auditoria.EventoAuditoriaRepository;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -54,9 +54,9 @@ class AuditoriaServicioImplTest {
     @Test
     @DisplayName("registrar() mapea el snapshot inmutable a la entidad y delega el guardado en el repositorio")
     void registrar_DelegaEnElRepositorio() {
-        DatosEventoAuditoria datos = new DatosEventoAuditoria(
-                LocalDateTime.now(), 3L, "ana@artisync.dev", ModuloAuditoria.SISTEMA, "PAIS_CREAR",
-                ResultadoAuditoria.EXITO, "pais", 9L, Map.of("nombrePais", "Ecuador"),
+        AuditEventData datos = new AuditEventData(
+                LocalDateTime.now(), 3L, "ana@artisync.dev", AuditModule.SISTEMA, "PAIS_CREAR",
+                AuditResult.EXITO, "pais", 9L, Map.of("nombrePais", "Ecuador"),
                 null, "127.0.0.1", "vitest", "POST", "/api/paises", 12);
 
         auditoriaServicio.registrar(datos);
@@ -79,12 +79,12 @@ class AuditoriaServicioImplTest {
     }
 
     @Test
-    @DisplayName("obtenerPorId() lanza ExcepcionRecursoNoEncontrado cuando el id no existe")
+    @DisplayName("obtenerPorId() lanza ResourceNotFoundException cuando el id no existe")
     void obtenerPorId_Inexistente_LanzaExcepcion() {
         when(eventoAuditoriaRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> auditoriaServicio.obtenerPorId(99L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -101,7 +101,7 @@ class AuditoriaServicioImplTest {
     }
 
     @Test
-    @DisplayName("exportar() lanza ExcepcionReglaNegocio cuando el filtro supera el tope de filas del formato")
+    @DisplayName("exportar() lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
     void exportar_ExcedeTope_LanzaExcepcion() {
         Page<EventoAuditoria> paginaEnorme = new PageImpl<>(
                 List.of(eventoDe(1L, "X")), PageRequest.of(0, FormatoReporte.CSV.topeFilas()), 50_001);
@@ -109,7 +109,7 @@ class AuditoriaServicioImplTest {
                 .thenReturn(paginaEnorme);
 
         assertThatThrownBy(() -> auditoriaServicio.exportar(new FiltroAuditoria(), FormatoReporte.CSV, "admin@artisync.dev"))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("50001")
                 .hasMessageContaining("Acote el rango de fechas");
     }
@@ -233,9 +233,9 @@ class AuditoriaServicioImplTest {
                 .idEventoAuditoria(id)
                 .fechaEvento(LocalDateTime.now())
                 .correoActor("actor@artisync.dev")
-                .moduloAuditoria(ModuloAuditoria.SISTEMA.name())
+                .moduloAuditoria(AuditModule.SISTEMA.name())
                 .accionAuditoria(accion)
-                .resultadoEvento(ResultadoAuditoria.EXITO.name())
+                .resultadoEvento(AuditResult.EXITO.name())
                 .build();
     }
 }

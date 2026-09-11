@@ -14,10 +14,10 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolio;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolio;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 
@@ -52,7 +52,7 @@ class PortafolioServicioImplTest {
 
     @BeforeEach
     void setUp() {
-        Usuario duenio = Usuario.builder().idUsuario(ID_USUARIO_DUENIO).build();
+        User duenio = User.builder().idUsuario(ID_USUARIO_DUENIO).build();
         perfil = PerfilCreador.builder().idPerfil(1L).usuario(duenio).build();
         portafolio = Portafolio.builder().idPortafolio(10L).perfil(perfil).esPublico(true)
                 .totalVisitasAcumuladas(0).build();
@@ -94,7 +94,7 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.of(portafolio));
 
         assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class);
+                .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
@@ -105,7 +105,7 @@ class PortafolioServicioImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -116,7 +116,7 @@ class PortafolioServicioImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_AJENO))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(portafolioRepository, never()).save(any());
     }
@@ -127,7 +127,7 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorId(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -144,20 +144,20 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorPerfil(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("REQ-NF-018: obtenerPortafolioPorId oculta el portafolio de un dueño con la cuenta desactivada/suprimida")
     void obtenerPortafolioPorId_ocultaCuentaDesactivada() {
-        Usuario duenioDesactivado = Usuario.builder().idUsuario(ID_USUARIO_DUENIO).estadoCuenta(false).build();
+        User duenioDesactivado = User.builder().idUsuario(ID_USUARIO_DUENIO).estadoCuenta(false).build();
         PerfilCreador perfilDesactivado = PerfilCreador.builder().idPerfil(1L).usuario(duenioDesactivado).build();
         Portafolio portafolioDesactivado = Portafolio.builder().idPortafolio(10L).perfil(perfilDesactivado).esPublico(true)
                 .totalVisitasAcumuladas(0).build();
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolioDesactivado));
 
         assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorId(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -211,7 +211,7 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(10L, new PeticionActualizarPortafolio(null, null), ID_USUARIO_DUENIO))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -221,7 +221,7 @@ class PortafolioServicioImplTest {
 
         assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(
                 10L, new PeticionActualizarPortafolio(true, null), ID_USUARIO_AJENO))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(portafolioRepository, never()).save(any());
     }
@@ -260,7 +260,7 @@ class PortafolioServicioImplTest {
         given(valueOperations.setIfAbsent(any(String.class), any(String.class), any(Duration.class))).willReturn(true);
 
         assertThatThrownBy(() -> portafolioServicio.incrementarVisitas(10L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -279,6 +279,6 @@ class PortafolioServicioImplTest {
         given(portafolioRepository.existsById(10L)).willReturn(false);
 
         assertThatThrownBy(() -> portafolioServicio.eliminarPortafolio(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }

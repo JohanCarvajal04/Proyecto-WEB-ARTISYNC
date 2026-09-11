@@ -34,7 +34,7 @@ import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PropuestaTerminosPedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingEnviadoRepository;
 import uteq.edu.ec.artisync.repository.comunicacion.BriefingRespuestaRepository;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
@@ -43,15 +43,15 @@ import uteq.edu.ec.artisync.repository.pedido.PropuestaTerminosPedidoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.pedido.EtapaFlujoRepository;
 import uteq.edu.ec.artisync.repository.pedido.FlujoEtapaConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.HistorialEstadoPedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
@@ -86,7 +86,7 @@ class PedidoServicioImplTest {
 
     @Mock private PedidoRepository pedidoRepository;
     @Mock private ServicioRepository servicioRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private FlujoTrabajoRepository flujoTrabajoRepository;
     @Mock private FlujoEtapaConfigRepository flujoEtapaConfigRepository;
     @Mock private HistorialEstadoPedidoRepository historialRepository;
@@ -105,8 +105,8 @@ class PedidoServicioImplTest {
     @InjectMocks
     private PedidoServicioImpl pedidoServicio;
 
-    private Usuario cliente;
-    private Usuario creador;
+    private User cliente;
+    private User creador;
     private FlujoTrabajo flujo;
     private Servicio servicio;
     private Pedido pedido;
@@ -115,8 +115,8 @@ class PedidoServicioImplTest {
 
     @BeforeEach
     void setUp() {
-        cliente = Usuario.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").build();
-        creador = Usuario.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").build();
+        cliente = User.builder().idUsuario(1L).nombres("Cliente").apellidos("Uno").build();
+        creador = User.builder().idUsuario(2L).nombres("Creador").apellidos("Uno").build();
         flujo = FlujoTrabajo.builder().idFlujo(1L).nombreFlujo("Flujo estandar").build();
         PerfilCreador perfil = PerfilCreador.builder().idPerfil(1L).usuario(creador).build();
         servicio = Servicio.builder().idServicio(1L).perfil(perfil)
@@ -146,7 +146,7 @@ class PedidoServicioImplTest {
         given(servicioRepository.findById(1L)).willReturn(Optional.of(servicio));
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -158,7 +158,7 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of());
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -187,7 +187,7 @@ class PedidoServicioImplTest {
         given(usuarioRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, PeticionCrearPedido.builder().idServicio(1L).build()))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -197,7 +197,7 @@ class PedidoServicioImplTest {
         given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, PeticionCrearPedido.builder().idServicio(1L).build()))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
         verifyNoInteractions(servicioRepository);
     }
@@ -260,7 +260,7 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Referencias");
         verify(pedidoRepository, never()).save(any());
         verifyNoInteractions(briefingEnviadoRepository, briefingRespuestaRepository);
@@ -278,7 +278,7 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config));
 
         assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("cuestionario");
         verify(pedidoRepository, never()).save(any());
     }
@@ -290,7 +290,7 @@ class PedidoServicioImplTest {
     void proponerTerminos_rechazaPeticionVacia() {
         assertThatThrownBy(() -> pedidoServicio.proponerTerminos(
                 10L, 1L, PeticionCrearPropuestaTerminos.builder().build()))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -301,7 +301,7 @@ class PedidoServicioImplTest {
                 PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
 
         assertThatThrownBy(() -> pedidoServicio.proponerTerminos(10L, 999L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -315,7 +315,7 @@ class PedidoServicioImplTest {
                 PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
 
         assertThatThrownBy(() -> pedidoServicio.proponerTerminos(10L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(propuestaTerminosPedidoRepository, never()).save(any());
     }
@@ -349,7 +349,7 @@ class PedidoServicioImplTest {
                 PeticionCrearPropuestaTerminos.builder().precioPropuesto(new BigDecimal("35.00")).build();
 
         assertThatThrownBy(() -> pedidoServicio.proponerTerminos(10L, 1L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(propuestaTerminosPedidoRepository, never()).save(any());
     }
@@ -408,7 +408,7 @@ class PedidoServicioImplTest {
         given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
 
         assertThatThrownBy(() -> pedidoServicio.aceptarPropuestaTerminos(10L, 7L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
 
         verify(pedidoRepository, never()).save(any());
         verifyNoInteractions(contratoServicio);
@@ -442,7 +442,7 @@ class PedidoServicioImplTest {
         given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
 
         assertThatThrownBy(() -> pedidoServicio.rechazarPropuestaTerminos(10L, 7L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("propia propuesta");
         verify(propuestaTerminosPedidoRepository, never()).save(any());
     }
@@ -471,7 +471,7 @@ class PedidoServicioImplTest {
         given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
 
         assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 999L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Solo quien propuso");
         verify(propuestaTerminosPedidoRepository, never()).save(any());
     }
@@ -482,7 +482,7 @@ class PedidoServicioImplTest {
         given(propuestaTerminosPedidoRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 99L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Propuesta no encontrada");
     }
 
@@ -496,7 +496,7 @@ class PedidoServicioImplTest {
         given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
 
         assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Propuesta no encontrada");
     }
 
@@ -509,7 +509,7 @@ class PedidoServicioImplTest {
         given(propuestaTerminosPedidoRepository.findById(7L)).willReturn(Optional.of(propuesta));
 
         assertThatThrownBy(() -> pedidoServicio.cancelarPropuestaTerminos(10L, 7L, 1L))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("ya fue resuelta");
     }
 
@@ -536,7 +536,7 @@ class PedidoServicioImplTest {
                 .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.obtenerPropuestaPendiente(10L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -619,7 +619,7 @@ class PedidoServicioImplTest {
         given(pedidoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.obtenerPedidoPorId(10L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // ---------- listarMisPedidos / listarMisComisiones ----------
@@ -735,7 +735,7 @@ class PedidoServicioImplTest {
         given(entregableFinalRepository.existsByPedidoIdPedido(10L)).willReturn(false);
 
         assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("entregable");
         verify(historialRepository, never()).save(any(HistorialEstadoPedido.class));
     }
@@ -770,7 +770,7 @@ class PedidoServicioImplTest {
         given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
 
         assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 999L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -781,7 +781,7 @@ class PedidoServicioImplTest {
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -798,7 +798,7 @@ class PedidoServicioImplTest {
                 .willReturn(List.of());
 
         assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -818,7 +818,7 @@ class PedidoServicioImplTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(soloEtapaInicial));
 
         assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, peticion))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("ya no forma parte del flujo");
         org.mockito.Mockito.verify(historialRepository, never()).save(any(HistorialEstadoPedido.class));
     }
@@ -829,7 +829,7 @@ class PedidoServicioImplTest {
         given(pedidoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.avanzarEtapa(10L, 2L, PeticionAvanzarEtapa.builder().build()))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // ---------- obtenerHistorial ----------
@@ -852,7 +852,7 @@ class PedidoServicioImplTest {
         given(pedidoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.obtenerHistorial(10L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -913,7 +913,7 @@ class PedidoServicioImplTest {
         given(pedidoRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pedidoServicio.obtenerSeguimiento(10L, 1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

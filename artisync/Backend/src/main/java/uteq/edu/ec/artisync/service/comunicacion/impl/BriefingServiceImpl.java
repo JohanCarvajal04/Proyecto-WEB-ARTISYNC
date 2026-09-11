@@ -9,12 +9,12 @@ import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaBriefing;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.entity.comunicacion.*;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.*;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
 import uteq.edu.ec.artisync.service.comunicacion.BriefingService;
-import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
+import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +51,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaBriefing crearPlantilla(Long idUsuario, PeticionCrearBriefingPlantilla peticion) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
@@ -79,7 +79,7 @@ public class BriefingServiceImpl implements BriefingService {
      *
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaBriefing> obtenerMisPlantillas(Long idUsuario) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
@@ -102,10 +102,10 @@ public class BriefingServiceImpl implements BriefingService {
                                              PeticionCrearBriefingPlantilla peticion) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla no encontrada: " + idPlantilla));
+                .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
 
         if (!plantilla.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
-            throw new ExcepcionReglaNegocio("No tienes permiso para editar esta plantilla");
+            throw new BusinessRuleException("No tienes permiso para editar esta plantilla");
         }
 
         validarCantidadPreguntas(peticion.getPreguntas().size());
@@ -129,15 +129,15 @@ public class BriefingServiceImpl implements BriefingService {
      * @param idPlantilla identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idUsuario) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla no encontrada: " + idPlantilla));
+                .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
 
         if (!plantilla.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
-            throw new ExcepcionReglaNegocio("No tienes permiso para eliminar esta plantilla");
+            throw new BusinessRuleException("No tienes permiso para eliminar esta plantilla");
         }
 
         plantillaRepo.delete(plantilla);
@@ -147,7 +147,7 @@ public class BriefingServiceImpl implements BriefingService {
 
     /**
      * id_perfil y id_usuario son secuencias independientes (PerfilCreador.idPerfil
-     * es su propio IDENTITY, no comparte clave con Usuario) — resolver el
+     * es su propio IDENTITY, no comparte clave con User) — resolver el
      * PerfilCreador propio SIEMPRE pasa por esta búsqueda por id_usuario, nunca
      * por un findById(idUsuario) directo sobre PerfilCreadorRepository (ese fue
      * el bug: buscaba una fila de perfil con el id de usuario como si fueran
@@ -156,7 +156,7 @@ public class BriefingServiceImpl implements BriefingService {
      */
     private PerfilCreador resolverPerfilPropio(Long idUsuario) {
         return perfilRepo.findByUsuarioIdUsuario(idUsuario)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No tienes un perfil de creador configurado"));
     }
 
@@ -176,15 +176,15 @@ public class BriefingServiceImpl implements BriefingService {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaBriefing obtenerBriefing(Long idPedido, Long idUsuarioSolicitante) {
         BriefingEnviado enviado = enviadoRepo.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe briefing para el pedido " + idPedido));
         // Evita que cualquier autenticado lea el briefing (datos de
         // presupuesto/proyecto) de un pedido ajeno.
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(enviado.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(enviado.getPedido(), idUsuarioSolicitante);
         return mapEnviadoToResponse(enviado);
     }
 
@@ -194,7 +194,7 @@ public class BriefingServiceImpl implements BriefingService {
 
     private void validarCantidadPreguntas(int cantidad) {
         if (cantidad > MAX_PREGUNTAS) {
-            throw new ExcepcionReglaNegocio("Una plantilla no puede tener más de " + MAX_PREGUNTAS + " preguntas");
+            throw new BusinessRuleException("Una plantilla no puede tener más de " + MAX_PREGUNTAS + " preguntas");
         }
     }
 

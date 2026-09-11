@@ -17,12 +17,12 @@ import uteq.edu.ec.artisync.dto.seguridad.request.ChangePasswordRequest;
 import uteq.edu.ec.artisync.dto.seguridad.request.UpdateUserRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
-import uteq.edu.ec.artisync.entity.seguridad.Pais;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.repository.seguridad.PaisRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.entity.seguridad.Country;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.repository.seguridad.CountryRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.shared.SessionRevocationService;
-import uteq.edu.ec.artisync.service.shared.UsuarioMapper;
+import uteq.edu.ec.artisync.service.shared.UserMapper;
 
 import java.util.Optional;
 
@@ -34,25 +34,25 @@ import static org.mockito.Mockito.*;
 class UserServiceImplTest {
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UserRepository usuarioRepository;
     @Mock
-    private PaisRepository paisRepository;
+    private CountryRepository paisRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
-    private UsuarioMapper usuarioMapper;
+    private UserMapper usuarioMapper;
     @Mock
     private SessionRevocationService sessionRevocationService;
 
     @InjectMocks
     private UserServiceImpl userService;
 
-    private Usuario usuario;
+    private User usuario;
     private UserResponse userResponse;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder()
+        usuario = User.builder()
                 .idUsuario(1L)
                 .correo("user@example.com")
                 .nombres("Ana")
@@ -94,11 +94,11 @@ class UserServiceImplTest {
         request.setNombres("Ana Maria");
         request.setIdPais(5L);
 
-        Pais pais = Pais.builder().idPais(5L).nombrePais("Ecuador").build();
+        Country pais = Country.builder().idPais(5L).nombrePais("Ecuador").build();
 
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
         when(paisRepository.findById(5L)).thenReturn(Optional.of(pais));
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(usuarioRepository.save(any(User.class))).thenReturn(usuario);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         UserResponse result = userService.updateCurrentUser("user@example.com", request);
@@ -116,7 +116,7 @@ class UserServiceImplTest {
         request.setFechaNacimiento(java.time.LocalDate.of(1995, 4, 20));
 
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(usuarioRepository.save(any(User.class))).thenReturn(usuario);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         userService.updateCurrentUser("user@example.com", request);
@@ -133,7 +133,7 @@ class UserServiceImplTest {
         request.setApellidos("");
 
         when(usuarioRepository.findByCorreo("user@example.com")).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+        when(usuarioRepository.save(any(User.class))).thenReturn(usuario);
         when(usuarioMapper.toUserResponse(usuario)).thenReturn(userResponse);
 
         userService.updateCurrentUser("user@example.com", request);

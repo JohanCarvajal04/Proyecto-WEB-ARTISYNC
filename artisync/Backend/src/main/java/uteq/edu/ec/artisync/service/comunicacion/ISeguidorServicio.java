@@ -14,8 +14,8 @@ public interface ISeguidorServicio {
      * @param idUsuarioSeguidor id del usuario que sigue
      * @param idPerfilCreador   id del perfil de creador a seguir
      * @return el estado de seguimiento resultante
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil de creador no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el usuario intenta seguirse a sí mismo como creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario intenta seguirse a sí mismo como creador
      */
     RespuestaEstadoSeguimiento seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador);
 
@@ -25,7 +25,7 @@ public interface ISeguidorServicio {
      * @param idUsuarioSeguidor id del usuario que deja de seguir
      * @param idPerfilCreador   id del perfil de creador dejado de seguir
      * @return el estado de seguimiento resultante
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil de creador no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
      */
     RespuestaEstadoSeguimiento dejarDeSeguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador);
 
@@ -35,7 +35,7 @@ public interface ISeguidorServicio {
      * @param idUsuarioConsulta id del usuario que consulta, o {@code null} si no hay sesión
      * @param idPerfilCreador   id del perfil de creador consultado
      * @return el estado de seguimiento entre ambos
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil de creador no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
      */
     RespuestaEstadoSeguimiento obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador);
 
@@ -62,7 +62,7 @@ public interface ISeguidorServicio {
      * @param urlPortada        nueva URL de la imagen de portada
      * @param tituloProfesional nuevo título profesional
      * @return {@code true} si la actualización se aplicó
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no tiene un perfil de creador asociado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador asociado
      */
     boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional);
 }

@@ -7,9 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.repository.social.SorteoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
@@ -26,7 +26,7 @@ import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 public class SorteoEjecutorServicio {
 
     private final SorteoRepository sorteoRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository usuarioRepository;
     private final NotificacionService notificacionService;
     private final ObjectMapper objectMapper;
 
@@ -52,7 +52,7 @@ public class SorteoEjecutorServicio {
 
         for (JsonNode ganadorNode : ganadoresNode) {
             Long idUsuario = ganadorNode.get("idUsuario").asLong();
-            Usuario usuario = usuarioRepository.getReferenceById(idUsuario);
+            User usuario = usuarioRepository.getReferenceById(idUsuario);
             String descripcionPremio = ganadorNode.hasNonNull("descripcionPremio")
                     ? ganadorNode.get("descripcionPremio").asText() : null;
             String mensaje = descripcionPremio != null

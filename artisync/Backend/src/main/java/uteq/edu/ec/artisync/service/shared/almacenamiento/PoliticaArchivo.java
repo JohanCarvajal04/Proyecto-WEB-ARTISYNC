@@ -1,7 +1,7 @@
 package uteq.edu.ec.artisync.service.shared.almacenamiento;
 
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import java.util.Set;
 
@@ -54,20 +54,20 @@ public record PoliticaArchivo(Set<String> tiposPermitidos, long maxBytes, String
      * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
      *
      * @param archivo objeto binario multipart representando el documento o medio fisico
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void validar(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
-            throw new ExcepcionReglaNegocio("El archivo está vacío.");
+            throw new BusinessRuleException("El archivo está vacío.");
         }
         String tipo = archivo.getContentType();
         String normalizado = tipo == null ? "" : tipo.split(";")[0].trim().toLowerCase();
         if (!tiposPermitidos.contains(normalizado)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Formato no soportado: " + tipo + ". Se acepta " + descripcion + ".");
         }
         if (archivo.getSize() > maxBytes) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El archivo supera el máximo de " + (maxBytes / MB) + " MB.");
         }
     }

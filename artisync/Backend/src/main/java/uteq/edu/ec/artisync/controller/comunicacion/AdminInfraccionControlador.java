@@ -59,7 +59,7 @@ public class AdminInfraccionControlador {
      *
      * @param idUsuario identificador del usuario cuya suspensión se revierte
      * @return mensaje de confirmación de la reactivación
-     * @throws ExcepcionRecursoNoEncontrado si el usuario no existe
+     * @throws ResourceNotFoundException si el usuario no existe
      */
     @Operation(summary = "Revertir suspensión de un usuario")
     @DeleteMapping("/suspensiones/{idUsuario}")

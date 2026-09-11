@@ -15,12 +15,12 @@ import uteq.edu.ec.artisync.entity.pedido.MotivoRechazo;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.TicketRevision;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.catalogo.FlujoTrabajoRepository;
 import uteq.edu.ec.artisync.repository.catalogo.ServicioRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoTicketRevisionRepository;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("postgres-it")
 class TicketRevisionRepositoryIT {
 
-    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private UserRepository usuarioRepository;
     @Autowired private PerfilCreadorRepository perfilCreadorRepository;
     @Autowired private ServicioRepository servicioRepository;
     @Autowired private FlujoTrabajoRepository flujoTrabajoRepository;
@@ -58,10 +58,10 @@ class TicketRevisionRepositoryIT {
 
     @BeforeEach
     void sembrarDatos() {
-        Usuario cliente = usuarioRepository.save(Usuario.builder()
+        User cliente = usuarioRepository.save(User.builder()
                 .nombres("Cliente").apellidos("Prueba").correo("cliente-ticket-it@test.dev")
                 .contrasenaHash("x").estadoCuenta(true).build());
-        Usuario creador = usuarioRepository.save(Usuario.builder()
+        User creador = usuarioRepository.save(User.builder()
                 .nombres("Creador").apellidos("Prueba").correo("creador-ticket-it@test.dev")
                 .contrasenaHash("x").estadoCuenta(true).build());
         PerfilCreador perfil = perfilCreadorRepository.save(PerfilCreador.builder().usuario(creador).build());

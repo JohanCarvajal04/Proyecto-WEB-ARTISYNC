@@ -23,8 +23,8 @@ public class PagoControlador {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que inicia el pago
      * @return la orden de pago creada
-     * @throws ExcepcionRecursoNoEncontrado si no existe contrato para el pedido
-     * @throws ExcepcionReglaNegocio si el usuario no es el cliente del pedido, el contrato no está firmado por ambas partes,
+     * @throws ResourceNotFoundException si no existe contrato para el pedido
+     * @throws BusinessRuleException si el usuario no es el cliente del pedido, el contrato no está firmado por ambas partes,
      *      o ocurre un error al comunicarse con PayPal
      */
     @PostMapping("/{idPedido}/pago")
@@ -41,8 +41,8 @@ public class PagoControlador {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que consulta el pago
      * @return el estado actual del pago
-     * @throws ExcepcionRecursoNoEncontrado si no existe contrato o pago registrado para el pedido
-     * @throws ExcepcionReglaNegocio si el usuario no tiene acceso al pago del pedido
+     * @throws ResourceNotFoundException si no existe contrato o pago registrado para el pedido
+     * @throws BusinessRuleException si el usuario no tiene acceso al pago del pedido
      */
     @GetMapping("/{idPedido}/pago/estado")
     @PreAuthorize("isAuthenticated()")
@@ -62,8 +62,8 @@ public class PagoControlador {
      * @param userDetails usuario autenticado que solicita la cancelación
      * @param peticion    acción sobre los fondos ("REEMBOLSAR"/"LIBERAR") y motivo; body opcional
      * @return el estado final del pago tras la cancelación
-     * @throws ExcepcionRecursoNoEncontrado si no existe contrato o pago registrado para el pedido
-     * @throws ExcepcionReglaNegocio si el usuario no tiene permiso, la acción no es válida,
+     * @throws ResourceNotFoundException si no existe contrato o pago registrado para el pedido
+     * @throws BusinessRuleException si el usuario no tiene permiso, la acción no es válida,
      *      o el pago no está en un estado cancelable
      */
     @PostMapping("/{idPedido}/pago/cancelar")

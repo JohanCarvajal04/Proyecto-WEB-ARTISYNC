@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.shared.imagen;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -47,20 +47,20 @@ public class PreprocesadorImagenIa {
      * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
      *
      * @param archivo objeto binario multipart representando el documento o medio fisico
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void validarFormato(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
-            throw new ExcepcionReglaNegocio("El documento está vacío.");
+            throw new BusinessRuleException("El documento está vacío.");
         }
         String tipo = archivo.getContentType();
         if (tipo == null || !TIPOS_ACEPTADOS.contains(tipo)) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "Formato de documento no soportado: " + tipo
                             + ". Se aceptan image/jpeg o image/png.");
         }
         if (archivo.getSize() > LIMITE_SUBIDA_BYTES) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El documento supera el máximo de 5 MB permitido para verificación.");
         }
     }
@@ -71,10 +71,10 @@ public class PreprocesadorImagenIa {
         try {
             imagen = ImageIO.read(new ByteArrayInputStream(original));
         } catch (IOException e) {
-            throw new ExcepcionReglaNegocio("El documento almacenado no es una imagen legible.");
+            throw new BusinessRuleException("El documento almacenado no es una imagen legible.");
         }
         if (imagen == null) {
-            throw new ExcepcionReglaNegocio("El documento almacenado no es una imagen legible.");
+            throw new BusinessRuleException("El documento almacenado no es una imagen legible.");
         }
 
         float calidad = CALIDAD_INICIAL;
@@ -93,7 +93,7 @@ public class PreprocesadorImagenIa {
         }
 
         if (resultado.length > LIMITE_BYTES) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "No fue posible comprimir el documento por debajo de " + LIMITE_BYTES + " bytes.");
         }
         return resultado;

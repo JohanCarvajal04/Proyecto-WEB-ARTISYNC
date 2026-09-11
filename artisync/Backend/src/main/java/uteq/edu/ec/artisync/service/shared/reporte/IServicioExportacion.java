@@ -9,7 +9,7 @@ package uteq.edu.ec.artisync.service.shared.reporte;
 public interface IServicioExportacion {
 
     /**
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el modelo supera
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el modelo supera
      *         el tope de filas del formato pedido (422 — el llamador debe acotar filtros)
      */
     <T> DocumentoGenerado exportar(ModeloReporte<T> modelo, FormatoReporte formato);

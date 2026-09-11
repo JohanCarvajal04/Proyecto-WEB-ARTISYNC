@@ -704,7 +704,7 @@ COMMENT ON FUNCTION fn_es_seguidor(BIGINT, BIGINT)
 -- en sentencias separadas -- lectura fantasma no atomica: entre la
 -- comprobacion y el insert/update, otra transaccion podia tomar el mismo
 -- nombre. Mitigado en la practica por pais.nombre_pais UNIQUE, pero sin
--- traduccion de error (ExcepcionRecursoDuplicado nunca se lanzaba realmente
+-- traduccion de error (DuplicateResourceException nunca se lanzaba realmente
 -- por una condicion de carrera; solo por la lectura previa, que era la parte
 -- no atomica).
 --

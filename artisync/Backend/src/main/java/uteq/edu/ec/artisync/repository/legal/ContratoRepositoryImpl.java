@@ -16,7 +16,7 @@ import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,9 +49,9 @@ public class ContratoRepositoryImpl implements ContratoRepositoryCustom {
         Root<Contrato> c = cq.from(Contrato.class);
         Join<Contrato, Pedido> p = c.join("pedido");
         Join<Pedido, Servicio> s = p.join("servicio");
-        Join<Pedido, Usuario> cliente = p.join("usuarioCliente");
+        Join<Pedido, User> cliente = p.join("usuarioCliente");
         Join<Servicio, PerfilCreador> perfil = s.join("perfil");
-        Join<PerfilCreador, Usuario> creador = perfil.join("usuario");
+        Join<PerfilCreador, User> creador = perfil.join("usuario");
 
         cq.select(cb.construct(FilaReporteContrato.class,
                 c.get("idContrato"), p.get("idPedido"), s.get("tituloServicio"),

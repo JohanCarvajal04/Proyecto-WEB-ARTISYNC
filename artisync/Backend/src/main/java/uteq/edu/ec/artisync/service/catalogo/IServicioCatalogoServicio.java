@@ -16,8 +16,8 @@ public interface IServicioCatalogoServicio {
      * @param idPerfilCreador id del perfil creador dueño del servicio
      * @param peticion        datos del servicio a crear (título, precio, subcategorías, etc.)
      * @return el servicio recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil, alguna subcategoría, el flujo, la plantilla de contrato o el cuestionario indicados no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el precio es inválido, el solicitante no es dueño del perfil, la identidad no está verificada o la plantilla de contrato ya no está activa
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil, alguna subcategoría, el flujo, la plantilla de contrato o el cuestionario indicados no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es inválido, el solicitante no es dueño del perfil, la identidad no está verificada o la plantilla de contrato ya no está activa
      */
     RespuestaServicio crearServicio(Long idPerfilCreador, PeticionCrearServicio peticion);
 
@@ -27,8 +27,8 @@ public interface IServicioCatalogoServicio {
      * @param idServicio id del servicio a actualizar
      * @param peticion   campos a modificar; los nulos se dejan sin cambios
      * @return el servicio ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio, alguna subcategoría, el flujo, la plantilla de contrato o el cuestionario indicados no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el precio es inválido, se intenta dejar el servicio sin subcategorías, el solicitante no es dueño del perfil, se publica sin identidad verificada o la plantilla de contrato ya no está activa
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio, alguna subcategoría, el flujo, la plantilla de contrato o el cuestionario indicados no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es inválido, se intenta dejar el servicio sin subcategorías, el solicitante no es dueño del perfil, se publica sin identidad verificada o la plantilla de contrato ya no está activa
      */
     RespuestaServicio actualizarServicio(Long idServicio, PeticionActualizarServicio peticion);
 
@@ -37,7 +37,7 @@ public interface IServicioCatalogoServicio {
      *
      * @param idServicio id del servicio
      * @return el detalle completo del servicio
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      */
     RespuestaServicio obtenerServicioPorId(Long idServicio);
 
@@ -45,8 +45,8 @@ public interface IServicioCatalogoServicio {
      * Elimina un servicio del catálogo junto con sus asociaciones de etiquetas y subcategorías.
      *
      * @param idServicio id del servicio a eliminar
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es dueño del perfil del servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil del servicio
      */
     void eliminarServicio(Long idServicio);
 
@@ -56,7 +56,7 @@ public interface IServicioCatalogoServicio {
      * @param idPerfilCreador   id del perfil creador
      * @param estadoPublicacion estado a filtrar (p. ej. ACTIVO), o {@code null}/vacío para listar todos
      * @return los servicios del creador que cumplen el filtro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil creador no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil creador no existe
      */
     List<RespuestaServicioResumido> listarServiciosPorCreador(Long idPerfilCreador, String estadoPublicacion);
 
@@ -91,7 +91,7 @@ public interface IServicioCatalogoServicio {
      *
      * @param idServicio id del servicio
      * @return los atributos asignados al servicio
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      */
     List<RespuestaAtributo> listarAtributosPorServicio(Long idServicio);
 
@@ -102,8 +102,8 @@ public interface IServicioCatalogoServicio {
      * @param idServicio id del servicio
      * @param peticion   nombre, tipo de dato y valor asignado del atributo
      * @return el atributo recién asociado al servicio
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es dueño del perfil, se alcanzó el límite de 10 atributos o el atributo ya está asociado al servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil, se alcanzó el límite de 10 atributos o el atributo ya está asociado al servicio
      */
     RespuestaAtributo agregarAtributo(Long idServicio, PeticionCrearAtributo peticion);
 
@@ -114,8 +114,8 @@ public interface IServicioCatalogoServicio {
      * @param idAtributo id de la asociación servicio-atributo a actualizar
      * @param peticion   nuevo valor asignado
      * @return el atributo ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio o la asociación de atributo no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es dueño del perfil o el atributo no pertenece a este servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asociación de atributo no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil o el atributo no pertenece a este servicio
      */
     RespuestaAtributo actualizarAtributo(Long idServicio, Long idAtributo, PeticionActualizarAtributo peticion);
 
@@ -124,8 +124,8 @@ public interface IServicioCatalogoServicio {
      *
      * @param idServicio id del servicio
      * @param idAtributo id de la asociación servicio-atributo a eliminar
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio o la asociación de atributo no existen
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no es dueño del perfil o el atributo no pertenece a este servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asociación de atributo no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil o el atributo no pertenece a este servicio
      */
     void eliminarAtributo(Long idServicio, Long idAtributo);
 
@@ -133,8 +133,8 @@ public interface IServicioCatalogoServicio {
      * @param idServicio id del servicio
      * @param idSubcategoria id de la subcategoría a quitar
      * @return el servicio ya actualizado, sin la subcategoría indicada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el servicio no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el servicio se quedaría sin ninguna subcategoria.
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el servicio se quedaría sin ninguna subcategoria.
      */
     RespuestaServicio quitarSubcategoria(Long idServicio, Long idSubcategoria);
 

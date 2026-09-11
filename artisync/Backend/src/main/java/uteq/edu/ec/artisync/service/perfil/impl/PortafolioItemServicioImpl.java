@@ -9,9 +9,9 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPortafolioItem;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPortafolioItem;
 import uteq.edu.ec.artisync.entity.perfil.Portafolio;
 import uteq.edu.ec.artisync.entity.perfil.PortafolioItem;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioItemRepository;
 import uteq.edu.ec.artisync.repository.perfil.PortafolioRepository;
 import uteq.edu.ec.artisync.service.perfil.IPortafolioItemServicio;
@@ -52,13 +52,13 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
         PoliticaArchivo.PORTAFOLIO.validar(archivo);
 
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Portafolio no encontrado con ID: " + idPortafolio));
 
         exigirPropietario(portafolio, idUsuario);
 
         if (itemRepository.countByPortafolioIdPortafolio(idPortafolio) >= MAX_ITEMS_POR_PORTAFOLIO) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El portafolio alcanzó el máximo de " + MAX_ITEMS_POR_PORTAFOLIO + " obras.");
         }
 
@@ -91,11 +91,11 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
      * @param idPortafolio identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<RespuestaPortafolioItem> listarItems(Long idPortafolio, Long idUsuario) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Portafolio no encontrado con ID: " + idPortafolio));
 
         exigirVisibilidad(portafolio, idUsuario);
@@ -114,7 +114,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
      * @param idItem identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPortafolioItem obtenerItem(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
@@ -130,7 +130,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
      * @param idItem identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public ArchivoItem descargarArchivo(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
@@ -152,7 +152,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion) {
         PortafolioItem item = buscarItem(idItem);
@@ -173,7 +173,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
      *
      * @param idItem identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminarItem(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
@@ -194,7 +194,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
     private void exigirPropietario(Portafolio portafolio, Long idUsuario) {
         Long idDuenio = portafolio.getPerfil().getUsuario().getIdUsuario();
         if (!idDuenio.equals(idUsuario)) {
-            throw new ExcepcionReglaNegocio("Solo el creador dueño del portafolio puede modificarlo.");
+            throw new BusinessRuleException("Solo el creador dueño del portafolio puede modificarlo.");
         }
     }
 
@@ -204,9 +204,9 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
         // o supresión real) nunca es visible, sin importar esPublico ni idUsuario
         // — el propio dueño, si su cuenta está desactivada, tampoco puede haberse
         // autenticado para pedirlo con su propio id.
-        Usuario duenio = portafolio.getPerfil().getUsuario();
+        User duenio = portafolio.getPerfil().getUsuario();
         if (duenio == null || !Boolean.TRUE.equals(duenio.getEstadoCuenta())) {
-            throw new ExcepcionReglaNegocio("Este portafolio no es público.");
+            throw new BusinessRuleException("Este portafolio no es público.");
         }
 
         if (Boolean.TRUE.equals(portafolio.getEsPublico())) {
@@ -214,7 +214,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
         }
         Long idDuenio = duenio.getIdUsuario();
         if (idUsuario == null || !idDuenio.equals(idUsuario)) {
-            throw new ExcepcionReglaNegocio("Este portafolio no es público.");
+            throw new BusinessRuleException("Este portafolio no es público.");
         }
     }
 
@@ -222,7 +222,7 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     private PortafolioItem buscarItem(Long idItem) {
         return itemRepository.findById(idItem)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Obra no encontrada con ID: " + idItem));
+                .orElseThrow(() -> new ResourceNotFoundException("Obra no encontrada con ID: " + idItem));
     }
 
     private void eliminarSilencioso(String referencia) {

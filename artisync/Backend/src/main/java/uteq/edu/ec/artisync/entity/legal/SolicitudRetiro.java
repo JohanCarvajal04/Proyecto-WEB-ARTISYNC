@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,7 +35,7 @@ public class SolicitudRetiro {
     @NotNull(message = "El creador es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_creador", nullable = false)
-    private Usuario usuarioCreador;
+    private User usuarioCreador;
 
     @NotNull(message = "El monto solicitado es obligatorio")
     @Positive(message = "El monto solicitado debe ser mayor que cero")
@@ -78,5 +78,5 @@ public class SolicitudRetiro {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_admin_decisor")
-    private Usuario adminDecisor;
+    private User adminDecisor;
 }

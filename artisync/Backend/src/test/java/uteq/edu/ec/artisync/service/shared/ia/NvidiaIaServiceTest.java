@@ -7,9 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-import uteq.edu.ec.artisync.config.IaProperties;
+import uteq.edu.ec.artisync.config.AiProperties;
 import uteq.edu.ec.artisync.dto.ia.IaVerificacionResponse;
-import uteq.edu.ec.artisync.exception.ExcepcionServicioIaNoDisponible;
+import uteq.edu.ec.artisync.exception.AiServiceUnavailableException;
 
 import java.util.Map;
 
@@ -29,7 +29,7 @@ class NvidiaIaServiceTest {
         servidorSimulado = MockRestServiceServer.bindTo(builder).build();
         RestClient restClient = builder.build();
 
-        IaProperties propiedades = new IaProperties();
+        AiProperties propiedades = new AiProperties();
         propiedades.getNvidia().setApiKey("nvapi-test-key");
         propiedades.getNvidia().setBaseUrl("https://integrate.api.nvidia.com/v1");
 
@@ -65,7 +65,7 @@ class NvidiaIaServiceTest {
         servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
                 .andRespond(withServerError());
 
-        assertThrows(ExcepcionServicioIaNoDisponible.class,
+        assertThrows(AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
     }
 
@@ -74,7 +74,7 @@ class NvidiaIaServiceTest {
         servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
-        assertThrows(ExcepcionServicioIaNoDisponible.class,
+        assertThrows(AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
     }
 
@@ -83,8 +83,8 @@ class NvidiaIaServiceTest {
         servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
-        ExcepcionServicioIaNoDisponible error = org.junit.jupiter.api.Assertions.assertThrows(
-                ExcepcionServicioIaNoDisponible.class,
+        AiServiceUnavailableException error = org.junit.jupiter.api.Assertions.assertThrows(
+                AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isFalse();
@@ -95,8 +95,8 @@ class NvidiaIaServiceTest {
         servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
                 .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
-        ExcepcionServicioIaNoDisponible error = org.junit.jupiter.api.Assertions.assertThrows(
-                ExcepcionServicioIaNoDisponible.class,
+        AiServiceUnavailableException error = org.junit.jupiter.api.Assertions.assertThrows(
+                AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isTrue();
@@ -107,8 +107,8 @@ class NvidiaIaServiceTest {
         servidorSimulado.expect(requestTo("https://integrate.api.nvidia.com/v1/chat/completions"))
                 .andRespond(withStatus(HttpStatus.PAYLOAD_TOO_LARGE));
 
-        ExcepcionServicioIaNoDisponible error = org.junit.jupiter.api.Assertions.assertThrows(
-                ExcepcionServicioIaNoDisponible.class,
+        AiServiceUnavailableException error = org.junit.jupiter.api.Assertions.assertThrows(
+                AiServiceUnavailableException.class,
                 () -> servicio.verificarIdentidad("bytes".getBytes(), "image/jpeg"));
 
         assertThat(error.isReintentable()).isFalse();
@@ -144,7 +144,7 @@ class NvidiaIaServiceTest {
     void constructor_apiKeyVacia_lanzaIllegalStateException() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer.bindTo(builder).build();
-        IaProperties propiedades = new IaProperties();
+        AiProperties propiedades = new AiProperties();
         propiedades.getNvidia().setApiKey("");
 
         assertThrows(IllegalStateException.class,

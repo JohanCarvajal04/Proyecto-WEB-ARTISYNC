@@ -56,7 +56,7 @@ public class GeneradorGraficaReporte {
         Graphics2D g = configurarGraphics(imagen);
 
         try {
-            dibujarFondoTarjeta(g, "Distribución de Usuarios por Rol", "Proporción de usuarios según su rol asignado");
+            dibujarFondoTarjeta(g, "Distribución de Usuarios por Role", "Proporción de usuarios según su rol asignado");
 
             long total = datosRol.values().stream().mapToLong(Long::longValue).sum();
             if (total == 0) {
@@ -289,7 +289,7 @@ public class GeneradorGraficaReporte {
     }
 
     private String formatearNombreRol(String rol) {
-        if (rol == null) return "Sin Rol";
+        if (rol == null) return "Sin Role";
         return switch (rol.toUpperCase()) {
             case "ADMIN", "ROLE_ADMIN" -> "Administrador";
             case "CREADOR", "ROLE_CREADOR" -> "Creador";

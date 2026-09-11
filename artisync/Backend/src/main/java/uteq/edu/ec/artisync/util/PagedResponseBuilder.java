@@ -35,7 +35,7 @@ public class PagedResponseBuilder {
 
     /**
      * Variante de {@link #buildAndMap} que mapea el contenido de la pagina en
-     * un unico lote (p. ej. UsuarioMapper.toUserResponseList) en vez de
+     * un unico lote (p. ej. UserMapper.toUserResponseList) en vez de
      * elemento a elemento. Uso: cuando el mapper hace consultas adicionales
      * por elemento (roles, permisos, flags), pasar la lista completa permite
      * batchearlas con IN (...) en vez de repetirlas por cada fila (N+1).

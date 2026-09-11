@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.entity.pedido;
 
 import uteq.edu.ec.artisync.entity.catalogo.FlujoTrabajo;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +36,7 @@ public class Pedido {
     @NotNull(message = "El usuario cliente es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_cliente", nullable = false)
-    private Usuario usuarioCliente;
+    private User usuarioCliente;
 
     @NotNull(message = "El servicio es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)

@@ -31,7 +31,7 @@ public interface IPagoGarantiaAuditoriaServicio {
      *
      * @param idPago id del pago
      * @return el detalle del pago
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pago no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pago no existe
      */
     RespuestaPagoGarantiaDetalle obtenerDetalle(Long idPago);
 

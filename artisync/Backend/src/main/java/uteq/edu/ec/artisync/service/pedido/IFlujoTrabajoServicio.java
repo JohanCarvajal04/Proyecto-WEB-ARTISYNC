@@ -15,9 +15,9 @@ public interface IFlujoTrabajoServicio {
      * @param idUsuario id del creador dueño del flujo
      * @param peticion  nombre, descripción y etapas iniciales del flujo
      * @return el flujo recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el creador ya tiene un flujo con el mismo nombre
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si las etapas iniciales tienen nombres o números de orden repetidos
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el creador ya tiene un flujo con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si las etapas iniciales tienen nombres o números de orden repetidos
      */
     RespuestaFlujoTrabajo crearFlujoTrabajo(Long idUsuario, PeticionCrearFlujoTrabajo peticion);
 
@@ -36,7 +36,7 @@ public interface IFlujoTrabajoServicio {
      * @param idUsuario     id del usuario que consulta
      * @param puedeVerTodos si puede acceder a flujos de cualquier creador
      * @return el detalle del flujo de trabajo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el solicitante
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el solicitante
      */
     RespuestaFlujoTrabajo obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos);
 
@@ -48,8 +48,8 @@ public interface IFlujoTrabajoServicio {
      * @param puedeVerTodos si puede acceder a flujos de cualquier creador
      * @param peticion      nuevo nombre y descripción del flujo
      * @return el flujo ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el solicitante
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el dueño del flujo ya tiene otro flujo con el nuevo nombre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el solicitante
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el dueño del flujo ya tiene otro flujo con el nuevo nombre
      */
     RespuestaFlujoTrabajo actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionCrearFlujoTrabajo peticion);
 
@@ -61,9 +61,9 @@ public interface IFlujoTrabajoServicio {
      * @param puedeVerTodos si puede acceder a flujos de cualquier creador
      * @param peticion      nombre, orden y configuración de la nueva etapa
      * @return el flujo con la etapa ya agregada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el flujo no existe o no es accesible para el solicitante
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si la etapa ya existe en este flujo
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya hay una etapa con el mismo número de orden en el flujo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el solicitante
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si la etapa ya existe en este flujo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya hay una etapa con el mismo número de orden en el flujo
      */
     RespuestaFlujoTrabajo agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionEtapaConfig peticion);
 
@@ -76,8 +76,8 @@ public interface IFlujoTrabajoServicio {
      * @param puedeVerTodos si puede acceder a flujos de cualquier creador
      * @param peticion      nueva configuración de la etapa
      * @return el flujo con la etapa ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el flujo o la configuración de etapa no existen, o el flujo no es accesible
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la etapa no pertenece al flujo indicado o el nuevo orden ya está ocupado por otra etapa
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o la configuración de etapa no existen, o el flujo no es accesible
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece al flujo indicado o el nuevo orden ya está ocupado por otra etapa
      */
     RespuestaFlujoTrabajo actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, PeticionEtapaConfig peticion);
 
@@ -88,8 +88,8 @@ public interface IFlujoTrabajoServicio {
      * @param puedeVerTodos si puede acceder a flujos de cualquier creador
      * @param peticion      ids de las dos configuraciones de etapa a intercambiar
      * @return el flujo con el orden de las etapas ya intercambiado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el flujo o alguna de las configuraciones de etapa no existen, o el flujo no es accesible
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si se intenta intercambiar una etapa consigo misma o alguna etapa no pertenece al flujo indicado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o alguna de las configuraciones de etapa no existen, o el flujo no es accesible
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta intercambiar una etapa consigo misma o alguna etapa no pertenece al flujo indicado
      */
     RespuestaFlujoTrabajo intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionSwapEtapas peticion);
 
@@ -100,8 +100,8 @@ public interface IFlujoTrabajoServicio {
      * @param idFlujoEtapa  id de la configuración de etapa a eliminar
      * @param idUsuario     id del usuario que solicita
      * @param puedeVerTodos si puede acceder a flujos de cualquier creador
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la configuración de etapa no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la etapa no pertenece al flujo o el solicitante no tiene permisos, o hay pedidos detenidos en esa etapa
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la configuración de etapa no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece al flujo o el solicitante no tiene permisos, o hay pedidos detenidos en esa etapa
      */
     void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos);
 }

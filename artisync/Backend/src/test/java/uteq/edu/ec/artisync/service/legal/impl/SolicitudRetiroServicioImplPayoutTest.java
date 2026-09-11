@@ -18,11 +18,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpStatusCodeException;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaSolicitudRetiro;
 import uteq.edu.ec.artisync.entity.legal.SolicitudRetiro;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.repository.legal.SolicitudRetiroRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.repository.perfil.DatosPagoCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
@@ -51,7 +51,7 @@ class SolicitudRetiroServicioImplPayoutTest {
     @Mock private SolicitudRetiroRepository solicitudRetiroRepository;
     @Mock private DatosPagoCreadorRepository datosPagoCreadorRepository;
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private PayPalClient payPalClient;
 
     @InjectMocks
@@ -71,8 +71,8 @@ class SolicitudRetiroServicioImplPayoutTest {
 
     @BeforeEach
     void setUp() {
-        Usuario creador = Usuario.builder().idUsuario(200L).nombres("Ana").apellidos("Creadora").build();
-        Usuario admin = Usuario.builder().idUsuario(ID_ADMIN).nombres("Admin").apellidos("X").build();
+        User creador = User.builder().idUsuario(200L).nombres("Ana").apellidos("Creadora").build();
+        User admin = User.builder().idUsuario(ID_ADMIN).nombres("Admin").apellidos("X").build();
 
         solicitudPendiente = SolicitudRetiro.builder()
                 .idSolicitud(1L)
@@ -184,7 +184,7 @@ class SolicitudRetiroServicioImplPayoutTest {
         assertThat(solicitudPendiente.getEstado()).isEqualTo("Pendiente");
 
         org.junit.jupiter.api.Assertions.assertThrows(
-                uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio.class,
+                uteq.edu.ec.artisync.exception.BusinessRuleException.class,
                 () -> servicio.reintentar(1L, ID_ADMIN));
     }
 }

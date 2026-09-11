@@ -18,8 +18,8 @@ public interface IPerfilCreadorServicio {
      * @param correoSolicitante correo del usuario autenticado que solicita la creación
      * @param esAdmin           si el solicitante tiene rol de administrador
      * @return el perfil recién creado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado si el usuario destino ya tiene un perfil de creador
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario destino no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario destino ya tiene un perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario destino no existe
      */
     RespuestaPerfil crearPerfil(PeticionCrearPerfil peticion, String correoSolicitante, boolean esAdmin);
 
@@ -28,7 +28,7 @@ public interface IPerfilCreadorServicio {
      *
      * @param idPerfil id del perfil
      * @return el perfil encontrado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
     RespuestaPerfil obtenerPerfilPorId(Long idPerfil);
 
@@ -37,7 +37,7 @@ public interface IPerfilCreadorServicio {
      *
      * @param idUsuario id del usuario
      * @return el perfil del usuario
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el usuario no tiene perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
      */
     RespuestaPerfil obtenerPerfilPorUsuario(Long idUsuario);
 
@@ -65,7 +65,7 @@ public interface IPerfilCreadorServicio {
      * @param correoSolicitante correo del usuario autenticado que solicita la actualización
      * @param esAdmin           si el solicitante tiene rol de administrador
      * @return el perfil ya actualizado
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es el dueño del perfil ni administrador
      */
     RespuestaPerfil actualizarPerfil(Long idPerfil, PeticionActualizarPerfil peticion, String correoSolicitante, boolean esAdmin);
@@ -74,7 +74,7 @@ public interface IPerfilCreadorServicio {
      * Elimina un perfil de creador.
      *
      * @param idPerfil id del perfil a eliminar
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el perfil no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
     void eliminarPerfil(Long idPerfil);
 }

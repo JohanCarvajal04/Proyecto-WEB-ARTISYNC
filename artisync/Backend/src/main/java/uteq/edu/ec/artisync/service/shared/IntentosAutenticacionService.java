@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import uteq.edu.ec.artisync.exception.ExcepcionCuotaExcedida;
+import uteq.edu.ec.artisync.exception.QuotaExceededException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -30,7 +30,7 @@ public class IntentosAutenticacionService {
 
     /**
      * Incrementa el contador de (ambito, identificador) y lanza
-     * {@link ExcepcionCuotaExcedida} (429, con Retry-After) si supera el
+     * {@link QuotaExceededException} (429, con Retry-After) si supera el
      * límite dentro de la ventana.
      *
      * En AuthServiceImpl.login() se invoca únicamente cuando la autenticación
@@ -51,7 +51,7 @@ public class IntentosAutenticacionService {
 
             if (intentos != null && intentos > limite) {
                 log.warn("Cuota de intentos por cuenta excedida para ámbito={}", ambito);
-                throw new ExcepcionCuotaExcedida(
+                throw new QuotaExceededException(
                         "Demasiados intentos. Intenta nuevamente en unos minutos.",
                         ventana.getSeconds());
             }
@@ -67,7 +67,7 @@ public class IntentosAutenticacionService {
      *
      * @param ambito parametro requerido para la correcta ejecucion del procedimiento
      * @param identificador identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void limpiar(String ambito, String identificador) {
         try {

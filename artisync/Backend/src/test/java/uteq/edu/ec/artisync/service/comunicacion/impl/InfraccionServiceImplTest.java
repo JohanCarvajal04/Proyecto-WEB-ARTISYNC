@@ -14,10 +14,10 @@ import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
 import uteq.edu.ec.artisync.dto.respuesta.comunicacion.RespuestaInfraccion;
 import uteq.edu.ec.artisync.entity.comunicacion.InfraccionMensaje;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.comunicacion.InfraccionRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.comunicacion.MensajeFilterService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.*;
 class InfraccionServiceImplTest {
 
     @Mock private InfraccionRepository infraccionRepo;
-    @Mock private UsuarioRepository    usuarioRepo;
+    @Mock private UserRepository    usuarioRepo;
     @Mock private MensajeFilterService mensajeFilterService;
     @Mock private NotificacionService  notificacionService;
 
@@ -73,7 +73,7 @@ class InfraccionServiceImplTest {
     @DisplayName("registrarInfraccion — al cruzar el umbral suspende la cuenta y notifica")
     void registrarInfraccion_cruzaUmbral_suspendeYNotifica() {
         String mensaje = "Escríbeme a test@ejemplo.com";
-        Usuario usuario = Usuario.builder().idUsuario(1L).correo("test-user@example.com").estadoCuenta(false).build();
+        User usuario = User.builder().idUsuario(1L).correo("test-user@example.com").estadoCuenta(false).build();
 
         when(mensajeFilterService.detectarPatron(mensaje)).thenReturn("EMAIL");
         when(infraccionRepo.registrarInfraccion(1L, 10L, mensaje, "EMAIL"))
@@ -102,7 +102,7 @@ class InfraccionServiceImplTest {
     @Test
     @DisplayName("historialPorUsuario — filtra en la consulta, no devuelve infracciones de otros usuarios")
     void historialPorUsuario_filtraPorUsuarioEnLaQuery() {
-        Usuario usuario1 = Usuario.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
+        User usuario1 = User.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
         Pedido pedido = Pedido.builder().idPedido(10L).build();
         InfraccionMensaje infraccionDeUsuario1 = InfraccionMensaje.builder()
                 .idInfraccion(7L)
@@ -127,7 +127,7 @@ class InfraccionServiceImplTest {
     @Test
     @DisplayName("listarInfracciones — lista todas las infracciones del sistema, sin filtrar por usuario")
     void listarInfracciones_listaTodasSinFiltrarPorUsuario() {
-        Usuario usuario1 = Usuario.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
+        User usuario1 = User.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
         Pedido pedido = Pedido.builder().idPedido(10L).build();
         InfraccionMensaje infraccion = InfraccionMensaje.builder()
                 .idInfraccion(9L)
@@ -152,7 +152,7 @@ class InfraccionServiceImplTest {
     @Test
     @DisplayName("revertirSuspension — reactiva la cuenta y devuelve el mensaje con el correo del usuario")
     void revertirSuspension_reactivaLaCuenta() {
-        Usuario usuario = Usuario.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
+        User usuario = User.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
         when(usuarioRepo.findById(1L)).thenReturn(Optional.of(usuario));
 
         RespuestaMensaje respuesta = infraccionService.revertirSuspension(1L);
@@ -163,12 +163,12 @@ class InfraccionServiceImplTest {
     }
 
     @Test
-    @DisplayName("revertirSuspension — usuario inexistente lanza ExcepcionRecursoNoEncontrado")
+    @DisplayName("revertirSuspension — usuario inexistente lanza ResourceNotFoundException")
     void revertirSuspension_usuarioNoExiste_lanzaExcepcion() {
         when(usuarioRepo.findById(99L)).thenReturn(Optional.empty());
 
         org.junit.jupiter.api.Assertions.assertThrows(
-                ExcepcionRecursoNoEncontrado.class,
+                ResourceNotFoundException.class,
                 () -> infraccionService.revertirSuspension(99L));
 
         verify(usuarioRepo, never()).save(any());

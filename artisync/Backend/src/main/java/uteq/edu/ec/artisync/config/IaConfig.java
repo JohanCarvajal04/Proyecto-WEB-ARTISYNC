@@ -21,7 +21,7 @@ import java.time.Duration;
 @Slf4j
 public class IaConfig {
 
-    private final IaProperties iaProperties;
+    private final AiProperties iaProperties;
 
     @Bean("iaRestClient")
     public RestClient iaRestClient() {

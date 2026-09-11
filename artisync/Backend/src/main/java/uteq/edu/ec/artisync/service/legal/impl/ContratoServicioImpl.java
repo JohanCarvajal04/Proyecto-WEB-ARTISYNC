@@ -8,22 +8,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 import uteq.edu.ec.artisync.audit.Auditable;
-import uteq.edu.ec.artisync.audit.ModuloAuditoria;
+import uteq.edu.ec.artisync.audit.AuditModule;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PlantillaContratoRepository;
 import uteq.edu.ec.artisync.service.legal.IContratoServicio;
 import uteq.edu.ec.artisync.service.legal.IPdfGeneracionServicio;
-import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
+import uteq.edu.ec.artisync.util.OrderOwnershipValidator;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -53,7 +53,7 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "CONTRATO_GENERAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "CONTRATO_GENERAR", modulo = AuditModule.FINANZAS,
             entidad = "contratos", idEntidad = "#resultado.idContrato")
     /**
      * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
@@ -61,17 +61,17 @@ public class ContratoServicioImpl implements IContratoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
         // H-02: evita que cualquier autenticado genere un contrato sobre un pedido ajeno.
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
 
         // Verificar que no exista ya un contrato para este pedido
         if (contratoRepository.findByPedidoIdPedido(idPedido).isPresent()) {
-            throw new ExcepcionReglaNegocio("Ya existe un contrato para este pedido");
+            throw new BusinessRuleException("Ya existe un contrato para este pedido");
         }
 
         // REQ-F-017 ampliado: la plantilla ya no es única y global. Se usa la
@@ -81,7 +81,7 @@ public class ContratoServicioImpl implements IContratoServicio {
         PlantillaContrato plantilla = pedido.getServicio().getPlantillaContrato();
         if (plantilla == null) {
             plantilla = plantillaContratoRepository.findByEsPredeterminadaTrue()
-                    .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
+                    .orElseThrow(() -> new ResourceNotFoundException(
                             "No hay una plantilla de contrato predeterminada configurada en el sistema"));
         }
 
@@ -101,7 +101,7 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional
-    @Auditable(accion = "CONTRATO_FIRMAR", modulo = ModuloAuditoria.FINANZAS,
+    @Auditable(accion = "CONTRATO_FIRMAR", modulo = AuditModule.FINANZAS,
             entidad = "contratos", idEntidad = "#idContrato")
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
@@ -109,11 +109,11 @@ public class ContratoServicioImpl implements IContratoServicio {
      * @param idContrato identificador unico que referencia de manera univoca al registro
      * @param idUsuario identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaContrato firmarContrato(Long idContrato, Long idUsuario) {
         Contrato contrato = contratoRepository.findByIdParaFirmar(idContrato)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
 
         Pedido pedido = contrato.getPedido();
         String hash = generarHashFirma(idContrato, idUsuario);
@@ -123,18 +123,18 @@ public class ContratoServicioImpl implements IContratoServicio {
 
         if (idUsuario.equals(idCreador)) {
             if (contrato.getHashFirmaCreador() != null) {
-                throw new ExcepcionReglaNegocio("El creador ya firmo este contrato");
+                throw new BusinessRuleException("El creador ya firmo este contrato");
             }
             contrato.setHashFirmaCreador(hash);
             log.info("Contrato {} firmado por creador (usuario {})", idContrato, idUsuario);
         } else if (idUsuario.equals(idCliente)) {
             if (contrato.getHashFirmaCliente() != null) {
-                throw new ExcepcionReglaNegocio("El cliente ya firmo este contrato");
+                throw new BusinessRuleException("El cliente ya firmo este contrato");
             }
             contrato.setHashFirmaCliente(hash);
             log.info("Contrato {} firmado por cliente (usuario {})", idContrato, idUsuario);
         } else {
-            // H-02: 403, no 422 — coherente con el resto del proyecto (ManejadorGlobalExcepciones).
+            // H-02: 403, no 422 — coherente con el resto del proyecto (GlobalExceptionHandler).
             throw new AccessDeniedException("No eres parte de este contrato");
         }
 
@@ -156,14 +156,14 @@ public class ContratoServicioImpl implements IContratoServicio {
      *
      * @param idContrato identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaVerificacionIntegridad verificarIntegridadHash(Long idContrato) {
         Contrato contrato = contratoRepository.findById(idContrato)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
 
         if (contrato.getHashContenido() == null) {
-            throw new ExcepcionReglaNegocio(
+            throw new BusinessRuleException(
                     "El contrato aún no está firmado por ambas partes; no tiene un hash de contenido que verificar");
         }
 
@@ -193,13 +193,13 @@ public class ContratoServicioImpl implements IContratoServicio {
      * @param idContrato identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaContrato obtenerContrato(Long idContrato, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findById(idContrato)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
         // H-02: evita el acceso a contratos ajenos (IDOR).
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
         return mapToRespuesta(contrato);
     }
 
@@ -211,13 +211,13 @@ public class ContratoServicioImpl implements IContratoServicio {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaContrato obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido con ID: " + idPedido));
+                .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido con ID: " + idPedido));
         // H-02: evita el acceso a contratos ajenos (IDOR).
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
         return mapToRespuesta(contrato);
     }
 
@@ -229,13 +229,13 @@ public class ContratoServicioImpl implements IContratoServicio {
      * @param idContrato identificador unico que referencia de manera univoca al registro
      * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
      * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findById(idContrato)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
         // H-02: evita el acceso a contratos ajenos (IDOR).
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
         boolean firmaCreador = contrato.getHashFirmaCreador() != null;
         boolean firmaCliente = contrato.getHashFirmaCliente() != null;
@@ -267,9 +267,9 @@ public class ContratoServicioImpl implements IContratoServicio {
         long start = System.currentTimeMillis();
 
         Contrato contrato = contratoRepository.findById(idContrato)
-                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
         // H-02: evita descargar el PDF de un contrato ajeno (IDOR).
-        ValidadorPertenenciaPedido.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
         String html = renderizarContratoCompleto(contrato);
         byte[] pdf = pdfGeneracionServicio.generarPdfDesdeHtml(html);
@@ -308,8 +308,8 @@ public class ContratoServicioImpl implements IContratoServicio {
      */
     private String generarContratoHtml(PlantillaContrato plantilla, Contrato contrato) {
         Pedido pedido = contrato.getPedido();
-        Usuario creador = pedido.getServicio().getPerfil().getUsuario();
-        Usuario cliente = pedido.getUsuarioCliente();
+        User creador = pedido.getServicio().getPerfil().getUsuario();
+        User cliente = pedido.getUsuarioCliente();
 
         String html = plantilla.getCuerpoHtmlPlantilla();
         html = html.replace("{{nombre_creador}}",
@@ -403,8 +403,8 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     private RespuestaContrato mapToRespuesta(Contrato contrato) {
         Pedido pedido = contrato.getPedido();
-        Usuario creador = pedido.getServicio().getPerfil().getUsuario();
-        Usuario cliente = pedido.getUsuarioCliente();
+        User creador = pedido.getServicio().getPerfil().getUsuario();
+        User cliente = pedido.getUsuarioCliente();
 
         String htmlRenderizado = generarContratoHtml(contrato.getPlantilla(), contrato);
 

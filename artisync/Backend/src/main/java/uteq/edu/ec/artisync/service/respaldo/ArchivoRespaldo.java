@@ -10,7 +10,7 @@ import org.springframework.core.io.Resource;
  * @param nombreArchivo objeto binario multipart representando el documento o medio fisico
  * @param tamanoBytes parametro requerido para la correcta ejecucion del procedimiento
  * @return el resultado esperado de aplicar las reglas de negocio de la funcion
- * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+ * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
  */
 public record ArchivoRespaldo(Resource recurso, String nombreArchivo, long tamanoBytes) {
 }

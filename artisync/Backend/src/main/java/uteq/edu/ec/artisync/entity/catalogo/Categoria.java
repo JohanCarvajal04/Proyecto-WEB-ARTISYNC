@@ -34,7 +34,7 @@ public class Categoria {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_creador")
-    private uteq.edu.ec.artisync.entity.seguridad.Usuario creador;
+    private uteq.edu.ec.artisync.entity.seguridad.User creador;
 
     @Builder.Default
     @Column(name = "revisado", nullable = false)

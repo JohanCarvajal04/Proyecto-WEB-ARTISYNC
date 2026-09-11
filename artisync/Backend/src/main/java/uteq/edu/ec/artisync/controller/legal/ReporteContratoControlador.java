@@ -14,7 +14,7 @@ import uteq.edu.ec.artisync.service.legal.IReporteContratoServicio;
 import uteq.edu.ec.artisync.service.shared.reporte.DocumentoGenerado;
 import uteq.edu.ec.artisync.service.shared.reporte.FormatoReporte;
 import uteq.edu.ec.artisync.util.PagedResponse;
-import uteq.edu.ec.artisync.util.RespuestaDocumento;
+import uteq.edu.ec.artisync.util.DocumentResponse;
 
 /**
  * Reporte de contratos formalizados. Cierra el permiso huérfano
@@ -74,7 +74,7 @@ public class ReporteContratoControlador {
         DocumentoGenerado documento = (page != null || size != null)
                 ? reporteContratoServicio.exportar(filtro, formato, page, size, authentication.getName())
                 : reporteContratoServicio.exportar(filtro, formato, authentication.getName());
-        return RespuestaDocumento.de(documento);
+        return DocumentResponse.de(documento);
     }
 
     /**

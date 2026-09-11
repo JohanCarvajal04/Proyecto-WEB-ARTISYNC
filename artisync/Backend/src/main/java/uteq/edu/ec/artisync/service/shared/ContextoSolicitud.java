@@ -7,7 +7,7 @@ import uteq.edu.ec.artisync.security.ClientIpResolver;
 
 /**
  * Metadatos HTTP de la petición en curso, para uso de infraestructura
- * transversal (AspectoAuditoria). Mismo patrón que
+ * transversal (AuditAspect). Mismo patrón que
  * AuthServiceImpl.obtenerIpActual(): todo null cuando no hay una petición
  * HTTP en el hilo actual (tareas @Scheduled, colas, hilos de @Async).
  */
@@ -24,7 +24,7 @@ public final class ContextoSolicitud {
      * @param metodoHttp parametro requerido para la correcta ejecucion del procedimiento
      * @param rutaSolicitud parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public record Datos(String direccionIp, String agenteUsuario, String metodoHttp, String rutaSolicitud) {
     }

@@ -20,7 +20,7 @@ public interface IPlantillaContratoAdminServicio {
      *
      * @param peticion texto legal y versión de la plantilla
      * @return la plantilla recién creada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si ya existe una plantilla con la misma versión legal
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una plantilla con la misma versión legal
      */
     RespuestaPlantillaContrato crear(PeticionCrearPlantillaContrato peticion);
 
@@ -30,8 +30,8 @@ public interface IPlantillaContratoAdminServicio {
      * @param idPlantilla id de la plantilla a editar
      * @param peticion    nuevos datos de la plantilla
      * @return la plantilla ya actualizada
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la nueva versión legal ya la usa otra plantilla
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la nueva versión legal ya la usa otra plantilla
      */
     RespuestaPlantillaContrato editar(Long idPlantilla, PeticionActualizarPlantillaContrato peticion);
 
@@ -47,8 +47,8 @@ public interface IPlantillaContratoAdminServicio {
      *
      * @param idPlantilla id de la plantilla a desactivar
      * @return mensaje de confirmación
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si la plantilla no existe
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si la plantilla ya está desactivada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la plantilla ya está desactivada
      */
     RespuestaMensaje desactivar(Long idPlantilla);
 

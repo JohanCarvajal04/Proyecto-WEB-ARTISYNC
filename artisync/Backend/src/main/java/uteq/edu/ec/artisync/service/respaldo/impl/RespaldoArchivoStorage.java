@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.respaldo.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.config.RespaldoProperties;
+import uteq.edu.ec.artisync.config.BackupProperties;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,14 +19,14 @@ import java.nio.file.Path;
 @RequiredArgsConstructor
 public class RespaldoArchivoStorage {
 
-    private final RespaldoProperties respaldoProperties;
+    private final BackupProperties respaldoProperties;
 
     /**
      * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
      *
      * @param nombreArchivo objeto binario multipart representando el documento o medio fisico
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Path resolverRutaDestino(String nombreArchivo) throws IOException {
         Path base = Path.of(respaldoProperties.getRutaBase());
@@ -38,7 +38,7 @@ public class RespaldoArchivoStorage {
      * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
      *
      * @param ruta parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public void eliminar(Path ruta) throws IOException {
         Files.deleteIfExists(ruta);

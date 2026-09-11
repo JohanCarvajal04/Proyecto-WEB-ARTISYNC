@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.UpdateTimestamp;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 
 import java.time.LocalDateTime;
 
@@ -34,7 +34,7 @@ public class DatosPagoCreador {
     @NotNull(message = "El usuario es obligatorio")
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false, unique = true)
-    private Usuario usuario;
+    private User usuario;
 
     @NotBlank(message = "El correo de PayPal es obligatorio")
     @Email(message = "El correo de PayPal no tiene un formato válido")

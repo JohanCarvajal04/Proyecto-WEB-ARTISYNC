@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.respaldo.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.config.RespaldoProperties;
+import uteq.edu.ec.artisync.config.BackupProperties;
 import uteq.edu.ec.artisync.entity.respaldo.Respaldo;
 import uteq.edu.ec.artisync.service.shared.reporte.FormateadorValores;
 
@@ -32,7 +32,7 @@ public class PgDumpEjecutor {
 
     private static final DateTimeFormatter MARCA_TIEMPO = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
 
-    private final RespaldoProperties respaldoProperties;
+    private final BackupProperties respaldoProperties;
     private final RespaldoArchivoStorage storage;
 
     /**
@@ -40,10 +40,10 @@ public class PgDumpEjecutor {
      *
      * @param respaldo parametro requerido para la correcta ejecucion del procedimiento
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public Path ejecutar(Respaldo respaldo) throws IOException, InterruptedException {
-        RespaldoProperties.Db db = respaldoProperties.getDb();
+        BackupProperties.Db db = respaldoProperties.getDb();
         String nombreArchivo = "respaldo_full_" + LocalDateTime.now(FormateadorValores.zona()).format(MARCA_TIEMPO) + ".dump";
         Path destino = storage.resolverRutaDestino(nombreArchivo);
         Path logError = storage.resolverRutaDestino(nombreArchivo + ".stderr.log");

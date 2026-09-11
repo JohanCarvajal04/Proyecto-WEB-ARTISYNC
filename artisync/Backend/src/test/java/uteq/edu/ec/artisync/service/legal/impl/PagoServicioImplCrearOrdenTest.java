@@ -17,10 +17,10 @@ import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.legal.PagoGarantia;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
+import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
-import uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
+import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
@@ -68,8 +68,8 @@ class PagoServicioImplCrearOrdenTest {
 
     @BeforeEach
     void setUp() {
-        Usuario cliente = Usuario.builder().idUsuario(ID_CLIENTE).build();
-        Usuario creador = Usuario.builder().idUsuario(ID_CREADOR).build();
+        User cliente = User.builder().idUsuario(ID_CLIENTE).build();
+        User creador = User.builder().idUsuario(ID_CREADOR).build();
         PerfilCreador perfil = PerfilCreador.builder().usuario(creador).build();
         Servicio servicio = Servicio.builder().perfil(perfil).build();
         Pedido pedido = Pedido.builder().idPedido(1L).precioPactado(new BigDecimal("40.00"))
@@ -84,7 +84,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -93,7 +93,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_AJENO, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -103,7 +103,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(sinFirmar));
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -114,7 +114,7 @@ class PagoServicioImplCrearOrdenTest {
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.of(pagoRetenido));
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -161,7 +161,7 @@ class PagoServicioImplCrearOrdenTest {
                 .willThrow(new RuntimeException("timeout"));
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -175,7 +175,7 @@ class PagoServicioImplCrearOrdenTest {
                 .willThrow(new org.springframework.dao.DataIntegrityViolationException("uq_pagos_garantia_contrato"));
 
         assertThatThrownBy(() -> pagoServicio.crearOrdenPayPal(1L, ID_CLIENTE, null))
-                .isInstanceOf(ExcepcionReglaNegocio.class)
+                .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Este pedido ya tiene un pago en curso");
     }
 
@@ -213,7 +213,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
 
         assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L, ID_AJENO))
-                .isInstanceOf(ExcepcionReglaNegocio.class);
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -222,7 +222,7 @@ class PagoServicioImplCrearOrdenTest {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -232,7 +232,7 @@ class PagoServicioImplCrearOrdenTest {
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> pagoServicio.obtenerEstadoPago(1L, ID_CLIENTE))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     private void conRespuestasPayPal(String cuerpoOrden) {

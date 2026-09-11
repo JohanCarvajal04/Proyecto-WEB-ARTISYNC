@@ -12,11 +12,11 @@ import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionActualizarPerfil;
 import uteq.edu.ec.artisync.dto.peticion.perfil.PeticionCrearPerfil;
 import uteq.edu.ec.artisync.dto.respuesta.perfil.RespuestaPerfil;
 import uteq.edu.ec.artisync.entity.perfil.PerfilCreador;
-import uteq.edu.ec.artisync.entity.seguridad.Usuario;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoDuplicado;
-import uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado;
+import uteq.edu.ec.artisync.entity.seguridad.User;
+import uteq.edu.ec.artisync.exception.DuplicateResourceException;
+import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.repository.perfil.PerfilCreadorRepository;
-import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
+import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
 
 import java.util.List;
@@ -39,18 +39,18 @@ class PerfilCreadorServicioImplTest {
     private static final String ADMIN = "admin@artisync.dev";
 
     @Mock private PerfilCreadorRepository perfilRepository;
-    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private UserRepository usuarioRepository;
     @Mock private IVerificacionServicio verificacionServicio;
 
     @InjectMocks
     private PerfilCreadorServicioImpl perfilCreadorServicio;
 
-    private Usuario usuario;
+    private User usuario;
     private PerfilCreador perfil;
 
     @BeforeEach
     void setUp() {
-        usuario = Usuario.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").build();
+        usuario = User.builder().idUsuario(1L).nombres("Ana").apellidos("Diaz").build();
         perfil = PerfilCreador.builder().idPerfil(10L).usuario(usuario).biografia("bio").urlRedSocial("http://x.com").build();
         // lenient: no todos los tests llegan a mapearARespuesta (algunos cortan
         // antes con una excepción), y Mockito strict-stubs marcaría el resto
@@ -79,7 +79,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> perfilCreadorServicio.crearPerfil(peticion, ADMIN, true))
-                .isInstanceOf(ExcepcionRecursoDuplicado.class);
+                .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
@@ -90,7 +90,7 @@ class PerfilCreadorServicioImplTest {
         given(usuarioRepository.findById(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> perfilCreadorServicio.crearPerfil(peticion, ADMIN, true))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -115,7 +115,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.findById(10L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorId(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -166,7 +166,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorUsuario(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -176,7 +176,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorId(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -186,7 +186,7 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
 
         assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorUsuario(1L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -217,14 +217,14 @@ class PerfilCreadorServicioImplTest {
 
         assertThatThrownBy(() -> perfilCreadorServicio.actualizarPerfil(
                 10L, new PeticionActualizarPerfil(null, null, null), ADMIN, true))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     @DisplayName("actualizarPerfil deniega a un CREADOR que no es el propietario")
     void actualizarPerfil_rechazaAjeno() {
         // El perfil 10 es de Ana (id 1); quien pide es Luis (id 2) con rol CREADOR.
-        Usuario otro = Usuario.builder().idUsuario(2L).nombres("Luis").apellidos("Paz").build();
+        User otro = User.builder().idUsuario(2L).nombres("Luis").apellidos("Paz").build();
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
         given(usuarioRepository.findByCorreo(CORREO_LUIS)).willReturn(Optional.of(otro));
 
@@ -264,6 +264,6 @@ class PerfilCreadorServicioImplTest {
         given(perfilRepository.existsById(10L)).willReturn(false);
 
         assertThatThrownBy(() -> perfilCreadorServicio.eliminarPerfil(10L))
-                .isInstanceOf(ExcepcionRecursoNoEncontrado.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 }
