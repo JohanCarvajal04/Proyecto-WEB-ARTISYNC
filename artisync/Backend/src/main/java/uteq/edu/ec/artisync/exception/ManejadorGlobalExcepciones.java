@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.exception;
+package uteq.edu.ec.artisync.exception;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;

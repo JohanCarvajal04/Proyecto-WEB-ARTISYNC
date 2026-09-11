@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.perfil;
+package uteq.edu.ec.artisync.repository.perfil;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.peticion.catalogo;
+package uteq.edu.ec.artisync.dto.peticion.catalogo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

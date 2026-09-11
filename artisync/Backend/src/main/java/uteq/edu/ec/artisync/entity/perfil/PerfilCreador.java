@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.perfil;
+package uteq.edu.ec.artisync.entity.perfil;
 
 import uteq.edu.ec.artisync.entity.seguridad.Usuario;
 import jakarta.persistence.*;

@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.seguridad;
+package uteq.edu.ec.artisync.repository.seguridad;
 
 /**
  * Repositorio de acceso a datos para la entidad de dominio {@link SesionRevocadaProyeccion}.

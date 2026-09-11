@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.peticion.perfil;
+package uteq.edu.ec.artisync.dto.peticion.perfil;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

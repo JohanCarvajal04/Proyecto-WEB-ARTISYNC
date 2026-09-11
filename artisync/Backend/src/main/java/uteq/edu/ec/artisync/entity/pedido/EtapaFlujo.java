@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.pedido;
+package uteq.edu.ec.artisync.entity.pedido;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;

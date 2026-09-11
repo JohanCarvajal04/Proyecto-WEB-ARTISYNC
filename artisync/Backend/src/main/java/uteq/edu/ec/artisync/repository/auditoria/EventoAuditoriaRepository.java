@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.auditoria;
+package uteq.edu.ec.artisync.repository.auditoria;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

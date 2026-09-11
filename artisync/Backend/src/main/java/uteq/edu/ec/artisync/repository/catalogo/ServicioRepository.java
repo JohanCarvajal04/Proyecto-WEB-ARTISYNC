@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.catalogo;
+package uteq.edu.ec.artisync.repository.catalogo;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

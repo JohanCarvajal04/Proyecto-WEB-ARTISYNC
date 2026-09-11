@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.seguridad.request;
+package uteq.edu.ec.artisync.dto.seguridad.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

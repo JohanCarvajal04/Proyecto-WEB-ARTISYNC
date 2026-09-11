@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.peticion.legal;
+package uteq.edu.ec.artisync.dto.peticion.legal;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

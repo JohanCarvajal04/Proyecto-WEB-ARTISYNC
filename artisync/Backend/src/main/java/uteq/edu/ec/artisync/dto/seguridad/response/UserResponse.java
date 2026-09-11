@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.seguridad.response;
+package uteq.edu.ec.artisync.dto.seguridad.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

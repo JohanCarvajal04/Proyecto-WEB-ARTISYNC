@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.comunicacion;
+package uteq.edu.ec.artisync.repository.comunicacion;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
