@@ -18,6 +18,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Componente Core de Seguridad: Filtro de interceptacion para validacion JWT.
+ * 
+ * Propósito: Garantizar que unicamente las peticiones con un Bearer token valido y no revocado puedan acceder a endpoints protegidos.
+ * 
+ * Flujo interno: Se ejecuta por cada peticion HTTP (OncePerRequestFilter). Extrae el token de la cabecera Authorization, verifica la firma con JwtService, y si es valido, inyecta un Authentication en el SecurityContextHolder.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -51,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // peticiones HTTP. Antes era lista negra (rechazaba solo type=refresh),
             // lo que aceptaba en silencio cualquier token futuro sin "type" o con un
             // tipo desconocido (p. ej. el ticket pre-auth de 2FA, que es opaco y nunca
-            // llega aqui, pero un JWT mal formado con otro "type" sí colaría).
+            // llega aqui, pero un JWT mal formado con otro "type" sÃ­ colarÃ­a).
             if (!TIPO_ACCESO.equals(claims.get("type"))) {
                 log.debug("Token sin claim type=access rechazado en el filtro.");
                 filterChain.doFilter(request, response);
@@ -67,8 +74,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
             } catch (org.springframework.dao.DataAccessException e) {
-                log.error("🚨 ALERTA CRÍTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).", e);
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Servicio de autenticación temporalmente no disponible (Redis Blacklist inalcanzable).");
+                log.error("ðŸš¨ ALERTA CRÃTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).", e);
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Servicio de autenticaciÃ³n temporalmente no disponible (Redis Blacklist inalcanzable).");
                 return;
             }
 
@@ -78,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // §2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
+                // Â§2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
                 // y el titular, que la cuenta siga habilitada y no bloqueada. Antes el
                 // filtro ignoraba por completo userDetails.isEnabled(), asi que una
                 // cuenta suspendida seguia autenticando hasta que expirara el token
@@ -94,17 +101,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
                     log.debug("Token rechazado por esAccessTokenValido (cuenta deshabilitada o titular no coincide): {}", username);
-                    request.setAttribute("JWT_ERROR", "Credenciales inválidas o cuenta deshabilitada");
+                    request.setAttribute("JWT_ERROR", "Credenciales invÃ¡lidas o cuenta deshabilitada");
                 }
             }
         } catch (ExpiredJwtException e) {
             log.debug("Token JWT expirado: {}", e.getMessage());
             request.setAttribute("JWT_ERROR", "Token expirado");
         } catch (Exception e) {
-            log.debug("Token JWT inválido o malformado: {}", e.getMessage());
-            request.setAttribute("JWT_ERROR", "Credenciales inválidas o token malformado");
+            log.debug("Token JWT invÃ¡lido o malformado: {}", e.getMessage());
+            request.setAttribute("JWT_ERROR", "Credenciales invÃ¡lidas o token malformado");
         }
 
         filterChain.doFilter(request, response);
     }
 }
+

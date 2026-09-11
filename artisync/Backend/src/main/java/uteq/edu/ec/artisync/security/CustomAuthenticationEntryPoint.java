@@ -18,6 +18,13 @@ import java.net.URI;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Componente de Seguridad: Punto de entrada para peticiones no autenticadas.
+ * 
+ * Propósito: Manejar de forma controlada y estandarizada los intentos de acceso a recursos protegidos sin proveer credenciales validas.
+ * 
+ * Flujo interno: Es invocado por el ExceptionTranslationFilter de Spring Security cuando se lanza una AuthenticationException. Retorna una respuesta JSON (ProblemDetail) con HTTP 401 en lugar del redirect por defecto a login HTML.
+ */
 @Slf4j
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -41,9 +48,9 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         String jwtError = (String) request.getAttribute("JWT_ERROR");
-        String message = jwtError != null ? jwtError : "Autenticación requerida";
+        String message = jwtError != null ? jwtError : "AutenticaciÃ³n requerida";
 
-        log.warn("Fallo de autenticación en {}: {} (Excepción: {})", request.getRequestURI(), message, authException.getMessage());
+        log.warn("Fallo de autenticaciÃ³n en {}: {} (ExcepciÃ³n: {})", request.getRequestURI(), message, authException.getMessage());
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -57,4 +64,5 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         objectMapper.writeValue(response.getWriter(), problemDetail);
     }
 }
+
 

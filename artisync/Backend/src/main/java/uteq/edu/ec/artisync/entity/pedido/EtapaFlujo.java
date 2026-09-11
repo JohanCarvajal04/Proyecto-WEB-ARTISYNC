@@ -5,6 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Paso individual dentro del flujo de trabajo de un encargo.
+ * 
+ * Ciclo de vida: Catologo estatico. Define los building blocks de los procesos del sistema.
+ * 
+ * Relaciones principales: Referenciada por FlujoEtapaConfig para armar plantillas dinamicas.
+ */
 @Entity
 @Table(name = "etapas_flujo")
 @Getter
@@ -24,3 +31,5 @@ public class EtapaFlujo {
     @Column(name = "nombre_etapa", nullable = false, unique = true, length = 100)
     private String nombreEtapa;
 }
+
+

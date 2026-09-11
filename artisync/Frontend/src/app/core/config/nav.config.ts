@@ -124,6 +124,10 @@ export const PAGE_PERMISSIONS = {
   // Catálogo de plantillas de contrato (REQ-F-017 ampliado): el creador elige
   // entre estas al crear/editar su servicio, pero solo ADMIN las gestiona.
   plantillasContrato: ['CONTRATO_PLANTILLA_GESTIONAR'],
+  // Plantillas de acuerdo propias del creador (V45): autoservicio aparte del
+  // catálogo general, mismo criterio que flujosPropios/flujosModeracion —
+  // cada permiso abre solo SU pantalla.
+  plantillasAcuerdoPropias: ['CONTRATO_PLANTILLA_PROPIA_GESTIONAR'],
   // Supervisión de pagos en escrow. PAGO_AUDITAR estaba asignado a
   // AUDITOR_FINANCIERO desde el seed inicial sin ninguna pantalla que lo usara.
   pagosGarantia: ['PAGO_AUDITAR'],
@@ -314,6 +318,9 @@ export const NAV_CATALOG: readonly NavItem[] = [
   // asignara FLUJO_GESTIONAR, porque el sidebar filtra por panel activo antes
   // de mirar permisos.
   { label: 'Mis Flujos de Trabajo', icon: 'account_tree', route: 'flujos', panel: 'creador', permissions: PAGE_PERMISSIONS.flujosPropios, crossPanel: true },
+  // Autoservicio de plantillas de acuerdo propias (V45), aparte del catálogo
+  // general que administra ADMIN en 'plantillas-contrato'.
+  { label: 'Mis Plantillas de Acuerdo', icon: 'description', route: 'plantillas-acuerdo', panel: 'creador', permissions: PAGE_PERMISSIONS.plantillasAcuerdoPropias, crossPanel: true },
   { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio, crossPanel: true },
   // "Mi Perfil" (perfil de negocio: biografía, red social, verificación) y
   // "Configuración" (roles/permisos vigentes, contraseña, 2FA) son cosas

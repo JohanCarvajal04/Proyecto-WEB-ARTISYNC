@@ -8,6 +8,15 @@ import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
+/**
+ * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).
+ * 
+ * Propósito: Respuesta critica que empaqueta el JWT de acceso y el token de refresco seguro de la sesion.
+ * 
+ * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
+ * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
+ * atributos necesarios para cumplir con el contrato de esta vista del API.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -31,9 +40,12 @@ public class TokenResponse {
     @JsonIgnore
     private String refreshToken;
 
-    // §2.1 (OBS-AUTO-05): igual que refreshToken, nunca se serializa al body —
-    // AuthController lo mueve a una cookie HttpOnly (preAuth2fa), así queda
+    // Â§2.1 (OBS-AUTO-05): igual que refreshToken, nunca se serializa al body â€”
+    // AuthController lo mueve a una cookie HttpOnly (preAuth2fa), asÃ­ queda
     // fuera del alcance de JavaScript en el cliente.
     @JsonIgnore
     private String preAuthTicket;
 }
+
+
+

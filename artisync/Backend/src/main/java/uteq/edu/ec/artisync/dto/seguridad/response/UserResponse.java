@@ -9,6 +9,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).
+ * 
+ * Propósito: Proyeccion de los datos principales del usuario, omitiendo contrasenas y credenciales.
+ * 
+ * Este DTO se encarga de serializar la información hacia el cliente, enmascarando 
+ * el modelo de dominio interno (Entidades JPA) y exponiendo estrictamente los 
+ * atributos necesarios para cumplir con el contrato de esta vista del API.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -29,3 +38,6 @@ public class UserResponse {
     private boolean dosFactoresHabilitado;
     private String urlFotoPerfil;
 }
+
+
+

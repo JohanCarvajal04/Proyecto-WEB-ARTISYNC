@@ -9,19 +9,27 @@ import uteq.edu.ec.artisync.entity.social.Sorteo;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Sorteo}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface SorteoRepository extends JpaRepository<Sorteo, Long> {
 
-    /** Ya existía — usado internamente. Mantenido por compatibilidad. */
+    /** Ya existÃ­a â€” usado internamente. Mantenido por compatibilidad. */
     List<Sorteo> findByFechaCierreLessThanEqualAndEstadoSorteo(LocalDateTime fecha, String estadoSorteo);
 
-    /** Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasó. */
+    /** Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasÃ³. */
     List<Sorteo> findByEstadoSorteoAndFechaCierreBefore(String estadoSorteo, LocalDateTime ahora);
 
-    /** Sorteos públicos de un creador específico. */
+    /** Sorteos pÃºblicos de un creador especÃ­fico. */
     List<Sorteo> findByPerfilCreadorIdPerfil(Long idPerfil);
 
-    /** Todos los sorteos con estado "Activo" (listado público). */
+    /** Todos los sorteos con estado "Activo" (listado pÃºblico). */
     List<Sorteo> findByEstadoSorteo(String estadoSorteo);
 
     /**
@@ -36,5 +44,6 @@ public interface SorteoRepository extends JpaRepository<Sorteo, Long> {
     @Query(value = "SELECT fn_seleccionar_ganadores_sorteo(:p_id_sorteo)::text", nativeQuery = true)
     String seleccionarGanadores(@Param("p_id_sorteo") Long idSorteo);
 }
+
 
 

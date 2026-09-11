@@ -15,6 +15,13 @@ import uteq.edu.ec.artisync.repository.seguridad.UsuarioRepository;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Componente Core de Seguridad: Implementacion de UserDetailsService.
+ * 
+ * Propósito: Servir como el origen principal de datos de usuario para el proveedor de autenticacion durante el login y validacion de tokens.
+ * 
+ * Flujo interno: Consulta la base de datos (UsuarioRepository) por correo electronico, valida el estado de la cuenta, y mapea los privilegios para retornar un CustomUserDetails.
+ */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -23,7 +30,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) -
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§8) -
      * fn_permisos_efectivos_usuario resuelve en una unica llamada STABLE lo
      * que antes eran 4-8 consultas separadas por peticion: findByCorreo +
      * findByUsuarioIdUsuario en usuario_roles + un SELECT por cada rol al
@@ -66,3 +73,4 @@ public class CustomUserDetailsService implements UserDetailsService {
         );
     }
 }
+

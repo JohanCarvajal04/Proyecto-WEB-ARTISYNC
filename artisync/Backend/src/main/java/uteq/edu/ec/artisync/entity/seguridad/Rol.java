@@ -7,6 +7,13 @@ import lombok.*;
 
 import java.util.Set;
 
+/**
+ * Entidad del modelo de dominio que representa Agrupador de permisos (ej. CREADOR, CLIENTE, ADMIN).
+ * 
+ * Ciclo de vida: Modificable por administradores, aunque posee roles base inmutables del sistema.
+ * 
+ * Relaciones principales: Agrupa Permisos y es asignado a Usuarios.
+ */
 @Entity
 @Table(name = "roles")
 @Getter
@@ -38,3 +45,5 @@ public class Rol {
     )
     private Set<Permiso> permisos = new java.util.HashSet<>();
 }
+
+

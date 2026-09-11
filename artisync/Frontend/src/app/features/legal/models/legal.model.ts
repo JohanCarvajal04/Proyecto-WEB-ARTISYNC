@@ -53,12 +53,16 @@ export interface RespuestaPlantillaContrato {
   cuerpoHtmlPlantilla: string;
   esPredeterminada: boolean;
   activa: boolean;
+  /** null: catálogo general (ADMIN). No null: plantilla privada de ese creador (V45). */
+  idCreador: number | null;
 }
 
 /** DTO liviano para el selector del creador al crear/editar un servicio. */
 export interface RespuestaPlantillaContratoResumen {
   idPlantilla: number;
   nombrePlantilla: string;
+  /** true si es una plantilla privada del creador que consulta (V45). */
+  esPropia: boolean;
 }
 
 export interface PeticionCrearPlantillaContrato {
@@ -69,5 +73,19 @@ export interface PeticionCrearPlantillaContrato {
 }
 
 export interface PeticionActualizarPlantillaContrato extends PeticionCrearPlantillaContrato {
+  activa: boolean;
+}
+
+// ── Plantillas de acuerdo propias del creador (V45) ──
+// Autoservicio aparte del catálogo general: sin versión legal ni
+// "predeterminada" (conceptos de gobierno del catálogo de ADMIN que no
+// aplican a una plantilla que solo usa su propio dueño).
+
+export interface PeticionCrearPlantillaAcuerdoPropia {
+  nombrePlantilla: string;
+  cuerpoHtmlPlantilla: string;
+}
+
+export interface PeticionActualizarPlantillaAcuerdoPropia extends PeticionCrearPlantillaAcuerdoPropia {
   activa: boolean;
 }

@@ -6,6 +6,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uteq.edu.ec.artisync.entity.seguridad.CodigoRespaldo2Fa;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link CodigoRespaldo2Fa}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface CodigoRespaldo2FaRepository extends JpaRepository<CodigoRespaldo2Fa, Long> {
 
@@ -19,7 +27,7 @@ public interface CodigoRespaldo2FaRepository extends JpaRepository<CodigoRespald
     // sin darse cuenta de que reabren esas dos anomalias.
 
     /**
-     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §2) -
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§2) -
      * fn_consumir_codigo_respaldo_2fa: UPDATE atomico ({@code WHERE usado = FALSE})
      * que consume un codigo de respaldo una sola vez, eliminando la actualizacion
      * perdida del patron anterior (SELECT de todos los codigos + comparacion en
@@ -35,4 +43,5 @@ public interface CodigoRespaldo2FaRepository extends JpaRepository<CodigoRespald
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_codigo_hash") String codigoHash);
 }
+
 

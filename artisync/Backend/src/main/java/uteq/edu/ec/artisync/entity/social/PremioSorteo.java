@@ -11,6 +11,13 @@ import lombok.*;
 @Table(name = "premios_sorteo", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"id_sorteo", "orden"})
 })
+/**
+ * Entidad del modelo de dominio que representa Recompensas gamificadas para usuarios.
+ * 
+ * Ciclo de vida: Dependiente del evento sorteo (ACTIVO o RECLAMADO).
+ * 
+ * Relaciones principales: Vincula un beneficio logico o fisico a un Usuario ganador.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -38,3 +45,5 @@ public class PremioSorteo {
     @Column(name = "orden", nullable = false)
     private Integer orden;
 }
+
+

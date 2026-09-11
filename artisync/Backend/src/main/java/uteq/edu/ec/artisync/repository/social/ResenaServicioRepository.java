@@ -10,21 +10,25 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repositorio de reseñas de servicios.
- * RF-09: Calificaciones 1-5 estrellas, una por pedido, solo post-entrega.
+ * Repositorio de acceso a datos para la entidad de dominio {@link ResenaServicio}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
 public interface ResenaServicioRepository extends JpaRepository<ResenaServicio, Long> {
 
-    /** Verifica si un pedido ya tiene reseña (constraint UNIQUE en BD). */
+    /** Verifica si un pedido ya tiene reseÃ±a (constraint UNIQUE en BD). */
     boolean existsByPedidoIdPedido(Long idPedido);
 
-    /** Obtiene la reseña de un pedido (relación 1:1), si existe. */
+    /** Obtiene la reseÃ±a de un pedido (relaciÃ³n 1:1), si existe. */
     Optional<ResenaServicio> findByPedidoIdPedido(Long idPedido);
 
     /**
-     * Lista las reseñas de todos los pedidos de un creador específico.
-     * Se navega: resena → pedido → servicio → perfilCreador.
+     * Lista las reseÃ±as de todos los pedidos de un creador especÃ­fico.
+     * Se navega: resena â†’ pedido â†’ servicio â†’ perfilCreador.
      */
     @Query("SELECT r FROM ResenaServicio r " +
            "JOIN r.pedido p " +
@@ -42,3 +46,4 @@ public interface ResenaServicioRepository extends JpaRepository<ResenaServicio, 
            "WHERE s.perfil.idPerfil = :idPerfil")
     Double calcularPromedioByCreadorIdPerfil(@Param("idPerfil") Long idPerfil);
 }
+

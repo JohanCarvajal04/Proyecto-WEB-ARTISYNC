@@ -7,11 +7,20 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Declaracion de uso etico de IA por parte del creador.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
 public record PeticionCrearCertificadoIa(
         @NotNull(message = "El ID del usuario es obligatorio")
         Long idUsuario,
 
-        @NotNull(message = "El ID del estado de verificación es obligatorio")
+        @NotNull(message = "El ID del estado de verificaciÃ³n es obligatorio")
         Long idEstadoVerificacion,
 
         @NotBlank(message = "La URL del documento S3 es obligatoria")
@@ -23,3 +32,6 @@ public record PeticionCrearCertificadoIa(
         BigDecimal puntajeConfianzaIa
 ) {
 }
+
+
+

@@ -9,6 +9,13 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Componente Core de Seguridad: Configuracion de beans de autenticacion.
+ * 
+ * Propósito: Exponer y configurar los beans fundamentales para el proceso de validacion criptografica y autenticacion.
+ * 
+ * Flujo interno: Registra el PasswordEncoder (BCrypt), el AuthenticationProvider delegando al UserDetailsService, y el AuthenticationManager global.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class AuthConfig {
@@ -27,3 +34,4 @@ public class AuthConfig {
         return new ProviderManager(provider);
     }
 }
+

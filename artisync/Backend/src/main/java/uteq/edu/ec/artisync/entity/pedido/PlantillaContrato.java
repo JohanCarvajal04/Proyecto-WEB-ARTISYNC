@@ -42,4 +42,13 @@ public class PlantillaContrato {
     @Builder.Default
     @Column(name = "activa", nullable = false)
     private Boolean activa = true;
+
+    /**
+     * NULL: plantilla del catálogo general, curada por ADMIN (comportamiento
+     * original de V39). No NULL: plantilla privada de ese creador (V45) — solo
+     * él puede editarla, desactivarla o asignarla a sus propios servicios;
+     * nunca puede ser la predeterminada del catálogo general.
+     */
+    @Column(name = "id_creador")
+    private Long idCreador;
 }

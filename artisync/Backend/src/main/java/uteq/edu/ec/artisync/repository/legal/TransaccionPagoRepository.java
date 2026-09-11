@@ -10,6 +10,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link TransaccionPago}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago, Long> {
 
@@ -31,14 +39,15 @@ public interface TransaccionPagoRepository extends JpaRepository<TransaccionPago
                                   @Param("tasa") BigDecimal tasa);
 
     /**
-     * Total histórico de "Egreso" (la parte del creador tras la comisión,
+     * Total histÃ³rico de "Egreso" (la parte del creador tras la comisiÃ³n,
      * ver EntregableServicioImpl.aprobarEntrega) acumulado por todos sus
-     * pedidos. Es la mitad "ingresos" del cálculo de saldo disponible para
+     * pedidos. Es la mitad "ingresos" del cÃ¡lculo de saldo disponible para
      * retiro; la otra mitad (lo ya solicitado) vive en
      * SolicitudRetiroRepository.sumMontosEnCursoPorCreador.
      */
     @Query("SELECT COALESCE(SUM(t.monto), 0) FROM TransaccionPago t WHERE t.tipoTransaccion = 'Egreso' AND t.pago.contrato.pedido.servicio.perfil.usuario.idUsuario = :idUsuarioCreador")
     BigDecimal sumEgresosPorCreador(@Param("idUsuarioCreador") Long idUsuarioCreador);
 }
+
 
 

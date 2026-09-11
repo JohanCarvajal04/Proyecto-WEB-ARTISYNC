@@ -13,6 +13,13 @@ import java.time.LocalDateTime;
 @Table(name = "seguidores", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"id_usuario_seguidor", "id_perfil_creador"})
 })
+/**
+ * Entidad del modelo de dominio que representa Relacion unilateral donde un usuario se suscribe a las actualizaciones de un creador.
+ * 
+ * Ciclo de vida: Ciclo de vida volatil, dependiente de la intencion del usuario de mantener la suscripcion.
+ * 
+ * Relaciones principales: Relacion reflexiva indirecta (Usuario origen a Usuario creador).
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -43,3 +50,5 @@ public class Seguidor {
     @Column(name = "notificaciones_activas", nullable = false)
     private Boolean notificacionesActivas = true;
 }
+
+

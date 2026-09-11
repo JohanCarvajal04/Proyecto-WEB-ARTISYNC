@@ -10,6 +10,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Acuerdo legal formal generado a partir de una propuesta de terminos aceptada.
+ * 
+ * Ciclo de vida: Registro critico. Su ciclo de vida avanza desde CREADO hasta FIRMADO y CERRADO. Tras la firma es inmutable.
+ * 
+ * Relaciones principales: Entidad raiz del flujo legal, vinculada a un Pedido y a firmas criptograficas.
+ */
 @Entity
 @Table(name = "contratos")
 @Getter
@@ -54,3 +61,5 @@ public class Contrato {
     @Column(name = "url_documento_pdf", length = 255)
     private String urlDocumentoPdf;
 }
+
+

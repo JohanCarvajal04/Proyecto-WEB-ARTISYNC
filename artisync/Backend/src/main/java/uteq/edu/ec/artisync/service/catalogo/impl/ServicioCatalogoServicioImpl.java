@@ -87,7 +87,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
                 .cargoRevisionAdicional(peticion.getCargoRevisionAdicional() != null ? peticion.getCargoRevisionAdicional() : BigDecimal.ZERO)
                 .limiteRevisionesBase(peticion.getLimiteRevisionesBase() != null ? peticion.getLimiteRevisionesBase() : 0)
                 .flujo(resolverFlujoPropio(peticion.getIdFlujo(), perfil))
-                .plantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato()))
+                .plantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato(), perfil))
                 .briefingPlantilla(resolverBriefingPlantillaPropia(peticion.getIdBriefingPlantilla(), perfil))
                 .build();
 
@@ -147,7 +147,7 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
             servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());
         }
         servicio.setFlujo(resolverFlujoPropio(peticion.getIdFlujo(), servicio.getPerfil()));
-        servicio.setPlantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato()));
+        servicio.setPlantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato(), servicio.getPerfil()));
         servicio.setBriefingPlantilla(resolverBriefingPlantillaPropia(peticion.getIdBriefingPlantilla(), servicio.getPerfil()));
 
         Servicio guardado = servicioRepository.save(servicio);
@@ -520,17 +520,23 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     /**
      * `null` es válido: el contrato cae a la plantilla predeterminada del
-     * catálogo (ver ContratoServicioImpl). No hay chequeo de propiedad porque
-     * el catálogo lo administra ADMIN, no el creador; solo se exige que la
-     * plantilla exista y siga activa.
+     * catálogo (ver ContratoServicioImpl). Si la plantilla es del catálogo
+     * general (idCreador NULL) no hay chequeo de propiedad, porque lo
+     * administra ADMIN, no el creador. Si es una plantilla privada (V45),
+     * debe pertenecerle a este mismo creador — un creador no puede asignarle
+     * a su servicio la plantilla privada de otro.
      */
-    private PlantillaContrato resolverPlantillaContratoActiva(Long idPlantillaContrato) {
+    private PlantillaContrato resolverPlantillaContratoActiva(Long idPlantillaContrato, PerfilCreador perfil) {
         if (idPlantillaContrato == null) {
             return null;
         }
         PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantillaContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
                         "Plantilla de contrato no encontrada con ID: " + idPlantillaContrato));
+        if (plantilla.getIdCreador() != null && !plantilla.getIdCreador().equals(perfil.getUsuario().getIdUsuario())) {
+            throw new ExcepcionRecursoNoEncontrado(
+                    "Plantilla de contrato no encontrada con ID: " + idPlantillaContrato);
+        }
         if (!Boolean.TRUE.equals(plantilla.getActiva())) {
             throw new ExcepcionReglaNegocio("La plantilla de contrato elegida ya no está activa");
         }

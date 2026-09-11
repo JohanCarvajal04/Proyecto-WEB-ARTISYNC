@@ -12,6 +12,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Entidad central que vincula a un cliente con un servicio ofrecido por un creador.
+ * 
+ * Ciclo de vida: Su ciclo de vida es el motor del negocio, transicionando por multiples estados controlados por una maquina de estados.
+ * 
+ * Relaciones principales: Entidad raiz del sistema. Conecta Usuarios, Servicios, Contratos y Escrow.
+ */
 @Entity
 @Table(name = "pedidos")
 @Getter
@@ -53,3 +60,5 @@ public class Pedido {
     @Column(name = "precio_pactado", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioPactado;
 }
+
+

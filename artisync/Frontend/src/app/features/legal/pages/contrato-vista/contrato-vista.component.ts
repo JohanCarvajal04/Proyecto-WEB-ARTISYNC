@@ -80,7 +80,7 @@ export class ContratoVistaComponent implements OnInit {
         if (this.modo === 'pedido' && err.status === 404) {
           this.sinTerminosAcordados = true;
         } else {
-          this.error = err.error?.detail || err.error?.message || 'Error al cargar el contrato';
+          this.error = err.error?.detail || err.error?.message || 'Error al cargar el acuerdo';
         }
         this.loading = false;
         this.cdr.markForCheck();
@@ -117,13 +117,13 @@ export class ContratoVistaComponent implements OnInit {
       next: (contrato) => {
         this.contrato = contrato;
         this.firmando = false;
-        this.successMsg = '¡Contrato firmado exitosamente!';
+        this.successMsg = '¡Acuerdo firmado exitosamente!';
         this.cargarEstadoFirma();
         this.cdr.markForCheck();
         setTimeout(() => { this.successMsg = ''; this.cdr.markForCheck(); }, 4000);
       },
       error: (err) => {
-        this.error = err.error?.detail || err.error?.message || 'Error al firmar el contrato';
+        this.error = err.error?.detail || err.error?.message || 'Error al firmar el acuerdo';
         this.firmando = false;
         this.cdr.markForCheck();
       }
@@ -133,7 +133,7 @@ export class ContratoVistaComponent implements OnInit {
   descargarPdf(): void {
     if (!this.idContrato) return;
     this.contratoService.descargarPdf(this.idContrato).subscribe({
-      next: (blob) => descargarBlob(blob, `contrato_${this.idContrato}.pdf`),
+      next: (blob) => descargarBlob(blob, `acuerdo_${this.idContrato}.pdf`),
       error: () => {
         this.error = 'Error al descargar el PDF';
         this.cdr.markForCheck();

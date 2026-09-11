@@ -7,6 +7,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Trazabilidad inmutable de los cambios de estado (creado, pagado, en progreso).
+ * 
+ * Ciclo de vida: Registro apendice inmutable. Solo permite inserciones para garantizar auditoria.
+ * 
+ * Relaciones principales: Ligado fuertemente a un Pedido especifico.
+ */
 @Entity
 @Table(name = "historial_estados_pedido")
 @Getter
@@ -38,3 +45,5 @@ public class HistorialEstadoPedido {
     @Column(name = "observacion", columnDefinition = "TEXT")
     private String observacion;
 }
+
+

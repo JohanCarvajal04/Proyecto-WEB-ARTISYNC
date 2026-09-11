@@ -10,6 +10,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Evaluacion cuantitativa (estrellas) y cualitativa post-pedido.
+ * 
+ * Ciclo de vida: Inmutable tras un corto periodo de gracia. Su acumulado impacta el rating global del Servicio.
+ * 
+ * Relaciones principales: Vincula transversalmente al Pedido, Cliente y Servicio evaluado.
+ */
 @Entity
 @Table(name = "resenas_servicios")
 @Getter
@@ -41,3 +48,5 @@ public class ResenaServicio {
     @Column(name = "fecha_resena", updatable = false)
     private LocalDateTime fechaResena;
 }
+
+

@@ -12,6 +12,15 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.domain.Specification;
 
+
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Servicio}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Implementa consultas con soporte para paginación dinámica y ordenamiento estructurado.
+ */
 @Repository
 public interface ServicioRepository extends JpaRepository<Servicio, Long>, JpaSpecificationExecutor<Servicio> {
 
@@ -23,3 +32,5 @@ public interface ServicioRepository extends JpaRepository<Servicio, Long>, JpaSp
 
     List<Servicio> findByPerfilIdPerfilAndEstadoPublicacion(Long idPerfil, String estadoPublicacion);
 }
+
+

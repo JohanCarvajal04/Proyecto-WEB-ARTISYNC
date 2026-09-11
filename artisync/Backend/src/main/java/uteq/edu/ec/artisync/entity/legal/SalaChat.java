@@ -8,6 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Espacio de comunicacion aislado y cifrado entre cliente y creador para un pedido especifico.
+ * 
+ * Ciclo de vida: Su ciclo de vida inicia al confirmar el pedido y se cierra/archiva al finalizar o cancelar el mismo.
+ * 
+ * Relaciones principales: Contenedor maestro que agrupa un historial inmutable de Mensajes.
+ */
 @Entity
 @Table(name = "salas_chat")
 @Getter
@@ -35,3 +42,5 @@ public class SalaChat {
     @Column(name = "sala_activa", nullable = false)
     private Boolean salaActiva = true;
 }
+
+

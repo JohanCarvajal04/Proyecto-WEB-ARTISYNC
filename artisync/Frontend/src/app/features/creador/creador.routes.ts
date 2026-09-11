@@ -99,5 +99,13 @@ export const CREADOR_ROUTES: Routes = [
     path: 'perfil',
     loadComponent: () => import('./pages/perfil/perfil-creador.component').then(m => m.PerfilCreadorComponent)
   },
+  // Autoservicio de plantillas de acuerdo propias (V45): aparte del
+  // catálogo general, que sigue gestionando solo ADMIN.
+  {
+    path: 'plantillas-acuerdo',
+    canActivate: [authGuard],
+    data: { permissions: PAGE_PERMISSIONS.plantillasAcuerdoPropias },
+    loadComponent: () => import('./pages/plantillas-acuerdo/plantillas-acuerdo.component').then(m => m.PlantillasAcuerdoComponent)
+  },
   { path: '**', redirectTo: 'overview' }
 ];

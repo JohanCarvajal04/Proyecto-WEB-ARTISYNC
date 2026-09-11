@@ -19,6 +19,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Componente de Seguridad: Servicio criptografico para tokens JWT.
+ * 
+ * Propósito: Centralizar la logica de generacion, validacion, firma y extraccion de claims de los JSON Web Tokens.
+ * 
+ * Flujo interno: Utiliza el algoritmo de firma provisto en las variables de entorno. Provee validacion de expiracion y encapsula el ID del usuario de forma segura.
+ */
 @Service
 public class JwtService {
 
@@ -27,7 +34,7 @@ public class JwtService {
     private static final String TIPO_ACCESO = "access";
     private static final String TIPO_REFRESH = "refresh";
 
-    /** RFC 7518 §3.2: HS256 exige una clave de al menos 256 bits (32 bytes). */
+    /** RFC 7518 Â§3.2: HS256 exige una clave de al menos 256 bits (32 bytes). */
     private static final int LONGITUD_MINIMA_CLAVE_BYTES = 32;
     private static final long TOLERANCIA_RELOJ_SEGUNDOS = 60;
 
@@ -151,7 +158,7 @@ public class JwtService {
     /**
      * Valida un access token de forma completa: firma, issuer, audience, tolerancia
      * de reloj (todo a cargo del {@link #parser}), tipo (allowlist: solo "access"),
-     * titular y que la cuenta siga habilitada y no bloqueada (§2.4 — OBS-AUTO-05).
+     * titular y que la cuenta siga habilitada y no bloqueada (Â§2.4 â€” OBS-AUTO-05).
      */
     public boolean esAccessTokenValido(String token, UserDetails userDetails) {
         try {
@@ -192,3 +199,4 @@ public class JwtService {
         return parser.parseSignedClaims(token);
     }
 }
+

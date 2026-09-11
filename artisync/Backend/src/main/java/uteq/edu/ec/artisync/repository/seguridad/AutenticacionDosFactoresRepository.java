@@ -9,6 +9,14 @@ import uteq.edu.ec.artisync.entity.seguridad.AutenticacionDosFactores;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link AutenticacionDosFactores}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface AutenticacionDosFactoresRepository extends JpaRepository<AutenticacionDosFactores, Long> {
 
@@ -17,7 +25,7 @@ public interface AutenticacionDosFactoresRepository extends JpaRepository<Autent
     Optional<AutenticacionDosFactores> findByUsuarioCorreo(String correo);
 
     /**
-     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) - carga en
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§8) - carga en
      * UNA sola consulta el estado de 2FA de TODOS los usuarios de
      * {@code idsUsuario}. La usa UsuarioMapper.toUserResponseList para eliminar
      * el N+1 de invocar findByUsuarioIdUsuario por cada fila de una pagina de
@@ -26,7 +34,7 @@ public interface AutenticacionDosFactoresRepository extends JpaRepository<Autent
     List<AutenticacionDosFactores> findByUsuarioIdUsuarioIn(List<Long> idsUsuario);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§7) -
      * fn_configurar_2fa: upsert atomico del secreto TOTP + reemplazo completo
      * de codigos de respaldo en una unica transaccion. Sustituye la escritura
      * en 10 pasos de TwoFactorServiceImpl.setup2Fa (A4). Devuelve el numero de
@@ -44,7 +52,7 @@ public interface AutenticacionDosFactoresRepository extends JpaRepository<Autent
             @Param("p_hashes") String[] hashes);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§7) -
      * fn_desactivar_2fa: desactiva 2FA y purga codigos de respaldo
      * atomicamente; idempotente (FALSE, no excepcion) si el usuario no tenia
      * 2FA configurado. Unifica el codigo antes duplicado entre
@@ -53,4 +61,5 @@ public interface AutenticacionDosFactoresRepository extends JpaRepository<Autent
     @Query(value = "SELECT fn_desactivar_2fa(:p_id_usuario)", nativeQuery = true)
     Boolean desactivar2Fa(@Param("p_id_usuario") Long idUsuario);
 }
+
 

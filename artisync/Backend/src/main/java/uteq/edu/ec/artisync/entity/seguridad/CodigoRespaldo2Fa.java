@@ -5,6 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Codigos de un solo uso en caso de perdida del dispositivo 2FA.
+ * 
+ * Ciclo de vida: Un solo uso (quemados tras ser verificados). Inmutables una vez generados.
+ * 
+ * Relaciones principales: Lista asociada fuertemente a la configuracion AutenticacionDosFactores.
+ */
 @Entity
 @Table(name = "codigos_respaldo_2fa")
 @Getter
@@ -24,7 +31,7 @@ public class CodigoRespaldo2Fa {
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;
 
-    @NotBlank(message = "El hash del código es obligatorio")
+    @NotBlank(message = "El hash del cÃ³digo es obligatorio")
     @Column(name = "codigo_hash", nullable = false, length = 255)
     private String codigoHash;
 
@@ -32,3 +39,5 @@ public class CodigoRespaldo2Fa {
     @Column(name = "usado", nullable = false)
     private Boolean usado = false;
 }
+
+

@@ -8,6 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Negociacion preliminar de plazos y costos antes de formalizar el contrato.
+ * 
+ * Ciclo de vida: Ciclo volatil y transaccional: se envia, se contrarresta o se acepta, tras lo cual se materializa en un Contrato.
+ * 
+ * Relaciones principales: Anidada temporalmente a un Pedido en etapa temprana.
+ */
 @Entity
 @Table(name = "propuestas_terminos_pedido")
 @Getter
@@ -52,3 +59,5 @@ public class PropuestaTerminosPedido {
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
 }
+
+

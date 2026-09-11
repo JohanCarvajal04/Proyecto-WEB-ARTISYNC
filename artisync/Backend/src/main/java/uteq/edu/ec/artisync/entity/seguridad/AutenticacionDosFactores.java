@@ -6,6 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Configuracion 2FA vinculada a un usuario.
+ * 
+ * Ciclo de vida: Persiste la semilla de recuperacion (seed). Activable o desactivable por el usuario.
+ * 
+ * Relaciones principales: Asociada 1:1 a un Usuario autenticado.
+ */
 @Entity
 @Table(name = "autenticacion_dos_factores")
 @Getter
@@ -34,3 +41,5 @@ public class AutenticacionDosFactores {
     @Column(name = "esta_habilitado", nullable = false)
     private Boolean estaHabilitado = false;
 }
+
+

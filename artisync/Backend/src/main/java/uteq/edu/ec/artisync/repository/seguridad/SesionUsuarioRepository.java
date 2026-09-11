@@ -9,6 +9,14 @@ import uteq.edu.ec.artisync.entity.seguridad.SesionUsuario;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link SesionUsuario}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface SesionUsuarioRepository extends JpaRepository<SesionUsuario, Long> {
 
@@ -44,4 +52,5 @@ public interface SesionUsuarioRepository extends JpaRepository<SesionUsuario, Lo
     @Query(value = "SELECT * FROM fn_revocar_sesiones_usuario(:p_id_usuario)", nativeQuery = true)
     List<SesionRevocadaProyeccion> revocarSesionesUsuario(@Param("p_id_usuario") Long idUsuario);
 }
+
 

@@ -8,6 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Agrupador tematico de las obras previas del creador.
+ * 
+ * Ciclo de vida: Gestionada por el creador. Permite visibilidad publica u oculta (Borrador).
+ * 
+ * Relaciones principales: Contenedor jerarquico que agrupa multiples PortafolioItem.
+ */
 @Entity
 @Table(name = "portafolios")
 @Getter
@@ -43,3 +50,5 @@ public class Portafolio {
     @Column(name = "opciones_personalizacion", columnDefinition = "jsonb")
     private java.util.Map<String, String> opcionesPersonalizacion;
 }
+
+

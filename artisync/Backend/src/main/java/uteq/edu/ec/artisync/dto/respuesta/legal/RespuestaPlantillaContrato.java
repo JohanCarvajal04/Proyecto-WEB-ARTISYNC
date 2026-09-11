@@ -18,4 +18,7 @@ public class RespuestaPlantillaContrato {
     private String cuerpoHtmlPlantilla;
     private Boolean esPredeterminada;
     private Boolean activa;
+
+    /** NULL: plantilla del catálogo general (ADMIN). No NULL: plantilla privada de ese creador (V45). */
+    private Long idCreador;
 }

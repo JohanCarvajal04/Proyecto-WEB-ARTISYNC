@@ -4,9 +4,19 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Fondos retenidos en Escrow (garantia) hasta la liberacion del entregable.
+ *
+ * Ciclo de vida: Ciclo de vida estricto: INICIADO -> RETENIDO -> LIBERADO o REEMBOLSADO. Controla flujo financiero.
+ *
+ * Relaciones principales: Asociada a un Pedido y dependiente de pasarelas de pago externas.
+ */
 @Entity
 @Table(name = "pagos_garantia")
 @Getter
@@ -38,4 +48,22 @@ public class PagoGarantia {
     @Size(max = 50, message = "El estado de los fondos no puede superar los 50 caracteres")
     @Column(name = "estado_fondos", length = 50)
     private String estadoFondos = "Retenido";
+
+    /** Motivo del ultimo intento fallido de reembolso (REQ-NF-019); null si nunca fallo uno. */
+    @Column(name = "mensaje_error", columnDefinition = "TEXT")
+    private String mensajeError;
+
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    /**
+     * Usada por ReconciliacionPayPalScheduler para detectar pagos 'Pendiente'
+     * estancados: crearOrdenPayPal reutiliza esta misma fila en cada
+     * reintento del cliente, así que lo relevante es la edad del ULTIMO
+     * intento, no de la fila original.
+     */
+    @UpdateTimestamp
+    @Column(name = "fecha_actualizacion")
+    private LocalDateTime fechaActualizacion;
 }

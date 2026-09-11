@@ -9,6 +9,13 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/**
+ * Entidad del modelo de dominio que representa Solicitud de ajuste sobre un entregable preliminar enviada por el cliente.
+ * 
+ * Ciclo de vida: Inicia ABIERTO y finaliza CERRADO tras la correcion. Bloquea la liberacion de fondos.
+ * 
+ * Relaciones principales: Vincula un EntregableFinal con las exigencias del Cliente.
+ */
 @Entity
 @Table(name = "tickets_revision")
 @Getter
@@ -47,3 +54,5 @@ public class TicketRevision {
     @Column(name = "estado_ticket", length = 50)
     private String estadoTicket = "Abierto";
 }
+
+

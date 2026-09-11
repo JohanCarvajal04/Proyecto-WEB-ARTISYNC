@@ -5,6 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Enumeracion del estado de validacion KYC (PENDIENTE, APROBADO, RECHAZADO).
+ * 
+ * Ciclo de vida: Constante enumerada del dominio.
+ * 
+ * Relaciones principales: Utilizada como metadato del estado de confianza de un creador.
+ */
 @Entity
 @Table(name = "estados_verificacion")
 @Getter
@@ -24,3 +31,5 @@ public class EstadoVerificacion {
     @Column(name = "nombre_estado", nullable = false, unique = true, length = 50)
     private String nombreEstado;
 }
+
+

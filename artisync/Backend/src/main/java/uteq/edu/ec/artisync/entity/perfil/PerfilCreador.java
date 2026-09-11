@@ -6,6 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Entidad del modelo de dominio que representa Informacion publica, tarifas base y metricas del creador.
+ * 
+ * Ciclo de vida: Mantenida activamente por el usuario. Evoluciona con su reputacion y metricas acumuladas.
+ * 
+ * Relaciones principales: Extension 1:1 de la identidad del Usuario. Actua como puerta de entrada a sus Servicios y Portafolio.
+ */
 @Entity
 @Table(name = "perfiles_creadores")
 @Getter
@@ -41,3 +48,5 @@ public class PerfilCreador {
     @Column(name = "titulo_profesional", length = 150)
     private String tituloProfesional;
 }
+
+

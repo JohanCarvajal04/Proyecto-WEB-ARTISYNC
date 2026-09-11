@@ -324,16 +324,30 @@
             </div>
           }
 
-          <!-- Plantilla de contrato (catálogo curado por ADMIN) -->
+          <!-- Plantilla de acuerdo: catálogo general (ADMIN) + tus propias plantillas (V45) -->
           <div class="cr-field">
-            <label class="cr-label" for="idPlantillaContrato">Plantilla de contrato</label>
+            <label class="cr-label" for="idPlantillaContrato">Plantilla de acuerdo</label>
             <select id="idPlantillaContrato" class="cr-select" formControlName="idPlantillaContrato">
               <option [ngValue]="null">Usar la plantilla predeterminada</option>
-              @for (plantilla of plantillasContrato(); track plantilla.idPlantilla) {
-                <option [ngValue]="plantilla.idPlantilla">{{ plantilla.nombrePlantilla }}</option>
+              @if (plantillasContratoGenerales().length) {
+                <optgroup label="Catálogo general">
+                  @for (plantilla of plantillasContratoGenerales(); track plantilla.idPlantilla) {
+                    <option [ngValue]="plantilla.idPlantilla">{{ plantilla.nombrePlantilla }}</option>
+                  }
+                </optgroup>
+              }
+              @if (plantillasContratoPropias().length) {
+                <optgroup label="Mis plantillas de acuerdo">
+                  @for (plantilla of plantillasContratoPropias(); track plantilla.idPlantilla) {
+                    <option [ngValue]="plantilla.idPlantilla">{{ plantilla.nombrePlantilla }}</option>
+                  }
+                </optgroup>
               }
             </select>
-            <span class="cr-hint">El texto legal del contrato que firmarán tú y tu cliente. Elige la que mejor describa este servicio.</span>
+            <span class="cr-hint">
+              El texto legal del acuerdo que firmarán tú y tu cliente. Elige la que mejor describa este servicio, o
+              <a routerLink="/creador/plantillas-acuerdo" class="cr-link">crea tu propia plantilla</a>.
+            </span>
           </div>
 
           <!-- Cuestionario (briefing) para el cliente -->

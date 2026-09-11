@@ -8,6 +8,15 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import uteq.edu.ec.artisync.entity.respaldo.TipoRespaldo;
 
+/**
+ * Objeto de transferencia de datos utilizado como carga útil de entrada (Request Payload).
+ * 
+ * Propósito: Payload para modificar la frecuencia o configuracion de respaldos programados.
+ * 
+ * Este contrato de entrada contiene reglas de validación (Jakarta Bean Validation) 
+ * para asegurar la integridad estructural y de negocio de los datos recibidos 
+ * por la API antes de ser delegados a la capa de servicios.
+ */
 @Data
 public class PeticionActualizarProgramacion {
 
@@ -18,11 +27,14 @@ public class PeticionActualizarProgramacion {
     @NotNull(message = "El tipo de respaldo es obligatorio")
     private TipoRespaldo tipoRespaldo;
 
-    @NotBlank(message = "La expresión cron es obligatoria")
+    @NotBlank(message = "La expresiÃ³n cron es obligatoria")
     private String expresionCron;
 
-    @NotNull(message = "La retención en días es obligatoria")
-    @Min(value = 1, message = "La retención debe ser de al menos 1 día")
-    @Max(value = 3650, message = "La retención no puede superar los 3650 días")
+    @NotNull(message = "La retenciÃ³n en dÃ­as es obligatoria")
+    @Min(value = 1, message = "La retenciÃ³n debe ser de al menos 1 dÃ­a")
+    @Max(value = 3650, message = "La retenciÃ³n no puede superar los 3650 dÃ­as")
     private Integer retencionDias;
 }
+
+
+

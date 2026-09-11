@@ -14,4 +14,7 @@ public class RespuestaPlantillaContratoResumen {
 
     private Long idPlantilla;
     private String nombrePlantilla;
+
+    /** true si es una plantilla privada del creador que consulta (V45); false si es del catálogo general de ADMIN. */
+    private boolean esPropia;
 }

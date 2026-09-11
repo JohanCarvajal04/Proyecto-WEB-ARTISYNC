@@ -4,17 +4,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * La IA no pudo emitir un dictamen (fallo de red, 401/413/429/5xx de NVIDIA,
- * o respuesta ilegible). No representa un rechazo del documento: la fila de
- * verificación queda intacta y el moderador revisa sin asistencia.
+ * Componente de Excepciones: Error de integracion.
+ * 
+ * Propósito: Alertar de fallos o indisponibilidad temporal en los servicios externos de Inteligencia Artificial.
+ * 
+ * Flujo interno: Traducida a HTTP 502 Bad Gateway o 503 Service Unavailable, alertando al cliente de un problema de terceros.
  */
 @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 public class ExcepcionServicioIaNoDisponible extends RuntimeException {
 
     /**
      * Solo true para fallos transitorios (429, timeout): un segundo intento
-     * puede tener éxito. Para 401/413 el segundo intento fallaría igual y
-     * solo duplicaría la espera del moderador.
+     * puede tener Ã©xito. Para 401/413 el segundo intento fallarÃ­a igual y
+     * solo duplicarÃ­a la espera del moderador.
      */
     private final boolean reintentable;
 
@@ -31,3 +33,4 @@ public class ExcepcionServicioIaNoDisponible extends RuntimeException {
         return reintentable;
     }
 }
+

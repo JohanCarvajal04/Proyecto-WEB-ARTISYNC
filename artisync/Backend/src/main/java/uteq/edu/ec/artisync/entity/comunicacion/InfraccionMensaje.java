@@ -10,6 +10,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidad del modelo de dominio que representa Registro de penalizaciones por mensajes inapropiados detectados en el chat.
+ * 
+ * Ciclo de vida: Registro inmutable. Una vez persistida, no debe alterarse, garantizando la auditoria de moderacion.
+ * 
+ * Relaciones principales: Vinculada a un Mensaje especifico y al Usuario infractor.
+ */
 @Entity
 @Table(name = "infracciones_mensaje")
 @Getter
@@ -37,7 +44,7 @@ public class InfraccionMensaje {
     @Column(name = "mensaje_original", columnDefinition = "TEXT")
     private String mensajeOriginal;
 
-    @Size(max = 50, message = "El patrón detectado no puede superar los 50 caracteres")
+    @Size(max = 50, message = "El patrÃ³n detectado no puede superar los 50 caracteres")
     @Column(name = "patron_detectado", length = 50)
     private String patronDetectado;
 
@@ -45,3 +52,5 @@ public class InfraccionMensaje {
     @Column(name = "fecha_infraccion", updatable = false)
     private LocalDateTime fechaInfraccion;
 }
+
+

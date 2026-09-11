@@ -106,6 +106,19 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
                 .map(p -> RespuestaPlantillaContratoResumen.builder()
                         .idPlantilla(p.getIdPlantilla())
                         .nombrePlantilla(p.getNombrePlantilla())
+                        .esPropia(false)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RespuestaPlantillaContratoResumen> listarActivasVisiblesPara(Long idUsuarioCreador) {
+        return plantillaContratoRepository.findActivasVisiblesParaCreador(idUsuarioCreador).stream()
+                .map(p -> RespuestaPlantillaContratoResumen.builder()
+                        .idPlantilla(p.getIdPlantilla())
+                        .nombrePlantilla(p.getNombrePlantilla())
+                        .esPropia(p.getIdCreador() != null)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -133,6 +146,7 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
                 .cuerpoHtmlPlantilla(plantilla.getCuerpoHtmlPlantilla())
                 .esPredeterminada(plantilla.getEsPredeterminada())
                 .activa(plantilla.getActiva())
+                .idCreador(plantilla.getIdCreador())
                 .build();
     }
 }

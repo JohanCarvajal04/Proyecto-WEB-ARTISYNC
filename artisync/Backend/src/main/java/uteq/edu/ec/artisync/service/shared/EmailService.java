@@ -13,6 +13,16 @@ import org.thymeleaf.context.Context;
 
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Componente de Servicio Transversal para notificaciones por correo electronico.
+ * 
+ * Propósito: Proveer una abstracción asíncrona para la composicion y envio de correos 
+ * transaccionales utilizando JavaMailSender y plantillas HTML de Thymeleaf.
+ * 
+ * Responsabilidad arquitectónica: Opera fuera del hilo principal de las peticiones web (@Async) 
+ * para garantizar que los tiempos de respuesta de la API no se degraden durante la 
+ * resolución SMTP. Su uso principal incluye la recuperación de credenciales y avisos críticos.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

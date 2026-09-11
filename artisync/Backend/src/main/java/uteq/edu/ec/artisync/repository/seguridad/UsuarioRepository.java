@@ -14,6 +14,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para la entidad de dominio {@link Usuario}.
+ * 
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
+ * 
+ * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
+ */
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpecificationExecutor<Usuario> {
 
@@ -27,13 +35,13 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
 
     /**
      * REQ-NF-018: igual que findById, pero con bloqueo pesimista de fila
-     * (mismo patrón que ContratoRepository.findByIdParaFirmar). Sin esto, dos
-     * solicitudes de supresión casi simultáneas para el mismo usuario (doble
-     * clic, autoservicio + admin a la vez) podían pasar ambas el chequeo de
-     * "¿ya está anonimizado?" antes de que la primera confirmara su cambio,
-     * ejecutando la anonimización dos veces. El bloqueo serializa las dos
+     * (mismo patrÃ³n que ContratoRepository.findByIdParaFirmar). Sin esto, dos
+     * solicitudes de supresiÃ³n casi simultÃ¡neas para el mismo usuario (doble
+     * clic, autoservicio + admin a la vez) podÃ­an pasar ambas el chequeo de
+     * "Â¿ya estÃ¡ anonimizado?" antes de que la primera confirmara su cambio,
+     * ejecutando la anonimizaciÃ³n dos veces. El bloqueo serializa las dos
      * transacciones: la segunda espera a que la primera confirme y entonces
-     * relee el correo ya anonimizado, evitando la repetición.
+     * relee el correo ya anonimizado, evitando la repeticiÃ³n.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM Usuario u WHERE u.idUsuario = :idUsuario")
@@ -194,3 +202,4 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
             @Param("p_estado_cuenta") Boolean estadoCuenta,
             @Param("p_nombres_rol") String[] nombresRol);
 }
+

@@ -9,6 +9,13 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 
+/**
+ * Componente de Infraestructura: Configuracion de Integracion IA.
+ * 
+ * Propósito: Configurar los beans y clientes HTTP necesarios para conectarse a las APIs de Inteligencia Artificial.
+ * 
+ * Flujo interno: Se carga al inicio del contexto de Spring y provee instancias singletons configuradas para los servicios de IA.
+ */
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
@@ -29,3 +36,4 @@ public class IaConfig {
         return RestClient.builder().requestFactory(factory).build();
     }
 }
+
