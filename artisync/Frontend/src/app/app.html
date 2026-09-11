@@ -7,3 +7,9 @@
     (completed)="showProfileCompletion.set(false)">
   </app-complete-profile-modal>
 }
+
+@if (showForceVerification()) {
+  <app-force-verification-modal
+    (actionTaken)="showForceVerification.set(false)">
+  </app-force-verification-modal>
+}

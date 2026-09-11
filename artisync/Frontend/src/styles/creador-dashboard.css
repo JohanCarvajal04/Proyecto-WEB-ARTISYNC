@@ -7,12 +7,12 @@
    además su propio .component.css con lo específico de esa vista.
 
    La paleta replica la que ya usan el layout y las vistas del dashboard de
-   cliente (#0F2027 / #EFF2F7 / teal #9C5CC5) para que el panel del creador se
+   cliente (#1E0F38 / #EFF2F7 / teal #9C5CC5) para que el panel del creador se
    vea como una continuación del frontend existente, no como otra aplicación.
    ========================================================================== */
 
 :root {
-  --cr-ink: #0f2027;
+  --cr-ink: #1E0F38;
   --cr-ink-soft: #203a43;
   --cr-text: #1e293b;
   --cr-text-muted: #64748b;
@@ -763,4 +763,5 @@
 .cr-muted { color: var(--cr-text-muted); }
 .cr-faint { color: var(--cr-text-faint); }
 .cr-nowrap { white-space: nowrap; }
+
 

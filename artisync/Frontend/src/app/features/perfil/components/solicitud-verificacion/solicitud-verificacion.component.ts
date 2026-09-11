@@ -1,9 +1,10 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, Output, EventEmitter, OnInit } from '@angular/core';
 import {
   RespuestaVerificacion,
   TipoDocumentoVerificacion,
   VerificacionService
 } from '../../services/verificacion.service';
+import { AuthService } from '../../../seguridad/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
 /**
@@ -19,9 +20,11 @@ const MAX_BYTES = 5 * 1024 * 1024;
   imports: [],
   templateUrl: './solicitud-verificacion.component.html'
 })
-export class SolicitudVerificacionComponent {
+export class SolicitudVerificacionComponent implements OnInit {
+  @Output() success = new EventEmitter<RespuestaVerificacion>();
 
   private verificacionService = inject(VerificacionService);
+  private authService = inject(AuthService);
   private toast = inject(ToastService);
 
   readonly tipo = signal<TipoDocumentoVerificacion>('IDENTIDAD');
@@ -29,10 +32,18 @@ export class SolicitudVerificacionComponent {
   readonly enviando = signal<boolean>(false);
   readonly error = signal<string>('');
   readonly resultado = signal<RespuestaVerificacion | null>(null);
+  readonly enRevision = signal<boolean>(false);
 
   readonly tiposAceptados = TIPOS_DOCUMENTO.join(',');
 
   readonly puedeEnviar = computed(() => this.documento() !== null && !this.enviando());
+
+  ngOnInit(): void {
+    const userId = this.authService.getCurrentUserId();
+    if (userId && localStorage.getItem(`verificacion_pendiente_${userId}`) === 'true') {
+      this.enRevision.set(true);
+    }
+  }
 
   seleccionarTipo(tipo: TipoDocumentoVerificacion): void {
     this.tipo.set(tipo);
@@ -75,7 +86,15 @@ export class SolicitudVerificacionComponent {
         this.resultado.set(respuesta);
         this.documento.set(null);
         this.enviando.set(false);
+        this.enRevision.set(true);
+
+        const userId = this.authService.getCurrentUserId();
+        if (userId) {
+          localStorage.setItem(`verificacion_pendiente_${userId}`, 'true');
+        }
+
         this.toast.success('Documento enviado. Un moderador lo revisará.');
+        this.success.emit(respuesta);
       },
       error: (err) => {
         this.error.set(err.error?.detail || err.error?.message || 'No se pudo enviar el documento');
@@ -86,6 +105,7 @@ export class SolicitudVerificacionComponent {
 
   nuevaSolicitud(): void {
     this.resultado.set(null);
+    this.enRevision.set(false);
     this.error.set('');
   }
 

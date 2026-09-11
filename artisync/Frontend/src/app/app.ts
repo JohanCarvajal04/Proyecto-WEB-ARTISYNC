@@ -5,18 +5,22 @@ import { AuthService } from './features/seguridad/services/auth.service';
 import { UserService } from './features/perfil/services/user.service';
 import { UserResponse } from './shared/models/user.model';
 import { CompleteProfileModalComponent } from './shared/components/complete-profile-modal/complete-profile-modal.component';
+import { ForceVerificationModalComponent } from './shared/components/force-verification-modal/force-verification-modal.component';
+import { PerfilCreadorService } from './features/creador/services/perfil-creador.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ToastComponent, CompleteProfileModalComponent],
+  imports: [RouterOutlet, ToastComponent, CompleteProfileModalComponent, ForceVerificationModalComponent],
   templateUrl: './app.html'
 })
 export class App {
   private authService = inject(AuthService);
   private userService = inject(UserService);
+  private perfilService = inject(PerfilCreadorService);
 
   readonly showProfileCompletion = signal<boolean>(false);
+  readonly showForceVerification = signal<boolean>(false);
   readonly userProfile = signal<UserResponse | null>(null);
 
   constructor() {
@@ -27,17 +31,27 @@ export class App {
             if (!user.fechaNacimiento || !user.idPais) {
               this.userProfile.set(user);
               this.showProfileCompletion.set(true);
+            } else {
+              if (user.roles.includes('CREADOR') || user.roles.includes('CLIENTE')) {
+                this.perfilService.obtenerPorUsuario(user.idUsuario).subscribe({
+                  next: (perfil) => {
+                    if (!perfil.identidadVerificada) {
+                      const pending = localStorage.getItem(`verificacion_pendiente_${user.idUsuario}`);
+                      if (!pending) {
+                        this.showForceVerification.set(true);
+                      }
+                    }
+                  },
+                  error: () => console.error('No se pudo cargar el perfil para validación de identidad')
+                });
+              }
             }
           },
-          // Best-effort: si falla, el modal de completar perfil simplemente no
-          // aparece esta vez (se reintenta en el próximo cambio de sesión/ruta).
-          // No es un toast global porque este efecto corre en cada login de
-          // cada usuario, y una molestia de red transitoria no debería
-          // interrumpir a todo el mundo con un aviso en la pantalla raíz.
           error: (err) => console.error('No se pudo verificar si el perfil está completo', err)
         });
       } else {
         this.showProfileCompletion.set(false);
+        this.showForceVerification.set(false);
         this.userProfile.set(null);
       }
     });

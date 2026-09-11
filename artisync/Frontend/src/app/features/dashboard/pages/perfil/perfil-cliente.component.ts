@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { AuthService } from '../../../seguridad/services/auth.service';
-import { SolicitudVerificacionComponent } from '../../../perfil/components/solicitud-verificacion/solicitud-verificacion.component';
 import { UserService } from '../../../perfil/services/user.service';
 import { PaisService } from '../../../../shared/services/pais.service';
 import { PedidoService } from '../../../pedido/services/pedido.service';
@@ -16,7 +15,7 @@ import { nombreUsuario } from '../../../../shared/utils/nombre-usuario';
 @Component({
   selector: 'app-perfil-cliente',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule, FormsModule, SolicitudVerificacionComponent],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, FormsModule],
   templateUrl: './perfil-cliente.component.html'
 })
 export class PerfilClienteComponent implements OnInit {

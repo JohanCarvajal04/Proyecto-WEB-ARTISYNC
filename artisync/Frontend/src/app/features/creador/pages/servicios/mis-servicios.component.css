@@ -97,7 +97,7 @@
 .ms-card__price > span:first-child {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0f2027;
+  color: #1E0F38;
   font-variant-numeric: tabular-nums;
 }
 
@@ -111,3 +111,4 @@
   border-top: 1px solid #eef2f7;
   background: #f8fafc;
 }
+

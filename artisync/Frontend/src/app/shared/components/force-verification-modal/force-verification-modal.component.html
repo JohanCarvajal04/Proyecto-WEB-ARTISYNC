@@ -1,0 +1,48 @@
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-[fadeIn_0.3s_ease-out] overflow-y-auto">
+  <div class="max-w-xl w-full my-auto flex flex-col gap-4 relative" 
+       role="dialog" 
+       aria-modal="true">
+    
+    @if (!solicitudCompletada()) {
+      <div class="bg-purple-600 rounded-2xl p-6 text-white shadow-lg flex items-start gap-4">
+        <svg class="w-8 h-8 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <div>
+          <h3 class="font-headline text-xl font-bold">Verificación Requerida</h3>
+          <p class="text-sm opacity-90 mt-1 leading-relaxed">
+            Es obligatorio enviar tu documento de identidad para usar la plataforma. Por favor, sube tu documento a continuación para continuar.
+          </p>
+        </div>
+      </div>
+
+      <!-- El componente ya trae su propio fondo blanco, bordes y padding -->
+      <app-solicitud-verificacion (success)="onSuccess()"></app-solicitud-verificacion>
+
+      <button type="button" (click)="cerrarSesion()" class="text-sm font-medium text-white hover:text-purple-200 transition-colors self-center mt-2">
+        Prefiero cerrar sesión
+      </button>
+    } @else {
+      <div class="bg-surface-container-lowest rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center gap-6 shadow-2xl">
+        <div class="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-headline text-2xl font-bold text-primary">¡Documento Enviado!</h3>
+          <p class="text-sm text-on-surface-variant mt-2 leading-relaxed max-w-sm mx-auto">
+            Hemos recibido tu documento. Mientras un moderador lo revisa, puedes continuar explorando la plataforma.
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="continuar()"
+          class="w-full max-w-xs px-5 py-3 rounded-xl bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-95 text-white text-sm font-semibold transition-all shadow-md">
+          Continuar
+        </button>
+      </div>
+    }
+
+  </div>
+</div>
