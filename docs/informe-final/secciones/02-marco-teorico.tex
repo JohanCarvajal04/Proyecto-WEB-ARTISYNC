@@ -14,8 +14,7 @@ un compendio general de teoría de aplicaciones web.
 
 La norma ISO/IEC/IEEE~29148:2018~\cite{ISO29148} define los procesos de
 ciclo de vida para la ingeniería de requisitos de sistemas y software,
-incluyendo la estructura recomendada de un Software Requirements
-Specification (SRS) y el patrón sintáctico de enunciado de requisito
+incluyendo la estructura recomendada de un \gls{srs} y el patrón sintáctico de enunciado de requisito
 \emph{[condición] [sujeto] shall [acción] [objeto] [restricción]}.
 Pohl~\cite{POHL2010} organiza el proceso en cuatro actividades
 interdependientes ---elicitación, negociación, documentación y
@@ -79,7 +78,7 @@ subcaracterísticas de este modelo.
 La arquitectura REST (Representational State Transfer), formalizada por
 Fielding en su disertación doctoral~\cite{FIELDING2000}, define un
 conjunto de restricciones arquitectónicas (interfaz uniforme, sin estado
-en el servidor, cacheable, sistema en capas) que la API de Artisync sigue
+en el servidor, cacheable, sistema en capas) que la \gls{api} de Artisync sigue
 para exponer sus recursos (\texttt{/api/v1/...}), documentada con OpenAPI
 (Springdoc).
 
@@ -87,7 +86,7 @@ para exponer sus recursos (\texttt{/api/v1/...}), documentada con OpenAPI
 
 JSON Web Token (RFC~7519)~\cite{JWT2015} especifica un formato compacto y
 auto-contenido para representar afirmaciones (\emph{claims}) entre dos
-partes, firmado digitalmente para garantizar integridad. Artisync usa JWT
+partes, firmado digitalmente para garantizar integridad. Artisync usa \gls{jwt}
 firmado HS256 para el access token; la decisión de dónde alojarlo (cuerpo
 de respuesta vs. cookie \texttt{HttpOnly}) y sus alternativas descartadas
 se documentan en \texttt{docs/adr/adr-002-esquema-autenticacion.md}.

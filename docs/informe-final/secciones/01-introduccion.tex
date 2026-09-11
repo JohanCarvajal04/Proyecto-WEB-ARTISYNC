@@ -53,9 +53,9 @@ calidad web declarados como requisitos no funcionales de la especificación
 (\texttt{docs/requisitos/SRS.md})?
 
 \textbf{RQ2.} ¿Es la estrategia híbrida de acceso a datos (operaciones
-CRUD elementales vía ORM, operaciones multi-tabla vía procedimientos
+\gls{crud} elementales vía \gls{orm}, operaciones multi-tabla vía procedimientos
 almacenados PL/pgSQL invocados exclusivamente mediante los mecanismos
-formales de JPA~2.1) implementable y verificable end-to-end dentro de las
+formales de \gls{jpa}~2.1) implementable y verificable end-to-end dentro de las
 restricciones de tiempo y equipo de un proyecto académico de 17 semanas,
 sin introducir vulnerabilidades de inyección SQL?
 
@@ -94,7 +94,7 @@ software empírica.
     \emph{(traza a RQ2)}
   \item Evaluar empíricamente el rendimiento bajo carga (k6), la
     cobertura de pruebas (JaCoCo)~\cite{ZHU1997,INOZEMTSEVA2014}, la
-    calidad web (Lighthouse) y la seguridad (controles OWASP + análisis
+    calidad web (Lighthouse) y la seguridad (controles \gls{owasp} + análisis
     estático y dinámico automatizado)~\cite{OWASP2021,OWASPSQLI,HALFOND2005,GOULD2004}
     del sistema entregado, con datos crudos reproducibles.
     \emph{(traza a RQ1)}
@@ -134,7 +134,7 @@ software empírica.
     de código y calidad web, con datos crudos, scripts de análisis y
     diccionario de variables --- ver \texttt{docs/mediciones/}.
   \item \textbf{Un conjunto de siete registros de decisiones de
-    arquitectura (ADR)} siguiendo la plantilla de
+    arquitectura (\gls{adr})} siguiendo la plantilla de
     Nygard~\cite{NYGARD2011}, documentando y justificando las decisiones
     estructurales del sistema --- ver \texttt{docs/adr/}.
 \end{enumerate}

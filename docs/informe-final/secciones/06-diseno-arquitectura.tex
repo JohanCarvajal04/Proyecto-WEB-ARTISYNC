@@ -84,7 +84,7 @@ ADR-002 & Esquema de autenticación y control de acceso & JWT (HS256)
   devuelto en el cuerpo de la respuesta para el access token (no en
   cookie); refresh token y ticket pre-auth de 2FA en cookies
   \texttt{HttpOnly + SameSite=Strict}; blacklist de JTI en Redis; bcrypt
-  factor 12; RBAC vía Spring Security. Revisado en agosto 2026 tras
+  factor 12; \gls{rbac} vía Spring Security. Revisado en agosto 2026 tras
   corregir una afirmación incorrecta de una versión anterior del ADR (ver
   texto completo). \\
 ADR-003 & Selección del gestor de base de datos & PostgreSQL~16 sobre
