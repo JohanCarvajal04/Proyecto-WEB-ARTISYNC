@@ -40,6 +40,21 @@ services:
         value: artisync_app
       - key: DB_APP_PASSWORD
         sync: false
+      # Almacenamiento de documentos (REQ-NF-011): sin esto, documentos.proveedor
+      # cae a "local" (application.properties:187) y el filesystem efimero de
+      # Render pierde los documentos en cada redeploy/restart -- incumplimiento
+      # activo del criterio "sin archivos locales en el servidor". AlmacenamientoAzure
+      # ya esta implementado y probado (AlmacenamientoAzureTest/IntegracionTest);
+      # este cambio es solo de configuracion. Completar AZURE_STORAGE_CONNECTION_STRING
+      # en el dashboard de Render (cuenta de Azure Blob Storage real, no Azurite).
+      - key: DOCUMENTOS_PROVEEDOR
+        value: azure
+      - key: AZURE_STORAGE_CONNECTION_STRING
+        sync: false
+      - key: AZURE_STORAGE_CONTAINER
+        value: artisync-documentos
+      - key: AZURE_STORAGE_SAS_MINUTOS
+        value: "15"
       # Respaldos (REQ-NF-024, ver db/seed_privilegios.sh como referencia):
       # cuenta de SOLO LECTURA para pg_dump/COPY. Debe crearse manualmente en
       # la base de datos gestionada; Render no la genera. RESPALDO_DB_HOST/

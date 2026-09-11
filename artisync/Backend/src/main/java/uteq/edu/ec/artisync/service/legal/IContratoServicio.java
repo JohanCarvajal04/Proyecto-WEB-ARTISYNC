@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.service.legal;
 
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
 
 public interface IContratoServicio {
 
@@ -67,4 +68,15 @@ public interface IContratoServicio {
      * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
      */
     byte[] generarPdf(Long idContrato, Long idUsuarioSolicitante);
+
+    /**
+     * Recalcula el hash SHA-256 del contenido congelado de un contrato y lo
+     * compara con el guardado al momento de la firma (REQ-NF-020).
+     *
+     * @param idContrato id del contrato a verificar
+     * @return el resultado de la comparación
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el contrato aún no está firmado por ambas partes
+     */
+    RespuestaVerificacionIntegridad verificarIntegridadHash(Long idContrato);
 }

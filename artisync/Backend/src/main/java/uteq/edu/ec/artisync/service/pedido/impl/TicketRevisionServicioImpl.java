@@ -19,6 +19,7 @@ import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.service.legal.IPagoTicketRevisionServicio;
 import uteq.edu.ec.artisync.service.pedido.ITicketRevisionServicio;
 import uteq.edu.ec.artisync.util.ValidadorPertenenciaPedido;
 
@@ -34,6 +35,7 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
     private final PedidoRepository pedidoRepository;
     private final MotivoRechazoRepository motivoRechazoRepository;
     private final ContratoRepository contratoRepository;
+    private final IPagoTicketRevisionServicio pagoTicketRevisionServicio;
 
     @Override
     @Transactional
@@ -77,6 +79,13 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
         ticket = ticketRevisionRepository.save(ticket);
         log.info("Ticket de revision {} creado para pedido {}", ticket.getIdTicket(), idPedido);
+
+        // REQ-F-022b: el enlace de pago se genera automaticamente al crear el
+        // ticket (asi lo exige el SRS: "genera un nuevo enlace de pago"), no en
+        // un endpoint aparte que el cliente deba pedir.
+        if (ticket.getCostoAdicionalGenerado().signum() > 0) {
+            pagoTicketRevisionServicio.crearOrdenPago(ticket);
+        }
 
         return mapToRespuesta(ticket);
     }
@@ -142,6 +151,7 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
                 .descripcionCliente(ticket.getDescripcionCliente())
                 .estadoTicket(ticket.getEstadoTicket())
                 .costoAdicionalGenerado(ticket.getCostoAdicionalGenerado())
+                .urlPagoAdicional(pagoTicketRevisionServicio.obtenerUrlPagoPendiente(ticket.getIdTicket()))
                 .build();
     }
 }

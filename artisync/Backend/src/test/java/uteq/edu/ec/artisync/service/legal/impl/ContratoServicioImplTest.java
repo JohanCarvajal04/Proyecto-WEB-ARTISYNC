@@ -12,8 +12,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
 import uteq.edu.ec.artisync.entity.catalogo.Servicio;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
@@ -68,6 +70,7 @@ class ContratoServicioImplTest {
         plantilla = PlantillaContrato.builder().idPlantilla(1L).versionLegal("v1")
                 .cuerpoHtmlPlantilla("<html><body>{{nombre_creador}} - {{nombre_cliente}} - {{descripcion_servicio}} - {{precio_pactado}} - {{limite_revisiones}} - {{fecha_entrega}} - {{fecha_actual}}</body></html>")
                 .build();
+        ReflectionTestUtils.setField(contratoServicio, "retencionAnios", 7);
     }
 
     @AfterEach
@@ -212,6 +215,99 @@ class ContratoServicioImplTest {
         RespuestaContrato respuesta = contratoServicio.firmarContrato(10L, ID_CLIENTE);
 
         assertThat(respuesta.getAmbasFirmasCompletas()).isTrue();
+    }
+
+    /** REQ-NF-020: solo al completarse la SEGUNDA firma se congela el contenido y se calcula su hash. */
+    @Test
+    @DisplayName("firmarContrato congela el contenido y calcula su hash al completarse la segunda firma")
+    void firmarContrato_ambasFirmas_congelaContenidoYHash() {
+        Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
+                .limiteRevisiones(2).hashFirmaCreador("hash-creador").build();
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.save(any(Contrato.class))).willReturn(contrato);
+
+        contratoServicio.firmarContrato(10L, ID_CLIENTE);
+
+        assertThat(contrato.getContenidoCongelado()).isNotBlank();
+        assertThat(contrato.getHashContenido()).matches("[0-9a-f]{64}");
+        assertThat(contrato.getFechaHashContenido()).isNotNull();
+        assertThat(contrato.getFechaLimiteRetencion()).isAfter(contrato.getFechaHashContenido());
+    }
+
+    @Test
+    @DisplayName("firmarContrato NO congela el contenido todavia con una sola firma")
+    void firmarContrato_primeraFirma_noCongelaTodavia() {
+        Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla).limiteRevisiones(2).build();
+        given(contratoRepository.findByIdParaFirmar(10L)).willReturn(Optional.of(contrato));
+        given(contratoRepository.save(any(Contrato.class))).willReturn(contrato);
+
+        contratoServicio.firmarContrato(10L, ID_CREADOR);
+
+        assertThat(contrato.getContenidoCongelado()).isNull();
+        assertThat(contrato.getHashContenido()).isNull();
+    }
+
+    @Test
+    @DisplayName("verificarIntegridadHash devuelve integro cuando el contenido no cambio")
+    void verificarIntegridadHash_coincide_devuelveIntegro() {
+        String contenido = "<html>contenido firmado</html>";
+        Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
+                .limiteRevisiones(2).hashFirmaCreador("h1").hashFirmaCliente("h2")
+                .contenidoCongelado(contenido)
+                .hashContenido(sha256(contenido))
+                .build();
+        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+
+        RespuestaVerificacionIntegridad resultado = contratoServicio.verificarIntegridadHash(10L);
+
+        assertThat(resultado.isIntegro()).isTrue();
+        assertThat(resultado.getHashAlmacenado()).isEqualTo(resultado.getHashRecalculado());
+    }
+
+    @Test
+    @DisplayName("verificarIntegridadHash detecta una discrepancia si el contenido guardado cambio")
+    void verificarIntegridadHash_discrepancia_devuelveNoIntegro() {
+        Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
+                .limiteRevisiones(2).hashFirmaCreador("h1").hashFirmaCliente("h2")
+                .contenidoCongelado("<html>contenido ORIGINAL</html>")
+                .hashContenido(sha256("<html>contenido ORIGINAL</html>"))
+                .build();
+        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+
+        // Simula una alteracion del contenido guardado (corrupcion, edicion manual en BD).
+        contrato.setContenidoCongelado("<html>contenido ALTERADO</html>");
+
+        RespuestaVerificacionIntegridad resultado = contratoServicio.verificarIntegridadHash(10L);
+
+        assertThat(resultado.isIntegro()).isFalse();
+        assertThat(resultado.getHashAlmacenado()).isNotEqualTo(resultado.getHashRecalculado());
+    }
+
+    @Test
+    @DisplayName("verificarIntegridadHash rechaza un contrato que todavia no esta firmado por ambas partes")
+    void verificarIntegridadHash_sinFirmarAmbasPartes_rechaza() {
+        Contrato contrato = Contrato.builder().idContrato(10L).pedido(pedido).plantilla(plantilla)
+                .limiteRevisiones(2).hashFirmaCreador("h1").build();
+        given(contratoRepository.findById(10L)).willReturn(Optional.of(contrato));
+
+        assertThatThrownBy(() -> contratoServicio.verificarIntegridadHash(10L))
+                .isInstanceOf(ExcepcionReglaNegocio.class);
+    }
+
+    private static String sha256(String data) {
+        try {
+            var digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                String h = Integer.toHexString(0xff & b);
+                if (h.length() == 1) hex.append('0');
+                hex.append(h);
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

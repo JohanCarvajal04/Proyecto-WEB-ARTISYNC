@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import uteq.edu.ec.artisync.dto.peticion.legal.PeticionCancelarPago;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaPago;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IPagoServicio;
@@ -49,5 +50,31 @@ public class PagoControlador {
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(pagoServicio.obtenerEstadoPago(idPedido, userDetails.getIdUsuario()));
+    }
+
+    /**
+     * Cancela un pedido con fondos ya retenidos en escrow (REQ-NF-019),
+     * reembolsando al cliente vía PayPal o (solo administrador) liberando los
+     * fondos al creador. La autorización fina (cliente-o-admin, y que solo un
+     * admin pueda liberar) vive en el servicio, igual que en obtenerEstadoPago.
+     *
+     * @param idPedido    identificador del pedido a cancelar
+     * @param userDetails usuario autenticado que solicita la cancelación
+     * @param peticion    acción sobre los fondos ("REEMBOLSAR"/"LIBERAR") y motivo; body opcional
+     * @return el estado final del pago tras la cancelación
+     * @throws ExcepcionRecursoNoEncontrado si no existe contrato o pago registrado para el pedido
+     * @throws ExcepcionReglaNegocio si el usuario no tiene permiso, la acción no es válida,
+     *      o el pago no está en un estado cancelable
+     */
+    @PostMapping("/{idPedido}/pago/cancelar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RespuestaPago> cancelarPago(
+            @PathVariable Long idPedido,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody(required = false) PeticionCancelarPago peticion) {
+        String accionFondos = peticion != null ? peticion.getAccionFondos() : null;
+        String motivo = peticion != null ? peticion.getMotivo() : null;
+        return ResponseEntity.ok(pagoServicio.cancelarPedidoConFondosRetenidos(
+                idPedido, userDetails.getIdUsuario(), accionFondos, motivo));
     }
 }

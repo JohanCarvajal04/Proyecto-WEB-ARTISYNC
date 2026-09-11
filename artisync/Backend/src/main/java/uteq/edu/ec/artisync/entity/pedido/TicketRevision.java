@@ -6,14 +6,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Entidad del modelo de dominio que representa Solicitud de ajuste sobre un entregable preliminar enviada por el cliente.
- * 
+ *
  * Ciclo de vida: Inicia ABIERTO y finaliza CERRADO tras la correcion. Bloquea la liberacion de fondos.
- * 
+ *
  * Relaciones principales: Vincula un EntregableFinal con las exigencias del Cliente.
  */
 @Entity
@@ -53,6 +55,9 @@ public class TicketRevision {
     @Size(max = 50, message = "El estado del ticket no puede superar los 50 caracteres")
     @Column(name = "estado_ticket", length = 50)
     private String estadoTicket = "Abierto";
+
+    /** REQ-F-022c: TicketRevisionExpiracionScheduler la usa para calcular "48h desde la creacion". */
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", updatable = false)
+    private LocalDateTime fechaCreacion;
 }
-
-

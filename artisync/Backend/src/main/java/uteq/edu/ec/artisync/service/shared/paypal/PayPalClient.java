@@ -53,9 +53,28 @@ public class PayPalClient {
 
     /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
     public JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
+        return llamarPayPal(ruta, metodo, cuerpo, null);
+    }
+
+    /**
+     * Igual que {@link #llamarPayPal(String, HttpMethod, JsonNode)}, pero con
+     * cabecera `PayPal-Request-Id` (REQ-NF-019): un reembolso reintentado con
+     * la misma clave no se procesa dos veces del lado de PayPal, mismo
+     * principio que el `sender_batch_id` idempotente de los payouts en
+     * SolicitudRetiroServicioImpl, aplicado aquí vía el mecanismo propio que
+     * PayPal expone para checkout/orders y captures/refund.
+     */
+    public JsonNode llamarPayPalIdempotente(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
+        return llamarPayPal(ruta, metodo, cuerpo, idempotencyKey);
+    }
+
+    private JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(obtenerAccessToken());
         headers.setContentType(MediaType.APPLICATION_JSON);
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            headers.set("PayPal-Request-Id", idempotencyKey);
+        }
 
         HttpEntity<String> peticion = new HttpEntity<>(cuerpo != null ? cuerpo.toString() : null, headers);
 

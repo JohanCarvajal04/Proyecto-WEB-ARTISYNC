@@ -331,6 +331,32 @@ class EntregableServicioImplTest {
         assertThat(porTipo.get("Egreso")).isEqualByComparingTo("80.00");
     }
 
+    /**
+     * REQ-NF-019: sin este guard, un pedido ya cancelado-y-reembolsado (o
+     * liberado) por PagoServicioImpl.cancelarPedidoConFondosRetenidos podía
+     * aprobarse aquí después y pagar al creador una segunda vez.
+     */
+    @Test
+    void aprobarEntrega_pagoNoRetenido_error() {
+        when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
+        when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
+                .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+
+        uteq.edu.ec.artisync.entity.legal.Contrato contrato = new uteq.edu.ec.artisync.entity.legal.Contrato();
+        contrato.setIdContrato(1L);
+        when(contratoRepository.findByPedidoIdPedido(ID_PEDIDO)).thenReturn(Optional.of(contrato));
+
+        uteq.edu.ec.artisync.entity.legal.PagoGarantia pago = new uteq.edu.ec.artisync.entity.legal.PagoGarantia();
+        pago.setMontoRetenido(new java.math.BigDecimal("100.00"));
+        pago.setEstadoFondos("Reembolsado");
+        when(pagoGarantiaRepository.findByContratoIdContrato(1L)).thenReturn(Optional.of(pago));
+
+        assertThrows(ExcepcionReglaNegocio.class, () -> servicio.aprobarEntrega(ID_PEDIDO, ID_CLIENTE));
+
+        verify(transaccionPagoRepository, never()).save(any());
+        verify(entregableRepository, never()).save(any());
+    }
+
     @Test
     void aprobarEntrega_noEsCliente_error() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
