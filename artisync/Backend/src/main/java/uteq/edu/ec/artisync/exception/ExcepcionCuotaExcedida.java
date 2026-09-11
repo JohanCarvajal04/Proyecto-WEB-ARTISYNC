@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.exception;
+package uteq.edu.ec.artisync.exception;
 
 /**
  * Componente de Excepciones: Error personalizado de negocio.
