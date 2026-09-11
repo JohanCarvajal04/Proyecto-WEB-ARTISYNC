@@ -1,30 +1,314 @@
 <div class="flex flex-col gap-6 max-w-4xl mx-auto animate-[fadeIn_0.4s_ease-out]">
 
   <div>
-    <h1 class="font-headline text-3xl font-bold text-[#0F2027]">Mi Perfil</h1>
-    <p class="text-sm text-slate-400 mt-1">Tu identidad y tu actividad en Artisync.</p>
+    <h1 class="font-headline text-3xl font-bold text-[#1E0F38]">Mi Perfil</h1>
+    <p class="text-sm text-slate-400 mt-1">Tu identidad, actividad y configuración personal en Artisync.</p>
   </div>
 
-  <app-profile-header
-    [nombre]="userName()"
-    [correo]="userEmail()"
-    [fotoUrl]="usuario()?.urlFotoPerfil">
-  </app-profile-header>
-
-  <!-- Accesos rápidos -->
-  <a routerLink="/dashboard/mis-pedidos"
-    class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow flex items-center gap-4 group w-full sm:w-auto">
-    <div class="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0 group-hover:scale-105 transition-transform">
-      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-      </svg>
+  @if (isLoading()) {
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent"></div>
     </div>
-    <div>
-      <p class="font-semibold text-slate-800 text-sm">Mis pedidos</p>
-      <p class="text-xs text-slate-400 mt-0.5">Revisa el estado de tus comisiones</p>
-    </div>
-  </a>
+  } @else {
 
-  <!-- Verificación de identidad (REQ-F-006/007) -->
-  <app-solicitud-verificacion />
+    <!-- CONTENEDOR DE PORTADA Y TARJETA FLOTANTE (ESTILO JESSICA JONES) -->
+    <div class="relative">
+      
+      <!-- Portada Superior (Color morado característico o foto personalizada) -->
+      <div class="relative h-48 sm:h-60 w-full rounded-3xl overflow-hidden shadow-sm bg-gradient-to-r from-[#1E0F38] via-[#3B1D6E] to-[#7B39B2]">
+        @if (urlPortadaCliente()) {
+          <img [src]="urlPortadaCliente()" alt="Portada del cliente" class="absolute inset-0 w-full h-full object-cover object-center" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        } @else {
+          <!-- Decoración sutil de fondo pastel -->
+          <div class="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_right,rgba(216,180,254,0.8),transparent_70%)]"></div>
+          <div class="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_bottom_left,rgba(244,114,182,0.6),transparent_60%)]"></div>
+        }
+
+        <!-- Botón para cambiar portada -->
+        <div class="absolute top-4 right-4 z-10">
+          <button type="button" (click)="toggleEditarPortada()"
+            class="inline-flex items-center gap-2 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all border border-white/20 shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {{ editandoPortada() ? 'Cerrar editor' : 'Cambiar portada' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal para cambiar portada (z-50 sobre todo el contenido) -->
+      @if (editandoPortada()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
+          (click)="editandoPortada.set(false)">
+          <div class="bg-white rounded-3xl shadow-2xl border border-purple-100 max-w-lg w-full p-6 relative overflow-hidden"
+            (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <h3 class="font-headline text-lg font-bold text-[#1E0F38]">Cambiar imagen de portada</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Ingresa la URL de la imagen para tu portada</p>
+              </div>
+              <button type="button" (click)="editandoPortada.set(false)"
+                class="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Pestañas de selección: Archivo / URL -->
+            <div class="flex items-center gap-2 p-1 bg-slate-100 rounded-xl mt-4">
+              <button type="button" (click)="modoSubidaPortada.set('archivo')"
+                class="flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                [class]="modoSubidaPortada() === 'archivo' ? 'bg-white text-purple-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Subir archivo
+              </button>
+              <button type="button" (click)="modoSubidaPortada.set('url')"
+                class="flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                [class]="modoSubidaPortada() === 'url' ? 'bg-white text-purple-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Enlace URL
+              </button>
+            </div>
+
+            <!-- Contenido según pestaña -->
+            <div class="py-4 space-y-4">
+              @if (modoSubidaPortada() === 'archivo') {
+                <div (click)="abrirSelectorArchivoPortada()"
+                  class="border-2 border-dashed border-purple-200 hover:border-purple-400 bg-purple-50/40 hover:bg-purple-50/70 rounded-2xl p-6 text-center cursor-pointer transition-all">
+                  <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mx-auto mb-2">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p class="text-xs font-bold text-slate-700">
+                    {{ archivoPortadaSeleccionado() ? archivoPortadaSeleccionado()!.name : 'Haz clic para seleccionar una imagen' }}
+                  </p>
+                  <p class="text-[11px] text-slate-400 mt-1">PNG, JPG, WEBP o GIF (Máx. 5 MB)</p>
+                  <input type="file" #fileInputPortadaCliente class="hidden" accept="image/*" (change)="onArchivoPortadaSeleccionado($event)">
+                </div>
+              } @else {
+                <div>
+                  <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">URL de la imagen</label>
+                  <input type="url" [value]="inputUrlPortada()" (input)="onUrlPortadaCambiado($any($event.target).value)"
+                    placeholder="https://ejemplo.com/tu-portada.jpg"
+                    class="mt-1.5 w-full bg-slate-50 text-slate-800 text-sm rounded-xl px-4 py-2.5 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400/40">
+                </div>
+              }
+
+              <!-- Vista previa en tiempo real -->
+              @if (previewPortadaUrl()) {
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Vista previa</p>
+                    @if (urlPortadaCliente()) {
+                      <button type="button" (click)="eliminarPortada()"
+                        class="text-[11px] font-semibold text-rose-600 hover:text-rose-700 transition-colors">
+                        Restaurar por defecto
+                      </button>
+                    }
+                  </div>
+                  <div class="h-32 w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
+                    <img [src]="previewPortadaUrl()" alt="Vista previa de portada" class="w-full h-full object-cover">
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button type="button" (click)="editandoPortada.set(false)"
+                class="text-xs font-semibold text-slate-500 hover:text-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-100 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" [disabled]="guardandoPortada()" (click)="guardarPortada()"
+                class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white font-semibold px-6 py-2.5 rounded-xl text-xs shadow-sm hover:shadow-md transition-all disabled:opacity-60">
+                {{ guardandoPortada() ? 'Guardando...' : 'Guardar portada' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Tarjeta Blanca Estilo Jessica Jones -->
+      <div class="relative bg-white rounded-3xl shadow-xl border border-purple-50/70 -mt-16 sm:-mt-20 mx-3 sm:mx-6 px-6 sm:px-10 pb-8 pt-4">
+        
+        <!-- Fila superior: Estadísticas izquierda, Avatar protagónico centro, Acciones derecha -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4">
+          
+          <!-- Izquierda: Métricas de actividad -->
+          <div class="flex items-center gap-6 sm:gap-8 order-2 sm:order-1 text-center sm:text-left">
+            <div>
+              <span class="text-2xl sm:text-3xl font-headline font-extrabold text-slate-800">{{ totalPedidos() }}</span>
+              <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pedidos</p>
+            </div>
+            <div>
+              <span class="text-2xl sm:text-3xl font-headline font-extrabold text-purple-700">{{ pedidosCompletados() }}</span>
+              <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Completados</p>
+            </div>
+            <div>
+              <span class="text-2xl sm:text-3xl font-headline font-extrabold text-indigo-600">{{ pedidosEnCurso() }}</span>
+              <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">En curso</p>
+            </div>
+          </div>
+
+          <!-- Centro: Avatar flotante circular -->
+          <div class="relative -mt-16 sm:-mt-22 order-1 sm:order-2 flex flex-col items-center">
+            <div class="relative group">
+              <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-full ring-4 ring-white shadow-2xl overflow-hidden bg-purple-100 flex items-center justify-center text-purple-900 font-headline font-bold text-3xl sm:text-4xl">
+                @if (usuario()?.urlFotoPerfil) {
+                  <img [src]="usuario()!.urlFotoPerfil" [alt]="userName()" class="w-full h-full object-cover" />
+                } @else {
+                  <span class="text-purple-800 font-bold">{{ iniciales() }}</span>
+                }
+              </div>
+
+              <!-- Botón flotante para cambiar foto -->
+              <button type="button" (click)="abrirSelectorFoto()" [disabled]="subiendoFoto()"
+                title="Cambiar foto de perfil"
+                class="absolute bottom-1 right-1 bg-purple-700 hover:bg-purple-800 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-95 disabled:opacity-60">
+                @if (subiendoFoto()) {
+                  <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                } @else {
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                }
+              </button>
+              <input type="file" #fileInputCliente class="hidden" accept="image/*" (change)="onFotoSeleccionada($event)">
+            </div>
+          </div>
+
+          <!-- Derecha: Botones de Acción -->
+          <div class="flex items-center gap-3 order-3">
+            <a routerLink="/dashboard/mis-pedidos"
+              class="bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-xl shadow-sm transition-all inline-flex items-center gap-2 hover:shadow-md uppercase tracking-wider">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              Pedidos
+            </a>
+            <a routerLink="/dashboard/explorar"
+              class="bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 rounded-xl shadow-sm transition-all inline-flex items-center gap-2 hover:shadow-md uppercase tracking-wider">
+              Explorar
+            </a>
+          </div>
+        </div>
+
+        <!-- Información Central (Nombre, edad, ubicación, rol, correo) -->
+        <div class="mt-6 text-center">
+          <h2 class="font-headline text-2xl sm:text-3xl font-bold text-slate-800">
+            {{ userName() }}@if (edad()) {<span class="text-slate-400 font-normal">, {{ edad() }}</span>}
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            {{ usuario()?.nombrePais || 'Ecuador' }}
+          </p>
+
+          <p class="text-sm sm:text-base font-semibold text-purple-900 mt-4">
+            Cliente en Artisync
+          </p>
+          <p class="text-xs text-slate-400 mt-0.5">
+            {{ userEmail() }}
+          </p>
+        </div>
+
+        <!-- Línea divisoria sutil (Estilo Jessica Jones) -->
+        <div class="border-t border-slate-100 my-6"></div>
+
+        <!-- Biografía / Descripción centrada (Estilo Jessica Jones) -->
+        <div class="text-center max-w-2xl mx-auto">
+          <p class="text-sm text-slate-600 leading-relaxed italic">
+            "Explorando el catálogo de creadores y servicios en Artisync. Apoyando el talento artístico independiente y gestionando comisiones personalizadas."
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DATOS PERSONALES -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Datos personales</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Nombre, fecha de nacimiento y país de residencia</p>
+        </div>
+        @if (!editandoDatos() && !isLoading()) {
+          <button type="button" (click)="editarDatos()"
+            class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-4 py-2 rounded-full border border-purple-200 hover:bg-purple-50 transition-all shrink-0">
+            Editar
+          </button>
+        }
+      </div>
+
+      <div class="px-6 py-5">
+        @if (!editandoDatos()) {
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nombres</dt>
+              <dd class="text-sm text-slate-700 mt-1 font-medium">{{ usuario()?.nombres || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Apellidos</dt>
+              <dd class="text-sm text-slate-700 mt-1 font-medium">{{ usuario()?.apellidos || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha de nacimiento</dt>
+              <dd class="text-sm text-slate-700 mt-1 font-medium">{{ usuario()?.fechaNacimiento || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">País</dt>
+              <dd class="text-sm text-slate-700 mt-1 font-medium">{{ usuario()?.nombrePais || '—' }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <form [formGroup]="form" (ngSubmit)="guardarDatosPersonales()" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nombres</label>
+              <input type="text" formControlName="nombres"
+                class="mt-1 w-full bg-slate-50 text-slate-800 text-sm rounded-xl px-4 py-2.5 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Apellidos</label>
+              <input type="text" formControlName="apellidos"
+                class="mt-1 w-full bg-slate-50 text-slate-800 text-sm rounded-xl px-4 py-2.5 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fecha de nacimiento</label>
+              <input type="date" formControlName="fechaNacimiento"
+                class="mt-1 w-full bg-slate-50 text-slate-800 text-sm rounded-xl px-4 py-2.5 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">País</label>
+              <select formControlName="idPais"
+                class="mt-1 w-full bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
+                <option [ngValue]="null">Selecciona un país</option>
+                @for (pais of paises(); track pais.idPais) {
+                  <option [ngValue]="pais.idPais">{{ pais.nombrePais }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="sm:col-span-2 flex items-center gap-3 pt-2">
+              <button type="submit" [disabled]="guardandoDatos()"
+                class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white font-semibold px-6 py-2.5 rounded-full text-sm shadow-sm hover:shadow-md transition-all disabled:opacity-60">
+                {{ guardandoDatos() ? 'Guardando...' : 'Guardar cambios' }}
+              </button>
+              <button type="button" (click)="cancelarEdicionDatos()"
+                class="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        }
+      </div>
+    </div>
+
+    <!-- Verificación de identidad (REQ-F-006/007) -->
+    <app-solicitud-verificacion />
+  }
 </div>

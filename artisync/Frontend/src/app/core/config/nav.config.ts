@@ -300,14 +300,13 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'admin' },
   // Configuración de la cuenta propia: contraseña, 2FA, preferencias. Es la
   // misma página que ven creador y cliente — ver NavItem.basePath.
-  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'admin', basePath: '/cuenta' },
+  { label: 'Configuración', icon: 'settings', route: 'configuracion', panel: 'admin', basePath: '/cuenta' },
 
   // ─── Panel de creador ───
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'creador' },
   { label: 'Mis Servicios', icon: 'storefront', route: 'servicios', panel: 'creador', permissions: PAGE_PERMISSIONS.servicios, crossPanel: true },
   { label: 'Comisiones', icon: 'shopping_bag', route: 'comisiones', panel: 'creador', permissions: PAGE_PERMISSIONS.comisiones, crossPanel: true },
   { label: 'Mis Retiros', icon: 'account_balance_wallet', route: 'retiros', panel: 'creador', permissions: PAGE_PERMISSIONS.retirosCreador, crossPanel: true },
-  { label: 'Briefings', icon: 'assignment', route: 'briefings', panel: 'creador' },
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'creador' },
   { label: 'Reseñas', icon: 'rate_review', route: 'resenas', panel: 'creador' },
   { label: 'Seguidores', icon: 'group', route: 'seguidores', panel: 'creador' },
@@ -324,11 +323,11 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Mis Plantillas de Acuerdo', icon: 'description', route: 'plantillas-acuerdo', panel: 'creador', permissions: PAGE_PERMISSIONS.plantillasAcuerdoPropias, crossPanel: true },
   { label: 'Portafolio', icon: 'folder_special', route: 'portafolio', panel: 'creador', permissions: PAGE_PERMISSIONS.portafolioPropio, crossPanel: true },
   // "Mi Perfil" (perfil de negocio: biografía, red social, verificación) y
-  // "Mi Cuenta" (roles/permisos vigentes, contraseña, 2FA) son cosas
+  // "Configuración" (roles/permisos vigentes, contraseña, 2FA) son cosas
   // distintas: la primera es de dominio de creador, la segunda es la misma
   // página que ven admin y cliente. Conviven en el menú, ver NavItem.basePath.
   { label: 'Mi Perfil', icon: 'person', route: 'perfil', panel: 'creador' },
-  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'creador', basePath: '/cuenta' },
+  { label: 'Configuración', icon: 'settings', route: 'configuracion', panel: 'creador', basePath: '/cuenta' },
 
   // ─── Panel de cliente ───
   { label: 'Overview', icon: 'dashboard', route: 'overview', panel: 'cliente' },
@@ -338,13 +337,13 @@ export const NAV_CATALOG: readonly NavItem[] = [
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'cliente' },
   { label: 'Sorteos', icon: 'celebration', route: 'sorteos', panel: 'cliente' },
   { label: 'Mi Perfil', icon: 'person', route: 'perfil', panel: 'cliente' },
-  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'cliente', basePath: '/cuenta' },
+  { label: 'Configuración', icon: 'settings', route: 'configuracion', panel: 'cliente', basePath: '/cuenta' },
 
   // ─── Panel de cuenta (sin permisos asignados) ───
   // El orden fija el aterrizaje: notificaciones es la primera página, igual
   // que en los otros tres paneles.
   { label: 'Notificaciones', icon: 'notifications', route: 'notificaciones', panel: 'cuenta' },
-  { label: 'Mi Cuenta', icon: 'account_circle', route: 'configuracion', panel: 'cuenta' }
+  { label: 'Configuración', icon: 'settings', route: 'configuracion', panel: 'cuenta' }
 ];
 
 /**

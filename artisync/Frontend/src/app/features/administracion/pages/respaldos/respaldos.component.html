@@ -2,8 +2,8 @@
   <!-- Encabezado -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
     <div>
-      <h1 class="font-headline text-3xl font-bold text-primary">Respaldos</h1>
-      <p class="text-sm text-on-surface-variant mt-1">
+      <h1 class="font-headline text-3xl font-bold text-[#1E0F38]">Respaldos</h1>
+      <p class="text-sm text-slate-500 mt-1">
         Crea, programa y gestiona los respaldos de la base de datos (REQ-NF-024). Restaurar sigue siendo un
         procedimiento manual documentado, no una acción de esta pantalla.
       </p>
@@ -11,119 +11,146 @@
   </div>
 
   <!-- Tabs -->
-  <div class="flex gap-2 border-b border-outline-variant">
+  <div class="flex gap-1 border-b border-slate-200">
     <button type="button" (click)="cambiarVista('respaldos')"
-      class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
-      [class]="vistaActiva() === 'respaldos' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'">
+      class="px-5 py-2.5 text-sm font-semibold border-b-2 transition-all duration-200"
+      [class]="vistaActiva() === 'respaldos' ? 'border-[#7B39B2] text-[#7B39B2]' : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'">
       Respaldos
     </button>
     <button type="button" (click)="cambiarVista('programaciones')"
-      class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors"
-      [class]="vistaActiva() === 'programaciones' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'">
+      class="px-5 py-2.5 text-sm font-semibold border-b-2 transition-all duration-200"
+      [class]="vistaActiva() === 'programaciones' ? 'border-[#7B39B2] text-[#7B39B2]' : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'">
       Programaciones
     </button>
   </div>
 
   @if (vistaActiva() === 'respaldos') {
     <!-- Acción: generar respaldo ahora -->
-    <div class="bg-surface-container-lowest rounded-3xl p-4 shadow-sm border border-outline-variant flex flex-col md:flex-row items-center justify-between gap-4" *appHasPermission="'RESPALDO_CREAR'">
+    <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4" *appHasPermission="'RESPALDO_CREAR'">
       <div class="flex items-center gap-3 w-full md:w-auto">
-        <label class="text-xs font-medium text-on-surface-variant" for="tipoNuevo">Tipo</label>
-        <select id="tipoNuevo" [ngModel]="tipoRespaldoNuevo()" (ngModelChange)="tipoRespaldoNuevo.set($event)"
-          class="bg-surface-container text-on-surface border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer">
-          <option value="FULL">Completo (FULL)</option>
-          <option value="INCREMENTAL">Incremental</option>
-        </select>
+        <label class="text-xs font-medium text-slate-500" for="tipoNuevo">Tipo</label>
+        <div class="relative">
+          <select id="tipoNuevo" [ngModel]="tipoRespaldoNuevo()" (ngModelChange)="tipoRespaldoNuevo.set($event)"
+            class="bg-[#EAEFF9] text-slate-700 border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400/40 cursor-pointer appearance-none pr-9">
+            <option value="FULL">Completo (FULL)</option>
+            <option value="INCREMENTAL">Incremental</option>
+          </select>
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </span>
+        </div>
       </div>
       <button type="button" (click)="generarRespaldo()" [disabled]="isCreandoRespaldo()"
-        class="bg-primary text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2 w-full md:w-auto justify-center">
+        class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-95 text-white font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2 w-full md:w-auto justify-center">
         @if (isCreandoRespaldo()) {
-          <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
         }
         <span>Generar respaldo ahora</span>
       </button>
     </div>
 
     <!-- Filtros -->
-    <div class="bg-surface-container-lowest rounded-3xl p-4 shadow-sm border border-outline-variant flex flex-col md:flex-row items-center gap-3">
-      <select [(ngModel)]="selectedTipoFiltro"
-        class="bg-surface-container text-on-surface border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer">
-        <option value="ALL">Todos los tipos</option>
-        <option value="FULL">Completo (FULL)</option>
-        <option value="INCREMENTAL">Incremental</option>
-      </select>
-      <select [(ngModel)]="selectedEstadoFiltro"
-        class="bg-surface-container text-on-surface border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer">
-        <option value="ALL">Todos los estados</option>
-        <option value="EN_PROGRESO">En progreso</option>
-        <option value="COMPLETADO">Completado</option>
-        <option value="FALLIDO">Fallido</option>
-      </select>
+    <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-3">
+      <div class="relative">
+        <select [(ngModel)]="selectedTipoFiltro"
+          class="bg-[#EAEFF9] text-slate-700 border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400/40 cursor-pointer appearance-none pr-9">
+          <option value="ALL">Todos los tipos</option>
+          <option value="FULL">Completo (FULL)</option>
+          <option value="INCREMENTAL">Incremental</option>
+        </select>
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </div>
+      <div class="relative">
+        <select [(ngModel)]="selectedEstadoFiltro"
+          class="bg-[#EAEFF9] text-slate-700 border-0 rounded-full px-5 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400/40 cursor-pointer appearance-none pr-9">
+          <option value="ALL">Todos los estados</option>
+          <option value="EN_PROGRESO">En progreso</option>
+          <option value="COMPLETADO">Completado</option>
+          <option value="FALLIDO">Fallido</option>
+        </select>
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </div>
       <div class="flex items-center gap-2">
         <button type="button" (click)="aplicarFiltros()"
-          class="px-5 py-2.5 rounded-full text-xs font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity">
+          class="px-5 py-2.5 rounded-full text-xs font-semibold text-white bg-[#7B39B2] hover:opacity-90 transition-opacity">
           Filtrar
         </button>
         <button type="button" (click)="limpiarFiltros()"
-          class="px-4 py-2.5 rounded-full text-xs font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
+          class="px-4 py-2.5 rounded-full text-xs font-medium text-slate-500 hover:bg-slate-50 transition-colors">
           Limpiar
         </button>
       </div>
     </div>
 
     <!-- Tabla de respaldos -->
-    <div class="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden flex flex-col">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
       @if (isLoading()) {
-        <div class="flex items-center justify-center p-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        <div class="flex items-center justify-center py-20">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       } @else if (respaldos().length === 0) {
-        <div class="flex flex-col items-center justify-center p-12 text-center gap-2">
-          <p class="text-sm text-on-surface-variant">No hay respaldos que coincidan con el filtro.</p>
+        <div class="flex flex-col items-center justify-center p-12 text-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+          </div>
+          <p class="font-headline font-semibold text-[#1E0F38]">No se encontraron respaldos</p>
+          <p class="text-xs text-slate-500">No hay respaldos que coincidan con el filtro.</p>
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant uppercase tracking-wide">
-                <th class="px-5 py-3">Tipo</th>
-                <th class="px-5 py-3">Estado</th>
-                <th class="px-5 py-3">Origen</th>
-                <th class="px-5 py-3">Archivo</th>
-                <th class="px-5 py-3">Tamaño</th>
-                <th class="px-5 py-3">Inicio</th>
-                <th class="px-5 py-3">Solicitado por</th>
-                <th class="px-5 py-3 text-right">Acciones</th>
+              <tr class="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <th class="py-4 px-6">Tipo</th>
+                <th class="py-4 px-6">Estado</th>
+                <th class="py-4 px-6">Origen</th>
+                <th class="py-4 px-6">Archivo</th>
+                <th class="py-4 px-6">Tamaño</th>
+                <th class="py-4 px-6">Inicio</th>
+                <th class="py-4 px-6">Solicitado por</th>
+                <th class="py-4 px-6 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-slate-100 text-sm">
               @for (respaldo of respaldos(); track respaldo.idRespaldo) {
-                <tr class="border-b border-outline-variant last:border-0 hover:bg-surface-container transition-colors">
-                  <td class="px-5 py-3 font-medium text-on-surface">{{ respaldo.tipoRespaldo === 'FULL' ? 'Completo' : 'Incremental' }}</td>
-                  <td class="px-5 py-3">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold" [class]="claseEstado(respaldo.estadoRespaldo)">
+                <tr class="hover:bg-slate-50/70 transition-colors group">
+                  <td class="py-4 px-6 font-bold text-slate-800">{{ respaldo.tipoRespaldo === 'FULL' ? 'Completo' : 'Incremental' }}</td>
+                  <td class="py-4 px-6">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" [class]="claseEstado(respaldo.estadoRespaldo)">
                       {{ respaldo.estadoRespaldo }}
                     </span>
                     @if (respaldo.estadoRespaldo === 'FALLIDO' && respaldo.mensajeError) {
-                      <p class="text-xs text-error mt-1 max-w-xs truncate" [title]="respaldo.mensajeError">{{ respaldo.mensajeError }}</p>
+                      <p class="text-xs text-rose-600 mt-1 max-w-xs truncate" [title]="respaldo.mensajeError">{{ respaldo.mensajeError }}</p>
                     }
                   </td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.origen === 'MANUAL' ? 'Manual' : 'Programado' }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.nombreArchivo || '—' }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ formatearTamano(respaldo.tamanoBytes) }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.fechaInicio | date: 'dd/MM/yyyy HH:mm' }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ respaldo.correoSolicitante }}</td>
-                  <td class="px-5 py-3">
+                  <td class="py-4 px-6 text-slate-500">{{ respaldo.origen === 'MANUAL' ? 'Manual' : 'Programado' }}</td>
+                  <td class="py-4 px-6 text-slate-500 font-mono text-xs">{{ respaldo.nombreArchivo || '—' }}</td>
+                  <td class="py-4 px-6 text-slate-500">{{ formatearTamano(respaldo.tamanoBytes) }}</td>
+                  <td class="py-4 px-6 text-xs text-slate-400 italic font-medium">{{ respaldo.fechaInicio | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="py-4 px-6 text-slate-500">{{ respaldo.correoSolicitante }}</td>
+                  <td class="py-4 px-6 text-right">
                     <div class="flex items-center justify-end gap-2">
                       @if (respaldo.estadoRespaldo === 'COMPLETADO') {
                         <button type="button" *appHasPermission="'RESPALDO_DESCARGAR'" (click)="descargar(respaldo)"
-                          class="text-xs font-semibold text-primary hover:underline">
+                          class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
                           Descargar
                         </button>
                       }
                       <button type="button" *appHasPermission="'RESPALDO_ELIMINAR'" (click)="confirmarEliminarRespaldo(respaldo)"
                         [disabled]="respaldo.estadoRespaldo === 'EN_PROGRESO'"
-                        class="text-xs font-semibold text-error hover:underline disabled:opacity-40 disabled:pointer-events-none">
+                        class="text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-50 disabled:opacity-40 disabled:pointer-events-none transition-colors">
                         Eliminar
                       </button>
                     </div>
@@ -135,22 +162,18 @@
         </div>
 
         <!-- Paginación -->
-        <div class="flex items-center justify-between px-5 py-3 border-t border-outline-variant">
-          <p class="text-xs text-on-surface-variant">{{ totalElements() }} respaldo(s) en total</p>
-          <div class="flex items-center gap-2">
-            <button (click)="changePage(currentPage() - 1)" [disabled]="currentPage() === 0"
-              class="w-7 h-7 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container disabled:opacity-40 disabled:pointer-events-none transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button (click)="changePage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"
-              class="w-7 h-7 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container disabled:opacity-40 disabled:pointer-events-none transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+        <div class="flex items-center justify-center gap-3 py-4 border-t border-slate-100">
+          <button (click)="changePage(currentPage() - 1)" [disabled]="currentPage() === 0"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Anterior
+          </button>
+          <span class="text-xs text-slate-400 font-mono">
+            Página {{ currentPage() + 1 }} de {{ totalPages() }} · {{ totalElements() }} respaldo(s)
+          </span>
+          <button (click)="changePage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            Siguiente
+          </button>
         </div>
       }
     </div>
@@ -158,60 +181,71 @@
     <!-- Programaciones -->
     <div class="flex justify-end" *appHasPermission="'RESPALDO_PROGRAMAR'">
       <button type="button" (click)="abrirCrearProgramacion()"
-        class="bg-primary text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:opacity-90 flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:opacity-95 text-white font-semibold px-5 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
         <span>Nueva programación</span>
       </button>
     </div>
 
-    <div class="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden flex flex-col">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
       @if (isLoadingProgramaciones()) {
-        <div class="flex items-center justify-center p-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        <div class="flex items-center justify-center py-20">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       } @else if (programaciones().length === 0) {
-        <div class="flex flex-col items-center justify-center p-12 text-center gap-2">
-          <p class="text-sm text-on-surface-variant">Todavía no hay programaciones de respaldo.</p>
+        <div class="flex flex-col items-center justify-center p-12 text-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p class="font-headline font-semibold text-[#1E0F38]">Sin programaciones</p>
+          <p class="text-xs text-slate-500">Todavía no hay programaciones de respaldo.</p>
         </div>
       } @else {
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant uppercase tracking-wide">
-                <th class="px-5 py-3">Nombre</th>
-                <th class="px-5 py-3">Tipo</th>
-                <th class="px-5 py-3">Cron</th>
-                <th class="px-5 py-3">Retención</th>
-                <th class="px-5 py-3">Próxima ejecución</th>
-                <th class="px-5 py-3">Estado</th>
-                <th class="px-5 py-3 text-right">Acciones</th>
+              <tr class="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <th class="py-4 px-6">Nombre</th>
+                <th class="py-4 px-6">Tipo</th>
+                <th class="py-4 px-6">Cron</th>
+                <th class="py-4 px-6">Retención</th>
+                <th class="py-4 px-6">Próxima ejecución</th>
+                <th class="py-4 px-6">Estado</th>
+                <th class="py-4 px-6 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-slate-100 text-sm">
               @for (programacion of programaciones(); track programacion.idProgramacion) {
-                <tr class="border-b border-outline-variant last:border-0 hover:bg-surface-container transition-colors">
-                  <td class="px-5 py-3 font-medium text-on-surface">{{ programacion.nombre }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ programacion.tipoRespaldo === 'FULL' ? 'Completo' : 'Incremental' }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant font-mono text-xs">{{ programacion.expresionCron }}</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ programacion.retencionDias }} días</td>
-                  <td class="px-5 py-3 text-on-surface-variant">{{ programacion.proximaEjecucion | date: 'dd/MM/yyyy HH:mm' }}</td>
-                  <td class="px-5 py-3">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold"
-                      [class]="programacion.activo ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'">
-                      {{ programacion.activo ? 'Activa' : 'Inactiva' }}
-                    </span>
+                <tr class="hover:bg-slate-50/70 transition-colors group">
+                  <td class="py-4 px-6 font-bold text-slate-800">{{ programacion.nombre }}</td>
+                  <td class="py-4 px-6 text-slate-500">{{ programacion.tipoRespaldo === 'FULL' ? 'Completo' : 'Incremental' }}</td>
+                  <td class="py-4 px-6 text-slate-500 font-mono text-xs">{{ programacion.expresionCron }}</td>
+                  <td class="py-4 px-6 text-slate-500">{{ programacion.retencionDias }} días</td>
+                  <td class="py-4 px-6 text-xs text-slate-400 italic font-medium">{{ programacion.proximaEjecucion | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="py-4 px-6">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#F0F4FC] text-slate-700">
+                      <span class="w-1.5 h-1.5 rounded-full"
+                        [class.bg-emerald-500]="programacion.activo"
+                        [class.bg-rose-500]="!programacion.activo"></span>
+                      <span>{{ programacion.activo ? 'Activa' : 'Inactiva' }}</span>
+                    </div>
                   </td>
-                  <td class="px-5 py-3">
+                  <td class="py-4 px-6 text-right">
                     <div class="flex items-center justify-end gap-3" *appHasPermission="'RESPALDO_PROGRAMAR'">
-                      <button type="button" (click)="alternarActivo(programacion)" class="text-xs font-semibold text-primary hover:underline">
+                      <button type="button" (click)="alternarActivo(programacion)"
+                        class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
                         {{ programacion.activo ? 'Desactivar' : 'Activar' }}
                       </button>
-                      <button type="button" (click)="abrirEditarProgramacion(programacion)" class="text-xs font-semibold text-primary hover:underline">
+                      <button type="button" (click)="abrirEditarProgramacion(programacion)"
+                        class="text-xs font-semibold text-[#7B39B2] hover:text-purple-800 px-2 py-1 rounded-lg hover:bg-purple-50 transition-colors">
                         Editar
                       </button>
-                      <button type="button" (click)="confirmarEliminarProgramacion(programacion)" class="text-xs font-semibold text-error hover:underline">
+                      <button type="button" (click)="confirmarEliminarProgramacion(programacion)"
+                        class="text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors">
                         Eliminar
                       </button>
                     </div>
