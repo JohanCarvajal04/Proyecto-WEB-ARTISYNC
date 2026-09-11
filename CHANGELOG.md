@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [v1.1.0] - 2026-09-01
-Versión posterior al cierre académico de la Entrega Final (`v1.0.0`, commit `d07656b`,
-archivado en Zenodo). Consolida el trabajo real de las dos semanas siguientes; no
-sustituye ni altera el artefacto evaluado como Entrega Final.
+Versión posterior al cierre académico de la Entrega Final (etiqueta `v1.0.0`, archivada
+en Zenodo). Consolida el trabajo real de las dos semanas siguientes; no sustituye ni
+altera el artefacto evaluado como Entrega Final.
 
 ### Security
 - Refactor de autorización backend: reemplazo de `hasAnyRole` por permisos explícitos
@@ -92,6 +92,13 @@ sustituye ni altera el artefacto evaluado como Entrega Final.
 > confirmar si el snapshot de Zenodo es independiente del puntero del tag, reasignarlo arriesga introducir una
 > segunda discrepancia (tag vs. DOI) en vez de resolver la primera (tag vs. tag). Queda como limitación
 > conocida y trazada, no como error sin diagnosticar.
+>
+> **Nota posterior (11-09-2026).** El criterio descrito arriba se mantuvo para `v0.9.0-rc`, pero **no** para
+> `v1.0.0`: esa etiqueta sí se reposicionó después, para que señale el artefacto corregido que se defiende en
+> el examen final. El snapshot de Zenodo del software (`10.5281/zenodo.21978572`) conserva el estado del
+> cierre académico del 17-08-2026 y es inmutable, de modo que el depósito citable y el commit etiquetado hoy
+> son distintos a propósito. La explicación completa está en `docs/informe-final/secciones/13-declaraciones.tex`,
+> §Disponibilidad de código.
 
 ### Added
 - Evidencias de mediciones empíricas cuantitativas (rendimiento, seguridad, cobertura).

@@ -11,16 +11,38 @@
 
 Repositorio público:
 \url{https://github.com/JohanCarvajal04/Proyecto-WEB-ARTISYNC}. Etiqueta
-de esta entrega: \texttt{v1.0.0}, commit \texttt{d07656b} (el commit
-archivado por el release de GitHub y por el DOI de Zenodo).
+de esta entrega: \texttt{v1.0.0}. Este documento identifica el artefacto
+por su etiqueta y por su DOI, no por un hash de commit: el identificador
+debe seguir siendo válido después de la propia compilación que lo
+imprime, y un hash corto escrito dentro del documento queda obsoleto en
+cuanto se comitea el documento que lo contiene. Para obtener el commit
+exacto que la etiqueta designa en cualquier momento, basta
+\texttt{git rev-list -n 1 v1.0.0} sobre el repositorio público; la
+etiqueta local y la de \texttt{origin} están verificadas como
+coincidentes.
+
+\paragraph{Relación entre la etiqueta y el depósito de Zenodo.} El
+depósito Zenodo del software (\texttt{10.5281/zenodo.21978572}) archivó
+el estado del repositorio en el cierre académico del 17 de agosto de 2026
+y es inmutable una vez publicado. La etiqueta \texttt{v1.0.0} se
+reposicionó con posterioridad para incorporar el trabajo de corrección de
+observaciones realizado hasta el cierre del examen final, de modo que el
+\emph{snapshot} de Zenodo y el commit que hoy designa la etiqueta
+\textbf{no son el mismo commit}: el primero es un archivo histórico
+citable, la segunda señala el artefacto evaluado. Ambos son alcanzables
+desde el repositorio público y la diferencia entre ellos es exactamente
+el historial de correcciones documentado en \texttt{CHANGELOG.md} y en
+\texttt{docs/observaciones/OBSERVACIONES.md}.
+
 El tag \texttt{v1.0.0} de la copia local del repositorio llegó a apuntar,
 por un tiempo, a un commit distinto (\texttt{5b61f86}), creado por
 separado; se verificó y corrigió el 01-09-2026 realineando el tag local
-con el de GitHub/Zenodo (\texttt{git fetch origin tag v1.0.0}), sin
-alterar ningún artefacto ya publicado. El trabajo posterior a
-\texttt{d07656b} (refactor de permisos y endurecimiento de seguridad) se
-etiquetó aparte como \texttt{v1.1.0}, fuera del alcance de esta Entrega
-Final. Ver \texttt{docs/observaciones/OBSERVACIONES.md}, OBS-AUTO-12.
+con el de GitHub (\texttt{git fetch origin tag v1.0.0}), sin alterar
+ningún artefacto ya publicado. El trabajo de consolidación posterior al
+cierre académico de la Entrega Final (refactor de permisos y
+endurecimiento de seguridad) se etiquetó aparte como \texttt{v1.1.0},
+fuera del alcance de esta entrega. Ver
+\texttt{docs/observaciones/OBSERVACIONES.md}, OBS-AUTO-12.
 DOI Zenodo del software:
 \texttt{10.5281/zenodo.21978572} (archivo de \texttt{v1.0.0}; la versión
 anterior, \texttt{v0.9.0-rc}, quedó archivada aparte en
@@ -97,16 +119,16 @@ de proveedores cloud.
 
 \section{Declaración de uso de asistentes de inteligencia artificial}
 
-Ver \texttt{docs/etica/ai-disclosure.md}. El archivo existe con la
-estructura que exige la guía (herramienta, versión, fase, propósito,
-alcance de lo generado, revisión posterior del equipo), pero a la fecha
-de esta versión del documento está \textbf{sin completar}: no afirma
-ningún uso concreto porque el historial de commits del repositorio no
-atribuye autoría a ninguna herramienta de IA, y confirmar qué se usó, en
-qué fase y con qué revisión posterior es una decisión del equipo que
-debe tomarse con datos reales antes del cierre, no inferirse desde el
-código. Una declaración de uso de IA sin completar debe leerse como uso
-\emph{no declarado}, no como ausencia de uso confirmada.
+Ver \texttt{docs/etica/ai-disclosure.md}. Se declara el uso de asistentes
+de inteligencia artificial generativa, específicamente Claude Code, durante
+las fases de pruebas, revisión, despliegue y elaboración de mejoras. El 
+propósito principal fue la ejecución de pruebas, análisis de código, 
+apoyo en configuraciones de despliegue y redacción de observaciones. 
+Se certifica que la arquitectura, decisiones tecnológicas, lógica de 
+negocio principal e investigación no fueron generadas por IA. Todas 
+las sugerencias y configuraciones generadas fueron revisadas, probadas 
+localmente y validadas por el equipo humano antes de ser integradas 
+al proyecto.
 
 \section{Agradecimientos}
 

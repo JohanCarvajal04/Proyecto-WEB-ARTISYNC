@@ -288,12 +288,14 @@ La colección Postman con 26 peticiones (éxito, validación 400, autorización 
 
 ### Integridad del documento académico (SHA-256)
 
-El digest SHA-256 del PDF final permite verificar que el artefacto descargado (release de GitHub, Zenodo o clon del repositorio) es bit a bit idéntico al evaluado. Publicado en los tres sitios exigidos: este README, la carátula suelta (`docs/informe-final/caratula.tex` → `Caratula-v1.1.0.pdf`) y `CITATION.cff`.
+El digest SHA-256 del PDF final permite verificar que el artefacto descargado (release de GitHub, Zenodo o clon del repositorio) es bit a bit idéntico al evaluado. Se publica en dos sitios: este README y `CITATION.cff`. **No** se imprime dentro de la carátula ni del propio informe: un digest escrito dentro del documento que describe queda invalidado por la misma compilación que lo imprime.
 
 ```
 sha256sum docs/informe-final/Informe-Final-v1.0.0.pdf
-76e4f86fd7514a8d4721d73ceba98f1640b0886def6228c38fa9d082f6292b73  Informe-Final-v1.0.0.pdf
+1a7fe1d9d209ce65179f7e11f8e8dbe3ccaa52b9b376748a0cf58b79c78367a3  Informe-Final-v1.0.0.pdf
 ```
+
+> **Al recompilar el informe, este digest cambia.** Recalcúlalo y actualízalo aquí y en `CITATION.cff` como último paso antes de etiquetar la entrega.
 
 ---
 
@@ -306,7 +308,7 @@ El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/) y [Keep a Cha
 | `v0.7.0` | Entrega 1B — módulo de autenticación y acceso a datos |
 | `v0.7.1` | Cierre de la aplicación de observaciones de las Entregas 1A y 1B |
 | `v0.9.0-rc` | Tercera Entrega — *release candidate* |
-| `v1.0.0` | Entrega Final — primera versión estable de producción (commit `d07656b`, archivado con DOI en Zenodo) |
+| `v1.0.0` | Entrega Final — primera versión estable de producción. El commit que designa la etiqueta se obtiene con `git rev-list -n 1 v1.0.0`; el depósito Zenodo (`10.5281/zenodo.21978572`) archivó el estado del cierre académico del 17-08-2026 y es inmutable, por lo que no tiene por qué coincidir con el commit etiquetado hoy (ver `docs/informe-final/secciones/13-declaraciones.tex`, §Disponibilidad de código) |
 | `v1.1.0` | Trabajo posterior al cierre académico: refactor de autorización por permisos (backend/frontend) y endurecimiento de seguridad — no forma parte de la Entrega Final evaluada |
 
 ## Equipo y contribuciones

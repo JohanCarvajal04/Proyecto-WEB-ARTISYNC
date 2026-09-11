@@ -30,10 +30,10 @@ DOI del dataset, fecha real de defensa, etc.).
 
 **Docente-director:** Dr. Gleiston Cicerón Guerrero Ulloa, Ph.D. — gguerrero@uteq.edu.ec
 
-**Fecha de cierre:** 17 de agosto de 2026 (semana 17)
-**Etiqueta del artefacto:** `v1.0.0` — commit `d07656b` (verificado 01-09-2026: el tag local ya coincide con el de GitHub/Zenodo; ver `docs/informe-final/secciones/13-declaraciones.tex` §1 y `docs/observaciones/OBSERVACIONES.md`, OBS-AUTO-12)
+**Fecha de cierre:** 11 de septiembre de 2026 (semana 19)
+**Etiqueta del artefacto:** `v1.0.0` (ver `docs/informe-final/secciones/13-declaraciones.tex` §1 y `docs/observaciones/OBSERVACIONES.md`, OBS-AUTO-12)
 **DOI del software (Zenodo):** `10.5281/zenodo.21978572` (archivo de `v1.0.0`; la versión anterior, `v0.9.0-rc`, quedó archivada aparte en `10.5281/zenodo.21730559`)
-**DOI del dataset de mediciones (Zenodo):** `[PENDIENTE — depósito separado, ver Bloque D.3 de la guía; brecha declarada en docs/observaciones/INFORME-BRECHAS-ENTREGA-FINAL.md]`
+**DOI del dataset de mediciones (Zenodo):** `10.5281/zenodo.22236251` (depósito separado del software, licencia CC BY 4.0, conforme al Bloque D.3 de la guía)
 
 ---
 
