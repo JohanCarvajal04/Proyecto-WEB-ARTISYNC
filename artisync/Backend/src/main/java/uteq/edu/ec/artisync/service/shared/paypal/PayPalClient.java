@@ -45,6 +45,12 @@ public class PayPalClient {
     @Value("${paypal.mode:sandbox}")
     private String paypalMode;
 
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String getPayPalBaseUrl() {
         return "sandbox".equalsIgnoreCase(paypalMode)
                 ? "https://api-m.sandbox.paypal.com"
@@ -52,6 +58,15 @@ public class PayPalClient {
     }
 
     /** Llamada autenticada a la API de PayPal. `cuerpo` null para GET. */
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param ruta parametro requerido para la correcta ejecucion del procedimiento
+     * @param metodo parametro requerido para la correcta ejecucion del procedimiento
+     * @param cuerpo parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
         return llamarPayPal(ruta, metodo, cuerpo, null);
     }

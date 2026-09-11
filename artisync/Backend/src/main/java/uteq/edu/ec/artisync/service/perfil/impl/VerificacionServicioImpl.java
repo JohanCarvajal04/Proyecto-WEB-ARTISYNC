@@ -58,6 +58,15 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     @Auditable(accion = "VERIFICACION_SOLICITAR", modulo = ModuloAuditoria.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
             detalle = "{tipoDocumento: #tipo}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @param tipo parametro requerido para la correcta ejecucion del procedimiento
+     * @param documento parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaVerificacion subir(Long idUsuarioSolicitante, TipoDocumentoVerificacion tipo, MultipartFile documento) {
         Usuario usuario = usuarioRepository.findById(idUsuarioSolicitante)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuarioSolicitante));
@@ -93,6 +102,15 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param nombreEstado parametro requerido para la correcta ejecucion del procedimiento
+     * @param limite parametro requerido para la correcta ejecucion del procedimiento
+     * @param offset parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaColaVerificacion> listarCola(String nombreEstado, int limite, int offset) {
         return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
                 .map(fila -> RespuestaColaVerificacion.builder()
@@ -110,6 +128,15 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idCertificado identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @param esRevisor parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaVerificacion obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
         CertificadoIa certificado = buscarPorId(idCertificado);
         boolean esDueno = certificado.getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
@@ -128,6 +155,13 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param idCertificado identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaVerificacion analizarConIa(Long idCertificado) {
         CertificadoIa certificado = buscarPorId(idCertificado);
 
@@ -157,6 +191,16 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
     @Auditable(accion = "VERIFICACION_DECIDIR", modulo = ModuloAuditoria.PORTAFOLIO,
             entidad = "certificados_ia", idEntidad = "#idCertificado",
             detalle = "{idNuevoEstado: #idNuevoEstado}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idCertificado identificador unico que referencia de manera univoca al registro
+     * @param idModerador identificador unico que referencia de manera univoca al registro
+     * @param idNuevoEstado identificador unico que referencia de manera univoca al registro
+     * @param notaModerador parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaVerificacion registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
         CertificadoIa certificado = buscarPorId(idCertificado);
 
@@ -248,6 +292,13 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public boolean estaIdentidadVerificada(Long idUsuario) {
         return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
                 idUsuario, "IDENTIDAD", "APROBADO");
@@ -255,6 +306,13 @@ public class VerificacionServicioImpl implements IVerificacionServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoIdentidad obtenerEstadoIdentidad(Long idUsuario) {
         boolean verificado = estaIdentidadVerificada(idUsuario);
         String estadoActual = certificadoIaRepository

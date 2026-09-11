@@ -29,6 +29,12 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<PaisResponse> getAllPaises() {
         return paisRepository.findAll(Sort.by(Sort.Direction.ASC, "nombrePais")).stream()
                 .map(this::toResponse)
@@ -37,6 +43,12 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<PaisResponse> getPaisesActivos() {
         return paisRepository.findByEstadoTrue(Sort.by(Sort.Direction.ASC, "nombrePais")).stream()
                 .map(this::toResponse)
@@ -45,6 +57,13 @@ public class PaisServiceImpl implements PaisService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public PaisResponse getPaisById(Long id) {
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));
@@ -63,6 +82,13 @@ public class PaisServiceImpl implements PaisService {
     // que A9 en updatePais). El tipo de excepcion de negocio se preserva
     // (ExcepcionRecursoDuplicado) para no romper el contrato ya establecido
     // de este servicio con su capa de presentacion.
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public PaisResponse createPais(PaisRequest request) {
         Long idPais;
         try {
@@ -93,6 +119,14 @@ public class PaisServiceImpl implements PaisService {
     // version, que no era atomica respecto al save(): entre comprobar "el
     // nombre no pertenece a otro pais" y guardar, otra transaccion podia
     // tomar ese mismo nombre (lectura fantasma).
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public PaisResponse updatePais(Long id, PaisRequest request) {
         if (!paisRepository.existsById(id)) {
             throw new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id);
@@ -130,6 +164,13 @@ public class PaisServiceImpl implements PaisService {
     @Override
     @Transactional
     @Auditable(accion = "PAIS_CAMBIAR_ESTADO", modulo = ModuloAuditoria.SISTEMA, entidad = "pais", idEntidad = "#id")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje deletePais(Long id) {
         Pais pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("País no encontrado con ID: " + id));

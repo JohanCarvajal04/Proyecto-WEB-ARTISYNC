@@ -37,6 +37,14 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
     private final PortafolioRepository portafolioRepository;
     private final AlmacenamientoDocumentos almacenamiento;
 
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * @param idPortafolio id del portafolio
+     * @param idUsuario id del usuario
+     * @param peticion peticion
+     * @param archivo archivo
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     @Override
     @Transactional
     public RespuestaPortafolioItem subirItem(Long idPortafolio, Long idUsuario,
@@ -77,6 +85,14 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPortafolioItem> listarItems(Long idPortafolio, Long idUsuario) {
         Portafolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
@@ -92,6 +108,14 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idItem identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPortafolioItem obtenerItem(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
@@ -100,6 +124,14 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param idItem identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public ArchivoItem descargarArchivo(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
@@ -113,6 +145,15 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idItem identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPortafolioItem actualizarItem(Long idItem, Long idUsuario, PeticionCrearPortafolioItem peticion) {
         PortafolioItem item = buscarItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);
@@ -127,6 +168,13 @@ public class PortafolioItemServicioImpl implements IPortafolioItemServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idItem identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarItem(Long idItem, Long idUsuario) {
         PortafolioItem item = buscarItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);

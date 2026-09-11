@@ -41,18 +41,41 @@ public class GeminiIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
+     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
         String prompt = cargarPrompt("prompt_verificacion_identidad.md");
         return parsearVerificacionEstricto(llamarGeminiConImagen(prompt, imagenBytes, mimeType), true);
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
+     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
         String prompt = cargarPrompt("prompt_verificacion_certificado.md");
         return parsearVerificacionEstricto(llamarGeminiConImagen(prompt, imagenBytes, mimeType), false);
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param textoMensaje parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         String prompt = cargarPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));
         try {
@@ -72,6 +95,15 @@ public class GeminiIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
+     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
+     * @param categoriasDisponibles parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categorias = String.join(", ", categoriasDisponibles);
         String prompt = cargarPrompt("prompt_clasificacion_servicio.md", categorias,
@@ -95,6 +127,15 @@ public class GeminiIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param categoria parametro requerido para la correcta ejecucion del procedimiento
+     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
+     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         String prompt = cargarPrompt("prompt_sugerencia_briefing.md", sanitizarParaPrompt(categoria),
                 sanitizarParaPrompt(titulo), sanitizarParaPrompt(descripcion));
@@ -111,6 +152,14 @@ public class GeminiIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param textoResena parametro requerido para la correcta ejecucion del procedimiento
+     * @param estrellas parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaResenaResponse analizarResena(String textoResena, int estrellas) {
         String prompt = cargarPrompt("prompt_analisis_resena.md", estrellas, sanitizarParaPrompt(textoResena));
         try {

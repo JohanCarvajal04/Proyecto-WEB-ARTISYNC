@@ -91,6 +91,13 @@ public class AuthServiceImpl implements AuthService {
             entidad = "usuarios", idEntidad = "#resultado.idUsuario",
             correoActor = "#request.correo",
             detalle = "{rol: #request.rol}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse register(RegisterRequest request) {
         String rolNombre = request.getRol() != null && !request.getRol().isBlank()
                 ? request.getRol().toUpperCase() : "CLIENTE";
@@ -131,6 +138,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Auditable(accion = "AUTENTICACION_LOGIN", modulo = ModuloAuditoria.SEGURIDAD,
             correoActor = "#request.correo")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public TokenResponse login(LoginRequest request) {
         String ip = obtenerIpActual();
 
@@ -214,6 +228,14 @@ public class AuthServiceImpl implements AuthService {
     // correoActor; el evento queda con actor "anonimo", que es correcto: en
     // este punto el usuario aún no tiene una sesión completa.
     @Auditable(accion = "AUTENTICACION_2FA_VERIFICAR", modulo = ModuloAuditoria.SEGURIDAD)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param preAuthTicket parametro requerido para la correcta ejecucion del procedimiento
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
         // ticket emitido por login() tras validar la contraseña — ya no desde
@@ -276,6 +298,13 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param refreshToken parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token no proporcionado");
@@ -345,6 +374,14 @@ public class AuthServiceImpl implements AuthService {
     // tokenHeader y refreshToken son secretos: nunca en detalle. No hace falta
     // correoActor explícito, hay SecurityContext porque se llama autenticado.
     @Auditable(accion = "AUTENTICACION_LOGOUT", modulo = ModuloAuditoria.SEGURIDAD)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param tokenHeader parametro requerido para la correcta ejecucion del procedimiento
+     * @param refreshToken parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
@@ -367,6 +404,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Auditable(accion = "CONTRASENA_SOLICITAR_RESET", modulo = ModuloAuditoria.SEGURIDAD,
             correoActor = "#request.correo")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
         // llamada implica el mismo costo de abuso (correo potencialmente enviado)
@@ -399,6 +443,13 @@ public class AuthServiceImpl implements AuthService {
     // completo en detalle. El usuario se resuelve dentro por el token, no hay
     // correo disponible como parámetro.
     @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = ModuloAuditoria.SEGURIDAD)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
         // REQ-F-005: sp_restablecer_contrasena valida (con FOR UPDATE) que el
         // token exista, no este usado y no haya expirado, y actualiza usuarios +

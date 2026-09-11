@@ -40,6 +40,12 @@ public class GeneradorPdf implements GeneradorReporte {
     private final IPdfGeneracionServicio pdfGeneracionServicio;
 
     @Override
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public FormatoReporte formato() {
         return FormatoReporte.PDF;
     }
@@ -100,10 +106,27 @@ public class GeneradorPdf implements GeneradorReporte {
     }
 
     /** Vista de {@link TotalReporte} con el valor ya formateado a texto para la plantilla. */
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param etiqueta parametro requerido para la correcta ejecucion del procedimiento
+     * @param valorTexto parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public record TotalConTexto(String etiqueta, String valorTexto) {
     }
 
     /** Vista de gráfica estadística convertida a Data URI para incrustación directa en HTML/PDF. */
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
+     * @param subtitulo parametro requerido para la correcta ejecucion del procedimiento
+     * @param dataUri parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public record GraficaConDataUri(String titulo, String subtitulo, String dataUri) {
     }
 }

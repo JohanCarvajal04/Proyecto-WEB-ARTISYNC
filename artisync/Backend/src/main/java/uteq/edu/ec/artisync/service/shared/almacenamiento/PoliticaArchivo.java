@@ -50,6 +50,12 @@ public record PoliticaArchivo(Set<String> tiposPermitidos, long maxBytes, String
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void validar(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new ExcepcionReglaNegocio("El archivo está vacío.");

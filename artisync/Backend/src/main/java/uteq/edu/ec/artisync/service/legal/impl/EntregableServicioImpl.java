@@ -50,6 +50,13 @@ public class EntregableServicioImpl implements IEntregableServicio {
     @Value("${plataforma.comision-tasa:0.10}")
     private BigDecimal tasaComision;
 
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * @param idPedido identificador del pedido
+     * @param idCreador identificador del creador
+     * @param peticion datos de la peticion
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     @Override
     @Transactional
     public RespuestaEntregable subirEntregable(Long idPedido, Long idCreador,
@@ -108,6 +115,14 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEntregable obtenerEntregable(Long idPedido, Long idUsuario) {
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));
@@ -128,6 +143,13 @@ public class EntregableServicioImpl implements IEntregableServicio {
     // entregable ya liberado).
     @Auditable(accion = "FONDOS_LIBERAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idCliente identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void aprobarEntrega(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -194,6 +216,14 @@ public class EntregableServicioImpl implements IEntregableServicio {
     @Transactional(readOnly = true)
     @Auditable(accion = "ENTREGABLE_DESCARGAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido")
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idCliente identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public ArchivoDescargado descargarVersionLimpia(Long idPedido, Long idCliente) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -223,6 +253,14 @@ public class EntregableServicioImpl implements IEntregableServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public ArchivoDescargado descargarVersionMarcaAgua(Long idPedido, Long idUsuario) {
         EntregableFinal entregable = entregableRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No hay entregable para este pedido"));

@@ -62,6 +62,13 @@ public class IntentosAutenticacionService {
     }
 
     /** Limpia el contador de (ambito, identificador) — se llama tras un éxito. */
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param ambito parametro requerido para la correcta ejecucion del procedimiento
+     * @param identificador identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void limpiar(String ambito, String identificador) {
         try {
             redisTemplate.delete(construirClave(ambito, identificador));

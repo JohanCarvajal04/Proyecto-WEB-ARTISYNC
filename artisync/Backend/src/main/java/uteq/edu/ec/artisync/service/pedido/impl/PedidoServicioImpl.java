@@ -76,6 +76,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
     @Auditable(accion = "PEDIDO_CREAR", modulo = ModuloAuditoria.PEDIDOS,
             entidad = "pedidos", idEntidad = "#resultado.idPedido",
             detalle = "{idServicio: #peticion.idServicio}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idCliente identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPedido crearPedido(Long idCliente, PeticionCrearPedido peticion) {
         Usuario cliente = usuarioRepository.findById(idCliente)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario cliente no encontrado"));
@@ -154,6 +162,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
     @Transactional
     @Auditable(accion = "PEDIDO_PROPONER_TERMINOS", modulo = ModuloAuditoria.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPropuestaTerminos proponerTerminos(Long idPedido, Long idUsuario, PeticionCrearPropuestaTerminos peticion) {
         if (peticion.getPrecioPropuesto() == null && peticion.getFechaEntregaPropuesta() == null) {
             throw new ExcepcionReglaNegocio("Debes indicar al menos un término a proponer");
@@ -194,6 +211,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
     @Transactional
     @Auditable(accion = "PEDIDO_ACEPTAR_PROPUESTA_TERMINOS", modulo = ModuloAuditoria.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idPropuesta identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPedido aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -241,6 +267,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idPropuesta identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPropuestaTerminos rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -265,6 +300,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idPropuesta identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPropuestaTerminos cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         PropuestaTerminosPedido propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
 
@@ -283,6 +327,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPropuestaTerminos obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -457,6 +509,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPedido obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
@@ -467,6 +527,13 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idCliente identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPedidoResumido> listarMisPedidos(Long idCliente) {
         return pedidoRepository.findByUsuarioClienteIdUsuario(idCliente)
                 .stream()
@@ -476,6 +543,13 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPedidoResumido> listarMisComisiones(Long idCreador) {
         return pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idCreador)
                 .stream()
@@ -485,11 +559,27 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param idCliente identificador unico que referencia de manera univoca al registro
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public DocumentoGenerado exportarMisPedidos(Long idCliente, FormatoReporte formato, String correoSolicitante) {
         return exportarResumen(listarMisPedidos(idCliente), "Mis pedidos", "Pedidos como cliente",
                 formato, correoSolicitante);
     }
 
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     * @param idCreador id del creador
+     * @param idsPedido lista de ids de pedidos
+     * @param formato formato de reporte
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     @Override
     @Transactional(readOnly = true)
     public DocumentoGenerado exportarMisComisiones(Long idCreador, List<Long> idsPedido, FormatoReporte formato,
@@ -543,6 +633,15 @@ public class PedidoServicioImpl implements IPedidoServicio {
     @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = ModuloAuditoria.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{observacion: #peticion.observacion}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPedido avanzarEtapa(Long idPedido, Long idCreador, PeticionAvanzarEtapa peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -610,6 +709,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaHistorialEstado> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
@@ -624,6 +731,14 @@ public class PedidoServicioImpl implements IPedidoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSeguimientoPedido obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));

@@ -28,6 +28,14 @@ public final class ActorAutenticado {
     private ActorAutenticado() {
     }
 
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param correo direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public record Actor(Long id, String correo) {
     }
 

@@ -63,6 +63,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Auditable(accion = "SERVICIO_CREAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "servicios", idEntidad = "#resultado.idServicio",
             detalle = "{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaServicio crearServicio(Long idPerfilCreador, PeticionCrearServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -105,6 +113,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio",
             detalle = "{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaServicio actualizarServicio(Long idServicio, PeticionActualizarServicio peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new ExcepcionReglaNegocio("El precio debe ser de al menos 0.01 USD");
@@ -172,6 +188,13 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaServicio obtenerServicioPorId(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
@@ -183,6 +206,12 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarServicio(Long idServicio) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
@@ -199,6 +228,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_QUITAR_SUBCATEGORIA", modulo = ModuloAuditoria.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio", detalle = "{idSubcategoria: #idSubcategoria}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @param idSubcategoria identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaServicio quitarSubcategoria(Long idServicio, Long idSubcategoria) {
         if (!servicioRepository.existsById(idServicio)) {
             throw new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio);
@@ -212,6 +249,15 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param textoBusqueda parametro requerido para la correcta ejecucion del procedimiento
+     * @param page parametro requerido para la correcta ejecucion del procedimiento
+     * @param size parametro requerido para la correcta ejecucion del procedimiento
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaServicioResumido> listarParaModeracion(String textoBusqueda, int page, int size) {
         Specification<Servicio> spec = ServicioSpecification.conFiltros(
                 null, null, null, null, null, textoBusqueda, null);
@@ -220,6 +266,13 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     }
 
     @Override
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo) {
         uteq.edu.ec.artisync.service.shared.almacenamiento.PoliticaArchivo.PERFIL.validar(archivo);
         String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.PrefijoAlmacenamiento.SERVICIOS);
@@ -228,6 +281,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @param estadoPublicacion parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaServicioResumido> listarServiciosPorCreador(Long idPerfilCreador, String estadoPublicacion) {
         if (!perfilRepository.existsById(idPerfilCreador)) {
             throw new ExcepcionRecursoNoEncontrado("Perfil creador no encontrado con ID: " + idPerfilCreador);
@@ -246,6 +307,16 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "catalogo")
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     * @param keyword palabra clave para la busqueda
+     * @param categorias lista de categorias a filtrar
+     * @param modalidades lista de modalidades a filtrar
+     * @param precioMin precio minimo
+     * @param precioMax precio maximo
+     * @param pageable configuracion de paginacion
+     * @return una estructura de datos paginada con la porcion de resultados solicitada
+     */
     public Page<RespuestaServicioResumido> buscarCatalogoServicios(
             Long categoriaId,
             Long subcategoriaId,
@@ -309,6 +380,13 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaAtributo> listarAtributosPorServicio(Long idServicio) {
         if (!servicioRepository.existsById(idServicio)) {
             throw new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio);
@@ -321,6 +399,14 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaAtributo agregarAtributo(Long idServicio, PeticionCrearAtributo peticion) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
@@ -357,6 +443,15 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @param idServicioAtributo identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaAtributo actualizarAtributo(Long idServicio, Long idServicioAtributo, PeticionActualizarAtributo peticion) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));
@@ -378,6 +473,13 @@ public class ServicioCatalogoServicioImpl implements IServicioCatalogoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idServicio identificador unico que referencia de manera univoca al registro
+     * @param idServicioAtributo identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarAtributo(Long idServicio, Long idServicioAtributo) {
         Servicio servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Servicio no encontrado con ID: " + idServicio));

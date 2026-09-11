@@ -76,6 +76,13 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     // Nunca el secreto TOTP ni los códigos de respaldo en el detalle: solo el
     // hecho de que se inició la configuración.
     @Auditable(accion = "SEGURIDAD_2FA_CONFIGURAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param correo direccion de correo electronico del actor o usuario principal
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public TwoFactorSetupResponse setup2Fa(String correo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -122,6 +129,14 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Override
     @Transactional
     @Auditable(accion = "SEGURIDAD_2FA_ACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param correo direccion de correo electronico del actor o usuario principal
+     * @param codigo parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje confirm2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -145,6 +160,14 @@ public class TwoFactorServiceImpl implements TwoFactorService {
     @Override
     @Transactional
     @Auditable(accion = "SEGURIDAD_2FA_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD, correoActor = "#correo")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param correo direccion de correo electronico del actor o usuario principal
+     * @param codigo parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje disable2Fa(String correo, String codigo) {
         Usuario usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -173,6 +196,14 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     @Override
     @Transactional
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param correo direccion de correo electronico del actor o usuario principal
+     * @param codigoIngresado parametro requerido para la correcta ejecucion del procedimiento
+     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public boolean validarCodigoOBackup(String correo, String codigoIngresado) {
         if (codigoIngresado == null || codigoIngresado.isBlank()) {
             return false;

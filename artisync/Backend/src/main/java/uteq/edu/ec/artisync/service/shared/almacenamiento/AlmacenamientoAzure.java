@@ -82,11 +82,26 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
     }
 
     @Override
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String guardar(MultipartFile archivo) {
         return guardar(archivo, "");
     }
 
     @Override
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @param prefijo parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String guardar(MultipartFile archivo, String prefijo) {
         asegurarContenedor();
         String nombreBlob = PrefijoAlmacenamiento.componer(
@@ -122,6 +137,12 @@ public class AlmacenamientoAzure implements AlmacenamientoDocumentos {
     }
 
     @Override
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param referencia parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminar(String referencia) {
         validarReferencia(referencia);
         asegurarContenedor();

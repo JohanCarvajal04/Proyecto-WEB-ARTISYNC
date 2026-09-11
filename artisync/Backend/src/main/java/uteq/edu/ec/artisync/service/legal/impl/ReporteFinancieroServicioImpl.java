@@ -63,6 +63,13 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaReporteComisiones obtenerReporteComisiones(FiltroReporteFinanciero filtro) {
         return parsear(consultar(filtro));
     }
@@ -71,6 +78,17 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
     @Transactional(readOnly = true)
     @Auditable(accion = "REPORTE_FINANCIERO_EXPORTAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "perfiles_creadores", idEntidad = "#filtro.idPerfil", detalle = "{formato: #formato, page: #page, size: #size}")
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param page parametro requerido para la correcta ejecucion del procedimiento
+     * @param size parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
         RespuestaReporteComisiones reporte = parsear(consultar(filtro));
         List<DetalleComision> filas;
@@ -122,6 +140,15 @@ public class ReporteFinancieroServicioImpl implements IReporteFinancieroServicio
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public DocumentoGenerado exportar(FiltroReporteFinanciero filtro, FormatoReporte formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }

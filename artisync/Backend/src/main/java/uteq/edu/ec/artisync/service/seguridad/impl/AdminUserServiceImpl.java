@@ -77,6 +77,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     // consultas por fila) elemento a elemento. El Pageable/Sort de la peticion
     // se conserva intacto -- se sigue resolviendo con findAll(pageable), no se
     // reemplaza por una rutina con orden fijo.
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public PagedResponse<UserResponse> getAllUsers(FiltroUsuario filtro, Pageable pageable) {
         Specification<Usuario> spec = UsuarioSpecification.conFiltros(
                 filtro.getBusqueda(), filtro.getRol(), filtro.getEstadoCuenta());
@@ -86,6 +94,13 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse getUserById(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + id));
@@ -103,6 +118,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     // era atomica respecto al save() (lectura fantasma, A3), y compone con
     // fn_sincronizar_roles_usuario (Fase 1) para los roles y el perfil de
     // creador en la misma transaccion.
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse createUser(CreateUserRequest request) {
         List<String> rolesAsignar = (request.getRoles() != null && !request.getRoles().isEmpty())
                 ? request.getRoles() : List.of("CLIENTE");
@@ -134,6 +156,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_EDITAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{estadoCuenta: #request.estadoCuenta, roles: #request.roles}")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse updateUser(Long id, AdminUpdateUserRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -210,6 +240,15 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_CAMBIAR_ESTADO", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{estadoCuenta: #request.estadoCuenta}")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @param idAdminActual identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual) {
         if (id.equals(idAdminActual) && !request.getEstadoCuenta()) {
             throw new ExcepcionReglaNegocio("No puedes desactivar tu propia cuenta.");
@@ -241,6 +280,15 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_ASIGNAR_ROLES", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{roles: #request.roles}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @param idAdminActual identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual) {
         if (id.equals(idAdminActual)) {
             throw new ExcepcionReglaNegocio("No puedes cambiar tus propios roles. Pide a otro administrador que lo haga.");
@@ -267,6 +315,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     // describa lo que realmente ocurre en la base de datos.
     @Auditable(accion = "USUARIO_DESACTIVAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @param idAdminActual identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void deleteUser(Long id, Long idAdminActual) {
         if (id.equals(idAdminActual)) {
             throw new ExcepcionReglaNegocio("No puedes eliminar tu propia cuenta.");
@@ -285,10 +340,34 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional(readOnly = true)
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = ModuloAuditoria.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato}")
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato, String correoSolicitante) {
         return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.TipoGraficaReporte.AMBAS, null, null, correoSolicitante);
     }
 
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     * @param filtro filtro de busqueda
+     * @param formato formato de reporte
+     * @param correoAdmin correo del admin
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     * @param filtro filtro de busqueda
+     * @param formato formato de reporte
+     * @param orderSorts ordenamiento
+     * @param correoAdmin correo del admin
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     @Override
     @Transactional(readOnly = true)
     public DocumentoGenerado exportar(FiltroUsuario filtro, FormatoReporte formato,
@@ -424,6 +503,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Auditable(accion = "SESION_REVOCAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param id identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje revokeUserSessions(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + id);

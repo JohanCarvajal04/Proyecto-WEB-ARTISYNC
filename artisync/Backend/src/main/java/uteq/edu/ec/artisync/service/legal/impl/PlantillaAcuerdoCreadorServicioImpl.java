@@ -31,6 +31,14 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
 
     @Override
     @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPlantillaContrato crear(Long idUsuarioCreador, PeticionCrearPlantillaAcuerdoPropia peticion) {
         PlantillaContrato plantilla = PlantillaContrato.builder()
                 .nombrePlantilla(peticion.getNombrePlantilla().trim())
@@ -53,6 +61,15 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPlantillaContrato editar(Long idUsuarioCreador, Long idPlantilla, PeticionActualizarPlantillaAcuerdoPropia peticion) {
         PlantillaContrato plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);
 
@@ -67,6 +84,13 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPlantillaContrato> listarPropias(Long idUsuarioCreador) {
         return plantillaContratoRepository.findByIdCreadorOrderByNombrePlantillaAsc(idUsuarioCreador).stream()
                 .map(this::mapToRespuesta)
@@ -75,6 +99,14 @@ public class PlantillaAcuerdoCreadorServicioImpl implements IPlantillaAcuerdoCre
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje desactivar(Long idUsuarioCreador, Long idPlantilla) {
         PlantillaContrato plantilla = obtenerPropiaOFallar(idUsuarioCreador, idPlantilla);
         plantilla.setActiva(false);

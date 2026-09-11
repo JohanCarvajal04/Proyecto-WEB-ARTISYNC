@@ -41,6 +41,12 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RolResponse> getAllRoles() {
         return rolRepository.findAll().stream()
                 .map(r -> RolResponse.builder()
@@ -54,6 +60,12 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<PermisoResponse> getAllPermisos() {
         return permisoRepository.findAll().stream()
                 .map(p -> PermisoResponse.builder()
@@ -66,6 +78,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param roleName parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<String> getPermissionsByRole(String roleName) {
         Rol rol = rolRepository.findByNombreRol(roleName.toUpperCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado: " + roleName));
@@ -85,6 +104,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     // no solo como "se llamó a syncPermissions".
     @Auditable(accion = "ROL_SINCRONIZAR_PERMISOS", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "roles", detalle = "{rol: #roleName, despues: #permissionCodes}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param roleName parametro requerido para la correcta ejecucion del procedimiento
+     * @param permissionCodes parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void syncPermissions(String roleName, List<String> permissionCodes) {
         // REQ-F-003: fn_sincronizar_permisos_rol reemplaza atomicamente el set
         // completo de rol_permisos (DELETE+INSERT) en el motor, en vez de que
@@ -161,6 +187,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     // la comprobacion findByNombreRol previa a esta version, que no era
     // atomica respecto al save() (lectura fantasma, A8), y compone con
     // fn_sincronizar_permisos_rol (REQ-F-003) para los permisos iniciales.
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RolResponse createRole(CreateRoleRequest request) {
         String nombreRolUpper = request.getNombreRol().trim().toUpperCase();
         String[] codigos = request.getPermisosIniciales() != null
@@ -191,6 +224,14 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Auditable(accion = "ROL_ACTUALIZAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "roles", idEntidad = "#idRol",
             detalle = "{descripcionRol: #request.descripcionRol}")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idRol identificador unico que referencia de manera univoca al registro
+     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RolResponse updateRole(Long idRol, UpdateRoleRequest request) {
         Rol rol = rolRepository.findById(idRol)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado con ID: " + idRol));
@@ -214,6 +255,12 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     @Transactional
     @Auditable(accion = "ROL_ELIMINAR", modulo = ModuloAuditoria.SEGURIDAD,
             entidad = "roles", idEntidad = "#idRol")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idRol identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void deleteRole(Long idRol) {
         // REQ-F-004: fn_eliminar_rol valida (en la misma transaccion que el
         // DELETE) que el rol no sea uno de los roles base protegidos y que no

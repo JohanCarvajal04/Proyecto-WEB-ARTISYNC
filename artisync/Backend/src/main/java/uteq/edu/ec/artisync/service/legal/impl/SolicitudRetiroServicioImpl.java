@@ -69,6 +69,13 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSaldoCreador obtenerSaldo(Long idUsuarioCreador) {
         boolean tieneCorreo = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador).isPresent();
         boolean tienePendiente = solicitudRetiroRepository
@@ -94,6 +101,14 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     @Auditable(accion = "RETIRO_SOLICITAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#resultado.idSolicitud",
             detalle = "{monto: #peticion.montoSolicitado}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSolicitudRetiro solicitar(Long idUsuarioCreador, PeticionSolicitudRetiro peticion) {
         DatosPagoCreador datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)
                 .orElseThrow(() -> new ExcepcionReglaNegocio(
@@ -142,6 +157,13 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSolicitudRetiro> misSolicitudes(Long idUsuarioCreador) {
         return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)
                 .stream()
@@ -151,6 +173,14 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaSolicitudRetiro> listarCola(FiltroSolicitudRetiro filtro, Pageable pageable) {
         var spec = SolicitudRetiroSpecification.conFiltros(
                 filtro.getEstado(), filtro.getIdUsuarioCreador(), filtro.getDesde(), filtro.getHasta());
@@ -162,6 +192,14 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     @Transactional
     @Auditable(accion = "RETIRO_APROBAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idSolicitud identificador unico que referencia de manera univoca al registro
+     * @param idAdmin identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSolicitudRetiro aprobar(Long idSolicitud, Long idAdmin) {
         SolicitudRetiro solicitud = obtenerConEstado(idSolicitud, ESTADO_PENDIENTE);
         Usuario admin = obtenerAdmin(idAdmin);
@@ -180,6 +218,15 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     @Transactional
     @Auditable(accion = "RETIRO_RECHAZAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud", detalle = "{nota: #notaAdmin}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idSolicitud identificador unico que referencia de manera univoca al registro
+     * @param idAdmin identificador unico que referencia de manera univoca al registro
+     * @param notaAdmin parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSolicitudRetiro rechazar(Long idSolicitud, Long idAdmin, String notaAdmin) {
         if (notaAdmin == null || notaAdmin.isBlank()) {
             throw new ExcepcionReglaNegocio("Debes indicar un motivo para rechazar la solicitud");
@@ -202,6 +249,14 @@ public class SolicitudRetiroServicioImpl implements ISolicitudRetiroServicio {
     @Transactional
     @Auditable(accion = "RETIRO_REINTENTAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idSolicitud identificador unico que referencia de manera univoca al registro
+     * @param idAdmin identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSolicitudRetiro reintentar(Long idSolicitud, Long idAdmin) {
         SolicitudRetiro solicitud = obtenerConEstado(idSolicitud, ESTADO_FALLIDO);
         Usuario admin = obtenerAdmin(idAdmin);

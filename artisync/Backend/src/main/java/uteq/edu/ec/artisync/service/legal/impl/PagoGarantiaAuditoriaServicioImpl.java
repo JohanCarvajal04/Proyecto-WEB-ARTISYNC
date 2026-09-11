@@ -30,6 +30,14 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaPagoGarantia> listar(FiltroPagoGarantia filtro, Pageable pageable) {
         var spec = PagoGarantiaSpecification.conFiltros(
                 filtro.getEstadoFondos(), filtro.getIdPerfilCreador(), filtro.getIdUsuarioCliente(),
@@ -40,6 +48,13 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPago identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPagoGarantiaDetalle obtenerDetalle(Long idPago) {
         PagoGarantia pago = pagoGarantiaRepository.findById(idPago)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pago de garantía no encontrado: " + idPago));
@@ -78,6 +93,12 @@ public class PagoGarantiaAuditoriaServicioImpl implements IPagoGarantiaAuditoria
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaResumenEscrow> obtenerResumen() {
         return pagoGarantiaRepository.resumenPorEstado();
     }

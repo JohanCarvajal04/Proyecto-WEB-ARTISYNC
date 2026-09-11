@@ -38,6 +38,14 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaFlujoTrabajo crearFlujoTrabajo(Long idUsuario, PeticionCrearFlujoTrabajo peticion) {
         if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario(peticion.getNombreFlujo(), idUsuario)) {
             throw new ExcepcionRecursoDuplicado("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
@@ -79,6 +87,14 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaFlujoTrabajo> listarFlujosTrabajo(Long idUsuario, boolean puedeVerTodos) {
         List<FlujoTrabajo> flujos = puedeVerTodos
                 ? flujoTrabajoRepository.findAllByOrderByIdFlujoAsc()
@@ -90,12 +106,31 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaFlujoTrabajo obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
         return mapToRespuesta(buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos));
     }
 
     @Override
     @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaFlujoTrabajo actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionCrearFlujoTrabajo peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -116,6 +151,16 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaFlujoTrabajo agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionEtapaConfig peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -146,6 +191,17 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaFlujoTrabajo actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, PeticionEtapaConfig peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -179,6 +235,16 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaFlujoTrabajo intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, PeticionSwapEtapas peticion) {
         FlujoTrabajo flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -207,6 +273,15 @@ public class FlujoTrabajoServicioImpl implements IFlujoTrabajoServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idFlujo identificador unico que referencia de manera univoca al registro
+     * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos) {
         FlujoEtapaConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Configuracion de etapa no encontrada"));

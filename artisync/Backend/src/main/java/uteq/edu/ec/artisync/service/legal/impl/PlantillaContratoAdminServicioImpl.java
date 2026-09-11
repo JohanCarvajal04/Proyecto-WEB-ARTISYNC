@@ -27,6 +27,13 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
 
     @Override
     @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPlantillaContrato crear(PeticionCrearPlantillaContrato peticion) {
         if (plantillaContratoRepository.findByVersionLegal(peticion.getVersionLegal()).isPresent()) {
             throw new ExcepcionReglaNegocio("Ya existe una plantilla con la version legal '" + peticion.getVersionLegal() + "'");
@@ -51,6 +58,14 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPlantillaContrato editar(Long idPlantilla, PeticionActualizarPlantillaContrato peticion) {
         PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantilla)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla de contrato no encontrada: " + idPlantilla));
@@ -76,6 +91,12 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPlantillaContrato> listarTodas() {
         return plantillaContratoRepository.findAll().stream()
                 .map(this::mapToRespuesta)
@@ -84,6 +105,13 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje desactivar(Long idPlantilla) {
         PlantillaContrato plantilla = plantillaContratoRepository.findById(idPlantilla)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Plantilla de contrato no encontrada: " + idPlantilla));
@@ -101,6 +129,12 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPlantillaContratoResumen> listarActivas() {
         return plantillaContratoRepository.findByActivaTrueOrderByNombrePlantillaAsc().stream()
                 .map(p -> RespuestaPlantillaContratoResumen.builder()
@@ -113,6 +147,13 @@ public class PlantillaContratoAdminServicioImpl implements IPlantillaContratoAdm
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaPlantillaContratoResumen> listarActivasVisiblesPara(Long idUsuarioCreador) {
         return plantillaContratoRepository.findActivasVisiblesParaCreador(idUsuarioCreador).stream()
                 .map(p -> RespuestaPlantillaContratoResumen.builder()

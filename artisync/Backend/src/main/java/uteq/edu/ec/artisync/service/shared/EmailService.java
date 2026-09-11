@@ -38,6 +38,14 @@ public class EmailService {
     private String frontendUrl;
 
     @Async
+    /**
+     * Despacha un mensaje o notificacion a los destinatarios especificados.
+     *
+     * @param destinatario parametro requerido para la correcta ejecucion del procedimiento
+     * @param nombres parametro requerido para la correcta ejecucion del procedimiento
+     * @param tokenPlano parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void enviarCorreoRecuperacion(String destinatario, String nombres, String tokenPlano) {
         try {
             MimeMessage mensaje = mailSender.createMimeMessage();

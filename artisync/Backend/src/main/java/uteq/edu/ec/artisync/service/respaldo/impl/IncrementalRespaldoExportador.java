@@ -48,6 +48,13 @@ public class IncrementalRespaldoExportador {
     private final RespaldoArchivoStorage storage;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param respaldo parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Path ejecutar(Respaldo respaldo) throws IOException, SQLException {
         String nombreArchivo = "respaldo_incremental_" + LocalDateTime.now().format(MARCA_TIEMPO) + ".zip";
         Path destino = storage.resolverRutaDestino(nombreArchivo);
@@ -104,21 +111,45 @@ public class IncrementalRespaldoExportador {
         }
 
         @Override
+        /**
+         * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+         *
+         * @param b parametro requerido para la correcta ejecucion del procedimiento
+         * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         */
         public void write(int b) throws IOException {
             delegado.write(b);
         }
 
         @Override
+        /**
+         * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+         *
+         * @param b parametro requerido para la correcta ejecucion del procedimiento
+         * @param off parametro requerido para la correcta ejecucion del procedimiento
+         * @param len parametro requerido para la correcta ejecucion del procedimiento
+         * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         */
         public void write(byte[] b, int off, int len) throws IOException {
             delegado.write(b, off, len);
         }
 
         @Override
+        /**
+         * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+         *
+         * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         */
         public void flush() throws IOException {
             delegado.flush();
         }
 
         @Override
+        /**
+         * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+         *
+         * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+         */
         public void close() {
             // A propósito no cierra: el ZipOutputStream sigue abierto para la
             // siguiente entrada/tabla.

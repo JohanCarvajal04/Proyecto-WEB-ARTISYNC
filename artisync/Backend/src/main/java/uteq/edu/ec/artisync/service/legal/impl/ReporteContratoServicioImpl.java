@@ -44,6 +44,15 @@ public class ReporteContratoServicioImpl implements IReporteContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param page parametro requerido para la correcta ejecucion del procedimiento
+     * @param size parametro requerido para la correcta ejecucion del procedimiento
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public PagedResponse<FilaReporteContrato> listar(FiltroReporteContrato filtro, int page, int size) {
         Page<FilaReporteContrato> resultado = contratoRepository.buscarParaReporte(
                 filtro.getDesde(), filtro.getHasta(), filtro.getIdPerfilCreador(), filtro.getSoloFirmados(),
@@ -55,6 +64,17 @@ public class ReporteContratoServicioImpl implements IReporteContratoServicio {
     @Transactional(readOnly = true)
     @Auditable(accion = "REPORTE_CONTRATO_EXPORTAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "contratos", detalle = "{formato: #formato, page: #page, size: #size}")
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param page parametro requerido para la correcta ejecucion del procedimiento
+     * @param size parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, Integer page, Integer size, String correoSolicitante) {
         Page<FilaReporteContrato> pagina;
         String titulo = "Contratos";
@@ -110,6 +130,15 @@ public class ReporteContratoServicioImpl implements IReporteContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param formato parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public DocumentoGenerado exportar(FiltroReporteContrato filtro, FormatoReporte formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }

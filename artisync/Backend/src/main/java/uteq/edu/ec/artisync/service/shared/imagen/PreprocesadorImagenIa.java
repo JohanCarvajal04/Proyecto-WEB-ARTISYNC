@@ -43,6 +43,12 @@ public class PreprocesadorImagenIa {
     private static final int MAX_INTENTOS = 6;
 
     /** Validación barata al subir: solo revisa el tipo declarado por el cliente. */
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void validarFormato(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new ExcepcionReglaNegocio("El documento está vacío.");

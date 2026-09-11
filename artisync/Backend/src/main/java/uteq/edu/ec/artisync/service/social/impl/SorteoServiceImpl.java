@@ -61,6 +61,14 @@ public class SorteoServiceImpl implements SorteoService {
     @Auditable(accion = "SORTEO_CREAR", modulo = ModuloAuditoria.SOCIAL,
             entidad = "sorteos", idEntidad = "#resultado.idSorteo",
             detalle = "{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion) {
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
@@ -112,6 +120,14 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSorteo obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
         long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();
@@ -140,6 +156,15 @@ public class SorteoServiceImpl implements SorteoService {
     @Transactional
     @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = ModuloAuditoria.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion) {
         Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
         boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);
@@ -191,6 +216,14 @@ public class SorteoServiceImpl implements SorteoService {
     @Transactional
     @Auditable(accion = "SORTEO_ELIMINAR", modulo = ModuloAuditoria.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
@@ -204,6 +237,14 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSorteo> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
         return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)
                 .stream()
@@ -219,6 +260,13 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSorteo> listarSorteosActivos(Long idUsuarioActual) {
         return sorteoRepository.findByEstadoSorteo("Activo")
                 .stream()
@@ -238,6 +286,14 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaParticipante participar(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
 
@@ -283,6 +339,14 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
@@ -301,6 +365,13 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaParticipante> listarParticipantes(Long idSorteo) {
         findSorteoOrThrow(idSorteo); // Valida que existe
         return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)
@@ -309,6 +380,13 @@ public class SorteoServiceImpl implements SorteoService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idSorteo identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaGanador> listarGanadores(Long idSorteo) {
         Sorteo sorteo = findSorteoOrThrow(idSorteo);
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {

@@ -23,6 +23,13 @@ public class DatosPagoServicioImpl implements IDatosPagoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaDatosPago obtenerMisDatosPago(Long idUsuario) {
         return datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .map(this::mapear)
@@ -33,6 +40,14 @@ public class DatosPagoServicioImpl implements IDatosPagoServicio {
     @Transactional
     @Auditable(accion = "RETIRO_DATOS_PAGO_ACTUALIZAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "datos_pago_creador", idEntidad = "#idUsuario")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaDatosPago actualizarCorreoPaypal(Long idUsuario, PeticionDatosPago peticion) {
         DatosPagoCreador datos = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseGet(() -> {

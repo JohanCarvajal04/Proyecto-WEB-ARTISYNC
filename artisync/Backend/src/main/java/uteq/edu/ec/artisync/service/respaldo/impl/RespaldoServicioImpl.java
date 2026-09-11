@@ -47,6 +47,14 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
             entidad = "respaldos", idEntidad = "#resultado.idRespaldo",
             detalle = "{tipoRespaldo: #tipo}")
     @Override
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param tipo parametro requerido para la correcta ejecucion del procedimiento
+     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaRespaldo solicitarRespaldo(TipoRespaldo tipo, String correoSolicitante) {
         if (respaldoRepository.existsByEstadoRespaldo(EstadoRespaldo.EN_PROGRESO)) {
             throw new ExcepcionReglaNegocio("Ya hay un respaldo en progreso. Espere a que termine antes de iniciar otro.");
@@ -57,6 +65,14 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public PagedResponse<RespuestaRespaldo> listar(FiltroRespaldo filtro, Pageable pageable) {
         Page<Respaldo> pagina = respaldoRepository.findAll(RespaldoSpecification.conFiltro(filtro), pageable);
         return PagedResponseBuilder.buildAndMap(pagina, this::aRespuesta);
@@ -64,12 +80,26 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idRespaldo identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaRespaldo obtenerPorId(Long idRespaldo) {
         return aRespuesta(obtenerOFallar(idRespaldo));
     }
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param idRespaldo identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public ArchivoRespaldo descargar(Long idRespaldo) {
         Respaldo respaldo = obtenerOFallar(idRespaldo);
         if (respaldo.getRutaArchivo() == null) {
@@ -90,6 +120,12 @@ public class RespaldoServicioImpl implements IRespaldoServicio {
             entidad = "respaldos", idEntidad = "#idRespaldo")
     @Override
     @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idRespaldo identificador unico que referencia de manera univoca al registro
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminar(Long idRespaldo) {
         Respaldo respaldo = obtenerOFallar(idRespaldo);
         if (respaldo.getEstadoRespaldo() == EstadoRespaldo.EN_PROGRESO) {

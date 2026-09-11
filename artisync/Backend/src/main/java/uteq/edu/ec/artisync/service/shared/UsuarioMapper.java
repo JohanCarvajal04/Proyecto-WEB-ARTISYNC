@@ -28,6 +28,13 @@ public class UsuarioMapper {
     private final IVerificacionServicio verificacionServicio;
 
     /** Mapeo de una sola fila (getUserById, tras crear/editar un usuario): una consulta por usuario es aceptable aquí. */
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param usuario parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public UserResponse toUserResponse(Usuario usuario) {
         List<UsuarioRol> usuarioRoles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());
         boolean dosFactoresHabilitado = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())

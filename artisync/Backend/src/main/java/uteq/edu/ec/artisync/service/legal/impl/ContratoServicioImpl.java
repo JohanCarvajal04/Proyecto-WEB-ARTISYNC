@@ -55,6 +55,14 @@ public class ContratoServicioImpl implements IContratoServicio {
     @Transactional
     @Auditable(accion = "CONTRATO_GENERAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "contratos", idEntidad = "#resultado.idContrato")
+    /**
+     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaContrato generarContrato(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado"));
@@ -95,6 +103,14 @@ public class ContratoServicioImpl implements IContratoServicio {
     @Transactional
     @Auditable(accion = "CONTRATO_FIRMAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "contratos", idEntidad = "#idContrato")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idContrato identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaContrato firmarContrato(Long idContrato, Long idUsuario) {
         Contrato contrato = contratoRepository.findByIdParaFirmar(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
@@ -135,6 +151,13 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param idContrato identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaVerificacionIntegridad verificarIntegridadHash(Long idContrato) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
@@ -164,6 +187,14 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idContrato identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaContrato obtenerContrato(Long idContrato, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
@@ -174,6 +205,14 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaContrato obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido con ID: " + idPedido));
@@ -184,6 +223,14 @@ public class ContratoServicioImpl implements IContratoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idContrato identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoFirma obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante) {
         Contrato contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));

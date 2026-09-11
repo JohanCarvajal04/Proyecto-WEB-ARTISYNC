@@ -111,6 +111,14 @@ public class PrivacidadServiceImpl implements PrivacidadService {
     @Auditable(accion = ACCION_ANONIMIZAR, modulo = ModuloAuditoria.SEGURIDAD,
             entidad = ENTIDAD_USUARIOS, idEntidad = "#idUsuario",
             detalle = "{origen: 'AUTOSERVICIO'}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param codigo parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje solicitarSupresionPropia(Long idUsuario, String codigo) {
         Usuario usuario = usuarioRepository.findByIdParaAnonimizar(idUsuario)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -163,6 +171,14 @@ public class PrivacidadServiceImpl implements PrivacidadService {
     @Auditable(accion = ACCION_ANONIMIZAR, modulo = ModuloAuditoria.SEGURIDAD,
             entidad = ENTIDAD_USUARIOS, idEntidad = "#idUsuario",
             detalle = "{origen: 'ADMIN', idAdminActual: #idAdminActual}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param idAdminActual identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje anonimizarUsuarioAdmin(Long idUsuario, Long idAdminActual) {
         if (idUsuario.equals(idAdminActual)) {
             throw new ExcepcionReglaNegocio("No puedes suprimir tus propios datos desde el panel administrativo; usa la opción de autoservicio.");

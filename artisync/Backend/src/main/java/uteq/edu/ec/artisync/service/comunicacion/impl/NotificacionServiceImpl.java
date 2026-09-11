@@ -27,6 +27,14 @@ public class NotificacionServiceImpl implements NotificacionService {
 
     @Override
     @Transactional
+    /**
+     * Despacha un mensaje o notificacion a los destinatarios especificados.
+     *
+     * @param destinatario parametro requerido para la correcta ejecucion del procedimiento
+     * @param tipoEvento parametro requerido para la correcta ejecucion del procedimiento
+     * @param mensajeTexto parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void notificar(Usuario destinatario, String tipoEvento, String mensajeTexto) {
         // notificar() casi siempre se llama desde dentro de la transacción de
         // una operación de negocio real (pago confirmado, ganador de sorteo,
@@ -70,6 +78,14 @@ public class NotificacionServiceImpl implements NotificacionService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaNotificacion> listarMisNotificaciones(Long idUsuario, Pageable pageable) {
         return notificacionRepo
                 .findByUsuarioIdUsuarioOrderByFechaEmisionDesc(idUsuario, pageable)
@@ -78,6 +94,14 @@ public class NotificacionServiceImpl implements NotificacionService {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idNotificacion identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaNotificacion marcarComoLeida(Long idNotificacion, Long idUsuario) {
         NotificacionSistema notificacion = notificacionRepo.findById(idNotificacion)
                 .filter(n -> n.getUsuario().getIdUsuario().equals(idUsuario))
@@ -90,12 +114,26 @@ public class NotificacionServiceImpl implements NotificacionService {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public int marcarTodasLeidas(Long idUsuario) {
         return notificacionRepo.marcarTodasLeidas(idUsuario);
     }
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public long contarNoLeidas(Long idUsuario) {
         return notificacionRepo.countByUsuarioIdUsuarioAndEstaLeidaFalse(idUsuario);
     }

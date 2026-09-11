@@ -48,6 +48,12 @@ public class PagoTicketRevisionServicioImpl implements IPagoTicketRevisionServic
 
     @Override
     @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param ticket parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void crearOrdenPago(TicketRevision ticket) {
         try {
             Pedido pedido = ticket.getPedido();
@@ -107,6 +113,13 @@ public class PagoTicketRevisionServicioImpl implements IPagoTicketRevisionServic
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idTicket identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String obtenerUrlPagoPendiente(Long idTicket) {
         return pagoTicketRevisionRepository.findByTicketIdTicket(idTicket)
                 .filter(pago -> ESTADO_PENDIENTE.equals(pago.getEstadoPago()))
@@ -116,6 +129,14 @@ public class PagoTicketRevisionServicioImpl implements IPagoTicketRevisionServic
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idOrdenPaypal identificador unico que referencia de manera univoca al registro
+     * @param tipoEvento parametro requerido para la correcta ejecucion del procedimiento
+     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public boolean procesarWebhookOrden(String idOrdenPaypal, String tipoEvento) {
         PagoTicketRevision pago = pagoTicketRevisionRepository.findByIdOrdenPaypal(idOrdenPaypal).orElse(null);
         if (pago == null) {

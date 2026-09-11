@@ -37,6 +37,12 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaCategoria> listarCategoriasActivas() {
         return categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()
                 .stream()
@@ -46,6 +52,12 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaCategoria> listarTodasLasCategorias() {
         return categoriaRepository.findAllByOrderByNombreCategoriaAsc()
                 .stream()
@@ -55,6 +67,13 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idCategoria identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaCategoria obtenerCategoriaPorId(Long idCategoria) {
         Categoria cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria));
@@ -66,6 +85,14 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Auditable(accion = "CATEGORIA_CREAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "categorias", idEntidad = "#resultado.idCategoria",
             detalle = "{nombreCategoria: #peticion.nombreCategoria}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaCategoria crearCategoria(Long idUsuarioCreador, PeticionCrearCategoria peticion) {
         if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {
             throw new ExcepcionReglaNegocio("Ya existe una categoria con el nombre: " + peticion.getNombreCategoria());
@@ -85,6 +112,14 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Auditable(accion = "CATEGORIA_ACTUALIZAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria",
             detalle = "{nombreCategoria: #peticion.nombreCategoria, estadoActiva: #peticion.estadoActiva}")
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idCategoria identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaCategoria actualizarCategoria(Long idCategoria, PeticionActualizarCategoria peticion) {
         Categoria cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria));
@@ -107,6 +142,13 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Transactional
     @Auditable(accion = "CATEGORIA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria", detalle = "{motivo: #motivo}")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idCategoria identificador unico que referencia de manera univoca al registro
+     * @param motivo parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarCategoria(Long idCategoria, String motivo) {
         Categoria cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria));
@@ -130,6 +172,13 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idCategoria identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSubcategoria> listarSubcategoriasPorCategoria(Long idCategoria) {
         if (!categoriaRepository.existsById(idCategoria)) {
             throw new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria);
@@ -142,6 +191,12 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSubcategoria> listarTodasLasSubcategorias() {
         return subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()
                 .stream()
@@ -154,6 +209,14 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Auditable(accion = "SUBCATEGORIA_CREAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "subcategorias", idEntidad = "#resultado.idSubcategoria",
             detalle = "{idCategoria: #peticion.idCategoria, nombreSubcategoria: #peticion.nombreSubcategoria}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSubcategoria crearSubcategoria(Long idUsuarioCreador, PeticionCrearSubcategoria peticion) {
         Categoria cat = categoriaRepository.findById(peticion.getIdCategoria())
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + peticion.getIdCategoria()));
@@ -177,6 +240,13 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_ELIMINAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "subcategorias", idEntidad = "#idSubcategoria", detalle = "{motivo: #motivo}")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idSubcategoria identificador unico que referencia de manera univoca al registro
+     * @param motivo parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarSubcategoria(Long idSubcategoria, String motivo) {
         Subcategoria sub = subcategoriaRepository.findById(idSubcategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + idSubcategoria));
@@ -196,6 +266,12 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaCategoria> listarCategoriasPendientesRevision() {
         return categoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()
                 .stream()
@@ -205,6 +281,12 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSubcategoria> listarSubcategoriasPendientesRevision() {
         return subcategoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()
                 .stream()
@@ -216,6 +298,13 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Transactional
     @Auditable(accion = "CATEGORIA_REVISAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idCategoria identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaCategoria marcarCategoriaRevisada(Long idCategoria) {
         Categoria cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Categoria no encontrada con ID: " + idCategoria));
@@ -228,6 +317,13 @@ public class CategoriaServicioImpl implements ICategoriaServicio {
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_REVISAR", modulo = ModuloAuditoria.CATALOGO,
             entidad = "subcategorias", idEntidad = "#idSubcategoria")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idSubcategoria identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaSubcategoria marcarSubcategoriaRevisada(Long idSubcategoria) {
         Subcategoria sub = subcategoriaRepository.findById(idSubcategoria)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Subcategoria no encontrada con ID: " + idSubcategoria));

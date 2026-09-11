@@ -33,6 +33,14 @@ public class LikePortafolioServiceImpl implements LikePortafolioService {
     @Transactional
     @Auditable(accion = "LIKE_DAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "likes_portafolio", idEntidad = "#idItemPortafolio")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoLike darLike(Long idItemPortafolio, Long idUsuario) {
         PortafolioItem item = obtenerItem(idItemPortafolio);
 
@@ -59,6 +67,14 @@ public class LikePortafolioServiceImpl implements LikePortafolioService {
     @Transactional
     @Auditable(accion = "LIKE_QUITAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "likes_portafolio", idEntidad = "#idItemPortafolio")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoLike quitarLike(Long idItemPortafolio, Long idUsuario) {
         LikePortafolio like = likeRepository
                 .findByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario)
@@ -71,6 +87,14 @@ public class LikePortafolioServiceImpl implements LikePortafolioService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoLike obtenerEstado(Long idItemPortafolio, Long idUsuario) {
         boolean meGusta = idUsuario != null
                 && likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario);

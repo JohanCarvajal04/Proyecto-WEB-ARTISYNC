@@ -59,6 +59,14 @@ public class InfraccionServiceImpl implements InfraccionService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Auditable(accion = "INFRACCION_REGISTRAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "pedidos", idEntidad = "#idPedido")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param mensaje parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
         // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
         // total en la ventana de 30 dias y suspende la cuenta si corresponde,
@@ -95,12 +103,27 @@ public class InfraccionServiceImpl implements InfraccionService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaInfraccion> listarInfracciones(Pageable pageable) {
         return infraccionRepo.findAll(pageable).map(this::mapToResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaInfraccion> historialPorUsuario(Long idUsuario, Pageable pageable) {
         return infraccionRepo.findByUsuarioIdUsuario(idUsuario, pageable)
                 .map(this::mapToResponse);
@@ -110,6 +133,13 @@ public class InfraccionServiceImpl implements InfraccionService {
     @Transactional
     @Auditable(accion = "SUSPENSION_REVERTIR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "usuarios", idEntidad = "#idUsuario")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje revertirSuspension(Long idUsuario) {
         Usuario usuario = usuarioRepo.findById(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Usuario no encontrado: " + idUsuario));

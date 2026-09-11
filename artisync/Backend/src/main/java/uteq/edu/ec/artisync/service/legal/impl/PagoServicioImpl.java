@@ -87,6 +87,15 @@ public class PagoServicioImpl implements IPagoServicio {
     @Auditable(accion = "PAGO_ORDEN_CREAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{monto: #monto}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idCliente identificador unico que referencia de manera univoca al registro
+     * @param monto parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPago crearOrdenPayPal(Long idPedido, Long idCliente, BigDecimal monto) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
@@ -210,6 +219,16 @@ public class PagoServicioImpl implements IPagoServicio {
     @Auditable(accion = "PAGO_WEBHOOK_RECIBIR", modulo = ModuloAuditoria.FINANZAS,
             correoActor = "'sistema:paypal'",
             detalle = "{transmissionId: #transmissionId}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * @param payload carga util del webhook
+     * @param transmissionId id de transmision
+     * @param transmissionTime tiempo de transmision
+     * @param certUrl url del certificado
+     * @param authAlgo algoritmo de autenticacion
+     * @param transmissionSig firma de transmision
+     * @param webhookId id del webhook
+     */
     public void procesarWebhookPayPal(String payload, String transmissionId, String transmissionTime,
                                       String transmissionSig, String certUrl, String authAlgo, String authVersion) {
         JsonNode evento;
@@ -359,6 +378,14 @@ public class PagoServicioImpl implements IPagoServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaPago obtenerEstadoPago(Long idPedido, Long idUsuario) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
@@ -402,6 +429,13 @@ public class PagoServicioImpl implements IPagoServicio {
     @Auditable(accion = "PAGO_CANCELAR", modulo = ModuloAuditoria.FINANZAS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{accionFondos: #accionFondos, motivo: #motivo}")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * @param idPedido id del pedido
+     * @param idUsuarioSolicitante id del usuario solicitante
+     * @param motivo motivo de la cancelacion
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     public RespuestaPago cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,
                                                            String accionFondos, String motivo) {
         Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)

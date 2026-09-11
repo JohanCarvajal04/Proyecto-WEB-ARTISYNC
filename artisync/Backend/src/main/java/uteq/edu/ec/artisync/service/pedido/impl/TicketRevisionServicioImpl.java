@@ -42,6 +42,13 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
     @Auditable(accion = "TICKET_CREAR", modulo = ModuloAuditoria.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{idMotivo: #peticion.idMotivo}")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * @param idPedido id del pedido
+     * @param idCliente id del cliente
+     * @param peticion peticion
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     public RespuestaTicketRevision crearTicketRevision(Long idPedido, Long idCliente,
                                                         PeticionCrearTicketRevision peticion) {
         Pedido pedido = pedidoRepository.findById(idPedido)
@@ -92,6 +99,14 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaTicketRevision> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Pedido no encontrado con ID: " + idPedido));
@@ -109,6 +124,15 @@ public class TicketRevisionServicioImpl implements ITicketRevisionServicio {
     @Auditable(accion = "TICKET_CAMBIAR_ESTADO", modulo = ModuloAuditoria.PEDIDOS,
             entidad = "tickets_revision", idEntidad = "#idTicket",
             detalle = "{nuevoEstado: #nuevoEstado}")
+    /**
+     * Aplica una transicion de estado especifica sobre el ciclo de vida del recurso.
+     *
+     * @param idTicket identificador unico que referencia de manera univoca al registro
+     * @param idCreador identificador unico que referencia de manera univoca al registro
+     * @param nuevoEstado parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaTicketRevision cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado) {
         TicketRevision ticket = ticketRevisionRepository.findById(idTicket)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Ticket de revision no encontrado"));

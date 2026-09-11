@@ -21,12 +21,25 @@ public class RespaldoArchivoStorage {
 
     private final RespaldoProperties respaldoProperties;
 
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param nombreArchivo objeto binario multipart representando el documento o medio fisico
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Path resolverRutaDestino(String nombreArchivo) throws IOException {
         Path base = Path.of(respaldoProperties.getRutaBase());
         Files.createDirectories(base);
         return base.resolve(nombreArchivo);
     }
 
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param ruta parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminar(Path ruta) throws IOException {
         Files.deleteIfExists(ruta);
     }

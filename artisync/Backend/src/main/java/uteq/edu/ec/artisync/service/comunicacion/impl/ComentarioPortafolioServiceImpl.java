@@ -45,6 +45,15 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     @Transactional
     @Auditable(accion = "COMENTARIO_CREAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idItemPortafolio")
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @param idUsuarioAutor identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaComentario crearComentario(Long idItemPortafolio, PeticionCrearComentario peticion, Long idUsuarioAutor) {
         PortafolioItem item = portafolioItemRepository.findById(idItemPortafolio)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
@@ -67,6 +76,14 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaComentario> listarComentarios(Long idItemPortafolio, Pageable pageable) {
         return comentarioRepository
                 .findByItemPortafolioIdItemPortafolioAndEstadoModeracion(idItemPortafolio, ESTADO_ACTIVO, pageable)
@@ -75,6 +92,13 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public long contarComentarios(Long idItemPortafolio) {
         return comentarioRepository.countByItemPortafolioIdItemPortafolioAndEstadoModeracion(
                 idItemPortafolio, ESTADO_ACTIVO);
@@ -92,6 +116,14 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     @Transactional
     @Auditable(accion = "COMENTARIO_ELIMINAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idComentario identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @param esAdmin parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminarComentario(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin) {
         ComentarioPortafolio comentario = obtenerComentario(idComentario);
 
@@ -119,6 +151,13 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
+     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Page<RespuestaComentario> listarParaModeracion(Pageable pageable) {
         return comentarioRepository.findAll(pageable).map(this::mapToResponse);
     }
@@ -127,6 +166,13 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     @Transactional
     @Auditable(accion = "COMENTARIO_OCULTAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idComentario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaComentario ocultarComentario(Long idComentario) {
         ComentarioPortafolio comentario = obtenerComentarioParaModerar(idComentario);
         comentario.setEstadoModeracion(ESTADO_OCULTO);
@@ -138,6 +184,13 @@ public class ComentarioPortafolioServiceImpl implements ComentarioPortafolioServ
     @Transactional
     @Auditable(accion = "COMENTARIO_REACTIVAR", modulo = ModuloAuditoria.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idComentario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaComentario reactivarComentario(Long idComentario) {
         ComentarioPortafolio comentario = obtenerComentarioParaModerar(idComentario);
         comentario.setEstadoModeracion(ESTADO_ACTIVO);

@@ -38,11 +38,26 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
     }
 
     @Override
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String guardar(MultipartFile archivo) {
         return guardar(archivo, "");
     }
 
     @Override
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param archivo objeto binario multipart representando el documento o medio fisico
+     * @param prefijo parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public String guardar(MultipartFile archivo, String prefijo) {
         asegurarDirectorio();
         String nombre = PrefijoAlmacenamiento.componer(
@@ -60,6 +75,13 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
 
     /** El almacenamiento local no sabe firmar URLs: el consumidor sirve los bytes. */
     @Override
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param referencia parametro requerido para la correcta ejecucion del procedimiento
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public Optional<String> urlTemporal(String referencia) {
         return Optional.empty();
     }
@@ -75,6 +97,12 @@ public class AlmacenamientoLocal implements AlmacenamientoDocumentos {
     }
 
     @Override
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param referencia parametro requerido para la correcta ejecucion del procedimiento
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public void eliminar(String referencia) {
         Path ruta = resolverDentroDeBase(referencia);
         try {

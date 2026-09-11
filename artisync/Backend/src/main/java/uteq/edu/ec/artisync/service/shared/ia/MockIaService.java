@@ -19,6 +19,14 @@ public class MockIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     *
+     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
+     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
         return IaVerificacionResponse.builder()
                 .aprobado(true)
@@ -32,6 +40,14 @@ public class MockIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
+     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
         return IaVerificacionResponse.builder()
                 .aprobado(true)
@@ -45,6 +61,13 @@ public class MockIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param textoMensaje parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         return IaModeracionResponse.builder()
                 .esApropiado(true).categoriaInfraccion("ninguno")
@@ -52,6 +75,15 @@ public class MockIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
+     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
+     * @param categoriasDisponibles parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaClasificacionResponse clasificarServicio(String titulo, String descripcion, List<String> categoriasDisponibles) {
         String categoria = categoriasDisponibles.isEmpty() ? "General" : categoriasDisponibles.get(0);
         return IaClasificacionResponse.builder()
@@ -61,11 +93,28 @@ public class MockIaService extends AbstractIaService implements IaService {
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param categoria parametro requerido para la correcta ejecucion del procedimiento
+     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
+     * @param descripcion parametro requerido para la correcta ejecucion del procedimiento
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<String> sugerirPreguntasBriefing(String categoria, String titulo, String descripcion) {
         return List.of("¿Cuál es el objetivo del proyecto?", "¿Tienes referencias visuales?");
     }
 
     @Override
+    /**
+     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     *
+     * @param textoResena parametro requerido para la correcta ejecucion del procedimiento
+     * @param estrellas parametro requerido para la correcta ejecucion del procedimiento
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public IaResenaResponse analizarResena(String textoResena, int estrellas) {
         return IaResenaResponse.builder()
                 .sentimiento(estrellas >= 4 ? "positivo" : "neutro")

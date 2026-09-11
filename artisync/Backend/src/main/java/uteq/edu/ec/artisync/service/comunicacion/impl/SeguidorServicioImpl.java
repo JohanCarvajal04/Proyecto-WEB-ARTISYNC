@@ -27,6 +27,14 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoSeguimiento seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
         PerfilCreador perfil = perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil de creador no encontrado con ID: " + idPerfilCreador));
@@ -49,6 +57,14 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     *
+     * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoSeguimiento dejarDeSeguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
         perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil de creador no encontrado con ID: " + idPerfilCreador));
@@ -67,6 +83,14 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idUsuarioConsulta identificador unico que referencia de manera univoca al registro
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaEstadoSeguimiento obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador) {
         PerfilCreador perfil = perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Perfil de creador no encontrado con ID: " + idPerfilCreador));
@@ -90,6 +114,13 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaSeguidor> listarSeguidores(Long idPerfilCreador) {
         List<Seguidor> lista = seguidorRepository.findByPerfilCreadorIdPerfil(idPerfilCreador);
         return lista.stream()
@@ -106,6 +137,13 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     *
+     * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaCreadorSeguidoNovedad> listarCreadoresSeguidosNovedades(Long idUsuarioSeguidor) {
         List<Seguidor> seguidos = seguidorRepository.findByUsuarioSeguidorIdUsuario(idUsuarioSeguidor);
         return seguidos.stream()
@@ -130,6 +168,15 @@ public class SeguidorServicioImpl implements ISeguidorServicio {
 
     @Override
     @Transactional
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param urlPortada parametro requerido para la correcta ejecucion del procedimiento
+     * @param tituloProfesional parametro requerido para la correcta ejecucion del procedimiento
+     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional) {
         PerfilCreador perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No tienes un perfil de creador asociado."));

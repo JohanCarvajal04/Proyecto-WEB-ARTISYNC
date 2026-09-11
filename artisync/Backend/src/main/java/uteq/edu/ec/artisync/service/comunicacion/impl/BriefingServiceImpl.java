@@ -45,6 +45,14 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional
+    /**
+     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaBriefing crearPlantilla(Long idUsuario, PeticionCrearBriefingPlantilla peticion) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
 
@@ -66,6 +74,13 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return una coleccion indexada con todos los elementos resultantes de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public List<RespuestaBriefing> obtenerMisPlantillas(Long idUsuario) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
         return plantillaRepo.findByPerfilCreadorIdPerfil(perfil.getIdPerfil())
@@ -74,6 +89,13 @@ public class BriefingServiceImpl implements BriefingService {
                 .toList();
     }
 
+    /**
+     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * @param idPlantilla identificador de la plantilla
+     * @param idUsuario identificador del usuario
+     * @param peticion datos de la peticion
+     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     */
     @Override
     @Transactional
     public RespuestaBriefing editarPlantilla(Long idPlantilla, Long idUsuario,
@@ -101,6 +123,14 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional
+    /**
+     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     *
+     * @param idPlantilla identificador unico que referencia de manera univoca al registro
+     * @param idUsuario identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idUsuario) {
         PerfilCreador perfil = resolverPerfilPropio(idUsuario);
         BriefingPlantilla plantilla = plantillaRepo.findById(idPlantilla)
@@ -140,6 +170,14 @@ public class BriefingServiceImpl implements BriefingService {
 
     @Override
     @Transactional(readOnly = true)
+    /**
+     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     *
+     * @param idPedido identificador unico que referencia de manera univoca al registro
+     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
+     * @return un objeto especializado con el resultado estructurado de la operacion
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     */
     public RespuestaBriefing obtenerBriefing(Long idPedido, Long idUsuarioSolicitante) {
         BriefingEnviado enviado = enviadoRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ExcepcionRecursoNoEncontrado(
