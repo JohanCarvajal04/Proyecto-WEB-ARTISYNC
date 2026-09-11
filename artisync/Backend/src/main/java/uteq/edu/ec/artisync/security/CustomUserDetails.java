@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.security;
+﻿package uteq.edu.ec.artisync.security;
 
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;

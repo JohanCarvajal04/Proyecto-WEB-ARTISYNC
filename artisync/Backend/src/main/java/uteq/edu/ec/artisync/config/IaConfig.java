@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.config;
+﻿package uteq.edu.ec.artisync.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

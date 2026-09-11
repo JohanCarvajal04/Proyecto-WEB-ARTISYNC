@@ -1,4 +1,4 @@
-package uteq.edu.ec.artisync.config;
+﻿package uteq.edu.ec.artisync.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
