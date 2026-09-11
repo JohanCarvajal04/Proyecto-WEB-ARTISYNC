@@ -105,6 +105,7 @@ en el dashboard de Render (`sync: false`, valor vacío por defecto):
 | `FRONTEND_URL` | `artisync-backend` | Manual — URL pública de `artisync-frontend`; se reusa también como origen permitido de CORS (`app.cors.allowed-origins`, ver `application.properties`) |
 | `MAIL_USER` / `MAIL_PASSWORD` | `artisync-backend` | Manual — cuenta SMTP de producción |
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_WEBHOOK_ID` | `artisync-backend` | Manual — credenciales de la app en developer.paypal.com |
+| `PAYPAL_MODE` | `artisync-backend` | Manual — no está en `render.yaml`; sin fijarla, `PayPalConfig` usa el default `sandbox` (`api-m.sandbox.paypal.com`) de forma silenciosa. Dejar `sandbox` a propósito mientras no haya una cuenta PayPal real verificada; cambiar a cualquier otro valor apunta a `api-m.paypal.com` (dinero real) |
 | `APP_COOKIE_SECURE` | `artisync-backend` | Fijo `"true"` (cookies con `Secure`, hay HTTPS) |
 | `BACKEND_INTERNAL_URL` | `artisync-frontend` | Manual — URL pública de `artisync-backend`, usada por `nginx.render.conf.template` para el proxy `/api`, `/actuator`, `/ws` |
 
@@ -138,6 +139,43 @@ Las credenciales reales nunca se versionan; se completan directamente en el dash
    `UPDATE usuarios SET contrasena_hash = '<hash de seed.sql>' WHERE correo = 'admin@artisync.com';`
 8. Publicar las URLs en el `README.md` (sección de arranque) y en la portada del documento
    académico final, junto con las credenciales del usuario demo.
+
+## Configurar el webhook de PayPal contra Render (RF-20, REQ-NF-019)
+
+A diferencia del entorno local (que necesita `ngrok` porque `localhost` no es alcanzable desde
+internet, ver `docs/mediciones/pagos/REPORTE-PAYPAL-SANDBOX.md`), `artisync-backend` en Render ya
+tiene una URL pública HTTPS estable — no hace falta ningún túnel. El procedimiento es el mismo
+registro de webhook, apuntando directo a esa URL:
+
+1. En [developer.paypal.com](https://developer.paypal.com) → la app cuyo Client ID/Secret están
+   cargados en `artisync-backend` (puede ser la misma app **Sandbox** usada en desarrollo local —
+   no hace falta una cuenta PayPal real verificada para esto, ver la fila `PAYPAL_MODE` de la
+   tabla de arriba) → **Webhooks** → **Add Webhook**.
+2. URL del webhook:
+   ```
+   https://artisync-backend.onrender.com/api/webhooks/paypal
+   ```
+   Directo al backend, no al frontend: es el mismo patrón que ya usa este documento para el health
+   check (§ "Topología de red simplificada" — el backend tiene su propia URL pública en Render).
+3. Eventos a suscribir — únicamente los dos que procesa `PagoServicioImpl.procesarWebhookPayPal`
+   (`PagoServicioImpl.java:231-238`): `CHECKOUT.ORDER.APPROVED` y `PAYMENT.CAPTURE.COMPLETED`.
+4. Copiar el **Webhook ID** que PayPal genera.
+5. En Render → `artisync-backend` → **Environment** → completar `PAYPAL_WEBHOOK_ID` con ese valor
+   (y confirmar que `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_MODE` ya están cargados —
+   sin `PAYPAL_WEBHOOK_ID`, el backend rechaza **todas** las notificaciones, ver
+   `PagoServicioImpl.java:300-303`). Guardar dispara un redeploy automático.
+6. Verificar que el endpoint responde una vez terminado el redeploy:
+   ```bash
+   curl -sS -i -X POST https://artisync-backend.onrender.com/api/webhooks/paypal \
+     -H "Content-Type: application/json" -d '{"event_type":"TEST"}'
+   ```
+   Debe devolver `200 OK` con cuerpo `OK` (`PayPalWebhookControlador.recibirWebhook`). Esto solo
+   confirma que la ruta es alcanzable — la firma de un payload de prueba como este no verifica
+   contra PayPal, así que no actualiza ningún pago real; para eso hace falta un pago real aprobado
+   en el sandbox (ver Fase 1 en `docs/mediciones/pagos/REPORTE-PAYPAL-SANDBOX.md`).
+7. Repetir el pago real de prueba (checkout de un pedido) contra la URL pública del frontend
+   (`https://artisync-frontend.onrender.com`) y confirmar en los logs de `artisync-backend`
+   (pestaña **Logs** de Render) que llega `Webhook PayPal recibido - transmissionId: ...`.
 
 Para un proveedor distinto a Render (VPS, Azure, contenedores genéricos), usar en su lugar:
 

@@ -16,7 +16,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check
+.PHONY: all up up-backend-publico down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check
 
 # Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
 # de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
@@ -57,6 +57,17 @@ up:
 		echo "       Revisa MAIL_*/PAYPAL_*/IA_PROVIDER si necesitas esas integraciones."; \
 	}
 	$(COMPOSE) up -d --build
+
+## Igual que `up`, pero ademas publica el 8080 del backend al host (override
+## docker-compose.dev.yml, ver el comentario junto al servicio backend en
+## docker-compose.yml). `up` (el target por defecto) NO lo publica a proposito
+## (OBS-AUTO-06/A07 OWASP: mismo limite de confianza que produccion para
+## X-Forwarded-For) -- este target existe aparte para no debilitar ese
+## default. Usar solo cuando haga falta acceso directo: Swagger UI, o exponer
+## el backend con un tunel (ngrok) para probar webhooks reales de PayPal
+## (ver docs/mediciones/pagos/REPORTE-PAYPAL-SANDBOX.md).
+up-backend-publico: up
+	$(COMPOSE) -f artisync/docker-compose.dev.yml up -d --build backend
 
 ## Detiene los servicios sin borrar los volumenes (datos de postgres persisten).
 down:

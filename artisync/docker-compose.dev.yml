@@ -1,0 +1,11 @@
+services:
+  backend:
+    # Publica el 8080 al host SOLO cuando este archivo se pasa explicitamente
+    # con -f (ver el comentario en docker-compose.yml, servicio backend): es la
+    # via ya prevista para acceso directo en desarrollo (Swagger, make bench,
+    # captura de evidencias OWASP, o exponer el backend por un tunel como
+    # ngrok para probar webhooks reales sin pasar por el proxy /api del
+    # frontend). El docker-compose.yml principal deliberadamente NO publica
+    # este puerto (OBS-AUTO-06 / A07 OWASP): ese archivo no se toca.
+    ports:
+      - "8080:8080"
