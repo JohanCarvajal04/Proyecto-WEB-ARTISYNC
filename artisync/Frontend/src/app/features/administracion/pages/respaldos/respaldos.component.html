@@ -144,7 +144,7 @@
                     <div class="flex items-center justify-end gap-2">
                       @if (respaldo.estadoRespaldo === 'COMPLETADO') {
                         <button type="button" *appHasPermission="'RESPALDO_DESCARGAR'" (click)="descargar(respaldo)"
-                          class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
+                          class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-2 py-1 rounded-lg hover:bg-purple-50 transition-colors">
                           Descargar
                         </button>
                       }
@@ -237,7 +237,7 @@
                   <td class="py-4 px-6 text-right">
                     <div class="flex items-center justify-end gap-3" *appHasPermission="'RESPALDO_PROGRAMAR'">
                       <button type="button" (click)="alternarActivo(programacion)"
-                        class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors">
+                        class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-2 py-1 rounded-lg hover:bg-purple-50 transition-colors">
                         {{ programacion.activo ? 'Desactivar' : 'Activar' }}
                       </button>
                       <button type="button" (click)="abrirEditarProgramacion(programacion)"
@@ -288,3 +288,4 @@
   (onConfirm)="ejecutarEliminarProgramacion()"
   (onCancel)="isConfirmEliminarProgramacionOpen.set(false)"
 />
+

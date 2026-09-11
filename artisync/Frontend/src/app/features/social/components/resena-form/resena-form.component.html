@@ -7,7 +7,7 @@
 
   @if (cargando()) {
     <div class="p-6 md:p-8 flex justify-center">
-      <span class="animate-spin rounded-full h-6 w-6 border-2 border-teal-400 border-t-transparent"></span>
+      <span class="animate-spin rounded-full h-6 w-6 border-2 border-purple-400 border-t-transparent"></span>
     </div>
   } @else if (enviada(); as r) {
     @if (!editando()) {
@@ -30,7 +30,7 @@
         }
         <div class="flex gap-3 mt-2">
           <button type="button" (click)="editar()"
-            class="text-xs font-bold text-teal-600 hover:text-teal-700 px-3 py-1.5 rounded-full border border-teal-200 hover:bg-teal-50 transition-colors">
+            class="text-xs font-bold text-purple-600 hover:text-purple-700 px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition-colors">
             Editar
           </button>
           <button type="button" (click)="eliminar()" [disabled]="eliminando()"
@@ -69,7 +69,7 @@
       <label for="textoResena" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Comentario (opcional)</label>
       <textarea id="textoResena" rows="4" [attr.maxlength]="maxTexto" (input)="onTexto($event)"
         placeholder="¿Qué destacarías de este trabajo?"
-        class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/25 transition-all resize-none">{{ texto() }}</textarea>
+        class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/25 transition-all resize-none">{{ texto() }}</textarea>
       <span class="text-[10px] text-slate-300 font-mono self-end">{{ texto().length }} / {{ maxTexto }}</span>
     </div>
 
@@ -84,7 +84,7 @@
 
     <div class="flex gap-3">
       <button type="button" (click)="enviar()" [disabled]="!puedeEnviar()"
-        class="self-start bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+        class="self-start bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:from-[#8A4DB0] hover:to-[#6A2D9C] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
         @if (enviando()) {
           <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
           Guardando...
@@ -101,3 +101,4 @@
     </div>
   </div>
 </ng-template>
+

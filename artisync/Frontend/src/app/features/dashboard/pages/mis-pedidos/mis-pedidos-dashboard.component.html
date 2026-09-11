@@ -11,7 +11,7 @@
         <app-boton-exportar [cargando]="exportando()" (exportar)="exportar($event)" />
       }
       <a routerLink="/pedido/crear"
-        class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+        class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:from-[#8A4DB0] hover:to-[#6A2D9C] text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
@@ -29,7 +29,7 @@
           (click)="setFiltroEstado($any(opt.id))"
           class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
           [class.bg-white]="filtroEstado() === opt.id"
-          [class.text-teal-700]="filtroEstado() === opt.id"
+          [class.text-purple-700]="filtroEstado() === opt.id"
           [class.shadow-sm]="filtroEstado() === opt.id"
           [class.text-slate-500]="filtroEstado() !== opt.id">
           {{ opt.label }}
@@ -49,14 +49,14 @@
         [value]="busqueda()"
         (input)="onBusquedaChange($event)"
         placeholder="Buscar por servicio o creador..."
-        class="w-full bg-slate-50 text-slate-800 placeholder-slate-400 text-sm rounded-full pl-10 pr-4 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition-all">
+        class="w-full bg-slate-50 text-slate-800 placeholder-slate-400 text-sm rounded-full pl-10 pr-4 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
     </div>
 
     <!-- Etapa -->
     <select
       [value]="filtroEtapa()"
       (change)="onEtapaChange($event)"
-      class="bg-slate-50 text-slate-700 text-sm rounded-full px-4 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition-all">
+      class="bg-slate-50 text-slate-700 text-sm rounded-full px-4 py-2 border-0 focus:outline-none focus:ring-2 focus:ring-purple-400/40 transition-all">
       <option value="">Todas las etapas</option>
       @for (etapa of etapasDisponibles(); track etapa) {
         <option [value]="etapa">{{ etapa }}</option>
@@ -64,7 +64,7 @@
     </select>
 
     @if (hayFiltrosActivos()) {
-      <button (click)="limpiarFiltros()" class="text-xs font-semibold text-slate-400 hover:text-teal-600 transition-colors whitespace-nowrap">
+      <button (click)="limpiarFiltros()" class="text-xs font-semibold text-slate-400 hover:text-purple-600 transition-colors whitespace-nowrap">
         Limpiar filtros
       </button>
     }
@@ -74,7 +74,7 @@
   <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
     @if (isLoading()) {
       <div class="flex items-center justify-center p-16">
-        <div class="animate-spin rounded-full h-8 w-8 border-2 border-teal-600 border-t-transparent"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent"></div>
       </div>
     } @else if (error()) {
       <div class="flex flex-col items-center justify-center p-12 text-center gap-3">
@@ -84,7 +84,7 @@
           </svg>
         </div>
         <p class="text-sm text-slate-500">{{ error() }}</p>
-        <button (click)="loadPedidos()" class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-4 py-2 rounded-full border border-teal-200 hover:bg-teal-50 transition-all">
+        <button (click)="loadPedidos()" class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-4 py-2 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
           Reintentar
         </button>
       </div>
@@ -104,11 +104,11 @@
           </p>
         </div>
         @if (hayFiltrosActivos()) {
-          <button (click)="limpiarFiltros()" class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-4 py-2 rounded-full border border-teal-200 hover:bg-teal-50 transition-all">
+          <button (click)="limpiarFiltros()" class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-4 py-2 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
             Limpiar filtros
           </button>
         } @else {
-          <a routerLink="/pedido/crear" class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] text-white font-semibold px-5 py-2 rounded-full text-sm shadow-sm hover:shadow-md transition-all">
+          <a routerLink="/pedido/crear" class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] text-white font-semibold px-5 py-2 rounded-full text-sm shadow-sm hover:shadow-md transition-all">
             Crear Pedido
           </a>
         }
@@ -147,7 +147,7 @@
                   <div class="flex items-center justify-end gap-1">
                     <a [routerLink]="['/dashboard/seguimiento', pedido.idPedido]"
                       title="Ver seguimiento"
-                      class="text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors px-3 py-1.5 rounded-full hover:bg-teal-50">
+                      class="text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors px-3 py-1.5 rounded-full hover:bg-purple-50">
                       Seguimiento
                     </a>
                     <a [routerLink]="['/pedido', pedido.idPedido]"
@@ -171,3 +171,4 @@
     }
   </div>
 </div>
+

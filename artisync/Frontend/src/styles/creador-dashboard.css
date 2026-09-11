@@ -7,7 +7,7 @@
    además su propio .component.css con lo específico de esa vista.
 
    La paleta replica la que ya usan el layout y las vistas del dashboard de
-   cliente (#0F2027 / #EFF2F7 / teal #0F9B8E) para que el panel del creador se
+   cliente (#0F2027 / #EFF2F7 / teal #9C5CC5) para que el panel del creador se
    vea como una continuación del frontend existente, no como otra aplicación.
    ========================================================================== */
 
@@ -24,10 +24,10 @@
   --cr-border: #eef2f7;
   --cr-border-strong: #e2e8f0;
 
-  --cr-teal: #0f9b8e;
-  --cr-teal-strong: #0d8a7e;
-  --cr-teal-light: #20b2aa;
-  --cr-teal-soft: #f0fdfa;
+  --cr-teal: #9C5CC5;
+  --cr-purple-strong: #8A4DB0;
+  --cr-purple-light: #7B39B2;
+  --cr-purple-soft: #f0fdfa;
 
   --cr-ok: #047857;
   --cr-ok-soft: #ecfdf5;
@@ -219,7 +219,7 @@
 }
 
 .cr-stat__icon svg { width: 1.25rem; height: 1.25rem; }
-.cr-stat__icon--teal { background: var(--cr-teal-soft); color: var(--cr-teal); }
+.cr-stat__icon--teal { background: var(--cr-purple-soft); color: var(--cr-teal); }
 .cr-stat__icon--warn { background: var(--cr-warn-soft); color: var(--cr-warn); }
 .cr-stat__icon--ok { background: var(--cr-ok-soft); color: var(--cr-ok); }
 .cr-stat__icon--violet { background: var(--cr-violet-soft); color: var(--cr-violet); }
@@ -269,13 +269,13 @@
 }
 
 .cr-btn--primary {
-  background: linear-gradient(90deg, var(--cr-teal), var(--cr-teal-light));
+  background: linear-gradient(90deg, var(--cr-teal), var(--cr-purple-light));
   color: #ffffff;
   box-shadow: var(--cr-shadow);
 }
 
 .cr-btn--primary:hover:not(:disabled) {
-  background: linear-gradient(90deg, var(--cr-teal-strong), #1a9e98);
+  background: linear-gradient(90deg, var(--cr-purple-strong), #6A2D9C);
   box-shadow: var(--cr-shadow-md);
 }
 
@@ -287,8 +287,8 @@
 
 .cr-btn--outline:hover:not(:disabled) {
   border-color: var(--cr-teal);
-  color: var(--cr-teal-strong);
-  background: var(--cr-teal-soft);
+  color: var(--cr-purple-strong);
+  background: var(--cr-purple-soft);
 }
 
 .cr-btn--ghost {
@@ -335,7 +335,7 @@
   font-family: inherit;
 }
 
-.cr-link:hover { color: var(--cr-teal-strong); }
+.cr-link:hover { color: var(--cr-purple-strong); }
 .cr-link svg { width: 0.875rem; height: 0.875rem; }
 
 .cr-badge {
@@ -355,7 +355,7 @@
 .cr-badge--warn { background: var(--cr-warn-soft); color: var(--cr-warn); }
 .cr-badge--info { background: var(--cr-info-soft); color: var(--cr-info); }
 .cr-badge--danger { background: var(--cr-danger-soft); color: var(--cr-danger); }
-.cr-badge--teal { background: var(--cr-teal-soft); color: var(--cr-teal); }
+.cr-badge--teal { background: var(--cr-purple-soft); color: var(--cr-teal); }
 
 .cr-tag {
   display: inline-flex;
@@ -390,7 +390,7 @@
   transition: all 0.2s ease;
 }
 
-.cr-chip:hover { border-color: var(--cr-teal); color: var(--cr-teal-strong); }
+.cr-chip:hover { border-color: var(--cr-teal); color: var(--cr-purple-strong); }
 
 .cr-chip.is-active {
   background: var(--cr-ink);
@@ -740,7 +740,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--cr-teal), var(--cr-teal-light));
+  background: linear-gradient(90deg, var(--cr-teal), var(--cr-purple-light));
   transition: width 0.4s ease;
 }
 
@@ -763,3 +763,4 @@
 .cr-muted { color: var(--cr-text-muted); }
 .cr-faint { color: var(--cr-text-faint); }
 .cr-nowrap { white-space: nowrap; }
+

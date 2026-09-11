@@ -19,7 +19,7 @@
   font-family: 'Manrope', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f9b8e;
+  color: #9C5CC5;
 }
 
 /* ── Línea de etapas del flujo ── */
@@ -62,7 +62,7 @@
 }
 
 .cd-etapa.is-current .cd-etapa__dot {
-  background: #0f9b8e;
+  background: #9C5CC5;
   color: #ffffff;
   border-color: rgba(15, 155, 142, 0.25);
 }
@@ -137,7 +137,7 @@
   width: 0.625rem;
   height: 0.625rem;
   border-radius: 50%;
-  background: #0f9b8e;
+  background: #9C5CC5;
   border: 2px solid #ffffff;
 }
 
@@ -160,3 +160,4 @@
   color: #64748b;
   line-height: 1.5;
 }
+

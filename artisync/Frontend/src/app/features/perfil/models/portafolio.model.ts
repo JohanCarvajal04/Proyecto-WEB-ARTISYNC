@@ -8,7 +8,7 @@ export interface OpcionesPersonalizacion {
 
 /** Paleta usada cuando un creador no ha personalizado su portafolio. */
 export const COLORES_POR_DEFECTO: OpcionesPersonalizacion = {
-  primary: '#0F9B8E',
+  primary: '#9C5CC5',
   secondary: '#203A43',
   bg: '#EFF2F7',
   text: '#1E293B',
@@ -70,3 +70,4 @@ export const TIPOS_OBRA_ACEPTADOS = [
 ];
 
 export const MAX_BYTES_OBRA = 100 * 1024 * 1024;
+

@@ -1,140 +1,149 @@
-<div class="flex flex-col gap-6 max-w-3xl mx-auto animate-[fadeIn_0.4s_ease-out]">
+<div class="flex flex-col gap-6 max-w-6xl mx-auto animate-[fadeIn_0.4s_ease-out]">
 
   <!-- Header -->
   <div class="flex items-center gap-4">
-    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0F2027] to-[#2C5364] flex items-center justify-center text-white shrink-0">
+    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1E0F38] to-[#3B1D6E] flex items-center justify-center text-white shrink-0">
       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     </div>
     <div>
-      <h1 class="font-headline text-2xl md:text-3xl font-bold text-[#0F2027]">Mis Retiros</h1>
+      <h1 class="font-headline text-2xl md:text-3xl font-bold text-[#1E0F38]">Mis Retiros</h1>
       <p class="text-xs text-slate-400 mt-1">Solicita el pago de tus fondos ya liberados a tu cuenta de PayPal.</p>
     </div>
   </div>
 
   @if (isLoading()) {
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center p-20">
-      <div class="animate-spin rounded-full h-9 w-9 border-2 border-teal-600 border-t-transparent"></div>
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-9 w-9 border-2 border-purple-600 border-t-transparent"></div>
     </div>
   } @else {
-
-    <!-- Saldo disponible -->
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div>
-        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Saldo disponible</p>
-        <p class="text-3xl font-bold text-teal-600 font-mono mt-1">{{ saldo()?.saldoDisponible ?? 0 | moneda }}</p>
-        <p class="text-xs text-slate-400 mt-1">Retiro mínimo: {{ saldo()?.montoMinimoRetiro ?? 0 | moneda }}</p>
-      </div>
-      @if (saldo()?.tieneSolicitudPendiente) {
-        <div class="flex items-start gap-2.5 bg-sky-50 text-sky-800 text-xs rounded-2xl px-4 py-3 max-w-xs">
-          <span class="animate-spin rounded-full h-4 w-4 border-2 border-sky-500 border-t-transparent mt-0.5 shrink-0"></span>
-          <span>Ya tienes una solicitud de retiro en curso. Espera a que se resuelva antes de crear otra.</span>
-        </div>
-      }
-    </div>
-
-    <!-- Correo de PayPal -->
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-2.5">
-        <h2 class="font-headline text-lg font-bold text-[#0F2027]">Correo de PayPal</h2>
-        @if (!editandoCorreo() && datosPago()?.correoPaypal) {
-          <button (click)="editandoCorreo.set(true)"
-            class="text-xs font-semibold text-teal-600 hover:text-teal-700 px-3 py-1.5 rounded-full border border-teal-200 hover:bg-teal-50 transition-all">
-            Cambiar
-          </button>
-        }
-      </div>
-      <div class="p-6 md:p-8">
-        @if (editandoCorreo()) {
-          <div class="flex flex-col sm:flex-row gap-3">
-            <input type="email" [(ngModel)]="correoPaypalForm" placeholder="tu-correo@paypal.com"
-              class="flex-1 bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/20 transition-all" />
-            <div class="flex gap-2">
-              <button (click)="guardarCorreo()" [disabled]="guardandoCorreo()"
-                class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2">
-                @if (guardandoCorreo()) {
-                  <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-                }
-                Guardar
-              </button>
-              @if (datosPago()?.correoPaypal) {
-                <button (click)="cancelarEdicionCorreo()"
-                  class="text-sm font-semibold text-slate-500 hover:text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all">
-                  Cancelar
-                </button>
-              }
-            </div>
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
+      
+      <!-- Columna Izquierda: Acciones (Saldo, Correo, Solicitar) -->
+      <div class="w-full lg:w-1/3 flex flex-col gap-6">
+        
+        <!-- Saldo disponible -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+          <div>
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Saldo disponible</p>
+            <p class="text-3xl font-bold text-purple-600 font-mono mt-1">{{ saldo()?.saldoDisponible ?? 0 | moneda }}</p>
+            <p class="text-xs text-slate-400 mt-1">Retiro mínimo: {{ saldo()?.montoMinimoRetiro ?? 0 | moneda }}</p>
           </div>
-        } @else {
-          <p class="text-sm text-slate-700 font-mono">{{ datosPago()?.correoPaypal }}</p>
-        }
-      </div>
-    </div>
-
-    <!-- Solicitar retiro -->
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <div class="px-6 py-5 border-b border-slate-100">
-        <h2 class="font-headline text-lg font-bold text-[#0F2027]">Solicitar retiro</h2>
-      </div>
-      <div class="p-6 md:p-8 flex flex-col sm:flex-row items-start sm:items-end gap-4">
-        <div class="flex flex-col gap-1.5 w-full sm:w-48">
-          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Monto (USD)</label>
-          <input type="number" [(ngModel)]="montoASolicitar" min="0" step="0.01"
-            [disabled]="noPuedeSolicitar()"
-            class="bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-400/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed" />
-        </div>
-        <button (click)="solicitarRetiro()"
-          [disabled]="solicitandoRetiro() || noPuedeSolicitar()"
-          class="bg-gradient-to-r from-[#0F9B8E] to-[#20B2AA] hover:from-[#0D8A7E] hover:to-[#1A9E98] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-          @if (solicitandoRetiro()) {
-            <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+          @if (saldo()?.tieneSolicitudPendiente) {
+            <div class="flex items-start gap-2.5 bg-sky-50 text-sky-800 text-xs rounded-2xl px-4 py-3">
+              <span class="animate-spin rounded-full h-4 w-4 border-2 border-sky-500 border-t-transparent mt-0.5 shrink-0"></span>
+              <span>Ya tienes una solicitud de retiro en curso. Espera a que se resuelva antes de crear otra.</span>
+            </div>
           }
-          Solicitar retiro
-        </button>
-      </div>
-      @if (!saldo()?.tieneCorreoPaypalConfigurado) {
-        <p class="px-6 md:px-8 pb-6 text-xs text-amber-600">Configura tu correo de PayPal arriba antes de solicitar un retiro.</p>
-      }
-    </div>
-
-    <!-- Historial -->
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <div class="px-6 py-5 border-b border-slate-100">
-        <h2 class="font-headline text-lg font-bold text-[#0F2027]">Historial</h2>
-      </div>
-      @if (historial().length === 0) {
-        <div class="p-10 text-center text-sm text-slate-400">Todavía no has solicitado ningún retiro.</div>
-      } @else {
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-              <tr>
-                <th class="px-6 py-3">Monto</th>
-                <th class="px-6 py-3 text-center">Estado</th>
-                <th class="px-6 py-3 text-right">Solicitado</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              @for (s of historial(); track s.idSolicitud) {
-                <tr>
-                  <td class="px-6 py-3 font-mono font-semibold text-slate-800">{{ s.montoSolicitado | moneda }}</td>
-                  <td class="px-6 py-3 text-center">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(s.estado)">{{ s.estado }}</span>
-                    @if (s.estado === 'Fallido' && s.mensajeError) {
-                      <p class="text-[11px] text-rose-500 mt-1">{{ s.mensajeError }}</p>
-                    }
-                    @if (s.estado === 'Rechazado' && s.notaAdmin) {
-                      <p class="text-[11px] text-slate-400 mt-1">{{ s.notaAdmin }}</p>
-                    }
-                  </td>
-                  <td class="px-6 py-3 text-right text-xs text-slate-400 font-mono">{{ formatFechaHora(s.fechaSolicitud) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
         </div>
-      }
+
+        <!-- Correo de PayPal -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-2.5">
+            <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Correo de PayPal</h2>
+            @if (!editandoCorreo() && datosPago()?.correoPaypal) {
+              <button (click)="editandoCorreo.set(true)"
+                class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
+                Cambiar
+              </button>
+            }
+          </div>
+          <div class="p-6">
+            @if (editandoCorreo()) {
+              <div class="flex flex-col gap-3">
+                <input type="email" [(ngModel)]="correoPaypalForm" placeholder="tu-correo@paypal.com"
+                  class="w-full bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all" />
+                <div class="flex gap-2">
+                  <button (click)="guardarCorreo()" [disabled]="guardandoCorreo()"
+                    class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all flex-1 flex items-center justify-center gap-2">
+                    @if (guardandoCorreo()) {
+                      <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                    }
+                    Guardar
+                  </button>
+                  @if (datosPago()?.correoPaypal) {
+                    <button (click)="cancelarEdicionCorreo()"
+                      class="text-sm font-semibold text-slate-500 hover:text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all">
+                      Cancelar
+                    </button>
+                  }
+                </div>
+              </div>
+            } @else {
+              <p class="text-sm text-slate-700 font-mono">{{ datosPago()?.correoPaypal }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Solicitar retiro -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Solicitar retiro</h2>
+          </div>
+          <div class="p-6 flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5 w-full">
+              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monto (USD)</label>
+              <input type="number" [(ngModel)]="montoASolicitar" min="0" step="0.01"
+                [disabled]="noPuedeSolicitar()"
+                class="bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed" />
+            </div>
+            <button (click)="solicitarRetiro()"
+              [disabled]="solicitandoRetiro() || noPuedeSolicitar()"
+              class="w-full bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+              @if (solicitandoRetiro()) {
+                <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+              }
+              Solicitar retiro
+            </button>
+          </div>
+          @if (!saldo()?.tieneCorreoPaypalConfigurado) {
+            <p class="px-6 pb-6 text-xs text-amber-600">Configura tu correo de PayPal arriba antes de solicitar un retiro.</p>
+          }
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Historial -->
+      <div class="w-full lg:w-2/3">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden h-full">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Historial</h2>
+          </div>
+          @if (historial().length === 0) {
+            <div class="p-10 text-center text-sm text-slate-400">Todavía no has solicitado ningún retiro.</div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                  <tr>
+                    <th class="px-6 py-3">Monto</th>
+                    <th class="px-6 py-3 text-center">Estado</th>
+                    <th class="px-6 py-3 text-right">Solicitado</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  @for (s of historial(); track s.idSolicitud) {
+                    <tr>
+                      <td class="px-6 py-3 font-mono font-semibold text-slate-800">{{ s.montoSolicitado | moneda }}</td>
+                      <td class="px-6 py-3 text-center">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="badgeEstado(s.estado)">{{ s.estado }}</span>
+                        @if (s.estado === 'Fallido' && s.mensajeError) {
+                          <p class="text-[11px] text-rose-500 mt-1">{{ s.mensajeError }}</p>
+                        }
+                        @if (s.estado === 'Rechazado' && s.notaAdmin) {
+                          <p class="text-[11px] text-slate-400 mt-1">{{ s.notaAdmin }}</p>
+                        }
+                      </td>
+                      <td class="px-6 py-3 text-right text-xs text-slate-400 font-mono">{{ formatFechaHora(s.fechaSolicitud) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+
     </div>
   }
 </div>

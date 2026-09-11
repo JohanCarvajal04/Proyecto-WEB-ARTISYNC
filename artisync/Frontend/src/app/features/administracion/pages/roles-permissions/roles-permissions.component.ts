@@ -395,7 +395,7 @@ export class RolesPermissionsComponent implements OnInit {
       case 'CREADOR':
         return { bg: 'bg-[#FDE2E4]', text: 'text-[#7A1C28]', border: 'border-pink-300', dot: 'bg-pink-600' };
       case 'CLIENTE':
-        return { bg: 'bg-[#CCFBF1]', text: 'text-[#0F766E]', border: 'border-teal-300', dot: 'bg-teal-600' };
+        return { bg: 'bg-[#CCFBF1]', text: 'text-[#0F766E]', border: 'border-purple-300', dot: 'bg-purple-600' };
       default:
         return { bg: 'bg-[#EAEFF9]', text: 'text-[#2D1B4E]', border: 'border-purple-200', dot: 'bg-purple-500' };
     }
@@ -470,3 +470,4 @@ export class RolesPermissionsComponent implements OnInit {
     return 'shield';
   }
 }
+

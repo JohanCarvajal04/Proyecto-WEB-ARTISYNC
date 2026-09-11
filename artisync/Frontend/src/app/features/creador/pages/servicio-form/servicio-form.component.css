@@ -25,7 +25,7 @@
   transition: all 0.2s ease;
 }
 
-.sf-step:hover { border-color: var(--cr-teal); color: var(--cr-teal-strong); }
+.sf-step:hover { border-color: var(--cr-teal); color: var(--cr-purple-strong); }
 
 .sf-step__num {
   display: inline-flex;
@@ -42,8 +42,8 @@
 
 .sf-step.is-active {
   border-color: var(--cr-teal);
-  background: var(--cr-teal-soft);
-  color: var(--cr-teal-strong);
+  background: var(--cr-purple-soft);
+  color: var(--cr-purple-strong);
 }
 
 .sf-step.is-active .sf-step__num { background: var(--cr-teal); color: #ffffff; }
@@ -85,3 +85,4 @@
   gap: 0.5rem;
   justify-content: flex-end;
 }
+
