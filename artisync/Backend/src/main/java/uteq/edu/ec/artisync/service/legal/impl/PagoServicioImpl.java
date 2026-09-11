@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -25,6 +27,7 @@ import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
 import uteq.edu.ec.artisync.service.legal.IPagoServicio;
+import uteq.edu.ec.artisync.service.legal.IPagoTicketRevisionServicio;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
@@ -38,15 +41,23 @@ public class PagoServicioImpl implements IPagoServicio {
     /** Estados de `pagos_garantia.estado_fondos`. */
     private static final String FONDOS_PENDIENTE = "Pendiente";
     private static final String FONDOS_RETENIDO = "Retenido";
+    private static final String FONDOS_LIBERADO = "Liberado";
+    private static final String FONDOS_REEMBOLSADO = "Reembolsado";
+    private static final String FONDOS_REEMBOLSO_FALLIDO = "ReembolsoFallido";
 
     private static final String EVENTO_ORDEN_APROBADA = "CHECKOUT.ORDER.APPROVED";
     private static final String EVENTO_CAPTURA_COMPLETADA = "PAYMENT.CAPTURE.COMPLETED";
+
+    /** Valores válidos de {@code accionFondos} en cancelarPedidoConFondosRetenidos. */
+    private static final String ACCION_REEMBOLSAR = "REEMBOLSAR";
+    private static final String ACCION_LIBERAR = "LIBERAR";
 
     private final PagoGarantiaRepository pagoGarantiaRepository;
     private final ContratoRepository contratoRepository;
     private final TransaccionPagoRepository transaccionPagoRepository;
     private final NotificacionService notificacionService;
     private final PayPalClient payPalClient;
+    private final IPagoTicketRevisionServicio pagoTicketRevisionServicio;
 
     /**
      * Mapper propio, no el del contexto: el contrato con PayPal no debe verse
@@ -59,6 +70,15 @@ public class PagoServicioImpl implements IPagoServicio {
 
     @Value("${app.frontend.url:http://localhost:4200}")
     private String frontendUrl;
+
+    /**
+     * Misma fuente que EntregableServicioImpl (comentario allí: "Fuente unica
+     * con ReporteFinancieroServicioImpl"): la liberación por cancelación
+     * (accionFondos=LIBERAR) reparte los fondos con la misma tasa que una
+     * aprobación normal de entrega.
+     */
+    @Value("${plataforma.comision-tasa:0.10}")
+    private BigDecimal tasaComision;
 
     // ── Creación de la orden ─────────────────────────────────────────────────
 
@@ -224,6 +244,13 @@ public class PagoServicioImpl implements IPagoServicio {
 
         PagoGarantia pago = pagoGarantiaRepository.findByIdOrdenPaypal(orderId).orElse(null);
         if (pago == null) {
+            // REQ-F-022b/c: la orden puede ser el cargo adicional de un ticket
+            // de revisión, no un pago de garantía. La verificación de firma y
+            // la resolución del orderId de arriba no cambian para ninguno de
+            // los dos casos.
+            if (pagoTicketRevisionServicio.procesarWebhookOrden(orderId, tipoEvento)) {
+                return;
+            }
             log.warn("Webhook PayPal para la orden {}, que no corresponde a ningún pago registrado", orderId);
             return;
         }
@@ -355,7 +382,168 @@ public class PagoServicioImpl implements IPagoServicio {
                 .idOrdenPaypal(pago.getIdOrdenPaypal())
                 .montoRetenido(pago.getMontoRetenido())
                 .estadoFondos(pago.getEstadoFondos())
+                .mensajeError(pago.getMensajeError())
                 .build();
+    }
+
+    // ── Cancelación con fondos retenidos (REQ-NF-019) ───────────────────────────
+
+    /**
+     * Cancela un pedido cuyos fondos ya están retenidos en escrow, reembolsando
+     * al cliente vía PayPal (por defecto) o liberando los fondos al creador
+     * (solo administrador, para disputas donde el trabajo ya se realizó).
+     *
+     * <p>Antes de esto no existía ninguna función para cancelar un pedido con
+     * fondos ya retenidos: el dinero quedaba retenido indefinidamente sin
+     * camino de salida.
+     */
+    @Override
+    @Transactional
+    @Auditable(accion = "PAGO_CANCELAR", modulo = ModuloAuditoria.FINANZAS,
+            entidad = "pedidos", idEntidad = "#idPedido",
+            detalle = "{accionFondos: #accionFondos, motivo: #motivo}")
+    public RespuestaPago cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,
+                                                           String accionFondos, String motivo) {
+        Contrato contrato = contratoRepository.findByPedidoIdPedido(idPedido)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe contrato para el pedido"));
+
+        Pedido pedido = contrato.getPedido();
+        boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
+        boolean esAdmin = tienePermisoAdmin();
+        // El creador nunca puede cancelar-y-cobrar su propio reembolso o
+        // liberación: solo quien pagó, o un administrador que arbitra la disputa.
+        if (!esCliente && !esAdmin) {
+            throw new ExcepcionReglaNegocio("Solo el cliente del pedido o un administrador pueden cancelar este pago");
+        }
+
+        String accion = (accionFondos == null || accionFondos.isBlank())
+                ? ACCION_REEMBOLSAR : accionFondos.trim().toUpperCase();
+        if (!ACCION_REEMBOLSAR.equals(accion) && !ACCION_LIBERAR.equals(accion)) {
+            throw new ExcepcionReglaNegocio("accionFondos debe ser REEMBOLSAR o LIBERAR");
+        }
+        if (ACCION_LIBERAR.equals(accion) && !esAdmin) {
+            throw new ExcepcionReglaNegocio("Solo un administrador puede liberar los fondos sin reembolsarlos");
+        }
+
+        PagoGarantia pago = pagoGarantiaRepository.findByContratoIdContratoParaActualizar(contrato.getIdContrato())
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("No existe pago registrado para este pedido"));
+
+        // Reintentable: un reembolso que falló localmente (ReembolsoFallido)
+        // puede reintentarse llamando este mismo endpoint, sin un endpoint
+        // "reintentar" aparte (mismo enfoque que SolicitudRetiroServicioImpl).
+        if (!FONDOS_RETENIDO.equalsIgnoreCase(pago.getEstadoFondos())
+                && !FONDOS_REEMBOLSO_FALLIDO.equalsIgnoreCase(pago.getEstadoFondos())) {
+            throw new ExcepcionReglaNegocio(
+                    "No se puede cancelar: el pago no está retenido (estado actual: " + pago.getEstadoFondos() + ")");
+        }
+
+        if (ACCION_REEMBOLSAR.equals(accion)) {
+            ejecutarReembolso(pago);
+        } else {
+            ejecutarLiberacionPorCancelacion(pago);
+        }
+        // Sin reasignar desde el retorno (a diferencia de crearOrdenPayPal,
+        // donde 'pago' puede ser una entidad recién construida sin id
+        // generado todavía): aquí 'pago' ya viene de una carga existente con
+        // id, y save() sobre una entidad administrada devuelve la misma
+        // instancia ya mutada in situ por ejecutarReembolso/ejecutarLiberacionPorCancelacion.
+        pagoGarantiaRepository.save(pago);
+
+        log.info("Pedido {} cancelado con fondos retenidos por usuario {}: accion={}, estado final={}, motivo={}",
+                idPedido, idUsuarioSolicitante, accion, pago.getEstadoFondos(), motivo);
+
+        String tituloServicio = pedido.getServicio().getTituloServicio();
+        String mensaje = "El pedido \"" + tituloServicio + "\" fue cancelado. Estado del pago: "
+                + pago.getEstadoFondos() + ".";
+        notificacionService.notificar(pedido.getUsuarioCliente(), "PEDIDO_CANCELADO", mensaje);
+        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PEDIDO_CANCELADO", mensaje);
+
+        return RespuestaPago.builder()
+                .idPago(pago.getIdPago())
+                .idContrato(contrato.getIdContrato())
+                .idOrdenPaypal(pago.getIdOrdenPaypal())
+                .montoRetenido(pago.getMontoRetenido())
+                .estadoFondos(pago.getEstadoFondos())
+                .mensajeError(pago.getMensajeError())
+                .build();
+    }
+
+    /**
+     * Reembolsa vía PayPal. Nunca propaga la excepción: un fallo de PayPal es
+     * un resultado de negocio válido (ReembolsoFallido, reintentable), no un
+     * error del sistema que deba abortar la transacción — mismo patrón que
+     * SolicitudRetiroServicioImpl.ejecutarPayoutYActualizarEstado.
+     */
+    private void ejecutarReembolso(PagoGarantia pago) {
+        try {
+            String idCaptura = obtenerIdCaptura(pago.getIdOrdenPaypal());
+            if (idCaptura == null) {
+                pago.setEstadoFondos(FONDOS_REEMBOLSO_FALLIDO);
+                pago.setMensajeError("No se encontró una captura completada para la orden "
+                        + pago.getIdOrdenPaypal() + " en PayPal");
+                return;
+            }
+
+            // Idempotency key derivada del id del pago (igual que
+            // "retiro-" + idSolicitud en los payouts): un reintento sobre el
+            // mismo pago no genera un segundo reembolso del lado de PayPal.
+            payPalClient.llamarPayPalIdempotente(
+                    "/v2/payments/captures/" + idCaptura + "/refund",
+                    HttpMethod.POST, objectMapper.createObjectNode(),
+                    "reembolso-" + pago.getIdPago());
+
+            pago.setEstadoFondos(FONDOS_REEMBOLSADO);
+            pago.setMensajeError(null);
+            transaccionPagoRepository.save(TransaccionPago.builder()
+                    .pago(pago).tipoTransaccion("Reembolso").monto(pago.getMontoRetenido()).build());
+        } catch (HttpStatusCodeException e) {
+            pago.setEstadoFondos(FONDOS_REEMBOLSO_FALLIDO);
+            pago.setMensajeError("Error de PayPal (" + e.getStatusCode() + "): " + e.getResponseBodyAsString());
+            log.error("Error reembolsando el pago {}: {}", pago.getIdPago(), e.getResponseBodyAsString());
+        } catch (Exception e) {
+            pago.setEstadoFondos(FONDOS_REEMBOLSO_FALLIDO);
+            pago.setMensajeError("Error al comunicarse con PayPal: " + e.getMessage());
+            log.error("Error reembolsando el pago {}", pago.getIdPago(), e);
+        }
+    }
+
+    /** Busca la captura COMPLETED de una orden; PayPal separa el id de orden del id de captura. */
+    private String obtenerIdCaptura(String orderId) {
+        JsonNode orden = payPalClient.llamarPayPal("/v2/checkout/orders/" + orderId, HttpMethod.GET, null);
+        for (JsonNode unidad : orden.path("purchase_units")) {
+            for (JsonNode captura : unidad.path("payments").path("captures")) {
+                if ("COMPLETED".equals(captura.path("status").asText())) {
+                    return captura.path("id").asText(null);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Libera los fondos al creador sin pasar por PayPal (decisión de un
+     * administrador de que el trabajo ya se realizó pese a la cancelación).
+     * Misma tasa de comisión y mismo par de transacciones Egreso/Comisión que
+     * EntregableServicioImpl.aprobarEntrega.
+     */
+    private void ejecutarLiberacionPorCancelacion(PagoGarantia pago) {
+        pago.setEstadoFondos(FONDOS_LIBERADO);
+        pago.setMensajeError(null);
+
+        BigDecimal comision = pago.getMontoRetenido().multiply(tasaComision);
+        BigDecimal pagoCreador = pago.getMontoRetenido().subtract(comision);
+
+        transaccionPagoRepository.save(TransaccionPago.builder()
+                .pago(pago).tipoTransaccion("Egreso").monto(pagoCreador).build());
+        transaccionPagoRepository.save(TransaccionPago.builder()
+                .pago(pago).tipoTransaccion("Comision").monto(comision).build());
+    }
+
+    /** Mismo patrón que TicketRevisionServicioImpl.tienePermisoDeSoporteOAdmin. */
+    private boolean tienePermisoAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
 }

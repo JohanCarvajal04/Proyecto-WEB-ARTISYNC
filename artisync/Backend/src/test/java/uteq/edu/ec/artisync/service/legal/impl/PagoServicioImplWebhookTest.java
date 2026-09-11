@@ -25,6 +25,7 @@ import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.legal.PagoGarantiaRepository;
 import uteq.edu.ec.artisync.repository.legal.TransaccionPagoRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificacionService;
+import uteq.edu.ec.artisync.service.legal.IPagoTicketRevisionServicio;
 import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 import java.math.BigDecimal;
@@ -51,6 +52,7 @@ class PagoServicioImplWebhookTest {
     @Mock private ContratoRepository contratoRepository;
     @Mock private TransaccionPagoRepository transaccionPagoRepository;
     @Mock private NotificacionService notificacionService;
+    @Mock private IPagoTicketRevisionServicio pagoTicketRevisionServicio;
 
     @Mock private PayPalClient payPalClient;
 
@@ -184,6 +186,30 @@ class PagoServicioImplWebhookTest {
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
         verify(pagoGarantiaRepository, never()).save(any());
         verify(transaccionPagoRepository, never()).save(any(TransaccionPago.class));
+    }
+
+    /** REQ-F-022b/c: la orden puede ser el cargo adicional de un ticket de revision, no un pago de garantia. */
+    @Test
+    @DisplayName("una orden que no es de pago de garantia se delega al pago de ticket de revision")
+    void ordenDesconocida_seDelegaAPagoDeTicketRevision() {
+        given(pagoGarantiaRepository.findByIdOrdenPaypal("ORDER-999")).willReturn(java.util.Optional.empty());
+        given(pagoTicketRevisionServicio.procesarWebhookOrden("ORDER-999", "CHECKOUT.ORDER.APPROVED"))
+                .willReturn(true);
+        conRespuestasPayPal("""
+                {"verification_status":"SUCCESS"}""");
+
+        String eventoOrdenDesconocida = """
+                {
+                  "id": "WH-EVENTO-8888",
+                  "event_type": "CHECKOUT.ORDER.APPROVED",
+                  "resource": { "id": "ORDER-999" }
+                }
+                """;
+        pagoServicio.procesarWebhookPayPal(eventoOrdenDesconocida, "TX-1", "2026-01-01",
+                "firma", "https://cert", "SHA256withRSA", "1.0");
+
+        verify(pagoTicketRevisionServicio).procesarWebhookOrden("ORDER-999", "CHECKOUT.ORDER.APPROVED");
+        assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Pendiente");
     }
 
     @Test

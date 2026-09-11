@@ -13,10 +13,10 @@ import java.util.Optional;
 
 /**
  * Repositorio de acceso a datos para la entidad de dominio {@link Contrato}.
- * 
- * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
+ *
+ * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA
  * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
- * 
+ *
  * Responsabilidad de consultas: Contiene consultas personalizadas (JPQL/Nativas) mediante @Query para resolver proyecciones complejas, agregaciones o evitar el problema N+1 (FETCH JOIN).
  */
 @Repository
@@ -24,20 +24,23 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long>, Contr
 
     Optional<Contrato> findByPedidoIdPedido(Long idPedido);
 
-    /** REQ-NF-018: contratos donde el usuario participa como cliente, para evaluar el impedimento legal de supresiÃ³n. */
+    /** REQ-NF-018: contratos donde el usuario participa como cliente, para evaluar el impedimento legal de supresión. */
     List<Contrato> findByPedidoUsuarioClienteIdUsuario(Long idUsuario);
 
-    /** REQ-NF-018: contratos donde el usuario participa como creador (vÃ­a servicio -> perfil -> usuario). */
+    /** REQ-NF-018: contratos donde el usuario participa como creador (vía servicio -> perfil -> usuario). */
     List<Contrato> findByPedidoServicioPerfilUsuarioIdUsuario(Long idUsuario);
+
+    /** REQ-NF-020: contratos ya firmados por ambas partes (con hash de contenido calculado), para el barrido nocturno. */
+    List<Contrato> findByHashContenidoIsNotNull();
 
     /**
      * Igual que findById, pero con bloqueo pesimista de fila. Sin esto, la
      * firma dual (cliente y creador firman columnas distintas de la misma
      * fila) es vulnerable a "lost update": Contrato no tiene @Version ni
-     * @DynamicUpdate, asÃ­ que cada save() de Hibernate reescribe TODAS las
+     * @DynamicUpdate, así que cada save() de Hibernate reescribe TODAS las
      * columnas mapeadas con el snapshot en memoria -- si ambas firmas llegan
      * casi al mismo tiempo, quien confirme segundo sobrescribe con NULL la
-     * firma que el otro acababa de guardar, perdiÃ©ndola en silencio. El
+     * firma que el otro acababa de guardar, perdiéndola en silencio. El
      * bloqueo serializa las dos transacciones y fuerza a la segunda a releer
      * el estado ya confirmado por la primera antes de escribir.
      */
@@ -45,4 +48,3 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long>, Contr
     @Query("SELECT c FROM Contrato c WHERE c.idContrato = :idContrato")
     Optional<Contrato> findByIdParaFirmar(@Param("idContrato") Long idContrato);
 }
-

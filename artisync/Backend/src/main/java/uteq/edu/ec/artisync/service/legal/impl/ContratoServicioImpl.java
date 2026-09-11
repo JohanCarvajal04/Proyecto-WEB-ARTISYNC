@@ -2,6 +2,7 @@ package uteq.edu.ec.artisync.service.legal.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.ModuloAuditoria;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaContrato;
 import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaEstadoFirma;
+import uteq.edu.ec.artisync.dto.respuesta.legal.RespuestaVerificacionIntegridad;
 import uteq.edu.ec.artisync.entity.legal.Contrato;
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import uteq.edu.ec.artisync.entity.pedido.PlantillaContrato;
@@ -28,6 +30,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -38,6 +41,15 @@ public class ContratoServicioImpl implements IContratoServicio {
     private final PedidoRepository pedidoRepository;
     private final PlantillaContratoRepository plantillaContratoRepository;
     private final IPdfGeneracionServicio pdfGeneracionServicio;
+
+    /**
+     * REQ-NF-020: período de retención del contenido congelado del contrato.
+     * El valor de 7 es un placeholder -- confirmar la cifra real bajo la
+     * normativa ecuatoriana aplicable a registros contractuales/tributarios
+     * antes de depender de ella en producción.
+     */
+    @Value("${contrato.retencion-anios:7}")
+    private int retencionAnios;
 
     @Override
     @Transactional
@@ -110,9 +122,44 @@ public class ContratoServicioImpl implements IContratoServicio {
             throw new AccessDeniedException("No eres parte de este contrato");
         }
 
+        // REQ-NF-020: recién ahora, con la segunda firma, el contenido del
+        // contrato queda definitivo -- se congela una única vez.
+        if (contrato.getHashFirmaCreador() != null && contrato.getHashFirmaCliente() != null) {
+            congelarContenidoYHash(contrato);
+        }
+
         contratoRepository.save(contrato);
 
         return mapToRespuesta(contrato);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RespuestaVerificacionIntegridad verificarIntegridadHash(Long idContrato) {
+        Contrato contrato = contratoRepository.findById(idContrato)
+                .orElseThrow(() -> new ExcepcionRecursoNoEncontrado("Contrato no encontrado"));
+
+        if (contrato.getHashContenido() == null) {
+            throw new ExcepcionReglaNegocio(
+                    "El contrato aún no está firmado por ambas partes; no tiene un hash de contenido que verificar");
+        }
+
+        String hashRecalculado = sha256Hex(contrato.getContenidoCongelado());
+        boolean integro = hashRecalculado.equals(contrato.getHashContenido());
+
+        if (!integro) {
+            log.error("Discrepancia de integridad en el contrato {}: hash guardado={}, recalculado={}",
+                    idContrato, contrato.getHashContenido(), hashRecalculado);
+        }
+
+        return RespuestaVerificacionIntegridad.builder()
+                .idContrato(idContrato)
+                .integro(integro)
+                .hashAlmacenado(contrato.getHashContenido())
+                .hashRecalculado(hashRecalculado)
+                .fechaHashOriginal(contrato.getFechaHashContenido())
+                .fechaVerificacion(LocalDateTime.now())
+                .build();
     }
 
     @Override
@@ -270,8 +317,28 @@ public class ContratoServicioImpl implements IContratoServicio {
     }
 
     private String generarHashFirma(Long idContrato, Long idUsuario) {
+        String data = idContrato + ":" + idUsuario + ":" + Instant.now().toString();
+        return sha256Hex(data);
+    }
+
+    /**
+     * REQ-NF-020: congela el HTML ya renderizado (mismo contenido que
+     * generarPdf ya produce) y guarda su hash SHA-256, una sola vez, al
+     * completarse la segunda firma. La re-verificación posterior solo vuelve
+     * a hashear ESTE contenido guardado -- nunca vuelve a llamar a
+     * generarContratoHtml, que incluye {{fecha_actual}} = LocalDate.now() y
+     * por lo tanto no es reproducible día a día.
+     */
+    private void congelarContenidoYHash(Contrato contrato) {
+        String contenido = generarContratoHtml(contrato.getPlantilla(), contrato);
+        contrato.setContenidoCongelado(contenido);
+        contrato.setHashContenido(sha256Hex(contenido));
+        contrato.setFechaHashContenido(LocalDateTime.now());
+        contrato.setFechaLimiteRetencion(LocalDateTime.now().plusYears(retencionAnios));
+    }
+
+    private static String sha256Hex(String data) {
         try {
-            String data = idContrato + ":" + idUsuario + ":" + Instant.now().toString();
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
 

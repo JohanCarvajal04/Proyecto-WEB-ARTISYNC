@@ -47,4 +47,20 @@ public interface IPagoServicio {
      * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no tiene acceso al pago de este pedido
      */
     RespuestaPago obtenerEstadoPago(Long idPedido, Long idUsuario);
+
+    /**
+     * Cancela un pedido con fondos ya retenidos en escrow (REQ-NF-019),
+     * reembolsando al cliente vía PayPal o liberando los fondos al creador.
+     *
+     * @param idPedido               id del pedido a cancelar
+     * @param idUsuarioSolicitante   id del usuario que solicita la cancelación, debe ser el cliente o un administrador
+     * @param accionFondos           "REEMBOLSAR" (default si es null/blank) o "LIBERAR" (solo administrador)
+     * @param motivo                 motivo de la cancelación, solo para registro/auditoría
+     * @return el estado final del pago tras la cancelación
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionRecursoNoEncontrado si el pedido no tiene contrato o pago registrado
+     * @throws uteq.edu.ec.artisync.exception.ExcepcionReglaNegocio si el solicitante no tiene permiso, la acción no es válida,
+     *      o el pago no está en un estado cancelable
+     */
+    RespuestaPago cancelarPedidoConFondosRetenidos(Long idPedido, Long idUsuarioSolicitante,
+                                                    String accionFondos, String motivo);
 }

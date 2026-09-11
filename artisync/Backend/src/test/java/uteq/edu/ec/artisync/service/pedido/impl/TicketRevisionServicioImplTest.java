@@ -27,6 +27,7 @@ import uteq.edu.ec.artisync.repository.legal.ContratoRepository;
 import uteq.edu.ec.artisync.repository.pedido.MotivoRechazoRepository;
 import uteq.edu.ec.artisync.repository.pedido.PedidoRepository;
 import uteq.edu.ec.artisync.repository.pedido.TicketRevisionRepository;
+import uteq.edu.ec.artisync.service.legal.IPagoTicketRevisionServicio;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class TicketRevisionServicioImplTest {
@@ -44,6 +47,7 @@ class TicketRevisionServicioImplTest {
     @Mock private PedidoRepository pedidoRepository;
     @Mock private MotivoRechazoRepository motivoRechazoRepository;
     @Mock private ContratoRepository contratoRepository;
+    @Mock private IPagoTicketRevisionServicio pagoTicketRevisionServicio;
 
     @InjectMocks
     private TicketRevisionServicioImpl ticketRevisionServicio;
@@ -143,6 +147,39 @@ class TicketRevisionServicioImplTest {
         RespuestaTicketRevision respuesta = ticketRevisionServicio.crearTicketRevision(1L, 1L, peticion);
 
         assertThat(respuesta.getCostoAdicionalGenerado()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    /** REQ-F-022b: el enlace de pago se genera automaticamente, no en un endpoint aparte. */
+    @Test
+    @DisplayName("crearTicketRevision dispara la creacion de la orden de pago cuando supera el limite")
+    void crearTicketRevision_superaLimite_disparaCreacionDeOrdenDePago() {
+        PeticionCrearTicketRevision peticion = PeticionCrearTicketRevision.builder().idMotivo(1L).descripcionCliente("No cumple").build();
+        Contrato contrato = Contrato.builder().limiteRevisiones(1).build();
+        given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
+        given(motivoRechazoRepository.findById(1L)).willReturn(Optional.of(motivo));
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contrato));
+        given(ticketRevisionRepository.countByPedidoIdPedido(1L)).willReturn(1L);
+        given(ticketRevisionRepository.save(any(TicketRevision.class))).willAnswer(inv -> inv.getArgument(0));
+
+        ticketRevisionServicio.crearTicketRevision(1L, 1L, peticion);
+
+        verify(pagoTicketRevisionServicio).crearOrdenPago(any(TicketRevision.class));
+    }
+
+    @Test
+    @DisplayName("crearTicketRevision no dispara ninguna orden de pago si aun no se alcanza el limite")
+    void crearTicketRevision_noSuperaLimite_noDisparaCreacionDeOrdenDePago() {
+        PeticionCrearTicketRevision peticion = PeticionCrearTicketRevision.builder().idMotivo(1L).descripcionCliente("No cumple").build();
+        Contrato contrato = Contrato.builder().limiteRevisiones(3).build();
+        given(pedidoRepository.findById(1L)).willReturn(Optional.of(pedido));
+        given(motivoRechazoRepository.findById(1L)).willReturn(Optional.of(motivo));
+        given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contrato));
+        given(ticketRevisionRepository.countByPedidoIdPedido(1L)).willReturn(1L);
+        given(ticketRevisionRepository.save(any(TicketRevision.class))).willAnswer(inv -> inv.getArgument(0));
+
+        ticketRevisionServicio.crearTicketRevision(1L, 1L, peticion);
+
+        verify(pagoTicketRevisionServicio, never()).crearOrdenPago(any());
     }
 
     @Test

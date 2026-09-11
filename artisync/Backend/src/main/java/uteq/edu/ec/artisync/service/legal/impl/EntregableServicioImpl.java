@@ -151,6 +151,17 @@ public class EntregableServicioImpl implements IEntregableServicio {
         var pagoOpt = pagoGarantiaRepository.findByContratoIdContrato(contrato.getIdContrato());
         if (pagoOpt.isPresent()) {
             PagoGarantia pago = pagoOpt.get();
+
+            // REQ-NF-019: sin este guard, un pedido ya cancelado-y-reembolsado
+            // (o liberado) por cancelarPedidoConFondosRetenidos podía aprobarse
+            // aquí después y pagar al creador una segunda vez sobre el mismo
+            // dinero, o liberar fondos que ya se le devolvieron al cliente.
+            if (!"Retenido".equalsIgnoreCase(pago.getEstadoFondos())) {
+                throw new ExcepcionReglaNegocio(
+                        "No se puede aprobar: el pago de este pedido no está en estado Retenido (estado actual: "
+                                + pago.getEstadoFondos() + ")");
+            }
+
             pago.setEstadoFondos("Liberado");
             pagoGarantiaRepository.save(pago);
 
