@@ -38,7 +38,7 @@ public class SeguridadPurgaScheduler {
     private final JdbcTemplate jdbcTemplate;
 
     // Corre a las 3:30 AM, media hora despues de VerificacionScheduler
-    // (03:00) y SorteoScheduler, para no competir por E/S de disco con ellos.
+    // (03:00) y RaffleScheduler, para no competir por E/S de disco con ellos.
     @Scheduled(cron = "0 30 3 * * *")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void purgarDatosSeguridad() {

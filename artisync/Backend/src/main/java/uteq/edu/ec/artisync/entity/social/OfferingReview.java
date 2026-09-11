@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ResenaServicio {
+public class OfferingReview {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -19,7 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Sorteo {
+public class Raffle {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,7 +45,7 @@ public class Sorteo {
     @Builder.Default
     @OneToMany(mappedBy = "sorteo", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orden ASC")
-    private List<PremioSorteo> premios = new ArrayList<>();
+    private List<RafflePrize> premios = new ArrayList<>();
 
     @NotNull(message = "La fecha de inicio es obligatoria")
     @Column(name = "fecha_inicio", nullable = false)

@@ -7,10 +7,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
+import uteq.edu.ec.artisync.dto.peticion.social.CreateReviewRequest;
+import uteq.edu.ec.artisync.dto.respuesta.social.ReviewResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.social.ResenaService;
+import uteq.edu.ec.artisync.service.social.ReviewService;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,13 +22,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ResenaControladorTest {
+class ReviewControllerTest {
 
     @Mock
-    private ResenaService resenaService;
+    private ReviewService resenaService;
 
     @InjectMocks
-    private ResenaControlador controlador;
+    private ReviewController controlador;
 
     private CustomUserDetails mockUserDetails() {
         CustomUserDetails user = mock(CustomUserDetails.class);
@@ -39,11 +39,11 @@ class ResenaControladorTest {
     @Test
     void crearResena_devuelveCreated() {
         CustomUserDetails user = mockUserDetails();
-        PeticionCrearResena peticion = new PeticionCrearResena();
-        RespuestaResena respuesta = new RespuestaResena();
+        CreateReviewRequest peticion = new CreateReviewRequest();
+        ReviewResponse respuesta = new ReviewResponse();
         when(resenaService.crearResena(10L, peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaResena> res = controlador.crearResena(10L, peticion, user);
+        ResponseEntity<ReviewResponse> res = controlador.crearResena(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -51,10 +51,10 @@ class ResenaControladorTest {
     @Test
     void obtenerMiResena_conResena_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        RespuestaResena respuesta = new RespuestaResena();
+        ReviewResponse respuesta = new ReviewResponse();
         when(resenaService.obtenerMiResena(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaResena> res = controlador.obtenerMiResena(10L, user);
+        ResponseEntity<ReviewResponse> res = controlador.obtenerMiResena(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -64,18 +64,18 @@ class ResenaControladorTest {
         CustomUserDetails user = mockUserDetails();
         when(resenaService.obtenerMiResena(10L, 1L)).thenReturn(null);
 
-        ResponseEntity<RespuestaResena> res = controlador.obtenerMiResena(10L, user);
+        ResponseEntity<ReviewResponse> res = controlador.obtenerMiResena(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
     void actualizarResena_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        PeticionCrearResena peticion = new PeticionCrearResena();
-        RespuestaResena respuesta = new RespuestaResena();
+        CreateReviewRequest peticion = new CreateReviewRequest();
+        ReviewResponse respuesta = new ReviewResponse();
         when(resenaService.actualizarResena(10L, peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaResena> res = controlador.actualizarResena(10L, peticion, user);
+        ResponseEntity<ReviewResponse> res = controlador.actualizarResena(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -89,10 +89,10 @@ class ResenaControladorTest {
 
     @Test
     void listarResenas_devuelveOk() {
-        List<RespuestaResena> lista = Collections.emptyList();
+        List<ReviewResponse> lista = Collections.emptyList();
         when(resenaService.listarResenasPorCreador(10L)).thenReturn(lista);
 
-        ResponseEntity<List<RespuestaResena>> res = controlador.listarResenas(10L);
+        ResponseEntity<List<ReviewResponse>> res = controlador.listarResenas(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }

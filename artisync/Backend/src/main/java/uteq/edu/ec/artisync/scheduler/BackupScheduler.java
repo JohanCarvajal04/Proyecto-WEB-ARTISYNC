@@ -14,7 +14,7 @@ import java.util.List;
  * Tarea programada que dispara los respaldos cuya programación está vencida.
  * Requiere @EnableScheduling en ArtisyncApplication (ya presente).
  *
- * Se ejecuta cada 60 segundos, mismo patrón que SorteoScheduler: sin
+ * Se ejecuta cada 60 segundos, mismo patrón que RaffleScheduler: sin
  * @Transactional en el bucle (cada respaldo se procesa en su propia unidad de
  * trabajo dentro de BackupExecutorService) y try/catch por elemento, para
  * que un fallo en una programación no bloquee el resto.

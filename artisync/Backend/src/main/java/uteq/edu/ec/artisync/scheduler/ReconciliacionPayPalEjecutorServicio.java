@@ -21,7 +21,7 @@ import uteq.edu.ec.artisync.service.shared.paypal.PayPalClient;
 
 /**
  * Extraído de ReconciliacionPayPalScheduler para que REQUIRES_NEW funcione de
- * verdad (mismo motivo documentado en SorteoEjecutorServicio: this.metodo()
+ * verdad (mismo motivo documentado en RaffleExecutorService: this.metodo()
  * dentro de la misma clase se salta el proxy de Spring AOP).
  *
  * No reutiliza los métodos privados de PaymentServiceImpl (capturarOrden,

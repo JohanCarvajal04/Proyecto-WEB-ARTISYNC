@@ -21,8 +21,8 @@ import java.time.LocalDateTime;
  * vía IncrementalBackupExporter). Bean separado de
  * BackupExecutorService a propósito: @Async no aplica en auto-invocación
  * (this.metodo()), así que el método anotado debe vivir en un bean distinto
- * del que lo invoca — mismo motivo por el que SorteoScheduler delega en
- * SorteoEjecutorServicio en vez de hacerlo todo en una clase.
+ * del que lo invoca — mismo motivo por el que RaffleScheduler delega en
+ * RaffleExecutorService en vez de hacerlo todo en una clase.
  *
  * Sin @Transactional de clase/método a propósito: envolver todo el
  * pg_dump/COPY (que puede tardar minutos) en una única transacción Spring

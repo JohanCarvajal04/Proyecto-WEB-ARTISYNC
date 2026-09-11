@@ -23,7 +23,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PremioSorteo {
+public class RafflePrize {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +33,7 @@ public class PremioSorteo {
     @NotNull(message = "El sorteo es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_sorteo", nullable = false)
-    private Sorteo sorteo;
+    private Raffle sorteo;
 
     @NotBlank(message = "La descripcion del premio es obligatoria")
     @Size(max = 255, message = "La descripcion del premio no puede superar los 255 caracteres")

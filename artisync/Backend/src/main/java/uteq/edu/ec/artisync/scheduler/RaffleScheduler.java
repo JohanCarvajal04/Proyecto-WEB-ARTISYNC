@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uteq.edu.ec.artisync.entity.social.Sorteo;
-import uteq.edu.ec.artisync.repository.social.SorteoRepository;
+import uteq.edu.ec.artisync.entity.social.Raffle;
+import uteq.edu.ec.artisync.repository.social.RaffleRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,10 +20,10 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SorteoScheduler {
+public class RaffleScheduler {
 
-    private final SorteoRepository sorteoRepository;
-    private final SorteoEjecutorServicio sorteoEjecutorServicio;
+    private final RaffleRepository sorteoRepository;
+    private final RaffleExecutorService sorteoEjecutorServicio;
 
     /**
      * Se ejecuta cada 60 segundos.
@@ -35,24 +35,24 @@ public class SorteoScheduler {
      * libera, así que los sorteos siguientes fallarían en cascada y, al no
      * poder confirmar el método, Spring revertiría también los ya procesados
      * con éxito. Cada sorteo se procesa en su propia transacción
-     * (SorteoEjecutorServicio.ejecutarSorteo, REQUIRES_NEW).
+     * (RaffleExecutorService.ejecutarSorteo, REQUIRES_NEW).
      */
     @Scheduled(fixedRate = 60_000)
     public void procesarSorteosCerrados() {
-        List<Sorteo> sorteosPendientes = sorteoRepository
+        List<Raffle> sorteosPendientes = sorteoRepository
                 .findByEstadoSorteoAndFechaCierreBefore("Activo", LocalDateTime.now());
 
         if (sorteosPendientes.isEmpty()) {
             return; // Nada que procesar
         }
 
-        log.info("[SorteoScheduler] Procesando {} sorteo(s) cerrado(s)...", sorteosPendientes.size());
+        log.info("[RaffleScheduler] Procesando {} sorteo(s) cerrado(s)...", sorteosPendientes.size());
 
-        for (Sorteo sorteo : sorteosPendientes) {
+        for (Raffle sorteo : sorteosPendientes) {
             try {
                 sorteoEjecutorServicio.ejecutarSorteo(sorteo);
             } catch (Exception e) {
-                log.error("[SorteoScheduler] Error al procesar sorteo {}: {}",
+                log.error("[RaffleScheduler] Error al procesar sorteo {}: {}",
                         sorteo.getIdSorteo(), e.getMessage(), e);
             }
         }

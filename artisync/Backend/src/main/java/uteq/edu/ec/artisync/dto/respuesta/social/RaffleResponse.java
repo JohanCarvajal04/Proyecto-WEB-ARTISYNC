@@ -13,7 +13,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RespuestaSorteo {
+public class RaffleResponse {
 
     private Long idSorteo;
     private String tituloSorteo;
@@ -34,8 +34,8 @@ public class RespuestaSorteo {
     private boolean yoParticipo;
 
     /** Lista de ganadores — solo se incluye si estadoSorteo = 'Finalizado'. */
-    private List<RespuestaGanador> ganadores;
+    private List<WinnerResponse> ganadores;
 
     /** Premios individuales del sorteo, en orden. Cada uno con su ganador si ya está definido. */
-    private List<RespuestaPremio> premios;
+    private List<PrizeResponse> premios;
 }

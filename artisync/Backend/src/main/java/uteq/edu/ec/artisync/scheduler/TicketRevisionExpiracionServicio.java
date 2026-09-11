@@ -15,7 +15,7 @@ import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 /**
  * Extraído de TicketRevisionExpiracionScheduler para que REQUIRES_NEW funcione
- * de verdad (mismo motivo documentado en SorteoEjecutorServicio).
+ * de verdad (mismo motivo documentado en RaffleExecutorService).
  */
 @Slf4j
 @Component

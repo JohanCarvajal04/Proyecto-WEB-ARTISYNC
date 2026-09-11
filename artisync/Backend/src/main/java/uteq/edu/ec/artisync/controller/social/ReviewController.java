@@ -9,10 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearResena;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaResena;
+import uteq.edu.ec.artisync.dto.peticion.social.CreateReviewRequest;
+import uteq.edu.ec.artisync.dto.respuesta.social.ReviewResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.social.ResenaService;
+import uteq.edu.ec.artisync.service.social.ReviewService;
 
 import java.util.List;
 import java.util.Map;
@@ -24,9 +24,9 @@ import java.util.Map;
 @Tag(name = "Reseñas", description = "Reseñas y calificaciones de servicios 1-5 estrellas")
 @RestController
 @RequiredArgsConstructor
-public class ResenaControlador {
+public class ReviewController {
 
-    private final ResenaService resenaService;
+    private final ReviewService resenaService;
 
     /**
      * Crea una reseña para un pedido cuyo entregable ya fue liberado.
@@ -43,9 +43,9 @@ public class ResenaControlador {
     @PostMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<RespuestaResena> crearResena(
+    public ResponseEntity<ReviewResponse> crearResena(
             @PathVariable Long idPedido,
-            @Valid @RequestBody PeticionCrearResena peticion,
+            @Valid @RequestBody CreateReviewRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));
@@ -61,10 +61,10 @@ public class ResenaControlador {
     @Operation(summary = "Obtener mi reseña de un pedido, si existe (CLIENTE)")
     @GetMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaResena> obtenerMiResena(
+    public ResponseEntity<ReviewResponse> obtenerMiResena(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RespuestaResena resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());
+        ReviewResponse resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());
         return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();
     }
 
@@ -80,9 +80,9 @@ public class ResenaControlador {
     @Operation(summary = "Editar mi reseña de un pedido (CLIENTE)")
     @PutMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaResena> actualizarResena(
+    public ResponseEntity<ReviewResponse> actualizarResena(
             @PathVariable Long idPedido,
-            @Valid @RequestBody PeticionCrearResena peticion,
+            @Valid @RequestBody CreateReviewRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));
     }
@@ -112,7 +112,7 @@ public class ResenaControlador {
      */
     @Operation(summary = "Listar reseñas de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas")
-    public ResponseEntity<List<RespuestaResena>> listarResenas(@PathVariable Long idPerfil) {
+    public ResponseEntity<List<ReviewResponse>> listarResenas(@PathVariable Long idPerfil) {
         return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));
     }
 

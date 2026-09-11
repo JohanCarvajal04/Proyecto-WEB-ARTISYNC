@@ -8,30 +8,30 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.entity.social.Sorteo;
+import uteq.edu.ec.artisync.entity.social.Raffle;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.repository.social.SorteoRepository;
+import uteq.edu.ec.artisync.repository.social.RaffleRepository;
 import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 
 /**
- * Extraído de SorteoScheduler para que REQUIRES_NEW funcione de verdad: un
+ * Extraído de RaffleScheduler para que REQUIRES_NEW funcione de verdad: un
  * método @Transactional llamado desde dentro de la misma clase (this.metodo())
  * se salta el proxy de Spring AOP, así que la anotación se ignoraría en
- * silencio. Al vivir en un bean distinto, SorteoScheduler lo invoca a través
+ * silencio. Al vivir en un bean distinto, RaffleScheduler lo invoca a través
  * del proxy real y cada sorteo queda en su propia transacción.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SorteoEjecutorServicio {
+public class RaffleExecutorService {
 
-    private final SorteoRepository sorteoRepository;
+    private final RaffleRepository sorteoRepository;
     private final UserRepository usuarioRepository;
     private final NotificationService notificacionService;
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void ejecutarSorteo(Sorteo sorteo) {
+    public void ejecutarSorteo(Raffle sorteo) {
         // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria
         // (ORDER BY random()) y la actualizacion masiva de participantes+sorteo
         // en el motor, en vez de Collections.shuffle en Java seguido de un save()
@@ -42,7 +42,7 @@ public class SorteoEjecutorServicio {
         JsonNode ganadoresNode = resultado.get("ganadores");
 
         if (ganadoresNode == null || !ganadoresNode.isArray() || ganadoresNode.isEmpty()) {
-            log.info("[SorteoScheduler] Sorteo {} finalizado sin ganadores (estado={}).",
+            log.info("[RaffleScheduler] Raffle {} finalizado sin ganadores (estado={}).",
                     sorteo.getIdSorteo(), estado);
             return;
         }
@@ -62,7 +62,7 @@ public class SorteoEjecutorServicio {
             notificacionService.notificar(usuario, "SORTEO_GANADOR", mensaje);
         }
 
-        log.info("[SorteoScheduler] Sorteo '{}' (ID={}) finalizado. {} ganador(es).",
+        log.info("[RaffleScheduler] Raffle '{}' (ID={}) finalizado. {} ganador(es).",
                 tituloSorteo, sorteo.getIdSorteo(), ganadoresNode.size());
     }
 

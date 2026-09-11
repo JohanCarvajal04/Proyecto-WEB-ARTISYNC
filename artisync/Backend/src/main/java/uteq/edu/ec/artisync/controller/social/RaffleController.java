@@ -9,14 +9,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
+import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
+import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
-import uteq.edu.ec.artisync.service.social.SorteoService;
+import uteq.edu.ec.artisync.service.social.RaffleService;
 
 import java.util.List;
 
@@ -27,9 +27,9 @@ import java.util.List;
 @Tag(name = "Sorteos", description = "Gestión de sorteos configurables por el creador")
 @RestController
 @RequiredArgsConstructor
-public class SorteoControlador {
+public class RaffleController {
 
-    private final SorteoService sorteoService;
+    private final RaffleService sorteoService;
 
     // =========================================================================
     // CRUD de Sorteos
@@ -47,8 +47,8 @@ public class SorteoControlador {
     @PostMapping("/api/v1/sorteos")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<RespuestaSorteo> crearSorteo(
-            @Valid @RequestBody PeticionCrearSorteo peticion,
+    public ResponseEntity<RaffleResponse> crearSorteo(
+            @Valid @RequestBody CreateRaffleRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));
@@ -64,7 +64,7 @@ public class SorteoControlador {
      */
     @Operation(summary = "Obtener detalle de un sorteo (público)")
     @GetMapping("/api/v1/sorteos/{idSorteo}")
-    public ResponseEntity<RespuestaSorteo> obtenerSorteo(
+    public ResponseEntity<RaffleResponse> obtenerSorteo(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;
@@ -84,9 +84,9 @@ public class SorteoControlador {
     @Operation(summary = "Editar un sorteo (CREADOR, con restricciones)")
     @PutMapping("/api/v1/sorteos/{idSorteo}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaSorteo> actualizarSorteo(
+    public ResponseEntity<RaffleResponse> actualizarSorteo(
             @PathVariable Long idSorteo,
-            @Valid @RequestBody PeticionActualizarSorteo peticion,
+            @Valid @RequestBody UpdateRaffleRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
                 sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));
@@ -119,7 +119,7 @@ public class SorteoControlador {
      */
     @Operation(summary = "Listar sorteos de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/sorteos")
-    public ResponseEntity<List<RespuestaSorteo>> listarSorteosPorCreador(
+    public ResponseEntity<List<RaffleResponse>> listarSorteosPorCreador(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;
@@ -134,7 +134,7 @@ public class SorteoControlador {
      */
     @Operation(summary = "Listar sorteos activos (público)")
     @GetMapping("/api/v1/sorteos/activos")
-    public ResponseEntity<List<RespuestaSorteo>> listarSorteosActivos(
+    public ResponseEntity<List<RaffleResponse>> listarSorteosActivos(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;
         return ResponseEntity.ok(sorteoService.listarSorteosActivos(idUsuarioActual));
@@ -158,7 +158,7 @@ public class SorteoControlador {
     @PostMapping("/api/v1/sorteos/{idSorteo}/participar")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<RespuestaParticipante> participar(
+    public ResponseEntity<ParticipantResponse> participar(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -193,7 +193,7 @@ public class SorteoControlador {
      */
     @Operation(summary = "Listar participantes de un sorteo")
     @GetMapping("/api/v1/sorteos/{idSorteo}/participantes")
-    public ResponseEntity<List<RespuestaParticipante>> listarParticipantes(
+    public ResponseEntity<List<ParticipantResponse>> listarParticipantes(
             @PathVariable Long idSorteo) {
         return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));
     }
@@ -207,7 +207,7 @@ public class SorteoControlador {
      */
     @Operation(summary = "Ver ganadores del sorteo (solo post-cierre)")
     @GetMapping("/api/v1/sorteos/{idSorteo}/ganadores")
-    public ResponseEntity<List<RespuestaGanador>> listarGanadores(
+    public ResponseEntity<List<WinnerResponse>> listarGanadores(
             @PathVariable Long idSorteo) {
         return ResponseEntity.ok(sorteoService.listarGanadores(idSorteo));
     }

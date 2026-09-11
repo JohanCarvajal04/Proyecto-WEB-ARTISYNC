@@ -1,11 +1,11 @@
 package uteq.edu.ec.artisync.service.social;
 
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
+import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
+import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ import java.util.List;
  * Offering de sorteos configurables.
  * RF-23: CRUD de sorteos, inscripción con validaciones y selección automática de ganadores.
  */
-public interface SorteoService {
+public interface RaffleService {
 
     // --- CRUD de sorteos (CREADOR) ---
 
@@ -26,7 +26,7 @@ public interface SorteoService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador activo
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la fecha de cierre no es posterior a la de inicio o la cantidad de premios no coincide con la cantidad de ganadores
      */
-    RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion);
+    RaffleResponse crearSorteo(Long idUsuario, CreateRaffleRequest peticion);
 
     /**
      * Obtiene el detalle de un sorteo. Indica si el usuario actual ya participa.
@@ -36,7 +36,7 @@ public interface SorteoService {
      * @return el detalle del sorteo
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
-    RespuestaSorteo obtenerSorteo(Long idSorteo, Long idUsuarioActual);
+    RaffleResponse obtenerSorteo(Long idSorteo, Long idUsuarioActual);
 
     /**
      * Actualiza un sorteo. Aplica restricciones de la guía:
@@ -49,7 +49,7 @@ public interface SorteoService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no tiene perfil de creador
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta modificar cantidad de ganadores, premios o fecha de cierre con participantes ya inscritos, o la nueva fecha de cierre es anterior a la de inicio
      */
-    RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion);
+    RaffleResponse actualizarSorteo(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion);
 
     /**
      * Elimina un sorteo solo si no tiene participantes y pertenece al creador.
@@ -69,7 +69,7 @@ public interface SorteoService {
      * @param idUsuarioActual id del usuario que consulta, o {@code null} si es anónimo
      * @return los sorteos del creador
      */
-    List<RespuestaSorteo> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual);
+    List<RaffleResponse> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual);
 
     /**
      * Lista todos los sorteos activos (público).
@@ -77,7 +77,7 @@ public interface SorteoService {
      * @param idUsuarioActual id del usuario que consulta, o {@code null} si es anónimo
      * @return los sorteos actualmente activos
      */
-    List<RespuestaSorteo> listarSorteosActivos(Long idUsuarioActual);
+    List<RaffleResponse> listarSorteosActivos(Long idUsuarioActual);
 
     // --- Participación ---
 
@@ -91,7 +91,7 @@ public interface SorteoService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito en el sorteo
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no está activo, está fuera del rango de fechas o exige seguir al creador y el usuario no lo sigue
      */
-    RespuestaParticipante participar(Long idSorteo, Long idUsuario);
+    ParticipantResponse participar(Long idSorteo, Long idUsuario);
 
     /**
      * Cancela la inscripción del usuario si el sorteo todavía está activo.
@@ -111,7 +111,7 @@ public interface SorteoService {
      * @return los participantes inscritos en el sorteo
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
-    List<RespuestaParticipante> listarParticipantes(Long idSorteo);
+    List<ParticipantResponse> listarParticipantes(Long idSorteo);
 
     /**
      * Lista los ganadores de un sorteo (solo post-cierre).
@@ -120,5 +120,5 @@ public interface SorteoService {
      * @return los ganadores del sorteo, con su premio asignado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
-    List<RespuestaGanador> listarGanadores(Long idSorteo);
+    List<WinnerResponse> listarGanadores(Long idSorteo);
 }

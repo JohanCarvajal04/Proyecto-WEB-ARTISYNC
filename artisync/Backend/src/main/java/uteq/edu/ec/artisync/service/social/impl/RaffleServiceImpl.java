@@ -8,16 +8,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uteq.edu.ec.artisync.audit.Auditable;
 import uteq.edu.ec.artisync.audit.AuditModule;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
+import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaPremio;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
-import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
-import uteq.edu.ec.artisync.entity.social.PremioSorteo;
-import uteq.edu.ec.artisync.entity.social.Sorteo;
+import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.PrizeResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
+import uteq.edu.ec.artisync.entity.social.RaffleParticipant;
+import uteq.edu.ec.artisync.entity.social.RafflePrize;
+import uteq.edu.ec.artisync.entity.social.Raffle;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -25,9 +25,9 @@ import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.FollowerRepository;
 import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
-import uteq.edu.ec.artisync.repository.social.SorteoRepository;
-import uteq.edu.ec.artisync.service.social.SorteoService;
+import uteq.edu.ec.artisync.repository.social.RaffleParticipantRepository;
+import uteq.edu.ec.artisync.repository.social.RaffleRepository;
+import uteq.edu.ec.artisync.service.social.RaffleService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -44,10 +44,10 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SorteoServiceImpl implements SorteoService {
+public class RaffleServiceImpl implements RaffleService {
 
-    private final SorteoRepository sorteoRepository;
-    private final ParticipanteSorteoRepository participanteSorteoRepository;
+    private final RaffleRepository sorteoRepository;
+    private final RaffleParticipantRepository participanteSorteoRepository;
     private final CreatorProfileRepository perfilCreadorRepository;
     private final UserRepository usuarioRepository;
     private final FollowerRepository seguidorRepository;
@@ -69,7 +69,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaSorteo crearSorteo(Long idUsuario, PeticionCrearSorteo peticion) {
+    public RaffleResponse crearSorteo(Long idUsuario, CreateRaffleRequest peticion) {
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No tienes un perfil de creador activo"));
@@ -81,7 +81,7 @@ public class SorteoServiceImpl implements SorteoService {
 
         validarCantidadPremios(peticion.getPremios().size(), peticion.getCantidadGanadores());
 
-        Sorteo sorteo = Sorteo.builder()
+        Raffle sorteo = Raffle.builder()
                 .perfilCreador(perfil)
                 .tituloSorteo(peticion.getTituloSorteo())
                 .cantidadGanadores(peticion.getCantidadGanadores())
@@ -93,7 +93,7 @@ public class SorteoServiceImpl implements SorteoService {
         sorteo.setPremios(construirPremios(sorteo, peticion.getPremios()));
 
         sorteo = sorteoRepository.save(sorteo);
-        log.info("Sorteo '{}' creado por usuario {}", sorteo.getTituloSorteo(), idUsuario);
+        log.info("Raffle '{}' creado por usuario {}", sorteo.getTituloSorteo(), idUsuario);
         return mapToResponse(sorteo, null, 0L, false);
     }
 
@@ -106,10 +106,10 @@ public class SorteoServiceImpl implements SorteoService {
         }
     }
 
-    private List<PremioSorteo> construirPremios(Sorteo sorteo, List<String> descripciones) {
-        List<PremioSorteo> premios = new ArrayList<>();
+    private List<RafflePrize> construirPremios(Raffle sorteo, List<String> descripciones) {
+        List<RafflePrize> premios = new ArrayList<>();
         for (int i = 0; i < descripciones.size(); i++) {
-            premios.add(PremioSorteo.builder()
+            premios.add(RafflePrize.builder()
                     .sorteo(sorteo)
                     .descripcionPremio(descripciones.get(i))
                     .orden(i + 1)
@@ -128,13 +128,13 @@ public class SorteoServiceImpl implements SorteoService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaSorteo obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
-        Sorteo sorteo = findSorteoOrThrow(idSorteo);
+    public RaffleResponse obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
+        Raffle sorteo = findSorteoOrThrow(idSorteo);
         long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();
         boolean yoParticipo = idUsuarioActual != null &&
                 participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuarioActual);
 
-        List<RespuestaGanador> ganadores = obtenerGanadoresSiFinalizado(sorteo);
+        List<WinnerResponse> ganadores = obtenerGanadoresSiFinalizado(sorteo);
         return mapToResponse(sorteo, ganadores, total, yoParticipo);
     }
 
@@ -143,7 +143,7 @@ public class SorteoServiceImpl implements SorteoService {
      * como en los listados, para que las tarjetas de la lista muestren el premio
      * de cada quien sin depender de abrir el detalle del sorteo.
      */
-    private List<RespuestaGanador> obtenerGanadoresSiFinalizado(Sorteo sorteo) {
+    private List<WinnerResponse> obtenerGanadoresSiFinalizado(Raffle sorteo) {
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {
             return null;
         }
@@ -165,8 +165,8 @@ public class SorteoServiceImpl implements SorteoService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaSorteo actualizarSorteo(Long idSorteo, Long idUsuario, PeticionActualizarSorteo peticion) {
-        Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
+    public RaffleResponse actualizarSorteo(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion) {
+        Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
         boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);
 
         if (tieneParticipantes) {
@@ -225,14 +225,14 @@ public class SorteoServiceImpl implements SorteoService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
-        Sorteo sorteo = verificarPropietario(idSorteo, idUsuario);
+        Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
             throw new BusinessRuleException(
                     "No se puede eliminar un sorteo con participantes inscritos");
         }
         sorteoRepository.delete(sorteo);
-        log.info("Sorteo {} eliminado por usuario {}", idSorteo, idUsuario);
-        return new RespuestaMensaje("Sorteo eliminado correctamente");
+        log.info("Raffle {} eliminado por usuario {}", idSorteo, idUsuario);
+        return new RespuestaMensaje("Raffle eliminado correctamente");
     }
 
     @Override
@@ -245,7 +245,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<RespuestaSorteo> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
+    public List<RaffleResponse> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
         return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)
                 .stream()
                 .map(s -> {
@@ -267,7 +267,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<RespuestaSorteo> listarSorteosActivos(Long idUsuarioActual) {
+    public List<RaffleResponse> listarSorteosActivos(Long idUsuarioActual) {
         return sorteoRepository.findByEstadoSorteo("Activo")
                 .stream()
                 .map(s -> {
@@ -294,8 +294,8 @@ public class SorteoServiceImpl implements SorteoService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaParticipante participar(Long idSorteo, Long idUsuario) {
-        Sorteo sorteo = findSorteoOrThrow(idSorteo);
+    public ParticipantResponse participar(Long idSorteo, Long idUsuario) {
+        Raffle sorteo = findSorteoOrThrow(idSorteo);
 
         // Validar estado
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
@@ -327,7 +327,7 @@ public class SorteoServiceImpl implements SorteoService {
         }
 
         User usuario = usuarioRepository.getReferenceById(idUsuario);
-        ParticipanteSorteo participante = ParticipanteSorteo.builder()
+        RaffleParticipant participante = RaffleParticipant.builder()
                 .sorteo(sorteo)
                 .usuario(usuario)
                 .esGanador(false)
@@ -348,11 +348,11 @@ public class SorteoServiceImpl implements SorteoService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario) {
-        Sorteo sorteo = findSorteoOrThrow(idSorteo);
+        Raffle sorteo = findSorteoOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
             throw new BusinessRuleException("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
         }
-        ParticipanteSorteo participante = participanteSorteoRepository
+        RaffleParticipant participante = participanteSorteoRepository
                 .findBySorteoIdSorteo(idSorteo)
                 .stream()
                 .filter(p -> p.getUsuario().getIdUsuario().equals(idUsuario))
@@ -372,7 +372,7 @@ public class SorteoServiceImpl implements SorteoService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<RespuestaParticipante> listarParticipantes(Long idSorteo) {
+    public List<ParticipantResponse> listarParticipantes(Long idSorteo) {
         findSorteoOrThrow(idSorteo); // Valida que existe
         return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)
                 .stream().map(this::mapToParticipanteResponse).collect(Collectors.toList());
@@ -387,8 +387,8 @@ public class SorteoServiceImpl implements SorteoService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<RespuestaGanador> listarGanadores(Long idSorteo) {
-        Sorteo sorteo = findSorteoOrThrow(idSorteo);
+    public List<WinnerResponse> listarGanadores(Long idSorteo) {
+        Raffle sorteo = findSorteoOrThrow(idSorteo);
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Los ganadores solo están disponibles después del cierre del sorteo");
@@ -401,13 +401,13 @@ public class SorteoServiceImpl implements SorteoService {
     // Helpers privados
     // =========================================================================
 
-    private Sorteo findSorteoOrThrow(Long idSorteo) {
+    private Raffle findSorteoOrThrow(Long idSorteo) {
         return sorteoRepository.findById(idSorteo)
-                .orElseThrow(() -> new ResourceNotFoundException("Sorteo no encontrado: " + idSorteo));
+                .orElseThrow(() -> new ResourceNotFoundException("Raffle no encontrado: " + idSorteo));
     }
 
-    private Sorteo verificarPropietario(Long idSorteo, Long idUsuario) {
-        Sorteo sorteo = findSorteoOrThrow(idSorteo);
+    private Raffle verificarPropietario(Long idSorteo, Long idUsuario) {
+        Raffle sorteo = findSorteoOrThrow(idSorteo);
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No tienes perfil de creador"));
         if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
@@ -417,9 +417,9 @@ public class SorteoServiceImpl implements SorteoService {
         return sorteo;
     }
 
-    private RespuestaSorteo mapToResponse(Sorteo sorteo, List<RespuestaGanador> ganadores,
+    private RaffleResponse mapToResponse(Raffle sorteo, List<WinnerResponse> ganadores,
                                           long total, boolean yoParticipo) {
-        return RespuestaSorteo.builder()
+        return RaffleResponse.builder()
                 .idSorteo(sorteo.getIdSorteo())
                 .tituloSorteo(sorteo.getTituloSorteo())
                 .cantidadGanadores(sorteo.getCantidadGanadores())
@@ -438,17 +438,17 @@ public class SorteoServiceImpl implements SorteoService {
     }
 
     /** Cruza cada premio del sorteo con su ganador (si ya hubo sorteo y ese premio fue asignado). */
-    private List<RespuestaPremio> mapToPremiosResponse(Sorteo sorteo, List<RespuestaGanador> ganadores) {
-        Map<Long, RespuestaGanador> ganadorPorPremio = new HashMap<>();
+    private List<PrizeResponse> mapToPremiosResponse(Raffle sorteo, List<WinnerResponse> ganadores) {
+        Map<Long, WinnerResponse> ganadorPorPremio = new HashMap<>();
         if (ganadores != null) {
-            for (RespuestaGanador g : ganadores) {
+            for (WinnerResponse g : ganadores) {
                 if (g.getIdPremio() != null) {
                     ganadorPorPremio.put(g.getIdPremio(), g);
                 }
             }
         }
         return sorteo.getPremios().stream()
-                .map(p -> RespuestaPremio.builder()
+                .map(p -> PrizeResponse.builder()
                         .idPremio(p.getIdPremio())
                         .descripcionPremio(p.getDescripcionPremio())
                         .orden(p.getOrden())
@@ -457,8 +457,8 @@ public class SorteoServiceImpl implements SorteoService {
                 .collect(Collectors.toList());
     }
 
-    private RespuestaParticipante mapToParticipanteResponse(ParticipanteSorteo p) {
-        return RespuestaParticipante.builder()
+    private ParticipantResponse mapToParticipanteResponse(RaffleParticipant p) {
+        return ParticipantResponse.builder()
                 .idParticipacion(p.getIdParticipacion())
                 .idUsuario(p.getUsuario().getIdUsuario())
                 .nombreUsuario(p.getUsuario().getNombres() + " " + p.getUsuario().getApellidos())
@@ -467,8 +467,8 @@ public class SorteoServiceImpl implements SorteoService {
                 .build();
     }
 
-    private RespuestaGanador mapToGanadorResponse(ParticipanteSorteo p) {
-        return RespuestaGanador.builder()
+    private WinnerResponse mapToGanadorResponse(RaffleParticipant p) {
+        return WinnerResponse.builder()
                 .idParticipacion(p.getIdParticipacion())
                 .idUsuario(p.getUsuario().getIdUsuario())
                 .nombreUsuario(p.getUsuario().getNombres() + " " + p.getUsuario().getApellidos())

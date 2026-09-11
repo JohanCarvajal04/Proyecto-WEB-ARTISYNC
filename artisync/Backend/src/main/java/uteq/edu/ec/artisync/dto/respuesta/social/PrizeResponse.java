@@ -11,12 +11,12 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RespuestaPremio {
+public class PrizeResponse {
 
     private Long idPremio;
     private String descripcionPremio;
     private Integer orden;
 
     /** Nulo si el sorteo no ha finalizado, o si por falta de participantes este premio no se asignó. */
-    private RespuestaGanador ganador;
+    private WinnerResponse ganador;
 }

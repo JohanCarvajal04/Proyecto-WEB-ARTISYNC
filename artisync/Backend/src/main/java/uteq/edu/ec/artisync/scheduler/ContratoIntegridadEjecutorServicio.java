@@ -10,7 +10,7 @@ import uteq.edu.ec.artisync.service.legal.IContractService;
 
 /**
  * Extraído de ContratoIntegridadScheduler para que REQUIRES_NEW funcione de
- * verdad (mismo motivo documentado en SorteoEjecutorServicio). A diferencia de
+ * verdad (mismo motivo documentado en RaffleExecutorService). A diferencia de
  * ReconciliacionPayPalEjecutorServicio y TicketRevisionExpiracionServicio, sí
  * reutiliza el servicio principal (IContractService.verificarIntegridadHash):
  * es una lectura sin efectos secundarios financieros, así que el riesgo que

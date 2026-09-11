@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RespuestaResena {
+public class ReviewResponse {
 
     private Long idResena;
     private Integer calificacionEstrellas;

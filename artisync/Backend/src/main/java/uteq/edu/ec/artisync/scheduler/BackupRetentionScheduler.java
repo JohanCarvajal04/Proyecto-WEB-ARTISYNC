@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * Purga diaria de respaldos vencidos según su retención (REQ-NF-024). Mismo
  * patrón de job de mantenimiento diario best-effort que SeguridadPurgaScheduler
  * -- corre a las 4:00 AM, después de esa (3:30), para no competir por I/O de
- * disco con ella ni con VerificacionScheduler/SorteoScheduler.
+ * disco con ella ni con VerificacionScheduler/RaffleScheduler.
  */
 @Slf4j
 @Component

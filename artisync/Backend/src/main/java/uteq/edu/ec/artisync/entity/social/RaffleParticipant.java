@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ParticipanteSorteo {
+public class RaffleParticipant {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,7 +27,7 @@ public class ParticipanteSorteo {
     @NotNull(message = "El sorteo es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_sorteo", nullable = false)
-    private Sorteo sorteo;
+    private Raffle sorteo;
 
     @NotNull(message = "El usuario participante es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,5 +48,5 @@ public class ParticipanteSorteo {
     /** Premio ganado. Nulo mientras no sea ganador o si el sorteo aun no se ha cerrado. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_premio")
-    private PremioSorteo premio;
+    private RafflePrize premio;
 }

@@ -9,25 +9,25 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo;
-import uteq.edu.ec.artisync.dto.peticion.social.PeticionCrearSorteo;
+import uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest;
+import uteq.edu.ec.artisync.dto.peticion.social.CreateRaffleRequest;
 import uteq.edu.ec.artisync.dto.respuesta.comun.RespuestaMensaje;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaGanador;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaParticipante;
-import uteq.edu.ec.artisync.dto.respuesta.social.RespuestaSorteo;
+import uteq.edu.ec.artisync.dto.respuesta.social.WinnerResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.ParticipantResponse;
+import uteq.edu.ec.artisync.dto.respuesta.social.RaffleResponse;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
-import uteq.edu.ec.artisync.entity.social.ParticipanteSorteo;
-import uteq.edu.ec.artisync.entity.social.PremioSorteo;
-import uteq.edu.ec.artisync.entity.social.Sorteo;
+import uteq.edu.ec.artisync.entity.social.RaffleParticipant;
+import uteq.edu.ec.artisync.entity.social.RafflePrize;
+import uteq.edu.ec.artisync.entity.social.Raffle;
 import uteq.edu.ec.artisync.exception.DuplicateResourceException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.comunicacion.FollowerRepository;
 import uteq.edu.ec.artisync.repository.perfil.CreatorProfileRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
-import uteq.edu.ec.artisync.repository.social.ParticipanteSorteoRepository;
-import uteq.edu.ec.artisync.repository.social.SorteoRepository;
+import uteq.edu.ec.artisync.repository.social.RaffleParticipantRepository;
+import uteq.edu.ec.artisync.repository.social.RaffleRepository;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -42,24 +42,24 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
- * Pruebas unitarias para SorteoServiceImpl.
+ * Pruebas unitarias para RaffleServiceImpl.
  * RF-23: Valida reglas de negocio de sorteos — participación, restricciones de edición y creación.
  */
 @ExtendWith(MockitoExtension.class)
-class SorteoServiceImplTest {
+class RaffleServiceImplTest {
 
-    @Mock private SorteoRepository sorteoRepository;
-    @Mock private ParticipanteSorteoRepository participanteSorteoRepository;
+    @Mock private RaffleRepository sorteoRepository;
+    @Mock private RaffleParticipantRepository participanteSorteoRepository;
     @Mock private CreatorProfileRepository perfilCreadorRepository;
     @Mock private UserRepository usuarioRepository;
     @Mock private FollowerRepository seguidorRepository;
 
     @InjectMocks
-    private SorteoServiceImpl sorteoService;
+    private RaffleServiceImpl sorteoService;
 
     private User usuarioCreador;
     private CreatorProfile perfilCreador;
-    private Sorteo sorteoActivo;
+    private Raffle sorteoActivo;
 
     @BeforeEach
     void setUp() {
@@ -70,10 +70,10 @@ class SorteoServiceImplTest {
         perfilCreador = CreatorProfile.builder()
                 .idPerfil(10L).usuario(usuarioCreador).build();
 
-        sorteoActivo = Sorteo.builder()
+        sorteoActivo = Raffle.builder()
                 .idSorteo(100L)
                 .perfilCreador(perfilCreador)
-                .tituloSorteo("Sorteo de prueba")
+                .tituloSorteo("Raffle de prueba")
                 .cantidadGanadores(2)
                 .fechaInicio(LocalDateTime.now().minusHours(1))
                 .fechaCierre(LocalDateTime.now().plusDays(1))
@@ -81,8 +81,8 @@ class SorteoServiceImplTest {
                 .requiereSeguidor(false)
                 .build();
         sorteoActivo.setPremios(List.of(
-                PremioSorteo.builder().idPremio(1L).sorteo(sorteoActivo).descripcionPremio("Premio A").orden(1).build(),
-                PremioSorteo.builder().idPremio(2L).sorteo(sorteoActivo).descripcionPremio("Premio B").orden(2).build()
+                RafflePrize.builder().idPremio(1L).sorteo(sorteoActivo).descripcionPremio("Premio A").orden(1).build(),
+                RafflePrize.builder().idPremio(2L).sorteo(sorteoActivo).descripcionPremio("Premio B").orden(2).build()
         ));
     }
 
@@ -93,8 +93,8 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("crearSorteo — crea exitosamente con datos válidos")
     void crearSorteo_datosValidos_creaCorrectamente() {
-        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
-                .tituloSorteo("Sorteo test")
+        CreateRaffleRequest peticion = CreateRaffleRequest.builder()
+                .tituloSorteo("Raffle test")
                 .premios(List.of("Premio test"))
                 .cantidadGanadores(1)
                 .fechaInicio(LocalDateTime.now().plusHours(1))
@@ -104,19 +104,19 @@ class SorteoServiceImplTest {
 
         given(perfilCreadorRepository.findByUsuarioIdUsuario(1L))
                 .willReturn(Optional.of(perfilCreador));
-        given(sorteoRepository.save(any(Sorteo.class))).willReturn(sorteoActivo);
+        given(sorteoRepository.save(any(Raffle.class))).willReturn(sorteoActivo);
 
-        RespuestaSorteo resultado = sorteoService.crearSorteo(1L, peticion);
+        RaffleResponse resultado = sorteoService.crearSorteo(1L, peticion);
 
         assertThat(resultado).isNotNull();
-        assertThat(resultado.getTituloSorteo()).isEqualTo("Sorteo de prueba");
-        verify(sorteoRepository).save(any(Sorteo.class));
+        assertThat(resultado.getTituloSorteo()).isEqualTo("Raffle de prueba");
+        verify(sorteoRepository).save(any(Raffle.class));
     }
 
     @Test
     @DisplayName("crearSorteo — lanza BusinessRuleException si fechaCierre es antes de fechaInicio")
     void crearSorteo_fechaCierreAntesInicio_lanzaExcepcion() {
-        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
+        CreateRaffleRequest peticion = CreateRaffleRequest.builder()
                 .tituloSorteo("Mal sorteo")
                 .premios(List.of("Premio"))
                 .cantidadGanadores(1)
@@ -135,8 +135,8 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("crearSorteo — lanza BusinessRuleException si la cantidad de premios no coincide con cantidadGanadores")
     void crearSorteo_premiosNoCoincidenConCantidadGanadores_lanzaExcepcion() {
-        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
-                .tituloSorteo("Sorteo desalineado")
+        CreateRaffleRequest peticion = CreateRaffleRequest.builder()
+                .tituloSorteo("Raffle desalineado")
                 .premios(List.of("Premio único"))
                 .cantidadGanadores(3) // 1 premio, pero pide 3 ganadores
                 .fechaInicio(LocalDateTime.now().plusHours(1))
@@ -156,7 +156,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — lanza BusinessRuleException si los premios enviados no coinciden con cantidadGanadores")
     void actualizarSorteo_premiosNoCoincidenConCantidadGanadores_lanzaExcepcion() {
-        var peticion = PeticionActualizarSorteo.builder()
+        var peticion = UpdateRaffleRequest.builder()
                 .premios(List.of("Solo un premio")) // sorteoActivo tiene cantidadGanadores=2
                 .build();
 
@@ -172,7 +172,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — rechaza cambiar los premios una vez iniciadas las inscripciones")
     void actualizarSorteo_cambiarPremiosConParticipantes_lanzaExcepcion() {
-        var peticion = PeticionActualizarSorteo.builder()
+        var peticion = UpdateRaffleRequest.builder()
                 .premios(List.of("Premio A", "Premio B"))
                 .build();
 
@@ -188,7 +188,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("crearSorteo — lanza recurso no encontrado si el usuario no tiene perfil de creador")
     void crearSorteo_sinPerfilCreador_lanzaExcepcion() {
-        PeticionCrearSorteo peticion = PeticionCrearSorteo.builder()
+        CreateRaffleRequest peticion = CreateRaffleRequest.builder()
                 .fechaInicio(LocalDateTime.now().plusHours(1))
                 .fechaCierre(LocalDateTime.now().plusDays(2))
                 .build();
@@ -202,12 +202,12 @@ class SorteoServiceImplTest {
     @DisplayName("actualizarSorteo — aplica la nueva fecha de cierre cuando no hay participantes")
     void actualizarSorteo_sinParticipantes_aplicaFechaCierre() {
         LocalDateTime nuevaFecha = sorteoActivo.getFechaCierre().plusDays(5);
-        var peticion = PeticionActualizarSorteo.builder().fechaCierre(nuevaFecha).build();
+        var peticion = UpdateRaffleRequest.builder().fechaCierre(nuevaFecha).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
-        given(sorteoRepository.save(any(Sorteo.class))).willReturn(sorteoActivo);
+        given(sorteoRepository.save(any(Raffle.class))).willReturn(sorteoActivo);
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
 
         sorteoService.actualizarSorteo(100L, 1L, peticion);
@@ -218,7 +218,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — lanza recurso no encontrado si el usuario no tiene perfil de creador")
     void actualizarSorteo_sinPerfilCreador_lanzaExcepcion() {
-        var peticion = PeticionActualizarSorteo.builder().tituloSorteo("X").build();
+        var peticion = UpdateRaffleRequest.builder().tituloSorteo("X").build();
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
 
@@ -233,7 +233,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
         given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(true);
 
-        List<RespuestaSorteo> resultado = sorteoService.listarSorteosPorCreador(10L, 2L);
+        List<RaffleResponse> resultado = sorteoService.listarSorteosPorCreador(10L, 2L);
 
         assertThat(resultado.get(0).isYoParticipo()).isTrue();
     }
@@ -245,7 +245,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
         given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(false);
 
-        List<RespuestaSorteo> resultado = sorteoService.listarSorteosActivos(2L);
+        List<RaffleResponse> resultado = sorteoService.listarSorteosActivos(2L);
 
         assertThat(resultado.get(0).isYoParticipo()).isFalse();
     }
@@ -260,7 +260,7 @@ class SorteoServiceImplTest {
         User usuarioParticipante = User.builder()
                 .idUsuario(2L).nombres("Juan").apellidos("Perez").build();
 
-        ParticipanteSorteo participante = ParticipanteSorteo.builder()
+        RaffleParticipant participante = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo)
                 .usuario(usuarioParticipante).esGanador(false).build();
 
@@ -268,14 +268,14 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L))
                 .willReturn(false);
         given(usuarioRepository.getReferenceById(2L)).willReturn(usuarioParticipante);
-        given(participanteSorteoRepository.save(any(ParticipanteSorteo.class)))
+        given(participanteSorteoRepository.save(any(RaffleParticipant.class)))
                 .willReturn(participante);
 
-        RespuestaParticipante resultado = sorteoService.participar(100L, 2L);
+        ParticipantResponse resultado = sorteoService.participar(100L, 2L);
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getEsGanador()).isFalse();
-        verify(participanteSorteoRepository).save(any(ParticipanteSorteo.class));
+        verify(participanteSorteoRepository).save(any(RaffleParticipant.class));
     }
 
     @Test
@@ -323,7 +323,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — lanza BusinessRuleException al modificar cantidadGanadores con participantes")
     void actualizarSorteo_cambiarCantidadGanadoresConParticipantes_lanzaExcepcion() {
-        var peticion = uteq.edu.ec.artisync.dto.peticion.social.PeticionActualizarSorteo.builder()
+        var peticion = uteq.edu.ec.artisync.dto.peticion.social.UpdateRaffleRequest.builder()
                 .cantidadGanadores(5) // diferente al actual (2)
                 .build();
 
@@ -343,7 +343,7 @@ class SorteoServiceImplTest {
         given(sorteoRepository.findByEstadoSorteo("Activo")).willReturn(List.of(sorteoActivo));
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(Collections.emptyList());
 
-        List<RespuestaSorteo> resultado = sorteoService.listarSorteosActivos(null);
+        List<RaffleResponse> resultado = sorteoService.listarSorteosActivos(null);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getEstadoSorteo()).isEqualTo("Activo");
@@ -358,7 +358,7 @@ class SorteoServiceImplTest {
     void obtenerSorteo_finalizado_incluyeGanadores() {
         sorteoActivo.setEstadoSorteo("Finalizado");
         User ganador = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
-        ParticipanteSorteo participanteGanador = ParticipanteSorteo.builder()
+        RaffleParticipant participanteGanador = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(ganador).esGanador(true).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
@@ -366,7 +366,7 @@ class SorteoServiceImplTest {
         given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(true);
         given(participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(100L)).willReturn(List.of(participanteGanador));
 
-        RespuestaSorteo resultado = sorteoService.obtenerSorteo(100L, 2L);
+        RaffleResponse resultado = sorteoService.obtenerSorteo(100L, 2L);
 
         assertThat(resultado.getGanadores()).hasSize(1);
         assertThat(resultado.isYoParticipo()).isTrue();
@@ -378,18 +378,18 @@ class SorteoServiceImplTest {
         sorteoActivo.setEstadoSorteo("Finalizado");
         User ganador1 = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
         User ganador2 = User.builder().idUsuario(3L).nombres("Ana").apellidos("Diaz").build();
-        PremioSorteo premioA = sorteoActivo.getPremios().get(0);
-        PremioSorteo premioB = sorteoActivo.getPremios().get(1);
-        ParticipanteSorteo p1 = ParticipanteSorteo.builder()
+        RafflePrize premioA = sorteoActivo.getPremios().get(0);
+        RafflePrize premioB = sorteoActivo.getPremios().get(1);
+        RaffleParticipant p1 = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(ganador1).esGanador(true).premio(premioA).build();
-        ParticipanteSorteo p2 = ParticipanteSorteo.builder()
+        RaffleParticipant p2 = RaffleParticipant.builder()
                 .idParticipacion(2L).sorteo(sorteoActivo).usuario(ganador2).esGanador(true).premio(premioB).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of(p1, p2));
         given(participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(100L)).willReturn(List.of(p1, p2));
 
-        RespuestaSorteo resultado = sorteoService.obtenerSorteo(100L, null);
+        RaffleResponse resultado = sorteoService.obtenerSorteo(100L, null);
 
         assertThat(resultado.getPremios()).hasSize(2);
         assertThat(resultado.getPremios().get(0).getGanador().getNombreUsuario()).isEqualTo("Juan Perez");
@@ -402,7 +402,7 @@ class SorteoServiceImplTest {
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
 
-        RespuestaSorteo resultado = sorteoService.obtenerSorteo(100L, null);
+        RaffleResponse resultado = sorteoService.obtenerSorteo(100L, null);
 
         assertThat(resultado.getGanadores()).isNull();
         assertThat(resultado.isYoParticipo()).isFalse();
@@ -424,16 +424,16 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — aplica cambios permitidos sin participantes")
     void actualizarSorteo_sinParticipantes_aplicaCambios() {
-        var peticion = PeticionActualizarSorteo.builder()
+        var peticion = UpdateRaffleRequest.builder()
                 .tituloSorteo("Nuevo titulo").cantidadGanadores(5).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(perfilCreadorRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfilCreador));
         given(participanteSorteoRepository.existsBySorteoIdSorteo(100L)).willReturn(false);
-        given(sorteoRepository.save(any(Sorteo.class))).willReturn(sorteoActivo);
+        given(sorteoRepository.save(any(Raffle.class))).willReturn(sorteoActivo);
         given(participanteSorteoRepository.findBySorteoIdSorteo(100L)).willReturn(List.of());
 
-        RespuestaSorteo resultado = sorteoService.actualizarSorteo(100L, 1L, peticion);
+        RaffleResponse resultado = sorteoService.actualizarSorteo(100L, 1L, peticion);
 
         assertThat(resultado.getTituloSorteo()).isEqualTo("Nuevo titulo");
         assertThat(sorteoActivo.getCantidadGanadores()).isEqualTo(5);
@@ -442,7 +442,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — rechaza cambiar fecha de cierre con participantes inscritos")
     void actualizarSorteo_cambiarFechaCierreConParticipantes_lanzaExcepcion() {
-        var peticion = PeticionActualizarSorteo.builder()
+        var peticion = UpdateRaffleRequest.builder()
                 .fechaCierre(sorteoActivo.getFechaCierre().plusDays(3)).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
@@ -457,7 +457,7 @@ class SorteoServiceImplTest {
     @Test
     @DisplayName("actualizarSorteo — rechaza fechaCierre anterior a la fechaInicio original, sin participantes")
     void actualizarSorteo_fechaCierreAntesDeInicio_lanzaExcepcion() {
-        var peticion = PeticionActualizarSorteo.builder()
+        var peticion = UpdateRaffleRequest.builder()
                 .fechaCierre(sorteoActivo.getFechaInicio().minusHours(1)) // antes de fechaInicio
                 .build();
 
@@ -474,7 +474,7 @@ class SorteoServiceImplTest {
     @DisplayName("actualizarSorteo — rechaza a un usuario que no es el propietario del sorteo")
     void actualizarSorteo_rechazaNoPropietario() {
         CreatorProfile otroPerfil = CreatorProfile.builder().idPerfil(20L).build();
-        var peticion = PeticionActualizarSorteo.builder().tituloSorteo("x").build();
+        var peticion = UpdateRaffleRequest.builder().tituloSorteo("x").build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.of(otroPerfil));
@@ -557,14 +557,14 @@ class SorteoServiceImplTest {
     void participar_requiereSeguidor_esSeguidor() {
         sorteoActivo.setRequiereSeguidor(true);
         User usuarioParticipante = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
-        ParticipanteSorteo participante = ParticipanteSorteo.builder()
+        RaffleParticipant participante = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(usuarioParticipante).esGanador(false).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(100L, 2L)).willReturn(false);
         given(seguidorRepository.existsByUsuarioSeguidorIdUsuarioAndPerfilCreadorIdPerfil(2L, 10L)).willReturn(true);
         given(usuarioRepository.getReferenceById(2L)).willReturn(usuarioParticipante);
-        given(participanteSorteoRepository.save(any(ParticipanteSorteo.class))).willReturn(participante);
+        given(participanteSorteoRepository.save(any(RaffleParticipant.class))).willReturn(participante);
 
         assertThat(sorteoService.participar(100L, 2L)).isNotNull();
     }
@@ -577,7 +577,7 @@ class SorteoServiceImplTest {
     @DisplayName("cancelarParticipacion — cancela la inscripcion existente")
     void cancelarParticipacion_cancela() {
         User usuarioParticipante = User.builder().idUsuario(2L).build();
-        ParticipanteSorteo participante = ParticipanteSorteo.builder()
+        RaffleParticipant participante = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(usuarioParticipante).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
@@ -617,7 +617,7 @@ class SorteoServiceImplTest {
     @DisplayName("listarParticipantes — mapea los participantes del sorteo")
     void listarParticipantes_mapea() {
         User usuarioParticipante = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
-        ParticipanteSorteo participante = ParticipanteSorteo.builder()
+        RaffleParticipant participante = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(usuarioParticipante).esGanador(false).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
@@ -631,13 +631,13 @@ class SorteoServiceImplTest {
     void listarGanadores_finalizado_devuelveLista() {
         sorteoActivo.setEstadoSorteo("Finalizado");
         User ganador = User.builder().idUsuario(2L).nombres("Juan").apellidos("Perez").build();
-        ParticipanteSorteo participanteGanador = ParticipanteSorteo.builder()
+        RaffleParticipant participanteGanador = RaffleParticipant.builder()
                 .idParticipacion(1L).sorteo(sorteoActivo).usuario(ganador).esGanador(true).build();
 
         given(sorteoRepository.findById(100L)).willReturn(Optional.of(sorteoActivo));
         given(participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(100L)).willReturn(List.of(participanteGanador));
 
-        List<RespuestaGanador> resultado = sorteoService.listarGanadores(100L);
+        List<WinnerResponse> resultado = sorteoService.listarGanadores(100L);
 
         assertThat(resultado).hasSize(1);
     }

@@ -34,7 +34,7 @@ public class ReconciliacionPayPalScheduler {
     private int umbralMinutos;
 
     /**
-     * Sin @Transactional aquí, mismo motivo que SorteoScheduler: cada pago se
+     * Sin @Transactional aquí, mismo motivo que RaffleScheduler: cada pago se
      * reconcilia en su propia transacción (ReconciliacionPayPalEjecutorServicio,
      * REQUIRES_NEW) para que el fallo de uno no revierta a los demás.
      */

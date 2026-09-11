@@ -15,7 +15,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PeticionCrearResena {
+public class CreateReviewRequest {
 
     @NotNull(message = "La calificación es obligatoria")
     @Min(value = 1, message = "La calificación mínima es 1 estrella")
