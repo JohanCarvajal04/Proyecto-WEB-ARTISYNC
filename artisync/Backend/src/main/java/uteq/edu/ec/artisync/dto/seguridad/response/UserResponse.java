@@ -37,6 +37,7 @@ public class UserResponse {
     private List<String> permisos;
     private boolean dosFactoresHabilitado;
     private String urlFotoPerfil;
+    private boolean identidadVerificada;
 }
 
 

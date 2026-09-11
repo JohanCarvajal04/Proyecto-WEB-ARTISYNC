@@ -11,6 +11,8 @@ import uteq.edu.ec.artisync.repository.seguridad.AutenticacionDosFactoresReposit
 import uteq.edu.ec.artisync.repository.seguridad.UsuarioRolRepository;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.UrlFotoPerfil;
 
+import uteq.edu.ec.artisync.service.perfil.IVerificacionServicio;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +25,7 @@ public class UsuarioMapper {
 
     private final UsuarioRolRepository usuarioRolRepository;
     private final AutenticacionDosFactoresRepository autenticacionDosFactoresRepository;
+    private final IVerificacionServicio verificacionServicio;
 
     /** Mapeo de una sola fila (getUserById, tras crear/editar un usuario): una consulta por usuario es aceptable aquí. */
     public UserResponse toUserResponse(Usuario usuario) {
@@ -31,7 +34,8 @@ public class UsuarioMapper {
                 .map(AutenticacionDosFactores::getEstaHabilitado)
                 .map(Boolean.TRUE::equals)
                 .orElse(false);
-        return construir(usuario, usuarioRoles, dosFactoresHabilitado);
+        boolean identidadVerificada = verificacionServicio.estaIdentidadVerificada(usuario.getIdUsuario());
+        return construir(usuario, usuarioRoles, dosFactoresHabilitado, identidadVerificada);
     }
 
     /**
@@ -56,15 +60,18 @@ public class UsuarioMapper {
                 .map(df -> df.getUsuario().getIdUsuario())
                 .collect(Collectors.toCollection(HashSet::new));
 
+        // En un caso ideal deberiamos consultar todas las verificaciones de una en vez de N consultas,
+        // pero por ahora reutilizamos el servicio.
         return usuarios.stream()
                 .map(usuario -> construir(
                         usuario,
                         rolesPorUsuario.getOrDefault(usuario.getIdUsuario(), List.of()),
-                        con2faHabilitado.contains(usuario.getIdUsuario())))
+                        con2faHabilitado.contains(usuario.getIdUsuario()),
+                        verificacionServicio.estaIdentidadVerificada(usuario.getIdUsuario())))
                 .toList();
     }
 
-    private UserResponse construir(Usuario usuario, List<UsuarioRol> usuarioRoles, boolean dosFactoresHabilitado) {
+    private UserResponse construir(Usuario usuario, List<UsuarioRol> usuarioRoles, boolean dosFactoresHabilitado, boolean identidadVerificada) {
         List<String> roles = usuarioRoles.stream()
                 .map(ur -> ur.getRol().getNombreRol())
                 .toList();
@@ -90,6 +97,7 @@ public class UsuarioMapper {
                 .permisos(permisos)
                 .dosFactoresHabilitado(dosFactoresHabilitado)
                 .urlFotoPerfil(UrlFotoPerfil.construir(usuario.getUrlFotoPerfil()))
+                .identidadVerificada(identidadVerificada)
                 .build();
     }
 }

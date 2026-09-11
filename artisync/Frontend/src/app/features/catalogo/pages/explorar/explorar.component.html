@@ -3,8 +3,8 @@
   <!-- Header Social Moderno -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div class="flex flex-col gap-1">
-      <h1 class="font-headline text-2xl md:text-3xl font-bold text-white">Explorar comunidad</h1>
-      <p class="text-sm text-purple-200/90">Descubre servicios creativos, comisiones y conecta con creadores.</p>
+      <h1 class="font-headline text-2xl md:text-3xl font-bold" [class]="base === '/explorar' ? 'text-white' : 'text-[#1E0F38]'">Explorar comunidad</h1>
+      <p class="text-sm" [class]="base === '/explorar' ? 'text-purple-200/90' : 'text-slate-500'">Descubre servicios creativos, comisiones y conecta con creadores.</p>
     </div>
     
     <!-- Píldoras de navegación social -->
@@ -14,7 +14,8 @@
         Servicios
       </a>
       <a [routerLink]="[base, 'creadores']"
-        class="text-xs font-bold px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all">
+        class="text-xs font-bold px-4 py-2 rounded-xl transition-all"
+        [class]="base === '/explorar' ? 'bg-white/10 hover:bg-white/20 text-white border border-white/20' : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'">
         Creadores
       </a>
     </div>
@@ -140,11 +141,11 @@
         <p class="text-xs text-slate-500 mt-1">Prueba ajustando los filtros o el término de búsqueda.</p>
       </div>
     </div>
-  } @else {
+  @else {
     <h2 class="sr-only">Resultados</h2>
     <div class="flex items-center justify-between">
-      <p class="text-xs font-medium text-purple-200">
-        <span class="font-bold text-white">{{ pagina().totalElementos }}</span> servicio(s) disponible(s)
+      <p class="text-xs font-medium" [class]="base === '/explorar' ? 'text-purple-200' : 'text-slate-500'">
+        <span class="font-bold" [class]="base === '/explorar' ? 'text-white' : 'text-slate-700'">{{ pagina().totalElementos }}</span> servicio(s) disponible(s)
       </p>
     </div>
 

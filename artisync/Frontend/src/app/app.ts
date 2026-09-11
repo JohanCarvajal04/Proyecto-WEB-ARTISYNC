@@ -6,7 +6,6 @@ import { UserService } from './features/perfil/services/user.service';
 import { UserResponse } from './shared/models/user.model';
 import { CompleteProfileModalComponent } from './shared/components/complete-profile-modal/complete-profile-modal.component';
 import { ForceVerificationModalComponent } from './shared/components/force-verification-modal/force-verification-modal.component';
-import { PerfilCreadorService } from './features/creador/services/perfil-creador.service';
 
 @Component({
   selector: 'app-root',
@@ -17,7 +16,6 @@ import { PerfilCreadorService } from './features/creador/services/perfil-creador
 export class App {
   private authService = inject(AuthService);
   private userService = inject(UserService);
-  private perfilService = inject(PerfilCreadorService);
 
   readonly showProfileCompletion = signal<boolean>(false);
   readonly showForceVerification = signal<boolean>(false);
@@ -33,17 +31,12 @@ export class App {
               this.showProfileCompletion.set(true);
             } else {
               if (user.roles.includes('CREADOR') || user.roles.includes('CLIENTE')) {
-                this.perfilService.obtenerPorUsuario(user.idUsuario).subscribe({
-                  next: (perfil) => {
-                    if (!perfil.identidadVerificada) {
-                      const pending = localStorage.getItem(`verificacion_pendiente_${user.idUsuario}`);
-                      if (!pending) {
-                        this.showForceVerification.set(true);
-                      }
-                    }
-                  },
-                  error: () => console.error('No se pudo cargar el perfil para validación de identidad')
-                });
+                if (!user.identidadVerificada) {
+                  const pending = localStorage.getItem(`verificacion_pendiente_${user.idUsuario}`);
+                  if (!pending) {
+                    this.showForceVerification.set(true);
+                  }
+                }
               }
             }
           },

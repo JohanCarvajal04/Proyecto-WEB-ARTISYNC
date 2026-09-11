@@ -21,85 +21,87 @@
     <div class="flex flex-col lg:flex-row gap-6 items-start">
       
       <!-- Columna Izquierda: Acciones (Saldo, Correo, Solicitar) -->
-      <div class="w-full lg:w-1/3 flex flex-col gap-6">
+      <div class="w-full lg:w-1/3 flex flex-col">
         
-        <!-- Saldo disponible -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
-          <div>
-            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Saldo disponible</p>
-            <p class="text-3xl font-bold text-purple-600 font-mono mt-1">{{ saldo()?.saldoDisponible ?? 0 | moneda }}</p>
-            <p class="text-xs text-slate-400 mt-1">Retiro mínimo: {{ saldo()?.montoMinimoRetiro ?? 0 | moneda }}</p>
-          </div>
-          @if (saldo()?.tieneSolicitudPendiente) {
-            <div class="flex items-start gap-2.5 bg-sky-50 text-sky-800 text-xs rounded-2xl px-4 py-3">
-              <span class="animate-spin rounded-full h-4 w-4 border-2 border-sky-500 border-t-transparent mt-0.5 shrink-0"></span>
-              <span>Ya tienes una solicitud de retiro en curso. Espera a que se resuelva antes de crear otra.</span>
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+          <!-- Saldo disponible -->
+          <div class="p-6 border-b border-slate-100 flex flex-col gap-4 bg-slate-50/50">
+            <div>
+              <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Saldo disponible</p>
+              <p class="text-3xl font-bold text-purple-600 font-mono mt-1">{{ saldo()?.saldoDisponible ?? 0 | moneda }}</p>
+              <p class="text-xs text-slate-400 mt-1">Retiro mínimo: {{ saldo()?.montoMinimoRetiro ?? 0 | moneda }}</p>
             </div>
-          }
-        </div>
-
-        <!-- Correo de PayPal -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-2.5">
-            <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Correo de PayPal</h2>
-            @if (!editandoCorreo() && datosPago()?.correoPaypal) {
-              <button (click)="editandoCorreo.set(true)"
-                class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
-                Cambiar
-              </button>
-            }
-          </div>
-          <div class="p-6">
-            @if (editandoCorreo()) {
-              <div class="flex flex-col gap-3">
-                <input type="email" [(ngModel)]="correoPaypalForm" placeholder="tu-correo@paypal.com"
-                  class="w-full bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all" />
-                <div class="flex gap-2">
-                  <button (click)="guardarCorreo()" [disabled]="guardandoCorreo()"
-                    class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all flex-1 flex items-center justify-center gap-2">
-                    @if (guardandoCorreo()) {
-                      <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-                    }
-                    Guardar
-                  </button>
-                  @if (datosPago()?.correoPaypal) {
-                    <button (click)="cancelarEdicionCorreo()"
-                      class="text-sm font-semibold text-slate-500 hover:text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all">
-                      Cancelar
-                    </button>
-                  }
-                </div>
+            @if (saldo()?.tieneSolicitudPendiente) {
+              <div class="flex items-start gap-2.5 bg-sky-50 text-sky-800 text-xs rounded-2xl px-4 py-3 border border-sky-100">
+                <span class="animate-spin rounded-full h-4 w-4 border-2 border-sky-500 border-t-transparent mt-0.5 shrink-0"></span>
+                <span>Ya tienes una solicitud de retiro en curso. Espera a que se resuelva antes de crear otra.</span>
               </div>
-            } @else {
-              <p class="text-sm text-slate-700 font-mono">{{ datosPago()?.correoPaypal }}</p>
             }
           </div>
-        </div>
 
-        <!-- Solicitar retiro -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div class="px-6 py-5 border-b border-slate-100">
-            <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Solicitar retiro</h2>
-          </div>
-          <div class="p-6 flex flex-col gap-4">
-            <div class="flex flex-col gap-1.5 w-full">
-              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monto (USD)</label>
-              <input type="number" [(ngModel)]="montoASolicitar" min="0" step="0.01"
-                [disabled]="noPuedeSolicitar()"
-                class="bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed" />
-            </div>
-            <button (click)="solicitarRetiro()"
-              [disabled]="solicitandoRetiro() || noPuedeSolicitar()"
-              class="w-full bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2">
-              @if (solicitandoRetiro()) {
-                <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+          <!-- Correo de PayPal -->
+          <div class="flex flex-col border-b border-slate-100">
+            <div class="px-6 py-5 flex items-center justify-between gap-2.5">
+              <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Correo de PayPal</h2>
+              @if (!editandoCorreo() && datosPago()?.correoPaypal) {
+                <button (click)="editandoCorreo.set(true)"
+                  class="text-xs font-semibold text-purple-600 hover:text-purple-700 px-3 py-1.5 rounded-full border border-purple-200 hover:bg-purple-50 transition-all">
+                  Cambiar
+                </button>
               }
-              Solicitar retiro
-            </button>
+            </div>
+            <div class="px-6 pb-6">
+              @if (editandoCorreo()) {
+                <div class="flex flex-col gap-3">
+                  <input type="email" [(ngModel)]="correoPaypalForm" placeholder="tu-correo@paypal.com"
+                    class="w-full bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-slate-200 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 focus:bg-white transition-all" />
+                  <div class="flex gap-2">
+                    <button (click)="guardarCorreo()" [disabled]="guardandoCorreo()"
+                      class="bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all flex-1 flex items-center justify-center gap-2">
+                      @if (guardandoCorreo()) {
+                        <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                      }
+                      Guardar
+                    </button>
+                    @if (datosPago()?.correoPaypal) {
+                      <button (click)="cancelarEdicionCorreo()"
+                        class="text-sm font-semibold text-slate-500 hover:text-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all">
+                        Cancelar
+                      </button>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <p class="text-sm text-slate-700 font-mono p-3 bg-slate-50 rounded-xl border border-slate-100">{{ datosPago()?.correoPaypal || 'No configurado' }}</p>
+              }
+            </div>
           </div>
-          @if (!saldo()?.tieneCorreoPaypalConfigurado) {
-            <p class="px-6 pb-6 text-xs text-amber-600">Configura tu correo de PayPal arriba antes de solicitar un retiro.</p>
-          }
+
+          <!-- Solicitar retiro -->
+          <div class="flex flex-col">
+            <div class="px-6 py-5">
+              <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Solicitar retiro</h2>
+            </div>
+            <div class="px-6 pb-6 flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5 w-full">
+                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monto (USD)</label>
+                <input type="number" [(ngModel)]="montoASolicitar" min="0" step="0.01"
+                  [disabled]="noPuedeSolicitar()"
+                  class="bg-slate-50 text-slate-700 text-sm rounded-xl px-4 py-2.5 border border-slate-200 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200 focus:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed" />
+              </div>
+              <button (click)="solicitarRetiro()"
+                [disabled]="solicitandoRetiro() || noPuedeSolicitar()"
+                class="w-full bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                @if (solicitandoRetiro()) {
+                  <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                }
+                Solicitar retiro
+              </button>
+            </div>
+            @if (!saldo()?.tieneCorreoPaypalConfigurado) {
+              <p class="px-6 pb-6 text-xs text-amber-600">Configura tu correo de PayPal arriba antes de solicitar un retiro.</p>
+            }
+          </div>
         </div>
       </div>
 

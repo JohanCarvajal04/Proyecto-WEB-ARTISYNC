@@ -18,6 +18,7 @@ export interface UserResponse {
   permisos?: string[];
   dosFactoresHabilitado: boolean;
   urlFotoPerfil?: string;
+  identidadVerificada?: boolean;
 }
 
 /**
