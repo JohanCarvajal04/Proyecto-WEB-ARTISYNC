@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.respuesta.comun;
+package uteq.edu.ec.artisync.dto.respuesta.comun;
 
 /**
  * Objeto de transferencia de datos (DTO) utilizado como carga útil de respuesta (Response).

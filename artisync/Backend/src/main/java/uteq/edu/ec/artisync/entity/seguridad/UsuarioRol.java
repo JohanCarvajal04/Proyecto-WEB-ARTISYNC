@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.seguridad;
+package uteq.edu.ec.artisync.entity.seguridad;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

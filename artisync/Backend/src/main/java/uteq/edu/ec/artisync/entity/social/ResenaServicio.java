@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.social;
+package uteq.edu.ec.artisync.entity.social;
 
 import uteq.edu.ec.artisync.entity.pedido.Pedido;
 import jakarta.persistence.*;

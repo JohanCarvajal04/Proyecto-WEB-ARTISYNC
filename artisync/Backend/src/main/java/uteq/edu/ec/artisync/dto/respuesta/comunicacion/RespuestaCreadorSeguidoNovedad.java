@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.respuesta.comunicacion;
+package uteq.edu.ec.artisync.dto.respuesta.comunicacion;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

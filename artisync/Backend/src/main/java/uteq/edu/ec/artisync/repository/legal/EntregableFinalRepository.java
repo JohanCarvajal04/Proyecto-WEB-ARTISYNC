@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.legal;
+package uteq.edu.ec.artisync.repository.legal;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;

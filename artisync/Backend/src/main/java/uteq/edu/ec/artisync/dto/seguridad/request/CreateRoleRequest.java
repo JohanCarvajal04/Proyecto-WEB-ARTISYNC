@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.seguridad.request;
+package uteq.edu.ec.artisync.dto.seguridad.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

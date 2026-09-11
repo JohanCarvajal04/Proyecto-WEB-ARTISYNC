@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.peticion.auditoria;
+package uteq.edu.ec.artisync.dto.peticion.auditoria;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

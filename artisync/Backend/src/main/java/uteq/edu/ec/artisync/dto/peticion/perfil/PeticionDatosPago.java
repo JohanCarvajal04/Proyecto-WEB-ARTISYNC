@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.dto.peticion.perfil;
+package uteq.edu.ec.artisync.dto.peticion.perfil;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

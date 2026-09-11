@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.repository.social;
+package uteq.edu.ec.artisync.repository.social;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

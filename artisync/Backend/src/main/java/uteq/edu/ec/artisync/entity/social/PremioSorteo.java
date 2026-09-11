@@ -1,4 +1,4 @@
-﻿package uteq.edu.ec.artisync.entity.social;
+package uteq.edu.ec.artisync.entity.social;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
