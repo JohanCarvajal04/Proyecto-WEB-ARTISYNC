@@ -230,7 +230,7 @@ class PaymentServiceImplWebhookTest {
      * el token OAuth, que se resuelve aparte por devolver Map.
      */
     private void conRespuestasPayPal(String... cuerpos) {
-        OngoingStubbing<JsonNode> stub = when(payPalClient.llamarPayPal(
+        OngoingStubbing<JsonNode> stub = when(payPalClient.callPayPal(
                 anyString(), any(HttpMethod.class), any(JsonNode.class)));
         for (String cuerpo : cuerpos) {
             stub = stub.thenReturn(json(cuerpo));

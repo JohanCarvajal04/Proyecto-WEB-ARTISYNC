@@ -89,7 +89,7 @@ class WithdrawalRequestServiceImplPayoutTest {
 
     /** Encola las respuestas de PayPal, una por cada llamada a executePayout(). */
     private void conRespuestasPayPal(String... cuerpos) {
-        OngoingStubbing<JsonNode> stub = when(payPalClient.llamarPayPal(
+        OngoingStubbing<JsonNode> stub = when(payPalClient.callPayPal(
                 anyString(), any(HttpMethod.class), any(JsonNode.class)));
         for (String cuerpo : cuerpos) {
             stub = stub.thenReturn(json(cuerpo));
@@ -140,7 +140,7 @@ class WithdrawalRequestServiceImplPayoutTest {
         HttpStatusCodeException error = mock(HttpStatusCodeException.class);
         when(error.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
         when(error.getResponseBodyAsString()).thenReturn("{\"name\":\"RECEIVER_UNREGISTERED\"}");
-        given(payPalClient.llamarPayPal(anyString(), eq(HttpMethod.POST), any(JsonNode.class)))
+        given(payPalClient.callPayPal(anyString(), eq(HttpMethod.POST), any(JsonNode.class)))
                 .willThrow(error);
 
         WithdrawalRequestResponse respuesta = servicio.approve(1L, ID_ADMIN);
@@ -169,7 +169,7 @@ class WithdrawalRequestServiceImplPayoutTest {
         assertThat(segundoIntento.estado()).isEqualTo("Pagado");
 
         ArgumentCaptor<JsonNode> captor = ArgumentCaptor.forClass(JsonNode.class);
-        org.mockito.Mockito.verify(payPalClient, org.mockito.Mockito.times(2)).llamarPayPal(
+        org.mockito.Mockito.verify(payPalClient, org.mockito.Mockito.times(2)).callPayPal(
                 contains("/v1/payments/payouts"), eq(HttpMethod.POST), captor.capture());
 
         String cuerpoPrimero = captor.getAllValues().get(0).toString();

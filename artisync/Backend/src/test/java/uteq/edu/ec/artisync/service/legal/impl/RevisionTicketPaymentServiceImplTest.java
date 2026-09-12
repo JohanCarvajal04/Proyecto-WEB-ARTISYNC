@@ -82,7 +82,7 @@ class RevisionTicketPaymentServiceImplTest {
     @DisplayName("crea y persiste la orden de pago con la url de aprobacion de PayPal")
     void creaYPersisteOrden_ok() {
         given(pagoTicketRevisionRepository.findByTicketIdTicket(9L)).willReturn(Optional.empty());
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any()))
                 .willReturn(json("""
                         {"id":"ORDER-TICKET-1","links":[{"rel":"approve","href":"https://paypal/approve/1"}]}"""));
 
@@ -103,7 +103,7 @@ class RevisionTicketPaymentServiceImplTest {
         RevisionTicketPayment existente = RevisionTicketPayment.builder()
                 .idPagoTicket(3L).ticket(ticket).monto(new BigDecimal("5.00")).estadoPago("Pendiente").build();
         given(pagoTicketRevisionRepository.findByTicketIdTicket(9L)).willReturn(Optional.of(existente));
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any()))
                 .willReturn(json("""
                         {"id":"ORDER-TICKET-2","links":[{"rel":"approve","href":"https://paypal/approve/2"}]}"""));
 
@@ -117,7 +117,7 @@ class RevisionTicketPaymentServiceImplTest {
     @DisplayName("si PayPal falla al create la orden, no revienta ni persiste nada")
     void fallaPaypalAlCrear_noRevienta() {
         given(pagoTicketRevisionRepository.findByTicketIdTicket(9L)).willReturn(Optional.empty());
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any()))
                 .willThrow(new RuntimeException("timeout"));
 
         servicio.createPaymentOrder(ticket);
@@ -153,7 +153,7 @@ class RevisionTicketPaymentServiceImplTest {
         boolean procesado = servicio.processOrderWebhook("ORDER-AJENA", "CHECKOUT.ORDER.APPROVED");
 
         assertThat(procesado).isFalse();
-        verify(payPalClient, never()).llamarPayPal(anyString(), any(), any());
+        verify(payPalClient, never()).callPayPal(anyString(), any(), any());
     }
 
     @Test
@@ -162,7 +162,7 @@ class RevisionTicketPaymentServiceImplTest {
         RevisionTicketPayment pendiente = RevisionTicketPayment.builder()
                 .ticket(ticket).idOrdenPaypal("ORDER-TICKET-3").monto(new BigDecimal("5.00")).estadoPago("Pendiente").build();
         given(pagoTicketRevisionRepository.findByIdOrdenPaypal("ORDER-TICKET-3")).willReturn(Optional.of(pendiente));
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any()))
                 .willReturn(json("""
                         {"status":"COMPLETED"}"""));
 
@@ -183,7 +183,7 @@ class RevisionTicketPaymentServiceImplTest {
         boolean procesado = servicio.processOrderWebhook("ORDER-TICKET-4", "PAYMENT.CAPTURE.COMPLETED");
 
         assertThat(procesado).isTrue();
-        verify(payPalClient, never()).llamarPayPal(anyString(), any(), any());
+        verify(payPalClient, never()).callPayPal(anyString(), any(), any());
         verify(pagoTicketRevisionRepository, never()).save(any());
     }
 }

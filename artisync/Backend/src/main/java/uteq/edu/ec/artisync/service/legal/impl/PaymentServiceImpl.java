@@ -182,7 +182,7 @@ public class PaymentServiceImpl implements IPaymentService {
                 .put("return_url", retorno)
                 .put("cancel_url", retorno);
 
-        return payPalClient.llamarPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
+        return payPalClient.callPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
     }
 
     private String extraerApprovalUrl(JsonNode orden) {
@@ -335,7 +335,7 @@ public class PaymentServiceImpl implements IPaymentService {
             peticion.put("webhook_id", paypalWebhookId);
             peticion.set("webhook_event", evento);
 
-            JsonNode respuesta = payPalClient.llamarPayPal("/v1/notifications/verify-webhook-signature",
+            JsonNode respuesta = payPalClient.callPayPal("/v1/notifications/verify-webhook-signature",
                     HttpMethod.POST, peticion);
 
             return "SUCCESS".equals(respuesta.path("verification_status").asText());
@@ -353,7 +353,7 @@ public class PaymentServiceImpl implements IPaymentService {
      */
     private boolean capturarOrden(String orderId) {
         try {
-            JsonNode respuesta = payPalClient.llamarPayPal("/v2/checkout/orders/" + orderId + "/capture",
+            JsonNode respuesta = payPalClient.callPayPal("/v2/checkout/orders/" + orderId + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());
             String estado = respuesta.path("status").asText();
             if (!"COMPLETED".equals(estado)) {
@@ -521,7 +521,7 @@ public class PaymentServiceImpl implements IPaymentService {
             // Idempotency key derivada del id del pago (igual que
             // "retiro-" + idSolicitud en los payouts): un reintento sobre el
             // mismo pago no genera un segundo reembolso del lado de PayPal.
-            payPalClient.llamarPayPalIdempotente(
+            payPalClient.callPayPalIdempotent(
                     "/v2/payments/captures/" + idCaptura + "/refund",
                     HttpMethod.POST, objectMapper.createObjectNode(),
                     "reembolso-" + pago.getIdPago());
@@ -543,7 +543,7 @@ public class PaymentServiceImpl implements IPaymentService {
 
     /** Busca la captura COMPLETED de una orden; PayPal separa el id de orden del id de captura. */
     private String getCaptureId(String orderId) {
-        JsonNode orden = payPalClient.llamarPayPal("/v2/checkout/orders/" + orderId, HttpMethod.GET, null);
+        JsonNode orden = payPalClient.callPayPal("/v2/checkout/orders/" + orderId, HttpMethod.GET, null);
         for (JsonNode unidad : orden.path("purchase_units")) {
             for (JsonNode captura : unidad.path("payments").path("captures")) {
                 if ("COMPLETED".equals(captura.path("status").asText())) {

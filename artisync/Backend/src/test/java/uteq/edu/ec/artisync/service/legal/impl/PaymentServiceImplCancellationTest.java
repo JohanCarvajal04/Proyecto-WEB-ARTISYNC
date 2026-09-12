@@ -118,7 +118,7 @@ class PaymentServiceImplCancellationTest {
     }
 
     private void conCapturaCompletada() {
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any()))
                 .willReturn(json("""
                         {"purchase_units":[{"payments":{"captures":[
                             {"id":"CAPTURE-1","status":"COMPLETED"}
@@ -129,7 +129,7 @@ class PaymentServiceImplCancellationTest {
     @DisplayName("el cliente puede reembolsarse a si mismo por defecto")
     void reembolsaComoCliente_ok() {
         conCapturaCompletada();
-        given(payPalClient.llamarPayPalIdempotente(anyString(), any(HttpMethod.class), any(), anyString()))
+        given(payPalClient.callPayPalIdempotent(anyString(), any(HttpMethod.class), any(), anyString()))
                 .willReturn(json("""
                         {"id":"REFUND-1","status":"COMPLETED"}"""));
 
@@ -163,7 +163,7 @@ class PaymentServiceImplCancellationTest {
         assertThat(respuesta.getEstadoFondos()).isEqualTo("Liberado");
         verify(transaccionPagoRepository).save(argThatTipo("Egreso"));
         verify(transaccionPagoRepository).save(argThatTipo("Comision"));
-        verify(payPalClient, never()).llamarPayPalIdempotente(anyString(), any(), any(), anyString());
+        verify(payPalClient, never()).callPayPalIdempotent(anyString(), any(), any(), anyString());
     }
 
     @Test
@@ -198,7 +198,7 @@ class PaymentServiceImplCancellationTest {
     @Test
     @DisplayName("si PayPal no tiene ninguna captura completada, el reembolso queda fallido sin llamar a refund")
     void sinCapturaCompletada_marcaReembolsoFallido() {
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any()))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any()))
                 .willReturn(json("""
                         {"purchase_units":[{"payments":{"captures":[]}}]}"""));
 
@@ -206,7 +206,7 @@ class PaymentServiceImplCancellationTest {
 
         assertThat(respuesta.getEstadoFondos()).isEqualTo("ReembolsoFallido");
         assertThat(respuesta.getMensajeError()).contains("captura");
-        verify(payPalClient, never()).llamarPayPalIdempotente(anyString(), any(), any(), anyString());
+        verify(payPalClient, never()).callPayPalIdempotent(anyString(), any(), any(), anyString());
         verify(transaccionPagoRepository, never()).save(any());
     }
 
@@ -217,7 +217,7 @@ class PaymentServiceImplCancellationTest {
         HttpStatusCodeException error = mock(HttpStatusCodeException.class);
         when(error.getStatusCode()).thenReturn(HttpStatus.UNPROCESSABLE_ENTITY);
         when(error.getResponseBodyAsString()).thenReturn("{\"name\":\"CAPTURE_FULLY_REFUNDED\"}");
-        given(payPalClient.llamarPayPalIdempotente(anyString(), any(HttpMethod.class), any(), anyString()))
+        given(payPalClient.callPayPalIdempotent(anyString(), any(HttpMethod.class), any(), anyString()))
                 .willThrow(error);
 
         var respuesta = pagoServicio.cancelOrderWithHeldFunds(1L, ID_CLIENTE, "reembolsar", null);
@@ -233,7 +233,7 @@ class PaymentServiceImplCancellationTest {
         pagoRetenido.setEstadoFondos("ReembolsoFallido");
         pagoRetenido.setMensajeError("Error de PayPal (422): CAPTURE_FULLY_REFUNDED");
         conCapturaCompletada();
-        given(payPalClient.llamarPayPalIdempotente(anyString(), any(HttpMethod.class), any(), anyString()))
+        given(payPalClient.callPayPalIdempotent(anyString(), any(HttpMethod.class), any(), anyString()))
                 .willReturn(json("""
                         {"id":"REFUND-2","status":"COMPLETED"}"""));
 

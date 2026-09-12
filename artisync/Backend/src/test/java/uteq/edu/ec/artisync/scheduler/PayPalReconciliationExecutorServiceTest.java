@@ -85,7 +85,7 @@ class PayPalReconciliationExecutorServiceTest {
     @Test
     @DisplayName("orden COMPLETED en PayPal confirma el pago sin volver a capturar")
     void ordenCompletada_confirmaPago() {
-        given(payPalClient.llamarPayPal(anyString(), eq(HttpMethod.GET), any()))
+        given(payPalClient.callPayPal(anyString(), eq(HttpMethod.GET), any()))
                 .willReturn(json("""
                         {"status":"COMPLETED"}"""));
 
@@ -94,16 +94,16 @@ class PayPalReconciliationExecutorServiceTest {
         assertThat(pagoPendiente.getEstadoFondos()).isEqualTo("Retenido");
         verify(pagoGarantiaRepository).save(pagoPendiente);
         verify(transaccionPagoRepository).save(any(PaymentTransaction.class));
-        verify(payPalClient, never()).llamarPayPal(contains("/capture"), any(), any());
+        verify(payPalClient, never()).callPayPal(contains("/capture"), any(), any());
     }
 
     @Test
     @DisplayName("orden APPROVED se captura de forma proactiva y luego se confirma")
     void ordenAprobada_capturaYConfirma() {
-        given(payPalClient.llamarPayPal(eq("/v2/checkout/orders/ORDER-123"), eq(HttpMethod.GET), any()))
+        given(payPalClient.callPayPal(eq("/v2/checkout/orders/ORDER-123"), eq(HttpMethod.GET), any()))
                 .willReturn(json("""
                         {"status":"APPROVED"}"""));
-        given(payPalClient.llamarPayPal(eq("/v2/checkout/orders/ORDER-123/capture"), eq(HttpMethod.POST), any()))
+        given(payPalClient.callPayPal(eq("/v2/checkout/orders/ORDER-123/capture"), eq(HttpMethod.POST), any()))
                 .willReturn(json("""
                         {"status":"COMPLETED"}"""));
 
@@ -116,12 +116,12 @@ class PayPalReconciliationExecutorServiceTest {
     @Test
     @DisplayName("orden ya capturada (ORDER_ALREADY_CAPTURED) tambien confirma el pago")
     void ordenYaCapturada_confirmaIgual() {
-        given(payPalClient.llamarPayPal(eq("/v2/checkout/orders/ORDER-123"), eq(HttpMethod.GET), any()))
+        given(payPalClient.callPayPal(eq("/v2/checkout/orders/ORDER-123"), eq(HttpMethod.GET), any()))
                 .willReturn(json("""
                         {"status":"APPROVED"}"""));
         HttpStatusCodeException error = mock(HttpStatusCodeException.class);
         when(error.getResponseBodyAsString()).thenReturn("{\"name\":\"ORDER_ALREADY_CAPTURED\"}");
-        given(payPalClient.llamarPayPal(eq("/v2/checkout/orders/ORDER-123/capture"), eq(HttpMethod.POST), any()))
+        given(payPalClient.callPayPal(eq("/v2/checkout/orders/ORDER-123/capture"), eq(HttpMethod.POST), any()))
                 .willThrow(error);
 
         ejecutor.reconciliar(1L);
@@ -133,7 +133,7 @@ class PayPalReconciliationExecutorServiceTest {
     @Test
     @DisplayName("orden VOIDED no cambia el estado: el cliente debera iniciar un nuevo pago")
     void ordenVoided_noCambiaEstado() {
-        given(payPalClient.llamarPayPal(anyString(), eq(HttpMethod.GET), any()))
+        given(payPalClient.callPayPal(anyString(), eq(HttpMethod.GET), any()))
                 .willReturn(json("""
                         {"status":"VOIDED"}"""));
 
@@ -146,7 +146,7 @@ class PayPalReconciliationExecutorServiceTest {
     @Test
     @DisplayName("orden todavia CREATED no hace nada, se reintenta en el proximo ciclo")
     void ordenTodaviaCreada_noHaceNada() {
-        given(payPalClient.llamarPayPal(anyString(), eq(HttpMethod.GET), any()))
+        given(payPalClient.callPayPal(anyString(), eq(HttpMethod.GET), any()))
                 .willReturn(json("""
                         {"status":"CREATED"}"""));
 

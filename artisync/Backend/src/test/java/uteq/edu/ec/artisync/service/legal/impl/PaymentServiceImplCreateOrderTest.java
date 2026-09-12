@@ -157,7 +157,7 @@ class PaymentServiceImplCreateOrderTest {
     void crearOrden_envuelveErrorDeComunicacion() {
         given(contratoRepository.findByPedidoIdPedido(1L)).willReturn(Optional.of(contratoFirmado));
         given(pagoGarantiaRepository.findByContratoIdContrato(5L)).willReturn(Optional.empty());
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any(JsonNode.class)))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any(JsonNode.class)))
                 .willThrow(new RuntimeException("timeout"));
 
         assertThatThrownBy(() -> pagoServicio.createPayPalOrder(1L, ID_CLIENTE, null))
@@ -236,7 +236,7 @@ class PaymentServiceImplCreateOrderTest {
     }
 
     private void conRespuestasPayPal(String cuerpoOrden) {
-        given(payPalClient.llamarPayPal(anyString(), any(HttpMethod.class), any(JsonNode.class)))
+        given(payPalClient.callPayPal(anyString(), any(HttpMethod.class), any(JsonNode.class)))
                 .willReturn(json(cuerpoOrden));
     }
 }

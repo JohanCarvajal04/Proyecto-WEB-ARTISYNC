@@ -99,7 +99,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
                 .put("return_url", retorno)
                 .put("cancel_url", retorno);
 
-        return payPalClient.llamarPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
+        return payPalClient.callPayPal("/v2/checkout/orders", HttpMethod.POST, raiz);
     }
 
     private String extraerApprovalUrl(JsonNode orden) {
@@ -176,7 +176,7 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
     /** Misma logica que PaymentServiceImpl.capturarOrden, duplicada a proposito (ver Javadoc de la clase). */
     private boolean capturarOrden(String orderId) {
         try {
-            JsonNode respuesta = payPalClient.llamarPayPal("/v2/checkout/orders/" + orderId + "/capture",
+            JsonNode respuesta = payPalClient.callPayPal("/v2/checkout/orders/" + orderId + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());
             String estado = respuesta.path("status").asText();
             if (!"COMPLETED".equals(estado)) {

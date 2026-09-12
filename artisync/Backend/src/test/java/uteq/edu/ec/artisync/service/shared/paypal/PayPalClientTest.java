@@ -21,7 +21,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 /**
  * Prueba de caracterización de PayPalClient, escrita ANTES de renombrar
- * llamarPayPal/llamarPayPalIdempotente/obtenerAccessToken (clase en 10,7%
+ * callPayPal/callPayPalIdempotent/getAccessToken (clase en 10,7%
  * líneas / 0% ramas: hoy solo se ejercita mockeada desde quien la consume,
  * nunca su lógica interna real). El campo `restTemplate` es a propósito no
  * `final`, según su propio Javadoc, justamente para poder sustituirlo aquí
@@ -71,7 +71,7 @@ class PayPalClientTest {
                 .andExpect(header("Authorization", "Bearer token-de-prueba"))
                 .andRespond(withSuccess("{\"status\":\"COMPLETED\"}", MediaType.APPLICATION_JSON));
 
-        JsonNode resultado = client.llamarPayPal("/v1/checkout/orders/ORD-1", HttpMethod.GET, null);
+        JsonNode resultado = client.callPayPal("/v1/checkout/orders/ORD-1", HttpMethod.GET, null);
 
         assertThat(resultado.get("status").asText()).isEqualTo("COMPLETED");
         servidor.verify();
@@ -85,7 +85,7 @@ class PayPalClientTest {
                 .andExpect(request -> assertThat(request.getHeaders().get("PayPal-Request-Id")).isNull())
                 .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
-        client.llamarPayPal("/v1/checkout/orders", HttpMethod.POST, null);
+        client.callPayPal("/v1/checkout/orders", HttpMethod.POST, null);
 
         servidor.verify();
     }
@@ -98,7 +98,7 @@ class PayPalClientTest {
                 .andExpect(header("PayPal-Request-Id", "clave-idempotencia-1"))
                 .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
-        client.llamarPayPalIdempotente("/v1/payments/refund", HttpMethod.POST, null, "clave-idempotencia-1");
+        client.callPayPalIdempotent("/v1/payments/refund", HttpMethod.POST, null, "clave-idempotencia-1");
 
         servidor.verify();
     }
@@ -110,7 +110,7 @@ class PayPalClientTest {
         servidor.expect(requestTo("https://api-m.sandbox.paypal.com/v1/checkout/orders/ORD-2"))
                 .andRespond(withSuccess("esto no es json valido", MediaType.TEXT_PLAIN));
 
-        assertThatThrownBy(() -> client.llamarPayPal("/v1/checkout/orders/ORD-2", HttpMethod.GET, null))
+        assertThatThrownBy(() -> client.callPayPal("/v1/checkout/orders/ORD-2", HttpMethod.GET, null))
                 .isInstanceOf(BusinessRuleException.class);
     }
 }

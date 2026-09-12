@@ -67,25 +67,25 @@ public class PayPalClient {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
-        return llamarPayPal(ruta, metodo, cuerpo, null);
+    public JsonNode callPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo) {
+        return callPayPal(ruta, metodo, cuerpo, null);
     }
 
     /**
-     * Igual que {@link #llamarPayPal(String, HttpMethod, JsonNode)}, pero con
+     * Igual que {@link #callPayPal(String, HttpMethod, JsonNode)}, pero con
      * cabecera `PayPal-Request-Id` (REQ-NF-019): un reembolso reintentado con
      * la misma clave no se procesa dos veces del lado de PayPal, mismo
      * principio que el `sender_batch_id` idempotente de los payouts en
      * WithdrawalRequestServiceImpl, aplicado aquí vía el mecanismo propio que
      * PayPal expone para checkout/orders y captures/refund.
      */
-    public JsonNode llamarPayPalIdempotente(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
-        return llamarPayPal(ruta, metodo, cuerpo, idempotencyKey);
+    public JsonNode callPayPalIdempotent(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
+        return callPayPal(ruta, metodo, cuerpo, idempotencyKey);
     }
 
-    private JsonNode llamarPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
+    private JsonNode callPayPal(String ruta, HttpMethod metodo, JsonNode cuerpo, String idempotencyKey) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(obtenerAccessToken());
+        headers.setBearerAuth(getAccessToken());
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             headers.set("PayPal-Request-Id", idempotencyKey);
@@ -103,7 +103,7 @@ public class PayPalClient {
         }
     }
 
-    private String obtenerAccessToken() {
+    private String getAccessToken() {
         HttpHeaders headers = new HttpHeaders();
         String credentials = Base64.getEncoder().encodeToString(
                 (paypalClientId + ":" + paypalClientSecret).getBytes());

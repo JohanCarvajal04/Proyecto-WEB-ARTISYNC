@@ -68,7 +68,7 @@ public class PayPalReconciliationExecutorService {
 
         JsonNode orden;
         try {
-            orden = payPalClient.llamarPayPal(
+            orden = payPalClient.callPayPal(
                     "/v2/checkout/orders/" + pago.getIdOrdenPaypal(), HttpMethod.GET, null);
         } catch (Exception e) {
             log.error("[PayPalReconciliationExecutorService] Error consultando la orden {} en PayPal: {}",
@@ -93,7 +93,7 @@ public class PayPalReconciliationExecutorService {
 
     private void capturarYConfirmar(EscrowPayment pago) {
         try {
-            JsonNode respuesta = payPalClient.llamarPayPal(
+            JsonNode respuesta = payPalClient.callPayPal(
                     "/v2/checkout/orders/" + pago.getIdOrdenPaypal() + "/capture",
                     HttpMethod.POST, objectMapper.createObjectNode());
             String estadoCaptura = respuesta.path("status").asText();

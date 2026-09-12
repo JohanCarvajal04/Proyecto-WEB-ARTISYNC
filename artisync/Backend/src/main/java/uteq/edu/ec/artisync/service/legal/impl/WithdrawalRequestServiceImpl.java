@@ -330,7 +330,7 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
         item.put("note", "Pago de retiro ARTISYNC #" + solicitud.getIdSolicitud());
         item.put("sender_item_id", "item-" + solicitud.getIdSolicitud());
 
-        return payPalClient.llamarPayPal("/v1/payments/payouts", HttpMethod.POST, raiz);
+        return payPalClient.callPayPal("/v1/payments/payouts", HttpMethod.POST, raiz);
     }
 
     // ── Auxiliares ───────────────────────────────────────────────────────────
