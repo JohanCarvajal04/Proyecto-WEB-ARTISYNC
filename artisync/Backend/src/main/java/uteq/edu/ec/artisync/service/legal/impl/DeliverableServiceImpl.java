@@ -17,10 +17,13 @@ import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
 import uteq.edu.ec.artisync.entity.legal.EscrowPayment;
 import uteq.edu.ec.artisync.entity.legal.PaymentTransaction;
 import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
 import uteq.edu.ec.artisync.exception.BusinessRuleException;
 import uteq.edu.ec.artisync.repository.legal.*;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.service.comunicacion.ChatService;
 import uteq.edu.ec.artisync.service.comunicacion.NotificationService;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
@@ -37,6 +40,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
     private final EscrowPaymentRepository pagoGarantiaRepository;
     private final ContractRepository contratoRepository;
     private final PaymentTransactionRepository transaccionPagoRepository;
+    private final WorkflowStageConfigRepository flujoEtapaConfigRepository;
+    private final OrderStatusHistoryRepository historialEstadoPedidoRepository;
     private final DocumentStorage almacenamiento;
     private final ChatService chatService;
     private final NotificationService notificacionService;
@@ -165,6 +170,24 @@ public class DeliverableServiceImpl implements IDeliverableService {
 
         if (entregable.getEstaLiberado()) {
             throw new BusinessRuleException("El entregable ya fue aprobado");
+        }
+
+        // Sin este guard, un creador podia subir el entregable (subirEntregable
+        // no lo restringe por etapa a proposito) y el cliente liberaba fondos
+        // sin que el pedido hubiera pasado por ninguna etapa intermedia. La
+        // etapa "actual" es siempre la transicion mas reciente de
+        // historial_estados_pedido (tabla inmutable).
+        OrderStatusHistory ultimoEstado = historialEstadoPedidoRepository
+                .findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)
+                .orElseThrow(() -> new BusinessRuleException("Pedido sin estado inicial"));
+
+        boolean enEtapaFinal = flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(
+                pedido.getFlujo().getIdFlujo(), ultimoEstado.getEtapa().getIdEtapa());
+
+        if (!enEtapaFinal) {
+            throw new BusinessRuleException(
+                    "No se puede aprobar la entrega: el pedido aún no alcanza la etapa final de su flujo de trabajo (etapa actual: '"
+                            + ultimoEstado.getEtapa().getNombreEtapa() + "')");
         }
 
         // Liberar fondos

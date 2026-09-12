@@ -5,7 +5,7 @@ import { EntregableService } from '../../services/entregable.service';
 import { RespuestaEntregable } from '../../models/legal.model';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { PedidoService } from '../../../pedido/services/pedido.service';
-import { RespuestaPedido } from '../../../pedido/models/pedido.model';
+import { RespuestaPedido, RespuestaSeguimientoPedido } from '../../../pedido/models/pedido.model';
 import { ACEPTA_ENTREGABLE, formatSize, validarEntregable } from '../../utils/archivo-entregable';
 import { descargarBlob } from '../../../../shared/utils/descarga-archivo';
 
@@ -21,6 +21,8 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
   entregable: RespuestaEntregable | null = null;
   /** Solo para saber quién es el cliente/creador de este pedido (ver esCliente/esCreador). */
   pedido: RespuestaPedido | null = null;
+  /** Para saber si el pedido ya llegó a su etapa final (ver estaEnEtapaFinal). */
+  seguimiento: RespuestaSeguimientoPedido | null = null;
   loading = true;
   error = '';
   successMsg = '';
@@ -62,6 +64,16 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
       .pipe(catchError(() => of(null)))
       .subscribe(pedido => {
         this.pedido = pedido;
+        this.cdr.markForCheck();
+      });
+
+    // Necesario para bloquear "Aprobar y Liberar Fondos" mientras el pedido
+    // no haya llegado a la etapa final de su flujo (el backend es la fuente
+    // real de la verdad; esto solo evita una llamada que fallaría igual).
+    this.pedidoService.obtenerSeguimiento(this.idPedido)
+      .pipe(catchError(() => of(null)))
+      .subscribe(seguimiento => {
+        this.seguimiento = seguimiento;
         this.cdr.markForCheck();
       });
   }
@@ -229,5 +241,13 @@ export class EntregableVistaComponent implements OnInit, OnDestroy {
 
   get esCliente(): boolean {
     return this.pedido?.idCliente === this.authService.getCurrentUserId();
+  }
+
+  /** La etapa actual del pedido es la marcada como final en su flujo de trabajo. */
+  get estaEnEtapaFinal(): boolean {
+    const seg = this.seguimiento;
+    if (!seg) return false;
+    const actual = seg.etapasDelFlujo.find(e => e.numeroOrden === seg.etapaActualOrden);
+    return actual?.esEtapaFinal === true;
   }
 }

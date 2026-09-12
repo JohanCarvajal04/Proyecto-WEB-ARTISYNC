@@ -26,6 +26,7 @@ public class StageConfigResponse {
     private Integer numeroOrden;
     private Boolean esEtapaFinal;
     private Boolean requiereEntregable;
+    private Boolean requiereBoceto;
 }
 
 

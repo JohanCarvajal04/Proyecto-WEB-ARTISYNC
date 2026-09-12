@@ -31,6 +31,8 @@ public class StageConfigRequest {
     private boolean esEtapaFinal;
 
     private boolean requiereEntregable;
+
+    private boolean requiereBoceto;
 }
 
 

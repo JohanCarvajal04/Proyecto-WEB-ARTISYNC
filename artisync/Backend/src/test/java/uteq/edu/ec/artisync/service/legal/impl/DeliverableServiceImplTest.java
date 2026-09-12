@@ -10,8 +10,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.entity.catalogo.Offering;
+import uteq.edu.ec.artisync.entity.catalogo.Workflow;
 import uteq.edu.ec.artisync.entity.legal.FinalDeliverable;
 import uteq.edu.ec.artisync.entity.pedido.Order;
+import uteq.edu.ec.artisync.entity.pedido.OrderStatusHistory;
+import uteq.edu.ec.artisync.entity.pedido.WorkflowStage;
 import uteq.edu.ec.artisync.entity.perfil.CreatorProfile;
 import uteq.edu.ec.artisync.entity.seguridad.User;
 import uteq.edu.ec.artisync.exception.ResourceNotFoundException;
@@ -21,6 +24,8 @@ import uteq.edu.ec.artisync.repository.legal.FinalDeliverableRepository;
 import uteq.edu.ec.artisync.repository.legal.EscrowPaymentRepository;
 import uteq.edu.ec.artisync.repository.legal.PaymentTransactionRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
+import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
+import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
 import uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage;
 
@@ -46,6 +51,8 @@ class DeliverableServiceImplTest {
     @Mock private EscrowPaymentRepository pagoGarantiaRepository;
     @Mock private ContractRepository contratoRepository;
     @Mock private PaymentTransactionRepository transaccionPagoRepository;
+    @Mock private WorkflowStageConfigRepository flujoEtapaConfigRepository;
+    @Mock private OrderStatusHistoryRepository historialEstadoPedidoRepository;
     @Mock private DocumentStorage almacenamiento;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.ChatService chatService;
     @Mock private uteq.edu.ec.artisync.service.comunicacion.NotificationService notificacionService;
@@ -70,6 +77,7 @@ class DeliverableServiceImplTest {
         pedido.setIdPedido(ID_PEDIDO);
         pedido.setServicio(servicioCatalogo);
         pedido.setUsuarioCliente(cliente);
+        pedido.setFlujo(Workflow.builder().idFlujo(1L).build());
 
         // @Value no lo rellena @InjectMocks (no es parte del constructor de
         // Lombok al no ser final); mismo patron que
@@ -280,11 +288,24 @@ class DeliverableServiceImplTest {
     }
 
     // ── Aprobar Entrega ──────────────────────────────────────────────────────
+
+    /** Estado del historial que sí cumple el guard nuevo: la etapa actual es la etapa final del flujo. */
+    private void stubEnEtapaFinal() {
+        OrderStatusHistory ultimoEstado = OrderStatusHistory.builder()
+                .etapa(WorkflowStage.builder().idEtapa(50L).nombreEtapa("Entrega Final").build())
+                .build();
+        when(historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(ID_PEDIDO))
+                .thenReturn(Optional.of(ultimoEstado));
+        when(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(1L, 50L))
+                .thenReturn(true);
+    }
+
     @Test
     void aprobarEntrega_ok() {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+        stubEnEtapaFinal();
 
         uteq.edu.ec.artisync.entity.legal.Contract contrato = new uteq.edu.ec.artisync.entity.legal.Contract();
         contrato.setIdContrato(1L);
@@ -308,6 +329,7 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+        stubEnEtapaFinal();
 
         uteq.edu.ec.artisync.entity.legal.Contract contrato = new uteq.edu.ec.artisync.entity.legal.Contract();
         contrato.setIdContrato(1L);
@@ -341,6 +363,7 @@ class DeliverableServiceImplTest {
         when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
         when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
                 .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+        stubEnEtapaFinal();
 
         uteq.edu.ec.artisync.entity.legal.Contract contrato = new uteq.edu.ec.artisync.entity.legal.Contract();
         contrato.setIdContrato(1L);
@@ -371,5 +394,26 @@ class DeliverableServiceImplTest {
                 .thenReturn(Optional.of(entregableGuardado("m", "l", true)));
 
         assertThrows(BusinessRuleException.class, () -> servicio.approveDelivery(ID_PEDIDO, ID_CLIENTE));
+    }
+
+    /** El bug que este guard cierra: el creador podía subir el entregable en cualquier etapa. */
+    @Test
+    void aprobarEntrega_noEnEtapaFinal_error() {
+        when(pedidoRepository.findById(ID_PEDIDO)).thenReturn(Optional.of(pedido));
+        when(entregableRepository.findByPedidoIdPedidoParaActualizar(ID_PEDIDO))
+                .thenReturn(Optional.of(entregableGuardado("m", "l", false)));
+
+        OrderStatusHistory ultimoEstado = OrderStatusHistory.builder()
+                .etapa(WorkflowStage.builder().idEtapa(10L).nombreEtapa("En Produccion").build())
+                .build();
+        when(historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(ID_PEDIDO))
+                .thenReturn(Optional.of(ultimoEstado));
+        when(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(1L, 10L))
+                .thenReturn(false);
+
+        assertThrows(BusinessRuleException.class, () -> servicio.approveDelivery(ID_PEDIDO, ID_CLIENTE));
+
+        verify(transaccionPagoRepository, never()).save(any());
+        verify(entregableRepository, never()).save(any());
     }
 }

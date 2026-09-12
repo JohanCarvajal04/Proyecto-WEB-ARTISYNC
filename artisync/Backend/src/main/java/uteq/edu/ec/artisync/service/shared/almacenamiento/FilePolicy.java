@@ -45,6 +45,9 @@ public record FilePolicy(Set<String> tiposPermitidos, long maxBytes, String desc
      */
     public static final FilePolicy PERFIL = new FilePolicy(IMAGENES, 5 * MB, "imagen");
 
+    /** Boceto/avance con marca de agua ya aplicada por el creador: solo imagen, previsualizacion liviana. */
+    public static final FilePolicy BOCETO = new FilePolicy(IMAGENES, 20 * MB, "imagen");
+
     private static Set<String> union(Set<String> a, Set<String> b) {
         return java.util.stream.Stream.concat(a.stream(), b.stream())
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());

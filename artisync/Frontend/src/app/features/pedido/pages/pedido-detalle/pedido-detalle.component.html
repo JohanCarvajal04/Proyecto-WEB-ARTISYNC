@@ -173,9 +173,19 @@
                 </span>
               </div>
             }
+            @if (seguimiento?.bloqueadoPorBoceto) {
+              <div class="flex items-start gap-2.5 bg-amber-50 text-amber-700 text-sm rounded-xl px-4 py-3">
+                <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>
+                  Esta etapa exige subir un boceto antes de continuar. Sube uno en la sección "Boceto" más abajo para poder avanzar.
+                </span>
+              </div>
+            }
             <textarea rows="3" placeholder="Observación (opcional)..." [(ngModel)]="observacion"
               class="w-full bg-slate-50 text-slate-800 placeholder-slate-300 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/25 transition-all resize-y"></textarea>
-            <button (click)="avanzarEtapa()" [disabled]="avanzando || seguimiento?.bloqueadoPorEntregable"
+            <button (click)="avanzarEtapa()" [disabled]="avanzando || seguimiento?.bloqueadoPorEntregable || seguimiento?.bloqueadoPorBoceto"
               class="self-start bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:from-[#8A4DB0] hover:to-[#6A2D9C] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
               @if (avanzando) {
                 <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
@@ -190,6 +200,60 @@
           </div>
         </section>
       }
+
+      <!-- Boceto -->
+      <section class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100">
+          <h2 class="font-headline text-lg font-bold text-[#1E0F38]">Boceto</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Avance visual con marca de agua compartido por el creador</p>
+        </div>
+
+        <div class="p-6 md:p-8 flex flex-col gap-5">
+          <div class="relative rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center min-h-[140px]">
+            @if (cargandoBocetoPreview) {
+              <div class="animate-spin rounded-full h-7 w-7 border-2 border-purple-600 border-t-transparent"></div>
+            } @else if (bocetoPreviewUrl) {
+              <img [src]="bocetoPreviewUrl" alt="Boceto del pedido" class="max-w-full h-auto" />
+            } @else {
+              <div class="flex flex-col items-center gap-2 py-8 text-center px-6">
+                <svg class="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 8h16M4 4h16M4 20h16" />
+                </svg>
+                <p class="text-xs text-slate-400">Aún no se ha subido un boceto para este pedido.</p>
+              </div>
+            }
+          </div>
+
+          @if (boceto) {
+            <p class="text-[11px] text-slate-400 font-mono">Última actualización: {{ formatDate(boceto.fechaSubida) }}</p>
+          }
+
+          @if (esCreador) {
+            <div class="flex flex-col gap-3 pt-2 border-t border-slate-100">
+              <label for="archivoBoceto" class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {{ boceto ? 'Reemplazar boceto' : 'Subir boceto' }}
+              </label>
+              <input id="archivoBoceto" type="file" [accept]="aceptaBoceto" (change)="seleccionarBoceto($event)"
+                class="w-full bg-slate-50 text-slate-600 text-sm rounded-xl px-4 py-3 border border-transparent focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/25 transition-all file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 file:cursor-pointer" />
+              @if (archivoBoceto) {
+                <span class="text-xs text-slate-400 font-mono truncate">{{ archivoBoceto.name }} · {{ formatSize(archivoBoceto.size) }}</span>
+              }
+              <button (click)="subirBoceto()" [disabled]="!archivoBoceto || subiendoBoceto"
+                class="self-start bg-gradient-to-r from-[#9C5CC5] to-[#7B39B2] hover:from-[#8A4DB0] hover:to-[#6A2D9C] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                @if (subiendoBoceto) {
+                  <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                  Subiendo...
+                } @else {
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  {{ boceto ? 'Reemplazar boceto' : 'Subir boceto' }}
+                }
+              </button>
+            </div>
+          }
+        </div>
+      </section>
 
       <!-- Acciones. El pago solo lo ve el cliente: POST /pedidos/{id}/pago es
            hasAnyRole('CLIENTE','ADMIN'), así que al creador el botón le daba 403. -->

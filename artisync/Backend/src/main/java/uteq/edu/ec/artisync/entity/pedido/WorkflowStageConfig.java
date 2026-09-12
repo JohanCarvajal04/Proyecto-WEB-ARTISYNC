@@ -47,6 +47,10 @@ public class WorkflowStageConfig {
     @Builder.Default
     @Column(name = "requiere_entregable", nullable = false)
     private Boolean requiereEntregable = false;
+
+    @Builder.Default
+    @Column(name = "requiere_boceto", nullable = false)
+    private Boolean requiereBoceto = false;
 }
 
 

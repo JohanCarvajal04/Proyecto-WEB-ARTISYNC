@@ -1,18 +1,21 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
 import { ToastService } from '../../../../core/services/toast.service';
 import { PedidoService } from '../../../pedido/services/pedido.service';
 import { TicketRevisionService } from '../../../pedido/services/ticket-revision.service';
+import { BocetoService } from '../../../pedido/services/boceto.service';
 import { EntregableService } from '../../../legal/services/entregable.service';
 import { ContratoService } from '../../../legal/services/contrato.service';
 import {
   RespuestaPedido,
   RespuestaSeguimientoPedido,
-  RespuestaTicketRevision
+  RespuestaTicketRevision,
+  RespuestaBoceto
 } from '../../../pedido/models/pedido.model';
 import { RespuestaEntregable, RespuestaContrato } from '../../../legal/models/legal.model';
 import { ACEPTA_ENTREGABLE, formatSize, validarEntregable } from '../../../legal/utils/archivo-entregable';
+import { ACEPTA_BOCETO, validarBoceto } from '../../../pedido/utils/archivo-boceto';
 import { ChatPedidoComponent } from '../../../comunicacion/components/chat-pedido/chat-pedido.component';
 import { BriefingPedidoComponent } from '../../../comunicacion/components/briefing-pedido/briefing-pedido.component';
 import { formatPrice, formatDate, formatDateTime, badgeEtapa, mensajeError } from '../../utils/formato';
@@ -24,11 +27,12 @@ import { formatPrice, formatDate, formatDateTime, badgeEtapa, mensajeError } fro
   templateUrl: './comision-detalle.component.html',
   styleUrl: './comision-detalle.component.css'
 })
-export class ComisionDetalleComponent implements OnInit {
+export class ComisionDetalleComponent implements OnInit, OnDestroy {
 
   private route = inject(ActivatedRoute);
   private pedidoService = inject(PedidoService);
   private ticketService = inject(TicketRevisionService);
+  private bocetoService = inject(BocetoService);
   private entregableService = inject(EntregableService);
   private contratoService = inject(ContratoService);
   private toast = inject(ToastService);
@@ -37,6 +41,9 @@ export class ComisionDetalleComponent implements OnInit {
   readonly pedido = signal<RespuestaPedido | null>(null);
   readonly seguimiento = signal<RespuestaSeguimientoPedido | null>(null);
   readonly entregable = signal<RespuestaEntregable | null>(null);
+  readonly boceto = signal<RespuestaBoceto | null>(null);
+  readonly bocetoPreviewUrl = signal<string | null>(null);
+  readonly cargandoBocetoPreview = signal<boolean>(false);
   readonly contrato = signal<RespuestaContrato | null>(null);
   readonly tickets = signal<RespuestaTicketRevision[]>([]);
 
@@ -52,7 +59,12 @@ export class ComisionDetalleComponent implements OnInit {
   readonly archivoLimpia = signal<File | null>(null);
   readonly subiendo = signal<boolean>(false);
 
+  // Subida de boceto
+  readonly archivoBoceto = signal<File | null>(null);
+  readonly subiendoBoceto = signal<boolean>(false);
+
   readonly tiposAceptados = ACEPTA_ENTREGABLE;
+  readonly aceptaBoceto = ACEPTA_BOCETO;
   readonly formatSize = formatSize;
 
   readonly firmando = signal<boolean>(false);
@@ -78,6 +90,10 @@ export class ComisionDetalleComponent implements OnInit {
     this.cargar();
   }
 
+  ngOnDestroy(): void {
+    this.liberarBocetoPreview();
+  }
+
   cargar(): void {
     const id = this.idPedido();
     if (!id) return;
@@ -85,22 +101,26 @@ export class ComisionDetalleComponent implements OnInit {
     this.isLoading.set(true);
     this.error.set('');
 
-    // Solo el pedido es obligatorio: contrato, entregable y tickets pueden no
-    // existir todavía según la etapa, y un 404 ahí no es un fallo de la vista.
+    // Solo el pedido es obligatorio: contrato, entregable, boceto y tickets
+    // pueden no existir todavía según la etapa, y un 404 ahí no es un fallo
+    // de la vista.
     forkJoin({
       pedido: this.pedidoService.obtenerPedido(id),
       seguimiento: this.pedidoService.obtenerSeguimiento(id).pipe(catchError(() => of(null))),
       entregable: this.entregableService.obtenerEntregable(id).pipe(catchError(() => of(null))),
+      boceto: this.bocetoService.obtenerBoceto(id).pipe(catchError(() => of(null))),
       contrato: this.contratoService.obtenerContratoPorPedido(id).pipe(catchError(() => of(null))),
       tickets: this.ticketService.listarTickets(id).pipe(catchError(() => of([] as RespuestaTicketRevision[])))
     }).subscribe({
-      next: ({ pedido, seguimiento, entregable, contrato, tickets }) => {
+      next: ({ pedido, seguimiento, entregable, boceto, contrato, tickets }) => {
         this.pedido.set(pedido);
         this.seguimiento.set(seguimiento);
         this.entregable.set(entregable);
+        this.boceto.set(boceto);
         this.contrato.set(contrato);
         this.tickets.set(tickets);
         this.isLoading.set(false);
+        this.cargarBocetoPreview();
       },
       error: (err) => {
         this.error.set(mensajeError(err, 'No se pudo cargar la comisión'));
@@ -185,6 +205,77 @@ export class ComisionDetalleComponent implements OnInit {
       error: (err) => {
         this.subiendo.set(false);
         this.toast.error(mensajeError(err, 'No se pudo registrar el entregable'));
+      }
+    });
+  }
+
+  // ── Boceto ────────────────────────────────────────────────────────────────
+
+  /**
+   * Igual que en pedido-detalle: si el almacenamiento es local, `urlImagen`
+   * es un endpoint protegido por JWT, así que la miniatura se descarga como
+   * blob en vez de usar un `<img src>` directo.
+   */
+  private cargarBocetoPreview(): void {
+    if (!this.boceto()) return;
+
+    this.liberarBocetoPreview();
+    this.cargandoBocetoPreview.set(true);
+
+    this.bocetoService.descargarBoceto(this.idPedido()).subscribe({
+      next: (blob) => {
+        this.bocetoPreviewUrl.set(URL.createObjectURL(blob));
+        this.cargandoBocetoPreview.set(false);
+      },
+      error: () => {
+        this.bocetoPreviewUrl.set(null);
+        this.cargandoBocetoPreview.set(false);
+      }
+    });
+  }
+
+  private liberarBocetoPreview(): void {
+    const url = this.bocetoPreviewUrl();
+    if (url) {
+      URL.revokeObjectURL(url);
+      this.bocetoPreviewUrl.set(null);
+    }
+  }
+
+  seleccionarBoceto(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+    if (!archivo) return;
+
+    const validacion = validarBoceto(archivo);
+    if (validacion) {
+      this.toast.warning(validacion);
+      input.value = '';
+      return;
+    }
+    this.archivoBoceto.set(archivo);
+  }
+
+  subirBoceto(): void {
+    const id = this.idPedido();
+    const archivo = this.archivoBoceto();
+    if (!archivo) {
+      this.toast.warning('Selecciona una imagen para el boceto');
+      return;
+    }
+
+    this.subiendoBoceto.set(true);
+    this.bocetoService.subirBoceto(id, archivo).subscribe({
+      next: (boceto) => {
+        this.boceto.set(boceto);
+        this.archivoBoceto.set(null);
+        this.subiendoBoceto.set(false);
+        this.toast.success('Boceto registrado. El cliente ya puede verlo.');
+        this.cargarBocetoPreview();
+      },
+      error: (err) => {
+        this.subiendoBoceto.set(false);
+        this.toast.error(mensajeError(err, 'No se pudo registrar el boceto'));
       }
     });
   }

@@ -37,7 +37,7 @@ public interface IDeliverableService {
      * @param idPedido  id del pedido
      * @param idCliente id del usuario que aprueba, debe ser el cliente del pedido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido, el entregable o su contrato no existen
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, o si el entregable ya fue aprobado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido, si el entregable ya fue aprobado, o si el pedido aún no alcanza la etapa final de su flujo de trabajo
      */
     void approveDelivery(Long idPedido, Long idCliente);
 

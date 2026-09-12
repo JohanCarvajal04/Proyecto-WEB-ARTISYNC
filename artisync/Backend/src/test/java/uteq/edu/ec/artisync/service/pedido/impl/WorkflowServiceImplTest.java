@@ -276,6 +276,25 @@ class WorkflowServiceImplTest {
     }
 
     @Test
+    @DisplayName("agregarEtapa propaga requiereBoceto a la configuracion guardada")
+    void agregarEtapa_propagaRequiereBoceto() {
+        WorkflowStage etapa = WorkflowStage.builder().idEtapa(1L).nombreEtapa("Boceto inicial").build();
+        StageConfigRequest peticion = StageConfigRequest.builder()
+                .nombreEtapa("Boceto inicial").numeroOrden(1).requiereBoceto(true).build();
+
+        given(flujoTrabajoRepository.findByIdFlujoAndCreadorIdUsuario(1L, 10L)).willReturn(Optional.of(flujo));
+        given(etapaFlujoRepository.findByNombreEtapa("Boceto inicial")).willReturn(Optional.of(etapa));
+        given(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(1L, 1L)).willReturn(false);
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of());
+
+        flujoTrabajoServicio.addStage(1L, 10L, false, peticion);
+
+        ArgumentCaptor<WorkflowStageConfig> captor = ArgumentCaptor.forClass(WorkflowStageConfig.class);
+        verify(flujoEtapaConfigRepository).save(captor.capture());
+        assertThat(captor.getValue().getRequiereBoceto()).isTrue();
+    }
+
+    @Test
     @DisplayName("updateStage cambia orden y marca final cuando pertenece al flujo")
     void actualizarEtapa_cambiaDatos() {
         WorkflowStageConfig config = WorkflowStageConfig.builder().idFlujoEtapa(5L).flujo(flujo).numeroOrden(1).esEtapaFinal(false).build();

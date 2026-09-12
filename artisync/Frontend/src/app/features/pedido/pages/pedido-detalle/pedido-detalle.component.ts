@@ -4,7 +4,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { interval, Subscription, switchMap, of, catchError } from 'rxjs';
 import { PedidoService } from '../../services/pedido.service';
 import { TicketRevisionService } from '../../services/ticket-revision.service';
-import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, PeticionAvanzarEtapa, PeticionCrearTicketRevision } from '../../models/pedido.model';
+import { BocetoService } from '../../services/boceto.service';
+import { RespuestaPedido, RespuestaSeguimientoPedido, RespuestaTicketRevision, RespuestaBoceto, PeticionAvanzarEtapa, PeticionCrearTicketRevision } from '../../models/pedido.model';
+import { ACEPTA_BOCETO, validarBoceto } from '../../utils/archivo-boceto';
+import { formatSize } from '../../../legal/utils/archivo-entregable';
 import { AuthService } from '../../../seguridad/services/auth.service';
 import { EntregableService } from '../../../legal/services/entregable.service';
 import { ContratoService } from '../../../legal/services/contrato.service';
@@ -44,6 +47,15 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
   nuevoTicket: PeticionCrearTicketRevision = { idMotivo: 1, descripcionCliente: '' };
   creandoTicket = false;
 
+  // Boceto
+  boceto: RespuestaBoceto | null = null;
+  bocetoPreviewUrl: string | null = null;
+  cargandoBocetoPreview = false;
+  archivoBoceto: File | null = null;
+  subiendoBoceto = false;
+  readonly aceptaBoceto = ACEPTA_BOCETO;
+  readonly formatSize = formatSize;
+
   private pollingSubscription?: Subscription;
   /** Público: los componentes embebidos (chat, briefing, reseña) lo reciben como @Input. */
   pedidoId = 0;
@@ -52,6 +64,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
     private pedidoService: PedidoService,
     private ticketService: TicketRevisionService,
     private entregableService: EntregableService,
+    private bocetoService: BocetoService,
     private contratoService: ContratoService,
     public authService: AuthService,
     private route: ActivatedRoute,
@@ -81,6 +94,7 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.pollingSubscription?.unsubscribe();
+    this.liberarBocetoPreview();
   }
 
   cargarDatos(): void {
@@ -132,6 +146,84 @@ export class PedidoDetalleComponent implements OnInit, OnDestroy {
         this.contrato = contrato;
         this.cdr.markForCheck();
       });
+
+    // 404 aquí = el creador aún no subió ningún boceto: estado normal.
+    this.bocetoService.obtenerBoceto(this.pedidoId)
+      .pipe(catchError(() => of(null)))
+      .subscribe(boceto => {
+        this.boceto = boceto;
+        this.cargarBocetoPreview();
+        this.cdr.markForCheck();
+      });
+  }
+
+  /**
+   * Igual que el preview del entregable: si el almacenamiento es local,
+   * `urlImagen` es un endpoint protegido por JWT, así que no sirve como
+   * `<img src>` directo — hay que descargar el blob con el interceptor y
+   * montarlo como object URL.
+   */
+  private cargarBocetoPreview(): void {
+    if (!this.boceto) return;
+
+    this.liberarBocetoPreview();
+    this.cargandoBocetoPreview = true;
+
+    this.bocetoService.descargarBoceto(this.pedidoId).subscribe({
+      next: (blob) => {
+        this.bocetoPreviewUrl = URL.createObjectURL(blob);
+        this.cargandoBocetoPreview = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.bocetoPreviewUrl = null;
+        this.cargandoBocetoPreview = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private liberarBocetoPreview(): void {
+    if (this.bocetoPreviewUrl) {
+      URL.revokeObjectURL(this.bocetoPreviewUrl);
+      this.bocetoPreviewUrl = null;
+    }
+  }
+
+  seleccionarBoceto(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const archivo = input.files?.[0] ?? null;
+    if (!archivo) return;
+
+    const validacion = validarBoceto(archivo);
+    if (validacion) {
+      this.toast.error(validacion);
+      input.value = '';
+      return;
+    }
+
+    this.archivoBoceto = archivo;
+  }
+
+  subirBoceto(): void {
+    if (!this.archivoBoceto || this.subiendoBoceto) return;
+
+    this.subiendoBoceto = true;
+
+    this.bocetoService.subirBoceto(this.pedidoId, this.archivoBoceto).subscribe({
+      next: (boceto) => {
+        this.boceto = boceto;
+        this.archivoBoceto = null;
+        this.subiendoBoceto = false;
+        this.cargarBocetoPreview();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.toast.error(err.error?.detail || 'No se pudo subir el boceto');
+        this.subiendoBoceto = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   avanzarEtapa(): void {

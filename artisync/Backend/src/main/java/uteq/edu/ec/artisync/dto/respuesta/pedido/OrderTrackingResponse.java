@@ -26,4 +26,6 @@ public class OrderTrackingResponse {
     private List<StatusHistoryResponse> historial;
     /** La etapa actual exige entregable (etapasDelFlujo) y el pedido todavia no tiene uno subido. */
     private boolean bloqueadoPorEntregable;
+    /** La etapa actual exige boceto (etapasDelFlujo) y el pedido todavia no tiene uno subido. */
+    private boolean bloqueadoPorBoceto;
 }

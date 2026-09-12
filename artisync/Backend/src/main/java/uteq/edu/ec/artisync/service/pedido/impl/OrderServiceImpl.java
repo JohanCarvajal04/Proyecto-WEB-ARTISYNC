@@ -62,6 +62,7 @@ public class OrderServiceImpl implements IOrderService {
     private final WorkflowStageRepository etapaFlujoRepository;
     private final ContractRepository contratoRepository;
     private final FinalDeliverableRepository entregableFinalRepository;
+    private final SketchRepository bocetoRepository;
     private final OrderTermsProposalRepository propuestaTerminosPedidoRepository;
     private final NotificationService notificacionService;
     private final ChatService chatService;
@@ -698,6 +699,15 @@ public class OrderServiceImpl implements IOrderService {
                             + configActual.getEtapa().getNombreEtapa() + "'");
         }
 
+        // Mismo criterio que requiereEntregable: la etapa que se abandona
+        // puede exigir un boceto ya subido para el pedido.
+        if (Boolean.TRUE.equals(configActual.getRequiereBoceto())
+                && !bocetoRepository.existsByPedidoIdPedido(idPedido)) {
+            throw new BusinessRuleException(
+                    "Debes subir un boceto antes de avanzar de la etapa '"
+                            + configActual.getEtapa().getNombreEtapa() + "'");
+        }
+
         // Obtener siguiente etapa del flujo configurado
         List<WorkflowStageConfig> siguientes = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoAndNumeroOrdenGreaterThanOrderByNumeroOrdenAsc(
@@ -776,6 +786,7 @@ public class OrderServiceImpl implements IOrderService {
         Integer etapaActualOrden = 0;
         String etapaActualNombre = "Sin estado";
         boolean bloqueadoPorEntregable = false;
+        boolean bloqueadoPorBoceto = false;
         if (ultimoEstado != null) {
             etapaActualNombre = ultimoEstado.getEtapa().getNombreEtapa();
             WorkflowStageConfig configActual = etapasConfig.stream()
@@ -786,6 +797,8 @@ public class OrderServiceImpl implements IOrderService {
                 etapaActualOrden = configActual.getNumeroOrden();
                 bloqueadoPorEntregable = Boolean.TRUE.equals(configActual.getRequiereEntregable())
                         && !entregableFinalRepository.existsByPedidoIdPedido(idPedido);
+                bloqueadoPorBoceto = Boolean.TRUE.equals(configActual.getRequiereBoceto())
+                        && !bocetoRepository.existsByPedidoIdPedido(idPedido);
             } else {
                 // Vista de solo lectura: no se puede fallar, pero sí avisar.
                 // El pedido quedó con una etapa que ya no está en la
@@ -807,6 +820,7 @@ public class OrderServiceImpl implements IOrderService {
                 .porcentajeProgreso(porcentaje)
                 .fechaUltimaActualizacion(ultimoEstado != null ? ultimoEstado.getFechaTransicion() : null)
                 .bloqueadoPorEntregable(bloqueadoPorEntregable)
+                .bloqueadoPorBoceto(bloqueadoPorBoceto)
                 .etapasDelFlujo(etapasConfig.stream().map(this::mapStageConfig).collect(Collectors.toList()))
                 .historial(historial.stream().map(this::mapHistory).collect(Collectors.toList()))
                 .build();
@@ -896,6 +910,7 @@ public class OrderServiceImpl implements IOrderService {
                 .numeroOrden(config.getNumeroOrden())
                 .esEtapaFinal(config.getEsEtapaFinal())
                 .requiereEntregable(config.getRequiereEntregable())
+                .requiereBoceto(config.getRequiereBoceto())
                 .build();
     }
 }
