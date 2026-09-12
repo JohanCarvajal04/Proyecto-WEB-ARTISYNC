@@ -2,6 +2,130 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [v1.3.10] - 2026-09-11 — REQ-NF-013: se retira la cita huérfana a `AuditControlador`, muerta desde el 2026-08-26
+
+### Fixed — REQ-NF-013 citaba una clase y un endpoint que llevaban más de dos semanas eliminados
+
+Una ronda de revisión externa señaló que `social.AuditServiceImpl;AuditControlador` y el
+endpoint `GET /api/v1/admin/transacciones/{idPerfil}/csv` en `matriz.csv`/`SRS.md` no
+correspondían a nada real. Se confirmó con `git log`: el commit `6bca09b8` (2026-08-26,
+*"feat: exportacion de reportes en auditoria, legal, pedido y seguridad"*) eliminó
+explícitamente `AuditControlador`/`AuditService`/`AuditServiceImpl` del paquete legacy
+`controller.social`/`service.social` — el propio mensaje del commit dice *"Elimina el modulo
+legacy de auditoria social (AuditControlador, AuditService, AuditServiceImpl), reemplazado por
+el modulo de auditoria actual"*. El endpoint `/admin/transacciones/{idPerfil}/csv` nunca existió
+bajo esa ruta tras la eliminación. Además, el endpoint de exportación citado
+(`/admin/auditoria/csv`) tampoco correspondía a la ruta real (`/admin/auditoria/exportar`, con
+`?formato=CSV|XLSX|PDF`).
+
+La cita quedó huérfana durante más de dos semanas — sobrevivió a todas las corridas de
+`validate-traceability.sh` en verde porque el script solo compara el SRS contra la matriz entre
+sí, nunca contra el árbol fuente real (mismo punto ciego estructural que expuso el rename i18n
+de esta misma fecha, ver `[v1.3.9]`).
+
+Corrección aplicada:
+
+- `matriz.csv`: se retiró `social.AuditServiceImpl;AuditControlador` de `modulo_codigo` y
+  `GET /api/v1/admin/transacciones/{idPerfil}/csv` de `endpoint_api`; se corrigió
+  `GET /api/v1/admin/auditoria/csv` → `GET /api/v1/admin/auditoria/exportar` (ruta real).
+- `SRS.md`: se retiró la mención a `AuditControlador` como "el exportador de transacciones", se
+  corrigió el mismo endpoint, y se documentó qué cubre hoy realmente la palabra "transacciones"
+  del enunciado: la bitácora transversal `auditoria_eventos`, filtrable por módulo `FINANZAS`
+  (`PAGO_ORDEN_CREAR`, `PAGO_WEBHOOK_RECIBIR`, `PAGO_CANCELAR`, `PAGO_RECONCILIAR`,
+  `RETIRO_DATOS_PAGO_ACTUALIZAR`), no una clase dedicada de exportación por creador.
+
+El estado del requisito no cambia (`verificado`): la garantía de inmutabilidad y la exportación
+real siguen sostenidas por evidencia real (`EventoAuditoriaInmutabilidadIT`,
+`AuditAuthorizationTest` cubre explícitamente el endpoint `/exportar`), solo se corrigió la cita
+a lo que ya no existe.
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
+## [v1.3.9] - 2026-09-11 — Corrección de build: 8 clases de prueba habían perdido la extensión `.java` en el refactor i18n
+
+### Fixed — 8 clases de prueba del paquete `scheduler` no compilaban ni se ejecutaban
+
+Al aplicar el mapeo español→inglés de `matriz.csv` tras el refactor i18n de hoy (commits
+`3f91fd04`…`531c6c61`), una verificación cruzada contra el árbol fuente real (no solo contra la
+lista de renombres) encontró que 8 archivos de prueba del paquete
+`uteq.edu.ec.artisync.scheduler` habían perdido la extensión `.java` durante el commit
+`531c6c61` ("refactor(i18n): renombrar service/shared restante a ingles"): existían como texto
+plano sin extensión, invisibles para Maven — no se compilaban ni se ejecutaban, sin que ningún
+error de build lo señalara (Maven simplemente no los recoge; no hay `.java` que fallar).
+
+Afectaba a `ContractIntegritySchedulerTest`, `NotificationPurgeSchedulerTest`,
+`PayPalReconciliationExecutorServiceTest`, `PayPalReconciliationSchedulerTest`,
+`RevisionTicketExpirationSchedulerTest`, `RevisionTicketExpirationServiceTest`,
+`SecurityPurgeSchedulerTest` y `VerificationSchedulerTest` — evidencia automatizada citada por
+REQ-F-022b, REQ-F-022c, REQ-NF-019 y REQ-NF-020 que en realidad **nunca se estaba ejecutando**
+desde ese commit.
+
+Corregido con `git mv <archivo> <archivo>.java` (preserva el historial) para los 8 archivos.
+Verificado tras la corrección:
+
+- `./mvnw.cmd test-compile`: compila sin errores.
+- `./mvnw.cmd test -Dtest=<las 8 clases>`: **25 pruebas, 0 fallos, 0 errores** — las 8 clases
+  ahora sí compilan, se descubren y se ejecutan.
+
+Ninguno de estos requisitos cambia de estado en `matriz.csv`/`SRS.md`: ya declaraban
+`verificado`/`implementado` con estas pruebas como evidencia, y esa evidencia ahora es real en
+vez de una clase fantasma que Maven ignoraba en silencio. Esta entrada documenta que el estado
+declarado pasó a estar realmente respaldado.
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62 (sin cambios en la matriz).
+
+## [v1.3.8] - 2026-09-11 — REQ-NF-023 nombra WCAG 2.2 AA como estándar de referencia y declara el alcance real de su verificación
+
+### Changed — REQ-NF-023: de "umbral de Lighthouse" a "WCAG 2.2 AA, verificado hasta donde Lighthouse lo permite"
+
+Una ronda de revisión externa señaló que el requisito exigía un puntaje de Lighthouse sin nombrar
+ningún estándar de accesibilidad de referencia, lo que dejaba la puerta abierta a leer un
+100/100 de Lighthouse como si fuera una certificación de conformidad WCAG. Se corrigió el
+enunciado, el rationale y el estado para:
+
+- Nombrar explícitamente **WCAG 2.2 Nivel AA** como el estándar de referencia (es, de hecho, la
+  base sobre la que Lighthouse construye su categoría Accessibility).
+- Declarar sin ambigüedad qué cubre la verificación automatizada (contraste, ARIA, etiquetas de
+  formulario, orden del DOM) y qué queda explícitamente sin verificar: navegación completa por
+  teclado en los flujos críticos, uso real con lector de pantalla, y los criterios de WCAG que
+  dependen de juicio humano.
+- El campo `Estado` deja constancia de que "verificado" significa "verificado contra el
+  subconjunto automatizable", no una auditoría de conformidad completa.
+
+No se creó una prueba manual de accesibilidad nueva (esa sería la Opción B, más costosa, que se
+dejó pendiente de decisión); este cambio es puramente de redacción, para que el requisito diga
+la verdad exacta de lo que hoy se comprobó. `matriz.csv` no cambia (mismo `estado: verificado`,
+misma evidencia).
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
+## [v1.3.7] - 2026-09-11 — Nueva §2.8 "Capacidades fuera de alcance"; la exclusión del reporte manual de contenido deja de ser una frase suelta
+
+### Added — §2.8 Capacidades fuera de alcance
+
+Una ronda de revisión externa señaló que la exclusión de un mecanismo de reporte manual de
+contenido (distinto de la detección automática de REQ-F-015) vivía como una única frase dentro
+de la nota de alcance de §1.2, sin justificación propia ni distinción de qué existe hoy como
+cobertura parcial. Se creó §2.8 con el mismo rigor que un requisito incluido:
+
+- Qué cubre hoy la plataforma de forma parcial (REQ-F-015 detección automática de contacto
+  directo en chat; REQ-F-033 gestión administrativa de las infracciones ya detectadas).
+- Qué no cubren esos dos requisitos: contenido no textual (imágenes de portafolio, foto de
+  perfil, archivos de servicio), una denuncia iniciada por un tercero, y cualquier plazo de
+  revisión (no hay cola de denuncias que gestionar).
+- La justificación real de la exclusión: restricción de equipo reducido y proyecto académico de
+  17 semanas (§2.4), no una decisión de que la capacidad sea innecesaria.
+- Un boceto del trabajo futuro si se construye, siguiendo el mismo patrón de REQ-F-028/033.
+
+§1.2 se recortó para remitir a §2.8 en vez de repetir el detalle, y la tabla de correspondencia
+con el Anexo C (§1.7) gana una fila para §2.8 → C.1 (declaración de alcance, incluidas sus
+exclusiones). No se creó ningún requisito nuevo: no es alcance construido, es la exclusión
+documentada con el detalle que ya tenían los demás huecos de especificación cerrados en v1.1.2
+y v1.3.0 (ver `[v1.2.0]` y las entradas de §3.1/§4.2).
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62 (sin cambios en la matriz — esta
+entrada es puramente descriptiva del alcance, no toca ningún `id_requisito`).
+
 ## [v1.3.6] - 2026-09-11 — Cierre de la regresión de `[v1.3.5]`: REQ-NF-016 sube a 82,93 % / 71,50 %; OBS-P1-01 vuelve a cumplirse
 
 ### Changed — REQ-NF-016: la regresión de Controladores declarada en `[v1.3.5]` se cerró el mismo día
