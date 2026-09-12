@@ -14,6 +14,7 @@ public final class StoragePrefix {
     public static final String ENTREGABLES = "entregables";
     public static final String PERFILES = "perfiles";
     public static final String SERVICIOS = "servicios";
+    public static final String BOCETOS = "bocetos";
 
     private StoragePrefix() {
     }

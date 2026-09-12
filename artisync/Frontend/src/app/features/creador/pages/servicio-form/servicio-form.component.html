@@ -310,6 +310,9 @@
                     <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
                       <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.requiereEntregable" [ngModelOptions]="{standalone: true}" /> Exige entregable
                     </label>
+                    <label class="cr-hint" style="display: inline-flex; align-items: center; gap: 4px;">
+                      <input type="checkbox" [(ngModel)]="nuevaEtapaFlujo.requiereBoceto" [ngModelOptions]="{standalone: true}" /> Exige boceto
+                    </label>
                     <button type="button" class="cr-btn cr-btn--outline cr-btn--sm" (click)="agregarEtapaFlujo()">Añadir etapa</button>
                   </div>
                 </div>

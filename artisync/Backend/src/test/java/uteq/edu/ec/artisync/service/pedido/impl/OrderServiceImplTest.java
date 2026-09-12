@@ -51,6 +51,7 @@ import uteq.edu.ec.artisync.repository.pedido.WorkflowStageRepository;
 import uteq.edu.ec.artisync.repository.pedido.WorkflowStageConfigRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderStatusHistoryRepository;
 import uteq.edu.ec.artisync.repository.pedido.OrderRepository;
+import uteq.edu.ec.artisync.repository.pedido.SketchRepository;
 import uteq.edu.ec.artisync.repository.seguridad.UserRepository;
 import uteq.edu.ec.artisync.service.perfil.IVerificationService;
 import uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument;
@@ -93,6 +94,7 @@ class OrderServiceImplTest {
     @Mock private WorkflowStageRepository etapaFlujoRepository;
     @Mock private ContractRepository contratoRepository;
     @Mock private FinalDeliverableRepository entregableFinalRepository;
+    @Mock private SketchRepository bocetoRepository;
     @Mock private OrderTermsProposalRepository propuestaTerminosPedidoRepository;
     @Mock private NotificationService notificacionService;
     @Mock private ChatService chatService;
@@ -764,6 +766,49 @@ class OrderServiceImplTest {
     }
 
     @Test
+    @DisplayName("avanzarEtapa rechaza si la etapa actual exige boceto y el pedido no tiene ninguno subido")
+    void avanzarEtapa_rechazaSinBocetoRequerido() {
+        AdvanceStageRequest peticion = AdvanceStageRequest.builder().build();
+        OrderStatusHistory ultimo = OrderStatusHistory.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        WorkflowStageConfig configInicial = WorkflowStageConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial)
+                .numeroOrden(1).requiereBoceto(true).build();
+        WorkflowStageConfig configSiguiente = WorkflowStageConfig.builder().idFlujoEtapa(2L).flujo(flujo).etapa(etapaSiguiente).numeroOrden(2).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.of(ultimo));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(configInicial, configSiguiente));
+        given(bocetoRepository.existsByPedidoIdPedido(10L)).willReturn(false);
+
+        assertThatThrownBy(() -> pedidoServicio.advanceStage(10L, 2L, peticion))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("boceto");
+        verify(historialRepository, never()).save(any(OrderStatusHistory.class));
+    }
+
+    @Test
+    @DisplayName("avanzarEtapa permite avanzar si la etapa exige boceto pero ya se subio uno")
+    void avanzarEtapa_permiteConBocetoSubido() {
+        AdvanceStageRequest peticion = AdvanceStageRequest.builder().build();
+        OrderStatusHistory ultimo = OrderStatusHistory.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        WorkflowStageConfig configInicial = WorkflowStageConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial)
+                .numeroOrden(1).requiereBoceto(true).build();
+        WorkflowStageConfig configSiguiente = WorkflowStageConfig.builder().idFlujoEtapa(2L).flujo(flujo).etapa(etapaSiguiente).numeroOrden(2).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.of(ultimo));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(configInicial, configSiguiente));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoAndNumeroOrdenGreaterThanOrderByNumeroOrdenAsc(1L, 1))
+                .willReturn(List.of(configSiguiente));
+        given(bocetoRepository.existsByPedidoIdPedido(10L)).willReturn(true);
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of());
+
+        OrderResponse respuesta = pedidoServicio.advanceStage(10L, 2L, peticion);
+
+        assertThat(respuesta).isNotNull();
+        verify(historialRepository).save(any(OrderStatusHistory.class));
+    }
+
+    @Test
     @DisplayName("advanceStage rechaza a un usuario que no es el creador del servicio")
     void avanzarEtapa_rechazaNoCreador() {
         AdvanceStageRequest peticion = AdvanceStageRequest.builder().build();
@@ -905,6 +950,40 @@ class OrderServiceImplTest {
 
         assertThat(resultado.getEtapaActual()).isEqualTo("Sin estado");
         assertThat(resultado.getPorcentajeProgreso()).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("obtenerSeguimiento marca bloqueadoPorBoceto cuando la etapa lo exige y no hay boceto subido")
+    void obtenerSeguimiento_bloqueadoPorBocetoCuandoFaltaBoceto() {
+        OrderStatusHistory h = OrderStatusHistory.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        WorkflowStageConfig config1 = WorkflowStageConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial)
+                .numeroOrden(1).requiereBoceto(true).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config1));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of(h));
+        given(bocetoRepository.existsByPedidoIdPedido(10L)).willReturn(false);
+
+        OrderTrackingResponse resultado = pedidoServicio.getTracking(10L, 1L);
+
+        assertThat(resultado.isBloqueadoPorBoceto()).isTrue();
+    }
+
+    @Test
+    @DisplayName("obtenerSeguimiento no marca bloqueadoPorBoceto cuando ya existe un boceto subido")
+    void obtenerSeguimiento_noBloqueadoPorBocetoCuandoYaExiste() {
+        OrderStatusHistory h = OrderStatusHistory.builder().idHistorialEstado(1L).pedido(pedido).etapa(etapaInicial).build();
+        WorkflowStageConfig config1 = WorkflowStageConfig.builder().idFlujoEtapa(1L).flujo(flujo).etapa(etapaInicial)
+                .numeroOrden(1).requiereBoceto(true).build();
+
+        given(pedidoRepository.findById(10L)).willReturn(Optional.of(pedido));
+        given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(1L)).willReturn(List.of(config1));
+        given(historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(10L)).willReturn(List.of(h));
+        given(bocetoRepository.existsByPedidoIdPedido(10L)).willReturn(true);
+
+        OrderTrackingResponse resultado = pedidoServicio.getTracking(10L, 1L);
+
+        assertThat(resultado.isBloqueadoPorBoceto()).isFalse();
     }
 
     @Test

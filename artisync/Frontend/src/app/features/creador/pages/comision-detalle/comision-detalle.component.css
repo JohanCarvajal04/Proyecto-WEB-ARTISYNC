@@ -161,4 +161,24 @@
   line-height: 1.5;
 }
 
+/* ── Boceto ── */
+
+.cd-boceto-preview {
+  min-height: 10rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  padding: 0.75rem;
+}
+
+.cd-boceto-preview img {
+  max-width: 100%;
+  max-height: 22rem;
+  border-radius: 0.5rem;
+}
+
 

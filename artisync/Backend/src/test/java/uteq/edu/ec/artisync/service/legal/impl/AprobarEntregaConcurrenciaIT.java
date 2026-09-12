@@ -142,6 +142,15 @@ class AprobarEntregaConcurrenciaIT {
                         "VALUES (?, ?, ?, 100.00) RETURNING id_pedido",
                 Long.class, ID_CLIENTE, idServicio, idFlujo);
 
+        // DeliverableServiceImpl.approveDelivery exige que la etapa actual del
+        // pedido (la transicion mas reciente de historial_estados_pedido) sea
+        // la etapa final del flujo; sin esta fila, el guard nuevo rechaza
+        // siempre con "Pedido sin estado inicial" y ningun hilo llega a
+        // liberar el escrow.
+        jdbcTemplate.update(
+                "INSERT INTO historial_estados_pedido (id_pedido, id_etapa, observacion) VALUES (?, ?, ?)",
+                idPedido, idEtapa, "Estado inicial de prueba (etapa final, es_etapa_final=true)");
+
         Long idPlantilla = jdbcTemplate.queryForObject(
                 "SELECT id_plantilla FROM plantillas_contrato LIMIT 1", Long.class);
         Long idContrato = jdbcTemplate.queryForObject(

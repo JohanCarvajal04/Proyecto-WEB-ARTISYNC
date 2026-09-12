@@ -18,6 +18,7 @@ export interface RespuestaEtapaConfig {
   numeroOrden: number;
   esEtapaFinal: boolean;
   requiereEntregable: boolean;
+  requiereBoceto: boolean;
 }
 
 export interface PeticionCrearFlujoTrabajo {
@@ -31,6 +32,7 @@ export interface PeticionEtapaConfig {
   numeroOrden: number;
   esEtapaFinal: boolean;
   requiereEntregable: boolean;
+  requiereBoceto: boolean;
 }
 
 /** Swap atómico de numeroOrden entre dos etapas — lo usa "mover etapa arriba/abajo". */
@@ -78,6 +80,15 @@ export interface RespuestaSeguimientoPedido {
   etapasDelFlujo: RespuestaEtapaConfig[];
   historial: RespuestaHistorialEstado[];
   bloqueadoPorEntregable: boolean;
+  bloqueadoPorBoceto: boolean;
+}
+
+// ── Boceto ──
+export interface RespuestaBoceto {
+  idBoceto: number;
+  idPedido: number;
+  urlImagen: string;
+  fechaSubida: string;
 }
 
 export interface RespuestaHistorialEstado {

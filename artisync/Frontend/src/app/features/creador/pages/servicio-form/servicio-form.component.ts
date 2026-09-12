@@ -82,7 +82,7 @@ export class ServicioFormComponent implements OnInit {
   readonly mostrarFormFlujo = signal<boolean>(false);
   readonly creandoFlujo = signal<boolean>(false);
   formFlujo: PeticionCrearFlujoTrabajo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
-  nuevaEtapaFlujo: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
+  nuevaEtapaFlujo: PeticionEtapaConfig = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false, requiereBoceto: false };
 
   // Plantilla de acuerdo: catálogo curado por ADMIN (REQ-F-017 ampliado) más
   // las plantillas privadas del propio creador (V45). Opcional; sin elegir,
@@ -432,7 +432,7 @@ export class ServicioFormComponent implements OnInit {
 
   abrirFormFlujo(): void {
     this.formFlujo = { nombreFlujo: '', descripcionFlujo: '', etapas: [] };
-    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false };
+    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: 1, esEtapaFinal: false, requiereEntregable: false, requiereBoceto: false };
     this.mostrarFormFlujo.set(true);
   }
 
@@ -452,7 +452,7 @@ export class ServicioFormComponent implements OnInit {
     }
 
     this.formFlujo.etapas.push({ ...this.nuevaEtapaFlujo, nombreEtapa: nombre });
-    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: this.formFlujo.etapas.length + 1, esEtapaFinal: false, requiereEntregable: false };
+    this.nuevaEtapaFlujo = { nombreEtapa: '', numeroOrden: this.formFlujo.etapas.length + 1, esEtapaFinal: false, requiereEntregable: false, requiereBoceto: false };
   }
 
   quitarEtapaFlujo(index: number): void {

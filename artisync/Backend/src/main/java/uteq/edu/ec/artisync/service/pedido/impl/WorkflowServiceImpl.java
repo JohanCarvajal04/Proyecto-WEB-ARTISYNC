@@ -78,6 +78,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
                         .numeroOrden(etapaReq.getNumeroOrden())
                         .esEtapaFinal(etapaReq.isEsEtapaFinal())
                         .requiereEntregable(etapaReq.isRequiereEntregable())
+                        .requiereBoceto(etapaReq.isRequiereBoceto())
                         .build();
 
                 flujoEtapaConfigRepository.save(config);
@@ -189,6 +190,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
                 .numeroOrden(peticion.getNumeroOrden())
                 .esEtapaFinal(peticion.isEsEtapaFinal())
                 .requiereEntregable(peticion.isRequiereEntregable())
+                .requiereBoceto(peticion.isRequiereBoceto())
                 .build();
 
         flujoEtapaConfigRepository.save(config);
@@ -239,6 +241,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
         config.setNumeroOrden(peticion.getNumeroOrden());
         config.setEsEtapaFinal(peticion.isEsEtapaFinal());
         config.setRequiereEntregable(peticion.isRequiereEntregable());
+        config.setRequiereBoceto(peticion.isRequiereBoceto());
 
         flujoEtapaConfigRepository.save(config);
         log.info("Etapa {} actualizada en flujo {}", idFlujoEtapa, idFlujo);
@@ -399,6 +402,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
                 .numeroOrden(config.getNumeroOrden())
                 .esEtapaFinal(config.getEsEtapaFinal())
                 .requiereEntregable(config.getRequiereEntregable())
+                .requiereBoceto(config.getRequiereBoceto())
                 .build();
     }
 }
