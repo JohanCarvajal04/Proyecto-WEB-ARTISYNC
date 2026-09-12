@@ -94,7 +94,7 @@ public class IncrementalBackupExporter {
      * un LocalDateTime calculado internamente por el servicio — no hay
      * entrada no confiable en esta cadena de texto.
      */
-    private String construirSentenciaCopy(String tabla, String columnaFecha, LocalDateTime corte) {
+    String construirSentenciaCopy(String tabla, String columnaFecha, LocalDateTime corte) {
         if (columnaFecha == null || corte == null) {
             return "COPY %s TO STDOUT WITH (FORMAT csv, HEADER true)".formatted(tabla);
         }

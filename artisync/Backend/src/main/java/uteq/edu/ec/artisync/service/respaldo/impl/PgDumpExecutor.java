@@ -48,14 +48,7 @@ public class PgDumpExecutor {
         Path destino = storage.resolverRutaDestino(nombreArchivo);
         Path logError = storage.resolverRutaDestino(nombreArchivo + ".stderr.log");
 
-        List<String> comando = List.of(
-                "pg_dump",
-                "-h", db.getHost(),
-                "-p", String.valueOf(db.getPuerto()),
-                "-U", db.getUsuario(),
-                "-Fc",
-                "-f", destino.toString(),
-                db.getNombre());
+        List<String> comando = construirComando(db, destino);
 
         ProcessBuilder pb = new ProcessBuilder(comando);
         pb.environment().put("PGPASSWORD", db.getPassword());
@@ -79,5 +72,17 @@ public class PgDumpExecutor {
 
         Files.deleteIfExists(logError);
         return destino;
+    }
+
+    /** Extraído para poder probar la construcción del comando sin invocar pg_dump real. */
+    List<String> construirComando(BackupProperties.Db db, Path destino) {
+        return List.of(
+                "pg_dump",
+                "-h", db.getHost(),
+                "-p", String.valueOf(db.getPuerto()),
+                "-U", db.getUsuario(),
+                "-Fc",
+                "-f", destino.toString(),
+                db.getNombre());
     }
 }
