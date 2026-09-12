@@ -23,7 +23,7 @@ public interface AuditEventRepository
 
     /** @return las acciones de auditoría distintas registradas, alfabéticas, para poblar el filtro del panel */
     @Query("SELECT DISTINCT e.accionAuditoria FROM AuditEvent e ORDER BY e.accionAuditoria")
-    List<String> listarAccionesDistintas();
+    List<String> listDistinctActions();
 }
 
 

@@ -56,7 +56,7 @@ public class AuditServiceImpl implements IAuditService {
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void registrar(AuditEventData datos) {
+    public void record(AuditEventData datos) {
         AuditEvent evento = AuditEvent.builder()
                 .fechaEvento(datos.fechaEvento())
                 .idUsuarioActor(datos.idUsuarioActor())
@@ -88,10 +88,10 @@ public class AuditServiceImpl implements IAuditService {
      */
     @Override
     @Transactional(readOnly = true)
-    public PagedResponse<AuditEventSummaryResponse> listar(AuditFilter filtro, Pageable pageable) {
-        Pageable seguro = paginaSegura(pageable);
-        Page<AuditEvent> pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), seguro);
-        return PagedResponseBuilder.buildAndMap(pagina, this::toResumen);
+    public PagedResponse<AuditEventSummaryResponse> list(AuditFilter filtro, Pageable pageable) {
+        Pageable seguro = safePage(pageable);
+        Page<AuditEvent> pagina = eventoAuditoriaRepository.findAll(specificationFor(filtro), seguro);
+        return PagedResponseBuilder.buildAndMap(pagina, this::toSummary);
     }
 
     /**
@@ -103,14 +103,14 @@ public class AuditServiceImpl implements IAuditService {
      */
     @Override
     @Transactional(readOnly = true)
-    public AuditEventResponse obtenerPorId(Long idEvento) {
+    public AuditEventResponse getById(Long idEvento) {
         AuditEvent evento = eventoAuditoriaRepository.findById(idEvento)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe el evento de auditoría con id " + idEvento));
-        return toDetalle(evento);
+        return toDetail(evento);
     }
 
-    // Auditar al auditor: exportar la propia bitácora es la operación más
+    // Auditar al auditor: export la propia bitácora es la operación más
     // sensible del módulo (extrae datos personales del sistema en un
     // archivo), así que queda registrada igual que cualquier otra, con el
     // formato pedido en el detalle.
@@ -119,7 +119,7 @@ public class AuditServiceImpl implements IAuditService {
      *
      * @param filtro criterios de búsqueda y filtrado dinámico a aplicar sobre los eventos
      * @param formato formato del documento a generar
-     * @param page número de página a exportar (0-index); {@code null} exporta la primera página completa
+     * @param page número de página a export (0-index); {@code null} exporta la primera página completa
      * @param size tamaño de página deseado, acotado al tope de filas del formato
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con la página de eventos de auditoría solicitada
@@ -128,7 +128,7 @@ public class AuditServiceImpl implements IAuditService {
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = AuditModule.SEGURIDAD, detalle = "{formato: #formato, page: #page, size: #size}")
-    public GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
+    public GeneratedDocument export(AuditFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
         Page<AuditEvent> pagina;
         String titulo = "Auditoría";
         String subtitulo = "Bitácora de eventos del sistema";
@@ -136,7 +136,7 @@ public class AuditServiceImpl implements IAuditService {
         if (page != null) {
             int pageSize = (size != null && size > 0 && size <= formato.topeFilas()) ? size : formato.topeFilas();
             pagina = eventoAuditoriaRepository.findAll(
-                    especificacionDe(filtro),
+                    specificationFor(filtro),
                     PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "fechaEvento")));
             int parte = page + 1;
             int totalPartes = Math.max(1, pagina.getTotalPages());
@@ -146,20 +146,20 @@ public class AuditServiceImpl implements IAuditService {
         } else {
             Pageable primeraPaginaConTope =
                     PageRequest.of(0, formato.topeFilas(), Sort.by(Sort.Direction.DESC, "fechaEvento"));
-            pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), primeraPaginaConTope);
+            pagina = eventoAuditoriaRepository.findAll(specificationFor(filtro), primeraPaginaConTope);
 
             if (pagina.getTotalElements() > formato.topeFilas()) {
                 throw new BusinessRuleException(
                         "El filtro actual devuelve " + pagina.getTotalElements() + " eventos, más de los "
                                 + formato.topeFilas() + " que admite una exportación en " + formato
-                                + ". Acote el rango de fechas o utilice la opción de exportar por partes.");
+                                + ". Acote el rango de fechas o utilice la opción de export por partes.");
             }
         }
 
         ReportModel<AuditEvent> modelo = ReportModel.<AuditEvent>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
-                .filtrosAplicados(filtrosLegibles(filtro))
+                .filtrosAplicados(readableFilters(filtro))
                 .columnas(List.of(
                         ReportColumn.fechaHora("Fecha", AuditEvent::getFechaEvento),
                         ReportColumn.texto("Actor", AuditEvent::getCorreoActor),
@@ -188,11 +188,11 @@ public class AuditServiceImpl implements IAuditService {
      */
     @Override
     @Transactional(readOnly = true)
-    public GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, String correoSolicitante) {
-        return exportar(filtro, formato, null, null, correoSolicitante);
+    public GeneratedDocument export(AuditFilter filtro, ReportFormat formato, String correoSolicitante) {
+        return export(filtro, formato, null, null, correoSolicitante);
     }
 
-    private Map<String, String> filtrosLegibles(AuditFilter filtro) {
+    private Map<String, String> readableFilters(AuditFilter filtro) {
         Map<String, String> filtros = new LinkedHashMap<>();
         if (filtro.getCorreoActor() != null) {
             filtros.put("Actor", filtro.getCorreoActor());
@@ -223,18 +223,18 @@ public class AuditServiceImpl implements IAuditService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<String> listarAccionesDisponibles() {
-        return eventoAuditoriaRepository.listarAccionesDistintas();
+    public List<String> listAvailableActions() {
+        return eventoAuditoriaRepository.listDistinctActions();
     }
 
-    private Specification<AuditEvent> especificacionDe(AuditFilter filtro) {
+    private Specification<AuditEvent> specificationFor(AuditFilter filtro) {
         return AuditEventSpecification.conFiltros(
                 filtro.getCorreoActor(), filtro.getAccion(), filtro.getModulo(), filtro.getResultado(),
                 filtro.getEntidad(), filtro.getIdEntidad(), filtro.getDesde(), filtro.getHasta());
     }
 
     /** Evita que el cliente ordene por una columna sin índice (p. ej. detalle_cambio). */
-    private Pageable paginaSegura(Pageable pageable) {
+    private Pageable safePage(Pageable pageable) {
         Sort ordenSeguro = pageable.getSort().stream()
                 .filter(orden -> CAMPOS_ORDENABLES.contains(orden.getProperty()))
                 .findFirst()
@@ -243,7 +243,7 @@ public class AuditServiceImpl implements IAuditService {
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), ordenSeguro);
     }
 
-    private AuditEventSummaryResponse toResumen(AuditEvent e) {
+    private AuditEventSummaryResponse toSummary(AuditEvent e) {
         return AuditEventSummaryResponse.builder()
                 .idEventoAuditoria(e.getIdEventoAuditoria())
                 .fechaEvento(e.getFechaEvento())
@@ -258,7 +258,7 @@ public class AuditServiceImpl implements IAuditService {
                 .build();
     }
 
-    private AuditEventResponse toDetalle(AuditEvent e) {
+    private AuditEventResponse toDetail(AuditEvent e) {
         return AuditEventResponse.builder()
                 .idEventoAuditoria(e.getIdEventoAuditoria())
                 .fechaEvento(e.getFechaEvento())

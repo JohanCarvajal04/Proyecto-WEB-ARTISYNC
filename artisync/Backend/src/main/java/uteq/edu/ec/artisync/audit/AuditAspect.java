@@ -35,8 +35,8 @@ import java.util.Map;
  * {@code @Transactional} de Spring corre con Ordered.LOWEST_PRECEDENCE, así que con
  * HIGHEST_PRECEDENCE + 20 este aspecto queda MÁS EXTERNO. Cuando el método de
  * negocio lanza, su transacción ya hizo rollback y se cerró ANTES de que este
- * aspecto intente registrar el evento; el REQUIRES_NEW de
- * AuditServiceImpl.registrar() abre entonces una transacción limpia. Si
+ * aspecto intente record el evento; el REQUIRES_NEW de
+ * AuditServiceImpl.record() abre entonces una transacción limpia. Si
  * el aspecto estuviera por dentro de @Transactional, escribir en una
  * transacción ya marcada rollback-only lanzaría UnexpectedRollbackException
  * al confirmar la externa. No cambiar este @Order sin repetir el test de
@@ -60,7 +60,7 @@ public class AuditAspect {
      * fallido), sin alterar el valor devuelto ni la excepción lanzada por el
      * método real. El registro ocurre siempre en el {@code finally}, incluso
      * si el método lanza, y nunca puede tumbar la operación de negocio (un
-     * fallo al registrar solo se deja constando en el log como
+     * fallo al record solo se deja constando en el log como
      * {@code AUDITORIA_PERDIDA}).
      *
      * @param pjp punto de unión del método interceptado
@@ -149,7 +149,7 @@ public class AuditAspect {
                     duracionMs
             );
 
-            auditoriaServicio.registrar(datos);
+            auditoriaServicio.record(datos);
         } catch (Exception e) {
             // Auditar nunca puede tumbar la operación de negocio: el resultado o
             // la excepción del método ya se resolvió por encima de este bloque.

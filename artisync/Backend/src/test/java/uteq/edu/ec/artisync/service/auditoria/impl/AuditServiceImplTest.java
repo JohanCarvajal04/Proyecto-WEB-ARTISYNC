@@ -52,70 +52,70 @@ class AuditServiceImplTest {
     private AuditServiceImpl auditoriaServicio;
 
     @Test
-    @DisplayName("registrar() mapea el snapshot inmutable a la entidad y delega el guardado en el repositorio")
+    @DisplayName("record() mapea el snapshot inmutable a la entidad y delega el guardado en el repositorio")
     void registrar_DelegaEnElRepositorio() {
         AuditEventData datos = new AuditEventData(
                 LocalDateTime.now(), 3L, "ana@artisync.dev", AuditModule.SISTEMA, "PAIS_CREAR",
                 AuditResult.EXITO, "pais", 9L, Map.of("nombrePais", "Ecuador"),
                 null, "127.0.0.1", "vitest", "POST", "/api/paises", 12);
 
-        auditoriaServicio.registrar(datos);
+        auditoriaServicio.record(datos);
 
         verify(eventoAuditoriaRepository).save(any(AuditEvent.class));
     }
 
     @Test
-    @DisplayName("listar() delega en el repositorio con una Specification y mapea la página a PagedResponse")
+    @DisplayName("list() delega en el repositorio con una Specification y mapea la página a PagedResponse")
     void listar_DelegaConSpecificationYMapea() {
         AuditEvent evento = eventoDe(1L, "PAIS_CREAR");
         Page<AuditEvent> pagina = new PageImpl<>(List.of(evento));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
 
-        PagedResponse<?> resultado = auditoriaServicio.listar(new AuditFilter(), PageRequest.of(0, 20));
+        PagedResponse<?> resultado = auditoriaServicio.list(new AuditFilter(), PageRequest.of(0, 20));
 
         assertThat(resultado.getContent()).hasSize(1);
         assertThat(resultado.getTotalElements()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("obtenerPorId() lanza ResourceNotFoundException cuando el id no existe")
+    @DisplayName("getById() lanza ResourceNotFoundException cuando el id no existe")
     void obtenerPorId_Inexistente_LanzaExcepcion() {
         when(eventoAuditoriaRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> auditoriaServicio.obtenerPorId(99L))
+        assertThatThrownBy(() -> auditoriaServicio.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerPorId() devuelve el detalle completo, incluido detalleCambio")
+    @DisplayName("getById() devuelve el detalle completo, incluido detalleCambio")
     void obtenerPorId_Existente_DevuelveDetalleCompleto() {
         AuditEvent evento = eventoDe(5L, "FONDOS_LIBERAR");
         evento.setDetalleCambio(Map.of("monto", 150));
         when(eventoAuditoriaRepository.findById(5L)).thenReturn(Optional.of(evento));
 
-        AuditEventResponse respuesta = auditoriaServicio.obtenerPorId(5L);
+        AuditEventResponse respuesta = auditoriaServicio.getById(5L);
 
         assertThat(respuesta.getIdEventoAuditoria()).isEqualTo(5L);
         assertThat(respuesta.getDetalleCambio()).containsEntry("monto", 150);
     }
 
     @Test
-    @DisplayName("exportar() lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
+    @DisplayName("export() lanza BusinessRuleException cuando el filtro supera el tope de filas del formato")
     void exportar_ExcedeTope_LanzaExcepcion() {
         Page<AuditEvent> paginaEnorme = new PageImpl<>(
                 List.of(eventoDe(1L, "X")), PageRequest.of(0, ReportFormat.CSV.topeFilas()), 50_001);
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(paginaEnorme);
 
-        assertThatThrownBy(() -> auditoriaServicio.exportar(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev"))
+        assertThatThrownBy(() -> auditoriaServicio.export(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("50001")
                 .hasMessageContaining("Acote el rango de fechas");
     }
 
     @Test
-    @DisplayName("exportar() construye el ReportModel con las columnas y filas de la bitácora y delega en el común")
+    @DisplayName("export() construye el ReportModel con las columnas y filas de la bitácora y delega en el común")
     void exportar_ConstruyeModeloYDelegaEnElComun() {
         AuditEvent evento = eventoDe(1L, "PAIS_CREAR");
         evento.setCorreoActor("ana@artisync.dev");
@@ -125,7 +125,7 @@ class AuditServiceImplTest {
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "auditoria.csv");
         when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
 
-        GeneratedDocument resultado = auditoriaServicio.exportar(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = auditoriaServicio.export(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
@@ -138,15 +138,15 @@ class AuditServiceImplTest {
     }
 
     @Test
-    @DisplayName("listarAccionesDisponibles() delega directamente en el repositorio")
+    @DisplayName("listAvailableActions() delega directamente en el repositorio")
     void listarAccionesDisponibles_Delega() {
-        when(eventoAuditoriaRepository.listarAccionesDistintas()).thenReturn(List.of("PAIS_CREAR", "USUARIO_CREAR"));
+        when(eventoAuditoriaRepository.listDistinctActions()).thenReturn(List.of("PAIS_CREAR", "USUARIO_CREAR"));
 
-        assertThat(auditoriaServicio.listarAccionesDisponibles()).containsExactly("PAIS_CREAR", "USUARIO_CREAR");
+        assertThat(auditoriaServicio.listAvailableActions()).containsExactly("PAIS_CREAR", "USUARIO_CREAR");
     }
 
     @Test
-    @DisplayName("exportar() incluye en filtrosAplicados todos los campos del filtro cuando vienen informados")
+    @DisplayName("export() incluye en filtrosAplicados todos los campos del filtro cuando vienen informados")
     void exportar_FiltroCompleto_IncluyeTodosLosFiltrosLegibles() {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -163,7 +163,7 @@ class AuditServiceImplTest {
         filtro.setDesde(LocalDateTime.of(2026, 1, 1, 0, 0));
         filtro.setHasta(LocalDateTime.of(2026, 1, 31, 23, 59));
 
-        auditoriaServicio.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
+        auditoriaServicio.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
         verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
@@ -179,14 +179,14 @@ class AuditServiceImplTest {
     }
 
     @Test
-    @DisplayName("listar() ignora un orden por una columna sin índice y usa fechaEvento DESC")
+    @DisplayName("list() ignora un orden por una columna sin índice y usa fechaEvento DESC")
     void listar_OrdenNoPermitido_UsaOrdenSeguroPorDefecto() {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
         Pageable pageableInseguro = PageRequest.of(0, 20, org.springframework.data.domain.Sort.by("detalleCambio"));
 
-        auditoriaServicio.listar(new AuditFilter(), pageableInseguro);
+        auditoriaServicio.list(new AuditFilter(), pageableInseguro);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(eventoAuditoriaRepository).findAll(any(Specification.class), captor.capture());
@@ -196,14 +196,14 @@ class AuditServiceImplTest {
     }
 
     @Test
-    @DisplayName("listar() respeta un orden permitido explícito")
+    @DisplayName("list() respeta un orden permitido explícito")
     void listar_OrdenPermitido_SeRespeta() {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
         Pageable pageableSeguro = PageRequest.of(0, 20, org.springframework.data.domain.Sort.by("correoActor"));
 
-        auditoriaServicio.listar(new AuditFilter(), pageableSeguro);
+        auditoriaServicio.list(new AuditFilter(), pageableSeguro);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(eventoAuditoriaRepository).findAll(any(Specification.class), captor.capture());
@@ -211,7 +211,7 @@ class AuditServiceImplTest {
     }
 
     @Test
-    @DisplayName("exportar() con page y size permite exportar por lotes sin exceder el tope")
+    @DisplayName("export() con page y size permite export por lotes sin exceder el tope")
     void exportar_conPaginacion_permiteExportarPorLotes() {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "TEST")), PageRequest.of(0, 5000), 50_000);
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -219,7 +219,7 @@ class AuditServiceImplTest {
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "auditoria_parte_1.pdf");
         when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
 
-        GeneratedDocument resultado = auditoriaServicio.exportar(new AuditFilter(), ReportFormat.PDF, 0, 5000, "admin@artisync.dev");
+        GeneratedDocument resultado = auditoriaServicio.export(new AuditFilter(), ReportFormat.PDF, 0, 5000, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);

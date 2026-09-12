@@ -48,9 +48,9 @@ public class AuditController {
     @Operation(summary = "Listado paginado y filtrado de la bitácora de auditoría")
     @GetMapping
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
-    public ResponseEntity<PagedResponse<AuditEventSummaryResponse>> listar(
+    public ResponseEntity<PagedResponse<AuditEventSummaryResponse>> list(
             AuditFilter filtro, Pageable pageable) {
-        return ResponseEntity.ok(auditoriaServicio.listar(filtro, pageable));
+        return ResponseEntity.ok(auditoriaServicio.list(filtro, pageable));
     }
 
     /**
@@ -63,8 +63,8 @@ public class AuditController {
     @Operation(summary = "Detalle completo de un evento, incluido el JSON del cambio")
     @GetMapping("/{idEvento}")
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
-    public ResponseEntity<AuditEventResponse> obtenerPorId(@PathVariable Long idEvento) {
-        return ResponseEntity.ok(auditoriaServicio.obtenerPorId(idEvento));
+    public ResponseEntity<AuditEventResponse> getById(@PathVariable Long idEvento) {
+        return ResponseEntity.ok(auditoriaServicio.getById(idEvento));
     }
 
     /**
@@ -75,8 +75,8 @@ public class AuditController {
     @Operation(summary = "Catálogo de acciones distintas registradas, para poblar el filtro")
     @GetMapping("/acciones")
     @PreAuthorize("hasAuthority('AUDITORIA_VER') or hasRole('ADMIN')")
-    public ResponseEntity<List<String>> listarAcciones() {
-        return ResponseEntity.ok(auditoriaServicio.listarAccionesDisponibles());
+    public ResponseEntity<List<String>> listActions() {
+        return ResponseEntity.ok(auditoriaServicio.listAvailableActions());
     }
 
     /**
@@ -92,20 +92,20 @@ public class AuditController {
     @Operation(summary = "Exportar los eventos que coinciden con el filtro en CSV, XLSX o PDF con soporte de paginación / división por partes")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             AuditFilter filtro,
             @RequestParam ReportFormat formato,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
         GeneratedDocument documento = (page != null || size != null)
-                ? auditoriaServicio.exportar(filtro, formato, page, size, authentication.getName())
-                : auditoriaServicio.exportar(filtro, formato, authentication.getName());
+                ? auditoriaServicio.export(filtro, formato, page, size, authentication.getName())
+                : auditoriaServicio.export(filtro, formato, authentication.getName());
         return DocumentResponse.de(documento);
     }
 
     /**
-     * Sobrecarga de conveniencia para exportar los eventos de auditoría sin paginación (documento completo).
+     * Sobrecarga de conveniencia para export los eventos de auditoría sin paginación (documento completo).
      *
      * @param filtro criterios opcionales para filtrar los eventos
      * @param formato formato del documento a generar (CSV, XLSX o PDF)
@@ -113,10 +113,10 @@ public class AuditController {
      * @return el documento generado con la totalidad de los eventos que cumplen el filtro
      */
     @PreAuthorize("hasAuthority('AUDITORIA_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             AuditFilter filtro,
             ReportFormat formato,
             Authentication authentication) {
-        return exportar(filtro, formato, null, null, authentication);
+        return export(filtro, formato, null, null, authentication);
     }
 }

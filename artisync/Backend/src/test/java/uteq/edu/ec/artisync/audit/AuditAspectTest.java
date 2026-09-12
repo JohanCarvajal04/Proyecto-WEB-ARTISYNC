@@ -62,7 +62,7 @@ class AuditAspectTest {
         assertThat(resultado).isEqualTo("resultado-del-negocio");
 
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
-        verify(auditoriaServicio).registrar(captor.capture());
+        verify(auditoriaServicio).record(captor.capture());
         AuditEventData datos = captor.getValue();
         assertThat(datos.resultado()).isEqualTo(AuditResult.EXITO);
         assertThat(datos.accion()).isEqualTo("ACCION_EXITO");
@@ -85,7 +85,7 @@ class AuditAspectTest {
                 .isSameAs(excepcion);
 
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
-        verify(auditoriaServicio).registrar(captor.capture());
+        verify(auditoriaServicio).record(captor.capture());
         assertThat(captor.getValue().resultado()).isEqualTo(AuditResult.FALLIDO);
         assertThat(captor.getValue().mensajeError()).contains("BusinessRuleException", "nombre duplicado");
     }
@@ -102,18 +102,18 @@ class AuditAspectTest {
                 .isSameAs(excepcion);
 
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
-        verify(auditoriaServicio).registrar(captor.capture());
+        verify(auditoriaServicio).record(captor.capture());
         assertThat(captor.getValue().resultado()).isEqualTo(AuditResult.DENEGADO);
     }
 
     @Test
-    @DisplayName("si registrar() falla, la operación de negocio no se ve afectada: ni pierde su resultado ni lanza una excepción nueva")
+    @DisplayName("si record() falla, la operación de negocio no se ve afectada: ni pierde su resultado ni lanza una excepción nueva")
     void fallaAlRegistrar_NuncaTumbaLaOperacionDeNegocio() throws Throwable {
         Auditable auditable = anotacionDe("metodoExito");
         ProceedingJoinPoint pjp = pjpQueDevuelve("metodoExito", new Class<?>[]{Long.class, String.class},
                 new Object[]{2L, "y"}, "resultado-intacto");
         doThrow(new RuntimeException("la base de auditoría no responde"))
-                .when(auditoriaServicio).registrar(any());
+                .when(auditoriaServicio).record(any());
 
         Object resultado = aspecto.auditar(pjp, auditable);
 
@@ -130,7 +130,7 @@ class AuditAspectTest {
 
         assertThat(resultado).isEqualTo("x");
         ArgumentCaptor<AuditEventData> captor = ArgumentCaptor.forClass(AuditEventData.class);
-        verify(auditoriaServicio).registrar(captor.capture());
+        verify(auditoriaServicio).record(captor.capture());
         assertThat(captor.getValue().detalleCambio()).containsKey("_error_detalle");
     }
 

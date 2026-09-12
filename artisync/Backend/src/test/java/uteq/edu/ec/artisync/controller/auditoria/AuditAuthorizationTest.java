@@ -51,11 +51,11 @@ class AuditAuthorizationTest {
         @Bean
         IAuditService auditoriaServicio() {
             IAuditService servicio = mock(IAuditService.class);
-            // Un mock de exportar() sin stub devuelve null y DocumentResponse.de(null)
+            // Un mock de export() sin stub devuelve null y DocumentResponse.de(null)
             // reventaría con NPE en documento.contentType() — se stubea un documento no
             // nulo para que los casos "autorizado" del test puedan afirmar
             // assertDoesNotThrow sin que el propio mock rompa la aserción.
-            when(servicio.exportar(any(), any(), any()))
+            when(servicio.export(any(), any(), any()))
                     .thenReturn(new GeneratedDocument(new byte[0], "text/csv", "auditoria.csv"));
             return servicio;
         }
@@ -84,20 +84,20 @@ class AuditAuthorizationTest {
     }
 
     @Test
-    @DisplayName("AUDITOR_FINANCIERO con AUDITORIA_VER puede listar la bitácora")
+    @DisplayName("AUDITOR_FINANCIERO con AUDITORIA_VER puede list la bitácora")
     void listar_auditorFinancieroConAuditoriaVer_estaAutorizado() {
         autenticar("ROLE_AUDITOR_FINANCIERO", "AUDITORIA_VER");
 
-        assertDoesNotThrow(() -> controlador.listar(new AuditFilter(), PageRequest.of(0, 20)));
+        assertDoesNotThrow(() -> controlador.list(new AuditFilter(), PageRequest.of(0, 20)));
     }
 
     @Test
-    @DisplayName("SOPORTE con AUDITORIA_VER puede listar, pero exportar le devuelve 403 porque no tiene AUDITORIA_EXPORTAR")
+    @DisplayName("SOPORTE con AUDITORIA_VER puede list, pero export le devuelve 403 porque no tiene AUDITORIA_EXPORTAR")
     void soporte_puedeListarPeroNoExportar() {
         autenticar("ROLE_SOPORTE", "AUDITORIA_VER");
 
-        assertDoesNotThrow(() -> controlador.listar(new AuditFilter(), PageRequest.of(0, 20)));
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertDoesNotThrow(() -> controlador.list(new AuditFilter(), PageRequest.of(0, 20)));
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
@@ -106,10 +106,10 @@ class AuditAuthorizationTest {
     void admin_sinAuthoritiesGranulares_pasaTodosLosEndpoints() {
         autenticar("ROLE_ADMIN");
 
-        assertDoesNotThrow(() -> controlador.listar(new AuditFilter(), PageRequest.of(0, 20)));
-        assertDoesNotThrow(() -> controlador.obtenerPorId(1L));
-        assertDoesNotThrow(() -> controlador.listarAcciones());
-        assertDoesNotThrow(() -> controlador.exportar(new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
+        assertDoesNotThrow(() -> controlador.list(new AuditFilter(), PageRequest.of(0, 20)));
+        assertDoesNotThrow(() -> controlador.getById(1L));
+        assertDoesNotThrow(() -> controlador.listActions());
+        assertDoesNotThrow(() -> controlador.export(new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 
     @Test
@@ -117,10 +117,10 @@ class AuditAuthorizationTest {
     void creadorSinPermisos_esRechazadoEnLosCuatroEndpoints() {
         autenticar("ROLE_CREADOR");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.listar(new AuditFilter(), PageRequest.of(0, 20)));
-        assertThrows(AccessDeniedException.class, () -> controlador.obtenerPorId(1L));
-        assertThrows(AccessDeniedException.class, () -> controlador.listarAcciones());
-        assertThrows(AccessDeniedException.class, () -> controlador.exportar(
+        assertThrows(AccessDeniedException.class, () -> controlador.list(new AuditFilter(), PageRequest.of(0, 20)));
+        assertThrows(AccessDeniedException.class, () -> controlador.getById(1L));
+        assertThrows(AccessDeniedException.class, () -> controlador.listActions());
+        assertThrows(AccessDeniedException.class, () -> controlador.export(
                 new AuditFilter(), ReportFormat.CSV, autenticacionActual()));
     }
 

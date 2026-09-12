@@ -28,9 +28,9 @@ class AuditControllerTest {
     void obtenerPorId_DebeRetornarEvento() {
         AuditEventResponse evento = new AuditEventResponse();
         evento.setIdEventoAuditoria(99L);
-        when(auditoriaServicio.obtenerPorId(99L)).thenReturn(evento);
+        when(auditoriaServicio.getById(99L)).thenReturn(evento);
 
-        ResponseEntity<AuditEventResponse> result = auditoriaControlador.obtenerPorId(99L);
+        ResponseEntity<AuditEventResponse> result = auditoriaControlador.getById(99L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(99L, result.getBody().getIdEventoAuditoria());
@@ -38,9 +38,9 @@ class AuditControllerTest {
 
     @Test
     void listarAcciones_DebeRetornarLista() {
-        when(auditoriaServicio.listarAccionesDisponibles()).thenReturn(List.of("ACCION_1", "ACCION_2"));
+        when(auditoriaServicio.listAvailableActions()).thenReturn(List.of("ACCION_1", "ACCION_2"));
 
-        ResponseEntity<List<String>> result = auditoriaControlador.listarAcciones();
+        ResponseEntity<List<String>> result = auditoriaControlador.listActions();
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(2, result.getBody().size());
