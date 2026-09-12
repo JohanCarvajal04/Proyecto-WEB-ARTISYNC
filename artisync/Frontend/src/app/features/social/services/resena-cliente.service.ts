@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { PeticionCrearResena, RespuestaResena } from '../models/social.model';
-import { sinErrorGlobal } from '../../../core/interceptors/http-contexto';
 
 /**
  * Lado cliente de las reseñas (RF-09). Las lecturas públicas ya las cubre
@@ -22,7 +21,7 @@ export class ResenaClienteService {
 
   /** Devuelve la reseña del pedido si ya existe, o null (404 → sin reseña aún). */
   obtenerMiResena(idPedido: number): Observable<RespuestaResena | null> {
-    return this.http.get<RespuestaResena>(`${this.API}/${idPedido}/resena`, sinErrorGlobal()).pipe(
+    return this.http.get<RespuestaResena>(`${this.API}/${idPedido}/resena`).pipe(
       catchError(() => of(null))
     );
   }
