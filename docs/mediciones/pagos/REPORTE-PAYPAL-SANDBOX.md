@@ -1,6 +1,6 @@
 # Reporte de Verificación contra el Sandbox Real de PayPal — REQ-F-022b, REQ-F-022c, REQ-NF-019
 
-- Fecha: Escenario 3 ejecutado el 2026-09-12 (Escenarios 1 y 2 siguen pendientes)
+- Fecha: los tres escenarios ejecutados el 2026-09-12
 - Commit base: `511714d` (rama `main`) + cambio en árbol de trabajo sin commitear todavía: `recipient_type` agregado en `WithdrawalRequestServiceImpl.executePayout` (hallazgo real de esta misma corrida, ver Escenario 3)
 - Entorno: sandbox de `developer.paypal.com` (`api-m.sandbox.paypal.com`), backend local expuesto con `ngrok`
 - Método de verificación declarado en el SRS (`docs/requisitos/SRS.md:372,381,596`): Test unitario, con `PayPalClient` reemplazado por un mock de Mockito (`PagoServicioImplWebhookTest`, `PagoServicioImplCancelacionTest`, `PagoTicketRevisionServicioImplTest`, `ReconciliacionPayPalSchedulerTest`, `ReconciliacionPayPalEjecutorServicioTest`, `TicketRevisionExpiracionSchedulerTest`). Ese test ya está en verde; **este reporte cubre la capa que falta**: la misma lógica ejecutada contra el contrato HTTP real de PayPal, tal como exige el "Cierre" de las tres excepciones en `docs/trazabilidad/excepciones-estado.txt`.
@@ -16,28 +16,43 @@ Dos hallazgos operativos que costó diagnosticar, para que quien repita esto no 
 2. Si `ngrok` se configura (authtoken) desde una herramienta que corre en un entorno distinto al de la terminal interactiva real, cada una puede terminar con su propio archivo de configuración y no reconocer el authtoken de la otra. Configúralo directamente en la terminal donde vas a dejar corriendo el túnel.
 3. **El túnel de la Fase 0 se quedó corriendo en segundo plano de una sesión a otra** (proceso `ngrok`, PID 15044, iniciado 2026-09-11 y todavía activo el 2026-09-12 durante la corrida del Escenario 3). Mientras `docker-compose.yml` no publica el 8080 al host (a propósito, OBS-AUTO-06/A07 OWASP), ese túnel no tiene a quién entregarle tráfico y es inofensivo. Pero en cuanto algo publica el 8080 (p. ej. `docker-compose.dev.yml` para esta misma prueba), el túnel vuelve a funcionar sin que nadie lo reactive a propósito — ver la nota de honestidad en el Escenario 3: esto fue lo que terminó entregando un webhook real donde se esperaba que no llegara ninguno. Cierre pendiente: matar el proceso `ngrok` huérfano (o dejar documentado que solo debe levantarse dentro de la ventana de la prueba, nunca antes).
 
-## Estado general: **PARCIAL — Escenario 3 con resultado real; Escenarios 1 y 2 siguen pendientes**
+## Estado general: **COMPLETO — los tres escenarios con resultado real**
 
-Este archivo es el esqueleto de evidencia, creado junto con el script de apoyo. Siguiendo el mismo criterio que ya se aplicó en REQ-NF-009 y REQ-NF-017: **ninguno de los tres requisitos se marca 'verificado' en `excepciones-estado.txt` hasta que las tres secciones de abajo tengan un resultado real**, sea éxito o hallazgo. Con un solo escenario resuelto, REQ-NF-019 se queda en `implementado` — no se sube a `verificado` todavía, ni siquiera parcialmente.
+Este archivo es el esqueleto de evidencia, creado junto con el script de apoyo. Siguiendo el mismo criterio que ya se aplicó en REQ-NF-009 y REQ-NF-017: **ninguno de los tres requisitos se marca 'verificado' en `excepciones-estado.txt` solo por tener una corrida real** — solo si esa corrida no reveló un hallazgo real. De los tres:
+
+- **REQ-F-022b (Escenario 1):** éxito limpio, sin hallazgos → candidato a subir a `verificado`.
+- **REQ-NF-019 (Escenario 3):** los tres sub-comportamientos exigidos por la Aceptación (idempotencia de webhook, reconciliación sin webhook, reembolso real) se demostraron con éxito contra el sandbox real — el hallazgo del túnel `ngrok` huérfano fue una particularidad del entorno de prueba de esta sesión, no un defecto del código → candidato a subir a `verificado`.
+- **REQ-F-022c (Escenario 2):** la lógica de negocio local funciona, pero reveló un hallazgo real (orden de PayPal huérfana, nunca anulada) → se queda en `implementado`, con la excepción reescrita para describir el hallazgo, no eliminada.
+
+Estos cambios de estado en `excepciones-estado.txt` y `SRS.md` todavía no se aplicaron — quedan pendientes de una decisión explícita de a quién corresponda el repositorio antes de tocar la documentación formal de trazabilidad.
 
 ## Escenario 1 — REQ-F-022b: pago real de un ticket de revisión
 
-- **Resultado:** pendiente
-- Ticket: `idTicket=` — Orden PayPal: `orderId=`
-- Cuenta sandbox Personal usada (solo el identificador, nunca la clave):
-- Hora de aprobación (UTC):
-- `pagos_ticket_revision.estado_pago` tras la prueba:
-- Evidencia adjunta: log del webhook recibido en `/api/webhooks/paypal`, captura del dashboard sandbox (actividad de la cuenta Business)
+- **Resultado:** éxito, sin hallazgos
+- Pedido de prueba: `idPedido=100011` (`limite_revisiones=1` fijado para esta corrida), cliente `carlos.mendoza@artisync.demo` — Ticket: `idTicket=12508` (creado tras dos tickets previos ya usados en otros intentos, así que ya superaba el límite incluido) — Orden PayPal: `orderId=54W4469270043432Y`, monto `$5.00`
+- Cuenta sandbox Personal usada (solo el identificador): `sb-ii4o752884478@personal.example.com`
+- Hora de aprobación/captura (UTC): 2026-09-12T18:12:48Z
+- `pagos_ticket_revision.estado_pago` tras la prueba: `Pagado`
+- Log real del backend:
+  ```
+  13:08:59.495 RevisionTicketPaymentServiceImpl: Orden PayPal 54W4469270043432Y creada para el cargo adicional del ticket de revision 12508
+  13:12:50.015 RevisionTicketPaymentServiceImpl: Pago del ticket de revision 12508 confirmado. Monto: $5.00
+  13:13:03.172 RevisionTicketPaymentServiceImpl: Webhook PayPal duplicado para la orden 54W4469270043432Y del ticket de revision 12508: el pago ya esta en Pagado
+  ```
+  El segundo evento (13s después) confirma la idempotencia contra el sandbox real, no un mock: no generó una segunda transacción ni cambio de estado.
+- Nota operativa: el primer intento de este escenario (`idTicket=12506`) fue arrastrado por el barrido masivo de expiración del Escenario 2 (`TICKETREVISION_EXPIRACION_HORAS=0` afecta a *todo* ticket abierto sin pagar, no solo al que se está probando) antes de que se aprobara — sin impacto real porque nunca se llegó a aprobar, pero obligó a repetir la prueba con un ticket nuevo (12508) después de revertir el override.
+- Evidencia adjunta: logs de backend citados arriba; respuesta cruda de `GET /v2/checkout/orders/54W4469270043432Y` contra `api-m.sandbox.paypal.com` mostrando la captura `2SY99176V24008315` en `COMPLETED`
 
 ## Escenario 2 — REQ-F-022c: expiración automática a 48h
 
-- **Resultado:** pendiente
-- Ticket: `idTicket=` — Orden PayPal: `orderId=` (nunca aprobada)
-- Overrides de entorno usados: `TICKETREVISION_EXPIRACION_HORAS=0`, `TICKETREVISION_EXPIRACION_INTERVALO_MS=60000`
-- `tickets_revision.estado_ticket` tras la prueba:
-- `pagos_ticket_revision.estado_pago` tras la prueba:
-- Estado de la orden en PayPal tras la expiración (¿sigue `CREATED` sin capturar ni anular?):
-- **Nota de honestidad:** el código actual (`TicketRevisionExpiracionServicio.java:47-54`) no anula (`void`) la orden en PayPal al expirar el ticket, solo actualiza el estado local. Si la orden queda huérfana en el sandbox, se documenta aquí como hallazgo real, no se omite.
+- **Resultado:** éxito en la lógica de negocio local, con un hallazgo real confirmado (ver nota de honestidad)
+- Pedido de prueba: `idPedido=100011` — Ticket: `idTicket=12507` — Orden PayPal: `orderId=8K859288TY576771R` ($5.00, nunca aprobada)
+- Overrides de entorno usados: `TICKETREVISION_EXPIRACION_HORAS=0`, `TICKETREVISION_EXPIRACION_INTERVALO_MS=60000` (revertidos en `.env` inmediatamente después de la corrida)
+- `tickets_revision.estado_ticket` tras la prueba: `Rechazado`
+- `pagos_ticket_revision.estado_pago` tras la prueba: `Expirado`
+- Estado de la orden en PayPal tras la expiración: sigue `CREATED`, sin capturar ni anular — confirmado contra `api-m.sandbox.paypal.com` minutos después del rechazo local
+- **Nota de honestidad (hallazgo confirmado, no hipotético):** el código actual no anula (`void`) la orden en PayPal al expirar el ticket, solo actualiza el estado local. La orden `8K859288TY576771R` quedó huérfana en el sandbox — igual que **todas** las órdenes de los 4169 tickets de datos masivos que este mismo override expiró de un solo barrido (efecto secundario no buscado de fijar el umbral en 0 horas para la prueba, documentado aquí por transparencia, no oculto). El riesgo real es bajo (una orden `CREATED` sin capturar no mueve dinero y normalmente expira sola del lado de PayPal), pero es una discrepancia de estado real entre ARTISYNC y PayPal que el código no cierra activamente.
+- Evidencia adjunta: log de `RevisionTicketExpirationScheduler`/`Service` (`Rechazando 4169 ticket(s) sin pagar de más de 0h`, `Ticket 12507 rechazado automáticamente: sin pago confirmado a tiempo`); respuesta cruda de `GET /v2/checkout/orders/8K859288TY576771R` confirmando `CREATED`
 
 ## Escenario 3 — REQ-NF-019: reconciliación con webhook retrasado + reembolso real
 
