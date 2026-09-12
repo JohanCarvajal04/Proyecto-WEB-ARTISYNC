@@ -119,3 +119,30 @@ repositorio Spring Data, asegurando una conexión segura y \textbf{sin
 concatenación de cadenas} (evitando así la inyección SQL, conforme al
 análisis de Gould~\cite{GOULD2004} y Halfond~\cite{HALFOND2005}). Este
 esquema resuelve plenamente los requerimientos de seguridad y diseño arquitectónico (ver Sección~\ref{sec:acceso-datos-hibrido}).
+
+\subsection{Excepción documentada: rutinas con retorno escalar}
+
+\texttt{@Procedure} se aplica de forma sistemática cuando el método Java es
+\texttt{void} y la rutina no declara ningún parámetro \texttt{OUT}/\texttt{INOUT}: además de
+\texttt{sp\_registrar\_decision\_verificacion} (Listado~\ref{lst:repo-registrar-decision}), es el
+caso de \texttt{sp\_restablecer\_contrasena} y \texttt{sp\_cambiar\_contrasena}, migradas y
+verificadas contra el stack real (revisión técnica 2026-09-05).
+
+Para las rutinas que necesitan devolver un valor escalar --- por ejemplo
+\texttt{fn\_registrar\_usuario}, \texttt{fn\_resolver\_estado\_login} o
+\texttt{fn\_permisos\_efectivos\_usuario} (esta última se ejecuta en cada inicio de sesión) --- se
+probó también convertirlas a \texttt{@Procedure} con un parámetro \texttt{OUT}. La prueba, contra
+el stack real y con inicio de sesión efectivo, reprodujo de forma consistente
+\texttt{ERROR: syntax error at or near "=>"}: con Hibernate~7.4.1, en cuanto un
+método \texttt{@Procedure} declara un tipo de retorno distinto de \texttt{void}, Hibernate
+serializa \emph{todos} los parámetros --- incluido el propio \texttt{OUT} --- con la sintaxis de
+argumento nombrado de PostgreSQL dentro del \emph{JDBC escape} \texttt{\{call ...\}}, que
+PostgreSQL no puede interpretar ahí. Un commit del 4 de septiembre de 2026 que migró estas
+rutinas a \texttt{@Procedure} ignorando esta restricción rompió el inicio de sesión en
+producción; se revirtió y se dejó documentada la causa raíz.
+
+Para estos casos, \texttt{@Query(nativeQuery = true)} contra la propia función es, por tanto, la
+única invocación confirmada funcional contra esta combinación exacta de versiones
+(Hibernate~7.4.1 más PostgreSQL), no una alternativa de conveniencia. El inventario completo,
+rutina por rutina, con el mecanismo usado y su justificación individual, está en
+\texttt{docs/basedatos/CATALOGO-SP.md} (\S14).
