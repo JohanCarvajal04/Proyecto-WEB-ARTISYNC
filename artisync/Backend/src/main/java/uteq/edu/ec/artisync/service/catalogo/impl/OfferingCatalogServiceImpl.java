@@ -98,9 +98,9 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .estadoPublicacion("ACTIVO")
                 .cargoRevisionAdicional(peticion.getCargoRevisionAdicional() != null ? peticion.getCargoRevisionAdicional() : BigDecimal.ZERO)
                 .limiteRevisionesBase(peticion.getLimiteRevisionesBase() != null ? peticion.getLimiteRevisionesBase() : 0)
-                .flujo(resolverFlujoPropio(peticion.getIdFlujo(), perfil))
-                .plantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato(), perfil))
-                .briefingPlantilla(resolverBriefingPlantillaPropia(peticion.getIdBriefingPlantilla(), perfil))
+                .flujo(resolveOwnWorkflow(peticion.getIdFlujo(), perfil))
+                .plantillaContrato(resolveActiveContractTemplate(peticion.getIdPlantillaContrato(), perfil))
+                .briefingPlantilla(resolveOwnBriefingTemplate(peticion.getIdBriefingPlantilla(), perfil))
                 .build();
 
         Offering guardado = servicioRepository.save(servicio);
@@ -171,9 +171,9 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         if (peticion.getLimiteRevisionesBase() != null) {
             servicio.setLimiteRevisionesBase(peticion.getLimiteRevisionesBase());
         }
-        servicio.setFlujo(resolverFlujoPropio(peticion.getIdFlujo(), servicio.getPerfil()));
-        servicio.setPlantillaContrato(resolverPlantillaContratoActiva(peticion.getIdPlantillaContrato(), servicio.getPerfil()));
-        servicio.setBriefingPlantilla(resolverBriefingPlantillaPropia(peticion.getIdBriefingPlantilla(), servicio.getPerfil()));
+        servicio.setFlujo(resolveOwnWorkflow(peticion.getIdFlujo(), servicio.getPerfil()));
+        servicio.setPlantillaContrato(resolveActiveContractTemplate(peticion.getIdPlantillaContrato(), servicio.getPerfil()));
+        servicio.setBriefingPlantilla(resolveOwnBriefingTemplate(peticion.getIdBriefingPlantilla(), servicio.getPerfil()));
 
         Offering guardado = servicioRepository.save(servicio);
 
@@ -638,7 +638,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * existe, o que existe pero pertenece a otro creador, se rechaza: un
      * creador solo puede asignarle a su servicio uno de sus propios flujos.
      */
-    private Workflow resolverFlujoPropio(Long idFlujo, CreatorProfile perfil) {
+    private Workflow resolveOwnWorkflow(Long idFlujo, CreatorProfile perfil) {
         if (idFlujo == null) {
             return null;
         }
@@ -655,7 +655,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * debe pertenecerle a este mismo creador — un creador no puede asignarle
      * a su servicio la plantilla privada de otro.
      */
-    private ContractTemplate resolverPlantillaContratoActiva(Long idPlantillaContrato, CreatorProfile perfil) {
+    private ContractTemplate resolveActiveContractTemplate(Long idPlantillaContrato, CreatorProfile perfil) {
         if (idPlantillaContrato == null) {
             return null;
         }
@@ -678,7 +678,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * no existe, o que pertenece a otro creador, se rechaza: un creador solo
      * puede asignarle a su servicio uno de sus propios cuestionarios.
      */
-    private BriefingTemplate resolverBriefingPlantillaPropia(Long idBriefingPlantilla, CreatorProfile perfil) {
+    private BriefingTemplate resolveOwnBriefingTemplate(Long idBriefingPlantilla, CreatorProfile perfil) {
         if (idBriefingPlantilla == null) {
             return null;
         }

@@ -54,7 +54,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public BriefingResponse createTemplate(Long idUsuario, CreateBriefingTemplateRequest peticion) {
-        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolveOwnProfile(idUsuario);
 
         validateQuestionCount(peticion.getPreguntas().size());
 
@@ -82,7 +82,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public List<BriefingResponse> getMyTemplates(Long idUsuario) {
-        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolveOwnProfile(idUsuario);
         return plantillaRepo.findByPerfilCreadorIdPerfil(perfil.getIdPerfil())
                 .stream()
                 .map(p -> mapTemplateToResponse(p, null))
@@ -100,7 +100,7 @@ public class BriefingServiceImpl implements BriefingService {
     @Transactional
     public BriefingResponse updateTemplate(Long idPlantilla, Long idUsuario,
                                              CreateBriefingTemplateRequest peticion) {
-        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolveOwnProfile(idUsuario);
         BriefingTemplate plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
 
@@ -132,7 +132,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
     public RespuestaMensaje deleteTemplate(Long idPlantilla, Long idUsuario) {
-        CreatorProfile perfil = resolverPerfilPropio(idUsuario);
+        CreatorProfile perfil = resolveOwnProfile(idUsuario);
         BriefingTemplate plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
 
@@ -154,7 +154,7 @@ public class BriefingServiceImpl implements BriefingService {
      * el mismo id, y fallaba con "Perfil creador no encontrado" para cualquier
      * cuenta cuyos ids no coincidieran por casualidad).
      */
-    private CreatorProfile resolverPerfilPropio(Long idUsuario) {
+    private CreatorProfile resolveOwnProfile(Long idUsuario) {
         return perfilRepo.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No tienes un perfil de creador configurado"));

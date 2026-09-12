@@ -45,7 +45,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         // de un idUsuario arbitrario.
         Long idDestino = esAdmin
                 ? peticion.idUsuario()
-                : resolverPorCorreo(correoSolicitante).getIdUsuario();
+                : resolveByEmail(correoSolicitante).getIdUsuario();
 
         if (perfilRepository.findByUsuarioIdUsuario(idDestino).isPresent()) {
             throw new DuplicateResourceException("El usuario ya tiene un perfil de creador asignado.");
@@ -161,7 +161,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
         // urlRedSocial de otro creador enumerando ids con GET /api/v1/perfiles.
         if (!esAdmin) {
             Long propietario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
-            if (!resolverPorCorreo(correoSolicitante).getIdUsuario().equals(propietario)) {
+            if (!resolveByEmail(correoSolicitante).getIdUsuario().equals(propietario)) {
                 throw new AccessDeniedException("No puedes modificar el perfil de otro usuario");
             }
         }
@@ -196,7 +196,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
     }
 
     /** User autenticado a partir del correo que viaja en el token. */
-    private User resolverPorCorreo(String correo) {
+    private User resolveByEmail(String correo) {
         return usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResourceNotFoundException("User autenticado no encontrado"));
     }

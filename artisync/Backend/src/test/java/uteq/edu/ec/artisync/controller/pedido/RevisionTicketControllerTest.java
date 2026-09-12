@@ -63,7 +63,7 @@ class RevisionTicketControllerTest {
         RevisionTicketResponse respuesta = new RevisionTicketResponse();
         when(ticketRevisionServicio.changeTicketStatus(10L, 1L, "ABIERTO")).thenReturn(respuesta);
 
-        ResponseEntity<RevisionTicketResponse> res = controlador.cambiarEstado(10L, user, "ABIERTO");
+        ResponseEntity<RevisionTicketResponse> res = controlador.changeStatus(10L, user, "ABIERTO");
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

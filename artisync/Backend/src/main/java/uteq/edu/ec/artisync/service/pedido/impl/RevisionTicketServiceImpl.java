@@ -144,7 +144,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
         // @PreAuthorize les daba paso: la funcionalidad de soporte estaba
         // rota en la práctica.
         Long idCreadorServicio = ticket.getPedido().getServicio().getPerfil().getUsuario().getIdUsuario();
-        if (!idCreadorServicio.equals(idCreador) && !tienePermisoDeSoporteOAdmin()) {
+        if (!idCreadorServicio.equals(idCreador) && !hasSupportOrAdminPermission()) {
             throw new AccessDeniedException("No tienes permisos para cambiar el estado de este ticket");
         }
 
@@ -156,7 +156,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
     }
 
     /** Mismos roles que el @PreAuthorize del endpoint, aparte del creador del servicio. */
-    private boolean tienePermisoDeSoporteOAdmin() {
+    private boolean hasSupportOrAdminPermission() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return false;
         return auth.getAuthorities().stream().anyMatch(a ->

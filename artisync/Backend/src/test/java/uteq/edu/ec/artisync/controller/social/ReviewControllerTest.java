@@ -92,7 +92,7 @@ class ReviewControllerTest {
         List<ReviewResponse> lista = Collections.emptyList();
         when(resenaService.listReviewsByCreator(10L)).thenReturn(lista);
 
-        ResponseEntity<List<ReviewResponse>> res = controlador.listarResenas(10L);
+        ResponseEntity<List<ReviewResponse>> res = controlador.listReviews(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -101,7 +101,7 @@ class ReviewControllerTest {
     void obtenerPromedio_devuelveOk() {
         when(resenaService.calculateAverageByCreator(10L)).thenReturn(4.5);
 
-        ResponseEntity<Map<String, Object>> res = controlador.obtenerPromedio(10L);
+        ResponseEntity<Map<String, Object>> res = controlador.getAverage(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsEntry("idPerfil", 10L);
         assertThat(res.getBody()).containsEntry("promedio", 4.5);

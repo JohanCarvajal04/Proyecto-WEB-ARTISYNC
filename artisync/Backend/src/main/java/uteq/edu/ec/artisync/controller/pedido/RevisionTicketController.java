@@ -69,7 +69,7 @@ public class RevisionTicketController {
      */
     @PutMapping("/tickets-revision/{idTicket}/estado")
     @PreAuthorize("hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RevisionTicketResponse> cambiarEstado(
+    public ResponseEntity<RevisionTicketResponse> changeStatus(
             @PathVariable Long idTicket,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String nuevoEstado) {

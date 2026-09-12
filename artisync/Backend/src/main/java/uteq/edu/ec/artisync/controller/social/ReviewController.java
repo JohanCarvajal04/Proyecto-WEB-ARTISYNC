@@ -112,7 +112,7 @@ public class ReviewController {
      */
     @Operation(summary = "Listar reseñas de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas")
-    public ResponseEntity<List<ReviewResponse>> listarResenas(@PathVariable Long idPerfil) {
+    public ResponseEntity<List<ReviewResponse>> listReviews(@PathVariable Long idPerfil) {
         return ResponseEntity.ok(resenaService.listReviewsByCreator(idPerfil));
     }
 
@@ -124,7 +124,7 @@ public class ReviewController {
      */
     @Operation(summary = "Promedio de calificaciones de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas/promedio")
-    public ResponseEntity<Map<String, Object>> obtenerPromedio(@PathVariable Long idPerfil) {
+    public ResponseEntity<Map<String, Object>> getAverage(@PathVariable Long idPerfil) {
         Double promedio = resenaService.calculateAverageByCreator(idPerfil);
         return ResponseEntity.ok(Map.of(
                 "idPerfil", idPerfil,

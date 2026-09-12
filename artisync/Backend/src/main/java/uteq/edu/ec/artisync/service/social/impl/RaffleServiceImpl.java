@@ -81,7 +81,7 @@ public class RaffleServiceImpl implements RaffleService {
                     "La fecha de cierre debe ser posterior a la fecha de inicio");
         }
 
-        validarCantidadPremios(peticion.getPremios().size(), peticion.getCantidadGanadores());
+        validatePrizeCount(peticion.getPremios().size(), peticion.getCantidadGanadores());
 
         Raffle sorteo = Raffle.builder()
                 .perfilCreador(perfil)
@@ -100,7 +100,7 @@ public class RaffleServiceImpl implements RaffleService {
     }
 
     /** REQ-F-023: la cantidad de ganadores debe coincidir exactamente con la cantidad de premios definidos. */
-    private void validarCantidadPremios(int cantidadPremios, int cantidadGanadores) {
+    private void validatePrizeCount(int cantidadPremios, int cantidadGanadores) {
         if (cantidadPremios != cantidadGanadores) {
             throw new BusinessRuleException(
                     "La cantidad de ganadores (" + cantidadGanadores
@@ -129,12 +129,12 @@ public class RaffleServiceImpl implements RaffleService {
     @Override
     @Transactional(readOnly = true)
     public RaffleResponse getRaffle(Long idSorteo, Long idUsuarioActual) {
-        Raffle sorteo = findSorteoOrThrow(idSorteo);
+        Raffle sorteo = findRaffleOrThrow(idSorteo);
         long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();
         boolean yoParticipo = idUsuarioActual != null &&
                 participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(idSorteo, idUsuarioActual);
 
-        List<WinnerResponse> ganadores = obtenerGanadoresSiFinalizado(sorteo);
+        List<WinnerResponse> ganadores = getWinnersIfFinished(sorteo);
         return mapToResponse(sorteo, ganadores, total, yoParticipo);
     }
 
@@ -143,13 +143,13 @@ public class RaffleServiceImpl implements RaffleService {
      * como en los listados, para que las tarjetas de la lista muestren el premio
      * de cada quien sin depender de abrir el detalle del sorteo.
      */
-    private List<WinnerResponse> obtenerGanadoresSiFinalizado(Raffle sorteo) {
+    private List<WinnerResponse> getWinnersIfFinished(Raffle sorteo) {
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {
             return null;
         }
         return participanteSorteoRepository
                 .findBySorteoIdSorteoAndEsGanadorTrue(sorteo.getIdSorteo())
-                .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());
+                .stream().map(this::mapToWinnerResponse).collect(Collectors.toList());
     }
 
     /**
@@ -172,7 +172,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
     public RaffleResponse updateRaffle(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion) {
-        Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
+        Raffle sorteo = verifyOwner(idSorteo, idUsuario);
         boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);
 
         if (tieneParticipantes) {
@@ -208,7 +208,7 @@ public class RaffleServiceImpl implements RaffleService {
         if (!tieneParticipantes && peticion.getFechaCierre() != null)
             sorteo.setFechaCierre(peticion.getFechaCierre());
         if (!tieneParticipantes && peticion.getPremios() != null) {
-            validarCantidadPremios(peticion.getPremios().size(), sorteo.getCantidadGanadores());
+            validatePrizeCount(peticion.getPremios().size(), sorteo.getCantidadGanadores());
             sorteo.getPremios().clear();
             sorteo.getPremios().addAll(construirPremios(sorteo, peticion.getPremios()));
         }
@@ -234,7 +234,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Auditable(accion = "SORTEO_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
     public RespuestaMensaje deleteRaffle(Long idSorteo, Long idUsuario) {
-        Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
+        Raffle sorteo = verifyOwner(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
             throw new BusinessRuleException(
                     "No se puede eliminar un sorteo con participantes inscritos");
@@ -259,7 +259,7 @@ public class RaffleServiceImpl implements RaffleService {
                     boolean yoParticipo = idUsuarioActual != null &&
                             participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(
                                     s.getIdSorteo(), idUsuarioActual);
-                    return mapToResponse(s, obtenerGanadoresSiFinalizado(s), total, yoParticipo);
+                    return mapToResponse(s, getWinnersIfFinished(s), total, yoParticipo);
                 })
                 .collect(Collectors.toList());
     }
@@ -278,7 +278,7 @@ public class RaffleServiceImpl implements RaffleService {
                     boolean yoParticipo = idUsuarioActual != null &&
                             participanteSorteoRepository.existsBySorteoIdSorteoAndUsuarioIdUsuario(
                                     s.getIdSorteo(), idUsuarioActual);
-                    return mapToResponse(s, obtenerGanadoresSiFinalizado(s), total, yoParticipo);
+                    return mapToResponse(s, getWinnersIfFinished(s), total, yoParticipo);
                 })
                 .collect(Collectors.toList());
     }
@@ -302,7 +302,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Override
     @Transactional
     public ParticipantResponse joinRaffle(Long idSorteo, Long idUsuario) {
-        Raffle sorteo = findSorteoOrThrow(idSorteo);
+        Raffle sorteo = findRaffleOrThrow(idSorteo);
 
         // Validar estado
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
@@ -341,7 +341,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .build();
         participante = participanteSorteoRepository.save(participante);
         log.info("User {} inscrito en sorteo {}", idUsuario, idSorteo);
-        return mapToParticipanteResponse(participante);
+        return mapToParticipantResponse(participante);
     }
 
     /**
@@ -357,7 +357,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Override
     @Transactional
     public RespuestaMensaje cancelParticipation(Long idSorteo, Long idUsuario) {
-        Raffle sorteo = findSorteoOrThrow(idSorteo);
+        Raffle sorteo = findRaffleOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
             throw new BusinessRuleException("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
         }
@@ -380,9 +380,9 @@ public class RaffleServiceImpl implements RaffleService {
     @Override
     @Transactional(readOnly = true)
     public List<ParticipantResponse> listParticipants(Long idSorteo) {
-        findSorteoOrThrow(idSorteo); // Valida que existe
+        findRaffleOrThrow(idSorteo); // Valida que existe
         return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)
-                .stream().map(this::mapToParticipanteResponse).collect(Collectors.toList());
+                .stream().map(this::mapToParticipantResponse).collect(Collectors.toList());
     }
 
     /**
@@ -394,26 +394,26 @@ public class RaffleServiceImpl implements RaffleService {
     @Override
     @Transactional(readOnly = true)
     public List<WinnerResponse> listWinners(Long idSorteo) {
-        Raffle sorteo = findSorteoOrThrow(idSorteo);
+        Raffle sorteo = findRaffleOrThrow(idSorteo);
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Los ganadores solo están disponibles después del cierre del sorteo");
         }
         return participanteSorteoRepository.findBySorteoIdSorteoAndEsGanadorTrue(idSorteo)
-                .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());
+                .stream().map(this::mapToWinnerResponse).collect(Collectors.toList());
     }
 
     // =========================================================================
     // Helpers privados
     // =========================================================================
 
-    private Raffle findSorteoOrThrow(Long idSorteo) {
+    private Raffle findRaffleOrThrow(Long idSorteo) {
         return sorteoRepository.findById(idSorteo)
                 .orElseThrow(() -> new ResourceNotFoundException("Raffle no encontrado: " + idSorteo));
     }
 
-    private Raffle verificarPropietario(Long idSorteo, Long idUsuario) {
-        Raffle sorteo = findSorteoOrThrow(idSorteo);
+    private Raffle verifyOwner(Long idSorteo, Long idUsuario) {
+        Raffle sorteo = findRaffleOrThrow(idSorteo);
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No tienes perfil de creador"));
         if (!sorteo.getPerfilCreador().getIdPerfil().equals(perfil.getIdPerfil())) {
@@ -463,7 +463,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .collect(Collectors.toList());
     }
 
-    private ParticipantResponse mapToParticipanteResponse(RaffleParticipant p) {
+    private ParticipantResponse mapToParticipantResponse(RaffleParticipant p) {
         return ParticipantResponse.builder()
                 .idParticipacion(p.getIdParticipacion())
                 .idUsuario(p.getUsuario().getIdUsuario())
@@ -473,7 +473,7 @@ public class RaffleServiceImpl implements RaffleService {
                 .build();
     }
 
-    private WinnerResponse mapToGanadorResponse(RaffleParticipant p) {
+    private WinnerResponse mapToWinnerResponse(RaffleParticipant p) {
         return WinnerResponse.builder()
                 .idParticipacion(p.getIdParticipacion())
                 .idUsuario(p.getUsuario().getIdUsuario())

@@ -31,6 +31,9 @@ import pathlib
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+# "item" y "ticket" se excluyen a propósito: son préstamos del inglés (se escriben
+# igual en ambos idiomas), así que marcarlos como español producía falsos positivos
+# en métodos ya completamente en inglés (uploadItem, getItem, createTicket, etc.).
 SPANISH_TOKENS = set("""
 obtener obten crear crea actualizar actualiza eliminar elimina borrar guardar guarda
 buscar busca listar lista validar valida calcular calcula generar genera enviar envia
@@ -49,8 +52,8 @@ solicitud pago factura reporte informe respaldo copia seguridad archivo carpeta
 imagen video comentario calificacion resena mensaje notificacion rol permiso
 token sesion fecha hora estado tipo categoria etiqueta direccion telefono
 contrato plantilla firma entrega entregable retiro garantia comision perfil
-portafolio item certificado verificacion identidad documento etapa flujo
-ticket propuesta terminos seguimiento historial sorteo ganador participante
+portafolio certificado verificacion identidad documento etapa flujo
+propuesta terminos seguimiento historial sorteo ganador participante
 """.split())
 
 METHOD_DECL = re.compile(
