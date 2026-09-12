@@ -67,11 +67,11 @@ class ReviewServiceImplTest {
     }
 
     // =========================================================================
-    // crearResena
+    // createReview
     // =========================================================================
 
     @Test
-    @DisplayName("crearResena — crea exitosamente con entregable liberado")
+    @DisplayName("createReview — crea exitosamente con entregable liberado")
     void crearResena_entregableLiberado_creaCorrectamente() {
         CreateReviewRequest peticion = CreateReviewRequest.builder()
                 .calificacionEstrellas(5)
@@ -89,7 +89,7 @@ class ReviewServiceImplTest {
         given(resenaServicioRepository.existsByPedidoIdPedido(50L)).willReturn(false);
         given(resenaServicioRepository.save(any(OfferingReview.class))).willReturn(resena);
 
-        ReviewResponse resultado = resenaService.crearResena(50L, peticion, 1L);
+        ReviewResponse resultado = resenaService.createReview(50L, peticion, 1L);
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getCalificacionEstrellas()).isEqualTo(5);
@@ -98,104 +98,104 @@ class ReviewServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearResena — lanza FORBIDDEN si no es el cliente del pedido")
+    @DisplayName("createReview — lanza FORBIDDEN si no es el cliente del pedido")
     void crearResena_noEsCliente_lanzaForbidden() {
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
 
-        assertThatThrownBy(() -> resenaService.crearResena(50L,
+        assertThatThrownBy(() -> resenaService.createReview(50L,
                 new CreateReviewRequest(4, "Bien"), 999L)) // ID incorrecto
                 .isInstanceOf(ResponseStatusException.class);
     }
 
     @Test
-    @DisplayName("crearResena — lanza BusinessRuleException si entregable no está liberado")
+    @DisplayName("createReview — lanza BusinessRuleException si entregable no está liberado")
     void crearResena_entregableNoLiberado_lanzaExcepcion() {
         entregableLiberado.setEstaLiberado(false);
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
         given(entregableFinalRepository.findByPedidoIdPedido(50L))
                 .willReturn(Optional.of(entregableLiberado));
 
-        assertThatThrownBy(() -> resenaService.crearResena(50L,
+        assertThatThrownBy(() -> resenaService.createReview(50L,
                 new CreateReviewRequest(3, "Regular"), 1L))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("después de recibir el entregable");
     }
 
     @Test
-    @DisplayName("crearResena — lanza BusinessRuleException si no hay entregable")
+    @DisplayName("createReview — lanza BusinessRuleException si no hay entregable")
     void crearResena_sinEntregable_lanzaExcepcion() {
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
         given(entregableFinalRepository.findByPedidoIdPedido(50L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> resenaService.crearResena(50L,
+        assertThatThrownBy(() -> resenaService.createReview(50L,
                 new CreateReviewRequest(3, "Regular"), 1L))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("después de recibir el entregable");
     }
 
     @Test
-    @DisplayName("crearResena — lanza DuplicateResourceException si ya existe reseña")
+    @DisplayName("createReview — lanza DuplicateResourceException si ya existe reseña")
     void crearResena_yaExisteResena_lanzaExcepcion() {
         given(pedidoRepository.findById(50L)).willReturn(Optional.of(pedido));
         given(entregableFinalRepository.findByPedidoIdPedido(50L))
                 .willReturn(Optional.of(entregableLiberado));
         given(resenaServicioRepository.existsByPedidoIdPedido(50L)).willReturn(true);
 
-        assertThatThrownBy(() -> resenaService.crearResena(50L,
+        assertThatThrownBy(() -> resenaService.createReview(50L,
                 new CreateReviewRequest(5, "De nuevo"), 1L))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Ya has dejado una reseña");
     }
 
     // =========================================================================
-    // obtenerMiResena / actualizarResena / eliminarResena
+    // getMyReview / updateReview / deleteReview
     // =========================================================================
 
     @Test
-    @DisplayName("obtenerMiResena — retorna null si el pedido no tiene reseña")
+    @DisplayName("getMyReview — retorna null si el pedido no tiene reseña")
     void obtenerMiResena_sinResena_retornaNull() {
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.empty());
 
-        ReviewResponse resultado = resenaService.obtenerMiResena(50L, 1L);
+        ReviewResponse resultado = resenaService.getMyReview(50L, 1L);
 
         assertThat(resultado).isNull();
     }
 
     @Test
-    @DisplayName("obtenerMiResena — retorna null si la reseña es de otro cliente")
+    @DisplayName("getMyReview — retorna null si la reseña es de otro cliente")
     void obtenerMiResena_deOtroCliente_retornaNull() {
         OfferingReview resena = OfferingReview.builder()
                 .idResena(1L).pedido(pedido).calificacionEstrellas(5).build();
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
 
-        ReviewResponse resultado = resenaService.obtenerMiResena(50L, 999L);
+        ReviewResponse resultado = resenaService.getMyReview(50L, 999L);
 
         assertThat(resultado).isNull();
     }
 
     @Test
-    @DisplayName("obtenerMiResena — retorna la reseña del cliente dueño del pedido")
+    @DisplayName("getMyReview — retorna la reseña del cliente dueño del pedido")
     void obtenerMiResena_esMiResena_retornaResena() {
         OfferingReview resena = OfferingReview.builder()
                 .idResena(1L).pedido(pedido).calificacionEstrellas(5)
                 .textoResena("Genial").fechaResena(LocalDateTime.now()).build();
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
 
-        ReviewResponse resultado = resenaService.obtenerMiResena(50L, 1L);
+        ReviewResponse resultado = resenaService.getMyReview(50L, 1L);
 
         assertThat(resultado).isNotNull();
         assertThat(resultado.getCalificacionEstrellas()).isEqualTo(5);
     }
 
     @Test
-    @DisplayName("actualizarResena — edita calificación y texto si es el dueño")
+    @DisplayName("updateReview — edita calificación y texto si es el dueño")
     void actualizarResena_esDueno_editaCorrectamente() {
         OfferingReview resena = OfferingReview.builder()
                 .idResena(1L).pedido(pedido).calificacionEstrellas(3).textoResena("Ok").build();
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
         given(resenaServicioRepository.save(any(OfferingReview.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ReviewResponse resultado = resenaService.actualizarResena(50L,
+        ReviewResponse resultado = resenaService.updateReview(50L,
                 new CreateReviewRequest(5, "Mejoró mucho"), 1L);
 
         assertThat(resultado.getCalificacionEstrellas()).isEqualTo(5);
@@ -203,70 +203,70 @@ class ReviewServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarResena — lanza FORBIDDEN si no es el dueño")
+    @DisplayName("updateReview — lanza FORBIDDEN si no es el dueño")
     void actualizarResena_noEsDueno_lanzaForbidden() {
         OfferingReview resena = OfferingReview.builder()
                 .idResena(1L).pedido(pedido).calificacionEstrellas(3).build();
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
 
-        assertThatThrownBy(() -> resenaService.actualizarResena(50L,
+        assertThatThrownBy(() -> resenaService.updateReview(50L,
                 new CreateReviewRequest(5, "Intento ajeno"), 999L))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
     @Test
-    @DisplayName("eliminarResena — elimina si es el dueño")
+    @DisplayName("deleteReview — elimina si es el dueño")
     void eliminarResena_esDueno_eliminaCorrectamente() {
         OfferingReview resena = OfferingReview.builder()
                 .idResena(1L).pedido(pedido).calificacionEstrellas(3).build();
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
 
-        resenaService.eliminarResena(50L, 1L);
+        resenaService.deleteReview(50L, 1L);
 
         verify(resenaServicioRepository).delete(resena);
     }
 
     @Test
-    @DisplayName("eliminarResena — lanza FORBIDDEN si no es el dueño")
+    @DisplayName("deleteReview — lanza FORBIDDEN si no es el dueño")
     void eliminarResena_noEsDueno_lanzaForbidden() {
         OfferingReview resena = OfferingReview.builder()
                 .idResena(1L).pedido(pedido).calificacionEstrellas(3).build();
         given(resenaServicioRepository.findByPedidoIdPedido(50L)).willReturn(Optional.of(resena));
 
-        assertThatThrownBy(() -> resenaService.eliminarResena(50L, 999L))
+        assertThatThrownBy(() -> resenaService.deleteReview(50L, 999L))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
     // =========================================================================
-    // calcularPromedioPorCreador
+    // calculateAverageByCreator
     // =========================================================================
 
     @Test
-    @DisplayName("calcularPromedioPorCreador — retorna 0.0 si no hay reseñas")
+    @DisplayName("calculateAverageByCreator — retorna 0.0 si no hay reseñas")
     void calcularPromedioPorCreador_sinResenas_retornaCero() {
         given(resenaServicioRepository.calcularPromedioByCreadorIdPerfil(10L)).willReturn(null);
 
-        Double promedio = resenaService.calcularPromedioPorCreador(10L);
+        Double promedio = resenaService.calculateAverageByCreator(10L);
 
         assertThat(promedio).isEqualTo(0.0);
     }
 
     @Test
-    @DisplayName("calcularPromedioPorCreador — redondea a 2 decimales")
+    @DisplayName("calculateAverageByCreator — redondea a 2 decimales")
     void calcularPromedioPorCreador_conResenas_retornaPromedio() {
         given(resenaServicioRepository.calcularPromedioByCreadorIdPerfil(10L)).willReturn(4.333333);
 
-        Double promedio = resenaService.calcularPromedioPorCreador(10L);
+        Double promedio = resenaService.calculateAverageByCreator(10L);
 
         assertThat(promedio).isEqualTo(4.33);
     }
 
     @Test
-    @DisplayName("listarResenasPorCreador — retorna lista vacía si no hay reseñas")
+    @DisplayName("listReviewsByCreator — retorna lista vacía si no hay reseñas")
     void listarResenasPorCreador_sinResenas_retornaListaVacia() {
         given(resenaServicioRepository.findByCreadorIdPerfil(10L)).willReturn(List.of());
 
-        List<ReviewResponse> resultado = resenaService.listarResenasPorCreador(10L);
+        List<ReviewResponse> resultado = resenaService.listReviewsByCreator(10L);
 
         assertThat(resultado).isEmpty();
     }

@@ -71,7 +71,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Auditable(accion = "SORTEO_CREAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#resultado.idSorteo",
             detalle = "{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}")
-    public RaffleResponse crearSorteo(Long idUsuario, CreateRaffleRequest peticion) {
+    public RaffleResponse createRaffle(Long idUsuario, CreateRaffleRequest peticion) {
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No tienes un perfil de creador activo"));
@@ -128,7 +128,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional(readOnly = true)
-    public RaffleResponse obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
+    public RaffleResponse getRaffle(Long idSorteo, Long idUsuarioActual) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
         long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();
         boolean yoParticipo = idUsuarioActual != null &&
@@ -171,7 +171,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Transactional
     @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
-    public RaffleResponse actualizarSorteo(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion) {
+    public RaffleResponse updateRaffle(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion) {
         Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
         boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);
 
@@ -195,7 +195,7 @@ public class RaffleServiceImpl implements RaffleService {
         // fechaInicio no es editable por este DTO, así que solo se valida contra
         // ella (nunca se recalcula): sin este chequeo, una fechaCierre nueva
         // anterior a la fechaInicio original dejaba el sorteo en un estado
-        // imposible — participar() rechaza tanto "aún no ha comenzado" como
+        // imposible — joinRaffle() rechaza tanto "aún no ha comenzado" como
         // "el periodo de inscripción ha finalizado" para cualquier instante.
         if (peticion.getFechaCierre() != null && peticion.getFechaCierre().isBefore(sorteo.getFechaInicio())) {
             throw new BusinessRuleException(
@@ -233,7 +233,7 @@ public class RaffleServiceImpl implements RaffleService {
     @Transactional
     @Auditable(accion = "SORTEO_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
-    public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
+    public RespuestaMensaje deleteRaffle(Long idSorteo, Long idUsuario) {
         Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
             throw new BusinessRuleException(
@@ -251,7 +251,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<RaffleResponse> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
+    public List<RaffleResponse> listRafflesByCreator(Long idPerfilCreador, Long idUsuarioActual) {
         return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)
                 .stream()
                 .map(s -> {
@@ -270,7 +270,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<RaffleResponse> listarSorteosActivos(Long idUsuarioActual) {
+    public List<RaffleResponse> listActiveRaffles(Long idUsuarioActual) {
         return sorteoRepository.findByEstadoSorteo("Activo")
                 .stream()
                 .map(s -> {
@@ -301,7 +301,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional
-    public ParticipantResponse participar(Long idSorteo, Long idUsuario) {
+    public ParticipantResponse joinRaffle(Long idSorteo, Long idUsuario) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
 
         // Validar estado
@@ -329,7 +329,7 @@ public class RaffleServiceImpl implements RaffleService {
                     idUsuario, sorteo.getPerfilCreador().getIdPerfil());
             if (!esSeguidor) {
                 throw new BusinessRuleException(
-                        "Este sorteo requiere que sigas al creador para poder participar");
+                        "Este sorteo requiere que sigas al creador para poder joinRaffle");
             }
         }
 
@@ -356,7 +356,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional
-    public RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario) {
+    public RespuestaMensaje cancelParticipation(Long idSorteo, Long idUsuario) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
             throw new BusinessRuleException("No puedes cancelar la inscripción en un sorteo que ya ha finalizado");
@@ -379,7 +379,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<ParticipantResponse> listarParticipantes(Long idSorteo) {
+    public List<ParticipantResponse> listParticipants(Long idSorteo) {
         findSorteoOrThrow(idSorteo); // Valida que existe
         return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)
                 .stream().map(this::mapToParticipanteResponse).collect(Collectors.toList());
@@ -393,7 +393,7 @@ public class RaffleServiceImpl implements RaffleService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<WinnerResponse> listarGanadores(Long idSorteo) {
+    public List<WinnerResponse> listWinners(Long idSorteo) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

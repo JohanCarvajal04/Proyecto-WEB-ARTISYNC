@@ -41,9 +41,9 @@ class ReviewControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateReviewRequest peticion = new CreateReviewRequest();
         ReviewResponse respuesta = new ReviewResponse();
-        when(resenaService.crearResena(10L, peticion, 1L)).thenReturn(respuesta);
+        when(resenaService.createReview(10L, peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ReviewResponse> res = controlador.crearResena(10L, peticion, user);
+        ResponseEntity<ReviewResponse> res = controlador.createReview(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -52,9 +52,9 @@ class ReviewControllerTest {
     void obtenerMiResena_conResena_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         ReviewResponse respuesta = new ReviewResponse();
-        when(resenaService.obtenerMiResena(10L, 1L)).thenReturn(respuesta);
+        when(resenaService.getMyReview(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ReviewResponse> res = controlador.obtenerMiResena(10L, user);
+        ResponseEntity<ReviewResponse> res = controlador.getMyReview(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -62,9 +62,9 @@ class ReviewControllerTest {
     @Test
     void obtenerMiResena_sinResena_devuelveNotFound() {
         CustomUserDetails user = mockUserDetails();
-        when(resenaService.obtenerMiResena(10L, 1L)).thenReturn(null);
+        when(resenaService.getMyReview(10L, 1L)).thenReturn(null);
 
-        ResponseEntity<ReviewResponse> res = controlador.obtenerMiResena(10L, user);
+        ResponseEntity<ReviewResponse> res = controlador.getMyReview(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
@@ -73,9 +73,9 @@ class ReviewControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateReviewRequest peticion = new CreateReviewRequest();
         ReviewResponse respuesta = new ReviewResponse();
-        when(resenaService.actualizarResena(10L, peticion, 1L)).thenReturn(respuesta);
+        when(resenaService.updateReview(10L, peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ReviewResponse> res = controlador.actualizarResena(10L, peticion, user);
+        ResponseEntity<ReviewResponse> res = controlador.updateReview(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -83,14 +83,14 @@ class ReviewControllerTest {
     @Test
     void eliminarResena_devuelveNoContent() {
         CustomUserDetails user = mockUserDetails();
-        controlador.eliminarResena(10L, user);
-        verify(resenaService).eliminarResena(10L, 1L);
+        controlador.deleteReview(10L, user);
+        verify(resenaService).deleteReview(10L, 1L);
     }
 
     @Test
     void listarResenas_devuelveOk() {
         List<ReviewResponse> lista = Collections.emptyList();
-        when(resenaService.listarResenasPorCreador(10L)).thenReturn(lista);
+        when(resenaService.listReviewsByCreator(10L)).thenReturn(lista);
 
         ResponseEntity<List<ReviewResponse>> res = controlador.listarResenas(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -99,7 +99,7 @@ class ReviewControllerTest {
 
     @Test
     void obtenerPromedio_devuelveOk() {
-        when(resenaService.calcularPromedioPorCreador(10L)).thenReturn(4.5);
+        when(resenaService.calculateAverageByCreator(10L)).thenReturn(4.5);
 
         ResponseEntity<Map<String, Object>> res = controlador.obtenerPromedio(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);

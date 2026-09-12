@@ -26,7 +26,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador activo
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la fecha de cierre no es posterior a la de inicio o la cantidad de premios no coincide con la cantidad de ganadores
      */
-    RaffleResponse crearSorteo(Long idUsuario, CreateRaffleRequest peticion);
+    RaffleResponse createRaffle(Long idUsuario, CreateRaffleRequest peticion);
 
     /**
      * Obtiene el detalle de un sorteo. Indica si el usuario actual ya participa.
@@ -36,7 +36,7 @@ public interface RaffleService {
      * @return el detalle del sorteo
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
-    RaffleResponse obtenerSorteo(Long idSorteo, Long idUsuarioActual);
+    RaffleResponse getRaffle(Long idSorteo, Long idUsuarioActual);
 
     /**
      * Actualiza un sorteo. Aplica restricciones de la guía:
@@ -49,7 +49,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no tiene perfil de creador
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta modificar cantidad de ganadores, premios o fecha de cierre con participantes ya inscritos, o la nueva fecha de cierre es anterior a la de inicio
      */
-    RaffleResponse actualizarSorteo(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion);
+    RaffleResponse updateRaffle(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion);
 
     /**
      * Elimina un sorteo solo si no tiene participantes y pertenece al creador.
@@ -60,7 +60,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no tiene perfil de creador
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya tiene participantes inscritos
      */
-    RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario);
+    RespuestaMensaje deleteRaffle(Long idSorteo, Long idUsuario);
 
     /**
      * Lista todos los sorteos de un creador (público).
@@ -69,7 +69,7 @@ public interface RaffleService {
      * @param idUsuarioActual id del usuario que consulta, o {@code null} si es anónimo
      * @return los sorteos del creador
      */
-    List<RaffleResponse> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual);
+    List<RaffleResponse> listRafflesByCreator(Long idPerfilCreador, Long idUsuarioActual);
 
     /**
      * Lista todos los sorteos activos (público).
@@ -77,7 +77,7 @@ public interface RaffleService {
      * @param idUsuarioActual id del usuario que consulta, o {@code null} si es anónimo
      * @return los sorteos actualmente activos
      */
-    List<RaffleResponse> listarSorteosActivos(Long idUsuarioActual);
+    List<RaffleResponse> listActiveRaffles(Long idUsuarioActual);
 
     // --- Participación ---
 
@@ -91,7 +91,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito en el sorteo
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no está activo, está fuera del rango de fechas o exige seguir al creador y el usuario no lo sigue
      */
-    ParticipantResponse participar(Long idSorteo, Long idUsuario);
+    ParticipantResponse joinRaffle(Long idSorteo, Long idUsuario);
 
     /**
      * Cancela la inscripción del usuario si el sorteo todavía está activo.
@@ -102,7 +102,7 @@ public interface RaffleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el usuario no está inscrito
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya finalizó
      */
-    RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario);
+    RespuestaMensaje cancelParticipation(Long idSorteo, Long idUsuario);
 
     /**
      * Lista todos los participantes de un sorteo.
@@ -111,7 +111,7 @@ public interface RaffleService {
      * @return los participantes inscritos en el sorteo
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
-    List<ParticipantResponse> listarParticipantes(Long idSorteo);
+    List<ParticipantResponse> listParticipants(Long idSorteo);
 
     /**
      * Lista los ganadores de un sorteo (solo post-cierre).
@@ -120,5 +120,5 @@ public interface RaffleService {
      * @return los ganadores del sorteo, con su premio asignado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
      */
-    List<WinnerResponse> listarGanadores(Long idSorteo);
+    List<WinnerResponse> listWinners(Long idSorteo);
 }

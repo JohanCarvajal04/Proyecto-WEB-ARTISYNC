@@ -43,9 +43,9 @@ class RaffleControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateRaffleRequest peticion = new CreateRaffleRequest();
         RaffleResponse respuesta = new RaffleResponse();
-        when(sorteoService.crearSorteo(1L, peticion)).thenReturn(respuesta);
+        when(sorteoService.createRaffle(1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<RaffleResponse> res = controlador.crearSorteo(peticion, user);
+        ResponseEntity<RaffleResponse> res = controlador.createRaffle(peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -54,9 +54,9 @@ class RaffleControllerTest {
     void obtenerSorteo_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         RaffleResponse respuesta = new RaffleResponse();
-        when(sorteoService.obtenerSorteo(10L, 1L)).thenReturn(respuesta);
+        when(sorteoService.getRaffle(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RaffleResponse> res = controlador.obtenerSorteo(10L, user);
+        ResponseEntity<RaffleResponse> res = controlador.getRaffle(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -64,9 +64,9 @@ class RaffleControllerTest {
     @Test
     void obtenerSorteo_sinUser_devuelveOk() {
         RaffleResponse respuesta = new RaffleResponse();
-        when(sorteoService.obtenerSorteo(10L, null)).thenReturn(respuesta);
+        when(sorteoService.getRaffle(10L, null)).thenReturn(respuesta);
 
-        ResponseEntity<RaffleResponse> res = controlador.obtenerSorteo(10L, null);
+        ResponseEntity<RaffleResponse> res = controlador.getRaffle(10L, null);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -76,9 +76,9 @@ class RaffleControllerTest {
         CustomUserDetails user = mockUserDetails();
         UpdateRaffleRequest peticion = new UpdateRaffleRequest();
         RaffleResponse respuesta = new RaffleResponse();
-        when(sorteoService.actualizarSorteo(10L, 1L, peticion)).thenReturn(respuesta);
+        when(sorteoService.updateRaffle(10L, 1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<RaffleResponse> res = controlador.actualizarSorteo(10L, peticion, user);
+        ResponseEntity<RaffleResponse> res = controlador.updateRaffle(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -87,9 +87,9 @@ class RaffleControllerTest {
     void eliminarSorteo_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
-        when(sorteoService.eliminarSorteo(10L, 1L)).thenReturn(respuesta);
+        when(sorteoService.deleteRaffle(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarSorteo(10L, user);
+        ResponseEntity<RespuestaMensaje> res = controlador.deleteRaffle(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -98,9 +98,9 @@ class RaffleControllerTest {
     void listarSorteosPorCreador_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         List<RaffleResponse> lista = Collections.emptyList();
-        when(sorteoService.listarSorteosPorCreador(20L, 1L)).thenReturn(lista);
+        when(sorteoService.listRafflesByCreator(20L, 1L)).thenReturn(lista);
 
-        ResponseEntity<List<RaffleResponse>> res = controlador.listarSorteosPorCreador(20L, user);
+        ResponseEntity<List<RaffleResponse>> res = controlador.listRafflesByCreator(20L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -108,9 +108,9 @@ class RaffleControllerTest {
     @Test
     void listarSorteosPorCreador_sinUser_devuelveOk() {
         List<RaffleResponse> lista = Collections.emptyList();
-        when(sorteoService.listarSorteosPorCreador(20L, null)).thenReturn(lista);
+        when(sorteoService.listRafflesByCreator(20L, null)).thenReturn(lista);
 
-        ResponseEntity<List<RaffleResponse>> res = controlador.listarSorteosPorCreador(20L, null);
+        ResponseEntity<List<RaffleResponse>> res = controlador.listRafflesByCreator(20L, null);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -119,9 +119,9 @@ class RaffleControllerTest {
     void listarSorteosActivos_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         List<RaffleResponse> lista = Collections.emptyList();
-        when(sorteoService.listarSorteosActivos(1L)).thenReturn(lista);
+        when(sorteoService.listActiveRaffles(1L)).thenReturn(lista);
 
-        ResponseEntity<List<RaffleResponse>> res = controlador.listarSorteosActivos(user);
+        ResponseEntity<List<RaffleResponse>> res = controlador.listActiveRaffles(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -129,9 +129,9 @@ class RaffleControllerTest {
     @Test
     void listarSorteosActivos_sinUser_devuelveOk() {
         List<RaffleResponse> lista = Collections.emptyList();
-        when(sorteoService.listarSorteosActivos(null)).thenReturn(lista);
+        when(sorteoService.listActiveRaffles(null)).thenReturn(lista);
 
-        ResponseEntity<List<RaffleResponse>> res = controlador.listarSorteosActivos(null);
+        ResponseEntity<List<RaffleResponse>> res = controlador.listActiveRaffles(null);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -140,9 +140,9 @@ class RaffleControllerTest {
     void participar_devuelveCreated() {
         CustomUserDetails user = mockUserDetails();
         ParticipantResponse respuesta = new ParticipantResponse();
-        when(sorteoService.participar(10L, 1L)).thenReturn(respuesta);
+        when(sorteoService.joinRaffle(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ParticipantResponse> res = controlador.participar(10L, user);
+        ResponseEntity<ParticipantResponse> res = controlador.joinRaffle(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -151,9 +151,9 @@ class RaffleControllerTest {
     void cancelarParticipacion_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
-        when(sorteoService.cancelarParticipacion(10L, 1L)).thenReturn(respuesta);
+        when(sorteoService.cancelParticipation(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.cancelarParticipacion(10L, user);
+        ResponseEntity<RespuestaMensaje> res = controlador.cancelParticipation(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -161,9 +161,9 @@ class RaffleControllerTest {
     @Test
     void listarParticipantes_devuelveOk() {
         List<ParticipantResponse> lista = Collections.emptyList();
-        when(sorteoService.listarParticipantes(10L)).thenReturn(lista);
+        when(sorteoService.listParticipants(10L)).thenReturn(lista);
 
-        ResponseEntity<List<ParticipantResponse>> res = controlador.listarParticipantes(10L);
+        ResponseEntity<List<ParticipantResponse>> res = controlador.listParticipants(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -171,9 +171,9 @@ class RaffleControllerTest {
     @Test
     void listarGanadores_devuelveOk() {
         List<WinnerResponse> lista = Collections.emptyList();
-        when(sorteoService.listarGanadores(10L)).thenReturn(lista);
+        when(sorteoService.listWinners(10L)).thenReturn(lista);
 
-        ResponseEntity<List<WinnerResponse>> res = controlador.listarGanadores(10L);
+        ResponseEntity<List<WinnerResponse>> res = controlador.listWinners(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }

@@ -47,11 +47,11 @@ public class RaffleController {
     @PostMapping("/api/v1/sorteos")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<RaffleResponse> crearSorteo(
+    public ResponseEntity<RaffleResponse> createRaffle(
             @Valid @RequestBody CreateRaffleRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(sorteoService.crearSorteo(userDetails.getIdUsuario(), peticion));
+                .body(sorteoService.createRaffle(userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -64,11 +64,11 @@ public class RaffleController {
      */
     @Operation(summary = "Obtener detalle de un sorteo (público)")
     @GetMapping("/api/v1/sorteos/{idSorteo}")
-    public ResponseEntity<RaffleResponse> obtenerSorteo(
+    public ResponseEntity<RaffleResponse> getRaffle(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;
-        return ResponseEntity.ok(sorteoService.obtenerSorteo(idSorteo, idUsuarioActual));
+        return ResponseEntity.ok(sorteoService.getRaffle(idSorteo, idUsuarioActual));
     }
 
     /**
@@ -84,12 +84,12 @@ public class RaffleController {
     @Operation(summary = "Editar un sorteo (CREADOR, con restricciones)")
     @PutMapping("/api/v1/sorteos/{idSorteo}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RaffleResponse> actualizarSorteo(
+    public ResponseEntity<RaffleResponse> updateRaffle(
             @PathVariable Long idSorteo,
             @Valid @RequestBody UpdateRaffleRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
-                sorteoService.actualizarSorteo(idSorteo, userDetails.getIdUsuario(), peticion));
+                sorteoService.updateRaffle(idSorteo, userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -104,10 +104,10 @@ public class RaffleController {
     @Operation(summary = "Eliminar un sorteo sin participantes (CREADOR)")
     @DeleteMapping("/api/v1/sorteos/{idSorteo}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> eliminarSorteo(
+    public ResponseEntity<RespuestaMensaje> deleteRaffle(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(sorteoService.eliminarSorteo(idSorteo, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(sorteoService.deleteRaffle(idSorteo, userDetails.getIdUsuario()));
     }
 
     /**
@@ -119,11 +119,11 @@ public class RaffleController {
      */
     @Operation(summary = "Listar sorteos de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/sorteos")
-    public ResponseEntity<List<RaffleResponse>> listarSorteosPorCreador(
+    public ResponseEntity<List<RaffleResponse>> listRafflesByCreator(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;
-        return ResponseEntity.ok(sorteoService.listarSorteosPorCreador(idPerfil, idUsuarioActual));
+        return ResponseEntity.ok(sorteoService.listRafflesByCreator(idPerfil, idUsuarioActual));
     }
 
     /**
@@ -134,10 +134,10 @@ public class RaffleController {
      */
     @Operation(summary = "Listar sorteos activos (público)")
     @GetMapping("/api/v1/sorteos/activos")
-    public ResponseEntity<List<RaffleResponse>> listarSorteosActivos(
+    public ResponseEntity<List<RaffleResponse>> listActiveRaffles(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioActual = userDetails != null ? userDetails.getIdUsuario() : null;
-        return ResponseEntity.ok(sorteoService.listarSorteosActivos(idUsuarioActual));
+        return ResponseEntity.ok(sorteoService.listActiveRaffles(idUsuarioActual));
     }
 
     // =========================================================================
@@ -155,14 +155,14 @@ public class RaffleController {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito en el sorteo
      */
     @Operation(summary = "Inscribirse en un sorteo")
-    @PostMapping("/api/v1/sorteos/{idSorteo}/participar")
+    @PostMapping("/api/v1/sorteos/{idSorteo}/joinRaffle")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<ParticipantResponse> participar(
+    public ResponseEntity<ParticipantResponse> joinRaffle(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(sorteoService.participar(idSorteo, userDetails.getIdUsuario()));
+                .body(sorteoService.joinRaffle(idSorteo, userDetails.getIdUsuario()));
     }
 
     /**
@@ -175,13 +175,13 @@ public class RaffleController {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya ha finalizado
      */
     @Operation(summary = "Cancelar inscripción en un sorteo")
-    @DeleteMapping("/api/v1/sorteos/{idSorteo}/participar")
+    @DeleteMapping("/api/v1/sorteos/{idSorteo}/joinRaffle")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> cancelarParticipacion(
+    public ResponseEntity<RespuestaMensaje> cancelParticipation(
             @PathVariable Long idSorteo,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
-                sorteoService.cancelarParticipacion(idSorteo, userDetails.getIdUsuario()));
+                sorteoService.cancelParticipation(idSorteo, userDetails.getIdUsuario()));
     }
 
     /**
@@ -193,9 +193,9 @@ public class RaffleController {
      */
     @Operation(summary = "Listar participantes de un sorteo")
     @GetMapping("/api/v1/sorteos/{idSorteo}/participantes")
-    public ResponseEntity<List<ParticipantResponse>> listarParticipantes(
+    public ResponseEntity<List<ParticipantResponse>> listParticipants(
             @PathVariable Long idSorteo) {
-        return ResponseEntity.ok(sorteoService.listarParticipantes(idSorteo));
+        return ResponseEntity.ok(sorteoService.listParticipants(idSorteo));
     }
 
     /**
@@ -207,8 +207,8 @@ public class RaffleController {
      */
     @Operation(summary = "Ver ganadores del sorteo (solo post-cierre)")
     @GetMapping("/api/v1/sorteos/{idSorteo}/ganadores")
-    public ResponseEntity<List<WinnerResponse>> listarGanadores(
+    public ResponseEntity<List<WinnerResponse>> listWinners(
             @PathVariable Long idSorteo) {
-        return ResponseEntity.ok(sorteoService.listarGanadores(idSorteo));
+        return ResponseEntity.ok(sorteoService.listWinners(idSorteo));
     }
 }

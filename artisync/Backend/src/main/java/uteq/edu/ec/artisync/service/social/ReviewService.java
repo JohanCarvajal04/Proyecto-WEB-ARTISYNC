@@ -24,7 +24,7 @@ public interface ReviewService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el entregable del pedido no está liberado
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el cliente ya dejó una reseña para este pedido
      */
-    ReviewResponse crearResena(Long idPedido, CreateReviewRequest peticion, Long idCliente);
+    ReviewResponse createReview(Long idPedido, CreateReviewRequest peticion, Long idCliente);
 
     /**
      * Obtiene la reseña que el cliente dejó para un pedido, si existe.
@@ -34,7 +34,7 @@ public interface ReviewService {
      * @param idCliente id del cliente propietario de la reseña
      * @return la reseña del pedido, o {@code null} si aún no existe
      */
-    ReviewResponse obtenerMiResena(Long idPedido, Long idCliente);
+    ReviewResponse getMyReview(Long idPedido, Long idCliente);
 
     /**
      * Edita la reseña de un pedido. Solo el cliente que la creó puede modificarla.
@@ -46,7 +46,7 @@ public interface ReviewService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene una reseña
      * @throws org.springframework.web.server.ResponseStatusException {@code FORBIDDEN} si el solicitante no es el autor de la reseña
      */
-    ReviewResponse actualizarResena(Long idPedido, CreateReviewRequest peticion, Long idCliente);
+    ReviewResponse updateReview(Long idPedido, CreateReviewRequest peticion, Long idCliente);
 
     /**
      * Elimina la reseña de un pedido. Solo el cliente que la creó puede eliminarla.
@@ -56,7 +56,7 @@ public interface ReviewService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene una reseña
      * @throws org.springframework.web.server.ResponseStatusException {@code FORBIDDEN} si el solicitante no es el autor de la reseña
      */
-    void eliminarResena(Long idPedido, Long idCliente);
+    void deleteReview(Long idPedido, Long idCliente);
 
     /**
      * Lista todas las reseñas de los servicios de un creador (público).
@@ -64,7 +64,7 @@ public interface ReviewService {
      * @param idPerfilCreador id del perfil de creador
      * @return las reseñas recibidas por el creador
      */
-    List<ReviewResponse> listarResenasPorCreador(Long idPerfilCreador);
+    List<ReviewResponse> listReviewsByCreator(Long idPerfilCreador);
 
     /**
      * Calcula el promedio de calificaciones del creador.
@@ -73,5 +73,5 @@ public interface ReviewService {
      * @param idPerfilCreador id del perfil de creador
      * @return el promedio de calificaciones, o 0.0 si no tiene reseñas
      */
-    Double calcularPromedioPorCreador(Long idPerfilCreador);
+    Double calculateAverageByCreator(Long idPerfilCreador);
 }

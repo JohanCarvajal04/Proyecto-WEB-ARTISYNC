@@ -43,12 +43,12 @@ public class ReviewController {
     @PostMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<ReviewResponse> crearResena(
+    public ResponseEntity<ReviewResponse> createReview(
             @PathVariable Long idPedido,
             @Valid @RequestBody CreateReviewRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(resenaService.crearResena(idPedido, peticion, userDetails.getIdUsuario()));
+                .body(resenaService.createReview(idPedido, peticion, userDetails.getIdUsuario()));
     }
 
     /**
@@ -61,10 +61,10 @@ public class ReviewController {
     @Operation(summary = "Obtener mi reseña de un pedido, si existe (CLIENTE)")
     @GetMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReviewResponse> obtenerMiResena(
+    public ResponseEntity<ReviewResponse> getMyReview(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ReviewResponse resena = resenaService.obtenerMiResena(idPedido, userDetails.getIdUsuario());
+        ReviewResponse resena = resenaService.getMyReview(idPedido, userDetails.getIdUsuario());
         return resena != null ? ResponseEntity.ok(resena) : ResponseEntity.notFound().build();
     }
 
@@ -80,11 +80,11 @@ public class ReviewController {
     @Operation(summary = "Editar mi reseña de un pedido (CLIENTE)")
     @PutMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReviewResponse> actualizarResena(
+    public ResponseEntity<ReviewResponse> updateReview(
             @PathVariable Long idPedido,
             @Valid @RequestBody CreateReviewRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(resenaService.actualizarResena(idPedido, peticion, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(resenaService.updateReview(idPedido, peticion, userDetails.getIdUsuario()));
     }
 
     /**
@@ -98,10 +98,10 @@ public class ReviewController {
     @DeleteMapping("/api/v1/pedidos/{idPedido}/resena")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminarResena(
+    public void deleteReview(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        resenaService.eliminarResena(idPedido, userDetails.getIdUsuario());
+        resenaService.deleteReview(idPedido, userDetails.getIdUsuario());
     }
 
     /**
@@ -113,7 +113,7 @@ public class ReviewController {
     @Operation(summary = "Listar reseñas de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas")
     public ResponseEntity<List<ReviewResponse>> listarResenas(@PathVariable Long idPerfil) {
-        return ResponseEntity.ok(resenaService.listarResenasPorCreador(idPerfil));
+        return ResponseEntity.ok(resenaService.listReviewsByCreator(idPerfil));
     }
 
     /**
@@ -125,7 +125,7 @@ public class ReviewController {
     @Operation(summary = "Promedio de calificaciones de un creador (público)")
     @GetMapping("/api/v1/creadores/{idPerfil}/resenas/promedio")
     public ResponseEntity<Map<String, Object>> obtenerPromedio(@PathVariable Long idPerfil) {
-        Double promedio = resenaService.calcularPromedioPorCreador(idPerfil);
+        Double promedio = resenaService.calculateAverageByCreator(idPerfil);
         return ResponseEntity.ok(Map.of(
                 "idPerfil", idPerfil,
                 "promedio", promedio

@@ -55,7 +55,7 @@ public class ReviewServiceImpl implements ReviewService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el entregable aún no fue liberado
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el pedido ya tiene una reseña
      */
-    public ReviewResponse crearResena(Long idPedido, CreateReviewRequest peticion, Long idCliente) {
+    public ReviewResponse createReview(Long idPedido, CreateReviewRequest peticion, Long idCliente) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado: " + idPedido));
 
@@ -98,7 +98,7 @@ public class ReviewServiceImpl implements ReviewService {
      * @param idCliente identificador del cliente, para validar que la reseña sea suya
      * @return la reseña del pedido, o {@code null} si no existe o no pertenece a ese cliente
      */
-    public ReviewResponse obtenerMiResena(Long idPedido, Long idCliente) {
+    public ReviewResponse getMyReview(Long idPedido, Long idCliente) {
         return resenaServicioRepository.findByPedidoIdPedido(idPedido)
                 .filter(resena -> resena.getPedido().getUsuarioCliente().getIdUsuario().equals(idCliente))
                 .map(this::mapToResponse)
@@ -120,7 +120,7 @@ public class ReviewServiceImpl implements ReviewService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene reseña
      * @throws org.springframework.web.server.ResponseStatusException 403 si quien edita no es quien la dejó
      */
-    public ReviewResponse actualizarResena(Long idPedido, CreateReviewRequest peticion, Long idCliente) {
+    public ReviewResponse updateReview(Long idPedido, CreateReviewRequest peticion, Long idCliente) {
         OfferingReview resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Este pedido no tiene una reseña"));
 
@@ -148,7 +148,7 @@ public class ReviewServiceImpl implements ReviewService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene reseña
      * @throws org.springframework.web.server.ResponseStatusException 403 si quien elimina no es quien la dejó
      */
-    public void eliminarResena(Long idPedido, Long idCliente) {
+    public void deleteReview(Long idPedido, Long idCliente) {
         OfferingReview resena = resenaServicioRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Este pedido no tiene una reseña"));
 
@@ -167,7 +167,7 @@ public class ReviewServiceImpl implements ReviewService {
      * @param idPerfilCreador identificador del perfil de creador
      * @return las reseñas de todos los pedidos de ese creador
      */
-    public List<ReviewResponse> listarResenasPorCreador(Long idPerfilCreador) {
+    public List<ReviewResponse> listReviewsByCreator(Long idPerfilCreador) {
         return resenaServicioRepository.findByCreadorIdPerfil(idPerfilCreador)
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
@@ -178,7 +178,7 @@ public class ReviewServiceImpl implements ReviewService {
      * @param idPerfilCreador identificador del perfil de creador
      * @return el promedio de calificaciones de ese creador, redondeado a 2 decimales; {@code 0.0} si no tiene reseñas
      */
-    public Double calcularPromedioPorCreador(Long idPerfilCreador) {
+    public Double calculateAverageByCreator(Long idPerfilCreador) {
         Double promedio = resenaServicioRepository.calcularPromedioByCreadorIdPerfil(idPerfilCreador);
         return promedio != null ? Math.round(promedio * 100.0) / 100.0 : 0.0;
     }
