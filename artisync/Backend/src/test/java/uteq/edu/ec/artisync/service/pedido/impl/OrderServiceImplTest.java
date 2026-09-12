@@ -128,7 +128,7 @@ class OrderServiceImplTest {
 
         // Por defecto el cliente ya tiene su identidad verificada: la mayoría
         // de estos tests no ejercitan el gating de REQ-F-006 ampliado.
-        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
+        lenient().when(verificacionServicio.isIdentityVerified(anyLong())).thenReturn(true);
     }
 
     @AfterEach
@@ -194,7 +194,7 @@ class OrderServiceImplTest {
     @DisplayName("createOrder rechaza si el cliente no tiene la identidad verificada")
     void crearPedido_identidadNoVerificada_lanzaExcepcionReglaNegocio() {
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(cliente));
-        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+        given(verificacionServicio.isIdentityVerified(1L)).willReturn(false);
 
         assertThatThrownBy(() -> pedidoServicio.createOrder(1L, CreateOrderRequest.builder().idServicio(1L).build()))
                 .isInstanceOf(BusinessRuleException.class)

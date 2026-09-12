@@ -71,7 +71,7 @@ class VerificationServiceImplTest {
         when(almacenamiento.guardar(documento)).thenReturn("uuid-generado.jpg");
         when(certificadoIaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VerificationResponse respuesta = servicio.subir(1L, VerificationDocumentType.IDENTIDAD, documento);
+        VerificationResponse respuesta = servicio.upload(1L, VerificationDocumentType.IDENTIDAD, documento);
 
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("PENDIENTE");
         assertThat(respuesta.tipoDocumento()).isEqualTo("IDENTIDAD");
@@ -85,7 +85,7 @@ class VerificationServiceImplTest {
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> servicio.subir(99L, VerificationDocumentType.IDENTIDAD, documento));
+                () -> servicio.upload(99L, VerificationDocumentType.IDENTIDAD, documento));
         verifyNoInteractions(iaService, almacenamiento);
     }
 
@@ -96,7 +96,7 @@ class VerificationServiceImplTest {
         when(estadoVerificacionRepository.findByNombreEstado("PENDIENTE")).thenReturn(Optional.empty());
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subir(1L, VerificationDocumentType.IDENTIDAD, documento));
+                () -> servicio.upload(1L, VerificationDocumentType.IDENTIDAD, documento));
         verify(estadoVerificacionRepository, never()).save(any());
     }
 
@@ -108,7 +108,7 @@ class VerificationServiceImplTest {
                 .thenReturn(true);
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subir(1L, VerificationDocumentType.IDENTIDAD, documento));
+                () -> servicio.upload(1L, VerificationDocumentType.IDENTIDAD, documento));
 
         verifyNoInteractions(almacenamiento, preprocesador, iaService);
         verify(certificadoIaRepository, never()).save(any());
@@ -231,9 +231,9 @@ class VerificationServiceImplTest {
             return null;
         }).when(entityManager).refresh(certificado);
 
-        VerificationResponse respuesta = servicio.registrarDecision(20L, 99L, 2L, "Documento verificado");
+        VerificationResponse respuesta = servicio.recordDecision(20L, 99L, 2L, "Documento verificado");
 
-        verify(certificadoIaRepository).registrarDecision(20L, 2L, 99L, "Documento verificado");
+        verify(certificadoIaRepository).recordDecision(20L, 2L, 99L, "Documento verificado");
         verify(entityManager).refresh(certificado);
         verify(almacenamiento).eliminar("ref.jpg");
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("APROBADO");
@@ -256,9 +256,9 @@ class VerificationServiceImplTest {
             return null;
         }).when(entityManager).refresh(certificado);
 
-        VerificationResponse respuesta = servicio.registrarDecision(22L, 99L, 4L, "Falta el reverso del documento");
+        VerificationResponse respuesta = servicio.recordDecision(22L, 99L, 4L, "Falta el reverso del documento");
 
-        verify(certificadoIaRepository).registrarDecision(22L, 4L, 99L, "Falta el reverso del documento");
+        verify(certificadoIaRepository).recordDecision(22L, 4L, 99L, "Falta el reverso del documento");
         verify(entityManager).refresh(certificado);
         verify(almacenamiento, never()).eliminar(any());
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("REQUIERE_ACLARACION");
@@ -269,8 +269,8 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> servicio.registrarDecision(999L, 99L, 2L, "nota"));
-        verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
+                () -> servicio.recordDecision(999L, 99L, 2L, "nota"));
+        verify(certificadoIaRepository, never()).recordDecision(any(), any(), any(), any());
     }
 
     @Test
@@ -282,8 +282,8 @@ class VerificationServiceImplTest {
         when(estadoVerificacionRepository.findById(777L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> servicio.registrarDecision(21L, 99L, 777L, "nota"));
-        verify(certificadoIaRepository, never()).registrarDecision(any(), any(), any(), any());
+                () -> servicio.recordDecision(21L, 99L, 777L, "nota"));
+        verify(certificadoIaRepository, never()).recordDecision(any(), any(), any(), any());
     }
 
     @Test
@@ -292,9 +292,9 @@ class VerificationServiceImplTest {
         when(fila.getIdCertificado()).thenReturn(30L);
         when(fila.getNombreEstado()).thenReturn("PENDIENTE");
         when(fila.getNombreUsuario()).thenReturn("Ana Creadora");
-        when(certificadoIaRepository.listarCola("PENDIENTE", 20, 0)).thenReturn(List.of(fila));
+        when(certificadoIaRepository.listQueue("PENDIENTE", 20, 0)).thenReturn(List.of(fila));
 
-        List<VerificationQueueResponse> resultado = servicio.listarCola("PENDIENTE", 20, 0);
+        List<VerificationQueueResponse> resultado = servicio.listQueue("PENDIENTE", 20, 0);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).idCertificado()).isEqualTo(30L);
@@ -308,7 +308,7 @@ class VerificationServiceImplTest {
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(31L)).thenReturn(Optional.of(certificado));
 
-        VerificationResponse respuesta = servicio.obtenerPorId(31L, 999L, true);
+        VerificationResponse respuesta = servicio.getById(31L, 999L, true);
 
         assertThat(respuesta.idCertificado()).isEqualTo(31L);
     }
@@ -320,7 +320,7 @@ class VerificationServiceImplTest {
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(32L)).thenReturn(Optional.of(certificado));
 
-        VerificationResponse respuesta = servicio.obtenerPorId(32L, 1L, false); // usuario.idUsuario == 1L
+        VerificationResponse respuesta = servicio.getById(32L, 1L, false); // usuario.idUsuario == 1L
 
         assertThat(respuesta.idCertificado()).isEqualTo(32L);
     }
@@ -332,7 +332,7 @@ class VerificationServiceImplTest {
                 .urlDocumentoS3("ref.jpg").tipoDocumento("IDENTIDAD").build();
         when(certificadoIaRepository.findById(33L)).thenReturn(Optional.of(certificado));
 
-        assertThrows(AccessDeniedException.class, () -> servicio.obtenerPorId(33L, 777L, false));
+        assertThrows(AccessDeniedException.class, () -> servicio.getById(33L, 777L, false));
     }
 
     @Test
@@ -343,7 +343,7 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findById(34L)).thenReturn(Optional.of(certificado));
         when(almacenamiento.leer("ref-34.jpg")).thenReturn("contenido".getBytes());
 
-        byte[] resultado = servicio.obtenerDocumento(34L);
+        byte[] resultado = servicio.getDocument(34L);
 
         assertThat(new String(resultado)).isEqualTo("contenido");
     }
@@ -353,7 +353,7 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
                 1L, "IDENTIDAD", "APROBADO")).thenReturn(true);
 
-        assertThat(servicio.estaIdentidadVerificada(1L)).isTrue();
+        assertThat(servicio.isIdentityVerified(1L)).isTrue();
     }
 
     @Test
@@ -367,7 +367,7 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(1L, "IDENTIDAD"))
                 .thenReturn(Optional.of(certificado));
 
-        var respuesta = servicio.obtenerEstadoIdentidad(1L);
+        var respuesta = servicio.getIdentityStatus(1L);
 
         assertThat(respuesta.verificado()).isTrue();
         assertThat(respuesta.estadoActual()).isEqualTo("APROBADO");
@@ -380,7 +380,7 @@ class VerificationServiceImplTest {
         when(certificadoIaRepository.findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(1L, "IDENTIDAD"))
                 .thenReturn(Optional.empty());
 
-        var respuesta = servicio.obtenerEstadoIdentidad(1L);
+        var respuesta = servicio.getIdentityStatus(1L);
 
         assertThat(respuesta.verificado()).isFalse();
         assertThat(respuesta.estadoActual()).isNull();

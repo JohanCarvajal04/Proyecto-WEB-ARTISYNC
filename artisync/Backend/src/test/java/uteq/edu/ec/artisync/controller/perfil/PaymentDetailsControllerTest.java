@@ -38,9 +38,9 @@ class PaymentDetailsControllerTest {
         CustomUserDetails user = mockUserDetails();
         PaymentDetailsResponse respuesta = PaymentDetailsResponse.builder()
                 .correoPaypal("ana@paypal.test").fechaActualizacion(LocalDateTime.now()).build();
-        when(datosPagoServicio.obtenerMisDatosPago(200L)).thenReturn(respuesta);
+        when(datosPagoServicio.getMyPaymentDetails(200L)).thenReturn(respuesta);
 
-        ResponseEntity<PaymentDetailsResponse> res = controlador.obtenerMisDatosPago(user);
+        ResponseEntity<PaymentDetailsResponse> res = controlador.getMyPaymentDetails(user);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
@@ -53,9 +53,9 @@ class PaymentDetailsControllerTest {
         peticion.setCorreoPaypal("nuevo@paypal.test");
         PaymentDetailsResponse respuesta = PaymentDetailsResponse.builder()
                 .correoPaypal("nuevo@paypal.test").fechaActualizacion(LocalDateTime.now()).build();
-        when(datosPagoServicio.actualizarCorreoPaypal(200L, peticion)).thenReturn(respuesta);
+        when(datosPagoServicio.updatePaypalEmail(200L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<PaymentDetailsResponse> res = controlador.actualizarCorreoPaypal(user, peticion);
+        ResponseEntity<PaymentDetailsResponse> res = controlador.updatePaypalEmail(user, peticion);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);

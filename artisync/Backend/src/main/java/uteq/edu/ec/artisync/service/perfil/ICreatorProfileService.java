@@ -21,7 +21,7 @@ public interface ICreatorProfileService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario destino ya tiene un perfil de creador
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario destino no existe
      */
-    ProfileResponse crearPerfil(CreateProfileRequest peticion, String correoSolicitante, boolean esAdmin);
+    ProfileResponse createProfile(CreateProfileRequest peticion, String correoSolicitante, boolean esAdmin);
 
     /**
      * Obtiene un perfil de creador por su id.
@@ -30,7 +30,7 @@ public interface ICreatorProfileService {
      * @return el perfil encontrado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
-    ProfileResponse obtenerPerfilPorId(Long idPerfil);
+    ProfileResponse getProfileById(Long idPerfil);
 
     /**
      * Obtiene el perfil de creador asociado a un usuario.
@@ -39,21 +39,21 @@ public interface ICreatorProfileService {
      * @return el perfil del usuario
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
      */
-    ProfileResponse obtenerPerfilPorUsuario(Long idUsuario);
+    ProfileResponse getProfileByUser(Long idUsuario);
 
     /**
      * Lista todos los perfiles de creador registrados.
      *
      * @return todos los perfiles
      */
-    List<ProfileResponse> listarPerfiles();
+    List<ProfileResponse> listProfiles();
 
     /**
      * Directorio público de creadores con cuenta activa (no suspendida).
      *
      * @return los perfiles con cuenta activa
      */
-    List<ProfileResponse> listarPerfilesActivos();
+    List<ProfileResponse> listActiveProfiles();
 
     /**
      * Actualiza un perfil. Salvo que el solicitante sea ADMIN, debe ser el
@@ -68,7 +68,7 @@ public interface ICreatorProfileService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es el dueño del perfil ni administrador
      */
-    ProfileResponse actualizarPerfil(Long idPerfil, UpdateProfileRequest peticion, String correoSolicitante, boolean esAdmin);
+    ProfileResponse updateProfile(Long idPerfil, UpdateProfileRequest peticion, String correoSolicitante, boolean esAdmin);
 
     /**
      * Elimina un perfil de creador.
@@ -76,5 +76,5 @@ public interface ICreatorProfileService {
      * @param idPerfil id del perfil a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
-    void eliminarPerfil(Long idPerfil);
+    void deleteProfile(Long idPerfil);
 }

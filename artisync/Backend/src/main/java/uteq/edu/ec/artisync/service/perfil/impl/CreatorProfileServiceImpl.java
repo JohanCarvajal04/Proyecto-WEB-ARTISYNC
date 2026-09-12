@@ -39,7 +39,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ProfileResponse crearPerfil(CreateProfileRequest peticion, String correoSolicitante, boolean esAdmin) {
+    public ProfileResponse createProfile(CreateProfileRequest peticion, String correoSolicitante, boolean esAdmin) {
         // El idUsuario del cuerpo solo se honra para un ADMIN. Antes se confiaba
         // en él sin más, así que cualquier CREADOR podía crear un perfil a nombre
         // de un idUsuario arbitrario.
@@ -74,10 +74,10 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ProfileResponse obtenerPerfilPorId(Long idPerfil) {
+    public ProfileResponse getProfileById(Long idPerfil) {
         CreatorProfile perfil = perfilRepository.findById(idPerfil)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil));
-        exigirCuentaActiva(perfil);
+        requireActiveAccount(perfil);
         return mapearARespuesta(perfil);
     }
 
@@ -90,23 +90,23 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ProfileResponse obtenerPerfilPorUsuario(Long idUsuario) {
+    public ProfileResponse getProfileByUser(Long idUsuario) {
         CreatorProfile perfil = perfilRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró perfil para el usuario con ID: " + idUsuario));
-        exigirCuentaActiva(perfil);
+        requireActiveAccount(perfil);
         return mapearARespuesta(perfil);
     }
 
     /**
      * REQ-NF-018 (ajuste de seguimiento): oculta el perfil público de un
      * creador con la cuenta desactivada (soft-delete o supresión real) —
-     * mismo criterio que ya aplica {@code listarPerfilesActivos()}, sin
+     * mismo criterio que ya aplica {@code listActiveProfiles()}, sin
      * excepción para ningún llamante: esta ruta está marcada permitAll() en
      * SecurityConfig y no distingue admin de público. Se responde igual que
      * "no existe" (404) para no revelar si el perfil está desactivado o
      * nunca existió.
      */
-    private void exigirCuentaActiva(CreatorProfile perfil) {
+    private void requireActiveAccount(CreatorProfile perfil) {
         User usuario = perfil.getUsuario();
         if (usuario != null && !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
             throw new ResourceNotFoundException("Perfil no disponible");
@@ -121,7 +121,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<ProfileResponse> listarPerfiles() {
+    public List<ProfileResponse> listProfiles() {
         return perfilRepository.findAll().stream()
                 .map(this::mapearARespuesta)
                 .collect(Collectors.toList());
@@ -135,7 +135,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<ProfileResponse> listarPerfilesActivos() {
+    public List<ProfileResponse> listActiveProfiles() {
         return perfilRepository.findByUsuarioEstadoCuentaTrue().stream()
                 .map(this::mapearARespuesta)
                 .collect(Collectors.toList());
@@ -151,7 +151,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      */
     @Override
     @Transactional
-    public ProfileResponse actualizarPerfil(Long idPerfil, UpdateProfileRequest peticion,
+    public ProfileResponse updateProfile(Long idPerfil, UpdateProfileRequest peticion,
                                             String correoSolicitante, boolean esAdmin) {
         CreatorProfile perfil = perfilRepository.findById(idPerfil)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil));
@@ -188,7 +188,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
      * @param idPerfil identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminarPerfil(Long idPerfil) {
+    public void deleteProfile(Long idPerfil) {
         if (!perfilRepository.existsById(idPerfil)) {
             throw new ResourceNotFoundException("Perfil no encontrado con ID: " + idPerfil);
         }
@@ -215,7 +215,7 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
                 // Antes el frontend pintaba "Identidad verificada" fijo para
                 // cualquier creador; ahora refleja el estado real (mismo criterio
                 // que gatea publicar servicios y crear pedidos).
-                .identidadVerificada(idUsuario != null && verificacionServicio.estaIdentidadVerificada(idUsuario))
+                .identidadVerificada(idUsuario != null && verificacionServicio.isIdentityVerified(idUsuario))
                 .build();
     }
 }

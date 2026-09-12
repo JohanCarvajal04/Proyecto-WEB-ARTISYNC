@@ -56,29 +56,29 @@ class PortfolioItemControllerRoutesTest {
 
     @Test
     void obtenerItem_noLoCapturaLaRutaDePortafolioPorId() throws Exception {
-        when(itemServicio.obtenerItem(eq(11L), any()))
+        when(itemServicio.getItem(eq(11L), any()))
                 .thenReturn(PortfolioItemResponse.builder().idItemPortafolio(11L).build());
 
         mockMvc.perform(get("/api/v1/portafolios/items/11"))
                 .andExpect(status().isOk());
 
-        verify(itemServicio).obtenerItem(eq(11L), any());
+        verify(itemServicio).getItem(eq(11L), any());
         verifyNoInteractions(portafolioServicio);
     }
 
     @Test
     void listarItems_resuelveALaRutaDeItemsYNoALaDeDetalle() throws Exception {
-        when(itemServicio.listarItems(eq(3L), any())).thenReturn(List.of());
+        when(itemServicio.listItems(eq(3L), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/portafolios/3/items"))
                 .andExpect(status().isOk());
 
-        verify(itemServicio).listarItems(eq(3L), any());
+        verify(itemServicio).listItems(eq(3L), any());
     }
 
     @Test
     void descargarArchivo_resuelveYDevuelveElContentTypeDelArchivo() throws Exception {
-        when(itemServicio.descargarArchivo(eq(11L), any()))
+        when(itemServicio.downloadFile(eq(11L), any()))
                 .thenReturn(new IPortfolioItemService.ArchivoItem(
                         "video".getBytes(), "obra-11.mp4", "video/mp4"));
 
@@ -102,7 +102,7 @@ class PortfolioItemControllerRoutesTest {
     void subirItem_aceptaElMultipartConLaParteJsonQueEnviaElFrontend() throws Exception {
         autenticarComo(1L);
         try {
-            when(itemServicio.subirItem(eq(3L), eq(1L), any(), any()))
+            when(itemServicio.uploadItem(eq(3L), eq(1L), any(), any()))
                     .thenReturn(PortfolioItemResponse.builder().idItemPortafolio(11L).build());
 
             MockMultipartFile datos = new MockMultipartFile(
@@ -116,7 +116,7 @@ class PortfolioItemControllerRoutesTest {
 
             // Que los metadatos lleguen deserializados prueba que la parte JSON
             // se resolvió: con text/plain la petición ni habría entrado al método.
-            verify(itemServicio).subirItem(eq(3L), eq(1L),
+            verify(itemServicio).uploadItem(eq(3L), eq(1L),
                     argThat(datosRecibidos -> "Mi obra".equals(datosRecibidos.tituloObra())), any());
         } finally {
             SecurityContextHolder.clearContext();
@@ -134,13 +134,13 @@ class PortfolioItemControllerRoutesTest {
     /** La ruta preexistente debe seguir funcionando igual. */
     @Test
     void obtenerPortafolioPorId_sigueResolviendoASuControladorOriginal() throws Exception {
-        when(portafolioServicio.obtenerPortafolioPorId(3L))
+        when(portafolioServicio.getPortfolioById(3L))
                 .thenReturn(PortfolioResponse.builder().idPortafolio(3L).build());
 
         mockMvc.perform(get("/api/v1/portafolios/3"))
                 .andExpect(status().isOk());
 
-        verify(portafolioServicio).obtenerPortafolioPorId(3L);
+        verify(portafolioServicio).getPortfolioById(3L);
         verifyNoInteractions(itemServicio);
     }
 }

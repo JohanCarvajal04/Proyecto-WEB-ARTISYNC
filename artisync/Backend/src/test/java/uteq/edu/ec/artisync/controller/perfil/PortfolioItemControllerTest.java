@@ -48,9 +48,9 @@ class PortfolioItemControllerTest {
         MockMultipartFile archivo = new MockMultipartFile("archivo", "test.png", "image/png", "fake".getBytes());
         PortfolioItemResponse respuesta = new PortfolioItemResponse(20L, 1L, "Titulo", "Desc", "url", LocalDateTime.now());
 
-        when(itemServicio.subirItem(eq(1L), eq(1L), any(), any())).thenReturn(respuesta);
+        when(itemServicio.uploadItem(eq(1L), eq(1L), any(), any())).thenReturn(respuesta);
 
-        ResponseEntity<PortfolioItemResponse> result = portafolioItemControlador.subirItem(1L, mockUser, peticion, archivo);
+        ResponseEntity<PortfolioItemResponse> result = portafolioItemControlador.uploadItem(1L, mockUser, peticion, archivo);
 
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
         assertEquals(20L, result.getBody().idItemPortafolio());
@@ -59,9 +59,9 @@ class PortfolioItemControllerTest {
     @Test
     void listarItems_DebeRetornarLista() {
         PortfolioItemResponse respuesta = new PortfolioItemResponse(20L, 1L, "Titulo", "Desc", "url", LocalDateTime.now());
-        when(itemServicio.listarItems(eq(1L), eq(1L))).thenReturn(List.of(respuesta));
+        when(itemServicio.listItems(eq(1L), eq(1L))).thenReturn(List.of(respuesta));
 
-        ResponseEntity<List<PortfolioItemResponse>> result = portafolioItemControlador.listarItems(1L, mockUser);
+        ResponseEntity<List<PortfolioItemResponse>> result = portafolioItemControlador.listItems(1L, mockUser);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(1, result.getBody().size());
@@ -70,9 +70,9 @@ class PortfolioItemControllerTest {
     @Test
     void obtenerItem_DebeRetornarItem() {
         PortfolioItemResponse respuesta = new PortfolioItemResponse(20L, 1L, "Titulo", "Desc", "url", LocalDateTime.now());
-        when(itemServicio.obtenerItem(eq(10L), eq(1L))).thenReturn(respuesta);
+        when(itemServicio.getItem(eq(10L), eq(1L))).thenReturn(respuesta);
 
-        ResponseEntity<PortfolioItemResponse> result = portafolioItemControlador.obtenerItem(10L, mockUser);
+        ResponseEntity<PortfolioItemResponse> result = portafolioItemControlador.getItem(10L, mockUser);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
@@ -85,9 +85,9 @@ class PortfolioItemControllerTest {
                 "mi_obra.png",
                 "image/png"
         );
-        when(itemServicio.descargarArchivo(eq(1L), eq(1L))).thenReturn(archivoFalso);
+        when(itemServicio.downloadFile(eq(1L), eq(1L))).thenReturn(archivoFalso);
 
-        ResponseEntity<byte[]> result = portafolioItemControlador.descargarArchivo(1L, mockUser);
+        ResponseEntity<byte[]> result = portafolioItemControlador.downloadFile(1L, mockUser);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(MediaType.IMAGE_PNG, result.getHeaders().getContentType());
@@ -100,7 +100,7 @@ class PortfolioItemControllerTest {
 
     @Test
     void eliminarItem_DebeRetornarOk() {
-        ResponseEntity<RespuestaMensaje> result = portafolioItemControlador.eliminarItem(1L, mockUser);
+        ResponseEntity<RespuestaMensaje> result = portafolioItemControlador.deleteItem(1L, mockUser);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

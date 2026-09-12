@@ -93,7 +93,7 @@ public class OrderServiceImpl implements IOrderService {
         User cliente = usuarioRepository.findById(idCliente)
                 .orElseThrow(() -> new ResourceNotFoundException("User cliente no encontrado"));
 
-        if (!verificacionServicio.estaIdentidadVerificada(idCliente)) {
+        if (!verificacionServicio.isIdentityVerified(idCliente)) {
             throw new BusinessRuleException(
                     "Debes verificar tu identidad antes de crear un pedido. Sube tu documento de identidad desde tu perfil.");
         }

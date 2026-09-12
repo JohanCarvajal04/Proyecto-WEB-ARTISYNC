@@ -50,7 +50,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien crea no es dueño del perfil
      */
-    public PortfolioResponse crearPortafolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado) {
+    public PortfolioResponse createPortfolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado) {
         if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {
             throw new DuplicateResourceException("El perfil de creador ya cuenta con un portafolio registrado.");
         }
@@ -87,10 +87,10 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      *         o su dueño tiene la cuenta desactivada
      */
-    public PortfolioResponse obtenerPortafolioPorId(Long idPortafolio) {
+    public PortfolioResponse getPortfolioById(Long idPortafolio) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException("Portfolio no encontrado con ID: " + idPortafolio));
-        exigirCuentaActiva(portafolio);
+        requireActiveAccount(portafolio);
         return mapearARespuesta(portafolio);
     }
 
@@ -102,21 +102,21 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no tiene
      *         portafolio, o su dueño tiene la cuenta desactivada
      */
-    public PortfolioResponse obtenerPortafolioPorPerfil(Long idPerfil) {
+    public PortfolioResponse getPortfolioByProfile(Long idPerfil) {
         Portfolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró portafolio para el perfil con ID: " + idPerfil));
-        exigirCuentaActiva(portafolio);
+        requireActiveAccount(portafolio);
         return mapearARespuesta(portafolio);
     }
 
     /**
      * REQ-NF-018 (ajuste de seguimiento): mismo criterio que
-     * CreatorProfileServiceImpl.exigirCuentaActiva. Un portafolio sin perfil
+     * CreatorProfileServiceImpl.requireActiveAccount. Un portafolio sin perfil
      * asociado (dato huérfano, ya contemplado por mapearARespuesta) no se
      * confunde con "cuenta desactivada" — solo se rechaza cuando SÍ hay un
      * dueño identificado y su cuenta está inactiva.
      */
-    private void exigirCuentaActiva(Portfolio portafolio) {
+    private void requireActiveAccount(Portfolio portafolio) {
         User usuario = portafolio.getPerfil() != null ? portafolio.getPerfil().getUsuario() : null;
         if (usuario != null && !Boolean.TRUE.equals(usuario.getEstadoCuenta())) {
             throw new ResourceNotFoundException("Portfolio no disponible");
@@ -126,7 +126,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
     @Override
     @Transactional(readOnly = true)
     /** @return todos los portafolios registrados */
-    public List<PortfolioResponse> listarPortafolios() {
+    public List<PortfolioResponse> listPortfolios() {
         return portafolioRepository.findAll().stream()
                 .map(this::mapearARespuesta)
                 .collect(Collectors.toList());
@@ -147,7 +147,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien edita no es su dueño
      */
-    public PortfolioResponse actualizarPortafolio(Long idPortafolio, UpdatePortfolioRequest peticion, Long idUsuarioLogueado) {
+    public PortfolioResponse updatePortfolio(Long idPortafolio, UpdatePortfolioRequest peticion, Long idUsuarioLogueado) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException("Portfolio no encontrado con ID: " + idPortafolio));
 
@@ -216,7 +216,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
      * @param idPortafolio identificador del portafolio a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
-    public void eliminarPortafolio(Long idPortafolio) {
+    public void deletePortfolio(Long idPortafolio) {
         if (!portafolioRepository.existsById(idPortafolio)) {
             throw new ResourceNotFoundException("Portfolio no encontrado con ID: " + idPortafolio);
         }

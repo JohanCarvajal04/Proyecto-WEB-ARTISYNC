@@ -70,14 +70,14 @@ public class VerificationServiceImpl implements IVerificationService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene una
      *         verificación pendiente, o si el documento no cumple el formato esperado
      */
-    public VerificationResponse subir(Long idUsuarioSolicitante, VerificationDocumentType tipo, MultipartFile documento) {
+    public VerificationResponse upload(Long idUsuarioSolicitante, VerificationDocumentType tipo, MultipartFile documento) {
         User usuario = usuarioRepository.findById(idUsuarioSolicitante)
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuarioSolicitante));
 
         if (certificadoIaRepository.existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(
                 idUsuarioSolicitante, "PENDIENTE")) {
             throw new BusinessRuleException(
-                    "Ya existe una verificación pendiente para tu cuenta. Espera a que sea revisada antes de subir otra.");
+                    "Ya existe una verificación pendiente para tu cuenta. Espera a que sea revisada antes de upload otra.");
         }
 
         preprocesador.validarFormato(documento);
@@ -86,7 +86,7 @@ public class VerificationServiceImpl implements IVerificationService {
                 .orElseThrow(() -> new BusinessRuleException(
                         "El estado PENDIENTE no está sembrado en estados_verificacion (ver migración V6)."));
 
-        String hash = calcularHash(documento);
+        String hash = calculateHash(documento);
         String referenciaAlmacenamiento = almacenamiento.guardar(documento);
 
         AiCertificate certificado = AiCertificate.builder()
@@ -113,8 +113,8 @@ public class VerificationServiceImpl implements IVerificationService {
      * @param offset posición inicial del resultado
      * @return las verificaciones que cumplen el filtro
      */
-    public List<VerificationQueueResponse> listarCola(String nombreEstado, int limite, int offset) {
-        return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
+    public List<VerificationQueueResponse> listQueue(String nombreEstado, int limite, int offset) {
+        return certificadoIaRepository.listQueue(nombreEstado, limite, offset).stream()
                 .map(fila -> VerificationQueueResponse.builder()
                         .idCertificado(fila.getIdCertificado())
                         .idUsuario(fila.getIdUsuario())
@@ -139,8 +139,8 @@ public class VerificationServiceImpl implements IVerificationService {
      * @throws org.springframework.security.access.AccessDeniedException si quien consulta no es
      *         revisor ni dueño de la verificación
      */
-    public VerificationResponse obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
-        AiCertificate certificado = buscarPorId(idCertificado);
+    public VerificationResponse getById(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
+        AiCertificate certificado = findById(idCertificado);
         boolean esDueno = certificado.getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
         if (!esRevisor && !esDueno) {
             throw new AccessDeniedException("No tienes acceso a esta verificación.");
@@ -150,8 +150,8 @@ public class VerificationServiceImpl implements IVerificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] obtenerDocumento(Long idCertificado) {
-        AiCertificate certificado = buscarPorId(idCertificado);
+    public byte[] getDocument(Long idCertificado) {
+        AiCertificate certificado = findById(idCertificado);
         return almacenamiento.leer(certificado.getUrlDocumentoS3());
     }
 
@@ -169,7 +169,7 @@ public class VerificationServiceImpl implements IVerificationService {
      *         tras el reintento (en fallos transitorios) o ante un fallo no transitorio
      */
     public VerificationResponse analizarConIa(Long idCertificado) {
-        AiCertificate certificado = buscarPorId(idCertificado);
+        AiCertificate certificado = findById(idCertificado);
 
         if (certificado.isDocumentoEliminado()) {
             throw new BusinessRuleException("El documento ya fue eliminado; no se puede reanalizar.");
@@ -184,7 +184,7 @@ public class VerificationServiceImpl implements IVerificationService {
         certificado.setVeredictoIa(dictamen.isAprobado() ? "SUGIERE_APROBAR" : "SUGIERE_RECHAZAR");
         certificado.setPuntajeConfianzaIa(dictamen.getConfianza());
         certificado.setRazonIa(dictamen.getRazonRechazo());
-        certificado.setDatosExtraidosIa(serializarDatosExtraidos(dictamen));
+        certificado.setDatosExtraidosIa(serializeExtractedData(dictamen));
         certificado.setFechaDictamenIa(LocalDateTime.now());
 
         AiCertificate guardado = certificadoIaRepository.save(certificado);
@@ -210,13 +210,13 @@ public class VerificationServiceImpl implements IVerificationService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación o el
      *         nuevo estado no existen
      */
-    public VerificationResponse registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
-        AiCertificate certificado = buscarPorId(idCertificado);
+    public VerificationResponse recordDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
+        AiCertificate certificado = findById(idCertificado);
 
         estadoVerificacionRepository.findById(idNuevoEstado)
                 .orElseThrow(() -> new ResourceNotFoundException("Estado de verificación " + idNuevoEstado + " no existe."));
 
-        certificadoIaRepository.registrarDecision(idCertificado, idNuevoEstado, idModerador, notaModerador);
+        certificadoIaRepository.recordDecision(idCertificado, idNuevoEstado, idModerador, notaModerador);
 
         // El procedimiento escribió por fuera del ciclo de vida de Hibernate:
         // sin este refresh, `certificado` (ya gestionado) devolvería datos obsoletos.
@@ -265,12 +265,12 @@ public class VerificationServiceImpl implements IVerificationService {
         }
     }
 
-    private AiCertificate buscarPorId(Long idCertificado) {
+    private AiCertificate findById(Long idCertificado) {
         return certificadoIaRepository.findById(idCertificado)
                 .orElseThrow(() -> new ResourceNotFoundException("Verificación " + idCertificado + " no encontrada."));
     }
 
-    private String calcularHash(MultipartFile documento) {
+    private String calculateHash(MultipartFile documento) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(documento.getBytes());
@@ -282,7 +282,7 @@ public class VerificationServiceImpl implements IVerificationService {
         }
     }
 
-    private String serializarDatosExtraidos(IaVerificacionResponse dictamen) {
+    private String serializeExtractedData(IaVerificacionResponse dictamen) {
         java.util.Map<String, String> datos = new java.util.LinkedHashMap<>();
         if (dictamen.getNombreDetectado() != null) datos.put("nombreDetectado", dictamen.getNombreDetectado());
         if (dictamen.getTipoDocumento() != null) datos.put("tipoDocumentoDetectado", dictamen.getTipoDocumento());
@@ -305,7 +305,7 @@ public class VerificationServiceImpl implements IVerificationService {
      * @param idUsuario identificador del usuario
      * @return {@code true} si el usuario tiene un documento de identidad aprobado
      */
-    public boolean estaIdentidadVerificada(Long idUsuario) {
+    public boolean isIdentityVerified(Long idUsuario) {
         return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
                 idUsuario, "IDENTIDAD", "APROBADO");
     }
@@ -316,8 +316,8 @@ public class VerificationServiceImpl implements IVerificationService {
      * @param idUsuario identificador del usuario
      * @return si la identidad del usuario está verificada, y el estado de su última solicitud
      */
-    public IdentityStatusResponse obtenerEstadoIdentidad(Long idUsuario) {
-        boolean verificado = estaIdentidadVerificada(idUsuario);
+    public IdentityStatusResponse getIdentityStatus(Long idUsuario) {
+        boolean verificado = isIdentityVerified(idUsuario);
         String estadoActual = certificadoIaRepository
                 .findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(idUsuario, "IDENTIDAD")
                 .map(c -> c.getEstadoVerificacion().getNombreEstado())

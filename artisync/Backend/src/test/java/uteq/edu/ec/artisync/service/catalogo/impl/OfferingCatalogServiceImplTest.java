@@ -93,7 +93,7 @@ class OfferingCatalogServiceImplTest {
         // de estos tests no ejercitan el gating de REQ-F-006 ampliado, así que
         // no deberían fallar por él. `lenient` porque no todos los tests
         // llegan a invocarlo (p. ej. los que fallan antes, por precio inválido).
-        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
+        lenient().when(verificacionServicio.isIdentityVerified(anyLong())).thenReturn(true);
     }
 
     @AfterEach
@@ -193,7 +193,7 @@ class OfferingCatalogServiceImplTest {
                 .idsSubcategoria(List.of(1L))
                 .build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
-        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+        given(verificacionServicio.isIdentityVerified(1L)).willReturn(false);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
@@ -327,7 +327,7 @@ class OfferingCatalogServiceImplTest {
                 .estadoPublicacion("ACTIVO")
                 .build();
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
-        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+        given(verificacionServicio.isIdentityVerified(1L)).willReturn(false);
 
         assertThatThrownBy(() -> servicioCatalogoServicio.updateOffering(10L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
@@ -376,7 +376,7 @@ class OfferingCatalogServiceImplTest {
         assertThat(servicio.getTituloServicio()).isEqualTo("Ilustracion digital");
         assertThat(servicio.getTipoItem()).isEqualTo("SERVICIO");
         assertThat(servicio.getEstadoPublicacion()).isEqualTo("ACTIVO");
-        verify(verificacionServicio, never()).estaIdentidadVerificada(any());
+        verify(verificacionServicio, never()).isIdentityVerified(any());
     }
 
     @Test
@@ -469,7 +469,7 @@ class OfferingCatalogServiceImplTest {
         servicioCatalogoServicio.updateOffering(10L, peticion);
 
         assertThat(servicio.getEstadoPublicacion()).isEqualTo("ACTIVO");
-        verify(verificacionServicio).estaIdentidadVerificada(1L);
+        verify(verificacionServicio).isIdentityVerified(1L);
     }
 
     @Test

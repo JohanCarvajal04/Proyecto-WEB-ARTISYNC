@@ -29,7 +29,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
 
     /**
      * Tope de obras por portafolio. El almacenamiento se factura por GB, y sin
-     * un límite una sola cuenta puede subir video hasta agotar el presupuesto.
+     * un límite una sola cuenta puede upload video hasta agotar el presupuesto.
      */
     private static final long MAX_ITEMS_POR_PORTAFOLIO = 50;
 
@@ -51,7 +51,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      */
     @Override
     @Transactional
-    public PortfolioItemResponse subirItem(Long idPortafolio, Long idUsuario,
+    public PortfolioItemResponse uploadItem(Long idPortafolio, Long idUsuario,
                                               CreatePortfolioItemRequest peticion, MultipartFile archivo) {
         FilePolicy.PORTAFOLIO.validar(archivo);
 
@@ -79,7 +79,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
             item = itemRepository.save(item);
         } catch (RuntimeException e) {
             // Sin esto el archivo queda subido y facturándose sin fila que lo apunte.
-            eliminarSilencioso(referencia);
+            deleteSilently(referencia);
             throw e;
         }
 
@@ -97,7 +97,7 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
      *         y quien consulta no es su dueño
      */
-    public List<PortfolioItemResponse> listarItems(Long idPortafolio, Long idUsuario) {
+    public List<PortfolioItemResponse> listItems(Long idPortafolio, Long idUsuario) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Portfolio no encontrado con ID: " + idPortafolio));
@@ -120,8 +120,8 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
      *         y quien consulta no es su dueño
      */
-    public PortfolioItemResponse obtenerItem(Long idItem, Long idUsuario) {
-        PortfolioItem item = buscarItem(idItem);
+    public PortfolioItemResponse getItem(Long idItem, Long idUsuario) {
+        PortfolioItem item = findItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
         return mapear(item);
     }
@@ -136,8 +136,8 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
      *         y quien descarga no es su dueño
      */
-    public ArchivoItem descargarArchivo(Long idItem, Long idUsuario) {
-        PortfolioItem item = buscarItem(idItem);
+    public ArchivoItem downloadFile(Long idItem, Long idUsuario) {
+        PortfolioItem item = findItem(idItem);
         exigirVisibilidad(item.getPortafolio(), idUsuario);
 
         String referencia = item.getUrlArchivoMultimedia();
@@ -159,8 +159,8 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien edita no es dueño del portafolio
      */
-    public PortfolioItemResponse actualizarItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion) {
-        PortfolioItem item = buscarItem(idItem);
+    public PortfolioItemResponse updateItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion) {
+        PortfolioItem item = findItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);
 
         item.setTituloObra(peticion.tituloObra());
@@ -181,15 +181,15 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien elimina no es dueño del portafolio
      */
-    public void eliminarItem(Long idItem, Long idUsuario) {
-        PortfolioItem item = buscarItem(idItem);
+    public void deleteItem(Long idItem, Long idUsuario) {
+        PortfolioItem item = findItem(idItem);
         exigirPropietario(item.getPortafolio(), idUsuario);
 
         String referencia = item.getUrlArchivoMultimedia();
         itemRepository.delete(item);
         // Se borra después de la fila: si falla, queda un huérfano en el
         // almacenamiento, que es preferible a una fila apuntando a la nada.
-        eliminarSilencioso(referencia);
+        deleteSilently(referencia);
 
         log.info("Obra {} eliminada del portafolio {}", idItem, item.getPortafolio().getIdPortafolio());
     }
@@ -226,12 +226,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
 
     // ── Auxiliares ───────────────────────────────────────────────────────────
 
-    private PortfolioItem buscarItem(Long idItem) {
+    private PortfolioItem findItem(Long idItem) {
         return itemRepository.findById(idItem)
                 .orElseThrow(() -> new ResourceNotFoundException("Obra no encontrada con ID: " + idItem));
     }
 
-    private void eliminarSilencioso(String referencia) {
+    private void deleteSilently(String referencia) {
         if (referencia == null || referencia.isBlank()) {
             return;
         }

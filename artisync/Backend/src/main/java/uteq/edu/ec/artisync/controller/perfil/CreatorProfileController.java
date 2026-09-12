@@ -33,10 +33,10 @@ public class CreatorProfileController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<ProfileResponse> crearPerfil(
+    public ResponseEntity<ProfileResponse> createProfile(
             @Valid @RequestBody CreateProfileRequest peticion,
             Authentication autenticacion) {
-        ProfileResponse respuesta = perfilServicio.crearPerfil(
+        ProfileResponse respuesta = perfilServicio.createProfile(
                 peticion, autenticacion.getName(), esAdmin(autenticacion));
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
@@ -47,8 +47,8 @@ public class CreatorProfileController {
      * @return perfil de creador correspondiente
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ProfileResponse> obtenerPerfilPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorId(id));
+    public ResponseEntity<ProfileResponse> getProfileById(@PathVariable Long id) {
+        return ResponseEntity.ok(perfilServicio.getProfileById(id));
     }
 
     /**
@@ -57,8 +57,8 @@ public class CreatorProfileController {
      * @return perfil de creador de ese usuario
      */
     @GetMapping("/usuario/{idUsuario}")
-    public ResponseEntity<ProfileResponse> obtenerPerfilPorUsuario(@PathVariable Long idUsuario) {
-        return ResponseEntity.ok(perfilServicio.obtenerPerfilPorUsuario(idUsuario));
+    public ResponseEntity<ProfileResponse> getProfileByUser(@PathVariable Long idUsuario) {
+        return ResponseEntity.ok(perfilServicio.getProfileByUser(idUsuario));
     }
 
     /**
@@ -66,8 +66,8 @@ public class CreatorProfileController {
      * @return listado completo de perfiles de creador
      */
     @GetMapping
-    public ResponseEntity<List<ProfileResponse> > listarPerfiles() {
-        return ResponseEntity.ok(perfilServicio.listarPerfiles());
+    public ResponseEntity<List<ProfileResponse> > listProfiles() {
+        return ResponseEntity.ok(perfilServicio.listProfiles());
     }
 
     /**
@@ -77,8 +77,8 @@ public class CreatorProfileController {
      */
     @Operation(summary = "Directorio público de creadores con cuenta activa")
     @GetMapping("/activos")
-    public ResponseEntity<List<ProfileResponse>> listarPerfilesActivos() {
-        return ResponseEntity.ok(perfilServicio.listarPerfilesActivos());
+    public ResponseEntity<List<ProfileResponse>> listActiveProfiles() {
+        return ResponseEntity.ok(perfilServicio.listActiveProfiles());
     }
 
     /**
@@ -91,11 +91,11 @@ public class CreatorProfileController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<ProfileResponse> actualizarPerfil(
+    public ResponseEntity<ProfileResponse> updateProfile(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProfileRequest peticion,
             Authentication autenticacion) {
-        return ResponseEntity.ok(perfilServicio.actualizarPerfil(
+        return ResponseEntity.ok(perfilServicio.updateProfile(
                 id, peticion, autenticacion.getName(), esAdmin(autenticacion)));
     }
 
@@ -106,8 +106,8 @@ public class CreatorProfileController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarPerfil(@PathVariable Long id) {
-        perfilServicio.eliminarPerfil(id);
+    public ResponseEntity<RespuestaMensaje> deleteProfile(@PathVariable Long id) {
+        perfilServicio.deleteProfile(id);
         return ResponseEntity.ok(new RespuestaMensaje("Perfil de creador eliminado exitosamente"));
     }
 

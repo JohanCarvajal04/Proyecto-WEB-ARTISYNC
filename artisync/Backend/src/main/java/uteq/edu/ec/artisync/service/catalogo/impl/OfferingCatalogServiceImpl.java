@@ -743,7 +743,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     private void validateVerifiedIdentity(CreatorProfile perfil) {
         Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
-        if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {
+        if (idUsuario == null || !verificacionServicio.isIdentityVerified(idUsuario)) {
             throw new BusinessRuleException(
                     "Debes verificar tu identidad antes de publicar un servicio. Sube tu documento de identidad desde tu perfil.");
         }

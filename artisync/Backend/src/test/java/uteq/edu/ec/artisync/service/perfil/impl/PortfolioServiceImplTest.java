@@ -59,21 +59,21 @@ class PortfolioServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearPortafolio guarda con las opciones de personalizacion por defecto")
+    @DisplayName("createPortfolio guarda con las opciones de personalizacion por defecto")
     void crearPortafolio_usaOpcionesPorDefecto() {
         CreatePortfolioRequest peticion = new CreatePortfolioRequest(1L, null, null);
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(portafolioRepository.save(any(Portfolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        PortfolioResponse respuesta = portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO);
+        PortfolioResponse respuesta = portafolioServicio.createPortfolio(peticion, ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isTrue();
         assertThat(respuesta.opcionesPersonalizacion()).containsEntry("primary", "#0d6efd");
     }
 
     @Test
-    @DisplayName("crearPortafolio respeta las opciones y visibilidad indicadas")
+    @DisplayName("createPortfolio respeta las opciones y visibilidad indicadas")
     void crearPortafolio_respetaValoresIndicados() {
         Map<String, String> opciones = Map.of("primary", "#000000");
         CreatePortfolioRequest peticion = new CreatePortfolioRequest(1L, false, opciones);
@@ -81,74 +81,74 @@ class PortfolioServiceImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(portafolioRepository.save(any(Portfolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        PortfolioResponse respuesta = portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO);
+        PortfolioResponse respuesta = portafolioServicio.createPortfolio(peticion, ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isFalse();
         assertThat(respuesta.opcionesPersonalizacion()).isEqualTo(opciones);
     }
 
     @Test
-    @DisplayName("crearPortafolio rechaza si el perfil ya tiene portafolio")
+    @DisplayName("createPortfolio rechaza si el perfil ya tiene portafolio")
     void crearPortafolio_rechazaDuplicado() {
         CreatePortfolioRequest peticion = new CreatePortfolioRequest(1L, null, null);
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.of(portafolio));
 
-        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO))
+        assertThatThrownBy(() -> portafolioServicio.createPortfolio(peticion, ID_USUARIO_DUENIO))
                 .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
-    @DisplayName("crearPortafolio lanza recurso no encontrado si el perfil no existe")
+    @DisplayName("createPortfolio lanza recurso no encontrado si el perfil no existe")
     void crearPortafolio_perfilInexistente() {
         CreatePortfolioRequest peticion = new CreatePortfolioRequest(1L, null, null);
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
         given(perfilRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_DUENIO))
+        assertThatThrownBy(() -> portafolioServicio.createPortfolio(peticion, ID_USUARIO_DUENIO))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("crearPortafolio rechaza si el usuario logueado no es el dueño del perfil (IDOR)")
+    @DisplayName("createPortfolio rechaza si el usuario logueado no es el dueño del perfil (IDOR)")
     void crearPortafolio_usuarioAjeno_lanzaExcepcion() {
         CreatePortfolioRequest peticion = new CreatePortfolioRequest(1L, null, null);
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
 
-        assertThatThrownBy(() -> portafolioServicio.crearPortafolio(peticion, ID_USUARIO_AJENO))
+        assertThatThrownBy(() -> portafolioServicio.createPortfolio(peticion, ID_USUARIO_AJENO))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(portafolioRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("obtenerPortafolioPorId lanza recurso no encontrado si no existe")
+    @DisplayName("getPortfolioById lanza recurso no encontrado si no existe")
     void obtenerPortafolioPorId_inexistente() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorId(10L))
+        assertThatThrownBy(() -> portafolioServicio.getPortfolioById(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerPortafolioPorPerfil devuelve el portafolio existente")
+    @DisplayName("getPortfolioByProfile devuelve el portafolio existente")
     void obtenerPortafolioPorPerfil_devuelve() {
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.of(portafolio));
 
-        assertThat(portafolioServicio.obtenerPortafolioPorPerfil(1L).idPortafolio()).isEqualTo(10L);
+        assertThat(portafolioServicio.getPortfolioByProfile(1L).idPortafolio()).isEqualTo(10L);
     }
 
     @Test
-    @DisplayName("obtenerPortafolioPorPerfil lanza recurso no encontrado si no existe")
+    @DisplayName("getPortfolioByProfile lanza recurso no encontrado si no existe")
     void obtenerPortafolioPorPerfil_inexistente() {
         given(portafolioRepository.findByPerfilIdPerfil(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorPerfil(1L))
+        assertThatThrownBy(() -> portafolioServicio.getPortfolioByProfile(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("REQ-NF-018: obtenerPortafolioPorId oculta el portafolio de un dueño con la cuenta desactivada/suprimida")
+    @DisplayName("REQ-NF-018: getPortfolioById oculta el portafolio de un dueño con la cuenta desactivada/suprimida")
     void obtenerPortafolioPorId_ocultaCuentaDesactivada() {
         User duenioDesactivado = User.builder().idUsuario(ID_USUARIO_DUENIO).estadoCuenta(false).build();
         CreatorProfile perfilDesactivado = CreatorProfile.builder().idPerfil(1L).usuario(duenioDesactivado).build();
@@ -156,70 +156,70 @@ class PortfolioServiceImplTest {
                 .totalVisitasAcumuladas(0).build();
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolioDesactivado));
 
-        assertThatThrownBy(() -> portafolioServicio.obtenerPortafolioPorId(10L))
+        assertThatThrownBy(() -> portafolioServicio.getPortfolioById(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("listarPortafolios mapea todos los registros")
+    @DisplayName("listPortfolios mapea todos los registros")
     void listarPortafolios_mapea() {
         given(portafolioRepository.findAll()).willReturn(List.of(portafolio));
 
-        assertThat(portafolioServicio.listarPortafolios()).hasSize(1);
+        assertThat(portafolioServicio.listPortfolios()).hasSize(1);
     }
 
     @Test
-    @DisplayName("actualizarPortafolio cambia visibilidad y opciones cuando se indican")
+    @DisplayName("updatePortfolio cambia visibilidad y opciones cuando se indican")
     void actualizarPortafolio_cambiaDatos() {
         UpdatePortfolioRequest peticion = new UpdatePortfolioRequest(false, Map.of("bg", "#000"));
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
         given(portafolioRepository.save(any(Portfolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        PortfolioResponse respuesta = portafolioServicio.actualizarPortafolio(10L, peticion, ID_USUARIO_DUENIO);
+        PortfolioResponse respuesta = portafolioServicio.updatePortfolio(10L, peticion, ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isFalse();
         assertThat(respuesta.opcionesPersonalizacion()).containsEntry("bg", "#000");
     }
 
     @Test
-    @DisplayName("actualizarPortafolio no modifica nada cuando ningun campo viene informado")
+    @DisplayName("updatePortfolio no modifica nada cuando ningun campo viene informado")
     void actualizarPortafolio_sinCambios_mantieneValoresOriginales() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
         given(portafolioRepository.save(any(Portfolio.class))).willAnswer(inv -> inv.getArgument(0));
 
-        PortfolioResponse respuesta = portafolioServicio.actualizarPortafolio(
+        PortfolioResponse respuesta = portafolioServicio.updatePortfolio(
                 10L, new UpdatePortfolioRequest(null, null), ID_USUARIO_DUENIO);
 
         assertThat(respuesta.esPublico()).isTrue();
     }
 
     @Test
-    @DisplayName("obtenerPortafolioPorId usa idPerfil nulo cuando el portafolio no tiene perfil asociado")
+    @DisplayName("getPortfolioById usa idPerfil nulo cuando el portafolio no tiene perfil asociado")
     void obtenerPortafolioPorId_sinPerfilAsociado_idPerfilNulo() {
         Portfolio sinPerfil = Portfolio.builder().idPortafolio(11L).perfil(null).esPublico(true)
                 .totalVisitasAcumuladas(0).build();
         given(portafolioRepository.findById(11L)).willReturn(Optional.of(sinPerfil));
 
-        PortfolioResponse respuesta = portafolioServicio.obtenerPortafolioPorId(11L);
+        PortfolioResponse respuesta = portafolioServicio.getPortfolioById(11L);
 
         assertThat(respuesta.idPerfil()).isNull();
     }
 
     @Test
-    @DisplayName("actualizarPortafolio lanza recurso no encontrado si no existe")
+    @DisplayName("updatePortfolio lanza recurso no encontrado si no existe")
     void actualizarPortafolio_inexistente() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(10L, new UpdatePortfolioRequest(null, null), ID_USUARIO_DUENIO))
+        assertThatThrownBy(() -> portafolioServicio.updatePortfolio(10L, new UpdatePortfolioRequest(null, null), ID_USUARIO_DUENIO))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("actualizarPortafolio rechaza si el usuario logueado no es el dueño (IDOR, H-01)")
+    @DisplayName("updatePortfolio rechaza si el usuario logueado no es el dueño (IDOR, H-01)")
     void actualizarPortafolio_usuarioAjeno_lanzaExcepcion() {
         given(portafolioRepository.findById(10L)).willReturn(Optional.of(portafolio));
 
-        assertThatThrownBy(() -> portafolioServicio.actualizarPortafolio(
+        assertThatThrownBy(() -> portafolioServicio.updatePortfolio(
                 10L, new UpdatePortfolioRequest(true, null), ID_USUARIO_AJENO))
                 .isInstanceOf(BusinessRuleException.class);
 
@@ -264,21 +264,21 @@ class PortfolioServiceImplTest {
     }
 
     @Test
-    @DisplayName("eliminarPortafolio borra cuando existe")
+    @DisplayName("deletePortfolio borra cuando existe")
     void eliminarPortafolio_borraCuandoExiste() {
         given(portafolioRepository.existsById(10L)).willReturn(true);
 
-        portafolioServicio.eliminarPortafolio(10L);
+        portafolioServicio.deletePortfolio(10L);
 
         verify(portafolioRepository).deleteById(10L);
     }
 
     @Test
-    @DisplayName("eliminarPortafolio lanza recurso no encontrado si no existe")
+    @DisplayName("deletePortfolio lanza recurso no encontrado si no existe")
     void eliminarPortafolio_inexistente() {
         given(portafolioRepository.existsById(10L)).willReturn(false);
 
-        assertThatThrownBy(() -> portafolioServicio.eliminarPortafolio(10L))
+        assertThatThrownBy(() -> portafolioServicio.deletePortfolio(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

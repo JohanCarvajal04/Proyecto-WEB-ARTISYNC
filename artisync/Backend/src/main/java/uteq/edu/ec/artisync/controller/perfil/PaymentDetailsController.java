@@ -31,9 +31,9 @@ public class PaymentDetailsController {
      */
     @GetMapping
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
-    public ResponseEntity<PaymentDetailsResponse> obtenerMisDatosPago(
+    public ResponseEntity<PaymentDetailsResponse> getMyPaymentDetails(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(datosPagoServicio.obtenerMisDatosPago(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(datosPagoServicio.getMyPaymentDetails(userDetails.getIdUsuario()));
     }
 
     /**
@@ -45,9 +45,9 @@ public class PaymentDetailsController {
      */
     @PutMapping
     @PreAuthorize("hasAuthority('RETIROS_SOLICITAR')")
-    public ResponseEntity<PaymentDetailsResponse> actualizarCorreoPaypal(
+    public ResponseEntity<PaymentDetailsResponse> updatePaypalEmail(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody PaymentDetailsRequest peticion) {
-        return ResponseEntity.ok(datosPagoServicio.actualizarCorreoPaypal(userDetails.getIdUsuario(), peticion));
+        return ResponseEntity.ok(datosPagoServicio.updatePaypalEmail(userDetails.getIdUsuario(), peticion));
     }
 }

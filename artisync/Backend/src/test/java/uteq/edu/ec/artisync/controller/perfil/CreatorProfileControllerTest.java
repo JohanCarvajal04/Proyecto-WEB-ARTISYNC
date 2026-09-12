@@ -50,9 +50,9 @@ class CreatorProfileControllerTest {
         Authentication auth = mockAuthentication(false);
         CreateProfileRequest peticion = new CreateProfileRequest(1L, "a", "b", "c");
         ProfileResponse respuesta = new ProfileResponse(1L, 1L, "a", "b", "c", "d", "e", "f", false);
-        when(perfilServicio.crearPerfil(peticion, "test@test.com", false)).thenReturn(respuesta);
+        when(perfilServicio.createProfile(peticion, "test@test.com", false)).thenReturn(respuesta);
 
-        ResponseEntity<ProfileResponse> res = controlador.crearPerfil(peticion, auth);
+        ResponseEntity<ProfileResponse> res = controlador.createProfile(peticion, auth);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -60,9 +60,9 @@ class CreatorProfileControllerTest {
     @Test
     void obtenerPerfilPorId_devuelveOk() {
         ProfileResponse respuesta = new ProfileResponse(1L, 1L, "a", "b", "c", "d", "e", "f", false);
-        when(perfilServicio.obtenerPerfilPorId(10L)).thenReturn(respuesta);
+        when(perfilServicio.getProfileById(10L)).thenReturn(respuesta);
 
-        ResponseEntity<ProfileResponse> res = controlador.obtenerPerfilPorId(10L);
+        ResponseEntity<ProfileResponse> res = controlador.getProfileById(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -70,9 +70,9 @@ class CreatorProfileControllerTest {
     @Test
     void obtenerPerfilPorUsuario_devuelveOk() {
         ProfileResponse respuesta = new ProfileResponse(1L, 1L, "a", "b", "c", "d", "e", "f", false);
-        when(perfilServicio.obtenerPerfilPorUsuario(1L)).thenReturn(respuesta);
+        when(perfilServicio.getProfileByUser(1L)).thenReturn(respuesta);
 
-        ResponseEntity<ProfileResponse> res = controlador.obtenerPerfilPorUsuario(1L);
+        ResponseEntity<ProfileResponse> res = controlador.getProfileByUser(1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -80,9 +80,9 @@ class CreatorProfileControllerTest {
     @Test
     void listarPerfiles_devuelveOk() {
         List<ProfileResponse> lista = Collections.emptyList();
-        when(perfilServicio.listarPerfiles()).thenReturn(lista);
+        when(perfilServicio.listProfiles()).thenReturn(lista);
 
-        ResponseEntity<List<ProfileResponse>> res = controlador.listarPerfiles();
+        ResponseEntity<List<ProfileResponse>> res = controlador.listProfiles();
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -90,9 +90,9 @@ class CreatorProfileControllerTest {
     @Test
     void listarPerfilesActivos_devuelveOk() {
         List<ProfileResponse> lista = Collections.emptyList();
-        when(perfilServicio.listarPerfilesActivos()).thenReturn(lista);
+        when(perfilServicio.listActiveProfiles()).thenReturn(lista);
 
-        ResponseEntity<List<ProfileResponse>> res = controlador.listarPerfilesActivos();
+        ResponseEntity<List<ProfileResponse>> res = controlador.listActiveProfiles();
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -102,17 +102,17 @@ class CreatorProfileControllerTest {
         Authentication auth = mockAuthentication(true);
         UpdateProfileRequest peticion = new UpdateProfileRequest("a", "b", "c");
         ProfileResponse respuesta = new ProfileResponse(1L, 1L, "a", "b", "c", "d", "e", "f", false);
-        when(perfilServicio.actualizarPerfil(10L, peticion, "test@test.com", true)).thenReturn(respuesta);
+        when(perfilServicio.updateProfile(10L, peticion, "test@test.com", true)).thenReturn(respuesta);
 
-        ResponseEntity<ProfileResponse> res = controlador.actualizarPerfil(10L, peticion, auth);
+        ResponseEntity<ProfileResponse> res = controlador.updateProfile(10L, peticion, auth);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
 
     @Test
     void eliminarPerfil_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarPerfil(10L);
-        verify(perfilServicio).eliminarPerfil(10L);
+        ResponseEntity<RespuestaMensaje> res = controlador.deleteProfile(10L);
+        verify(perfilServicio).deleteProfile(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getMensaje()).contains("eliminado exitosamente");
     }

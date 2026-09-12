@@ -31,7 +31,7 @@ class AiCertificateControllerTest {
         // (p. ej. MODERADOR) veía la pantalla de certificados pero no podía
         // emitir uno. Los otros tres métodos del controlador ya usaban el
         // permiso; este quedó desalineado.
-        Method metodo = AiCertificateController.class.getMethod("emitirCertificado", CreateAiCertificateRequest.class);
+        Method metodo = AiCertificateController.class.getMethod("issueCertificate", CreateAiCertificateRequest.class);
         var preAuthorize = metodo.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
 
         assertThat(preAuthorize).isNotNull();
@@ -40,7 +40,7 @@ class AiCertificateControllerTest {
 
     @Test
     void obtenerCertificadoPorId_exigeRevisorOAdmin() throws NoSuchMethodException {
-        Method metodo = AiCertificateController.class.getMethod("obtenerCertificadoPorId", Long.class);
+        Method metodo = AiCertificateController.class.getMethod("getCertificateById", Long.class);
         var preAuthorize = metodo.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
 
         assertThat(preAuthorize).isNotNull();
@@ -49,7 +49,7 @@ class AiCertificateControllerTest {
 
     @Test
     void listarCertificadosPorUsuario_exigeRevisorOAdmin() throws NoSuchMethodException {
-        Method metodo = AiCertificateController.class.getMethod("listarCertificadosPorUsuario", Long.class);
+        Method metodo = AiCertificateController.class.getMethod("listCertificatesByUser", Long.class);
         var preAuthorize = metodo.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
 
         assertThat(preAuthorize).isNotNull();
@@ -60,9 +60,9 @@ class AiCertificateControllerTest {
     void emitirCertificado_siguePropagandoLaRespuestaDelServicio() {
         CreateAiCertificateRequest peticion = new CreateAiCertificateRequest(5L, 1L, "ref.jpg", new BigDecimal("0.9"));
         AiCertificateResponse respuesta = AiCertificateResponse.builder().idCertificado(1L).build();
-        when(certificadoServicio.emitirCertificado(peticion)).thenReturn(respuesta);
+        when(certificadoServicio.issueCertificate(peticion)).thenReturn(respuesta);
 
-        ResponseEntity<AiCertificateResponse> resultado = controlador.emitirCertificado(peticion);
+        ResponseEntity<AiCertificateResponse> resultado = controlador.issueCertificate(peticion);
 
         assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }

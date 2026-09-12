@@ -36,10 +36,10 @@ public class PortfolioController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<PortfolioResponse> crearPortafolio(
+    public ResponseEntity<PortfolioResponse> createPortfolio(
             @Valid @RequestBody CreatePortfolioRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        PortfolioResponse respuesta = portafolioServicio.crearPortafolio(peticion, userDetails.getIdUsuario());
+        PortfolioResponse respuesta = portafolioServicio.createPortfolio(peticion, userDetails.getIdUsuario());
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
@@ -51,8 +51,8 @@ public class PortfolioController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     @GetMapping("/{id}")
-    public ResponseEntity<PortfolioResponse> obtenerPortafolioPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorId(id));
+    public ResponseEntity<PortfolioResponse> getPortfolioById(@PathVariable Long id) {
+        return ResponseEntity.ok(portafolioServicio.getPortfolioById(id));
     }
 
     /**
@@ -63,8 +63,8 @@ public class PortfolioController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe portafolio para el perfil
      */
     @GetMapping("/perfil/{idPerfil}")
-    public ResponseEntity<PortfolioResponse> obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
-        return ResponseEntity.ok(portafolioServicio.obtenerPortafolioPorPerfil(idPerfil));
+    public ResponseEntity<PortfolioResponse> getPortfolioByProfile(@PathVariable Long idPerfil) {
+        return ResponseEntity.ok(portafolioServicio.getPortfolioByProfile(idPerfil));
     }
 
     /**
@@ -73,8 +73,8 @@ public class PortfolioController {
      * @return listado de portafolios
      */
     @GetMapping
-    public ResponseEntity<List<PortfolioResponse> > listarPortafolios() {
-        return ResponseEntity.ok(portafolioServicio.listarPortafolios());
+    public ResponseEntity<List<PortfolioResponse> > listPortfolios() {
+        return ResponseEntity.ok(portafolioServicio.listPortfolios());
     }
 
     /**
@@ -89,11 +89,11 @@ public class PortfolioController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<PortfolioResponse> actualizarPortafolio(
+    public ResponseEntity<PortfolioResponse> updatePortfolio(
             @PathVariable Long id,
             @Valid @RequestBody UpdatePortfolioRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(portafolioServicio.actualizarPortafolio(id, peticion, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(portafolioServicio.updatePortfolio(id, peticion, userDetails.getIdUsuario()));
     }
 
     /**
@@ -106,7 +106,7 @@ public class PortfolioController {
      */
     @PostMapping("/{id}/visita")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> registrarVisita(
+    public ResponseEntity<RespuestaMensaje> recordVisit(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         portafolioServicio.incrementarVisitas(id, userDetails.getIdUsuario());
@@ -122,8 +122,8 @@ public class PortfolioController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarPortafolio(@PathVariable Long id) {
-        portafolioServicio.eliminarPortafolio(id);
+    public ResponseEntity<RespuestaMensaje> deletePortfolio(@PathVariable Long id) {
+        portafolioServicio.deletePortfolio(id);
         return ResponseEntity.ok(new RespuestaMensaje("Portfolio eliminado exitosamente"));
     }
 }

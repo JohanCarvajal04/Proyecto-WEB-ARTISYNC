@@ -20,7 +20,7 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio, o si ya alcanzó el máximo de obras permitido
      */
-    PortfolioItemResponse subirItem(Long idPortafolio, Long idUsuario,
+    PortfolioItemResponse uploadItem(Long idPortafolio, Long idUsuario,
                                        CreatePortfolioItemRequest peticion, MultipartFile archivo);
 
     /**
@@ -32,7 +32,7 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
-    List<PortfolioItemResponse> listarItems(Long idPortafolio, Long idUsuario);
+    List<PortfolioItemResponse> listItems(Long idPortafolio, Long idUsuario);
 
     /**
      * Obtiene una obra por su id. Si el portafolio contenedor es privado, solo su dueño puede verla.
@@ -43,11 +43,11 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
-    PortfolioItemResponse obtenerItem(Long idItem, Long idUsuario);
+    PortfolioItemResponse getItem(Long idItem, Long idUsuario);
 
     /**
      * Edita el título y la descripción de una obra. El archivo no cambia: para
-     * reemplazarlo hay que eliminar la obra y subir una nueva.
+     * reemplazarlo hay que eliminar la obra y upload una nueva.
      *
      * @param idItem    id de la obra a editar
      * @param idUsuario id del usuario que edita, debe ser el dueño del portafolio
@@ -56,7 +56,7 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio
      */
-    PortfolioItemResponse actualizarItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion);
+    PortfolioItemResponse updateItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion);
 
     /**
      * Descarga el archivo binario de una obra. Si el portafolio contenedor es privado, solo su dueño puede descargarla.
@@ -67,7 +67,7 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el solicitante no es su dueño
      */
-    ArchivoItem descargarArchivo(Long idItem, Long idUsuario);
+    ArchivoItem downloadFile(Long idItem, Long idUsuario);
 
     /**
      * Elimina una obra del portafolio, junto con su archivo almacenado.
@@ -77,7 +77,7 @@ public interface IPortfolioItemService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio
      */
-    void eliminarItem(Long idItem, Long idUsuario);
+    void deleteItem(Long idItem, Long idUsuario);
 
     record ArchivoItem(byte[] contenido, String nombreSugerido, String contentType) {
     }

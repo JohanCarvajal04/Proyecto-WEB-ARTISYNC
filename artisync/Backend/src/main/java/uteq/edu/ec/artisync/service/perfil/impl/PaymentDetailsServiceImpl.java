@@ -30,7 +30,7 @@ public class PaymentDetailsServiceImpl implements IPaymentDetailsService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PaymentDetailsResponse obtenerMisDatosPago(Long idUsuario) {
+    public PaymentDetailsResponse getMyPaymentDetails(Long idUsuario) {
         return datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .map(this::mapear)
                 .orElseGet(() -> PaymentDetailsResponse.builder().correoPaypal(null).fechaActualizacion(null).build());
@@ -48,7 +48,7 @@ public class PaymentDetailsServiceImpl implements IPaymentDetailsService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PaymentDetailsResponse actualizarCorreoPaypal(Long idUsuario, PaymentDetailsRequest peticion) {
+    public PaymentDetailsResponse updatePaypalEmail(Long idUsuario, PaymentDetailsRequest peticion) {
         CreatorPaymentDetails datos = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseGet(() -> {
                     User usuario = usuarioRepository.findById(idUsuario)

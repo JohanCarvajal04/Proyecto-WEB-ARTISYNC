@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * La IA solo asiste (analizarConIa); el único método que puede cambiar
- * id_estado_verificacion es registrarDecision, restringido en el controlador
+ * id_estado_verificacion es recordDecision, restringido en el controlador
  * al permiso CERTIFICADO_REVISAR.
  */
 public interface IVerificationService {
@@ -26,7 +26,7 @@ public interface IVerificationService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una verificación pendiente para el usuario, o si el estado PENDIENTE no está sembrado
      */
-    VerificationResponse subir(Long idUsuarioSolicitante, VerificationDocumentType tipo, MultipartFile documento);
+    VerificationResponse upload(Long idUsuarioSolicitante, VerificationDocumentType tipo, MultipartFile documento);
 
     /**
      * Lista la cola de verificaciones para revisión, filtrada por estado y paginada.
@@ -36,7 +36,7 @@ public interface IVerificationService {
      * @param offset       desplazamiento para paginación
      * @return las verificaciones que cumplen el filtro
      */
-    List<VerificationQueueResponse> listarCola(String nombreEstado, int limite, int offset);
+    List<VerificationQueueResponse> listQueue(String nombreEstado, int limite, int offset);
 
     /**
      * Obtiene el detalle de una verificación, restringido al dueño del documento o a un revisor.
@@ -47,7 +47,7 @@ public interface IVerificationService {
      * @return el detalle de la verificación
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
      */
-    VerificationResponse obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor);
+    VerificationResponse getById(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor);
 
     /**
      * Obtiene el contenido binario del documento subido para una verificación.
@@ -56,7 +56,7 @@ public interface IVerificationService {
      * @return los bytes del documento almacenado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
      */
-    byte[] obtenerDocumento(Long idCertificado);
+    byte[] getDocument(Long idCertificado);
 
     /**
      * Envía el documento de una verificación al servicio de IA para obtener un dictamen sugerido
@@ -82,7 +82,7 @@ public interface IVerificationService {
      * @return la verificación con la decisión ya registrada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe o el estado indicado no existe
      */
-    VerificationResponse registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador);
+    VerificationResponse recordDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador);
 
     /**
      * Gating de "publicar un servicio" (Creador) y "crear un pedido" (Cliente):
@@ -92,7 +92,7 @@ public interface IVerificationService {
      * @param idUsuario id del usuario a consultar
      * @return {@code true} si el usuario tiene una verificación de identidad aprobada
      */
-    boolean estaIdentidadVerificada(Long idUsuario);
+    boolean isIdentityVerified(Long idUsuario);
 
     /**
      * Estado de identidad del propio usuario, para pintar el aviso en el frontend.
@@ -100,5 +100,5 @@ public interface IVerificationService {
      * @param idUsuario id del usuario a consultar
      * @return si está verificado y el estado de su última verificación de identidad
      */
-    IdentityStatusResponse obtenerEstadoIdentidad(Long idUsuario);
+    IdentityStatusResponse getIdentityStatus(Long idUsuario);
 }

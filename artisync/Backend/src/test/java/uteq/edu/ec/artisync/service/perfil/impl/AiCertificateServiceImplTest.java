@@ -50,89 +50,89 @@ class AiCertificateServiceImplTest {
     }
 
     @Test
-    @DisplayName("emitirCertificado guarda cuando el usuario y el estado existen")
+    @DisplayName("issueCertificate guarda cuando el usuario y el estado existen")
     void emitirCertificado_guarda() {
         CreateAiCertificateRequest peticion = new CreateAiCertificateRequest(1L, 2L, "s3://doc.pdf", new BigDecimal("0.90"));
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(usuario));
         given(estadoRepository.findById(2L)).willReturn(Optional.of(estado));
         given(certificadoRepository.save(any(AiCertificate.class))).willAnswer(inv -> inv.getArgument(0));
 
-        AiCertificateResponse respuesta = certificadoIaServicio.emitirCertificado(peticion);
+        AiCertificateResponse respuesta = certificadoIaServicio.issueCertificate(peticion);
 
         assertThat(respuesta.urlDocumentoS3()).isEqualTo("s3://doc.pdf");
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("Pendiente");
     }
 
     @Test
-    @DisplayName("emitirCertificado lanza recurso no encontrado si el usuario no existe")
+    @DisplayName("issueCertificate lanza recurso no encontrado si el usuario no existe")
     void emitirCertificado_usuarioInexistente() {
         CreateAiCertificateRequest peticion = new CreateAiCertificateRequest(1L, 2L, "s3://doc.pdf", null);
         given(usuarioRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> certificadoIaServicio.emitirCertificado(peticion))
+        assertThatThrownBy(() -> certificadoIaServicio.issueCertificate(peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("emitirCertificado lanza recurso no encontrado si el estado no existe")
+    @DisplayName("issueCertificate lanza recurso no encontrado si el estado no existe")
     void emitirCertificado_estadoInexistente() {
         CreateAiCertificateRequest peticion = new CreateAiCertificateRequest(1L, 2L, "s3://doc.pdf", null);
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(usuario));
         given(estadoRepository.findById(2L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> certificadoIaServicio.emitirCertificado(peticion))
+        assertThatThrownBy(() -> certificadoIaServicio.issueCertificate(peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerCertificadoPorId devuelve el certificado existente")
+    @DisplayName("getCertificateById devuelve el certificado existente")
     void obtenerCertificadoPorId_devuelve() {
         given(certificadoRepository.findById(10L)).willReturn(Optional.of(certificado));
 
-        assertThat(certificadoIaServicio.obtenerCertificadoPorId(10L).idCertificado()).isEqualTo(10L);
+        assertThat(certificadoIaServicio.getCertificateById(10L).idCertificado()).isEqualTo(10L);
     }
 
     @Test
-    @DisplayName("obtenerCertificadoPorId lanza recurso no encontrado si no existe")
+    @DisplayName("getCertificateById lanza recurso no encontrado si no existe")
     void obtenerCertificadoPorId_inexistente() {
         given(certificadoRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> certificadoIaServicio.obtenerCertificadoPorId(10L))
+        assertThatThrownBy(() -> certificadoIaServicio.getCertificateById(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("listarCertificadosPorUsuario mapea los certificados del usuario")
+    @DisplayName("listCertificatesByUser mapea los certificados del usuario")
     void listarCertificadosPorUsuario_mapea() {
         given(certificadoRepository.findByUsuarioIdUsuario(1L)).willReturn(List.of(certificado));
 
-        assertThat(certificadoIaServicio.listarCertificadosPorUsuario(1L)).hasSize(1);
+        assertThat(certificadoIaServicio.listCertificatesByUser(1L)).hasSize(1);
     }
 
     @Test
-    @DisplayName("listarTodosLosCertificados mapea todos los registros")
+    @DisplayName("listAllCertificates mapea todos los registros")
     void listarTodosLosCertificados_mapea() {
         given(certificadoRepository.findAll()).willReturn(List.of(certificado));
 
-        assertThat(certificadoIaServicio.listarTodosLosCertificados()).hasSize(1);
+        assertThat(certificadoIaServicio.listAllCertificates()).hasSize(1);
     }
 
     @Test
-    @DisplayName("eliminarCertificado borra cuando existe")
+    @DisplayName("deleteCertificate borra cuando existe")
     void eliminarCertificado_borraCuandoExiste() {
         given(certificadoRepository.existsById(10L)).willReturn(true);
 
-        certificadoIaServicio.eliminarCertificado(10L);
+        certificadoIaServicio.deleteCertificate(10L);
 
         verify(certificadoRepository).deleteById(10L);
     }
 
     @Test
-    @DisplayName("eliminarCertificado lanza recurso no encontrado si no existe")
+    @DisplayName("deleteCertificate lanza recurso no encontrado si no existe")
     void eliminarCertificado_inexistente() {
         given(certificadoRepository.existsById(10L)).willReturn(false);
 
-        assertThatThrownBy(() -> certificadoIaServicio.eliminarCertificado(10L))
+        assertThatThrownBy(() -> certificadoIaServicio.deleteCertificate(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

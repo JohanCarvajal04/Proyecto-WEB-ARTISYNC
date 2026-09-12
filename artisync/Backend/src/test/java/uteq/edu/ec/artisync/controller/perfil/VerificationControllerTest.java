@@ -43,19 +43,19 @@ class VerificationControllerTest {
     void subir_devuelveCreated() {
         MockMultipartFile documento = new MockMultipartFile("documento", "c.jpg", "image/jpeg", "x".getBytes());
         VerificationResponse respuesta = VerificationResponse.builder().idCertificado(1L).build();
-        when(verificacionServicio.subir(1L, VerificationDocumentType.IDENTIDAD, documento)).thenReturn(respuesta);
+        when(verificacionServicio.upload(1L, VerificationDocumentType.IDENTIDAD, documento)).thenReturn(respuesta);
 
         ResponseEntity<VerificationResponse> resultado =
-                controlador.subir(VerificationDocumentType.IDENTIDAD, documento, usuarioCreador());
+                controlador.upload(VerificationDocumentType.IDENTIDAD, documento, usuarioCreador());
 
         assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
     void listarCola_devuelveOk() {
-        when(verificacionServicio.listarCola("PENDIENTE", 20, 0)).thenReturn(List.of());
+        when(verificacionServicio.listQueue("PENDIENTE", 20, 0)).thenReturn(List.of());
 
-        ResponseEntity<List<VerificationQueueResponse>> resultado = controlador.listarCola("PENDIENTE", 20, 0);
+        ResponseEntity<List<VerificationQueueResponse>> resultado = controlador.listQueue("PENDIENTE", 20, 0);
 
         assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -75,10 +75,10 @@ class VerificationControllerTest {
     void registrarDecision_pasaElIdDelModeradorAutenticado() {
         VerificationDecisionRequest peticion = new VerificationDecisionRequest(2L, "ok");
         VerificationResponse respuesta = VerificationResponse.builder().idCertificado(7L).idModerador(99L).build();
-        when(verificacionServicio.registrarDecision(7L, 99L, 2L, "ok")).thenReturn(respuesta);
+        when(verificacionServicio.recordDecision(7L, 99L, 2L, "ok")).thenReturn(respuesta);
 
         ResponseEntity<VerificationResponse> resultado =
-                controlador.registrarDecision(7L, peticion, usuarioRevisor());
+                controlador.recordDecision(7L, peticion, usuarioRevisor());
 
         assertThat(resultado.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resultado.getBody().idModerador()).isEqualTo(99L);
@@ -88,37 +88,37 @@ class VerificationControllerTest {
     void obtenerMiEstadoIdentidad_devuelveOk() {
         uteq.edu.ec.artisync.dto.respuesta.perfil.IdentityStatusResponse respuesta = 
                 new uteq.edu.ec.artisync.dto.respuesta.perfil.IdentityStatusResponse(true, "mensaje");
-        when(verificacionServicio.obtenerEstadoIdentidad(1L)).thenReturn(respuesta);
+        when(verificacionServicio.getIdentityStatus(1L)).thenReturn(respuesta);
 
         ResponseEntity<uteq.edu.ec.artisync.dto.respuesta.perfil.IdentityStatusResponse> res = 
-                controlador.obtenerMiEstadoIdentidad(usuarioCreador());
+                controlador.getMyIdentityStatus(usuarioCreador());
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void obtenerPorId_esRevisor_devuelveOk() {
         VerificationResponse respuesta = VerificationResponse.builder().idCertificado(10L).build();
-        when(verificacionServicio.obtenerPorId(10L, 99L, true)).thenReturn(respuesta);
+        when(verificacionServicio.getById(10L, 99L, true)).thenReturn(respuesta);
 
-        ResponseEntity<VerificationResponse> res = controlador.obtenerPorId(10L, usuarioRevisor());
+        ResponseEntity<VerificationResponse> res = controlador.getById(10L, usuarioRevisor());
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void obtenerPorId_noEsRevisor_devuelveOk() {
         VerificationResponse respuesta = VerificationResponse.builder().idCertificado(10L).build();
-        when(verificacionServicio.obtenerPorId(10L, 1L, false)).thenReturn(respuesta);
+        when(verificacionServicio.getById(10L, 1L, false)).thenReturn(respuesta);
 
-        ResponseEntity<VerificationResponse> res = controlador.obtenerPorId(10L, usuarioCreador());
+        ResponseEntity<VerificationResponse> res = controlador.getById(10L, usuarioCreador());
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void obtenerDocumento_devuelveOk() {
         byte[] doc = new byte[]{1,2};
-        when(verificacionServicio.obtenerDocumento(10L)).thenReturn(doc);
+        when(verificacionServicio.getDocument(10L)).thenReturn(doc);
 
-        ResponseEntity<byte[]> res = controlador.obtenerDocumento(10L);
+        ResponseEntity<byte[]> res = controlador.getDocument(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

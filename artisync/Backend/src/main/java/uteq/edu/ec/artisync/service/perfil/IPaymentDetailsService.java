@@ -12,7 +12,7 @@ public interface IPaymentDetailsService {
      * @param idUsuario id del usuario
      * @return los datos de pago del usuario, con {@code correoPaypal} nulo si no los ha configurado
      */
-    PaymentDetailsResponse obtenerMisDatosPago(Long idUsuario);
+    PaymentDetailsResponse getMyPaymentDetails(Long idUsuario);
 
     /**
      * Configura o reemplaza el correo de PayPal del usuario.
@@ -22,5 +22,5 @@ public interface IPaymentDetailsService {
      * @return los datos de pago ya actualizados
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
      */
-    PaymentDetailsResponse actualizarCorreoPaypal(Long idUsuario, PaymentDetailsRequest peticion);
+    PaymentDetailsResponse updatePaypalEmail(Long idUsuario, PaymentDetailsRequest peticion);
 }

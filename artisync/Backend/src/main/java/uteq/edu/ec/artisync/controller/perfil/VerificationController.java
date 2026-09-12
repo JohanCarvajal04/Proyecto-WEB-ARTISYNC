@@ -36,7 +36,7 @@ public class VerificationController {
     /**
      * Solicita una verificación de identidad o de certificado, subiendo el documento correspondiente.
      *
-     * @param tipo tipo de documento de verificación a subir
+     * @param tipo tipo de documento de verificación a upload
      * @param documento archivo del documento a verificar
      * @param userDetails usuario autenticado que solicita la verificación
      * @return la verificación creada, con estado 201
@@ -46,11 +46,11 @@ public class VerificationController {
     @Operation(summary = "Solicitar una verificación de identidad o certificado")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<VerificationResponse> subir(
+    public ResponseEntity<VerificationResponse> upload(
             @RequestParam("tipo") VerificationDocumentType tipo,
             @RequestParam("documento") MultipartFile documento,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        VerificationResponse respuesta = verificacionServicio.subir(userDetails.getIdUsuario(), tipo, documento);
+        VerificationResponse respuesta = verificacionServicio.upload(userDetails.getIdUsuario(), tipo, documento);
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
@@ -63,9 +63,9 @@ public class VerificationController {
     @Operation(summary = "Estado de identidad del usuario autenticado (gatea publicar servicios y crear pedidos)")
     @GetMapping("/mi-estado")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<IdentityStatusResponse> obtenerMiEstadoIdentidad(
+    public ResponseEntity<IdentityStatusResponse> getMyIdentityStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(verificacionServicio.obtenerEstadoIdentidad(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(verificacionServicio.getIdentityStatus(userDetails.getIdUsuario()));
     }
 
     /**
@@ -79,11 +79,11 @@ public class VerificationController {
     @Operation(summary = "Cola de verificaciones pendientes de revisión")
     @GetMapping
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<VerificationQueueResponse>> listarCola(
+    public ResponseEntity<List<VerificationQueueResponse>> listQueue(
             @RequestParam(required = false) String estado,
             @RequestParam(defaultValue = "20") int limite,
             @RequestParam(defaultValue = "0") int offset) {
-        return ResponseEntity.ok(verificacionServicio.listarCola(estado, limite, offset));
+        return ResponseEntity.ok(verificacionServicio.listQueue(estado, limite, offset));
     }
 
     /**
@@ -97,12 +97,12 @@ public class VerificationController {
     @Operation(summary = "Detalle de una verificación")
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<VerificationResponse> obtenerPorId(
+    public ResponseEntity<VerificationResponse> getById(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         boolean esRevisor = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("CERTIFICADO_REVISAR") || a.getAuthority().equals("ROLE_ADMIN"));
-        return ResponseEntity.ok(verificacionServicio.obtenerPorId(id, userDetails.getIdUsuario(), esRevisor));
+        return ResponseEntity.ok(verificacionServicio.getById(id, userDetails.getIdUsuario(), esRevisor));
     }
 
     /**
@@ -115,8 +115,8 @@ public class VerificationController {
     @Operation(summary = "Descargar el documento original para revisión")
     @GetMapping("/{id}/documento")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> obtenerDocumento(@PathVariable Long id) {
-        byte[] documento = verificacionServicio.obtenerDocumento(id);
+    public ResponseEntity<byte[]> getDocument(@PathVariable Long id) {
+        byte[] documento = verificacionServicio.getDocument(id);
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(documento);
     }
 
@@ -148,11 +148,11 @@ public class VerificationController {
     @Operation(summary = "Registrar la decisión del moderador (único punto que cambia el estado)")
     @PatchMapping("/{id}/decision")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<VerificationResponse> registrarDecision(
+    public ResponseEntity<VerificationResponse> recordDecision(
             @PathVariable Long id,
             @Valid @RequestBody VerificationDecisionRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        VerificationResponse respuesta = verificacionServicio.registrarDecision(
+        VerificationResponse respuesta = verificacionServicio.recordDecision(
                 id, userDetails.getIdUsuario(), peticion.idEstadoVerificacion(), peticion.notaModerador());
         return ResponseEntity.ok(respuesta);
     }

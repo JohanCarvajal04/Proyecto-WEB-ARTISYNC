@@ -41,7 +41,7 @@ public class UserMapper {
                 .map(TwoFactorAuthentication::getEstaHabilitado)
                 .map(Boolean.TRUE::equals)
                 .orElse(false);
-        boolean identidadVerificada = verificacionServicio.estaIdentidadVerificada(usuario.getIdUsuario());
+        boolean identidadVerificada = verificacionServicio.isIdentityVerified(usuario.getIdUsuario());
         return construir(usuario, usuarioRoles, dosFactoresHabilitado, identidadVerificada);
     }
 
@@ -74,7 +74,7 @@ public class UserMapper {
                         usuario,
                         rolesPorUsuario.getOrDefault(usuario.getIdUsuario(), List.of()),
                         con2faHabilitado.contains(usuario.getIdUsuario()),
-                        verificacionServicio.estaIdentidadVerificada(usuario.getIdUsuario())))
+                        verificacionServicio.isIdentityVerified(usuario.getIdUsuario())))
                 .toList();
     }
 

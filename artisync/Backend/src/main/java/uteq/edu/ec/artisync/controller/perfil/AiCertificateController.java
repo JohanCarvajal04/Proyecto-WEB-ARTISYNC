@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * CRUD administrativo de certificados de IA.
  *
- * <p>El alta de verificaciones ya no pasa por {@link #emitirCertificado}: el
+ * <p>El alta de verificaciones ya no pasa por {@link #issueCertificate}: el
  * camino vigente es {@code POST /api/v1/verificaciones} (ver
  * {@code VerificationController}). Este {@code POST} se conserva restringido
  * a {@code ADMIN} solo para no romper clientes existentes del CRUD original
@@ -47,8 +47,8 @@ public class AiCertificateController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<AiCertificateResponse> emitirCertificado(@Valid @RequestBody CreateAiCertificateRequest peticion) {
-        AiCertificateResponse respuesta = certificadoServicio.emitirCertificado(peticion);
+    public ResponseEntity<AiCertificateResponse> issueCertificate(@Valid @RequestBody CreateAiCertificateRequest peticion) {
+        AiCertificateResponse respuesta = certificadoServicio.issueCertificate(peticion);
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
@@ -61,8 +61,8 @@ public class AiCertificateController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<AiCertificateResponse> obtenerCertificadoPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(certificadoServicio.obtenerCertificadoPorId(id));
+    public ResponseEntity<AiCertificateResponse> getCertificateById(@PathVariable Long id) {
+        return ResponseEntity.ok(certificadoServicio.getCertificateById(id));
     }
 
     /**
@@ -73,8 +73,8 @@ public class AiCertificateController {
      */
     @GetMapping("/usuario/{idUsuario}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<AiCertificateResponse> > listarCertificadosPorUsuario(@PathVariable Long idUsuario) {
-        return ResponseEntity.ok(certificadoServicio.listarCertificadosPorUsuario(idUsuario));
+    public ResponseEntity<List<AiCertificateResponse> > listCertificatesByUser(@PathVariable Long idUsuario) {
+        return ResponseEntity.ok(certificadoServicio.listCertificatesByUser(idUsuario));
     }
 
     /**
@@ -84,8 +84,8 @@ public class AiCertificateController {
      */
     @GetMapping
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<AiCertificateResponse> > listarTodosLosCertificados() {
-        return ResponseEntity.ok(certificadoServicio.listarTodosLosCertificados());
+    public ResponseEntity<List<AiCertificateResponse> > listAllCertificates() {
+        return ResponseEntity.ok(certificadoServicio.listAllCertificates());
     }
 
     /**
@@ -97,8 +97,8 @@ public class AiCertificateController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarCertificado(@PathVariable Long id) {
-        certificadoServicio.eliminarCertificado(id);
+    public ResponseEntity<RespuestaMensaje> deleteCertificate(@PathVariable Long id) {
+        certificadoServicio.deleteCertificate(id);
         return ResponseEntity.ok(new RespuestaMensaje("Certificado de IA eliminado exitosamente"));
     }
 }

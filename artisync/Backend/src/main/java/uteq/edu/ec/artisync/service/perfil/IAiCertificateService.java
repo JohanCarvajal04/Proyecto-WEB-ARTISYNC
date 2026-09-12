@@ -14,7 +14,7 @@ public interface IAiCertificateService {
      * @return el certificado recién emitido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario o el estado de verificación no existen
      */
-    AiCertificateResponse emitirCertificado(CreateAiCertificateRequest peticion);
+    AiCertificateResponse issueCertificate(CreateAiCertificateRequest peticion);
 
     /**
      * Obtiene un certificado por su id.
@@ -23,7 +23,7 @@ public interface IAiCertificateService {
      * @return el certificado encontrado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el certificado no existe
      */
-    AiCertificateResponse obtenerCertificadoPorId(Long idCertificado);
+    AiCertificateResponse getCertificateById(Long idCertificado);
 
     /**
      * Lista los certificados emitidos para un usuario.
@@ -31,14 +31,14 @@ public interface IAiCertificateService {
      * @param idUsuario id del usuario
      * @return los certificados del usuario
      */
-    List<AiCertificateResponse> listarCertificadosPorUsuario(Long idUsuario);
+    List<AiCertificateResponse> listCertificatesByUser(Long idUsuario);
 
     /**
      * Lista todos los certificados emitidos en el sistema.
      *
      * @return todos los certificados
      */
-    List<AiCertificateResponse> listarTodosLosCertificados();
+    List<AiCertificateResponse> listAllCertificates();
 
     /**
      * Elimina un certificado.
@@ -46,5 +46,5 @@ public interface IAiCertificateService {
      * @param idCertificado id del certificado a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el certificado no existe
      */
-    void eliminarCertificado(Long idCertificado);
+    void deleteCertificate(Long idCertificado);
 }

@@ -39,7 +39,7 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public AiCertificateResponse emitirCertificado(CreateAiCertificateRequest peticion) {
+    public AiCertificateResponse issueCertificate(CreateAiCertificateRequest peticion) {
         User usuario = usuarioRepository.findById(peticion.idUsuario())
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado con ID: " + peticion.idUsuario()));
 
@@ -66,7 +66,7 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public AiCertificateResponse obtenerCertificadoPorId(Long idCertificado) {
+    public AiCertificateResponse getCertificateById(Long idCertificado) {
         AiCertificate certificado = certificadoRepository.findById(idCertificado)
                 .orElseThrow(() -> new ResourceNotFoundException("Certificado IA no encontrado con ID: " + idCertificado));
         return mapearARespuesta(certificado);
@@ -81,7 +81,7 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<AiCertificateResponse> listarCertificadosPorUsuario(Long idUsuario) {
+    public List<AiCertificateResponse> listCertificatesByUser(Long idUsuario) {
         return certificadoRepository.findByUsuarioIdUsuario(idUsuario).stream()
                 .map(this::mapearARespuesta)
                 .collect(Collectors.toList());
@@ -95,7 +95,7 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<AiCertificateResponse> listarTodosLosCertificados() {
+    public List<AiCertificateResponse> listAllCertificates() {
         return certificadoRepository.findAll().stream()
                 .map(this::mapearARespuesta)
                 .collect(Collectors.toList());
@@ -111,7 +111,7 @@ public class AiCertificateServiceImpl implements IAiCertificateService {
      * @param idCertificado identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminarCertificado(Long idCertificado) {
+    public void deleteCertificate(Long idCertificado) {
         if (!certificadoRepository.existsById(idCertificado)) {
             throw new ResourceNotFoundException("Certificado IA no encontrado con ID: " + idCertificado);
         }

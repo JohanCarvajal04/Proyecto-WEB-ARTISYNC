@@ -27,7 +27,7 @@ import java.util.List;
  * Controlador REST (PortfolioItemController)
  * 
  * Gestiona el ciclo de vida de los items u obras dentro de un portafolio publico.
- * Expone endpoints para subir archivos multimedia, listarlos, descargarlos y eliminarlos.
+ * Expone endpoints para upload archivos multimedia, listarlos, descargarlos y eliminarlos.
  * Incorpora protecciones contra XSS al forzar la descarga de archivos (Content-Disposition: attachment).
  */
 @RestController
@@ -50,12 +50,12 @@ public class PortfolioItemController {
      */
     @PostMapping(value = "/{idPortafolio}/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<PortfolioItemResponse> subirItem(
+    public ResponseEntity<PortfolioItemResponse> uploadItem(
             @PathVariable Long idPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestPart("datos") CreatePortfolioItemRequest datos,
             @RequestPart("archivo") MultipartFile archivo) {
-        PortfolioItemResponse respuesta = itemServicio.subirItem(
+        PortfolioItemResponse respuesta = itemServicio.uploadItem(
                 idPortafolio, userDetails.getIdUsuario(), datos, archivo);
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
@@ -70,10 +70,10 @@ public class PortfolioItemController {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping("/{idPortafolio}/items")
-    public ResponseEntity<List<PortfolioItemResponse>> listarItems(
+    public ResponseEntity<List<PortfolioItemResponse>> listItems(
             @PathVariable Long idPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(itemServicio.listarItems(idPortafolio, idDe(userDetails)));
+        return ResponseEntity.ok(itemServicio.listItems(idPortafolio, idDe(userDetails)));
     }
 
     /**
@@ -86,10 +86,10 @@ public class PortfolioItemController {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping("/items/{idItem}")
-    public ResponseEntity<PortfolioItemResponse> obtenerItem(
+    public ResponseEntity<PortfolioItemResponse> getItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(itemServicio.obtenerItem(idItem, idDe(userDetails)));
+        return ResponseEntity.ok(itemServicio.getItem(idItem, idDe(userDetails)));
     }
 
     /**
@@ -107,11 +107,11 @@ public class PortfolioItemController {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping("/items/{idItem}/archivo")
-    public ResponseEntity<byte[]> descargarArchivo(
+    public ResponseEntity<byte[]> downloadFile(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         IPortfolioItemService.ArchivoItem archivo =
-                itemServicio.descargarArchivo(idItem, idDe(userDetails));
+                itemServicio.downloadFile(idItem, idDe(userDetails));
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(archivo.contentType()))
@@ -132,11 +132,11 @@ public class PortfolioItemController {
      */
     @PutMapping("/items/{idItem}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<PortfolioItemResponse> actualizarItem(
+    public ResponseEntity<PortfolioItemResponse> updateItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreatePortfolioItemRequest datos) {
-        return ResponseEntity.ok(itemServicio.actualizarItem(idItem, userDetails.getIdUsuario(), datos));
+        return ResponseEntity.ok(itemServicio.updateItem(idItem, userDetails.getIdUsuario(), datos));
     }
 
     /**
@@ -150,10 +150,10 @@ public class PortfolioItemController {
      */
     @DeleteMapping("/items/{idItem}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarItem(
+    public ResponseEntity<RespuestaMensaje> deleteItem(
             @PathVariable Long idItem,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        itemServicio.eliminarItem(idItem, userDetails.getIdUsuario());
+        itemServicio.deleteItem(idItem, userDetails.getIdUsuario());
         return ResponseEntity.ok(new RespuestaMensaje("Obra eliminada del portafolio"));
     }
 

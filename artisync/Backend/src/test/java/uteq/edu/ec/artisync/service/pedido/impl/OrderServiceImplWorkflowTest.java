@@ -96,7 +96,7 @@ class OrderServiceImplWorkflowTest {
                 .thenAnswer(inv -> inv.getArgument(0));
         lenient().when(historialRepository.save(any(OrderStatusHistory.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
-        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
+        lenient().when(verificacionServicio.isIdentityVerified(anyLong())).thenReturn(true);
     }
 
     /** Configura etapas para el flujo indicado, que es lo que exige createOrder. */

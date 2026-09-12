@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * "solo la primera decisión persiste" -- no sobre el orden de ejecución, que
  * es no determinista.
  *
- * @DataJpaTest (no @SpringBootTest): certificadoIaRepository.registrarDecision
+ * @DataJpaTest (no @SpringBootTest): certificadoIaRepository.recordDecision
  * es un @Procedure de Spring Data, no depende de otros beans de servicio.
  * Sin @Transactional en la clase (Propagation.NOT_SUPPORTED): cada llamada al
  * repositorio necesita su propia transacción real para que el bloqueo de fila
@@ -104,7 +104,7 @@ class RegistrarDecisionVerificacionConcurrenciaIT {
                     // contra un usuario real en este flujo de prueba... si la
                     // rutina lo exige, se sustituye ID_CREADOR como moderador
                     // fijo en su lugar).
-                    certificadoIaRepository.registrarDecision(
+                    certificadoIaRepository.recordDecision(
                             ID_CERTIFICADO, idEstadoAprobado, ID_CREADOR, "Decision concurrente " + idModerador);
                     exitos.incrementAndGet();
                 } catch (Exception ignorada) {

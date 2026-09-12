@@ -42,36 +42,36 @@ class PortfolioControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreatePortfolioRequest peticion = new CreatePortfolioRequest(1L, true, Collections.emptyMap());
         PortfolioResponse respuesta = new PortfolioResponse(1L, 1L, null, 0, true, Collections.emptyMap());
-        when(portafolioServicio.crearPortafolio(peticion, 1L)).thenReturn(respuesta);
+        when(portafolioServicio.createPortfolio(peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<PortfolioResponse> res = controlador.crearPortafolio(peticion, user);
+        ResponseEntity<PortfolioResponse> res = controlador.createPortfolio(peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
     void obtenerPortafolioPorId_devuelveOk() {
         PortfolioResponse respuesta = new PortfolioResponse(1L, 1L, null, 0, true, Collections.emptyMap());
-        when(portafolioServicio.obtenerPortafolioPorId(10L)).thenReturn(respuesta);
+        when(portafolioServicio.getPortfolioById(10L)).thenReturn(respuesta);
 
-        ResponseEntity<PortfolioResponse> res = controlador.obtenerPortafolioPorId(10L);
+        ResponseEntity<PortfolioResponse> res = controlador.getPortfolioById(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void obtenerPortafolioPorPerfil_devuelveOk() {
         PortfolioResponse respuesta = new PortfolioResponse(1L, 1L, null, 0, true, Collections.emptyMap());
-        when(portafolioServicio.obtenerPortafolioPorPerfil(10L)).thenReturn(respuesta);
+        when(portafolioServicio.getPortfolioByProfile(10L)).thenReturn(respuesta);
 
-        ResponseEntity<PortfolioResponse> res = controlador.obtenerPortafolioPorPerfil(10L);
+        ResponseEntity<PortfolioResponse> res = controlador.getPortfolioByProfile(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void listarPortafolios_devuelveOk() {
         List<PortfolioResponse> lista = Collections.emptyList();
-        when(portafolioServicio.listarPortafolios()).thenReturn(lista);
+        when(portafolioServicio.listPortfolios()).thenReturn(lista);
 
-        ResponseEntity<List<PortfolioResponse>> res = controlador.listarPortafolios();
+        ResponseEntity<List<PortfolioResponse>> res = controlador.listPortfolios();
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -80,24 +80,24 @@ class PortfolioControllerTest {
         CustomUserDetails user = mockUserDetails();
         UpdatePortfolioRequest peticion = new UpdatePortfolioRequest(true, Collections.emptyMap());
         PortfolioResponse respuesta = new PortfolioResponse(1L, 1L, null, 0, true, Collections.emptyMap());
-        when(portafolioServicio.actualizarPortafolio(10L, peticion, 1L)).thenReturn(respuesta);
+        when(portafolioServicio.updatePortfolio(10L, peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<PortfolioResponse> res = controlador.actualizarPortafolio(10L, peticion, user);
+        ResponseEntity<PortfolioResponse> res = controlador.updatePortfolio(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void registrarVisita_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        ResponseEntity<RespuestaMensaje> res = controlador.registrarVisita(10L, user);
+        ResponseEntity<RespuestaMensaje> res = controlador.recordVisit(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(portafolioServicio).incrementarVisitas(10L, 1L);
     }
 
     @Test
     void eliminarPortafolio_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarPortafolio(10L);
+        ResponseEntity<RespuestaMensaje> res = controlador.deletePortfolio(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(portafolioServicio).eliminarPortafolio(10L);
+        verify(portafolioServicio).deletePortfolio(10L);
     }
 }

@@ -92,7 +92,7 @@ class PortfolioItemServiceImplTest {
         });
         when(almacenamiento.urlTemporal("portafolio/abc.png")).thenReturn(Optional.empty());
 
-        PortfolioItemResponse respuesta = servicio.subirItem(
+        PortfolioItemResponse respuesta = servicio.uploadItem(
                 ID_PORTAFOLIO, ID_DUENIO, datos(), imagen());
 
         verify(almacenamiento).guardar(any(), eq("portafolio"));
@@ -105,7 +105,7 @@ class PortfolioItemServiceImplTest {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subirItem(ID_PORTAFOLIO, ID_OTRO, datos(), imagen()));
+                () -> servicio.uploadItem(ID_PORTAFOLIO, ID_OTRO, datos(), imagen()));
 
         verify(almacenamiento, never()).guardar(any(), anyString());
     }
@@ -116,7 +116,7 @@ class PortfolioItemServiceImplTest {
                 "archivo", "doc.pdf", "application/pdf", "%PDF".getBytes());
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), pdf));
+                () -> servicio.uploadItem(ID_PORTAFOLIO, ID_DUENIO, datos(), pdf));
 
         verifyNoInteractions(portafolioRepository, itemRepository, almacenamiento);
     }
@@ -127,7 +127,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.countByPortafolioIdPortafolio(ID_PORTAFOLIO)).thenReturn(50L);
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
+                () -> servicio.uploadItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
 
         verify(almacenamiento, never()).guardar(any(), anyString());
     }
@@ -141,7 +141,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.save(any())).thenThrow(new RuntimeException("fallo de base"));
 
         assertThrows(RuntimeException.class,
-                () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
+                () -> servicio.uploadItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
 
         verify(almacenamiento).eliminar("portafolio/huerfano.png");
     }
@@ -151,7 +151,7 @@ class PortfolioItemServiceImplTest {
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> servicio.subirItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
+                () -> servicio.uploadItem(ID_PORTAFOLIO, ID_DUENIO, datos(), imagen()));
     }
 
     // ── Visibilidad ──────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ class PortfolioItemServiceImplTest {
                 .thenReturn(List.of(item("portafolio/a.png")));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        assertThat(servicio.listarItems(ID_PORTAFOLIO, null)).hasSize(1);
+        assertThat(servicio.listItems(ID_PORTAFOLIO, null)).hasSize(1);
     }
 
     @Test
@@ -171,7 +171,7 @@ class PortfolioItemServiceImplTest {
         portafolio.setEsPublico(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
+        assertThrows(BusinessRuleException.class, () -> servicio.listItems(ID_PORTAFOLIO, null));
     }
 
     @Test
@@ -179,7 +179,7 @@ class PortfolioItemServiceImplTest {
         portafolio.setEsPublico(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_OTRO));
+        assertThrows(BusinessRuleException.class, () -> servicio.listItems(ID_PORTAFOLIO, ID_OTRO));
     }
 
     @Test
@@ -190,7 +190,7 @@ class PortfolioItemServiceImplTest {
                 .thenReturn(List.of(item("portafolio/a.png")));
         when(almacenamiento.urlTemporal(anyString())).thenReturn(Optional.empty());
 
-        assertThat(servicio.listarItems(ID_PORTAFOLIO, ID_DUENIO)).hasSize(1);
+        assertThat(servicio.listItems(ID_PORTAFOLIO, ID_DUENIO)).hasSize(1);
     }
 
     @Test
@@ -199,7 +199,7 @@ class PortfolioItemServiceImplTest {
         portafolio.getPerfil().getUsuario().setEstadoCuenta(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, null));
+        assertThrows(BusinessRuleException.class, () -> servicio.listItems(ID_PORTAFOLIO, null));
     }
 
     @Test
@@ -208,7 +208,7 @@ class PortfolioItemServiceImplTest {
         portafolio.getPerfil().getUsuario().setEstadoCuenta(false);
         when(portafolioRepository.findById(ID_PORTAFOLIO)).thenReturn(Optional.of(portafolio));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.listarItems(ID_PORTAFOLIO, ID_DUENIO));
+        assertThrows(BusinessRuleException.class, () -> servicio.listItems(ID_PORTAFOLIO, ID_DUENIO));
     }
 
     // ── Descarga ─────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.mp4")));
         when(almacenamiento.leer("portafolio/obra.mp4")).thenReturn("video".getBytes());
 
-        IPortfolioItemService.ArchivoItem archivo = servicio.descargarArchivo(ID_ITEM, null);
+        IPortfolioItemService.ArchivoItem archivo = servicio.downloadFile(ID_ITEM, null);
 
         assertThat(archivo.contenido()).isEqualTo("video".getBytes());
         assertThat(archivo.contentType()).isEqualTo("video/mp4");
@@ -230,7 +230,7 @@ class PortfolioItemServiceImplTest {
         portafolio.setEsPublico(false);
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.mp4")));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.descargarArchivo(ID_ITEM, ID_OTRO));
+        assertThrows(BusinessRuleException.class, () -> servicio.downloadFile(ID_ITEM, ID_OTRO));
 
         verify(almacenamiento, never()).leer(anyString());
     }
@@ -244,7 +244,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(almacenamiento.urlTemporal("portafolio/obra.png")).thenReturn(Optional.empty());
 
-        PortfolioItemResponse respuesta = servicio.actualizarItem(
+        PortfolioItemResponse respuesta = servicio.updateItem(
                 ID_ITEM, ID_DUENIO, new CreatePortfolioItemRequest("Nuevo título", "Nueva descripción"));
 
         assertThat(respuesta.tituloObra()).isEqualTo("Nuevo título");
@@ -256,7 +256,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.png")));
 
         assertThrows(BusinessRuleException.class,
-                () -> servicio.actualizarItem(ID_ITEM, ID_OTRO, datos()));
+                () -> servicio.updateItem(ID_ITEM, ID_OTRO, datos()));
 
         verify(itemRepository, never()).save(any());
     }
@@ -268,7 +268,7 @@ class PortfolioItemServiceImplTest {
         PortfolioItem existente = item("portafolio/obra.png");
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(existente));
 
-        servicio.eliminarItem(ID_ITEM, ID_DUENIO);
+        servicio.deleteItem(ID_ITEM, ID_DUENIO);
 
         verify(itemRepository).delete(existente);
         verify(almacenamiento).eliminar("portafolio/obra.png");
@@ -278,7 +278,7 @@ class PortfolioItemServiceImplTest {
     void eliminarItem_porQuienNoEsElDuenio_esRechazado() {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(item("portafolio/obra.png")));
 
-        assertThrows(BusinessRuleException.class, () -> servicio.eliminarItem(ID_ITEM, ID_OTRO));
+        assertThrows(BusinessRuleException.class, () -> servicio.deleteItem(ID_ITEM, ID_OTRO));
 
         verify(itemRepository, never()).delete(any());
         verify(almacenamiento, never()).eliminar(anyString());
@@ -291,7 +291,7 @@ class PortfolioItemServiceImplTest {
         when(itemRepository.findById(ID_ITEM)).thenReturn(Optional.of(existente));
         doThrow(new BusinessRuleException("Azure caido")).when(almacenamiento).eliminar(anyString());
 
-        servicio.eliminarItem(ID_ITEM, ID_DUENIO);
+        servicio.deleteItem(ID_ITEM, ID_DUENIO);
 
         verify(itemRepository).delete(existente);
     }
@@ -304,7 +304,7 @@ class PortfolioItemServiceImplTest {
         when(almacenamiento.urlTemporal("portafolio/obra.png"))
                 .thenReturn(Optional.of("https://cuenta.blob.core.windows.net/c/portafolio/obra.png?sig=z"));
 
-        PortfolioItemResponse respuesta = servicio.obtenerItem(ID_ITEM, null);
+        PortfolioItemResponse respuesta = servicio.getItem(ID_ITEM, null);
 
         assertThat(respuesta.urlArchivo()).startsWith("https://").contains("sig=");
     }

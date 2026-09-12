@@ -55,46 +55,46 @@ class CreatorProfileServiceImplTest {
         // lenient: no todos los tests llegan a mapearARespuesta (algunos cortan
         // antes con una excepción), y Mockito strict-stubs marcaría el resto
         // como "unnecessary stubbing" si no fuera lenient.
-        lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(false);
+        lenient().when(verificacionServicio.isIdentityVerified(anyLong())).thenReturn(false);
     }
 
     @Test
-    @DisplayName("crearPerfil guarda cuando el usuario no tiene perfil todavia")
+    @DisplayName("createProfile guarda cuando el usuario no tiene perfil todavia")
     void crearPerfil_guarda() {
         CreateProfileRequest peticion = new CreateProfileRequest(1L, "bio", "http://x.com", null);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(usuario));
         given(perfilRepository.save(any(CreatorProfile.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ProfileResponse respuesta = perfilCreadorServicio.crearPerfil(peticion, ADMIN, true);
+        ProfileResponse respuesta = perfilCreadorServicio.createProfile(peticion, ADMIN, true);
 
         assertThat(respuesta.nombresUsuario()).isEqualTo("Ana");
         assertThat(respuesta.biografia()).isEqualTo("bio");
     }
 
     @Test
-    @DisplayName("crearPerfil rechaza si el usuario ya tiene perfil")
+    @DisplayName("createProfile rechaza si el usuario ya tiene perfil")
     void crearPerfil_rechazaDuplicado() {
         CreateProfileRequest peticion = new CreateProfileRequest(1L, "bio", null, null);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
 
-        assertThatThrownBy(() -> perfilCreadorServicio.crearPerfil(peticion, ADMIN, true))
+        assertThatThrownBy(() -> perfilCreadorServicio.createProfile(peticion, ADMIN, true))
                 .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
-    @DisplayName("crearPerfil lanza recurso no encontrado si el usuario no existe")
+    @DisplayName("createProfile lanza recurso no encontrado si el usuario no existe")
     void crearPerfil_usuarioInexistente() {
         CreateProfileRequest peticion = new CreateProfileRequest(1L, "bio", null, null);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
         given(usuarioRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> perfilCreadorServicio.crearPerfil(peticion, ADMIN, true))
+        assertThatThrownBy(() -> perfilCreadorServicio.createProfile(peticion, ADMIN, true))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("crearPerfil ignora el idUsuario del cuerpo si el solicitante no es ADMIN")
+    @DisplayName("createProfile ignora el idUsuario del cuerpo si el solicitante no es ADMIN")
     void crearPerfil_noAdminNoPuedeCrearAnombreDeOtro() {
         // El cuerpo apunta al usuario 99, pero quien pide es Ana (id 1): el perfil
         // debe crearse para Ana. Antes se creaba para el 99.
@@ -104,131 +104,131 @@ class CreatorProfileServiceImplTest {
         given(usuarioRepository.findById(1L)).willReturn(Optional.of(usuario));
         given(perfilRepository.save(any(CreatorProfile.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ProfileResponse respuesta = perfilCreadorServicio.crearPerfil(peticion, CORREO_ANA, false);
+        ProfileResponse respuesta = perfilCreadorServicio.createProfile(peticion, CORREO_ANA, false);
 
         assertThat(respuesta.idUsuario()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("obtenerPerfilPorId lanza recurso no encontrado si no existe")
+    @DisplayName("getProfileById lanza recurso no encontrado si no existe")
     void obtenerPerfilPorId_inexistente() {
         given(perfilRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorId(10L))
+        assertThatThrownBy(() -> perfilCreadorServicio.getProfileById(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerPerfilPorUsuario devuelve el perfil existente")
+    @DisplayName("getProfileByUser devuelve el perfil existente")
     void obtenerPerfilPorUsuario_devuelve() {
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
 
-        assertThat(perfilCreadorServicio.obtenerPerfilPorUsuario(1L).idPerfil()).isEqualTo(10L);
+        assertThat(perfilCreadorServicio.getProfileByUser(1L).idPerfil()).isEqualTo(10L);
     }
 
     @Test
-    @DisplayName("obtenerPerfilPorId refleja el estado real de verificación de identidad del usuario")
+    @DisplayName("getProfileById refleja el estado real de verificación de identidad del usuario")
     void obtenerPerfilPorId_reflejaIdentidadVerificada() {
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
-        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(true);
+        given(verificacionServicio.isIdentityVerified(1L)).willReturn(true);
 
-        ProfileResponse respuesta = perfilCreadorServicio.obtenerPerfilPorId(10L);
+        ProfileResponse respuesta = perfilCreadorServicio.getProfileById(10L);
 
         assertThat(respuesta.identidadVerificada()).isTrue();
     }
 
     @Test
-    @DisplayName("obtenerPerfilPorId no marca identidad verificada si no la tiene aprobada")
+    @DisplayName("getProfileById no marca identidad verificada si no la tiene aprobada")
     void obtenerPerfilPorId_sinIdentidadVerificada() {
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
-        given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
+        given(verificacionServicio.isIdentityVerified(1L)).willReturn(false);
 
-        ProfileResponse respuesta = perfilCreadorServicio.obtenerPerfilPorId(10L);
+        ProfileResponse respuesta = perfilCreadorServicio.getProfileById(10L);
 
         assertThat(respuesta.identidadVerificada()).isFalse();
     }
 
     @Test
-    @DisplayName("actualizarPerfil cambia el titulo profesional cuando se indica")
+    @DisplayName("updateProfile cambia el titulo profesional cuando se indica")
     void actualizarPerfil_cambiaTituloProfesional() {
         UpdateProfileRequest peticion = new UpdateProfileRequest(null, null, "Ilustradora & Directora de Arte");
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
         given(perfilRepository.save(any(CreatorProfile.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ProfileResponse respuesta = perfilCreadorServicio.actualizarPerfil(10L, peticion, ADMIN, true);
+        ProfileResponse respuesta = perfilCreadorServicio.updateProfile(10L, peticion, ADMIN, true);
 
         assertThat(respuesta.tituloProfesional()).isEqualTo("Ilustradora & Directora de Arte");
     }
 
     @Test
-    @DisplayName("obtenerPerfilPorUsuario lanza recurso no encontrado si no existe")
+    @DisplayName("getProfileByUser lanza recurso no encontrado si no existe")
     void obtenerPerfilPorUsuario_inexistente() {
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorUsuario(1L))
+        assertThatThrownBy(() -> perfilCreadorServicio.getProfileByUser(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("REQ-NF-018: obtenerPerfilPorId oculta el perfil de una cuenta desactivada/suprimida")
+    @DisplayName("REQ-NF-018: getProfileById oculta el perfil de una cuenta desactivada/suprimida")
     void obtenerPerfilPorId_ocultaCuentaDesactivada() {
         usuario.setEstadoCuenta(false);
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
 
-        assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorId(10L))
+        assertThatThrownBy(() -> perfilCreadorServicio.getProfileById(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("REQ-NF-018: obtenerPerfilPorUsuario oculta el perfil de una cuenta desactivada/suprimida")
+    @DisplayName("REQ-NF-018: getProfileByUser oculta el perfil de una cuenta desactivada/suprimida")
     void obtenerPerfilPorUsuario_ocultaCuentaDesactivada() {
         usuario.setEstadoCuenta(false);
         given(perfilRepository.findByUsuarioIdUsuario(1L)).willReturn(Optional.of(perfil));
 
-        assertThatThrownBy(() -> perfilCreadorServicio.obtenerPerfilPorUsuario(1L))
+        assertThatThrownBy(() -> perfilCreadorServicio.getProfileByUser(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("listarPerfiles mapea todos los registros")
+    @DisplayName("listProfiles mapea todos los registros")
     void listarPerfiles_mapea() {
         given(perfilRepository.findAll()).willReturn(List.of(perfil));
 
-        assertThat(perfilCreadorServicio.listarPerfiles()).hasSize(1);
+        assertThat(perfilCreadorServicio.listProfiles()).hasSize(1);
     }
 
     @Test
-    @DisplayName("actualizarPerfil cambia biografia y red social cuando se indican")
+    @DisplayName("updateProfile cambia biografia y red social cuando se indican")
     void actualizarPerfil_cambiaDatos() {
         UpdateProfileRequest peticion = new UpdateProfileRequest("nueva bio", "http://y.com", null);
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
         given(perfilRepository.save(any(CreatorProfile.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ProfileResponse respuesta = perfilCreadorServicio.actualizarPerfil(10L, peticion, ADMIN, true);
+        ProfileResponse respuesta = perfilCreadorServicio.updateProfile(10L, peticion, ADMIN, true);
 
         assertThat(respuesta.biografia()).isEqualTo("nueva bio");
         assertThat(respuesta.urlRedSocial()).isEqualTo("http://y.com");
     }
 
     @Test
-    @DisplayName("actualizarPerfil lanza recurso no encontrado si no existe")
+    @DisplayName("updateProfile lanza recurso no encontrado si no existe")
     void actualizarPerfil_inexistente() {
         given(perfilRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> perfilCreadorServicio.actualizarPerfil(
+        assertThatThrownBy(() -> perfilCreadorServicio.updateProfile(
                 10L, new UpdateProfileRequest(null, null, null), ADMIN, true))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("actualizarPerfil deniega a un CREADOR que no es el propietario")
+    @DisplayName("updateProfile deniega a un CREADOR que no es el propietario")
     void actualizarPerfil_rechazaAjeno() {
         // El perfil 10 es de Ana (id 1); quien pide es Luis (id 2) con rol CREADOR.
         User otro = User.builder().idUsuario(2L).nombres("Luis").apellidos("Paz").build();
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
         given(usuarioRepository.findByCorreo(CORREO_LUIS)).willReturn(Optional.of(otro));
 
-        assertThatThrownBy(() -> perfilCreadorServicio.actualizarPerfil(
+        assertThatThrownBy(() -> perfilCreadorServicio.updateProfile(
                 10L, new UpdateProfileRequest("secuestrada", "http://malo.com", null), CORREO_LUIS, false))
                 .isInstanceOf(AccessDeniedException.class);
 
@@ -236,34 +236,34 @@ class CreatorProfileServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarPerfil permite al propietario aunque no sea ADMIN")
+    @DisplayName("updateProfile permite al propietario aunque no sea ADMIN")
     void actualizarPerfil_permiteAlPropietario() {
         given(perfilRepository.findById(10L)).willReturn(Optional.of(perfil));
         given(usuarioRepository.findByCorreo(CORREO_ANA)).willReturn(Optional.of(usuario));
         given(perfilRepository.save(any(CreatorProfile.class))).willAnswer(inv -> inv.getArgument(0));
 
-        ProfileResponse respuesta = perfilCreadorServicio.actualizarPerfil(
+        ProfileResponse respuesta = perfilCreadorServicio.updateProfile(
                 10L, new UpdateProfileRequest("mi nueva bio", null, null), CORREO_ANA, false);
 
         assertThat(respuesta.biografia()).isEqualTo("mi nueva bio");
     }
 
     @Test
-    @DisplayName("eliminarPerfil borra cuando existe")
+    @DisplayName("deleteProfile borra cuando existe")
     void eliminarPerfil_borraCuandoExiste() {
         given(perfilRepository.existsById(10L)).willReturn(true);
 
-        perfilCreadorServicio.eliminarPerfil(10L);
+        perfilCreadorServicio.deleteProfile(10L);
 
         verify(perfilRepository).deleteById(10L);
     }
 
     @Test
-    @DisplayName("eliminarPerfil lanza recurso no encontrado si no existe")
+    @DisplayName("deleteProfile lanza recurso no encontrado si no existe")
     void eliminarPerfil_inexistente() {
         given(perfilRepository.existsById(10L)).willReturn(false);
 
-        assertThatThrownBy(() -> perfilCreadorServicio.eliminarPerfil(10L))
+        assertThatThrownBy(() -> perfilCreadorServicio.deleteProfile(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

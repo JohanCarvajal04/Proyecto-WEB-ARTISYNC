@@ -18,7 +18,7 @@ public interface IPortfolioService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el perfil ya tiene un portafolio
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no tiene permiso sobre el perfil indicado
      */
-    PortfolioResponse crearPortafolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado);
+    PortfolioResponse createPortfolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado);
 
     /**
      * Obtiene un portafolio por su id.
@@ -27,7 +27,7 @@ public interface IPortfolioService {
      * @return el portafolio encontrado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
-    PortfolioResponse obtenerPortafolioPorId(Long idPortafolio);
+    PortfolioResponse getPortfolioById(Long idPortafolio);
 
     /**
      * Obtiene el portafolio asociado a un perfil de creador.
@@ -36,14 +36,14 @@ public interface IPortfolioService {
      * @return el portafolio del perfil
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no tiene portafolio
      */
-    PortfolioResponse obtenerPortafolioPorPerfil(Long idPerfil);
+    PortfolioResponse getPortfolioByProfile(Long idPerfil);
 
     /**
      * Lista todos los portafolios registrados.
      *
      * @return todos los portafolios
      */
-    List<PortfolioResponse> listarPortafolios();
+    List<PortfolioResponse> listPortfolios();
 
     /**
      * Actualiza los datos de un portafolio. Solo su dueño puede modificarlo.
@@ -55,7 +55,7 @@ public interface IPortfolioService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño del portafolio
      */
-    PortfolioResponse actualizarPortafolio(Long idPortafolio, UpdatePortfolioRequest peticion, Long idUsuarioLogueado);
+    PortfolioResponse updatePortfolio(Long idPortafolio, UpdatePortfolioRequest peticion, Long idUsuarioLogueado);
 
     /**
      * Incrementa el contador de visitas de un portafolio.
@@ -72,5 +72,5 @@ public interface IPortfolioService {
      * @param idPortafolio id del portafolio a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
-    void eliminarPortafolio(Long idPortafolio);
+    void deletePortfolio(Long idPortafolio);
 }

@@ -43,7 +43,7 @@ public interface AiCertificateRepository extends JpaRepository<AiCertificate, Lo
      */
 
     @Query(value = "SELECT * FROM fn_listar_cola_verificacion(:estado, :limite, :offset)", nativeQuery = true)
-    List<VerificationQueueProjection> listarCola(
+    List<VerificationQueueProjection> listQueue(
             @Param("estado") String estado,
             @Param("limite") int limite,
             @Param("offset") int offset);
@@ -58,7 +58,7 @@ public interface AiCertificateRepository extends JpaRepository<AiCertificate, Lo
      * @param nota justificación de la decisión
      */
     @Procedure(procedureName = "sp_registrar_decision_verificacion")
-    void registrarDecision(
+    void recordDecision(
             @Param("p_id_certificado") Long idCertificado,
             @Param("p_id_estado") Long idEstado,
             @Param("p_id_moderador") Long idModerador,

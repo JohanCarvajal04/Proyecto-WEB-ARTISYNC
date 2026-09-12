@@ -39,7 +39,7 @@ class CertificadoIaRepositoryIT {
                     "FROM estados_verificacion WHERE nombre_estado = 'PENDIENTE'"
     })
     void listarCola_devuelveFilaPendienteConNombreDeCreador() {
-        var cola = certificadoIaRepository.listarCola("PENDIENTE", 10, 0);
+        var cola = certificadoIaRepository.listQueue("PENDIENTE", 10, 0);
 
         assertThat(cola).anySatisfy(fila -> {
             assertThat(fila.getIdCertificado()).isEqualTo(9001L);
@@ -61,7 +61,7 @@ class CertificadoIaRepositoryIT {
     void registrarDecision_escribeEstadoModeradorYMarcaDocumentoEliminado() {
         Long idEstadoAprobado = obtenerIdEstado("APROBADO");
 
-        certificadoIaRepository.registrarDecision(9002L, idEstadoAprobado, 9002L, "Documento verificado a simple vista.");
+        certificadoIaRepository.recordDecision(9002L, idEstadoAprobado, 9002L, "Documento verificado a simple vista.");
 
         AiCertificate actualizado = certificadoIaRepository.findById(9002L).orElseThrow();
         assertThat(actualizado.getEstadoVerificacion().getIdEstadoVerificacion()).isEqualTo(idEstadoAprobado);
@@ -83,7 +83,7 @@ class CertificadoIaRepositoryIT {
     void registrarDecision_requiereAclaracion_noMarcaDocumentoEliminado() {
         Long idEstadoRequiereAclaracion = obtenerIdEstado("REQUIERE_ACLARACION");
 
-        certificadoIaRepository.registrarDecision(9004L, idEstadoRequiereAclaracion, 9004L, "Falta el reverso del documento.");
+        certificadoIaRepository.recordDecision(9004L, idEstadoRequiereAclaracion, 9004L, "Falta el reverso del documento.");
 
         AiCertificate actualizado = certificadoIaRepository.findById(9004L).orElseThrow();
         assertThat(actualizado.getEstadoVerificacion().getIdEstadoVerificacion()).isEqualTo(idEstadoRequiereAclaracion);
@@ -103,11 +103,11 @@ class CertificadoIaRepositoryIT {
     void registrarDecision_certificadoYaNoPendiente_lanzaExcepcion() {
         Long idEstadoAprobado = obtenerIdEstado("APROBADO");
         Long idEstadoRechazado = obtenerIdEstado("RECHAZADO");
-        certificadoIaRepository.registrarDecision(9006L, idEstadoAprobado, 9006L, "Primera decisión.");
+        certificadoIaRepository.recordDecision(9006L, idEstadoAprobado, 9006L, "Primera decisión.");
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.dao.DataAccessException.class,
-                () -> certificadoIaRepository.registrarDecision(9006L, idEstadoRechazado, 9006L, "Segunda decisión, no debería aplicarse."));
+                () -> certificadoIaRepository.recordDecision(9006L, idEstadoRechazado, 9006L, "Segunda decisión, no debería aplicarse."));
     }
 
     private Long obtenerIdEstado(String nombre) {
