@@ -24,12 +24,23 @@ import org.springframework.data.jpa.domain.Specification;
 @Repository
 public interface OfferingRepository extends JpaRepository<Offering, Long>, JpaSpecificationExecutor<Offering> {
 
+    /**
+     * Igual que {@code findAll(spec, pageable)} estándar, pero con fetch join
+     * de {@code perfil}/{@code perfil.usuario} para evitar el N+1 al mapear
+     * cada fila del catálogo a su respuesta (que incluye datos del creador).
+     *
+     * @param spec filtros dinámicos a aplicar
+     * @param pageable configuración de paginación y ordenamiento
+     * @return la página de servicios con el perfil del creador ya cargado
+     */
     @Override
     @EntityGraph(attributePaths = {"perfil", "perfil.usuario"})
     Page<Offering> findAll(Specification<Offering> spec, Pageable pageable);
 
+    /** Servicios publicados por un perfil de creador. */
     List<Offering> findByPerfilIdPerfil(Long idPerfil);
 
+    /** Servicios de un perfil de creador en un estado de publicación dado. */
     List<Offering> findByPerfilIdPerfilAndEstadoPublicacion(Long idPerfil, String estadoPublicacion);
 }
 

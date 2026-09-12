@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/** Respuesta con los datos de una categoría del catálogo. */
 @Data
 @Builder
 @NoArgsConstructor

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** Respuesta con el progreso de un pedido dentro de su flujo de trabajo. */
 @Data
 @Builder
 @NoArgsConstructor

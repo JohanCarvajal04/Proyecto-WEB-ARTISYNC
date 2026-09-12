@@ -105,27 +105,21 @@ public class PdfGenerator implements ReportGenerator {
         }
     }
 
-    /** Vista de {@link ReportTotal} con el valor ya formateado a texto para la plantilla. */
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Vista de {@link ReportTotal} con el valor ya formateado a texto para la plantilla.
      *
-     * @param etiqueta parametro requerido para la correcta ejecucion del procedimiento
-     * @param valorTexto parametro requerido para la correcta ejecucion del procedimiento
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param etiqueta nombre del total a mostrar
+     * @param valorTexto valor ya formateado como moneda/texto, listo para la plantilla
      */
     public record TotalConTexto(String etiqueta, String valorTexto) {
     }
 
-    /** Vista de gráfica estadística convertida a Data URI para incrustación directa en HTML/PDF. */
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Vista de gráfica estadística convertida a Data URI para incrustación directa en HTML/PDF.
      *
-     * @param titulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param subtitulo parametro requerido para la correcta ejecucion del procedimiento
-     * @param dataUri parametro requerido para la correcta ejecucion del procedimiento
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param titulo título de la gráfica
+     * @param subtitulo subtítulo o descripción breve de la gráfica
+     * @param dataUri imagen de la gráfica codificada como Data URI (base64)
      */
     public record GraficaConDataUri(String titulo, String subtitulo, String dataUri) {
     }

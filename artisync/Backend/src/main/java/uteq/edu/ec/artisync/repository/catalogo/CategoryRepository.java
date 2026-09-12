@@ -19,14 +19,19 @@ import java.util.Optional;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
+    /** Categorías activas, para el catálogo público, ordenadas alfabéticamente. */
     List<Category> findByEstadoActivaTrueOrderByNombreCategoriaAsc();
 
+    /** Todas las categorías (incluidas inactivas), para administración, ordenadas alfabéticamente. */
     List<Category> findAllByOrderByNombreCategoriaAsc();
 
+    /** Categoría por nombre exacto, sin distinguir mayúsculas/minúsculas. */
     Optional<Category> findByNombreCategoriaIgnoreCase(String nombreCategoria);
 
+    /** @return {@code true} si ya existe una categoría con ese nombre (sin distinguir mayúsculas/minúsculas) */
     boolean existsByNombreCategoriaIgnoreCase(String nombreCategoria);
 
+    /** Categorías creadas por un creador aún sin revisar por un moderador, más recientes primero. */
     List<Category> findByRevisadoFalseOrderByActualizadoEnDesc();
 }
 

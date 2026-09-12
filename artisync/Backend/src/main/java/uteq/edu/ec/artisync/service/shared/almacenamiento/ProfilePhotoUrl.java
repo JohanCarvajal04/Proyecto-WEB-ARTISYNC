@@ -2,7 +2,7 @@ package uteq.edu.ec.artisync.service.shared.almacenamiento;
 
 /**
  * Traduce la referencia de almacenamiento cruda (p. ej. "perfiles/uuid.jpg",
- * tal como la guarda {@link uteq.edu.ec.artisync.entity.seguridad.User#getUrlFotoPerfil()})
+ * tal como la guarda {@code User.getUrlFotoPerfil()})
  * en la URL pública que sirve {@code UserController.servirFotoPerfil}.
  *
  * <p>Único punto de esta regla: antes solo vivía dentro de UserMapper, y

@@ -31,6 +31,14 @@ public class RevisionTicketExpirationService {
     private final RevisionTicketPaymentRepository pagoTicketRevisionRepository;
     private final NotificationService notificacionService;
 
+    /**
+     * Rechaza automáticamente un ticket de revisión sin pago confirmado a
+     * tiempo y expira su pago asociado si seguía {@code Pendiente}. Relee el
+     * ticket con lock antes de actuar por si el creador ya lo resolvió o el
+     * webhook de PayPal ya confirmó el pago mientras tanto.
+     *
+     * @param idTicket identificador del ticket de revisión a expirar
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Auditable(accion = "TICKET_EXPIRAR", modulo = AuditModule.PEDIDOS,
             correoActor = "'sistema:scheduler'",

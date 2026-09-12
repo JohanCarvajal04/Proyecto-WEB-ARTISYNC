@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/** Categoría del catálogo de servicios. Puede crearla un admin/moderador (ya revisada) o un creador (pendiente de revisión). */
 @Entity
 @Table(name = "categorias")
 @Getter

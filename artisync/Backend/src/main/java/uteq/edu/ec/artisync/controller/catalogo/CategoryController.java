@@ -18,6 +18,7 @@ import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
 
 import java.util.List;
 
+/** Consulta y gestión (creación, edición, moderación) de categorías del catálogo. */
 @RestController
 @RequestMapping("/api/v1/categorias")
 @RequiredArgsConstructor

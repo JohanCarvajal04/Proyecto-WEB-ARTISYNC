@@ -28,6 +28,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
     private List<String> allowedOrigins;
 
+    /**
+     * Habilita el broker simple en memoria para {@code /topic} y {@code /queue}
+     * y fija los prefijos de destino: {@code /app} para los métodos
+     * {@code @MessageMapping}, {@code /user} para mensajes dirigidos a un
+     * usuario específico.
+     *
+     * @param config registro de configuración del broker de mensajes
+     */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Broker en memoria para suscripciones a tópicos y colas de usuario
@@ -38,6 +46,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.setUserDestinationPrefix("/user");
     }
 
+    /**
+     * Registra el endpoint {@code /ws} con SockJS como fallback para
+     * navegadores sin soporte nativo de WebSocket, restringido a los orígenes
+     * configurados en {@link #allowedOrigins}.
+     *
+     * @param registry registro de endpoints STOMP
+     */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
@@ -45,6 +60,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .withSockJS();  // Fallback para navegadores sin soporte nativo WebSocket
     }
 
+    /**
+     * Encadena {@link #webSocketAuthInterceptor} (valida el JWT del handshake y
+     * lo deja en {@code accessor.setUser()}) seguido de
+     * {@link SecurityContextChannelInterceptor} (publica esa autenticación en
+     * {@code SecurityContextHolder} para el hilo que procesa el mensaje). El
+     * orden importa: invertirlo deja sin autenticación al hilo del mensaje.
+     *
+     * @param registration registro de interceptores del canal de entrada del cliente
+     */
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         // Orden importa: webSocketAuthInterceptor valida el JWT y deja la

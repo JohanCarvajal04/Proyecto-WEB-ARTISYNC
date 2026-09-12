@@ -51,7 +51,7 @@ public class NotificationController {
      * @param id identificador de la notificación
      * @param userDetails usuario autenticado propietario de la notificación
      * @return la notificación actualizada
-     * @throws ResourceNotFoundException si la notificación no existe o no pertenece al usuario
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la notificación no existe o no pertenece al usuario
      */
     @Operation(summary = "Marcar una notificación como leída")
     @PutMapping("/{id}/leer")

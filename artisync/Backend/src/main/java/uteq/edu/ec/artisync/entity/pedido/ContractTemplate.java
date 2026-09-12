@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/** Plantilla de contrato: del catálogo general curado por ADMIN, o privada de un creador (V45). */
 @Entity
 @Table(name = "plantillas_contrato")
 @Getter

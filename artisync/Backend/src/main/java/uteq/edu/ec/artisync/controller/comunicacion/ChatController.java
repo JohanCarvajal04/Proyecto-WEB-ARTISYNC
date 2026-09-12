@@ -41,7 +41,7 @@ public class ChatController {
      * @param userDetails usuario autenticado que solicita el historial
      * @return página con los mensajes de la sala de chat
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe sala de chat para el pedido
-     * @throws BusinessRuleException si el usuario no participa en el pedido
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no participa en el pedido
      */
     @Operation(summary = "Historial de mensajes de un pedido (paginado)")
     @GetMapping("/mensajes")
@@ -61,7 +61,7 @@ public class ChatController {
      * @param userDetails usuario autenticado que envía el mensaje
      * @return el mensaje enviado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe sala de chat para el pedido
-     * @throws BusinessRuleException si el usuario no participa en el pedido, la sala está cerrada o el mensaje contiene datos de contacto
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no participa en el pedido, la sala está cerrada o el mensaje contiene datos de contacto
      */
     @Operation(summary = "Enviar mensaje por REST (fallback sin WebSocket)")
     @PostMapping("/mensajes")
@@ -82,7 +82,7 @@ public class ChatController {
      * @param userDetails usuario autenticado que consulta el estado
      * @return el estado de la sala de chat
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe sala de chat para el pedido
-     * @throws BusinessRuleException si el usuario no participa en el pedido
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no participa en el pedido
      */
     @Operation(summary = "Estado actual de la sala de chat de un pedido")
     @GetMapping("/estado")
@@ -103,7 +103,7 @@ public class ChatController {
      *
      * @param peticion mensaje entrante con el identificador del pedido y el cuerpo del mensaje
      * @param userDetails usuario autenticado que envía el mensaje
-     * @throws BusinessRuleException si no se indica el identificador del pedido, el usuario no participa en él,
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica el identificador del pedido, el usuario no participa en él,
      *      la sala está cerrada o el mensaje contiene datos de contacto
      */
     @MessageMapping("/chat.enviar")

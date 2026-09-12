@@ -23,6 +23,13 @@ public class IaConfig {
 
     private final AiProperties iaProperties;
 
+    /**
+     * Cliente HTTP para el proveedor de IA configurado, con timeout de
+     * conexión y lectura acotado a {@code iaProperties.getTimeoutSeconds()}
+     * para que una respuesta lenta del proveedor no cuelgue la petición.
+     *
+     * @return un {@link RestClient} configurado con el timeout del proveedor de IA
+     */
     @Bean("iaRestClient")
     public RestClient iaRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();

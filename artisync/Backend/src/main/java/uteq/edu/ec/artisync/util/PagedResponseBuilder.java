@@ -7,6 +7,13 @@ import java.util.function.Function;
 
 public class PagedResponseBuilder {
 
+    /**
+     * Convierte una {@link Page} de Spring Data en un {@link PagedResponse},
+     * sin transformar el contenido.
+     *
+     * @param page página de origen
+     * @return el {@link PagedResponse} equivalente, con el mismo contenido
+     */
     public static <T> PagedResponse<T> build(Page<T> page) {
         return PagedResponse.<T>builder()
                 .content(page.getContent())
@@ -18,6 +25,14 @@ public class PagedResponseBuilder {
                 .build();
     }
 
+    /**
+     * Convierte una {@link Page} en un {@link PagedResponse}, mapeando cada
+     * elemento del contenido individualmente (una llamada a {@code mapper} por fila).
+     *
+     * @param page página de origen
+     * @param mapper función de mapeo elemento a elemento (p. ej. entidad → DTO)
+     * @return el {@link PagedResponse} con el contenido ya mapeado
+     */
     public static <T, R> PagedResponse<R> buildAndMap(Page<T> page, Function<T, R> mapper) {
         List<R> mappedContent = page.getContent().stream()
                 .map(mapper)

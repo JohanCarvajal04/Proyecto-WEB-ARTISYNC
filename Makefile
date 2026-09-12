@@ -16,7 +16,7 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f artisync/docker-compose.yml --env-file artisync/.env
 
-.PHONY: all up up-backend-publico down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check
+.PHONY: all up up-backend-publico down test bench bench-auth bench-auth-cold perf-stats audit audit-sql-dynamic audit-zap clean sus lighthouse lighthouse_wait_backend docs srs sync-procs sync-procs-check javadoc
 
 # Imagen con pandoc + LaTeX para generar PDFs sin exigir una instalacion local
 # de TeX. Se puede sobreescribir: make srs PANDOC_IMAGE=otra/imagen
@@ -424,3 +424,12 @@ srs:
 	@echo "OK: docs/requisitos/SRS-v1.3.0.pdf generado."
 	@echo "    Recuerda: el PDF solo cierra el criterio D0R cuando lleva la firma"
 	@echo "    de aprobacion del docente-director (seccion 8 del SRS)."
+
+## OBS-TR-02 / criterio guia §3.10: los metodos publicos de controladores y de
+## interfaces de servicio (excluyendo service/shared/** e impl/**, que hereda
+## el Javadoc de la interfaz) documentan @param, @return y @throws. Este
+## target debe correr en verde (0 errores de Javadoc) antes de declarar el
+## criterio cumplido; ver scripts/medir-javadoc.sh para la cifra de cobertura.
+javadoc:
+	cd artisync/Backend && ./mvnw -o javadoc:javadoc
+	@echo "OK: Javadoc generado sin errores en artisync/Backend/target/reports/apidocs/index.html"

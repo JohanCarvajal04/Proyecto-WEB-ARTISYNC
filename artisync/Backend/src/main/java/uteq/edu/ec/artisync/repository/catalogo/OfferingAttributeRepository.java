@@ -19,12 +19,16 @@ import java.util.Optional;
 @Repository
 public interface OfferingAttributeRepository extends JpaRepository<OfferingAttribute, Long> {
 
+    /** Cantidad de atributos dinámicos asignados a un servicio. */
     long countByServicioIdServicio(Long idServicio);
 
+    /** Atributos dinámicos (valor por atributo) asignados a un servicio. */
     List<OfferingAttribute> findByServicioIdServicio(Long idServicio);
 
+    /** Valor de un atributo dinámico puntual en un servicio, si está asignado. */
     Optional<OfferingAttribute> findByServicioIdServicioAndAtributoIdAtributo(Long idServicio, Long idAtributo);
 
+    /** Elimina todos los atributos dinámicos asignados a un servicio. */
     void deleteByServicioIdServicio(Long idServicio);
 }
 

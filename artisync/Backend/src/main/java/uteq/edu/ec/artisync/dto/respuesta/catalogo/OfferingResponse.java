@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** Respuesta con el detalle completo de un servicio del catálogo. */
 @Data
 @Builder
 @NoArgsConstructor
@@ -39,6 +40,7 @@ public class OfferingResponse {
     private List<TagResponse> etiquetas;
     private LocalDateTime actualizadoEn;
 
+    /** Una pregunta del cuestionario asignado al servicio. */
     @lombok.Data
     @lombok.Builder
     @lombok.NoArgsConstructor

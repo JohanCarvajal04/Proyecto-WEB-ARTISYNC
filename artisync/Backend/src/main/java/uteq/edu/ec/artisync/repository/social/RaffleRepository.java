@@ -20,16 +20,16 @@ import java.util.List;
 @Repository
 public interface RaffleRepository extends JpaRepository<Raffle, Long> {
 
-    /** Ya existÃ­a â€” usado internamente. Mantenido por compatibilidad. */
+    /** Ya existía — usado internamente. Mantenido por compatibilidad. */
     List<Raffle> findByFechaCierreLessThanEqualAndEstadoSorteo(LocalDateTime fecha, String estadoSorteo);
 
-    /** Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasÃ³. */
+    /** Usado por el Scheduler para obtener sorteos "Activos" cuya fecha de cierre ya pasó. */
     List<Raffle> findByEstadoSorteoAndFechaCierreBefore(String estadoSorteo, LocalDateTime ahora);
 
-    /** Sorteos pÃºblicos de un creador especÃ­fico. */
+    /** Sorteos públicos de un creador específico. */
     List<Raffle> findByPerfilCreadorIdPerfil(Long idPerfil);
 
-    /** Todos los sorteos con estado "Activo" (listado pÃºblico). */
+    /** Todos los sorteos con estado "Activo" (listado público). */
     List<Raffle> findByEstadoSorteo(String estadoSorteo);
 
     /**
@@ -37,9 +37,9 @@ public interface RaffleRepository extends JpaRepository<Raffle, Long> {
      * en bloque. Devuelve JSONB serializado como texto.
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
      * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
      */
     @Query(value = "SELECT fn_seleccionar_ganadores_sorteo(:p_id_sorteo)::text", nativeQuery = true)
     String seleccionarGanadores(@Param("p_id_sorteo") Long idSorteo);

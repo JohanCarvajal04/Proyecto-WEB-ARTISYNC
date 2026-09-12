@@ -36,6 +36,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
     private final StringRedisTemplate redisTemplate;
 
+    /**
+     * Autentica la petición a partir de un Bearer access token, si lo hay y es válido.
+     * Deja pasar sin autenticar (nunca corta la cadena) cuando no hay cabecera
+     * {@code Authorization}, el token no es {@code type=access}, está expirado o
+     * es inválido — el endpoint protegido es quien decide si exige autenticación.
+     *
+     * @param request petición HTTP en curso
+     * @param response respuesta HTTP; recibe un 503 fail-closed solo si Redis
+     *                 no es alcanzable para comprobar la lista negra de tokens
+     * @param filterChain resto de la cadena de filtros
+     * @throws IOException si falla la escritura de la respuesta 503
+     * @throws ServletException propagada de {@code filterChain.doFilter}
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -58,7 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // peticiones HTTP. Antes era lista negra (rechazaba solo type=refresh),
             // lo que aceptaba en silencio cualquier token futuro sin "type" o con un
             // tipo desconocido (p. ej. el ticket pre-auth de 2FA, que es opaco y nunca
-            // llega aqui, pero un JWT mal formado con otro "type" sÃ­ colarÃ­a).
+            // llega aqui, pero un JWT mal formado con otro "type" sí colaría).
             if (!TIPO_ACCESO.equals(claims.get("type"))) {
                 log.debug("Token sin claim type=access rechazado en el filtro.");
                 filterChain.doFilter(request, response);
@@ -74,8 +87,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
             } catch (org.springframework.dao.DataAccessException e) {
-                log.error("ðŸš¨ ALERTA CRÃTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).", e);
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Offering de autenticaciÃ³n temporalmente no disponible (Redis Blacklist inalcanzable).");
+                log.error("🚨 ALERTA CRÍTICA DE SEGURIDAD (S-05/S-10): No se pudo contactar a Redis para verificar Blacklist de tokens. Rechazando solicitud por seguridad (Fail-Closed).", e);
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Offering de autenticación temporalmente no disponible (Redis Blacklist inalcanzable).");
                 return;
             }
 
@@ -85,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // Â§2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
+                // §2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
                 // y el titular, que la cuenta siga habilitada y no bloqueada. Antes el
                 // filtro ignoraba por completo userDetails.isEnabled(), asi que una
                 // cuenta suspendida seguia autenticando hasta que expirara el token
@@ -101,15 +114,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
                     log.debug("Token rechazado por esAccessTokenValido (cuenta deshabilitada o titular no coincide): {}", username);
-                    request.setAttribute("JWT_ERROR", "Credenciales invÃ¡lidas o cuenta deshabilitada");
+                    request.setAttribute("JWT_ERROR", "Credenciales inválidas o cuenta deshabilitada");
                 }
             }
         } catch (ExpiredJwtException e) {
             log.debug("Token JWT expirado: {}", e.getMessage());
             request.setAttribute("JWT_ERROR", "Token expirado");
         } catch (Exception e) {
-            log.debug("Token JWT invÃ¡lido o malformado: {}", e.getMessage());
-            request.setAttribute("JWT_ERROR", "Credenciales invÃ¡lidas o token malformado");
+            log.debug("Token JWT inválido o malformado: {}", e.getMessage());
+            request.setAttribute("JWT_ERROR", "Credenciales inválidas o token malformado");
         }
 
         filterChain.doFilter(request, response);

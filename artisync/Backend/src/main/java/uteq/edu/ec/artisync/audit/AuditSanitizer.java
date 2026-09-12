@@ -37,6 +37,17 @@ public final class AuditSanitizer {
     private AuditSanitizer() {
     }
 
+    /**
+     * Enmascara los valores de claves sensibles (contraseñas, tokens, JTI,
+     * códigos, mensajes, documentos/archivos) con {@code "***"} y normaliza el
+     * resto a String/Number/Boolean/null, recursivamente sobre mapas y listas,
+     * antes de que el mapa se persista en la columna JSONB {@code detalle_cambio}.
+     *
+     * @param origen mapa de detalle crudo a sanitizar; {@code null} o vacío devuelve un mapa vacío
+     * @return el mapa sanitizado y normalizado, recortado a
+     *         {@value #MAX_LONGITUD_JSON} bytes aproximados (con
+     *         {@code _truncado} en lugar del contenido si lo excede)
+     */
     public static Map<String, Object> sanitizar(Map<String, Object> origen) {
         if (origen == null || origen.isEmpty()) {
             return Map.of();

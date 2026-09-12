@@ -18,7 +18,7 @@ import lombok.Data;
 public class PaymentDetailsRequest {
 
     @NotBlank(message = "El correo de PayPal es obligatorio")
-    @Email(message = "El correo de PayPal no tiene un formato vÃ¡lido")
+    @Email(message = "El correo de PayPal no tiene un formato válido")
     @Size(max = 150, message = "El correo de PayPal no puede superar los 150 caracteres")
     private String correoPaypal;
 }

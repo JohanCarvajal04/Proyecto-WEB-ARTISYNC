@@ -8,8 +8,24 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Filtros dinámicos de búsqueda del panel de auditoría (bitácora de eventos). */
 public class AuditEventSpecification {
 
+    /**
+     * Arma la {@link Specification} de {@link AuditEvent} combinando (AND) solo
+     * los criterios no nulos/no vacíos recibidos; sin ningún filtro, no
+     * restringe nada.
+     *
+     * @param correoActor coincidencia parcial (contiene), insensible a mayúsculas, sobre el correo del actor
+     * @param accion acción de auditoría exacta (p. ej. "USUARIO_CREAR")
+     * @param modulo módulo de negocio exacto
+     * @param resultado resultado del evento exacto (éxito/error)
+     * @param entidad nombre de la entidad afectada, exacto
+     * @param idEntidad identificador de la entidad afectada
+     * @param desde fecha/hora mínima del evento (inclusive)
+     * @param hasta fecha/hora máxima del evento (inclusive)
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
     public static Specification<AuditEvent> conFiltros(
             String correoActor,
             String accion,

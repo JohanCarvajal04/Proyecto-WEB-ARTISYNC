@@ -29,6 +29,12 @@ public class BackupRetentionScheduler {
     private final BackupProperties respaldoProperties;
     private final BackupFileStorage storage;
 
+    /**
+     * Elimina (registro + archivo en disco) los respaldos {@code COMPLETADO}
+     * cuya retención ya venció y que son seguros de borrar (ver {@link #esSeguroEliminar}).
+     * Corre a las 4:00 AM; cada respaldo se procesa en su propio try/catch para
+     * que un fallo puntual no bloquee el resto del barrido.
+     */
     @Scheduled(cron = "0 0 4 * * *")
     public void purgarRespaldosVencidos() {
         for (Backup respaldo : respaldoRepository.findByEstadoRespaldo(BackupStatus.COMPLETADO)) {

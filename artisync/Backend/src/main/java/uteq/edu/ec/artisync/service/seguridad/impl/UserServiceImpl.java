@@ -45,11 +45,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param correo correo electrónico del usuario autenticado
+     * @return los datos del usuario
+     * @throws org.springframework.web.server.ResponseStatusException 404 si no existe un usuario con ese correo
      */
     public UserResponse getCurrentUser(String correo) {
         User usuario = usuarioRepository.findByCorreo(correo)
@@ -61,12 +59,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Actualiza los datos personales del usuario autenticado; los campos {@code null} u
+     * omitidos en la petición no se modifican.
      *
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param correo correo electrónico del usuario autenticado
+     * @param request campos a actualizar (nombres, apellidos, fecha de nacimiento, país)
+     * @return el usuario ya actualizado
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe,
+     *         o 400 si el país indicado no existe
      */
     public UserResponse updateCurrentUser(String correo, UpdateUserRequest request) {
         User usuario = usuarioRepository.findByCorreo(correo)
@@ -95,12 +95,15 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Cambia la contraseña del usuario autenticado y revoca todas sus sesiones
+     * activas, para forzar un nuevo inicio de sesión con la contraseña nueva.
      *
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param correo correo electrónico del usuario autenticado
+     * @param request contraseña actual (para verificar identidad) y contraseña nueva
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe,
+     *         400 si la contraseña actual no coincide, o 409 si otra sesión cambió la contraseña
+     *         concurrentemente (compare-and-swap de {@code sp_cambiar_contrasena})
      */
     public RespuestaMensaje changePassword(String correo, ChangePasswordRequest request) {
         User usuario = usuarioRepository.findByCorreo(correo)
@@ -131,11 +134,12 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     * Desactiva (soft delete) la cuenta del usuario autenticado y revoca sus
+     * sesiones activas de forma atómica.
      *
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param correo correo electrónico del usuario autenticado
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public RespuestaMensaje deleteOwnAccount(String correo) {
         User usuario = usuarioRepository.findByCorreo(correo)
@@ -152,11 +156,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param correo correo electrónico del usuario autenticado
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public RespuestaMensaje revokeAllMySessions(String correo) {
         User usuario = usuarioRepository.findByCorreo(correo)
@@ -168,12 +170,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Sube una nueva foto de perfil, reemplazando la anterior en el almacenamiento
+     * (si existía; un fallo al borrar la anterior no interrumpe la subida).
      *
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @param file objeto binario multipart representando el documento o medio fisico
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param correo correo electrónico del usuario autenticado
+     * @param file archivo de imagen, validado contra {@code FilePolicy.PERFIL}
+     * @return el usuario con la URL de foto de perfil actualizada
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public UserResponse uploadProfilePicture(String correo, MultipartFile file) {
         FilePolicy.PERFIL.validar(file);

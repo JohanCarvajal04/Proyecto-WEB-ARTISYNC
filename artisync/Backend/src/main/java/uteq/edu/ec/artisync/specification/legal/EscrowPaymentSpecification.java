@@ -15,6 +15,18 @@ import java.util.List;
  */
 public class EscrowPaymentSpecification {
 
+    /**
+     * Arma la {@link Specification} de {@link EscrowPayment} combinando (AND)
+     * solo los criterios no nulos/no vacíos recibidos, navegando
+     * contrato → pedido para llegar a cliente y creador.
+     *
+     * @param estadoFondos estado exacto de los fondos en garantía
+     * @param idPerfilCreador si no es {@code null}, restringe a pagos del creador con ese perfil
+     * @param idUsuarioCliente si no es {@code null}, restringe a pagos de ese cliente
+     * @param desde fecha de formalización del contrato mínima (inclusive)
+     * @param hasta fecha de formalización del contrato máxima (inclusive)
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
     public static Specification<EscrowPayment> conFiltros(
             String estadoFondos,
             Long idPerfilCreador,

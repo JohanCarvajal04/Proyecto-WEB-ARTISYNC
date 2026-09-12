@@ -56,19 +56,21 @@ public class RaffleServiceImpl implements RaffleService {
     // CRUD de Sorteos (CREADOR)
     // =========================================================================
 
+    /**
+     * Crea un sorteo para el perfil de creador del usuario, con sus premios.
+     *
+     * @param idUsuario identificador del creador dueño del sorteo
+     * @param peticion título, fechas, cantidad de ganadores y premios del sorteo
+     * @return el sorteo creado, en estado {@code Activo}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la fecha de cierre es anterior a la
+     *         de inicio, o si la cantidad de premios no coincide con la cantidad de ganadores
+     */
     @Override
     @Transactional
     @Auditable(accion = "SORTEO_CREAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#resultado.idSorteo",
             detalle = "{tituloSorteo: #peticion.tituloSorteo, cantidadGanadores: #peticion.cantidadGanadores}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public RaffleResponse crearSorteo(Long idUsuario, CreateRaffleRequest peticion) {
         var perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -118,16 +120,14 @@ public class RaffleServiceImpl implements RaffleService {
         return premios;
     }
 
+    /**
+     * @param idSorteo identificador del sorteo
+     * @param idUsuarioActual identificador de quien consulta, para saber si ya participa; {@code null} si es anónimo
+     * @return el sorteo, con sus ganadores si ya finalizó
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public RaffleResponse obtenerSorteo(Long idSorteo, Long idUsuarioActual) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
         long total = participanteSorteoRepository.findBySorteoIdSorteo(idSorteo).size();
@@ -152,19 +152,25 @@ public class RaffleServiceImpl implements RaffleService {
                 .stream().map(this::mapToGanadorResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Actualiza un sorteo propio. Si ya tiene participantes inscritos, la
+     * cantidad de ganadores, los premios y la fecha de cierre quedan congelados.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del creador dueño del sorteo
+     * @param peticion campos a actualizar; los {@code null} no se modifican
+     * @return el sorteo ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el
+     *         usuario no tiene perfil de creador
+     * @throws org.springframework.web.server.ResponseStatusException 403 si el usuario no es dueño del sorteo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta cambiar cantidad de
+     *         ganadores, premios o fecha de cierre con participantes ya inscritos, o si la nueva fecha
+     *         de cierre es anterior a la de inicio
+     */
     @Override
     @Transactional
     @Auditable(accion = "SORTEO_ACTUALIZAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public RaffleResponse actualizarSorteo(Long idSorteo, Long idUsuario, UpdateRaffleRequest peticion) {
         Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
         boolean tieneParticipantes = participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo);
@@ -212,18 +218,21 @@ public class RaffleServiceImpl implements RaffleService {
         return mapToResponse(sorteo, null, total, false);
     }
 
+    /**
+     * Elimina un sorteo propio, siempre que no tenga participantes inscritos.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del creador dueño del sorteo
+     * @return mensaje de confirmación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe o el
+     *         usuario no tiene perfil de creador
+     * @throws org.springframework.web.server.ResponseStatusException 403 si el usuario no es dueño del sorteo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya tiene participantes inscritos
+     */
     @Override
     @Transactional
     @Auditable(accion = "SORTEO_ELIMINAR", modulo = AuditModule.SOCIAL,
             entidad = "sorteos", idEntidad = "#idSorteo")
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public RespuestaMensaje eliminarSorteo(Long idSorteo, Long idUsuario) {
         Raffle sorteo = verificarPropietario(idSorteo, idUsuario);
         if (participanteSorteoRepository.existsBySorteoIdSorteo(idSorteo)) {
@@ -235,16 +244,13 @@ public class RaffleServiceImpl implements RaffleService {
         return new RespuestaMensaje("Raffle eliminado correctamente");
     }
 
+    /**
+     * @param idPerfilCreador identificador del perfil de creador
+     * @param idUsuarioActual identificador de quien consulta, para saber en cuáles ya participa; {@code null} si es anónimo
+     * @return los sorteos de ese creador
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<RaffleResponse> listarSorteosPorCreador(Long idPerfilCreador, Long idUsuarioActual) {
         return sorteoRepository.findByPerfilCreadorIdPerfil(idPerfilCreador)
                 .stream()
@@ -258,15 +264,12 @@ public class RaffleServiceImpl implements RaffleService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * @param idUsuarioActual identificador de quien consulta, para saber en cuáles ya participa; {@code null} si es anónimo
+     * @return los sorteos actualmente en estado {@code Activo}
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idUsuarioActual identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<RaffleResponse> listarSorteosActivos(Long idUsuarioActual) {
         return sorteoRepository.findByEstadoSorteo("Activo")
                 .stream()
@@ -284,16 +287,20 @@ public class RaffleServiceImpl implements RaffleService {
     // Participación
     // =========================================================================
 
+    /**
+     * Inscribe a un usuario en un sorteo activo, validando fechas, que no
+     * esté ya inscrito y, si el sorteo lo requiere, que siga al creador.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del usuario que se inscribe
+     * @return la participación creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya está inscrito
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo no está activo, si aún
+     *         no comenzó, si el periodo de inscripción ya cerró, o si requiere seguir al creador y no lo sigue
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public ParticipantResponse participar(Long idSorteo, Long idUsuario) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
 
@@ -337,16 +344,18 @@ public class RaffleServiceImpl implements RaffleService {
         return mapToParticipanteResponse(participante);
     }
 
+    /**
+     * Cancela la inscripción de un usuario en un sorteo aún activo.
+     *
+     * @param idSorteo identificador del sorteo
+     * @param idUsuario identificador del usuario que cancela su inscripción
+     * @return mensaje de confirmación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe, o si el
+     *         usuario no está inscrito
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el sorteo ya finalizó
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public RespuestaMensaje cancelarParticipacion(Long idSorteo, Long idUsuario) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
         if (!"Activo".equals(sorteo.getEstadoSorteo())) {
@@ -363,30 +372,27 @@ public class RaffleServiceImpl implements RaffleService {
         return new RespuestaMensaje("Inscripción cancelada correctamente");
     }
 
+    /**
+     * @param idSorteo identificador del sorteo
+     * @return los participantes inscritos en ese sorteo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<ParticipantResponse> listarParticipantes(Long idSorteo) {
         findSorteoOrThrow(idSorteo); // Valida que existe
         return participanteSorteoRepository.findBySorteoIdSorteo(idSorteo)
                 .stream().map(this::mapToParticipanteResponse).collect(Collectors.toList());
     }
 
+    /**
+     * @param idSorteo identificador del sorteo
+     * @return los ganadores del sorteo, disponibles solo tras su cierre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el sorteo no existe
+     * @throws org.springframework.web.server.ResponseStatusException 409 si el sorteo aún no finalizó
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idSorteo identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<WinnerResponse> listarGanadores(Long idSorteo) {
         Raffle sorteo = findSorteoOrThrow(idSorteo);
         if (!"Finalizado".equals(sorteo.getEstadoSorteo())) {

@@ -31,9 +31,9 @@ import java.util.Map;
  * propósito (ver cabecera de la migración) para que borrar un usuario nunca
  * dispare un UPDATE que el trigger de inmutabilidad rechazaría.
  *
- * @Immutable (Hibernate, no JPA): sin esto, Hibernate reflushea la entidad
+ * {@code @Immutable} (Hibernate, no JPA): sin esto, Hibernate reflushea la entidad
  * completa con un UPDATE justo despues del INSERT -- detalleCambio es un
- * Map<String,Object> mapeado a jsonb via @JdbcTypeCode, y ese tipo de dato
+ * {@code Map<String,Object>} mapeado a jsonb via {@code @JdbcTypeCode}, y ese tipo de dato
  * mutable hace que el dirty-checking por defecto la marque "sucia" tras
  * guardarla aunque nada la haya modificado. Ese UPDATE espureo lo bloqueaban
  * ya el trigger trg_auditoria_eventos_inmutable Y el GRANT restringido a

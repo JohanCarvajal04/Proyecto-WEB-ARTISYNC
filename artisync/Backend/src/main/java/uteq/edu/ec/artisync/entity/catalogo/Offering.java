@@ -12,6 +12,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/** Servicio (o producto) publicado por un creador en el catálogo. */
 @Entity
 @Table(name = "servicios")
 @Getter

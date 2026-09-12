@@ -18,15 +18,19 @@ import java.util.Optional;
 @Repository
 public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
 
+    /** Flujos de trabajo definidos por un creador. */
     List<Workflow> findByCreadorIdUsuario(Long idUsuario);
 
     /** Para quien tiene FLUJO_MODERAR: todos los flujos, de cualquier creador. */
     List<Workflow> findAllByOrderByIdFlujoAsc();
 
+    /** Un flujo puntual, solo si pertenece a ese creador (evita editar el flujo de otro). */
     Optional<Workflow> findByIdFlujoAndCreadorIdUsuario(Long idFlujo, Long idUsuario);
 
+    /** @return {@code true} si ese creador ya tiene un flujo con ese nombre */
     boolean existsByNombreFlujoAndCreadorIdUsuario(String nombreFlujo, Long idUsuario);
 
+    /** @return {@code true} si ese creador ya tiene OTRO flujo (distinto id) con ese nombre; usado al renombrar */
     boolean existsByNombreFlujoAndCreadorIdUsuarioAndIdFlujoNot(String nombreFlujo, Long idUsuario, Long idFlujo);
 
     /**

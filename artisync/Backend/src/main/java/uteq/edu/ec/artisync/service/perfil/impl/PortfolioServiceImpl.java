@@ -40,12 +40,15 @@ public class PortfolioServiceImpl implements IPortfolioService {
     @Override
     @Transactional
     /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * Crea el portafolio de un perfil de creador (relación 1:1), con opciones
+     * de personalización por defecto si no se indican.
      *
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @param idUsuarioLogueado identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param peticion perfil dueño, visibilidad y opciones de personalización
+     * @param idUsuarioLogueado identificador de quien crea; debe ser dueño del perfil
+     * @return el portafolio creado
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el perfil ya tiene un portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien crea no es dueño del perfil
      */
     public PortfolioResponse crearPortafolio(CreatePortfolioRequest peticion, Long idUsuarioLogueado) {
         if (portafolioRepository.findByPerfilIdPerfil(peticion.idPerfil()).isPresent()) {
@@ -79,11 +82,10 @@ public class PortfolioServiceImpl implements IPortfolioService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPortafolio identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPortafolio identificador del portafolio
+     * @return el portafolio solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     *         o su dueño tiene la cuenta desactivada
      */
     public PortfolioResponse obtenerPortafolioPorId(Long idPortafolio) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
@@ -95,11 +97,10 @@ public class PortfolioServiceImpl implements IPortfolioService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPerfil identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPerfil identificador del perfil de creador
+     * @return el portafolio de ese perfil
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no tiene
+     *         portafolio, o su dueño tiene la cuenta desactivada
      */
     public PortfolioResponse obtenerPortafolioPorPerfil(Long idPerfil) {
         Portfolio portafolio = portafolioRepository.findByPerfilIdPerfil(idPerfil)
@@ -124,12 +125,7 @@ public class PortfolioServiceImpl implements IPortfolioService {
 
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
+    /** @return todos los portafolios registrados */
     public List<PortfolioResponse> listarPortafolios() {
         return portafolioRepository.findAll().stream()
                 .map(this::mapearARespuesta)
@@ -142,13 +138,14 @@ public class PortfolioServiceImpl implements IPortfolioService {
             entidad = "portafolios", idEntidad = "#idPortafolio",
             detalle = "{esPublico: #peticion.esPublico}")
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Actualiza la visibilidad y/o las opciones de personalización de un portafolio propio.
      *
-     * @param idPortafolio identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @param idUsuarioLogueado identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPortafolio identificador del portafolio
+     * @param peticion campos a actualizar; los {@code null} no se modifican
+     * @param idUsuarioLogueado identificador de quien edita; debe ser dueño del portafolio
+     * @return el portafolio ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien edita no es su dueño
      */
     public PortfolioResponse actualizarPortafolio(Long idPortafolio, UpdatePortfolioRequest peticion, Long idUsuarioLogueado) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
@@ -173,11 +170,12 @@ public class PortfolioServiceImpl implements IPortfolioService {
     @Override
     @Transactional
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Registra una visita al portafolio, deduplicada por usuario dentro de
+     * una ventana de 24h (una visita real cuenta una sola vez al día).
      *
-     * @param idPortafolio identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPortafolio identificador del portafolio visitado
+     * @param idUsuario identificador del usuario que visita
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     public void incrementarVisitas(Long idPortafolio, Long idUsuario) {
         if (!marcarVisitaSiEsNueva(idPortafolio, idUsuario)) {
@@ -215,10 +213,8 @@ public class PortfolioServiceImpl implements IPortfolioService {
     @Auditable(accion = "PORTAFOLIO_ELIMINAR", modulo = AuditModule.PORTAFOLIO,
             entidad = "portafolios", idEntidad = "#idPortafolio")
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idPortafolio identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPortafolio identificador del portafolio a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     public void eliminarPortafolio(Long idPortafolio) {
         if (!portafolioRepository.existsById(idPortafolio)) {

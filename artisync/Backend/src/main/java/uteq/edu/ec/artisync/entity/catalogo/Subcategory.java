@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/** Subcategoría de una categoría del catálogo. Puede crearla un admin/moderador (ya revisada) o un creador (pendiente de revisión). */
 @Entity
 @Table(name = "subcategorias")
 @Getter

@@ -30,6 +30,14 @@ public class TlsMeasurementConfig {
     @Value("${app.medicion.tls.keystore-password}")
     private String passwordKeystore;
 
+    /**
+     * Añade un conector HTTPS adicional (TLS 1.3, cifrado
+     * TLS_AES_256_GCM_SHA384) en {@link #puertoTls}, sin reemplazar el
+     * conector HTTP plano del puerto 8080 que usan el resto de las
+     * mediciones (k6, A01, A03, A05, A07).
+     *
+     * @return el customizer que registra el conector TLS adicional en Tomcat
+     */
     @Bean
     public WebServerFactoryCustomizer<TomcatServletWebServerFactory> conectorTlsAdicional() {
         return factory -> {

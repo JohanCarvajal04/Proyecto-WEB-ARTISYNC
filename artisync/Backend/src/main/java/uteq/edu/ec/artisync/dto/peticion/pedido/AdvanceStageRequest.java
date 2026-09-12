@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AdvanceStageRequest {
 
-    @Size(max = 2000, message = "La observaciÃ³n no puede superar los 2000 caracteres")
+    @Size(max = 2000, message = "La observación no puede superar los 2000 caracteres")
     private String observacion;
 }
 

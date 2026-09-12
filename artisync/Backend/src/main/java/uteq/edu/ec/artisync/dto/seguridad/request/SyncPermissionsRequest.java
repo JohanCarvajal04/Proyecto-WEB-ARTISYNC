@@ -25,7 +25,7 @@ public class SyncPermissionsRequest {
     @NotBlank(message = "El nombre del rol es obligatorio")
     private String roleName;
 
-    @NotNull(message = "La lista de cÃ³digos de permisos es obligatoria")
+    @NotNull(message = "La lista de códigos de permisos es obligatoria")
     private List<String> permissionCodes;
 }
 

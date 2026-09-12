@@ -11,7 +11,7 @@ import uteq.edu.ec.artisync.entity.comunicacion.MessageViolation;
 import java.time.LocalDateTime;
 
 /**
- * Repositorio de acceso a datos para la entidad de dominio {@link Infraccion}.
+ * Repositorio de acceso a datos para la entidad de dominio {@link MessageViolation}.
  * 
  * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
  * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
@@ -21,8 +21,10 @@ import java.time.LocalDateTime;
 @Repository
 public interface ViolationRepository extends JpaRepository<MessageViolation, Long> {
 
+    /** Cantidad de infracciones de un usuario desde una fecha (usado para la ventana de 30 días de REQ-F-015). */
     long countByUsuarioIdUsuarioAndFechaInfraccionAfter(Long idUsuario, LocalDateTime fecha);
 
+    /** Infracciones de mensajería de un usuario, paginadas. */
     Page<MessageViolation> findByUsuarioIdUsuario(Long idUsuario, Pageable pageable);
 
     /**
@@ -30,9 +32,9 @@ public interface ViolationRepository extends JpaRepository<MessageViolation, Lon
      * suspende la cuenta al llegar a 3. Devuelve JSONB serializado como texto.
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
      * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
      */
     @Query(value = "SELECT fn_registrar_infraccion(:p_id_usuario, :p_id_pedido, :p_mensaje_original, :p_patron_detectado)::text", nativeQuery = true)
     String registrarInfraccion(

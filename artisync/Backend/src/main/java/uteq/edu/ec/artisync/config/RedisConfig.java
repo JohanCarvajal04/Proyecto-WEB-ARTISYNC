@@ -19,6 +19,16 @@ public class RedisConfig {
     @Value("${app.cache.catalogo.ttl-seconds:60}")
     private long catalogoTtlSeconds;
 
+    /**
+     * Plantilla Redis de claves y valores {@code String}, usada por la lista
+     * negra de JTI ({@code JwtAuthenticationFilter}) y el rate limiter
+     * ({@code AuthRateLimitFilter}). Serialización explícita con
+     * {@link StringRedisSerializer} en vez del default JDK, para que las
+     * claves sean legibles directamente en {@code redis-cli}.
+     *
+     * @param connectionFactory conexión Redis configurada por Spring Boot
+     * @return un {@link RedisTemplate} de {@code String}/{@code String}
+     */
     @Bean
     public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, String> template = new RedisTemplate<>();

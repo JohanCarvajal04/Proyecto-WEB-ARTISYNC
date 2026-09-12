@@ -43,7 +43,7 @@ public class AiCertificateController {
      *
      * @param peticion datos del certificado a emitir
      * @return el certificado emitido, con estado 201
-     * @throws ResourceNotFoundException si el usuario o el estado de verificación indicados no existen
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario o el estado de verificación indicados no existen
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -57,7 +57,7 @@ public class AiCertificateController {
      *
      * @param id identificador del certificado
      * @return el certificado solicitado
-     * @throws ResourceNotFoundException si el certificado no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el certificado no existe
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")
@@ -93,7 +93,7 @@ public class AiCertificateController {
      *
      * @param id identificador del certificado a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ResourceNotFoundException si el certificado no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el certificado no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CERTIFICADO_REVISAR') or hasRole('ADMIN')")

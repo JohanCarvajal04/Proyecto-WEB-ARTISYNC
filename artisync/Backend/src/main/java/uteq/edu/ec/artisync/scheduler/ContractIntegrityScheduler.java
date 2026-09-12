@@ -26,6 +26,11 @@ public class ContractIntegrityScheduler {
     private final ContractRepository contratoRepository;
     private final ContractIntegrityExecutorService contratoIntegridadEjecutorServicio;
 
+    /**
+     * Verifica, uno por uno vía {@link ContractIntegrityExecutorService}, la
+     * integridad de todos los contratos ya firmados (con hash de contenido
+     * calculado). Un fallo en un contrato no bloquea la verificación del resto.
+     */
     @Scheduled(cron = "${contrato.integridad.cron:0 30 4 * * *}")
     public void verificarIntegridadDeTodos() {
         List<Contract> contratosFirmados = contratoRepository.findByHashContenidoIsNotNull();

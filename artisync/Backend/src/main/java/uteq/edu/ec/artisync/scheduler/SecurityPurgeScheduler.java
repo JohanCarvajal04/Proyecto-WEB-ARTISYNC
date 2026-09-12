@@ -37,8 +37,14 @@ public class SecurityPurgeScheduler {
 
     private final JdbcTemplate jdbcTemplate;
 
-    // Corre a las 3:30 AM, media hora despues de VerificationScheduler
-    // (03:00) y RaffleScheduler, para no competir por E/S de disco con ellos.
+    /**
+     * Invoca {@code sp_purgar_datos_seguridad} para borrar por lotes sesiones
+     * expiradas, tokens de recuperación muertos y códigos de respaldo 2FA ya
+     * consumidos (A10). Corre a las 3:30 AM, media hora después de
+     * {@link VerificationScheduler} (03:00) y {@link RaffleScheduler}, para no
+     * competir por E/S de disco con ellos. Best-effort: un fallo se registra
+     * y se reintenta 24h después.
+     */
     @Scheduled(cron = "0 30 3 * * *")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void purgarDatosSeguridad() {

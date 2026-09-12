@@ -13,6 +13,7 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.SignatureStatusResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IContractService;
 
+/** Consulta y firma de contratos de pedido. */
 @RestController
 @RequestMapping("/api/v1/contratos")
 @RequiredArgsConstructor

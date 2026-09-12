@@ -31,7 +31,7 @@ public class TwoFactorBackupCode {
     @JoinColumn(name = "id_usuario", nullable = false)
     private User usuario;
 
-    @NotBlank(message = "El hash del cÃ³digo es obligatorio")
+    @NotBlank(message = "El hash del código es obligatorio")
     @Column(name = "codigo_hash", nullable = false, length = 255)
     private String codigoHash;
 

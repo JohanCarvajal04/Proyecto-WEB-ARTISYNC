@@ -22,6 +22,7 @@ import java.util.Optional;
 @Repository
 public interface ContractRepository extends JpaRepository<Contract, Long>, ContractRepositoryCustom {
 
+    /** El contrato de un pedido (relación 1:1), si existe. */
     Optional<Contract> findByPedidoIdPedido(Long idPedido);
 
     /** REQ-NF-018: contratos donde el usuario participa como cliente, para evaluar el impedimento legal de supresión. */
@@ -36,8 +37,8 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, Contr
     /**
      * Igual que findById, pero con bloqueo pesimista de fila. Sin esto, la
      * firma dual (cliente y creador firman columnas distintas de la misma
-     * fila) es vulnerable a "lost update": Contract no tiene @Version ni
-     * @DynamicUpdate, así que cada save() de Hibernate reescribe TODAS las
+     * fila) es vulnerable a "lost update": Contract no tiene {@code @Version} ni
+     * {@code @DynamicUpdate}, así que cada save() de Hibernate reescribe TODAS las
      * columnas mapeadas con el snapshot en memoria -- si ambas firmas llegan
      * casi al mismo tiempo, quien confirme segundo sobrescribe con NULL la
      * firma que el otro acababa de guardar, perdiéndola en silencio. El

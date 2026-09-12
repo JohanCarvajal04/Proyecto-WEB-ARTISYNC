@@ -43,12 +43,13 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
 
     @Override
     /**
-     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     * Verifica la validez de un documento de identidad enviando su imagen al modelo NVIDIA NIM.
      *
-     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
-     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param imagenBytes bytes de la imagen del documento
+     * @param mimeType tipo MIME de la imagen (p. ej. {@code image/jpeg})
+     * @return el resultado de la verificación (validez, confianza, datos detectados)
+     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si NVIDIA rechaza la
+     *         solicitud, responde con error, o la respuesta no puede interpretarse
      */
     public IaVerificacionResponse verificarIdentidad(byte[] imagenBytes, String mimeType) {
         String prompt = cargarPrompt("prompt_verificacion_identidad.md");
@@ -58,12 +59,13 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
 
     @Override
     /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     * Verifica la validez de un certificado académico/profesional enviando su imagen al modelo NVIDIA NIM.
      *
-     * @param imagenBytes objeto binario multipart representando el documento o medio fisico
-     * @param mimeType parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param imagenBytes bytes de la imagen del certificado
+     * @param mimeType tipo MIME de la imagen (p. ej. {@code image/jpeg})
+     * @return el resultado de la verificación (validez, confianza, institución, campo de estudio)
+     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si NVIDIA rechaza la
+     *         solicitud, responde con error, o la respuesta no puede interpretarse
      */
     public IaVerificacionResponse analizarCertificado(byte[] imagenBytes, String mimeType) {
         String prompt = cargarPrompt("prompt_verificacion_certificado.md");
@@ -73,11 +75,11 @@ public class NvidiaAiService extends AbstractAiService implements AiService {
 
     @Override
     /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     * Modera un mensaje de chat con el modelo NVIDIA NIM; ante cualquier error de IA,
+     * se degrada a "apropiado" en vez de bloquear el mensaje (fail-open).
      *
-     * @param textoMensaje parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param textoMensaje texto del mensaje a moderar
+     * @return si es apropiado, categoría de infracción detectada y nivel de confianza
      */
     public IaModeracionResponse moderarContenido(String textoMensaje) {
         String prompt = cargarPrompt("prompt_moderacion_mensaje.md", sanitizarParaPrompt(textoMensaje));

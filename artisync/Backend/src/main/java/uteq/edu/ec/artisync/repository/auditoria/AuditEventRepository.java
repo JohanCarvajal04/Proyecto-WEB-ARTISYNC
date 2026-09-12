@@ -21,6 +21,7 @@ import java.util.List;
 public interface AuditEventRepository
         extends JpaRepository<AuditEvent, Long>, JpaSpecificationExecutor<AuditEvent> {
 
+    /** @return las acciones de auditoría distintas registradas, alfabéticas, para poblar el filtro del panel */
     @Query("SELECT DISTINCT e.accionAuditoria FROM AuditEvent e ORDER BY e.accionAuditoria")
     List<String> listarAccionesDistintas();
 }

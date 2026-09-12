@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uteq.edu.ec.artisync.service.legal.IPaymentService;
 
+/** Webhook público de PayPal para eventos de pagos de garantía (sin autenticación JWT). */
 @Slf4j
 @RestController
 @RequestMapping("/api/webhooks")

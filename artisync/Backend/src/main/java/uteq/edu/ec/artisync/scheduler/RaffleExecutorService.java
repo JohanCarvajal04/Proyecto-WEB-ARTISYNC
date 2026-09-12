@@ -30,6 +30,14 @@ public class RaffleExecutorService {
     private final NotificationService notificacionService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Cierra un sorteo: delega la selección aleatoria de ganadores en
+     * {@code fn_seleccionar_ganadores_sorteo} (selección y actualización masiva
+     * en el motor) y notifica en tiempo real a cada ganador vía WebSocket.
+     *
+     * @param sorteo sorteo a cerrar y resolver
+     * @throws IllegalStateException si el resultado del procedimiento no se puede interpretar
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void ejecutarSorteo(Raffle sorteo) {
         // REQ-F-023: fn_seleccionar_ganadores_sorteo hace la seleccion aleatoria

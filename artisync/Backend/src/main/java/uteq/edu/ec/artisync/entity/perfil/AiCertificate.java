@@ -34,8 +34,8 @@ public class AiCertificate {
     @Column(name = "id_certificado")
     private Long idCertificado;
 
-    // V21: generalizado de CreatorProfile a User â€” cualquier usuario (Cliente
-    // o Creador) puede solicitar una verificaciÃ³n de identidad, no solo quien
+    // V21: generalizado de CreatorProfile a User — cualquier usuario (Cliente
+    // o Creador) puede solicitar una verificación de identidad, no solo quien
     // ya tiene un perfil de creador. Para certificados de tipo CERTIFICADO
     // (profesional, inherentemente de creador), el perfil se deriva con un
     // JOIN contra perfiles_creadores.id_usuario cuando haga falta.

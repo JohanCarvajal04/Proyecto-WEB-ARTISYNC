@@ -25,6 +25,7 @@ public class CreateBriefingTemplateRequest {
     @Valid
     private List<PreguntaRequest> preguntas;
 
+    /** Una pregunta de la plantilla, con su posición en el cuestionario. */
     @Data
     @Builder
     @NoArgsConstructor

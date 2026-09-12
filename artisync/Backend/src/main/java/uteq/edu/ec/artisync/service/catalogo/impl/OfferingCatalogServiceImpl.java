@@ -57,20 +57,24 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     private final BriefingTemplateRepository briefingPlantillaRepository;
     private final uteq.edu.ec.artisync.service.shared.almacenamiento.DocumentStorage almacenamientoDocumentos;
 
+    /**
+     * Crea un servicio para el perfil de creador indicado, con sus
+     * subcategorías y etiquetas, en estado {@code ACTIVO}.
+     *
+     * @param idPerfilCreador identificador del perfil de creador dueño del servicio
+     * @param peticion título, descripción, precio, subcategorías y demás datos del servicio
+     * @return el servicio creado, con su detalle completo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe,
+     *         o si alguna subcategoría indicada no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es menor a 0.01 USD,
+     *         si quien llama no es dueño del perfil ni admin, o si la identidad del creador no está verificada
+     */
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#resultado.idServicio",
             detalle = "{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OfferingResponse crearServicio(Long idPerfilCreador, CreateOfferingRequest peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
@@ -107,20 +111,25 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return obtenerServicioPorId(guardado.getIdServicio());
     }
 
+    /**
+     * Actualiza un servicio existente: reemplaza subcategorías y etiquetas
+     * solo si vienen informadas, y exige identidad verificada si el nuevo
+     * estado de publicación es {@code ACTIVO}.
+     *
+     * @param idServicio identificador del servicio a actualizar
+     * @param peticion nuevos datos del servicio; los campos {@code null} no se modifican
+     * @return el servicio ya actualizado, con su detalle completo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es menor a 0.01 USD,
+     *         si se envía una lista vacía de subcategorías, si quien llama no es dueño del perfil ni admin,
+     *         o si se activa el servicio sin identidad verificada
+     */
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio",
             detalle = "{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}")
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OfferingResponse actualizarServicio(Long idServicio, UpdateOfferingRequest peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
@@ -186,32 +195,34 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return obtenerServicioPorId(guardado.getIdServicio());
     }
 
+    /**
+     * Obtiene el detalle completo de un servicio del catálogo.
+     *
+     * @param idServicio identificador del servicio
+     * @return el servicio, con sus subcategorías, etiquetas y atributos
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OfferingResponse obtenerServicioPorId(Long idServicio) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
         return mapearAServicioRespuestaCompleta(servicio);
     }
 
+    /**
+     * Elimina un servicio del catálogo, junto con sus asociaciones de
+     * etiquetas y subcategorías.
+     *
+     * @param idServicio identificador del servicio a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin
+     */
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio")
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void eliminarServicio(Long idServicio) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
@@ -223,19 +234,20 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         servicioRepository.delete(servicio);
     }
 
+    /**
+     * Quita una subcategoría de un servicio, siempre que le quede al menos una.
+     *
+     * @param idServicio identificador del servicio
+     * @param idSubcategoria identificador de la subcategoría a quitar
+     * @return el servicio ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el servicio se quedaría sin ninguna subcategoría
+     */
     @Override
     @Transactional
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_QUITAR_SUBCATEGORIA", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio", detalle = "{idSubcategoria: #idSubcategoria}")
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @param idSubcategoria identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OfferingResponse quitarSubcategoria(Long idServicio, Long idSubcategoria) {
         if (!servicioRepository.existsById(idServicio)) {
             throw new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio);
@@ -247,17 +259,17 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return obtenerServicioPorId(idServicio);
     }
 
+    /**
+     * Lista servicios para el panel de moderación, en cualquier estado de
+     * publicación (a diferencia del catálogo público, que solo muestra {@code ACTIVO}).
+     *
+     * @param textoBusqueda coincidencia parcial sobre título o descripción; {@code null} no filtra
+     * @param page número de página (0-index)
+     * @param size tamaño de página
+     * @return la página de servicios resumidos, más recientes primero
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param textoBusqueda parametro requerido para la correcta ejecucion del procedimiento
-     * @param page parametro requerido para la correcta ejecucion del procedimiento
-     * @param size parametro requerido para la correcta ejecucion del procedimiento
-     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public Page<OfferingSummaryResponse> listarParaModeracion(String textoBusqueda, int page, int size) {
         Specification<Offering> spec = OfferingSpecification.conFiltros(
                 null, null, null, null, null, textoBusqueda, null);
@@ -265,30 +277,31 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return servicioRepository.findAll(spec, pageable).map(this::mapearAServicioResumido);
     }
 
-    @Override
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Sube la miniatura de un servicio al almacenamiento configurado.
      *
-     * @param archivo objeto binario multipart representando el documento o medio fisico
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param archivo imagen de miniatura, validada contra {@code FilePolicy.PERFIL}
+     * @return la URL pública desde la que se sirve la miniatura
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el archivo no cumple la política de tipo/tamaño
      */
+    @Override
     public String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo) {
         uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy.PERFIL.validar(archivo);
         String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix.SERVICIOS);
         return "/api/v1/servicios/miniatura/" + referencia;
     }
 
+    /**
+     * Lista los servicios de un perfil de creador, opcionalmente filtrados
+     * por estado de publicación.
+     *
+     * @param idPerfilCreador identificador del perfil de creador
+     * @param estadoPublicacion estado a filtrar; {@code null} o vacío lista todos los estados
+     * @return los servicios resumidos del creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @param estadoPublicacion parametro requerido para la correcta ejecucion del procedimiento
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<OfferingSummaryResponse> listarServiciosPorCreador(Long idPerfilCreador, String estadoPublicacion) {
         if (!perfilRepository.existsById(idPerfilCreador)) {
             throw new ResourceNotFoundException("Perfil creador no encontrado con ID: " + idPerfilCreador);
@@ -304,19 +317,26 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Busca el catálogo público (solo servicios {@code ACTIVO}), con
+     * etiquetas y subcategorías de cada resultado resueltas en lote (evita el
+     * N+1 de resolverlas fila por fila). Cacheada bajo la clave {@code catalogo}.
+     *
+     * @param categoriaId si no es {@code null}, restringe a esa categoría
+     * @param subcategoriaId si no es {@code null}, restringe a esa subcategoría
+     * @param precioMin precio base mínimo (inclusive)
+     * @param precioMax precio base máximo (inclusive)
+     * @param etiquetaIds si no es vacío, restringe a servicios con alguna de esas etiquetas
+     * @param textoBusqueda coincidencia parcial sobre título o descripción
+     * @param sortParam orden solicitado ("precioBase,asc/desc", "tituloServicio,asc"); cualquier otro
+     *                  valor (o {@code null}) ordena por id descendente
+     * @param page número de página (0-index)
+     * @param size tamaño de página
+     * @return la página de servicios resumidos que cumplen los filtros
+     */
     @Override
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "catalogo")
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     * @param keyword palabra clave para la busqueda
-     * @param categorias lista de categorias a filtrar
-     * @param modalidades lista de modalidades a filtrar
-     * @param precioMin precio minimo
-     * @param precioMax precio maximo
-     * @param pageable configuracion de paginacion
-     * @return una estructura de datos paginada con la porcion de resultados solicitada
-     */
     public Page<OfferingSummaryResponse> buscarCatalogoServicios(
             Long categoriaId,
             Long subcategoriaId,
@@ -378,15 +398,15 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 subcategoriasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));
     }
 
+    /**
+     * Lista los atributos dinámicos (valor por atributo) asignados a un servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @return los atributos asignados
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<AttributeResponse> listarAtributosPorServicio(Long idServicio) {
         if (!servicioRepository.existsById(idServicio)) {
             throw new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio);
@@ -397,16 +417,19 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Agrega un atributo dinámico a un servicio (reutilizando el atributo
+     * maestro si ya existe uno con ese nombre), hasta un máximo de 10 por servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @param peticion nombre del atributo, tipo de dato y valor asignado
+     * @return el atributo ya asociado al servicio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin,
+     *         si el servicio ya tiene 10 atributos, o si ese atributo ya está asociado a este servicio
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AttributeResponse agregarAtributo(Long idServicio, CreateAttributeRequest peticion) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
@@ -441,17 +464,19 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return mapearAAtributoRespuesta(sa);
     }
 
+    /**
+     * Actualiza el valor de un atributo dinámico ya asignado a un servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @param idServicioAtributo identificador de la asignación atributo-servicio a actualizar
+     * @param peticion nuevo valor asignado
+     * @return el atributo ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asignación no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin,
+     *         o si la asignación no pertenece a este servicio
+     */
     @Override
     @Transactional
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @param idServicioAtributo identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AttributeResponse actualizarAtributo(Long idServicio, Long idServicioAtributo, UpdateAttributeRequest peticion) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
@@ -471,15 +496,17 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return mapearAAtributoRespuesta(sa);
     }
 
+    /**
+     * Quita un atributo dinámico de un servicio.
+     *
+     * @param idServicio identificador del servicio
+     * @param idServicioAtributo identificador de la asignación atributo-servicio a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asignación no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es dueño del perfil ni admin,
+     *         o si la asignación no pertenece a este servicio
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idServicio identificador unico que referencia de manera univoca al registro
-     * @param idServicioAtributo identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void eliminarAtributo(Long idServicio, Long idServicioAtributo) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));

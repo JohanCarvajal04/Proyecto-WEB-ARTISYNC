@@ -17,14 +17,12 @@ public final class RequestContext {
     }
 
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Metadatos de la petición HTTP actual, capturados para auditoría.
      *
-     * @param direccionIp parametro requerido para la correcta ejecucion del procedimiento
-     * @param agenteUsuario parametro requerido para la correcta ejecucion del procedimiento
-     * @param metodoHttp parametro requerido para la correcta ejecucion del procedimiento
-     * @param rutaSolicitud parametro requerido para la correcta ejecucion del procedimiento
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param direccionIp dirección IP de origen de la petición
+     * @param agenteUsuario cabecera User-Agent del cliente
+     * @param metodoHttp método HTTP de la petición (GET, POST, ...)
+     * @param rutaSolicitud ruta solicitada
      */
     public record Datos(String direccionIp, String agenteUsuario, String metodoHttp, String rutaSolicitud) {
     }

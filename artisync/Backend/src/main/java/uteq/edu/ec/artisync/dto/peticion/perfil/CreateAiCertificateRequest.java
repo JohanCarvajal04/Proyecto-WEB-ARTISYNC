@@ -20,7 +20,7 @@ public record CreateAiCertificateRequest(
         @NotNull(message = "El ID del usuario es obligatorio")
         Long idUsuario,
 
-        @NotNull(message = "El ID del estado de verificaciÃ³n es obligatorio")
+        @NotNull(message = "El ID del estado de verificación es obligatorio")
         Long idEstadoVerificacion,
 
         @NotBlank(message = "La URL del documento S3 es obligatoria")

@@ -143,10 +143,11 @@ public class CreatorProfileServiceImpl implements ICreatorProfileService {
 
     /**
      * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     * @param idPerfil id del perfil
-     * @param peticion peticion
-     * @param fotoPortada foto de portada
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @param idPerfil id del perfil a actualizar
+     * @param peticion campos a actualizar; los valores {@code null} se dejan sin modificar
+     * @param correoSolicitante correo de quien solicita el cambio, usado para validar la propiedad del perfil
+     * @param esAdmin si es {@code true}, omite la comprobación de propiedad (el administrador puede editar cualquier perfil)
+     * @return el perfil ya actualizado
      */
     @Override
     @Transactional

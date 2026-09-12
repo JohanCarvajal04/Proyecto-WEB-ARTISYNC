@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Solicitud opcional para refrescar el token de acceso mediante cuerpo JSON si no se utiliza cookie HttpOnly")
 public class RefreshTokenRequest {
 
-    @Schema(description = "Refresh Token emitido durante el inicio de sesiÃ³n", example = "eyJhbGciOiJIUzI1NiIsIn...")
+    @Schema(description = "Refresh Token emitido durante el inicio de sesión", example = "eyJhbGciOiJIUzI1NiIsIn...")
     private String refreshToken;
 }
 

@@ -41,8 +41,8 @@ public class WithdrawalRequestController {
      * @param userDetails usuario autenticado que solicita el retiro
      * @param peticion datos de la solicitud de retiro
      * @return la solicitud de retiro creada
-     * @throws ResourceNotFoundException si el usuario no existe
-     * @throws BusinessRuleException si el creador no ha configurado su correo de PayPal, ya tiene una solicitud
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador no ha configurado su correo de PayPal, ya tiene una solicitud
      *      en curso, el monto es menor al mínimo permitido, o supera su saldo disponible
      */
     @PostMapping

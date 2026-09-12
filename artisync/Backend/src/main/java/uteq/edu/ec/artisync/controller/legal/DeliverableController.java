@@ -15,6 +15,7 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.DeliverableResponse;
 import uteq.edu.ec.artisync.security.CustomUserDetails;
 import uteq.edu.ec.artisync.service.legal.IDeliverableService;
 
+/** Subida y descarga del entregable final de un pedido. */
 @RestController
 @RequestMapping("/api/v1/pedidos")
 @RequiredArgsConstructor
@@ -30,8 +31,8 @@ public class DeliverableController {
      * @param versionMarcaAgua archivo con la versión marcada de agua del entregable
      * @param versionLimpia archivo con la versión limpia del entregable
      * @return el entregable creado, con estado 201
-     * @throws ResourceNotFoundException si el pedido no existe
-     * @throws BusinessRuleException si el usuario no es el creador del servicio del pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el creador del servicio del pedido
      */
     @PostMapping(value = "/{idPedido}/entregable", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
@@ -51,7 +52,7 @@ public class DeliverableController {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que consulta el entregable
      * @return el entregable del pedido
-     * @throws ResourceNotFoundException si no hay entregable para el pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no hay entregable para el pedido
      */
     @GetMapping("/{idPedido}/entregable")
     @PreAuthorize("isAuthenticated()")
@@ -68,8 +69,8 @@ public class DeliverableController {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que aprueba la entrega
      * @return mensaje de confirmación de la aprobación
-     * @throws ResourceNotFoundException si el pedido, el entregable o el contrato no existen
-     * @throws BusinessRuleException si el usuario no es el cliente del pedido o el entregable ya fue aprobado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido, el entregable o el contrato no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el cliente del pedido o el entregable ya fue aprobado
      */
     @PostMapping("/{idPedido}/aprobar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('FONDOS_LIBERAR') or hasRole('ADMIN')")
@@ -86,8 +87,8 @@ public class DeliverableController {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que solicita la descarga
      * @return el contenido binario del archivo, como adjunto
-     * @throws ResourceNotFoundException si el pedido, el entregable, o el archivo asociado no existen
-     * @throws BusinessRuleException si el usuario no es el cliente del pedido o el entregable aún no está disponible
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido, el entregable, o el archivo asociado no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el cliente del pedido o el entregable aún no está disponible
      */
     @GetMapping("/{idPedido}/entregable/descargar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasRole('ADMIN')")
@@ -104,8 +105,8 @@ public class DeliverableController {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que solicita la descarga
      * @return el contenido binario del archivo, como adjunto
-     * @throws ResourceNotFoundException si no hay entregable para el pedido o no tiene versión con marca de agua
-     * @throws BusinessRuleException si el usuario no tiene acceso al entregable
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no hay entregable para el pedido o no tiene versión con marca de agua
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no tiene acceso al entregable
      */
     @GetMapping("/{idPedido}/entregable/descargar/marca-agua")
     @PreAuthorize("isAuthenticated()")

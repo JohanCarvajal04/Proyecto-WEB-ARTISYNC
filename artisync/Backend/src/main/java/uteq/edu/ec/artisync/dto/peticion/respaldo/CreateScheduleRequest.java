@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import uteq.edu.ec.artisync.entity.respaldo.BackupType;
 
+/** Datos para crear una nueva programación de respaldos recurrentes (CRON). */
 @Data
 public class CreateScheduleRequest {
 

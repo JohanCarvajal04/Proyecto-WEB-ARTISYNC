@@ -63,6 +63,17 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);
     }
 
+    /**
+     * Aplica la política de rate limit (si la ruta+método de la petición coincide
+     * con alguna de {@link #POLITICAS}) contando intentos por IP en Redis con una
+     * ventana deslizante ({@code INCR} + {@code EXPIRE} en el primer golpe).
+     *
+     * @param request petición HTTP en curso
+     * @param response respuesta HTTP; recibe un 429 si se supera el límite
+     * @param filterChain resto de la cadena de filtros
+     * @throws IOException si falla la escritura de la respuesta 429
+     * @throws ServletException propagada de {@code filterChain.doFilter}
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,

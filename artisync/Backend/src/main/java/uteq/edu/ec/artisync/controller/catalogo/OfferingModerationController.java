@@ -45,8 +45,8 @@ public class OfferingModerationController {
      * @param idServicio identificador del servicio
      * @param idSubcategoria identificador de la subcategoría a quitar
      * @return el servicio actualizado
-     * @throws ResourceNotFoundException si el servicio no existe
-     * @throws BusinessRuleException si el servicio quedaría sin subcategorías tras la operación
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el servicio quedaría sin subcategorías tras la operación
      */
     @DeleteMapping("/{idServicio}/subcategorias/{idSubcategoria}")
     @PreAuthorize("hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')")

@@ -20,16 +20,18 @@ import java.util.Optional;
 @Repository
 public interface OrderStatusHistoryRepository extends JpaRepository<OrderStatusHistory, Long> {
 
+    /** Historial completo de transiciones de un pedido, en el orden en que ocurrieron. */
     List<OrderStatusHistory> findByPedidoIdPedidoOrderByFechaTransicionAsc(Long idPedido);
 
+    /** La transición más reciente de un pedido (su etapa/estado actual). */
     Optional<OrderStatusHistory> findTopByPedidoIdPedidoOrderByFechaTransicionDesc(Long idPedido);
 
     /**
-     * Existe algÃºn pedido de este flujo cuya transiciÃ³n MÃS RECIENTE apunta a
-     * esta etapa â€” es decir, un pedido que estÃ¡ actualmente detenido ahÃ­.
+     * Existe algún pedido de este flujo cuya transición MÁS RECIENTE apunta a
+     * esta etapa — es decir, un pedido que está actualmente detenido ahí.
      * Usado para bloquear el borrado de una etapa en uso: sin este chequeo,
      * OrderServiceImpl.obtenerOrdenActual no encuentra la etapa en la
-     * configuraciÃ³n del flujo y el pedido "retrocede" a la primera etapa en
+     * configuración del flujo y el pedido "retrocede" a la primera etapa en
      * el siguiente avance (ver H-flujo-01).
      */
     @Query("""

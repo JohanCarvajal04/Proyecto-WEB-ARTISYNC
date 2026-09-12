@@ -19,6 +19,7 @@ import java.util.Optional;
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Long> {
 
+    /** Rol por nombre exacto. */
     Optional<Role> findByNombreRol(String nombreRol);
 
     /**
@@ -26,9 +27,9 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
      * Devuelve el total asignado.
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
      * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
      */
     @Query(value = "SELECT fn_sincronizar_permisos_rol(:p_nombre_rol, :p_codigos_permiso)", nativeQuery = true)
     Integer sincronizarPermisos(
@@ -40,7 +41,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     Boolean eliminarRol(@Param("p_id_rol") Long idRol);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§4) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4) -
      * fn_crear_rol: crea un rol y asigna sus permisos iniciales atomicamente,
      * capturando unique_violation sobre el nombre en vez de una comprobacion
      * findByNombreRol no atomica (A8). Devuelve el id_rol generado.

@@ -19,6 +19,7 @@ import uteq.edu.ec.artisync.dto.seguridad.response.UserResponse;
 import uteq.edu.ec.artisync.service.seguridad.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 
+/** Registro, login (con 2FA opcional), refresh/logout y recuperación de contraseña. */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor

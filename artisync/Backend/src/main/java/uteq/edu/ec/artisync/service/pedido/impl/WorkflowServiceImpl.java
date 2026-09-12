@@ -36,16 +36,19 @@ public class WorkflowServiceImpl implements IWorkflowService {
     private final UserRepository usuarioRepository;
     private final OrderStatusHistoryRepository historialEstadoPedidoRepository;
 
+    /**
+     * Crea un flujo de trabajo para un creador, con sus etapas iniciales si vienen indicadas.
+     *
+     * @param idUsuario identificador del creador dueño del flujo
+     * @param peticion nombre, descripción y (opcional) etapas iniciales del flujo
+     * @return el flujo creado, con sus etapas ya configuradas
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el creador ya tiene un flujo con ese nombre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si las etapas iniciales tienen un
+     *         nombre o número de orden repetido
+     */
     @Override
     @Transactional
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public WorkflowResponse crearFlujoTrabajo(Long idUsuario, CreateWorkflowRequest peticion) {
         if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario(peticion.getNombreFlujo(), idUsuario)) {
             throw new DuplicateResourceException("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
@@ -85,16 +88,14 @@ public class WorkflowServiceImpl implements IWorkflowService {
         return mapToRespuesta(flujo);
     }
 
+    /**
+     * @param idUsuario identificador del creador
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) lista todos los flujos de cualquier
+     *                      creador; {@code false} lista solo los propios de {@code idUsuario}
+     * @return los flujos de trabajo correspondientes
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<WorkflowResponse> listarFlujosTrabajo(Long idUsuario, boolean puedeVerTodos) {
         List<Workflow> flujos = puedeVerTodos
                 ? flujoTrabajoRepository.findAllByOrderByIdFlujoAsc()
@@ -104,33 +105,36 @@ public class WorkflowServiceImpl implements IWorkflowService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * @param idFlujo identificador del flujo
+     * @param idUsuario identificador de quien consulta
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) permite acceder a cualquier flujo;
+     *                      {@code false} solo a los propios de {@code idUsuario}
+     * @return el flujo solicitado, con sus etapas
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe
+     *         o no es accesible para quien consulta
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idFlujo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public WorkflowResponse obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
         return mapToRespuesta(buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos));
     }
 
+    /**
+     * Actualiza el nombre y la descripción de un flujo de trabajo.
+     *
+     * @param idFlujo identificador del flujo
+     * @param idUsuario identificador de quien edita
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) permite editar cualquier flujo;
+     *                      {@code false} solo los propios de {@code idUsuario}
+     * @param peticion nuevo nombre y descripción del flujo
+     * @return el flujo ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el dueño real del flujo ya
+     *         tiene otro flujo con ese nombre
+     */
     @Override
     @Transactional
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idFlujo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public WorkflowResponse actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, CreateWorkflowRequest peticion) {
         Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -149,18 +153,22 @@ public class WorkflowServiceImpl implements IWorkflowService {
         return mapToRespuesta(flujo);
     }
 
+    /**
+     * Agrega una etapa a un flujo (reutilizando la etapa maestra si ya existe
+     * una con ese nombre).
+     *
+     * @param idFlujo identificador del flujo
+     * @param idUsuario identificador de quien edita
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) permite editar cualquier flujo;
+     *                      {@code false} solo los propios de {@code idUsuario}
+     * @param peticion nombre, número de orden y flags de la nueva etapa
+     * @return el flujo con la etapa ya agregada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si esa etapa ya existe en el flujo
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya hay otra etapa en ese número de orden
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idFlujo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public WorkflowResponse agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
         Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -189,19 +197,24 @@ public class WorkflowServiceImpl implements IWorkflowService {
         return mapToRespuesta(flujo);
     }
 
+    /**
+     * Actualiza la configuración (orden, si es final, si exige entregable) de
+     * una etapa ya agregada a un flujo.
+     *
+     * @param idFlujo identificador del flujo
+     * @param idFlujoEtapa identificador de la configuración de etapa a actualizar
+     * @param idUsuario identificador de quien edita
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) permite editar cualquier flujo;
+     *                      {@code false} solo los propios de {@code idUsuario}
+     * @param peticion nuevo número de orden y flags de la etapa
+     * @return el flujo con la etapa ya actualizada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo, la configuración de
+     *         etapa no existen, o el flujo no es accesible
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece a ese flujo,
+     *         o si el nuevo orden ya lo ocupa otra etapa del mismo flujo
+     */
     @Override
     @Transactional
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idFlujo identificador unico que referencia de manera univoca al registro
-     * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public WorkflowResponse actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
         Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -233,18 +246,22 @@ public class WorkflowServiceImpl implements IWorkflowService {
         return mapToRespuesta(flujo);
     }
 
+    /**
+     * Intercambia el número de orden entre dos etapas del mismo flujo (swap atómico).
+     *
+     * @param idFlujo identificador del flujo
+     * @param idUsuario identificador de quien edita
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) permite editar cualquier flujo;
+     *                      {@code false} solo los propios de {@code idUsuario}
+     * @param peticion identificadores de las dos configuraciones de etapa a intercambiar
+     * @return el flujo con el orden ya intercambiado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o alguna configuración
+     *         de etapa no existen, o el flujo no es accesible
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ambos identificadores son el mismo,
+     *         o si alguna etapa no pertenece a ese flujo
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idFlujo identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public WorkflowResponse intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, SwapStagesRequest peticion) {
         Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
 
@@ -271,17 +288,21 @@ public class WorkflowServiceImpl implements IWorkflowService {
         return mapToRespuesta(flujo);
     }
 
+    /**
+     * Elimina una etapa de un flujo, siempre que ningún pedido esté
+     * actualmente detenido en ella.
+     *
+     * @param idFlujo identificador del flujo
+     * @param idFlujoEtapa identificador de la configuración de etapa a eliminar
+     * @param idUsuario identificador de quien edita
+     * @param puedeVerTodos {@code true} (FLUJO_MODERAR/ADMIN) permite editar cualquier flujo;
+     *                      {@code false} solo los propios de {@code idUsuario}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la configuración de etapa no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece a ese flujo,
+     *         si quien llama no tiene permiso, o si hay pedidos detenidos en esa etapa
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idFlujo identificador unico que referencia de manera univoca al registro
-     * @param idFlujoEtapa identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param puedeVerTodos parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos) {
         WorkflowStageConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
                 .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));

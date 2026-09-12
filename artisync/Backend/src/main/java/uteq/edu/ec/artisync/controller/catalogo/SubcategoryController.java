@@ -15,6 +15,7 @@ import uteq.edu.ec.artisync.service.catalogo.ICategoryService;
 
 import java.util.List;
 
+/** Consulta y gestión (creación, edición, moderación) de subcategorías del catálogo. */
 @RestController
 @RequestMapping("/api/v1/subcategorias")
 @RequiredArgsConstructor
@@ -42,8 +43,8 @@ public class SubcategoryController {
      * @param peticion datos de la subcategoría a crear
      * @param userDetails usuario autenticado que crea la subcategoría
      * @return la subcategoría creada, con estado 201
-     * @throws ResourceNotFoundException si la categoría indicada no existe
-     * @throws BusinessRuleException si ya existe una subcategoría con el mismo nombre en la categoría
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría indicada no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una subcategoría con el mismo nombre en la categoría
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')")
@@ -60,8 +61,8 @@ public class SubcategoryController {
      * @param id identificador de la subcategoría a eliminar
      * @param motivo motivo de la eliminación, obligatorio si la subcategoría fue creada por un creador
      * @return mensaje de confirmación de la eliminación
-     * @throws ResourceNotFoundException si la subcategoría no existe
-     * @throws BusinessRuleException si no se indica motivo siendo obligatorio, o la subcategoría no puede eliminarse
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica motivo siendo obligatorio, o la subcategoría no puede eliminarse
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
@@ -88,7 +89,7 @@ public class SubcategoryController {
      *
      * @param id identificador de la subcategoría a marcar como revisada
      * @return la subcategoría actualizada
-     * @throws ResourceNotFoundException si la subcategoría no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
      */
     @PatchMapping("/{id}/revisar")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")

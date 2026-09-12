@@ -18,18 +18,25 @@ import java.util.List;
 @Repository
 public interface OfferingSubcategoryRepository extends JpaRepository<OfferingSubcategory, Long> {
 
+    /** Subcategorías asignadas a un servicio. */
     List<OfferingSubcategory> findByServicioIdServicio(Long idServicio);
 
+    /** Subcategorías asignadas a cualquiera de los servicios indicados. */
     List<OfferingSubcategory> findByServicioIdServicioIn(List<Long> idsServicio);
 
+    /** Elimina todas las asignaciones de subcategoría de un servicio. */
     void deleteByServicioIdServicio(Long idServicio);
 
+    /** Elimina la asignación puntual de una subcategoría a un servicio. */
     void deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(Long idServicio, Long idSubcategoria);
 
+    /** Cantidad de subcategorías asignadas a un servicio. */
     long countByServicioIdServicio(Long idServicio);
 
+    /** @return {@code true} si alguna oferta usa esa subcategoría (bloquea su eliminación) */
     boolean existsBySubcategoriaIdSubcategoria(Long idSubcategoria);
 
+    /** @return {@code true} si alguna oferta usa una subcategoría de esa categoría */
     boolean existsBySubcategoriaCategoriaIdCategoria(Long idCategoria);
 }
 

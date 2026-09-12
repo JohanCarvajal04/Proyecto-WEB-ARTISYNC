@@ -13,6 +13,7 @@ import uteq.edu.ec.artisync.service.catalogo.ITagService;
 
 import java.util.List;
 
+/** Consulta y gestión de las etiquetas del catálogo de servicios. */
 @RestController
 @RequestMapping("/api/v1/etiquetas")
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class TagController {
      *
      * @param id identificador de la etiqueta
      * @return la etiqueta solicitada
-     * @throws ResourceNotFoundException si la etiqueta no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
     @GetMapping("/{id}")
     public ResponseEntity<TagResponse> obtenerPorId(@PathVariable Long id) {
@@ -47,7 +48,7 @@ public class TagController {
      *
      * @param peticion datos de la etiqueta a crear
      * @return la etiqueta creada, con estado 201
-     * @throws BusinessRuleException si ya existe una etiqueta con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una etiqueta con el mismo nombre
      */
     @PostMapping
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
@@ -63,7 +64,7 @@ public class TagController {
      *
      * @param id identificador de la etiqueta a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ResourceNotFoundException si la etiqueta no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")

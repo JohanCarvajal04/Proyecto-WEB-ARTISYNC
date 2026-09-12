@@ -20,8 +20,10 @@ import java.util.Optional;
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
 
+    /** Sesión activa por su JTI. */
     Optional<UserSession> findByJti(String jti);
 
+    /** Elimina una sesión por su JTI. */
     void deleteByJti(String jti);
 
     // CR-02 (revision de codigo): findByUsuarioIdUsuario y
@@ -34,7 +36,7 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     // cuenta de que reabren esa anomalia.
 
     /**
-     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??5) -
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5) -
      * fn_revocar_sesiones_usuario: DELETE ... RETURNING atomico que lee y borra
      * las sesiones del usuario en una sola sentencia y un solo snapshot,
      * eliminando la lectura no repetible que tenia la version en tres pasos

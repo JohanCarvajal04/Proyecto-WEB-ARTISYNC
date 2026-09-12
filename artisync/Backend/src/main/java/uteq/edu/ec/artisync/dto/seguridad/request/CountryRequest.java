@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CountryRequest {
 
-    @NotBlank(message = "El nombre del paÃ­s es obligatorio")
-    @Size(max = 100, message = "El nombre del paÃ­s no puede superar los 100 caracteres")
+    @NotBlank(message = "El nombre del país es obligatorio")
+    @Size(max = 100, message = "El nombre del país no puede superar los 100 caracteres")
     private String nombrePais;
 }
 

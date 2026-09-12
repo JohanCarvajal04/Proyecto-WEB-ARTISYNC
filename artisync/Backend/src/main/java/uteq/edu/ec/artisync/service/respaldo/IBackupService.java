@@ -7,24 +7,59 @@ import uteq.edu.ec.artisync.entity.respaldo.BackupType;
 import uteq.edu.ec.artisync.util.PagedResponse;
 
 /**
- * Contract de Offering (Interface) para la gestión del ciclo de vida de los backups.
- * 
- * Propósito: Proveer operaciones transaccionales para desencadenar respaldos manuales, 
- * restaurar la base de datos a partir de una instantánea (snapshot) y listar el historial 
- * de respaldos retenidos en el almacenamiento.
- * 
- * Responsabilidad arquitectónica: Actúa como la fachada de orquestación (Façade) 
- * que aísla los controladores de la capa de acceso a datos y scripts nativos de Docker/Postgres.
+ * Contrato de servicio para la gestión del ciclo de vida de los respaldos de base de datos.
+ * <p>
+ * Propósito: proveer operaciones transaccionales para desencadenar respaldos manuales,
+ * listar el historial retenido y ofrecer sus archivos para descarga o eliminación.
+ * <p>
+ * Responsabilidad arquitectónica: actúa como la fachada de orquestación que aísla los
+ * controladores de la capa de acceso a datos y de los scripts nativos de Docker/Postgres.
  */
 public interface IBackupService {
 
+    /**
+     * Dispara un respaldo manual del tipo indicado, si no hay ya uno en progreso.
+     *
+     * @param tipo tipo de respaldo a ejecutar (completo o incremental)
+     * @param correoSolicitante correo de quien solicita el respaldo, registrado en el evento
+     * @return el respaldo recién iniciado, con su identificador y estado {@code EN_PROGRESO}
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya hay un respaldo en progreso
+     */
     BackupResponse solicitarRespaldo(BackupType tipo, String correoSolicitante);
 
+    /**
+     * Lista el historial de respaldos que cumplen el filtro indicado.
+     *
+     * @param filtro criterios de búsqueda (tipo, estado, origen, rango de fechas)
+     * @param pageable configuración de paginación y ordenamiento
+     * @return la página de respaldos solicitada
+     */
     PagedResponse<BackupResponse> listar(BackupFilter filtro, Pageable pageable);
 
+    /**
+     * Obtiene el detalle de un respaldo por su identificador.
+     *
+     * @param idRespaldo identificador del respaldo
+     * @return el respaldo solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el respaldo no existe
+     */
     BackupResponse obtenerPorId(Long idRespaldo);
 
+    /**
+     * Ofrece el archivo de un respaldo ya generado, listo para transmitirse en streaming.
+     *
+     * @param idRespaldo identificador del respaldo
+     * @return el archivo del respaldo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el respaldo no existe, aún no tiene archivo generado o el archivo no existe en disco
+     */
     BackupFile descargar(Long idRespaldo);
 
+    /**
+     * Elimina un respaldo y su archivo en disco, si existe.
+     *
+     * @param idRespaldo identificador del respaldo a eliminar
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el respaldo no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el respaldo está en progreso, o si existen respaldos incrementales que dependen de él
+     */
     void eliminar(Long idRespaldo);
 }

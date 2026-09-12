@@ -22,11 +22,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "El token de recuperaciÃ³n es obligatorio")
+    @NotBlank(message = "El token de recuperación es obligatorio")
     private String token;
 
-    @NotBlank(message = "La nueva contraseÃ±a es obligatoria")
-    @Size(min = 8, max = 100, message = "La contraseÃ±a debe tener entre 8 y 100 caracteres")
+    @NotBlank(message = "La nueva contraseña es obligatoria")
+    @Size(min = 8, max = 100, message = "La contraseña debe tener entre 8 y 100 caracteres")
     private String nuevaContrasena;
 }
 

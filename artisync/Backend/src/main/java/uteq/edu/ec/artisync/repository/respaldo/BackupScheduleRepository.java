@@ -17,6 +17,7 @@ import java.util.List;
  */
 public interface BackupScheduleRepository extends JpaRepository<BackupSchedule, Long> {
 
+    /** Programaciones activas cuya próxima ejecución ya venció, usado por {@code BackupScheduler}. */
     List<BackupSchedule> findByActivoTrueAndProximaEjecucionLessThanEqual(LocalDateTime ahora);
 }
 

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/** Consulta de los permisos vigentes del usuario autenticado. */
 @RestController
 @RequestMapping("/api/v1/permissions")
 @Tag(name = "Consulta de Permisos", description = "Endpoints para consulta dinámica de permisos vigentes del usuario autenticado")

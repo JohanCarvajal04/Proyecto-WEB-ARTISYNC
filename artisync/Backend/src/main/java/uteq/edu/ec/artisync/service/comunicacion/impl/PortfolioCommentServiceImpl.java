@@ -46,13 +46,13 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Auditable(accion = "COMENTARIO_CREAR", modulo = AuditModule.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idItemPortafolio")
     /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * Crea un comentario sobre una obra del portafolio, en estado {@code Activo}.
      *
-     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @param idUsuarioAutor identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItemPortafolio identificador de la obra comentada
+     * @param peticion texto del comentario
+     * @param idUsuarioAutor identificador del usuario que comenta
+     * @return el comentario creado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra o el usuario no existen
      */
     public CommentResponse crearComentario(Long idItemPortafolio, CreateCommentRequest peticion, Long idUsuarioAutor) {
         PortfolioItem item = portafolioItemRepository.findById(idItemPortafolio)
@@ -77,12 +77,9 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
-     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
-     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItemPortafolio identificador de la obra
+     * @param pageable paginación y ordenamiento solicitados
+     * @return los comentarios activos (públicos) de esa obra
      */
     public Page<CommentResponse> listarComentarios(Long idItemPortafolio, Pageable pageable) {
         return comentarioRepository
@@ -93,11 +90,8 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idItemPortafolio identificador unico que referencia de manera univoca al registro
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItemPortafolio identificador de la obra
+     * @return la cantidad de comentarios activos (públicos) de esa obra
      */
     public long contarComentarios(Long idItemPortafolio) {
         return comentarioRepository.countByItemPortafolioIdItemPortafolioAndEstadoModeracion(
@@ -117,12 +111,15 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Auditable(accion = "COMENTARIO_ELIMINAR", modulo = AuditModule.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     * Elimina un comentario: un admin lo purga físicamente; el autor o el
+     * dueño del portafolio solo lo marcan como {@code Eliminado} (borrado lógico).
      *
-     * @param idComentario identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @param esAdmin parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idComentario identificador del comentario
+     * @param idUsuarioSolicitante identificador de quien elimina
+     * @param esAdmin {@code true} si quien elimina es un admin (purga la fila)
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
+     * @throws org.springframework.security.access.AccessDeniedException si quien elimina no es
+     *         admin, ni el autor, ni el dueño del portafolio
      */
     public void eliminarComentario(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin) {
         PortfolioComment comentario = obtenerComentario(idComentario);
@@ -152,11 +149,8 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
-     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param pageable paginación y ordenamiento solicitados
+     * @return todos los comentarios (en cualquier estado de moderación), para el panel de moderación
      */
     public Page<CommentResponse> listarParaModeracion(Pageable pageable) {
         return comentarioRepository.findAll(pageable).map(this::mapToResponse);
@@ -167,11 +161,11 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Auditable(accion = "COMENTARIO_OCULTAR", modulo = AuditModule.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Oculta un comentario por moderación.
      *
-     * @param idComentario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idComentario identificador del comentario
+     * @return el comentario ya marcado como {@code Oculto}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     public CommentResponse ocultarComentario(Long idComentario) {
         PortfolioComment comentario = obtenerComentarioParaModerar(idComentario);
@@ -185,11 +179,11 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     @Auditable(accion = "COMENTARIO_REACTIVAR", modulo = AuditModule.COMUNICACION,
             entidad = "comentarios_portafolio", idEntidad = "#idComentario")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Reactiva un comentario previamente ocultado por moderación.
      *
-     * @param idComentario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idComentario identificador del comentario
+     * @return el comentario ya marcado como {@code Activo}
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     public CommentResponse reactivarComentario(Long idComentario) {
         PortfolioComment comentario = obtenerComentarioParaModerar(idComentario);

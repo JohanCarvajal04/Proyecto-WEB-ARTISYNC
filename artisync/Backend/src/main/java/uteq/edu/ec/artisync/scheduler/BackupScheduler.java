@@ -12,10 +12,10 @@ import java.util.List;
 
 /**
  * Tarea programada que dispara los respaldos cuya programación está vencida.
- * Requiere @EnableScheduling en ArtisyncApplication (ya presente).
+ * Requiere {@code @EnableScheduling} en ArtisyncApplication (ya presente).
  *
  * Se ejecuta cada 60 segundos, mismo patrón que RaffleScheduler: sin
- * @Transactional en el bucle (cada respaldo se procesa en su propia unidad de
+ * {@code @Transactional} en el bucle (cada respaldo se procesa en su propia unidad de
  * trabajo dentro de BackupExecutorService) y try/catch por elemento, para
  * que un fallo en una programación no bloquee el resto.
  */
@@ -27,6 +27,11 @@ public class BackupScheduler {
     private final BackupScheduleRepository programacionRepository;
     private final BackupExecutorService respaldoEjecutorServicio;
 
+    /**
+     * Dispara, a través de {@link BackupExecutorService}, cada programación
+     * activa cuya {@code proximaEjecucion} ya venció. Cada programación se
+     * procesa en su propio try/catch para que un fallo no bloquee el resto.
+     */
     @Scheduled(fixedRate = 60_000)
     public void procesarProgramacionesPendientes() {
         List<BackupSchedule> pendientes =

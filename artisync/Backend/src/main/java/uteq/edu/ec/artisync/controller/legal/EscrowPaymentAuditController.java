@@ -50,7 +50,7 @@ public class EscrowPaymentAuditController {
      *
      * @param idPago identificador del pago en garantía
      * @return el detalle del pago en garantía
-     * @throws ResourceNotFoundException si el pago en garantía no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pago en garantía no existe
      */
     @Operation(summary = "Detalle de un pago en garantía, con su historial de transacciones")
     @GetMapping("/{idPago}")

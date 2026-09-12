@@ -21,14 +21,15 @@ import java.util.List;
 @Repository
 public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, Long> {
 
+    /** Transacciones de un pago de garantía, más recientes primero. */
     List<PaymentTransaction> findByPagoIdPagoOrderByFechaEjecucionDesc(Long idPago);
 
     /**
      * fn_reporte_comisiones_creador (db/procs/fn_reporte_comisiones_creador.sql):
-     * agrega bruto/comisi??n/neto y el detalle de transacciones de un creador en
+     * agrega bruto/comisión/neto y el detalle de transacciones de un creador en
      * una sola sentencia STABLE, en vez de traer entidades crudas y sumar en
-     * Java. Sustituye a la vieja findByCreadorPerfilId + agregaci??n manual que
-     * usaba AuditServiceImpl (retirado: su CSV no ten??a tope, no llevaba BOM y
+     * Java. Sustituye a la vieja findByCreadorPerfilId + agregación manual que
+     * usaba AuditServiceImpl (retirado: su CSV no tenía tope, no llevaba BOM y
      * formateaba el monto con el locale por defecto de la JVM).
      */
     @Query(value = "SELECT fn_reporte_comisiones_creador(:idPerfil, :desde, :hasta, :tasa)::text",
@@ -39,9 +40,9 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
                                   @Param("tasa") BigDecimal tasa);
 
     /**
-     * Total histÃ³rico de "Egreso" (la parte del creador tras la comisiÃ³n,
+     * Total histórico de "Egreso" (la parte del creador tras la comisión,
      * ver DeliverableServiceImpl.aprobarEntrega) acumulado por todos sus
-     * pedidos. Es la mitad "ingresos" del cÃ¡lculo de saldo disponible para
+     * pedidos. Es la mitad "ingresos" del cálculo de saldo disponible para
      * retiro; la otra mitad (lo ya solicitado) vive en
      * WithdrawalRequestRepository.sumMontosEnCursoPorCreador.
      */

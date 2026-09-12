@@ -22,22 +22,38 @@ public class PayPalConfig {
     @Value("${paypal.webhook-id:webhook_id}")
     private String webhookId;
 
+    /**
+     * @return el Client ID de la app de PayPal (variable de entorno {@code paypal.client-id})
+     */
     public String getClientId() {
         return clientId;
     }
 
+    /**
+     * @return el Client Secret de la app de PayPal (variable de entorno {@code paypal.client-secret})
+     */
     public String getClientSecret() {
         return clientSecret;
     }
 
+    /**
+     * @return {@code "sandbox"} o {@code "live"}, según {@code paypal.mode}; determina la URL base
+     */
     public String getMode() {
         return mode;
     }
 
+    /**
+     * @return el identificador del webhook de PayPal, usado para verificar la
+     *         firma de los eventos entrantes
+     */
     public String getWebhookId() {
         return webhookId;
     }
 
+    /**
+     * @return la URL base de la API de PayPal Orders v2 que corresponde al {@link #mode} configurado
+     */
     public String getBaseUrl() {
         return "sandbox".equalsIgnoreCase(mode)
                 ? "https://api-m.sandbox.paypal.com"

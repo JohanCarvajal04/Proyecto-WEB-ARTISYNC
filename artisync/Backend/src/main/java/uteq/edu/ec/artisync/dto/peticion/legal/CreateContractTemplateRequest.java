@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Datos para crear una plantilla de contrato en el catálogo curado por ADMIN. */
 @Data
 @Builder
 @NoArgsConstructor

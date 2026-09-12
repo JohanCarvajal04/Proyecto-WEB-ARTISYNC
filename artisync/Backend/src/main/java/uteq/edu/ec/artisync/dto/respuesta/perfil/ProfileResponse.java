@@ -20,7 +20,7 @@ public record ProfileResponse(
         String biografia,
         String urlRedSocial,
         String urlFotoPerfil,
-        // La entidad CreatorProfile ya tenÃ­a esta columna (titulo_profesional);
+        // La entidad CreatorProfile ya tenía esta columna (titulo_profesional);
         // solo faltaba exponerla en la respuesta y permitir editarla.
         String tituloProfesional,
         // Identidad verificada de verdad (AiCertificate tipo IDENTIDAD en estado

@@ -18,6 +18,13 @@ public final class DocumentResponse {
     private DocumentResponse() {
     }
 
+    /**
+     * Construye la respuesta HTTP de descarga para un documento ya generado.
+     *
+     * @param documento documento generado (contenido, tipo y nombre de archivo)
+     * @return 200 con {@code Content-Type} del documento y
+     *         {@code Content-Disposition: attachment}
+     */
     public static ResponseEntity<byte[]> de(GeneratedDocument documento) {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(documento.contentType()))

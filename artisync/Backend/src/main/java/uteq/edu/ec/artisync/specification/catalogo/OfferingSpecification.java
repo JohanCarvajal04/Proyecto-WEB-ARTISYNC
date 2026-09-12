@@ -12,8 +12,26 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Filtros dinámicos de búsqueda del catálogo de servicios. */
 public class OfferingSpecification {
 
+    /**
+     * Arma la {@link Specification} de {@link Offering} combinando (AND) solo
+     * los criterios no nulos/no vacíos recibidos.
+     *
+     * @param categoriaId si no es {@code null}, restringe a servicios con al menos
+     *                     una subcategoría de esa categoría (subconsulta sobre {@link OfferingSubcategory})
+     * @param subcategoriaId si no es {@code null}, restringe a servicios con esa subcategoría exacta
+     * @param precioMin precio base mínimo (inclusive)
+     * @param precioMax precio base máximo (inclusive)
+     * @param etiquetaIds si no es vacío, restringe a servicios con al menos una de esas etiquetas
+     *                    (subconsulta sobre {@link OfferingTag})
+     * @param textoBusqueda coincidencia parcial, insensible a mayúsculas, sobre título o descripción
+     * @param estadoPublicacion estado exacto de publicación; {@code null} no filtra por estado
+     *                          (usado por la moderación, que necesita ver cualquier estado —
+     *                          el catálogo público siempre pasa {@code "ACTIVO"} explícito)
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
     public static Specification<Offering> conFiltros(
             Long categoriaId,
             Long subcategoriaId,

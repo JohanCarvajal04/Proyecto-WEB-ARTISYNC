@@ -15,8 +15,8 @@ public class AiServiceUnavailableException extends RuntimeException {
 
     /**
      * Solo true para fallos transitorios (429, timeout): un segundo intento
-     * puede tener Ã©xito. Para 401/413 el segundo intento fallarÃ­a igual y
-     * solo duplicarÃ­a la espera del moderador.
+     * puede tener éxito. Para 401/413 el segundo intento fallaría igual y
+     * solo duplicaría la espera del moderador.
      */
     private final boolean reintentable;
 
@@ -29,6 +29,11 @@ public class AiServiceUnavailableException extends RuntimeException {
         this.reintentable = reintentable;
     }
 
+    /**
+     * @return {@code true} si el fallo es transitorio (429, timeout) y un
+     *         reintento razonable podría tener éxito; {@code false} para
+     *         fallos que un reintento no resolvería (401, 413)
+     */
     public boolean isReintentable() {
         return reintentable;
     }

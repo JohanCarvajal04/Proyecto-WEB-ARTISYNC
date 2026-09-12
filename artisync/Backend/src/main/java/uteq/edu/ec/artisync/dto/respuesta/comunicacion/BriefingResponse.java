@@ -22,6 +22,7 @@ public class BriefingResponse {
     private Boolean completado;
     private List<PreguntaRespuestaItem> preguntas;
 
+    /** Una pregunta del briefing junto con su respuesta, si ya fue contestada. */
     @Data
     @Builder
     @NoArgsConstructor

@@ -614,6 +614,20 @@ Hoy: de **543 métodos públicos solo 28 tienen Javadoc**, y en todo el backend 
 
 **Avance 2026-09-07 (segunda pasada):** ✅ **T-23 completa — 38/38 interfaces de servicio en alcance** (el recuento real por `grep "^public interface"` da 42 interfaces totales; se excluyen las 4 de `service/shared/**` ya declaradas fuera de alcance arriba, no 35 como se había estimado el día anterior) **ya documentadas con `@param`/`@return`/`@throws`**, redactado método por método contra el comportamiento real de cada `*Impl` (qué excepción lanza cada validación, no solo qué parámetros recibe la firma) para no repetir el error de verificación superficial de OBS-D6-04. Conteo total en `src/main/java`: **772 `@param`, 404 `@return`, 363 `@throws`**. `mvn compile` en verde. Denominador cerrado: 44 controladores + 38 interfaces de servicio = 82 archivos, 100 % documentados.
 
+**Avance 2026-09-11 (tercera pasada — cierre de `mvn javadoc:javadoc` + 9 archivos nuevos):** El comando de verificación real de este criterio, `mvn javadoc:javadoc` (no solo `mvn compile`, que nunca falla por un Javadoc mal escrito), **no se había ejecutado nunca hasta ahora y fallaba con `BUILD FAILURE`, 177 errores**. Root causes, todas corregidas:
+- 153 `@throws ResourceNotFoundException/BusinessRuleException/DuplicateResourceException` sin el FQN de la excepción (141 errores "reference not found").
+- 3 `@link` rotos por el rename i18n: `{@link Infraccion}` → clase real `MessageViolation`; `{@link ContratoCustom}` → clase real `Contract`; un `@link` a un getter generado por Lombok (`User#getUrlFotoPerfil()`), que no existe textualmente en el `.java` fuente y por eso Javadoc no lo resuelve — se cambió a `{@code}`.
+- 16 líneas de comentario que empezaban literalmente con una anotación real (`@Transactional`, `@Procedure`, `@Immutable`, `@DynamicUpdate`, `@ConditionalOnMissingBean`), interpretadas por Javadoc como tag propio ("unknown tag").
+- 14 usos inválidos de `@return`/`@throws` en el Javadoc de **tipo** de 7 `record` (`BackupFile`, `AuthenticatedActor.Actor`, `PreAuth2faTicketService.DatosTicket`, `RequestContext.Datos`, `GeneratedDocument`, `PdfGenerator.TotalConTexto`/`GraficaConDataUri`) — un `record` solo admite `@param` por componente en su Javadoc de tipo, no `@return`/`@throws`; se reescribió cada uno con `@param` específico por componente.
+- 4 `@param` huérfanos que quedaron con el nombre viejo tras un rename de parámetros (`AdminUserServiceImpl`, `CreatorProfileServiceImpl`, `DeliverableServiceImpl`).
+- 2 HTML mal formado (`Map<String,Object>` y `usuario<->rol` sin escapar).
+
+Además, **9 archivos de servicio entraron al repo después del cierre de la segunda pasada y nunca se documentaron**: `IBackupService` (5 métodos), `IBackupScheduleService` (6 métodos), `NotificationService` (4 métodos), y 2 sobrecargas de `exportar` en `AdminUserService`. Ya están documentados. **Denominador actualizado: 48 controladores + 43 interfaces de servicio = 91 archivos, 492/492 métodos, 100 %.**
+
+Se configuró `maven-javadoc-plugin` en `pom.xml` (UTF-8, `-Xdoclint:all,-missing`) y se añadió el target `make javadoc` (`Makefile`), para que el comando de verificación quede versionado y en verde de forma reproducible. El conteo manual de `@param`/`@return` de la pasada anterior se reemplaza por `python scripts/medir-javadoc.py`, que calcula la cobertura sobre el denominador exacto (controladores + interfaces de servicio, excluyendo `shared/` e `impl/`) en vez de un total agregado sin alcance.
+
+**Hallazgo nuevo, no cerrado en esta pasada:** al verificar el patrón de relleno detectado en `AdminUserServiceImpl` se encontró que la primera pasada (T-23, 2026-09-06) usó texto de plantilla genérico (`"el resultado esperado de aplicar las reglas de negocio de la funcion"`, `"parametro requerido para la correcta ejecucion del procedimiento"`, `"identificador unico que referencia de manera univoca al registro"`, entre otros) en aproximadamente **60 archivos de `service/**/impl/**`**. Esto no rompe `mvn javadoc:javadoc` ni el criterio de cobertura del script (los métodos sí tienen `@param`/`@return`/`@throws`, con nombre y tipo correctos), pero es Javadoc de plantilla, no específico — un evaluador que abra varios archivos al azar puede notar la frase repetida palabra por palabra. Cerrarlo del todo exige leer cada método e implementación real, una cuarta pasada no incluida en el alcance de esta.
+
 ```java
 /**
  * Crea una comisión entre un artista y un cliente, validando que el artista
@@ -628,10 +642,10 @@ Hoy: de **543 métodos públicos solo 28 tienen Javadoc**, y en todo el backend 
 public ComisionDTO crearComision(CrearComisionRequest solicitud, Long clienteId) { … }
 ```
 
-**Comando de verificación:**
+**Comandos de verificación:**
 ```bash
-grep -rc "@param" artisync/Backend/src/main/java --include=*.java | awk -F: '{s+=$2} END {print "param:", s}'
-grep -rc "@return" artisync/Backend/src/main/java --include=*.java | awk -F: '{s+=$2} END {print "return:", s}'
+make javadoc                        # falla si Javadoc tiene errores de sintaxis (0 desde 2026-09-11)
+python scripts/medir-javadoc.py     # cobertura sobre el alcance exacto: 91 archivos, 492/492 (100%)
 ```
 
 **Criterio de aceptación (guía §3.10):** *«Los métodos públicos de servicios y controladores documentan parámetros, retorno y excepciones.»*

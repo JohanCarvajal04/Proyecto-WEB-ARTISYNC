@@ -45,8 +45,8 @@ public class PortfolioItemController {
      * @param datos datos de la obra a crear
      * @param archivo archivo multimedia de la obra
      * @return el ítem de portafolio creado, con estado 201
-     * @throws ResourceNotFoundException si el portafolio no existe
-     * @throws BusinessRuleException si el usuario no es el dueño del portafolio o se alcanzó el máximo de obras permitidas
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el dueño del portafolio o se alcanzó el máximo de obras permitidas
      */
     @PostMapping(value = "/{idPortafolio}/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
@@ -66,8 +66,8 @@ public class PortfolioItemController {
      * @param idPortafolio identificador del portafolio
      * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
      * @return listado de ítems del portafolio
-     * @throws ResourceNotFoundException si el portafolio no existe
-     * @throws BusinessRuleException si el portafolio no es público y el usuario no es su dueño
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping("/{idPortafolio}/items")
     public ResponseEntity<List<PortfolioItemResponse>> listarItems(
@@ -82,8 +82,8 @@ public class PortfolioItemController {
      * @param idItem identificador de la obra
      * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
      * @return el ítem de portafolio solicitado
-     * @throws ResourceNotFoundException si la obra no existe
-     * @throws BusinessRuleException si el portafolio no es público y el usuario no es su dueño
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping("/items/{idItem}")
     public ResponseEntity<PortfolioItemResponse> obtenerItem(
@@ -103,8 +103,8 @@ public class PortfolioItemController {
      * @param idItem identificador de la obra a descargar
      * @param userDetails usuario autenticado (opcional, puede ser {@code null} para acceso anónimo)
      * @return el contenido binario del archivo, como adjunto
-     * @throws ResourceNotFoundException si la obra no existe
-     * @throws BusinessRuleException si el portafolio no es público y el usuario no es su dueño
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público y el usuario no es su dueño
      */
     @GetMapping("/items/{idItem}/archivo")
     public ResponseEntity<byte[]> descargarArchivo(
@@ -127,8 +127,8 @@ public class PortfolioItemController {
      * @param userDetails usuario autenticado que solicita la actualización
      * @param datos datos actualizados de la obra
      * @return el ítem de portafolio actualizado
-     * @throws ResourceNotFoundException si la obra no existe
-     * @throws BusinessRuleException si el usuario no es el dueño del portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el dueño del portafolio
      */
     @PutMapping("/items/{idItem}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
@@ -145,8 +145,8 @@ public class PortfolioItemController {
      * @param idItem identificador de la obra a eliminar
      * @param userDetails usuario autenticado que solicita la eliminación
      * @return mensaje de confirmación de la eliminación
-     * @throws ResourceNotFoundException si la obra no existe
-     * @throws BusinessRuleException si el usuario no es el dueño del portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el dueño del portafolio
      */
     @DeleteMapping("/items/{idItem}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")

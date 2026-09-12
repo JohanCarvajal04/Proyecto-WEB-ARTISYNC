@@ -53,9 +53,10 @@ public class DeliverableServiceImpl implements IDeliverableService {
     /**
      * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
      * @param idPedido identificador del pedido
-     * @param idCreador identificador del creador
-     * @param peticion datos de la peticion
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * @param idCreador identificador del creador que sube el entregable
+     * @param versionMarcaAgua versión con marca de agua, visible antes de la aprobación
+     * @param versionLimpia versión sin marca de agua, liberada al cliente tras la aprobación
+     * @return el entregable creado, con su identificador y estado inicial
      */
     @Override
     @Transactional

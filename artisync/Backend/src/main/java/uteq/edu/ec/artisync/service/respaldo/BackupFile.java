@@ -2,15 +2,12 @@ package uteq.edu.ec.artisync.service.respaldo;
 
 import org.springframework.core.io.Resource;
 
-/** Archivo de un respaldo listo para transmitirse en streaming (ver BackupController#descargar). */
 /**
- * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+ * Archivo de un respaldo listo para transmitirse en streaming (ver BackupController#descargar).
  *
- * @param recurso parametro requerido para la correcta ejecucion del procedimiento
- * @param nombreArchivo objeto binario multipart representando el documento o medio fisico
- * @param tamanoBytes parametro requerido para la correcta ejecucion del procedimiento
- * @return el resultado esperado de aplicar las reglas de negocio de la funcion
- * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+ * @param recurso contenido binario del respaldo, listo para escribirse en la respuesta HTTP
+ * @param nombreArchivo nombre con el que se ofrece la descarga al cliente
+ * @param tamanoBytes tamaño del archivo en bytes, usado para la cabecera Content-Length
  */
 public record BackupFile(Resource recurso, String nombreArchivo, long tamanoBytes) {
 }

@@ -25,6 +25,7 @@ import uteq.edu.ec.artisync.util.DocumentResponse;
 
 import java.util.List;
 
+/** Ciclo de vida de los pedidos: creación, avance de etapas, propuestas de términos y reportes. */
 @RestController
 @RequestMapping("/api/v1/pedidos")
 @RequiredArgsConstructor

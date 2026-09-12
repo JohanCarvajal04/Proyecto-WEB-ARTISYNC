@@ -30,6 +30,16 @@ public final class AuditContext {
     private AuditContext() {
     }
 
+    /**
+     * Aporta un dato al detalle del evento de auditoría en curso (típicamente
+     * el estado "antes" de un cambio). Seguro de llamar aunque no haya ningún
+     * método {@link Auditable} activo en el hilo actual: en ese caso el valor
+     * simplemente no lo lee nadie y se descarta con el resto del ThreadLocal.
+     *
+     * @param clave nombre bajo el que se guarda el valor en {@code detalle_cambio}
+     * @param valor valor a aportar; se sanitiza y normaliza igual que el resto
+     *              del detalle antes de persistirse (ver {@link AuditSanitizer})
+     */
     public static void aportar(String clave, Object valor) {
         Map<String, Object> mapa = DATOS.get();
         if (mapa == null) {

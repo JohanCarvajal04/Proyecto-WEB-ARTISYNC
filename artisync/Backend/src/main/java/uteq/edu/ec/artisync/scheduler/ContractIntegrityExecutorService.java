@@ -28,6 +28,13 @@ public class ContractIntegrityExecutorService {
 
     private final IContractService contratoServicio;
 
+    /**
+     * Recalcula el hash de contenido del contrato y lo compara contra el
+     * almacenado; si difieren, registra un error en el log (no lanza excepción:
+     * el barrido nocturno continúa con el resto de contratos).
+     *
+     * @param idContrato identificador del contrato ya firmado a verificar
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void verificar(Long idContrato) {
         IntegrityVerificationResponse resultado = contratoServicio.verificarIntegridadHash(idContrato);

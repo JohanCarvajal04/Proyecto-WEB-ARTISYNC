@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/** Respuesta con un flujo de trabajo y sus etapas configuradas. */
 @Data
 @Builder
 @NoArgsConstructor

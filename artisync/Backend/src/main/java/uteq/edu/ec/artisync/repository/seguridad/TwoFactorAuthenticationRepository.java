@@ -20,12 +20,14 @@ import java.util.Optional;
 @Repository
 public interface TwoFactorAuthenticationRepository extends JpaRepository<TwoFactorAuthentication, Long> {
 
+    /** Configuración 2FA de un usuario, si la tiene. */
     Optional<TwoFactorAuthentication> findByUsuarioIdUsuario(Long idUsuario);
 
+    /** Configuración 2FA de un usuario, identificado por su correo. */
     Optional<TwoFactorAuthentication> findByUsuarioCorreo(String correo);
 
     /**
-     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§8) - carga en
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) - carga en
      * UNA sola consulta el estado de 2FA de TODOS los usuarios de
      * {@code idsUsuario}. La usa UserMapper.toUserResponseList para eliminar
      * el N+1 de invocar findByUsuarioIdUsuario por cada fila de una pagina de
@@ -34,16 +36,16 @@ public interface TwoFactorAuthenticationRepository extends JpaRepository<TwoFact
     List<TwoFactorAuthentication> findByUsuarioIdUsuarioIn(List<Long> idsUsuario);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§7) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7) -
      * fn_configurar_2fa: upsert atomico del secreto TOTP + reemplazo completo
      * de codigos de respaldo en una unica transaccion. Sustituye la escritura
      * en 10 pasos de TwoFactorServiceImpl.setup2Fa (A4). Devuelve el numero de
      * codigos de respaldo insertados.
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
      * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
      */
     @Query(value = "SELECT fn_configurar_2fa(:p_id_usuario, :p_llave_secreta, :p_hashes)", nativeQuery = true)
     Integer configurar2Fa(
@@ -52,7 +54,7 @@ public interface TwoFactorAuthenticationRepository extends JpaRepository<TwoFact
             @Param("p_hashes") String[] hashes);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§7) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §7) -
      * fn_desactivar_2fa: desactiva 2FA y purga codigos de respaldo
      * atomicamente; idempotente (FALSE, no excepcion) si el usuario no tenia
      * 2FA configurado. Unifica el codigo antes duplicado entre

@@ -30,7 +30,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§8) -
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) -
      * fn_permisos_efectivos_usuario resuelve en una unica llamada STABLE lo
      * que antes eran 4-8 consultas separadas por peticion: findByCorreo +
      * findByUsuarioIdUsuario en usuario_roles + un SELECT por cada rol al

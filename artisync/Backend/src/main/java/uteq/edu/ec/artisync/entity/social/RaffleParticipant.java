@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/** Participación de un usuario en un sorteo, y si resultó ganador. */
 @Entity
 @Table(name = "participantes_sorteo", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"id_sorteo", "id_usuario"})

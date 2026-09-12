@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TwoFactorConfirmRequest {
 
-    @NotBlank(message = "El cÃ³digo TOTP es obligatorio")
+    @NotBlank(message = "El código TOTP es obligatorio")
     private String codigo;
 }
 

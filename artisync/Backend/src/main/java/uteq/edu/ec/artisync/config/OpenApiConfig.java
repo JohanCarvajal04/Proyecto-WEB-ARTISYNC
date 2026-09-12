@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-    info = @Info(title = "ARTISYNC API REST", version = "1.0", description = "Plataforma de conexiÃ³n para creadores artÃ­sticos y clientes"),
+    info = @Info(title = "ARTISYNC API REST", version = "1.0", description = "Plataforma de conexión para creadores artísticos y clientes"),
     security = @SecurityRequirement(name = "bearerAuth")
 )
 /**

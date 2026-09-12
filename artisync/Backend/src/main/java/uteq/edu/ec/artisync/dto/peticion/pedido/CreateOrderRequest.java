@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** Datos para que un cliente cree un pedido sobre un servicio del catálogo. */
 @Data
 @Builder
 @NoArgsConstructor

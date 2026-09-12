@@ -71,19 +71,24 @@ public class OrderServiceImpl implements IOrderService {
     private final SentBriefingRepository briefingEnviadoRepository;
     private final BriefingAnswerRepository briefingRespuestaRepository;
 
+    /**
+     * Crea un pedido de un cliente sobre un servicio, resolviendo el flujo de
+     * trabajo aplicable, validando el cuestionario del servicio (si tiene uno)
+     * y abriendo la sala de chat del pedido.
+     *
+     * @param idCliente identificador del cliente que crea el pedido
+     * @param peticion servicio solicitado, precio ofrecido, fecha de entrega y respuestas al cuestionario
+     * @return el pedido creado, con su primera etapa ya registrada en el historial
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el cliente o el servicio no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el cliente no tiene la identidad verificada,
+     *         si intenta pedir su propio servicio, si el flujo asignado no tiene etapas configuradas,
+     *         o si el servicio tiene cuestionario y falta responder alguna pregunta
+     */
     @Override
     @Transactional
     @Auditable(accion = "PEDIDO_CREAR", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#resultado.idPedido",
             detalle = "{idServicio: #peticion.idServicio}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param idCliente identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OrderResponse crearPedido(Long idCliente, CreateOrderRequest peticion) {
         User cliente = usuarioRepository.findById(idCliente)
                 .orElseThrow(() -> new ResourceNotFoundException("User cliente no encontrado"));
@@ -158,19 +163,23 @@ public class OrderServiceImpl implements IOrderService {
         return mapToRespuesta(pedido);
     }
 
+    /**
+     * Propone un cambio de precio y/o fecha de entrega sobre un pedido cuyo
+     * contrato aún no tiene ninguna firma, y notifica a la otra parte.
+     *
+     * @param idPedido identificador del pedido
+     * @param idUsuario identificador de quien propone (cliente o creador del pedido)
+     * @param peticion precio y/o fecha propuestos; al menos uno debe venir informado
+     * @return la propuesta creada, pendiente de aceptación o rechazo
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica ningún término,
+     *         si quien llama no es parte del pedido, si el contrato ya tiene una firma,
+     *         o si ya hay otra propuesta pendiente sin resolver
+     */
     @Override
     @Transactional
     @Auditable(accion = "PEDIDO_PROPONER_TERMINOS", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public TermsProposalResponse proponerTerminos(Long idPedido, Long idUsuario, CreateTermsProposalRequest peticion) {
         if (peticion.getPrecioPropuesto() == null && peticion.getFechaEntregaPropuesta() == null) {
             throw new BusinessRuleException("Debes indicar al menos un término a proponer");
@@ -207,19 +216,24 @@ public class OrderServiceImpl implements IOrderService {
         return mapPropuesta(propuesta);
     }
 
+    /**
+     * Acepta una propuesta de términos pendiente: aplica el precio/fecha
+     * propuestos al pedido y, si es la primera vez que ambas partes se ponen
+     * de acuerdo, genera el contrato en el mismo paso.
+     *
+     * @param idPedido identificador del pedido
+     * @param idPropuesta identificador de la propuesta a aceptar
+     * @param idUsuario identificador de quien acepta (debe ser la otra parte, no quien propuso)
+     * @return el pedido con los términos ya actualizados
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la propuesta no existe, ya fue
+     *         resuelta, no pertenece a ese pedido, si quien acepta es quien la propuso,
+     *         si no es parte del pedido, o si el contrato ya tiene una firma
+     */
     @Override
     @Transactional
     @Auditable(accion = "PEDIDO_ACEPTAR_PROPUESTA_TERMINOS", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idPropuesta identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OrderResponse aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -265,17 +279,19 @@ public class OrderServiceImpl implements IOrderService {
         return mapToRespuesta(pedido);
     }
 
+    /**
+     * Rechaza una propuesta de términos pendiente y notifica a quien la propuso.
+     *
+     * @param idPedido identificador del pedido
+     * @param idPropuesta identificador de la propuesta a rechazar
+     * @param idUsuario identificador de quien rechaza (debe ser la otra parte, no quien propuso)
+     * @return la propuesta ya marcada como rechazada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la propuesta no existe, ya fue
+     *         resuelta, no pertenece a ese pedido, si quien rechaza es quien la propuso, o si no es parte del pedido
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idPropuesta identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public TermsProposalResponse rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -298,17 +314,18 @@ public class OrderServiceImpl implements IOrderService {
         return mapPropuesta(propuesta);
     }
 
+    /**
+     * Cancela una propuesta de términos pendiente. Solo puede hacerlo quien la propuso.
+     *
+     * @param idPedido identificador del pedido
+     * @param idPropuesta identificador de la propuesta a cancelar
+     * @param idUsuario identificador de quien cancela (debe ser quien la propuso)
+     * @return la propuesta ya marcada como cancelada
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la propuesta no existe, ya fue
+     *         resuelta, no pertenece a ese pedido, o si quien cancela no es quien la propuso
+     */
     @Override
     @Transactional
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idPropuesta identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public TermsProposalResponse cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
         OrderTermsProposal propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
 
@@ -325,16 +342,17 @@ public class OrderServiceImpl implements IOrderService {
         return mapPropuesta(propuesta);
     }
 
+    /**
+     * Obtiene la propuesta de términos pendiente de un pedido, si la hay.
+     *
+     * @param idPedido identificador del pedido
+     * @param idUsuarioSolicitante identificador de quien consulta, para validar que sea parte del pedido
+     * @return la propuesta pendiente
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe,
+     *         o si no hay ninguna propuesta pendiente
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public TermsProposalResponse obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -507,16 +525,16 @@ public class OrderServiceImpl implements IOrderService {
         }
     }
 
+    /**
+     * Obtiene el detalle de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param idUsuarioSolicitante identificador de quien consulta, para validar que sea parte del pedido o admin
+     * @return el pedido solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OrderResponse obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
@@ -525,15 +543,12 @@ public class OrderServiceImpl implements IOrderService {
         return mapToRespuesta(pedido);
     }
 
+    /**
+     * @param idCliente identificador del cliente
+     * @return los pedidos realizados por ese cliente, resumidos
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idCliente identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<OrderSummaryResponse> listarMisPedidos(Long idCliente) {
         return pedidoRepository.findByUsuarioClienteIdUsuario(idCliente)
                 .stream()
@@ -541,15 +556,12 @@ public class OrderServiceImpl implements IOrderService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * @param idCreador identificador del creador
+     * @return los pedidos recibidos por ese creador, resumidos
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idCreador identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<OrderSummaryResponse> listarMisComisiones(Long idCreador) {
         return pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idCreador)
                 .stream()
@@ -557,28 +569,32 @@ public class OrderServiceImpl implements IOrderService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Exporta el listado de pedidos de un cliente.
+     *
+     * @param idCliente identificador del cliente
+     * @param formato formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de pedidos del cliente
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     *
-     * @param idCliente identificador unico que referencia de manera univoca al registro
-     * @param formato parametro requerido para la correcta ejecucion del procedimiento
-     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public GeneratedDocument exportarMisPedidos(Long idCliente, ReportFormat formato, String correoSolicitante) {
         return exportarResumen(listarMisPedidos(idCliente), "Mis pedidos", "Pedidos como cliente",
                 formato, correoSolicitante);
     }
 
     /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     * @param idCreador id del creador
-     * @param idsPedido lista de ids de pedidos
-     * @param formato formato de reporte
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * Exporta el listado de comisiones (pedidos recibidos) de un creador,
+     * opcionalmente acotado a un subconjunto de pedidos ya autorizados para él.
+     *
+     * @param idCreador identificador del creador
+     * @param idsPedido si no es vacío, restringe la exportación a esos pedidos (los ajenos se ignoran)
+     * @param formato formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de comisiones del creador
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
     @Override
     @Transactional(readOnly = true)
@@ -630,18 +646,21 @@ public class OrderServiceImpl implements IOrderService {
     @Transactional
     // Las transiciones de flujo: incluye los intentos FALLIDOS, que
     // historial_estados_pedido (tabla de dominio) nunca registra.
+    /**
+     * Avanza el pedido a la siguiente etapa configurada de su flujo de trabajo.
+     *
+     * @param idPedido identificador del pedido
+     * @param idCreador identificador del creador; debe ser dueño del servicio del pedido
+     * @param peticion observación de la transición
+     * @return el pedido ya en la nueva etapa
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien llama no es el creador del
+     *         servicio, si la etapa actual exige un entregable que aún no se subió, si la etapa actual
+     *         ya no está en la configuración del flujo, o si el pedido ya está en la etapa final
+     */
     @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{observacion: #peticion.observacion}")
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idCreador identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OrderResponse avanzarEtapa(Long idPedido, Long idCreador, AdvanceStageRequest peticion) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -707,16 +726,16 @@ public class OrderServiceImpl implements IOrderService {
         return mapToRespuesta(pedido);
     }
 
+    /**
+     * Obtiene el historial completo de transiciones de un pedido.
+     *
+     * @param idPedido identificador del pedido
+     * @param idUsuarioSolicitante identificador de quien consulta, para validar que sea parte del pedido o admin
+     * @return el historial de transiciones, en el orden en que ocurrieron
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<StatusHistoryResponse> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
@@ -729,16 +748,17 @@ public class OrderServiceImpl implements IOrderService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene el progreso del pedido dentro de su flujo de trabajo: etapa
+     * actual, porcentaje de avance y si está bloqueado esperando un entregable.
+     *
+     * @param idPedido identificador del pedido
+     * @param idUsuarioSolicitante identificador de quien consulta, para validar que sea parte del pedido o admin
+     * @return el seguimiento del pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public OrderTrackingResponse obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));

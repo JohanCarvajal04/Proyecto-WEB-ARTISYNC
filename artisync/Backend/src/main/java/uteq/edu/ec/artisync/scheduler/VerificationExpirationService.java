@@ -23,6 +23,12 @@ public class VerificationExpirationService {
     private final AiCertificateRepository certificadoIaRepository;
     private final DocumentStorage almacenamiento;
 
+    /**
+     * Elimina el documento de un certificado de IA vencido del almacenamiento
+     * y marca la entidad como {@code documentoEliminado}.
+     *
+     * @param certificado certificado cuyo documento ya venció
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void expirarCertificado(AiCertificate certificado) {
         almacenamiento.eliminar(certificado.getUrlDocumentoS3());

@@ -18,6 +18,7 @@ import java.util.Optional;
 @Repository
 public interface BriefingTemplateRepository extends JpaRepository<BriefingTemplate, Long> {
 
+    /** Cuestionarios (briefings) definidos por un perfil de creador. */
     List<BriefingTemplate> findByPerfilCreadorIdPerfil(Long idPerfil);
 
     /** Usado al asignar un cuestionario a un servicio: solo uno de los propios del creador. */

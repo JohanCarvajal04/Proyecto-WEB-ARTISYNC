@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Sorteo creado por un perfil de creador, con sus premios y ganadores. */
 @Entity
 @Table(name = "sorteos")
 @Getter

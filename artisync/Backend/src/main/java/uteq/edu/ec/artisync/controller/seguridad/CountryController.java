@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.service.seguridad.CountryService;
 
 import java.util.List;
 
+/** Consulta y gestión del catálogo maestro de países. */
 @RestController
 @RequestMapping("/api/v1/paises")
 @RequiredArgsConstructor
@@ -51,7 +52,7 @@ public class CountryController {
      *
      * @param id identificador del país
      * @return el país solicitado
-     * @throws ResourceNotFoundException si el país no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
      */
     @Operation(summary = "Obtener un país por su ID")
     @GetMapping("/{id}")
@@ -64,7 +65,7 @@ public class CountryController {
      *
      * @param request datos del país a crear
      * @return el país creado, con estado 201
-     * @throws DuplicateResourceException si ya existe un país con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe un país con el mismo nombre
      */
     @Operation(summary = "Crear un nuevo país", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_CREAR') or hasRole('ADMIN')")
@@ -79,8 +80,8 @@ public class CountryController {
      * @param id identificador del país a actualizar
      * @param request datos actualizados del país
      * @return el país actualizado
-     * @throws ResourceNotFoundException si el país no existe
-     * @throws DuplicateResourceException si ya existe otro país con el mismo nombre
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si ya existe otro país con el mismo nombre
      */
     @Operation(summary = "Actualizar el nombre de un país existente", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')")
@@ -94,7 +95,7 @@ public class CountryController {
      *
      * @param id identificador del país
      * @return mensaje de confirmación con el nuevo estado del país
-     * @throws ResourceNotFoundException si el país no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
      */
     @Operation(summary = "Eliminar un país si no tiene usuarios asociados", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')")

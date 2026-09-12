@@ -21,6 +21,13 @@ public class PagedResponse<T> {
     private int totalPages;
     private boolean last;
 
+    /**
+     * Getter explícito (en vez de dejar que Lombok genere {@code getPageNumber()})
+     * para que el JSON serializado use la clave {@code number}, igual convención
+     * que {@code Page} de Spring Data.
+     *
+     * @return el número de página (0-index)
+     */
     @JsonProperty("number")
     public int getNumber() {
         return pageNumber;

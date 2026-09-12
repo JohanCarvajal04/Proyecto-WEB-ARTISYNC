@@ -56,12 +56,15 @@ public class ContractServiceImpl implements IContractService {
     @Auditable(accion = "CONTRATO_GENERAR", modulo = AuditModule.FINANZAS,
             entidad = "contratos", idEntidad = "#resultado.idContrato")
     /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     * Genera el contrato de un pedido, tomando la plantilla que su servicio
+     * tiene asignada o, si no tiene ninguna, la marcada como predeterminada.
      *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPedido identificador del pedido a contratar
+     * @param idUsuarioSolicitante identificador de quien solicita; debe ser parte del pedido o admin
+     * @return el contrato recién creado, sin firmas
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe, o si
+     *         el servicio no tiene plantilla asignada y tampoco existe una predeterminada
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el pedido ya tiene un contrato
      */
     public ContractResponse generarContrato(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
@@ -104,12 +107,17 @@ public class ContractServiceImpl implements IContractService {
     @Auditable(accion = "CONTRATO_FIRMAR", modulo = AuditModule.FINANZAS,
             entidad = "contratos", idEntidad = "#idContrato")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Registra la firma del creador o del cliente sobre un contrato. Cuando
+     * ambas firmas quedan registradas, el contenido del contrato se congela
+     * de forma definitiva (ver {@link #congelarContenidoYHash}).
      *
-     * @param idContrato identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idContrato identificador del contrato a firmar
+     * @param idUsuario identificador de quien firma; debe ser el creador o el cliente del pedido
+     * @return el contrato con el estado de firma actualizado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si esa parte ya había firmado
+     * @throws org.springframework.security.access.AccessDeniedException si quien firma no es
+     *         ni el creador ni el cliente del pedido
      */
     public ContractResponse firmarContrato(Long idContrato, Long idUsuario) {
         Contract contrato = contratoRepository.findByIdParaFirmar(idContrato)
@@ -152,11 +160,15 @@ public class ContractServiceImpl implements IContractService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Comprueba el cumplimiento de restricciones o formatos sobre los datos provistos.
+     * Recalcula el hash SHA-256 del contenido congelado de un contrato ya
+     * firmado por ambas partes y lo compara contra el hash almacenado
+     * (REQ-NF-020), para detectar cualquier alteración posterior.
      *
-     * @param idContrato identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idContrato identificador del contrato a verificar
+     * @return el resultado de la verificación, con ambos hashes y sus fechas
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el contrato aún no está
+     *         firmado por ambas partes y por lo tanto no tiene contenido congelado
      */
     public IntegrityVerificationResponse verificarIntegridadHash(Long idContrato) {
         Contract contrato = contratoRepository.findById(idContrato)
@@ -188,12 +200,12 @@ public class ContractServiceImpl implements IContractService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idContrato identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idContrato identificador del contrato
+     * @param idUsuarioSolicitante identificador de quien consulta; debe ser parte del pedido o admin
+     * @return el contrato solicitado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien consulta no es parte
+     *         del pedido asociado ni administrador
      */
     public ContractResponse obtenerContrato(Long idContrato, Long idUsuarioSolicitante) {
         Contract contrato = contratoRepository.findById(idContrato)
@@ -206,12 +218,12 @@ public class ContractServiceImpl implements IContractService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idPedido identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPedido identificador del pedido cuyo contrato se busca
+     * @param idUsuarioSolicitante identificador de quien consulta; debe ser parte del pedido o admin
+     * @return el contrato asociado a ese pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene contrato
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien consulta no es parte
+     *         del pedido ni administrador
      */
     public ContractResponse obtenerContratoPorPedido(Long idPedido, Long idUsuarioSolicitante) {
         Contract contrato = contratoRepository.findByPedidoIdPedido(idPedido)
@@ -224,12 +236,12 @@ public class ContractServiceImpl implements IContractService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idContrato identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idContrato identificador del contrato
+     * @param idUsuarioSolicitante identificador de quien consulta; debe ser parte del pedido o admin
+     * @return el estado de firma del contrato (quién firmó y un mensaje descriptivo)
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el contrato no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien consulta no es parte
+     *         del pedido asociado ni administrador
      */
     public SignatureStatusResponse obtenerEstadoFirma(Long idContrato, Long idUsuarioSolicitante) {
         Contract contrato = contratoRepository.findById(idContrato)

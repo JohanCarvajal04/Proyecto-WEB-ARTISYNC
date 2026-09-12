@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+/** Programación de respaldos recurrentes (horario CRON, retención, activo/inactivo). */
 @Entity
 @Table(name = "respaldo_programaciones")
 @Getter

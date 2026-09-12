@@ -16,6 +16,10 @@ public class QuotaExceededException extends RuntimeException {
         this.retryAfterSegundos = retryAfterSegundos;
     }
 
+    /**
+     * @return segundos que el cliente debe esperar antes de reintentar,
+     *         reflejados en la cabecera HTTP {@code Retry-After} de la respuesta
+     */
     public long getRetryAfterSegundos() {
         return retryAfterSegundos;
     }

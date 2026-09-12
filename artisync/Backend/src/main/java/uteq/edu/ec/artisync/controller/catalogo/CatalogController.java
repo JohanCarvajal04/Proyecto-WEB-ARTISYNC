@@ -10,6 +10,7 @@ import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
 import java.math.BigDecimal;
 import java.util.List;
 
+/** Endpoint público de búsqueda del catálogo de servicios (sin autenticación). */
 @RestController
 @RequestMapping("/api/v1/catalogo")
 @RequiredArgsConstructor

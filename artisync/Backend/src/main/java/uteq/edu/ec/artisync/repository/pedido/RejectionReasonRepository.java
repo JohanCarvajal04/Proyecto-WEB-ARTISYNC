@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.entity.pedido.RejectionReason;
 @Repository
 public interface RejectionReasonRepository extends JpaRepository<RejectionReason, Long> {
 
+    /** @return {@code true} si ya existe un motivo de rechazo con esa descripción exacta */
     boolean existsByDescripcionMotivo(String descripcionMotivo);
 }
 

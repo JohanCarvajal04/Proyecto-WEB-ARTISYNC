@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.service.perfil.ICreatorProfileService;
 
 import java.util.List;
 
+/** Consulta y edición del perfil público de un creador. */
 @RestController
 @RequestMapping("/api/v1/perfiles")
 @RequiredArgsConstructor

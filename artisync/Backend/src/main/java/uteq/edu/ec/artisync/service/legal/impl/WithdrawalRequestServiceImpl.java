@@ -70,11 +70,9 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioCreador identificador del creador
+     * @return el saldo disponible para retiro, el monto mínimo, y si ya tiene
+     *         correo de PayPal configurado o una solicitud en curso
      */
     public CreatorBalanceResponse obtenerSaldo(Long idUsuarioCreador) {
         boolean tieneCorreo = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador).isPresent();
@@ -102,12 +100,15 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
             entidad = "solicitudes_retiro", idEntidad = "#resultado.idSolicitud",
             detalle = "{monto: #peticion.montoSolicitado}")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Crea una solicitud de retiro para un creador, en estado {@code Pendiente}.
      *
-     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioCreador identificador del creador que solicita el retiro
+     * @param peticion monto solicitado
+     * @return la solicitud creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador no tiene correo de
+     *         PayPal configurado, si ya tiene una solicitud en curso, si el monto es menor al mínimo,
+     *         o si supera el saldo disponible
      */
     public WithdrawalRequestResponse solicitar(Long idUsuarioCreador, CreateWithdrawalRequest peticion) {
         CreatorPaymentDetails datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuarioCreador)
@@ -158,11 +159,8 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioCreador identificador del creador
+     * @return las solicitudes de retiro del creador, más recientes primero
      */
     public List<WithdrawalRequestResponse> misSolicitudes(Long idUsuarioCreador) {
         return solicitudRetiroRepository.findByUsuarioCreadorIdUsuarioOrderByFechaSolicitudDesc(idUsuarioCreador)
@@ -174,12 +172,11 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     * Lista la cola de solicitudes de retiro filtradas, para el panel del auditor financiero.
      *
-     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
-     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
-     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param filtro estado, creador y rango de fechas a filtrar
+     * @param pageable paginación y ordenamiento solicitados
+     * @return la página de solicitudes que cumplen el filtro
      */
     public Page<WithdrawalRequestResponse> listarCola(WithdrawalRequestFilter filtro, Pageable pageable) {
         var spec = WithdrawalRequestSpecification.conFiltros(
@@ -193,12 +190,14 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     @Auditable(accion = "RETIRO_APROBAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Aprueba una solicitud de retiro pendiente y ejecuta el payout a PayPal;
+     * el estado final depende de la respuesta de PayPal (pagado, en proceso o fallido).
      *
-     * @param idSolicitud identificador unico que referencia de manera univoca al registro
-     * @param idAdmin identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idSolicitud identificador de la solicitud a aprobar
+     * @param idAdmin identificador del admin que decide
+     * @return la solicitud con su estado final tras el intento de payout
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el admin no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado {@code Pendiente}
      */
     public WithdrawalRequestResponse aprobar(Long idSolicitud, Long idAdmin) {
         WithdrawalRequest solicitud = obtenerConEstado(idSolicitud, ESTADO_PENDIENTE);
@@ -219,13 +218,15 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     @Auditable(accion = "RETIRO_RECHAZAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud", detalle = "{nota: #notaAdmin}")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Rechaza una solicitud de retiro pendiente.
      *
-     * @param idSolicitud identificador unico que referencia de manera univoca al registro
-     * @param idAdmin identificador unico que referencia de manera univoca al registro
-     * @param notaAdmin parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idSolicitud identificador de la solicitud a rechazar
+     * @param idAdmin identificador del admin que decide
+     * @param notaAdmin justificación del rechazo, obligatoria
+     * @return la solicitud ya marcada como rechazada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el admin no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica motivo, o si la
+     *         solicitud no está en estado {@code Pendiente}
      */
     public WithdrawalRequestResponse rechazar(Long idSolicitud, Long idAdmin, String notaAdmin) {
         if (notaAdmin == null || notaAdmin.isBlank()) {
@@ -250,12 +251,13 @@ public class WithdrawalRequestServiceImpl implements IWithdrawalRequestService {
     @Auditable(accion = "RETIRO_REINTENTAR", modulo = AuditModule.FINANZAS,
             entidad = "solicitudes_retiro", idEntidad = "#idSolicitud")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Reintenta el payout de una solicitud que había fallado.
      *
-     * @param idSolicitud identificador unico que referencia de manera univoca al registro
-     * @param idAdmin identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idSolicitud identificador de la solicitud a reintentar
+     * @param idAdmin identificador del admin que decide
+     * @return la solicitud con su estado final tras el nuevo intento de payout
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la solicitud o el admin no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la solicitud no está en estado {@code Fallido}
      */
     public WithdrawalRequestResponse reintentar(Long idSolicitud, Long idAdmin) {
         WithdrawalRequest solicitud = obtenerConEstado(idSolicitud, ESTADO_FALLIDO);

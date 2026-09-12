@@ -20,20 +20,22 @@ import org.springframework.data.domain.Sort;
  */
 @Repository
 public interface CountryRepository extends JpaRepository<Country, Long> {
+    /** País por nombre exacto. */
     Optional<Country> findByNombrePais(String nombrePais);
+    /** Países activos, en el orden solicitado. */
     List<Country> findByEstadoTrue(Sort sort);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md Â§4) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4) -
      * fn_guardar_pais: crea (p_id_pais NULL) o renombra (p_id_pais con valor)
      * un pais, capturando unique_violation sobre el nombre en vez de una
      * comprobacion findByNombrePais no atomica (A9). Devuelve el id_pais
      * afectado.
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra una FUNCTION de Postgres
      * (genera sintaxis de argumento nombrado "p_x => ?" dentro del escape JDBC, invalida). Ver el
-     * hallazgo completo en docs/basedatos/CATALOGO-SP.md ??14.
+     * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
      */
     @Query(value = "SELECT fn_guardar_pais(:p_id_pais, :p_nombre_pais)", nativeQuery = true)
     Long guardarPais(

@@ -22,6 +22,17 @@ public class UserSpecification {
     private UserSpecification() {
     }
 
+    /**
+     * Arma la {@link Specification} de {@link User} combinando (AND) solo los
+     * criterios no nulos/no vacíos recibidos.
+     *
+     * @param busqueda coincidencia parcial, insensible a mayúsculas, sobre nombres, apellidos o correo
+     * @param rol nombre de rol exacto (insensible a mayúsculas); se resuelve con un
+     *            EXISTS sobre {@code usuario_roles}/{@code roles}, ya que {@link User}
+     *            no mapea una colección de roles directamente
+     * @param estadoCuenta si no es {@code null}, restringe por estado de la cuenta
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
     public static Specification<User> conFiltros(String busqueda, String rol, Boolean estadoCuenta) {
         return (root, query, cb) -> {
             List<Predicate> predicados = new ArrayList<>();

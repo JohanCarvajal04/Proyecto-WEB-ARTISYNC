@@ -44,7 +44,7 @@ public class MessageViolation {
     @Column(name = "mensaje_original", columnDefinition = "TEXT")
     private String mensajeOriginal;
 
-    @Size(max = 50, message = "El patrÃ³n detectado no puede superar los 50 caracteres")
+    @Size(max = 50, message = "El patrón detectado no puede superar los 50 caracteres")
     @Column(name = "patron_detectado", length = 50)
     private String patronDetectado;
 

@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.service.seguridad.RolePermissionService;
 
 import java.util.List;
 
+/** Consulta y sincronización de la matriz de permisos por rol. */
 @RestController
 @RequestMapping("/api/v1/admin/role-permissions")
 @RequiredArgsConstructor

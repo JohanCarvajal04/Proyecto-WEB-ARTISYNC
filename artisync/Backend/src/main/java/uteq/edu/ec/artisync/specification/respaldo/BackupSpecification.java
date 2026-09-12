@@ -4,11 +4,20 @@ import org.springframework.data.jpa.domain.Specification;
 import uteq.edu.ec.artisync.dto.peticion.respaldo.BackupFilter;
 import uteq.edu.ec.artisync.entity.respaldo.Backup;
 
+/** Filtros dinámicos de búsqueda del historial de respaldos. */
 public final class BackupSpecification {
 
     private BackupSpecification() {
     }
 
+    /**
+     * Arma la {@link Specification} de {@link Backup} combinando (AND) solo
+     * los campos no nulos de {@code filtro}.
+     *
+     * @param filtro tipo, estado, origen y rango de fechas a filtrar; cualquier
+     *               campo {@code null} no restringe ese criterio
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
     public static Specification<Backup> conFiltro(BackupFilter filtro) {
         return (root, query, cb) -> {
             var predicados = cb.conjunction();

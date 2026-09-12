@@ -37,7 +37,7 @@ public class PortfolioCommentController {
      * @param peticion contenido del comentario
      * @param userDetails usuario autenticado que comenta
      * @return el comentario creado, con estado 201
-     * @throws ResourceNotFoundException si el ítem de portafolio o el usuario autor no existen
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio o el usuario autor no existen
      */
     @Operation(summary = "Comentar un ítem de portafolio")
     @PostMapping("/{idItemPortafolio}/comentarios")
@@ -86,7 +86,7 @@ public class PortfolioCommentController {
      *
      * @param idComentario identificador del comentario a eliminar
      * @param userDetails usuario autenticado que solicita la eliminación
-     * @throws ResourceNotFoundException si el comentario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     @Operation(summary = "Eliminar un comentario propio, del portafolio, o como ADMIN")
     @DeleteMapping("/comentarios/{idComentario}")

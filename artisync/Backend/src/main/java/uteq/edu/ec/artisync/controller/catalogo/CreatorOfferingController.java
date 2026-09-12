@@ -8,6 +8,7 @@ import uteq.edu.ec.artisync.service.catalogo.IOfferingCatalogService;
 
 import java.util.List;
 
+/** Consulta pública de los servicios publicados por un creador. */
 @RestController
 @RequestMapping("/api/v1/creadores")
 @RequiredArgsConstructor

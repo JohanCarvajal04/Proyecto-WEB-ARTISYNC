@@ -19,14 +19,19 @@ import java.util.Optional;
  */
 public interface BackupRepository extends JpaRepository<Backup, Long>, JpaSpecificationExecutor<Backup> {
 
+    /** @return {@code true} si hay algún respaldo en ese estado (usado para bloquear solicitudes concurrentes) */
     boolean existsByEstadoRespaldo(BackupStatus estado);
 
+    /** Respaldos en un estado dado (p. ej. {@code COMPLETADO}, para el barrido de retención). */
     List<Backup> findByEstadoRespaldo(BackupStatus estado);
 
+    /** El incremental más reciente que depende de un respaldo FULL, si hay alguno. */
     Optional<Backup> findTopByIdRespaldoFullBaseOrderByFechaInicioDesc(Long idRespaldoFullBase);
 
+    /** @return {@code true} si existe un incremental en ese estado que dependa de ese FULL */
     boolean existsByIdRespaldoFullBaseAndEstadoRespaldo(Long idRespaldoFullBase, BackupStatus estado);
 
+    /** El respaldo más reciente de un tipo y estado dados. */
     Optional<Backup> findTopByTipoRespaldoAndEstadoRespaldoOrderByFechaInicioDesc(
             uteq.edu.ec.artisync.entity.respaldo.BackupType tipo, BackupStatus estado);
 }

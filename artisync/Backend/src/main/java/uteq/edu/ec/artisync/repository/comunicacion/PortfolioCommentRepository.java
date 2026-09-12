@@ -23,23 +23,24 @@ import java.util.Optional;
 @Repository
 public interface PortfolioCommentRepository extends JpaRepository<PortfolioComment, Long> {
 
+    /** Comentarios de una obra del portafolio en un estado de moderación dado, paginados. */
     Page<PortfolioComment> findByItemPortafolioIdItemPortafolioAndEstadoModeracion(
             Long idItem, String estadoModeracion, Pageable pageable);
 
     /**
      * Igual que findById, pero con bloqueo pesimista de fila. ocultarComentario
-     * y reactivarComentario no tenÃ­an ningÃºn lock: dos moderadores actuando
-     * casi a la vez sobre el mismo comentario podÃ­an pisarse la decisiÃ³n sin
-     * ningÃºn aviso (gana el Ãºltimo save/flush). Serializa esas dos llamadas.
+     * y reactivarComentario no tenían ningún lock: dos moderadores actuando
+     * casi a la vez sobre el mismo comentario podían pisarse la decisión sin
+     * ningún aviso (gana el último save/flush). Serializa esas dos llamadas.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM PortfolioComment c WHERE c.idComentario = :idComentario")
     Optional<PortfolioComment> findByIdParaModerar(@Param("idComentario") Long idComentario);
 
     /**
-     * Conteo pÃºblico (badge de la obra): solo cuenta los activos. Contar todos
-     * sin filtrar inflaba el nÃºmero con comentarios ocultos por moderaciÃ³n o
-     * borrados lÃ³gicamente por su autor, que no aparecen en el listado pÃºblico.
+     * Conteo público (badge de la obra): solo cuenta los activos. Contar todos
+     * sin filtrar inflaba el número con comentarios ocultos por moderación o
+     * borrados lógicamente por su autor, que no aparecen en el listado público.
      */
     long countByItemPortafolioIdItemPortafolioAndEstadoModeracion(Long idItem, String estadoModeracion);
 }

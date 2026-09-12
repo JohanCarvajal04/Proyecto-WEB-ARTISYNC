@@ -47,14 +47,15 @@ public class AuditServiceImpl implements IAuditService {
     private final AuditEventRepository eventoAuditoriaRepository;
     private final IExportService servicioExportacion;
 
+    /**
+     * Persiste un evento de auditoría. Se llama siempre en una transacción
+     * propia ({@code REQUIRES_NEW}) para que el evento sobreviva aunque la
+     * operación de negocio auditada haya hecho rollback.
+     *
+     * @param datos datos ya resueltos del evento (actor, módulo, acción, resultado, detalle, etc.)
+     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param datos parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void registrar(AuditEventData datos) {
         AuditEvent evento = AuditEvent.builder()
                 .fechaEvento(datos.fechaEvento())
@@ -76,31 +77,32 @@ public class AuditServiceImpl implements IAuditService {
         eventoAuditoriaRepository.save(evento);
     }
 
+    /**
+     * Lista el historial de auditoría filtrado, en forma resumida.
+     *
+     * @param filtro criterios de búsqueda y filtrado dinámico a aplicar
+     * @param pageable paginación y ordenamiento solicitados; si el campo de
+     *                 orden no está en {@link #CAMPOS_ORDENABLES} (sin índice),
+     *                 se ignora y se ordena por fecha de evento descendente
+     * @return la página de eventos resumidos que cumplen el filtro
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
-     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
-     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public PagedResponse<AuditEventSummaryResponse> listar(AuditFilter filtro, Pageable pageable) {
         Pageable seguro = paginaSegura(pageable);
         Page<AuditEvent> pagina = eventoAuditoriaRepository.findAll(especificacionDe(filtro), seguro);
         return PagedResponseBuilder.buildAndMap(pagina, this::toResumen);
     }
 
+    /**
+     * Obtiene el detalle completo de un evento de auditoría.
+     *
+     * @param idEvento identificador del evento
+     * @return el evento con todos sus campos (incluido el detalle del cambio)
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el evento no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idEvento identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public AuditEventResponse obtenerPorId(Long idEvento) {
         AuditEvent evento = eventoAuditoriaRepository.findById(idEvento)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -112,20 +114,20 @@ public class AuditServiceImpl implements IAuditService {
     // sensible del módulo (extrae datos personales del sistema en un
     // archivo), así que queda registrada igual que cualquier otra, con el
     // formato pedido en el detalle.
+    /**
+     * Exporta una página del historial de auditoría filtrado, en el formato solicitado.
+     *
+     * @param filtro criterios de búsqueda y filtrado dinámico a aplicar sobre los eventos
+     * @param formato formato del documento a generar
+     * @param page número de página a exportar (0-index); {@code null} exporta la primera página completa
+     * @param size tamaño de página deseado, acotado al tope de filas del formato
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con la página de eventos de auditoría solicitada
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si {@code page} es {@code null} y el total de eventos filtrados supera el tope de filas del formato
+     */
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "AUDITORIA_EXPORTAR", modulo = AuditModule.SEGURIDAD, detalle = "{formato: #formato, page: #page, size: #size}")
-    /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     *
-     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
-     * @param formato parametro requerido para la correcta ejecucion del procedimiento
-     * @param page parametro requerido para la correcta ejecucion del procedimiento
-     * @param size parametro requerido para la correcta ejecucion del procedimiento
-     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, Integer page, Integer size, String correoSolicitante) {
         Page<AuditEvent> pagina;
         String titulo = "Auditoría";
@@ -175,17 +177,17 @@ public class AuditServiceImpl implements IAuditService {
         return servicioExportacion.exportar(modelo, formato);
     }
 
+    /**
+     * Exporta el historial de auditoría filtrado completo (sin paginar), en el formato solicitado.
+     *
+     * @param filtro criterios de búsqueda y filtrado dinámico a aplicar sobre los eventos
+     * @param formato formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de eventos de auditoría
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el total de eventos filtrados supera el tope de filas admitido por el formato
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     *
-     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
-     * @param formato parametro requerido para la correcta ejecucion del procedimiento
-     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public GeneratedDocument exportar(AuditFilter filtro, ReportFormat formato, String correoSolicitante) {
         return exportar(filtro, formato, null, null, correoSolicitante);
     }
@@ -216,14 +218,11 @@ public class AuditServiceImpl implements IAuditService {
         return filtros;
     }
 
+    /**
+     * @return las acciones de auditoría distintas registradas, para poblar el filtro del panel
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<String> listarAccionesDisponibles() {
         return eventoAuditoriaRepository.listarAccionesDistintas();
     }

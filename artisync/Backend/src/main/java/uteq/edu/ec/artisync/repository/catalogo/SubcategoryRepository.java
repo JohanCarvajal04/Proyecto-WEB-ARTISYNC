@@ -19,14 +19,19 @@ import java.util.Optional;
 @Repository
 public interface SubcategoryRepository extends JpaRepository<Subcategory, Long> {
 
+    /** Subcategorías de una categoría, ordenadas alfabéticamente. */
     List<Subcategory> findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(Long idCategoria);
 
+    /** Todas las subcategorías, ordenadas alfabéticamente. */
     List<Subcategory> findAllByOrderByNombreSubcategoriaAsc();
 
+    /** Subcategoría por categoría y nombre exacto, sin distinguir mayúsculas/minúsculas. */
     Optional<Subcategory> findByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(Long idCategoria, String nombreSubcategoria);
 
+    /** @return {@code true} si ya existe esa subcategoría en esa categoría (sin distinguir mayúsculas/minúsculas) */
     boolean existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(Long idCategoria, String nombreSubcategoria);
 
+    /** Subcategorías creadas por un creador aún sin revisar por un moderador, más recientes primero. */
     List<Subcategory> findByRevisadoFalseOrderByActualizadoEnDesc();
 }
 

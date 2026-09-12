@@ -31,8 +31,8 @@ import java.util.Map;
  * de servicio con {@link Auditable} basta para que aquí se registre actor,
  * IP, resultado y detalle del cambio, sin ensuciar la lógica de negocio.
  *
- * El @Order es la pieza crítica de este aspecto: el interceptor de
- * @Transactional de Spring corre con Ordered.LOWEST_PRECEDENCE, así que con
+ * El {@code @Order} es la pieza crítica de este aspecto: el interceptor de
+ * {@code @Transactional} de Spring corre con Ordered.LOWEST_PRECEDENCE, así que con
  * HIGHEST_PRECEDENCE + 20 este aspecto queda MÁS EXTERNO. Cuando el método de
  * negocio lanza, su transacción ya hizo rollback y se cerró ANTES de que este
  * aspecto intente registrar el evento; el REQUIRES_NEW de
@@ -54,6 +54,20 @@ public class AuditAspect {
 
     private final IAuditService auditoriaServicio;
 
+    /**
+     * Envuelve la ejecución de cualquier método anotado con {@link Auditable}
+     * y registra un evento de auditoría con el resultado (éxito, denegado o
+     * fallido), sin alterar el valor devuelto ni la excepción lanzada por el
+     * método real. El registro ocurre siempre en el {@code finally}, incluso
+     * si el método lanza, y nunca puede tumbar la operación de negocio (un
+     * fallo al registrar solo se deja constando en el log como
+     * {@code AUDITORIA_PERDIDA}).
+     *
+     * @param pjp punto de unión del método interceptado
+     * @param auditable metadatos de la anotación (acción, módulo, expresiones SpEL)
+     * @return el mismo valor que devuelve el método interceptado
+     * @throws Throwable la misma excepción que lance el método interceptado, sin envolver
+     */
     @Around("@annotation(auditable)")
     public Object auditar(ProceedingJoinPoint pjp, Auditable auditable) throws Throwable {
         long inicioNanos = System.nanoTime();

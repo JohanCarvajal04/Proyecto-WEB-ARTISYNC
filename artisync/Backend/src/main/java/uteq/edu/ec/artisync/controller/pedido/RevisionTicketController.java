@@ -14,6 +14,7 @@ import uteq.edu.ec.artisync.service.pedido.IRevisionTicketService;
 
 import java.util.List;
 
+/** Tickets de revisión adicional (con posible cargo extra) sobre un pedido. */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -28,8 +29,8 @@ public class RevisionTicketController {
      * @param userDetails usuario autenticado que crea el ticket
      * @param peticion datos del ticket de revisión, incluyendo el motivo de rechazo
      * @return el ticket de revisión creado, con estado 201
-     * @throws ResourceNotFoundException si el pedido o el motivo de rechazo no existen
-     * @throws BusinessRuleException si el usuario no es el cliente del pedido
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o el motivo de rechazo no existen
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es el cliente del pedido
      */
     @PostMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')")
@@ -47,7 +48,7 @@ public class RevisionTicketController {
      * @param idPedido identificador del pedido
      * @param userDetails usuario autenticado que consulta los tickets
      * @return listado de tickets de revisión del pedido
-     * @throws ResourceNotFoundException si el pedido no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
     @GetMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("isAuthenticated()")
@@ -64,7 +65,7 @@ public class RevisionTicketController {
      * @param userDetails usuario autenticado que solicita el cambio de estado
      * @param nuevoEstado nuevo estado a asignar al ticket
      * @return el ticket de revisión con su estado actualizado
-     * @throws ResourceNotFoundException si el ticket no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ticket no existe
      */
     @PutMapping("/tickets-revision/{idTicket}/estado")
     @PreAuthorize("hasAuthority('TICKET_RESOLVER') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")

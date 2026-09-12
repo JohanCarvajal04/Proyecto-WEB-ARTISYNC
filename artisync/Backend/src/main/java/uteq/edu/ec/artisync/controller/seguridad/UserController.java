@@ -27,6 +27,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import java.security.Principal;
 import java.util.concurrent.TimeUnit;
 
+/** Gestión del propio perfil del usuario autenticado (datos, contraseña, privacidad). */
 @RestController
 @RequestMapping("/api/v1/usuarios")
 @RequiredArgsConstructor
@@ -151,7 +152,7 @@ public class UserController {
      *
      * @param request petición HTTP, de la cual se extrae la referencia de la foto solicitada
      * @return el contenido binario de la foto con su tipo de contenido y cabecera de caché
-     * @throws ResourceNotFoundException si la referencia no corresponde a una foto bajo el prefijo "perfiles/"
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la referencia no corresponde a una foto bajo el prefijo "perfiles/"
      */
     @Operation(summary = "Servir la foto de perfil de un usuario (público)")
     @GetMapping("/foto/**")

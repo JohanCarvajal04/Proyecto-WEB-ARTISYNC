@@ -28,12 +28,13 @@ public class FollowerServiceImpl implements IFollowerService {
     @Override
     @Transactional
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Registra que un usuario sigue a un perfil de creador.
      *
-     * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioSeguidor identificador del usuario que sigue
+     * @param idPerfilCreador identificador del perfil de creador a seguir
+     * @return el estado de seguimiento actualizado, con el nuevo total de seguidores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador intenta seguirse a sí mismo
      */
     public FollowStatusResponse seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
         CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)
@@ -58,12 +59,12 @@ public class FollowerServiceImpl implements IFollowerService {
     @Override
     @Transactional
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Deja de seguir a un perfil de creador.
      *
-     * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioSeguidor identificador del usuario que deja de seguir
+     * @param idPerfilCreador identificador del perfil de creador
+     * @return el estado de seguimiento actualizado, con el nuevo total de seguidores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
     public FollowStatusResponse dejarDeSeguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
         perfilCreadorRepository.findById(idPerfilCreador)
@@ -84,12 +85,10 @@ public class FollowerServiceImpl implements IFollowerService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idUsuarioConsulta identificador unico que referencia de manera univoca al registro
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioConsulta identificador de quien consulta; {@code null} si es anónimo
+     * @param idPerfilCreador identificador del perfil de creador
+     * @return si ese usuario sigue al creador, si es su propio perfil, y el total de seguidores
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
     public FollowStatusResponse obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador) {
         CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)
@@ -115,11 +114,8 @@ public class FollowerServiceImpl implements IFollowerService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idPerfilCreador identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPerfilCreador identificador del perfil de creador
+     * @return los seguidores de ese perfil
      */
     public List<FollowerResponse> listarSeguidores(Long idPerfilCreador) {
         List<Follower> lista = seguidorRepository.findByPerfilCreadorIdPerfil(idPerfilCreador);
@@ -138,11 +134,8 @@ public class FollowerServiceImpl implements IFollowerService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idUsuarioSeguidor identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioSeguidor identificador del usuario
+     * @return los perfiles de creador que sigue, con su novedad más reciente
      */
     public List<FollowedCreatorUpdateResponse> listarCreadoresSeguidosNovedades(Long idUsuarioSeguidor) {
         List<Follower> seguidos = seguidorRepository.findByUsuarioSeguidorIdUsuario(idUsuarioSeguidor);
@@ -169,13 +162,13 @@ public class FollowerServiceImpl implements IFollowerService {
     @Override
     @Transactional
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Actualiza la portada y/o el título profesional del perfil de creador de un usuario.
      *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param urlPortada parametro requerido para la correcta ejecucion del procedimiento
-     * @param tituloProfesional parametro requerido para la correcta ejecucion del procedimiento
-     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuario identificador del usuario dueño del perfil de creador
+     * @param urlPortada nueva URL de portada; {@code null} no la modifica
+     * @param tituloProfesional nuevo título profesional; {@code null} no lo modifica
+     * @return {@code true} si se actualizó
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
      */
     public boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional) {
         CreatorProfile perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)

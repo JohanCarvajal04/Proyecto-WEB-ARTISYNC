@@ -32,6 +32,11 @@ public class RevisionTicketExpirationScheduler {
     @Value("${ticketrevision.expiracion-horas:48}")
     private int expiracionHoras;
 
+    /**
+     * Rechaza, uno por uno vía {@link RevisionTicketExpirationService}, los
+     * tickets de revisión abiertos con cargo adicional que llevan más de
+     * {@link #expiracionHoras} horas sin pago confirmado.
+     */
     @Scheduled(fixedRateString = "${ticketrevision.expiracion.intervalo-ms:1800000}") // 30 min
     public void expirarTicketsSinPagar() {
         LocalDateTime limite = LocalDateTime.now().minusHours(expiracionHoras);

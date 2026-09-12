@@ -12,13 +12,16 @@ import java.util.Optional;
 @Repository
 public interface ContractTemplateRepository extends JpaRepository<ContractTemplate, Long> {
 
+    /** La plantilla más reciente (mayor id), usada para validar duplicados al crear una nueva versión. */
     Optional<ContractTemplate> findFirstByOrderByIdPlantillaDesc();
 
+    /** Plantilla por su versión legal exacta. */
     Optional<ContractTemplate> findByVersionLegal(String versionLegal);
 
     /** Fallback usado por ContractServiceImpl cuando el servicio no tiene una plantilla propia. */
     Optional<ContractTemplate> findByEsPredeterminadaTrue();
 
+    /** Plantillas activas del catálogo general, ordenadas alfabéticamente. */
     List<ContractTemplate> findByActivaTrueOrderByNombrePlantillaAsc();
 
     /** Plantillas privadas (V45) de un creador, activas e inactivas — para su propia pantalla de gestión. */

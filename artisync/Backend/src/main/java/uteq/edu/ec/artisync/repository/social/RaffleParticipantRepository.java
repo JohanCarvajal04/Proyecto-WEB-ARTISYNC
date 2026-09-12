@@ -17,19 +17,19 @@ import java.util.List;
 @Repository
 public interface RaffleParticipantRepository extends JpaRepository<RaffleParticipant, Long> {
 
-    /** Verifica si un usuario ya estÃ¡ inscrito en un sorteo (para evitar duplicados). */
+    /** Verifica si un usuario ya está inscrito en un sorteo (para evitar duplicados). */
     boolean existsBySorteoIdSorteoAndUsuarioIdUsuario(Long idSorteo, Long idUsuario);
 
     /** Lista todos los participantes de un sorteo (ganadores y no ganadores). */
     List<RaffleParticipant> findBySorteoIdSorteo(Long idSorteo);
 
-    /** Lista solo los participantes que aÃºn NO han sido marcados como ganadores. */
+    /** Lista solo los participantes que aún NO han sido marcados como ganadores. */
     List<RaffleParticipant> findBySorteoIdSorteoAndEsGanadorFalse(Long idSorteo);
 
     /** Lista los ganadores de un sorteo. */
     List<RaffleParticipant> findBySorteoIdSorteoAndEsGanadorTrue(Long idSorteo);
 
-    /** Verifica si un sorteo tiene al menos un participante (restricciÃ³n de ediciÃ³n). */
+    /** Verifica si un sorteo tiene al menos un participante (restricción de edición). */
     boolean existsBySorteoIdSorteo(Long idSorteo);
 }
 

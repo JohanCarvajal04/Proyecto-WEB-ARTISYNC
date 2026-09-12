@@ -47,12 +47,10 @@ public class PreAuth2faTicketService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Datos resueltos de un ticket de preautenticación 2FA válido.
      *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuario identificador del usuario que completó el primer factor
+     * @param correo correo del usuario, usado para la segunda validación (2FA)
      */
     public record DatosTicket(Long idUsuario, String correo) {
     }

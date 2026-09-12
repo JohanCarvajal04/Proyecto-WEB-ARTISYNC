@@ -22,6 +22,7 @@ public class AnswerBriefingRequest {
     @Valid
     private List<RespuestaItem> respuestas;
 
+    /** La respuesta a una pregunta puntual del briefing. */
     @Data
     @Builder
     @NoArgsConstructor

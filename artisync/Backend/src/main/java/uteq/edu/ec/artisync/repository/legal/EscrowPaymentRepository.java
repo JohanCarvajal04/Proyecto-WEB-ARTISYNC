@@ -26,11 +26,18 @@ import java.util.Optional;
 public interface EscrowPaymentRepository extends JpaRepository<EscrowPayment, Long>,
         JpaSpecificationExecutor<EscrowPayment> {
 
+    /** El pago de garantía asociado a un contrato, si existe. */
     Optional<EscrowPayment> findByContratoIdContrato(Long idContrato);
 
+    /** El pago de garantía por el id de orden de PayPal, usado por el webhook y la reconciliación. */
     Optional<EscrowPayment> findByIdOrdenPaypal(String idOrdenPaypal);
 
-    /** Tarjetas de resumen del panel de supervisión: cuántos pagos y cuánto dinero hay en cada estado. */
+    /**
+     * Tarjetas de resumen del panel de supervisión: cuántos pagos y cuánto
+     * dinero hay en cada estado de fondos.
+     *
+     * @return un resumen por cada estado de fondos distinto que existe
+     */
     @Query("SELECT new uteq.edu.ec.artisync.dto.respuesta.legal.EscrowSummaryResponse(" +
             "p.estadoFondos, COUNT(p), COALESCE(SUM(p.montoRetenido), 0)) " +
             "FROM EscrowPayment p GROUP BY p.estadoFondos")

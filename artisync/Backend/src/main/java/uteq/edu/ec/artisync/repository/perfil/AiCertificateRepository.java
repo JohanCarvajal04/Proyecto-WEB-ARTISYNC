@@ -20,14 +20,16 @@ import java.util.List;
  */
 @Repository
 public interface AiCertificateRepository extends JpaRepository<AiCertificate, Long> {
+    /** @return {@code true} si el usuario tiene un certificado en ese estado de verificación */
     boolean existsByUsuarioIdUsuarioAndEstadoVerificacionNombreEstado(Long idUsuario, String nombreEstado);
+    /** Certificados de IA solicitados por un usuario. */
     List<AiCertificate> findByUsuarioIdUsuario(Long idUsuario);
 
-    /** Gating de REQ-F-006 ampliado: ??este usuario tiene su identidad aprobada? */
+    /** Gating de REQ-F-006 ampliado: ¿este usuario tiene su identidad aprobada? */
     boolean existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
             Long idUsuario, String tipoDocumento, String nombreEstado);
 
-    /** ??ltima solicitud de identidad de un usuario, para mostrarle su estado actual. */
+    /** Última solicitud de identidad de un usuario, para mostrarle su estado actual. */
     java.util.Optional<AiCertificate> findTopByUsuarioIdUsuarioAndTipoDocumentoOrderByFechaAnalisisDesc(
             Long idUsuario, String tipoDocumento);
 
@@ -46,6 +48,15 @@ public interface AiCertificateRepository extends JpaRepository<AiCertificate, Lo
             @Param("limite") int limite,
             @Param("offset") int offset);
 
+    /**
+     * Registra la decisión de un moderador sobre un certificado en la cola de
+     * verificación (aprobar/rechazar), con su nota.
+     *
+     * @param idCertificado identificador del certificado a decidir
+     * @param idEstado nuevo estado de verificación a asignar
+     * @param idModerador identificador del moderador que decide
+     * @param nota justificación de la decisión
+     */
     @Procedure(procedureName = "sp_registrar_decision_verificacion")
     void registrarDecision(
             @Param("p_id_certificado") Long idCertificado,
@@ -53,6 +64,7 @@ public interface AiCertificateRepository extends JpaRepository<AiCertificate, Lo
             @Param("p_id_moderador") Long idModerador,
             @Param("p_nota") String nota);
 
+    /** Certificados en un estado dado, analizados antes de una fecha límite (para el barrido de expiración). */
     List<AiCertificate> findByEstadoVerificacionNombreEstadoAndFechaAnalisisBefore(
             String nombreEstado, LocalDateTime limite);
 }

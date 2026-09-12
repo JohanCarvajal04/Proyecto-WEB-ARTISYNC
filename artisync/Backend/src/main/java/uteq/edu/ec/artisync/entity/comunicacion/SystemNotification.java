@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/** Notificación individual entregada a un usuario (in-app y por WebSocket en tiempo real). */
 @Entity
 @Table(name = "notificaciones_sistema")
 @Getter

@@ -32,6 +32,14 @@ public class GlobalExceptionHandler {
 
     private static final String BASE_TIPO = "https://artisync.dev/errors/";
 
+    /**
+     * Errores de validación de {@code @Valid} en el cuerpo de la petición: agrega
+     * el detalle por campo (nombre → mensaje) en {@code fieldErrors}.
+     *
+     * @param ex excepción con los errores de binding/validación
+     * @param peticion petición que falló la validación
+     * @return 400 con el detalle de validación y los campos afectados en {@code fieldErrors}
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionesValidacion(
             MethodArgumentNotValidException ex, HttpServletRequest peticion) {
@@ -44,7 +52,7 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.BAD_REQUEST,
                 "validacion",
-                "Error de validaciÃ³n en los datos de entrada",
+                "Error de validación en los datos de entrada",
                 peticion.getRequestURI()
         );
         pd.setProperty("fieldErrors", erroresCampos);
@@ -52,6 +60,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
 
+    /**
+     * @param ex excepción de dominio; su mensaje pasa tal cual como detalle
+     * @param peticion petición cuyo recurso solicitado no existe
+     * @return 404 con el mensaje de la excepción como detalle
+     */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionRecursoNoEncontrado(
             ResourceNotFoundException ex, HttpServletRequest peticion) {
@@ -61,6 +74,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
 
+    /**
+     * Ruta sin controlador ni recurso estático asociado (lanzada por Spring MVC,
+     * no por código de dominio).
+     *
+     * @param ex excepción de Spring MVC ante una ruta inexistente
+     * @param peticion petición a una ruta que no resuelve a ningún handler
+     * @return 404 genérico, sin exponer detalle interno de enrutamiento
+     */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ProblemDetail> manejarNoResourceFoundException(
             NoResourceFoundException ex, HttpServletRequest peticion) {
@@ -70,6 +91,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
 
+    /**
+     * @param ex excepción de dominio ante una violación de unicidad (correo, nombre, etc.)
+     * @param peticion petición que intentó crear el recurso duplicado
+     * @return 409 con el mensaje de la excepción como detalle
+     */
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionRecursoDuplicado(
             DuplicateResourceException ex, HttpServletRequest peticion) {
@@ -79,6 +105,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
 
+    /**
+     * @param ex excepción de dominio ante el incumplimiento de una regla de negocio
+     * @param peticion petición que incumplió la regla
+     * @return 422 con el mensaje de la excepción como detalle
+     */
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionReglaNegocio(
             BusinessRuleException ex, HttpServletRequest peticion) {
@@ -88,6 +119,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
     }
 
+    /**
+     * @param ex excepción ante un fallo o indisponibilidad del proveedor de IA externo
+     * @param peticion petición que dependía del servicio de IA
+     * @return 503 con el mensaje de la excepción como detalle; el fallo se registra
+     *         además como warning (no error), por ser un fallo esperado de un tercero
+     */
     @ExceptionHandler(AiServiceUnavailableException.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionServicioIaNoDisponible(
             AiServiceUnavailableException ex, HttpServletRequest peticion) {
@@ -98,6 +135,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
     }
 
+    /**
+     * Captura genérica para código que lanza {@link ResponseStatusException}
+     * directamente (en vez de una excepción de dominio propia), preservando el
+     * código de estado y motivo que ese código ya decidió.
+     *
+     * @param ex excepción con el estado HTTP y motivo ya resueltos
+     * @param peticion petición rechazada
+     * @return el mismo estado HTTP de {@code ex}, con {@code ex.getReason()} como
+     *         detalle (o {@code ex.getMessage()} si no hay motivo explícito)
+     */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ProblemDetail> manejarResponseStatusException(
             ResponseStatusException ex, HttpServletRequest peticion) {
@@ -110,6 +157,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(estado).body(pd);
     }
 
+    /**
+     * @param ex excepción ante el agotamiento de una cuota operativa (p. ej. IA);
+     *           su {@code retryAfterSegundos} se refleja en la cabecera {@code Retry-After}
+     * @param peticion petición que superó la cuota
+     * @return 429 con el mensaje de la excepción como detalle y cabecera {@code Retry-After}
+     */
     @ExceptionHandler(QuotaExceededException.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionCuotaExcedida(
             QuotaExceededException ex, HttpServletRequest peticion) {
@@ -122,26 +175,52 @@ public class GlobalExceptionHandler {
                 .body(pd);
     }
 
+    /**
+     * Lanzada por Spring Security cuando {@code @PreAuthorize} rechaza al usuario
+     * ya autenticado (a diferencia de {@link #manejarExcepcionAutenticacion}, que
+     * cubre al usuario sin autenticar).
+     *
+     * @param ex excepción de autorización de Spring Security
+     * @param peticion petición rechazada por falta de permisos
+     * @return 403 con un mensaje genérico (no se expone qué permiso exacto faltaba)
+     */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> manejarAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest peticion) {
 
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.FORBIDDEN, "acceso-denegado",
-                "No tienes permisos suficientes para realizar esta acciÃ³n", peticion.getRequestURI());
+                "No tienes permisos suficientes para realizar esta acción", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
     }
 
+    /**
+     * Cubre tanto fallos de autenticación de Spring Security como excepciones
+     * crudas de la librería JWT que se escapen fuera de {@code JwtAuthenticationFilter}
+     * (que normalmente ya las captura y responde antes de llegar aquí).
+     *
+     * @param ex la excepción de autenticación o JWT capturada
+     * @param peticion petición sin credenciales válidas
+     * @return 401 con un mensaje genérico (nunca el detalle interno de {@code ex})
+     */
     @ExceptionHandler({AuthenticationException.class, JwtException.class})
     public ResponseEntity<ProblemDetail> manejarExcepcionAutenticacion(
             Exception ex, HttpServletRequest peticion) {
-        log.warn("Error de autenticaciÃ³n/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
+        log.warn("Error de autenticación/JWT en {}: {}", peticion.getRequestURI(), ex.getMessage());
         ProblemDetail pd = construirProblemDetail(
                 HttpStatus.UNAUTHORIZED, "autenticacion",
-                "Credenciales invÃ¡lidas o token expirado/malformado", peticion.getRequestURI());
+                "Credenciales inválidas o token expirado/malformado", peticion.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
     }
 
+    /**
+     * Red de seguridad para código que valida con excepciones estándar de Java
+     * en vez de una excepción de dominio propia.
+     *
+     * @param ex la excepción de argumento o estado inválido
+     * @param peticion petición con datos de entrada inválidos
+     * @return 400 con el mensaje de la excepción como detalle
+     */
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<ProblemDetail> manejarExcepcionesPeticionIncorrecta(
             RuntimeException ex, HttpServletRequest peticion) {
@@ -151,6 +230,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
 
+    /**
+     * Último recurso: cualquier excepción no cubierta por los handlers
+     * anteriores. Registra el stacktrace completo como error (a diferencia del
+     * resto, que solo hacen warning o nada) y nunca expone {@code ex.getMessage()}
+     * al cliente, para no filtrar detalles internos.
+     *
+     * @param ex la excepción no controlada
+     * @param peticion petición durante la que ocurrió el error
+     * @return 500 con un mensaje genérico
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> manejarExcepcionGeneral(
             Exception ex, HttpServletRequest peticion) {

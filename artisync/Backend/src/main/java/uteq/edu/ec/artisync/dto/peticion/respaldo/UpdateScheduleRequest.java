@@ -27,12 +27,12 @@ public class UpdateScheduleRequest {
     @NotNull(message = "El tipo de respaldo es obligatorio")
     private BackupType tipoRespaldo;
 
-    @NotBlank(message = "La expresiÃ³n cron es obligatoria")
+    @NotBlank(message = "La expresión cron es obligatoria")
     private String expresionCron;
 
-    @NotNull(message = "La retenciÃ³n en dÃ­as es obligatoria")
-    @Min(value = 1, message = "La retenciÃ³n debe ser de al menos 1 dÃ­a")
-    @Max(value = 3650, message = "La retenciÃ³n no puede superar los 3650 dÃ­as")
+    @NotNull(message = "La retención en días es obligatoria")
+    @Min(value = 1, message = "La retención debe ser de al menos 1 día")
+    @Max(value = 3650, message = "La retención no puede superar los 3650 días")
     private Integer retencionDias;
 }
 

@@ -21,8 +21,10 @@ import java.util.Optional;
 @Repository
 public interface FinalDeliverableRepository extends JpaRepository<FinalDeliverable, Long> {
 
+    /** El entregable final de un pedido (relación 1:1), si existe. */
     Optional<FinalDeliverable> findByPedidoIdPedido(Long idPedido);
 
+    /** @return {@code true} si el pedido ya tiene un entregable final subido */
     boolean existsByPedidoIdPedido(Long idPedido);
 
     /**
@@ -30,7 +32,7 @@ public interface FinalDeliverableRepository extends JpaRepository<FinalDeliverab
      * (equivalente Java del SELECT ... FOR UPDATE que ya usan
      * fn_seleccionar_ganadores_sorteo y fn_registrar_infraccion). Serializa
      * llamadas concurrentes a aprobarEntrega sobre el mismo pedido: la
-     * segunda transacciÃ³n espera a que la primera confirme antes de leer
+     * segunda transacción espera a que la primera confirme antes de leer
      * estaLiberado, evitando liberar el escrow dos veces.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

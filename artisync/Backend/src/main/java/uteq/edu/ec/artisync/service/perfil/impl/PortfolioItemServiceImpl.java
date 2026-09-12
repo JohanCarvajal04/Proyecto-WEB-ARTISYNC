@@ -38,12 +38,16 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     private final DocumentStorage almacenamiento;
 
     /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     * @param idPortafolio id del portafolio
-     * @param idUsuario id del usuario
-     * @param peticion peticion
-     * @param archivo archivo
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * Sube una obra al portafolio, hasta el tope de {@value #MAX_ITEMS_POR_PORTAFOLIO} por portafolio.
+     *
+     * @param idPortafolio identificador del portafolio
+     * @param idUsuario identificador de quien sube; debe ser dueño del portafolio
+     * @param peticion título y descripción de la obra
+     * @param archivo archivo multimedia de la obra, validado contra {@code FilePolicy.PORTAFOLIO}
+     * @return la obra creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien sube no es dueño del
+     *         portafolio, si ya alcanzó el máximo de obras, o si el archivo no cumple la política de tipo/tamaño
      */
     @Override
     @Transactional
@@ -86,12 +90,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idPortafolio identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idPortafolio identificador del portafolio
+     * @param idUsuario identificador de quien consulta; solo relevante si el portafolio es privado
+     * @return las obras del portafolio, más recientes primero
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
+     *         y quien consulta no es su dueño
      */
     public List<PortfolioItemResponse> listarItems(Long idPortafolio, Long idUsuario) {
         Portfolio portafolio = portafolioRepository.findById(idPortafolio)
@@ -109,12 +113,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idItem identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItem identificador de la obra
+     * @param idUsuario identificador de quien consulta; solo relevante si el portafolio es privado
+     * @return la obra solicitada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
+     *         y quien consulta no es su dueño
      */
     public PortfolioItemResponse obtenerItem(Long idItem, Long idUsuario) {
         PortfolioItem item = buscarItem(idItem);
@@ -125,12 +129,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     *
-     * @param idItem identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItem identificador de la obra
+     * @param idUsuario identificador de quien descarga; solo relevante si el portafolio es privado
+     * @return el archivo de la obra, listo para transmitirse en streaming
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el portafolio no es público
+     *         y quien descarga no es su dueño
      */
     public ArchivoItem descargarArchivo(Long idItem, Long idUsuario) {
         PortfolioItem item = buscarItem(idItem);
@@ -146,13 +150,14 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Override
     @Transactional
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Actualiza el título y la descripción de una obra propia.
      *
-     * @param idItem identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItem identificador de la obra
+     * @param idUsuario identificador de quien edita; debe ser dueño del portafolio
+     * @param peticion nuevo título y descripción
+     * @return la obra ya actualizada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien edita no es dueño del portafolio
      */
     public PortfolioItemResponse actualizarItem(Long idItem, Long idUsuario, CreatePortfolioItemRequest peticion) {
         PortfolioItem item = buscarItem(idItem);
@@ -169,11 +174,12 @@ public class PortfolioItemServiceImpl implements IPortfolioItemService {
     @Override
     @Transactional
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     * Elimina una obra propia, junto con su archivo en el almacenamiento.
      *
-     * @param idItem identificador unico que referencia de manera univoca al registro
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idItem identificador de la obra a eliminar
+     * @param idUsuario identificador de quien elimina; debe ser dueño del portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si quien elimina no es dueño del portafolio
      */
     public void eliminarItem(Long idItem, Long idUsuario) {
         PortfolioItem item = buscarItem(idItem);

@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.service.comunicacion.IFollowerService;
 
 import java.util.List;
 
+/** Seguimiento (follow/unfollow) de perfiles de creador. */
 @Tag(name = "Seguidores", description = "Gestión de seguimiento a perfiles de creadores")
 @RestController
 @RequestMapping("/api/v1/creadores")

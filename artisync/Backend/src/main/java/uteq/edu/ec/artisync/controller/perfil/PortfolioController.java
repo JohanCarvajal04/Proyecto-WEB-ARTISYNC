@@ -16,6 +16,7 @@ import uteq.edu.ec.artisync.service.perfil.IPortfolioService;
 
 import java.util.List;
 
+/** Gestión del portafolio de un creador. */
 @RestController
 @RequestMapping("/api/v1/portafolios")
 @RequiredArgsConstructor
@@ -29,9 +30,9 @@ public class PortfolioController {
      * @param peticion datos del portafolio a crear
      * @param userDetails usuario autenticado que crea el portafolio
      * @return el portafolio creado, con estado 201
-     * @throws DuplicateResourceException si el perfil de creador ya cuenta con un portafolio registrado
-     * @throws ResourceNotFoundException si el perfil de creador no existe
-     * @throws BusinessRuleException si el usuario no tiene permisos para crear un portafolio para ese perfil
+     * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el perfil de creador ya cuenta con un portafolio registrado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no tiene permisos para crear un portafolio para ese perfil
      */
     @PostMapping
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
@@ -47,7 +48,7 @@ public class PortfolioController {
      *
      * @param id identificador del portafolio
      * @return el portafolio solicitado
-     * @throws ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     @GetMapping("/{id}")
     public ResponseEntity<PortfolioResponse> obtenerPortafolioPorId(@PathVariable Long id) {
@@ -59,7 +60,7 @@ public class PortfolioController {
      *
      * @param idPerfil identificador del perfil de creador
      * @return el portafolio del perfil
-     * @throws ResourceNotFoundException si no existe portafolio para el perfil
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si no existe portafolio para el perfil
      */
     @GetMapping("/perfil/{idPerfil}")
     public ResponseEntity<PortfolioResponse> obtenerPortafolioPorPerfil(@PathVariable Long idPerfil) {
@@ -83,8 +84,8 @@ public class PortfolioController {
      * @param peticion datos actualizados del portafolio
      * @param userDetails usuario autenticado que solicita la actualización
      * @return el portafolio actualizado
-     * @throws ResourceNotFoundException si el portafolio no existe
-     * @throws BusinessRuleException si el usuario no tiene permisos para modificar el portafolio
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no tiene permisos para modificar el portafolio
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_CREAR') or hasRole('ADMIN')")
@@ -101,7 +102,7 @@ public class PortfolioController {
      * @param id identificador del portafolio visitado
      * @param userDetails usuario autenticado que registra la visita
      * @return mensaje de confirmación del registro de la visita
-     * @throws ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     @PostMapping("/{id}/visita")
     @PreAuthorize("isAuthenticated()")
@@ -117,7 +118,7 @@ public class PortfolioController {
      *
      * @param id identificador del portafolio a eliminar
      * @return mensaje de confirmación de la eliminación
-     * @throws ResourceNotFoundException si el portafolio no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el portafolio no existe
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PORTAFOLIO_MODERAR') or hasRole('ADMIN')")

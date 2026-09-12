@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/** Respuesta con los datos de una subcategoría del catálogo. */
 @Data
 @Builder
 @NoArgsConstructor

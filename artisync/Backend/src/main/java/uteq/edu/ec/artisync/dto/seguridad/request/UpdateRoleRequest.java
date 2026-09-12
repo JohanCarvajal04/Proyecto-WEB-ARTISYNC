@@ -21,7 +21,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateRoleRequest {
 
-    @Size(max = 255, message = "La descripciÃ³n no puede superar los 255 caracteres")
+    @Size(max = 255, message = "La descripción no puede superar los 255 caracteres")
     private String descripcionRol;
 }
 

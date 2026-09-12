@@ -65,6 +65,16 @@ public class BackupConfig {
         return new HikariDataSource(config);
     }
 
+    /**
+     * DataSource secundario para el módulo de respaldos, conectado como el rol
+     * de solo lectura {@code artisync_backup} (separado del pool principal de
+     * la app, que conecta como {@code artisync_app}), usado por el COPY
+     * incremental. Sin {@code fail-fast}: un Postgres aún no listo (o los
+     * tests, que no definen {@code respaldo.db.*}) no debe impedir que arranque
+     * el resto de la app.
+     *
+     * @return el {@link DataSource} del pool de respaldos (tamaño máximo 2 conexiones)
+     */
     @Bean(name = "respaldoDataSource")
     public DataSource respaldoDataSource() {
         BackupProperties.Db db = respaldoProperties.getDb();
@@ -89,13 +99,13 @@ public class BackupConfig {
     /**
      * Spring Boot registra por defecto un HealthContributor por cada bean
      * DataSource del contexto (DataSourceHealthContributorAutoConfiguration,
-     * @ConditionalOnMissingBean(name = {"dbHealthIndicator",
-     * "dbHealthContributor"})). Sin este bean, respaldoDataSource entraría
+     * {@code @ConditionalOnMissingBean(name = {"dbHealthIndicator",
+     * "dbHealthContributor"})}). Sin este bean, respaldoDataSource entraría
      * también en /actuator/health: un pg_dump/respaldo temporalmente
      * inalcanzable haría que TODA la aplicación reporte DOWN (503), aunque el
      * resto siga funcionando con normalidad. Al declarar aquí el bean
      * "dbHealthContributor" a mano, el autoconfigurado de Spring Boot se
-     * desactiva (mismo mecanismo @ConditionalOnMissingBean que ya obliga a
+     * desactiva (mismo mecanismo {@code @ConditionalOnMissingBean} que ya obliga a
      * declarar el datasource principal arriba) y el health check vuelve a
      * cubrir solo el datasource principal, como antes de este módulo.
      */
@@ -104,6 +114,15 @@ public class BackupConfig {
         return new DataSourceHealthIndicator(dataSource);
     }
 
+    /**
+     * Executor dedicado a las ejecuciones {@code @Async} de respaldo
+     * ({@link uteq.edu.ec.artisync.scheduler.AsyncBackupJobService#ejecutar}),
+     * acotado a 1 hilo para que dos volcados nunca compitan por I/O de disco
+     * ni carga de BD al mismo tiempo (a diferencia del executor ilimitado por
+     * defecto que usa el resto de {@code @Async} del proyecto).
+     *
+     * @return un {@link ThreadPoolTaskExecutor} de 1 hilo, cola de 10
+     */
     @Bean(name = "respaldoTaskExecutor")
     public Executor respaldoTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

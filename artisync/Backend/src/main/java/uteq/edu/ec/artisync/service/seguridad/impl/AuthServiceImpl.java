@@ -92,11 +92,12 @@ public class AuthServiceImpl implements AuthService {
             correoActor = "#request.correo",
             detalle = "{rol: #request.rol}")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Registra un nuevo usuario, con el rol indicado (o {@code CLIENTE} por defecto).
      *
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param request datos personales, contraseña y rol solicitado
+     * @return el usuario recién registrado
+     * @throws org.springframework.web.server.ResponseStatusException 400 si el correo ya está en uso,
+     *         si el usuario no cumple la edad mínima, o si el rol no es válido
      */
     public UserResponse register(RegisterRequest request) {
         String rolNombre = request.getRol() != null && !request.getRol().isBlank()
@@ -139,11 +140,16 @@ public class AuthServiceImpl implements AuthService {
     @Auditable(accion = "AUTENTICACION_LOGIN", modulo = AuditModule.SEGURIDAD,
             correoActor = "#request.correo")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Autentica con correo y contraseña. Si el usuario tiene 2FA habilitado,
+     * devuelve un ticket de preautenticación en vez de tokens; si no, emite
+     * access y refresh token directamente.
      *
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param request correo y contraseña
+     * @return tokens de sesión, o un ticket de preautenticación si requiere 2FA
+     * @throws org.springframework.security.core.AuthenticationException si las credenciales son inválidas
+     * @throws uteq.edu.ec.artisync.exception.QuotaExceededException si se supera el límite de intentos
+     *         fallidos por cuenta en la ventana configurada
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public TokenResponse login(LoginRequest request) {
         String ip = obtenerIpActual();
@@ -229,12 +235,15 @@ public class AuthServiceImpl implements AuthService {
     // este punto el usuario aún no tiene una sesión completa.
     @Auditable(accion = "AUTENTICACION_2FA_VERIFICAR", modulo = AuditModule.SEGURIDAD)
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Completa el login verificando el código 2FA (TOTP o de respaldo) contra
+     * el ticket de preautenticación emitido por {@link #login}.
      *
-     * @param preAuthTicket parametro requerido para la correcta ejecucion del procedimiento
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param preAuthTicket ticket emitido tras validar la contraseña
+     * @param request código TOTP o de respaldo ingresado
+     * @return los tokens de sesión ya emitidos
+     * @throws org.springframework.web.server.ResponseStatusException 401 si el ticket es inválido,
+     *         expirado o ya fue consumido, o si el código es incorrecto; 404 si el usuario no
+     *         existe; 400 si el usuario ya no tiene 2FA habilitado
      */
     public TokenResponse verify2Fa(String preAuthTicket, TwoFactorRequest request) {
         // §2.1 (OBS-AUTO-05): el usuario se resuelve EXCLUSIVAMENTE desde el
@@ -299,11 +308,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Renueva la sesión: revoca el refresh token usado y emite un access y
+     * refresh token nuevos (rotación de refresh token).
      *
-     * @param refreshToken parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param refreshToken refresh token vigente a rotar
+     * @return los nuevos tokens de sesión
+     * @throws org.springframework.web.server.ResponseStatusException 401 si el token está vacío,
+     *         revocado, expirado o es inválido; 404 si el usuario no existe; 403 si la cuenta está inactiva
      */
     public TokenResponse refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -375,12 +386,12 @@ public class AuthServiceImpl implements AuthService {
     // correoActor explícito, hay SecurityContext porque se llama autenticado.
     @Auditable(accion = "AUTENTICACION_LOGOUT", modulo = AuditModule.SEGURIDAD)
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Cierra la sesión: revoca el access token (de la cabecera) y el refresh
+     * token (si viene), de forma best-effort para el refresh token ya inválido.
      *
-     * @param tokenHeader parametro requerido para la correcta ejecucion del procedimiento
-     * @param refreshToken parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param tokenHeader cabecera {@code Authorization: Bearer <token>} con el access token
+     * @param refreshToken refresh token de la cookie, si lo hay
+     * @return mensaje de confirmación
      */
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
         sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
@@ -405,11 +416,15 @@ public class AuthServiceImpl implements AuthService {
     @Auditable(accion = "CONTRASENA_SOLICITAR_RESET", modulo = AuditModule.SEGURIDAD,
             correoActor = "#request.correo")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Solicita la recuperación de contraseña: si la cuenta existe, invalida
+     * tokens de recuperación previos, genera uno nuevo y envía el correo. La
+     * respuesta es siempre la misma, exista o no la cuenta, para no filtrar
+     * qué correos están registrados.
      *
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param request correo de la cuenta
+     * @return mensaje genérico de confirmación
+     * @throws uteq.edu.ec.artisync.exception.QuotaExceededException si se supera el límite de
+     *         solicitudes de recuperación por cuenta en la ventana configurada
      */
     public RespuestaMensaje forgotPassword(ForgotPasswordRequest request) {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
@@ -444,11 +459,12 @@ public class AuthServiceImpl implements AuthService {
     // correo disponible como parámetro.
     @Auditable(accion = "CONTRASENA_RESTABLECER", modulo = AuditModule.SEGURIDAD)
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Restablece la contraseña a partir de un token de recuperación válido y no usado.
      *
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param request token de recuperación y nueva contraseña
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 400 si el token no existe,
+     *         ya fue usado o expiró
      */
     public RespuestaMensaje resetPassword(ResetPasswordRequest request) {
         // REQ-F-005: sp_restablecer_contrasena valida (con FOR UPDATE) que el

@@ -16,13 +16,13 @@ public record CreateProfileRequest(
         @NotNull(message = "El ID del usuario es obligatorio")
         Long idUsuario,
 
-        @Size(max = 500, message = "La biografÃ­a no puede superar los 500 caracteres")
+        @Size(max = 500, message = "La biografía no puede superar los 500 caracteres")
         String biografia,
 
         @Size(max = 255, message = "La URL de red social no puede superar los 255 caracteres")
         String urlRedSocial,
 
-        @Size(max = 150, message = "El tÃ­tulo profesional no puede superar los 150 caracteres")
+        @Size(max = 150, message = "El título profesional no puede superar los 150 caracteres")
         String tituloProfesional
 ) {
 }

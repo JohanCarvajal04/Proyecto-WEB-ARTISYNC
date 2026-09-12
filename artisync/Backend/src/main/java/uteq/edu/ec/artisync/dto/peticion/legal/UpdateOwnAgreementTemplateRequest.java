@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Datos para que un creador edite su propia plantilla de contrato privada (V45). */
 @Data
 @Builder
 @NoArgsConstructor

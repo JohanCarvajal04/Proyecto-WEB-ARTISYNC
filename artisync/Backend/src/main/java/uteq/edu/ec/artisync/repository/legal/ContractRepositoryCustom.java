@@ -7,7 +7,7 @@ import uteq.edu.ec.artisync.dto.respuesta.legal.ContractReportRow;
 import java.time.LocalDateTime;
 
 /**
- * Repositorio de acceso a datos para la entidad de dominio {@link ContratoCustom}.
+ * Repositorio de acceso a datos para la entidad de dominio {@link uteq.edu.ec.artisync.entity.legal.Contract}.
  * 
  * Propósito: Actúa como capa de abstracción (DAO) gestionada por Spring Data JPA 
  * para realizar operaciones CRUD sobre la tabla correspondiente en la base de datos.
@@ -17,8 +17,8 @@ import java.time.LocalDateTime;
 public interface ContractRepositoryCustom {
 
     /**
-     * ProyecciÃ³n para el reporte de contratos (service/legal/impl/ContractReportServiceImpl).
-     * "Firmado" se deriva de que el hash de firma no sea nulo â€” igual criterio
+     * Proyección para el reporte de contratos (service/legal/impl/ContractReportServiceImpl).
+     * "Firmado" se deriva de que el hash de firma no sea nulo — igual criterio
      * que ContratoVistaComponent.yaFirme en el frontend.
      */
     Page<ContractReportRow> buscarParaReporte(LocalDateTime desde, LocalDateTime hasta,

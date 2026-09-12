@@ -59,7 +59,7 @@ public class AdminViolationController {
      *
      * @param idUsuario identificador del usuario cuya suspensión se revierte
      * @return mensaje de confirmación de la reactivación
-     * @throws ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
      */
     @Operation(summary = "Revertir suspensión de un usuario")
     @DeleteMapping("/suspensiones/{idUsuario}")

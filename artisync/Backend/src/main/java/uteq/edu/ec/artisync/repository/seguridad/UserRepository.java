@@ -25,23 +25,27 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
+    /** Usuario por correo exacto; base del login y de la resolución de identidad. */
     Optional<User> findByCorreo(String correo);
 
+    /** @return {@code true} si ya existe un usuario con ese correo */
     boolean existsByCorreo(String correo);
 
+    /** Usuario por id, solo si su cuenta sigue habilitada. */
     Optional<User> findByIdUsuarioAndEstadoCuentaTrue(Long idUsuario);
 
+    /** @return {@code true} si algún usuario está registrado con ese país (bloquea su eliminación) */
     boolean existsByPaisIdPais(Long idPais);
 
     /**
      * REQ-NF-018: igual que findById, pero con bloqueo pesimista de fila
-     * (mismo patrÃ³n que ContractRepository.findByIdParaFirmar). Sin esto, dos
-     * solicitudes de supresiÃ³n casi simultÃ¡neas para el mismo usuario (doble
-     * clic, autoservicio + admin a la vez) podÃ­an pasar ambas el chequeo de
-     * "Â¿ya estÃ¡ anonimizado?" antes de que la primera confirmara su cambio,
-     * ejecutando la anonimizaciÃ³n dos veces. El bloqueo serializa las dos
+     * (mismo patrón que ContractRepository.findByIdParaFirmar). Sin esto, dos
+     * solicitudes de supresión casi simultáneas para el mismo usuario (doble
+     * clic, autoservicio + admin a la vez) podían pasar ambas el chequeo de
+     * "¿ya está anonimizado?" antes de que la primera confirmara su cambio,
+     * ejecutando la anonimización dos veces. El bloqueo serializa las dos
      * transacciones: la segunda espera a que la primera confirme y entonces
-     * relee el correo ya anonimizado, evitando la repeticiÃ³n.
+     * relee el correo ya anonimizado, evitando la repetición.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.idUsuario = :idUsuario")
@@ -53,7 +57,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
      * Ver el comentario completo en permisosEfectivos: con Hibernate 7.4.1,
-     * @Procedure con un tipo de retorno no-void (que exige un parametro OUT
+     * {@code @Procedure} con un tipo de retorno no-void (que exige un parametro OUT
      * en la PROCEDURE) genera una llamada invalida con sintaxis de argumento
      * nombrado ("p_x => ?", "out => ?") que Postgres rechaza. Confirmado
      * end-to-end contra el stack local (revision tecnica 2026-09-05).
@@ -73,7 +77,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
      * Mismo motivo que permisosEfectivos (ver ahi el detalle completo):
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra
      * Postgres.
      */
     @Query(value = "SELECT fn_resolver_estado_login(:p_correo)::text", nativeQuery = true)
@@ -97,7 +101,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("p_nueva_contrasena_hash") String nuevaContrasenaHash);
 
     /**
-     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??5) -
+     * Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5) -
      * fn_cambiar_estado_cuenta: cambia estado_cuenta y, si hay transicion
      * activa->inactiva, revoca las sesiones del usuario, todo bajo
      * SELECT ... FOR UPDATE sobre la misma transaccion. Cierra la actualizacion
@@ -117,7 +121,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("p_estado") boolean estado);
 
     /**
-     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??8) -
+     * Fase 2 rendimiento (docs/basedatos/PLAN-CONCURRENCIA-SP.md §8) -
      * fn_permisos_efectivos_usuario: resuelve usuario + authorities (roles
      * ROLE_* + permisos, deduplicados) en una sola llamada STABLE. Sustituye
      * el N+1 de CustomUserDetailsService.loadUserByUsername (findByCorreo +
@@ -148,7 +152,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     String permisosEfectivos(@Param("p_correo") String correo);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??6) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6) -
      * fn_solicitar_recuperacion: invalida tokens de recuperacion previos e
      * inserta el nuevo atomicamente bajo SELECT FOR UPDATE (A5). Devuelve
      * JSONB {idUsuario, nombres} serializado como texto, NULL si la cuenta no
@@ -156,7 +160,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
      * Mismo motivo que permisosEfectivos (ver ahi el detalle completo):
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra
      * Postgres.
      */
     @Query(value = "SELECT fn_solicitar_recuperacion(:p_correo, :p_hash_token)::text", nativeQuery = true)
@@ -165,7 +169,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("p_hash_token") String hashToken);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??6) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §6) -
      * sp_cambiar_contrasena: UPDATE condicionado (compare-and-swap sobre el
      * hash) que aplica el cambio solo si nadie mas la cambio primero, cerrando
      * la actualizacion perdida (A7); lanza excepcion (ERRCODE 40001) si el
@@ -180,7 +184,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("p_hash_nuevo") String hashNuevo);
 
     /**
-     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md ??4) -
+     * Fase 3 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §4) -
      * fn_crear_usuario_admin: crea un usuario administrativo con sus roles en
      * una unica transaccion, capturando unique_violation sobre el correo en
      * vez de una comprobacion existsByCorreo no atomica (A3). Devuelve el
@@ -188,7 +192,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      *
      * [JUSTIFICACION ARQUITECTONICA - USO DE nativeQuery, no @Procedure]
      * Mismo motivo que permisosEfectivos (ver ahi el detalle completo):
-     * @Procedure con retorno no-void rompe con Hibernate 7.4.1 contra
+     * {@code @Procedure} con retorno no-void rompe con Hibernate 7.4.1 contra
      * Postgres.
      */
     @Query(value = "SELECT fn_crear_usuario_admin(:p_nombres, :p_apellidos, :p_correo, :p_contrasena_hash, :p_fecha_nacimiento, :p_id_pais, :p_estado_cuenta, :p_nombres_rol)", nativeQuery = true)

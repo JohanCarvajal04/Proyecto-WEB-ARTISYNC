@@ -13,7 +13,7 @@ import jakarta.validation.constraints.Size;
  * por la API antes de ser delegados a la capa de servicios.
  */
 public record VerificationDecisionRequest(
-        @NotNull(message = "El nuevo estado de verificaciÃ³n es obligatorio")
+        @NotNull(message = "El nuevo estado de verificación es obligatorio")
         Long idEstadoVerificacion,
 
         @Size(max = 500, message = "La nota no puede superar los 500 caracteres")

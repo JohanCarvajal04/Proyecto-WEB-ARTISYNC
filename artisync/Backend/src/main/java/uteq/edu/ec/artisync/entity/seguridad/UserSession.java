@@ -35,8 +35,8 @@ public class UserSession {
     @JoinColumn(name = "id_usuario", nullable = false)
     private User usuario;
 
-    // Â§2.5 / OBS-AUTO-06: se guarda unicamente el jti (identificador del token),
-    // nunca el JWT completo â€” una lectura de esta tabla ya no entrega tokens
+    // §2.5 / OBS-AUTO-06: se guarda unicamente el jti (identificador del token),
+    // nunca el JWT completo — una lectura de esta tabla ya no entrega tokens
     // utilizables. Ver V8__sesiones_usuario_jti.sql.
     @NotBlank(message = "El jti de la sesion es obligatorio")
     @Column(name = "jti", nullable = false, unique = true, length = 36)

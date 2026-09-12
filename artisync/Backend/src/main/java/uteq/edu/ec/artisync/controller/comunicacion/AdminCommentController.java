@@ -44,7 +44,7 @@ public class AdminCommentController {
      *
      * @param idComentario identificador del comentario a ocultar
      * @return el comentario con su estado de moderación actualizado
-     * @throws ResourceNotFoundException si el comentario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     @Operation(summary = "Ocultar un comentario (moderación)")
     @PatchMapping("/{idComentario}/ocultar")
@@ -58,7 +58,7 @@ public class AdminCommentController {
      *
      * @param idComentario identificador del comentario a reactivar
      * @return el comentario con su estado de moderación actualizado
-     * @throws ResourceNotFoundException si el comentario no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
     @Operation(summary = "Reactivar un comentario previamente oculto")
     @PatchMapping("/{idComentario}/reactivar")

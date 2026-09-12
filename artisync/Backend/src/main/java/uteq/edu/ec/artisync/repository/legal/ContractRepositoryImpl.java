@@ -39,6 +39,20 @@ public class ContractRepositoryImpl implements ContractRepositoryCustom {
 
     private final EntityManager entityManager;
 
+    /**
+     * Arma el reporte de contratos filtrado, navegando contrato → pedido →
+     * servicio → perfil/cliente/creador, sin traer las entidades completas
+     * (proyección directa a {@link ContractReportRow} vía Criteria API).
+     *
+     * @param desde fecha de formalización mínima (inclusive); {@code null} no filtra
+     * @param hasta fecha de formalización máxima (inclusive); {@code null} no filtra
+     * @param idPerfilCreador si no es {@code null}, restringe a contratos de ese creador
+     * @param soloFirmados {@code true} solo contratos firmados por ambas partes,
+     *                     {@code false} solo los que aún les falta alguna firma,
+     *                     {@code null} no filtra por estado de firma
+     * @param pageable configuración de paginación
+     * @return la página de filas del reporte que cumplen los filtros
+     */
     @Override
     public Page<ContractReportRow> buscarParaReporte(LocalDateTime desde, LocalDateTime hasta,
                                                          Long idPerfilCreador, Boolean soloFirmados,

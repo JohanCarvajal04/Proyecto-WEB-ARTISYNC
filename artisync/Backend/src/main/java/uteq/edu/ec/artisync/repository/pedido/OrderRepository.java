@@ -18,10 +18,13 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    /** Pedidos realizados por un cliente. */
     List<Order> findByUsuarioClienteIdUsuario(Long idUsuario);
 
+    /** Pedidos recibidos por un perfil de creador (a través del servicio contratado). */
     List<Order> findByServicioPerfilIdPerfil(Long idPerfil);
 
+    /** Pedidos recibidos por un creador, identificado por su usuario (no por su perfil). */
     List<Order> findByServicioPerfilUsuarioIdUsuario(Long idUsuario);
 }
 

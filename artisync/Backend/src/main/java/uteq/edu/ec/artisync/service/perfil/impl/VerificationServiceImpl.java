@@ -59,13 +59,16 @@ public class VerificationServiceImpl implements IVerificationService {
             entidad = "certificados_ia", idEntidad = "#resultado.idCertificado",
             detalle = "{tipoDocumento: #tipo}")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Sube un documento de identidad o certificado profesional para
+     * verificación, en estado {@code PENDIENTE}.
      *
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @param tipo parametro requerido para la correcta ejecucion del procedimiento
-     * @param documento parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuarioSolicitante identificador del usuario que solicita la verificación
+     * @param tipo tipo de documento (identidad o certificado profesional)
+     * @param documento archivo del documento, validado contra el formato esperado
+     * @return la verificación creada, pendiente de análisis
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene una
+     *         verificación pendiente, o si el documento no cumple el formato esperado
      */
     public VerificationResponse subir(Long idUsuarioSolicitante, VerificationDocumentType tipo, MultipartFile documento) {
         User usuario = usuarioRepository.findById(idUsuarioSolicitante)
@@ -103,13 +106,12 @@ public class VerificationServiceImpl implements IVerificationService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
+     * Lista la cola de verificaciones pendientes de revisión por un moderador.
      *
-     * @param nombreEstado parametro requerido para la correcta ejecucion del procedimiento
-     * @param limite parametro requerido para la correcta ejecucion del procedimiento
-     * @param offset parametro requerido para la correcta ejecucion del procedimiento
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param nombreEstado estado a filtrar (p. ej. "PENDIENTE")
+     * @param limite cantidad máxima de resultados
+     * @param offset posición inicial del resultado
+     * @return las verificaciones que cumplen el filtro
      */
     public List<VerificationQueueResponse> listarCola(String nombreEstado, int limite, int offset) {
         return certificadoIaRepository.listarCola(nombreEstado, limite, offset).stream()
@@ -129,13 +131,13 @@ public class VerificationServiceImpl implements IVerificationService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idCertificado identificador unico que referencia de manera univoca al registro
-     * @param idUsuarioSolicitante identificador unico que referencia de manera univoca al registro
-     * @param esRevisor parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idCertificado identificador de la verificación
+     * @param idUsuarioSolicitante identificador de quien consulta
+     * @param esRevisor {@code true} si quien consulta es un moderador (puede ver cualquier verificación)
+     * @return la verificación solicitada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
+     * @throws org.springframework.security.access.AccessDeniedException si quien consulta no es
+     *         revisor ni dueño de la verificación
      */
     public VerificationResponse obtenerPorId(Long idCertificado, Long idUsuarioSolicitante, boolean esRevisor) {
         AiCertificate certificado = buscarPorId(idCertificado);
@@ -156,11 +158,15 @@ public class VerificationServiceImpl implements IVerificationService {
     @Override
     @Transactional
     /**
-     * Ejecuta un proceso de analisis semantico o validacion asistida por Inteligencia Artificial sobre el contenido.
+     * Envía el documento de una verificación a la IA para su análisis
+     * (identidad o certificado profesional) y registra el dictamen.
      *
-     * @param idCertificado identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idCertificado identificador de la verificación a analizar
+     * @return la verificación con el dictamen de IA ya registrado
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el documento ya fue eliminado
+     * @throws uteq.edu.ec.artisync.exception.AiServiceUnavailableException si el proveedor de IA no responde
+     *         tras el reintento (en fallos transitorios) o ante un fallo no transitorio
      */
     public VerificationResponse analizarConIa(Long idCertificado) {
         AiCertificate certificado = buscarPorId(idCertificado);
@@ -192,14 +198,17 @@ public class VerificationServiceImpl implements IVerificationService {
             entidad = "certificados_ia", idEntidad = "#idCertificado",
             detalle = "{idNuevoEstado: #idNuevoEstado}")
     /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
+     * Registra la decisión de un moderador sobre una verificación (aprobar,
+     * rechazar o pedir aclaración); el documento se elimina del almacenamiento
+     * si el nuevo estado es terminal (aprobado o rechazado).
      *
-     * @param idCertificado identificador unico que referencia de manera univoca al registro
-     * @param idModerador identificador unico que referencia de manera univoca al registro
-     * @param idNuevoEstado identificador unico que referencia de manera univoca al registro
-     * @param notaModerador parametro requerido para la correcta ejecucion del procedimiento
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idCertificado identificador de la verificación a decidir
+     * @param idModerador identificador del moderador que decide
+     * @param idNuevoEstado nuevo estado de verificación a asignar
+     * @param notaModerador justificación de la decisión
+     * @return la verificación con la decisión ya registrada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la verificación o el
+     *         nuevo estado no existen
      */
     public VerificationResponse registrarDecision(Long idCertificado, Long idModerador, Long idNuevoEstado, String notaModerador) {
         AiCertificate certificado = buscarPorId(idCertificado);
@@ -293,11 +302,8 @@ public class VerificationServiceImpl implements IVerificationService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuario identificador del usuario
+     * @return {@code true} si el usuario tiene un documento de identidad aprobado
      */
     public boolean estaIdentidadVerificada(Long idUsuario) {
         return certificadoIaRepository.existsByUsuarioIdUsuarioAndTipoDocumentoAndEstadoVerificacionNombreEstado(
@@ -307,11 +313,8 @@ public class VerificationServiceImpl implements IVerificationService {
     @Override
     @Transactional(readOnly = true)
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idUsuario identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param idUsuario identificador del usuario
+     * @return si la identidad del usuario está verificada, y el estado de su última solicitud
      */
     public IdentityStatusResponse obtenerEstadoIdentidad(Long idUsuario) {
         boolean verificado = estaIdentidadVerificada(idUsuario);

@@ -33,8 +33,13 @@ public class NotificationPurgeScheduler {
 
     private final JdbcTemplate jdbcTemplate;
 
-    // Corre a las 4:00 AM, después de VerificationScheduler (03:00) y
-    // SecurityPurgeScheduler (03:30), para no competir por E/S de disco.
+    /**
+     * Invoca {@code sp_purgar_notificaciones} para borrar por lotes las
+     * notificaciones leídas con más de {@link #DIAS_RETENCION} días. Corre a
+     * las 4:00 AM, después de {@link VerificationScheduler} (03:00) y
+     * {@link SecurityPurgeScheduler} (03:30), para no competir por E/S de disco.
+     * Best-effort: un fallo se registra y se reintenta 24h después.
+     */
     @Scheduled(cron = "0 0 4 * * *")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void purgarNotificaciones() {

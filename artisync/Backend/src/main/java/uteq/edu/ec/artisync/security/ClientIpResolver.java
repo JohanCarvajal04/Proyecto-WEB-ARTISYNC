@@ -18,6 +18,13 @@ public final class ClientIpResolver {
     private ClientIpResolver() {
     }
 
+    /**
+     * Resuelve la IP real del cliente para la petición dada.
+     *
+     * @param request petición HTTP en curso
+     * @return la IP del cliente, ya corregida por el {@code RemoteIpValve} de Tomcat
+     *         (a partir de {@code X-Forwarded-For} cuando la petición viene de un proxy de confianza)
+     */
     public static String resolver(HttpServletRequest request) {
         return request.getRemoteAddr();
     }

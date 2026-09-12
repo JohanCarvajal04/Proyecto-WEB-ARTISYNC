@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
 
+/** Datos para crear un nuevo servicio en el catálogo de un creador. */
 @Data
 @Builder
 @NoArgsConstructor

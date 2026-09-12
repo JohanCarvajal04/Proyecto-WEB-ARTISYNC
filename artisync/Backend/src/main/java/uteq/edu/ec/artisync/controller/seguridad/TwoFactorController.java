@@ -14,6 +14,7 @@ import uteq.edu.ec.artisync.service.seguridad.TwoFactorService;
 
 import java.security.Principal;
 
+/** Configuración de autenticación de dos factores (TOTP) y códigos de respaldo. */
 @RestController
 @RequestMapping("/api/v1/2fa")
 @RequiredArgsConstructor

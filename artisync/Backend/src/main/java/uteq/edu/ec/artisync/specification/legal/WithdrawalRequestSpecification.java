@@ -11,6 +11,16 @@ import java.util.List;
 /** Filtros de la cola de revisión de retiros del Auditor Financiero. */
 public class WithdrawalRequestSpecification {
 
+    /**
+     * Arma la {@link Specification} de {@link WithdrawalRequest} combinando
+     * (AND) solo los criterios no nulos/no vacíos recibidos.
+     *
+     * @param estado estado exacto de la solicitud de retiro
+     * @param idUsuarioCreador si no es {@code null}, restringe a solicitudes de ese creador
+     * @param desde fecha de solicitud mínima (inclusive)
+     * @param hasta fecha de solicitud máxima (inclusive)
+     * @return la especificación combinada, lista para {@code findAll(spec, pageable)}
+     */
     public static Specification<WithdrawalRequest> conFiltros(
             String estado,
             Long idUsuarioCreador,

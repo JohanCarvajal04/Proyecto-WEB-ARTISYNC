@@ -18,9 +18,10 @@ import java.util.Optional;
 @Repository
 public interface CreatorProfileRepository extends JpaRepository<CreatorProfile, Long> {
 
+    /** El perfil de creador de un usuario, si lo tiene. */
     Optional<CreatorProfile> findByUsuarioIdUsuario(Long idUsuario);
 
-    /** Directorio pÃºblico: solo creadores cuya cuenta no estÃ¡ suspendida. */
+    /** Directorio público: solo creadores cuya cuenta no está suspendida. */
     List<CreatorProfile> findByUsuarioEstadoCuentaTrue();
 }
 

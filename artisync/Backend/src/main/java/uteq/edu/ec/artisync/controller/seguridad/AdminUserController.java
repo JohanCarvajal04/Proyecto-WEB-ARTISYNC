@@ -26,6 +26,7 @@ import uteq.edu.ec.artisync.service.shared.reporte.ReportFormat;
 import uteq.edu.ec.artisync.util.PagedResponse;
 import uteq.edu.ec.artisync.util.DocumentResponse;
 
+/** CRUD administrativo de usuarios, exportación de listados y revocación de sesiones. */
 @RestController
 @RequestMapping("/api/v1/admin/usuarios")
 @RequiredArgsConstructor
@@ -130,7 +131,7 @@ public class AdminUserController {
      * @param request nuevo estado a aplicar sobre la cuenta
      * @param userDetails administrador autenticado que realiza el cambio
      * @return el usuario con su estado actualizado
-     * @throws BusinessRuleException si el administrador intenta desactivar su propia cuenta
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta desactivar su propia cuenta
      */
     @Operation(summary = "Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)")
     @PatchMapping("/{id}/estado")
@@ -147,7 +148,7 @@ public class AdminUserController {
      * @param request roles a asignar
      * @param userDetails administrador autenticado que realiza la asignación
      * @return el usuario con sus roles actualizados
-     * @throws BusinessRuleException si el administrador intenta cambiar sus propios roles
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta cambiar sus propios roles
      */
     @Operation(summary = "Asignar roles a un usuario")
     @PutMapping("/{id}/roles")
@@ -176,7 +177,7 @@ public class AdminUserController {
      * @param id identificador del usuario a eliminar
      * @param userDetails administrador autenticado que solicita la eliminación
      * @return respuesta vacía con estado 204
-     * @throws BusinessRuleException si el administrador intenta eliminar su propia cuenta
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta eliminar su propia cuenta
      */
     @Operation(summary = "Eliminar lógicamente a un usuario (Soft Delete)")
     @DeleteMapping("/{id}")

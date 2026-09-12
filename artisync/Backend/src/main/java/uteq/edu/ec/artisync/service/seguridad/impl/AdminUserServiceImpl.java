@@ -78,12 +78,11 @@ public class AdminUserServiceImpl implements AdminUserService {
     // se conserva intacto -- se sigue resolviendo con findAll(pageable), no se
     // reemplaza por una rutina con orden fijo.
     /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
+     * Lista usuarios filtrados, para el panel de administración.
      *
-     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
-     * @param pageable configuracion de paginacion y ordenamiento para la capa de datos
-     * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param filtro búsqueda, rol y estado de cuenta a filtrar
+     * @param pageable paginación y ordenamiento solicitados
+     * @return la página de usuarios, con sus roles/permisos/2FA ya resueltos en lote
      */
     public PagedResponse<UserResponse> getAllUsers(UserFilter filtro, Pageable pageable) {
         Specification<User> spec = UserSpecification.conFiltros(
@@ -92,15 +91,13 @@ public class AdminUserServiceImpl implements AdminUserService {
         return PagedResponseBuilder.buildAndMapList(usuariosPage, usuarioMapper::toUserResponseList);
     }
 
+    /**
+     * @param id identificador del usuario
+     * @return el usuario solicitado
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public UserResponse getUserById(Long id) {
         User usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado con ID: " + id));
@@ -119,11 +116,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     // fn_sincronizar_roles_usuario (Fase 1) para los roles y el perfil de
     // creador en la misma transaccion.
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Crea un usuario desde el panel de administración, con los roles indicados
+     * (o {@code CLIENTE} por defecto).
      *
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param request datos del usuario, país, roles y estado de cuenta inicial
+     * @return el usuario creado
+     * @throws org.springframework.web.server.ResponseStatusException 400 si el correo ya está en uso,
+     *         o ante cualquier otro fallo de la rutina de creación
      */
     public UserResponse createUser(CreateUserRequest request) {
         List<String> rolesAsignar = (request.getRoles() != null && !request.getRoles().isEmpty())
@@ -157,12 +156,15 @@ public class AdminUserServiceImpl implements AdminUserService {
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{estadoCuenta: #request.estadoCuenta, roles: #request.roles}")
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Actualiza los datos de un usuario desde el panel de administración:
+     * datos personales, país, 2FA, roles y estado de cuenta. Los campos
+     * {@code null} de la petición no se modifican.
      *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param id identificador del usuario a actualizar
+     * @param request campos a actualizar
+     * @return el usuario ya actualizado
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe,
+     *         400 si el país indicado no existe
      */
     public UserResponse updateUser(Long id, AdminUpdateUserRequest request) {
         User usuario = usuarioRepository.findById(id)
@@ -241,13 +243,15 @@ public class AdminUserServiceImpl implements AdminUserService {
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{estadoCuenta: #request.estadoCuenta}")
     /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
+     * Activa o desactiva la cuenta de un usuario; si desactiva, revoca sus
+     * sesiones en la misma operación atómica.
      *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @param idAdminActual identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param id identificador del usuario
+     * @param request nuevo estado de la cuenta
+     * @param idAdminActual identificador del admin que ejecuta la acción
+     * @return el usuario con su estado ya actualizado
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta desactivar su propia cuenta
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual) {
         if (id.equals(idAdminActual) && !request.getEstadoCuenta()) {
@@ -281,13 +285,16 @@ public class AdminUserServiceImpl implements AdminUserService {
             entidad = "usuarios", idEntidad = "#id",
             detalle = "{roles: #request.roles}")
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Reemplaza el conjunto de roles de un usuario y revoca sus sesiones, para
+     * que sus próximos tokens ya lleven los claims de rol actualizados.
      *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @param request estructura de transferencia de datos con la informacion estructurada de entrada
-     * @param idAdminActual identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param id identificador del usuario
+     * @param request nuevo conjunto de roles a asignar
+     * @param idAdminActual identificador del admin que ejecuta la acción
+     * @return el usuario con sus roles ya actualizados
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta cambiar sus propios roles
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe,
+     *         400 si algún rol indicado no existe
      */
     public UserResponse assignRoles(Long id, AssignRolesRequest request, Long idAdminActual) {
         if (id.equals(idAdminActual)) {
@@ -316,11 +323,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_DESACTIVAR", modulo = AuditModule.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     * Desactiva (soft-delete) la cuenta de un usuario y revoca sus sesiones,
+     * en una única operación atómica.
      *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @param idAdminActual identificador unico que referencia de manera univoca al registro
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param id identificador del usuario a desactivar
+     * @param idAdminActual identificador del admin que ejecuta la acción
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta eliminar su propia cuenta
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public void deleteUser(Long id, Long idAdminActual) {
         if (id.equals(idAdminActual)) {
@@ -341,32 +350,25 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = AuditModule.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato}")
     /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
+     * Exporta el listado de usuarios filtrado, con ambas gráficas (rol y país), sin paginar.
      *
-     * @param filtro criterios de busqueda y filtrado dinamico a aplicar
-     * @param formato parametro requerido para la correcta ejecucion del procedimiento
-     * @param correoSolicitante direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param filtro criterios de búsqueda, rol y estado de cuenta
+     * @param formato formato del documento a generar
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de usuarios
      */
     public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, String correoSolicitante) {
         return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, null, null, correoSolicitante);
     }
 
     /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     * @param filtro filtro de busqueda
-     * @param formato formato de reporte
-     * @param correoAdmin correo del admin
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     */
-    /**
-     * Prepara y ensambla un documento o archivo fisico de salida con los datos requeridos.
-     * @param filtro filtro de busqueda
-     * @param formato formato de reporte
-     * @param orderSorts ordenamiento
-     * @param correoAdmin correo del admin
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
+     * Exporta el listado de usuarios filtrado, incluyendo la gráfica indicada, sin paginar.
+     *
+     * @param filtro criterios de búsqueda, rol y estado de cuenta
+     * @param formato formato del documento a generar
+     * @param tipoGrafica gráfica(s) a incluir en el documento junto con la tabla
+     * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
+     * @return el documento generado con el listado de usuarios y la gráfica solicitada
      */
     @Override
     @Transactional(readOnly = true)
@@ -504,11 +506,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Auditable(accion = "SESION_REVOCAR", modulo = AuditModule.SEGURIDAD,
             entidad = "usuarios", idEntidad = "#id")
     /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
+     * Revoca todas las sesiones activas de un usuario (fuerza el cierre de
+     * sesión en cualquier dispositivo).
      *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param id identificador del usuario
+     * @return mensaje de confirmación
+     * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public RespuestaMensaje revokeUserSessions(Long id) {
         if (!usuarioRepository.existsById(id)) {

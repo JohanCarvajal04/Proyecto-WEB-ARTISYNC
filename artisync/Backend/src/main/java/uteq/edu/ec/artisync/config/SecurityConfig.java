@@ -36,6 +36,18 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
     private List<String> allowedOrigins;
 
+    /**
+     * Matriz completa de seguridad HTTP: cabeceras (HSTS, CSP, X-Frame-Options,
+     * Referrer-Policy, Permissions-Policy), sesión STATELESS, entry point JSON
+     * para peticiones sin autenticar, la allowlist de rutas públicas y la
+     * cadena de filtros propios ({@code AuthRateLimitFilter} antes que
+     * {@code JwtAuthenticationFilter}, este antes del filtro estándar de
+     * usuario/contraseña).
+     *
+     * @param http builder de configuración de Spring Security
+     * @return la cadena de filtros de seguridad de toda la aplicación
+     * @throws Exception propagada de la configuración de {@code HttpSecurity}
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -100,6 +112,14 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Política CORS para el frontend (orígenes configurables por
+     * {@code app.cors.allowed-origins}), con credenciales permitidas y la
+     * cabecera {@code Authorization} expuesta para que el SPA pueda leer el
+     * nuevo access token en las respuestas de refresh.
+     *
+     * @return la configuración CORS aplicada a todas las rutas ({@code /**})
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

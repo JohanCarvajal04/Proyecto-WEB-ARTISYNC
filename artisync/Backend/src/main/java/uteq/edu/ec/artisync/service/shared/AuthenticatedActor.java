@@ -29,12 +29,10 @@ public final class AuthenticatedActor {
     }
 
     /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
+     * Identidad resuelta del actor autenticado (o anónimo) para la petición actual.
      *
-     * @param id identificador unico que referencia de manera univoca al registro
-     * @param correo direccion de correo electronico del actor o usuario principal
-     * @return el resultado esperado de aplicar las reglas de negocio de la funcion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
+     * @param id identificador del usuario, {@code null} si el actor es anónimo
+     * @param correo correo del usuario autenticado, {@code "anonimo"} si no hay sesión
      */
     public record Actor(Long id, String correo) {
     }

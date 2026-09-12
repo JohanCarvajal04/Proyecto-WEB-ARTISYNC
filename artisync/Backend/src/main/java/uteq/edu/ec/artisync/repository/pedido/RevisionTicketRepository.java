@@ -23,8 +23,10 @@ import java.util.Optional;
 @Repository
 public interface RevisionTicketRepository extends JpaRepository<RevisionTicket, Long> {
 
+    /** Tickets de revisión de un pedido, más recientes primero. */
     List<RevisionTicket> findByPedidoIdPedidoOrderByIdTicketDesc(Long idPedido);
 
+    /** Cantidad de tickets de revisión de un pedido. */
     long countByPedidoIdPedido(Long idPedido);
 
     /**

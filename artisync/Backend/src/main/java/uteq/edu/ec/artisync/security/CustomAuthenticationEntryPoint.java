@@ -45,12 +45,23 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         this.objectMapper.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);
     }
 
+    /**
+     * Responde con un {@code ProblemDetail} 401 en lugar del redirect HTML por
+     * defecto de Spring Security, para que el frontend (SPA/API) reciba siempre JSON.
+     *
+     * @param request petición que disparó la excepción de autenticación
+     * @param response respuesta HTTP a completar (401, {@code application/json})
+     * @param authException excepción de autenticación capturada por el {@code ExceptionTranslationFilter};
+     *                       su mensaje se usa como detalle solo si el filtro JWT no dejó uno más
+     *                       específico en el atributo de petición {@code JWT_ERROR}
+     * @throws IOException si falla la escritura de la respuesta
+     */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         String jwtError = (String) request.getAttribute("JWT_ERROR");
-        String message = jwtError != null ? jwtError : "AutenticaciÃ³n requerida";
+        String message = jwtError != null ? jwtError : "Autenticación requerida";
 
-        log.warn("Fallo de autenticaciÃ³n en {}: {} (ExcepciÃ³n: {})", request.getRequestURI(), message, authException.getMessage());
+        log.warn("Fallo de autenticación en {}: {} (Excepción: {})", request.getRequestURI(), message, authException.getMessage());
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

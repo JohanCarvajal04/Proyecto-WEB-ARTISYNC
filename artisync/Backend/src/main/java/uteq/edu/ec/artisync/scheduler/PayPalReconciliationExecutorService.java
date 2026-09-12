@@ -44,6 +44,15 @@ public class PayPalReconciliationExecutorService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Consulta el estado real de una orden de PayPal en {@code Pendiente} y la
+     * reconcilia: confirma el pago si ya está {@code COMPLETED}, captura y
+     * confirma si está {@code APPROVED}, o deja constancia en el log si sigue
+     * pendiente o fue {@code VOIDED}. Relee el pago con lock antes de actuar
+     * por si el webhook ya lo confirmó mientras tanto.
+     *
+     * @param idPago identificador del pago de garantía a reconciliar
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Auditable(accion = "PAGO_RECONCILIAR", modulo = AuditModule.FINANZAS,
             correoActor = "'sistema:paypal'",

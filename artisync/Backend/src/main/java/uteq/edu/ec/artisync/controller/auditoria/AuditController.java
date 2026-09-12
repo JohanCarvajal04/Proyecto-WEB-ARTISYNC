@@ -58,7 +58,7 @@ public class AuditController {
      *
      * @param idEvento identificador del evento de auditoría
      * @return el detalle del evento de auditoría
-     * @throws ResourceNotFoundException si el evento no existe
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el evento no existe
      */
     @Operation(summary = "Detalle completo de un evento, incluido el JSON del cambio")
     @GetMapping("/{idEvento}")

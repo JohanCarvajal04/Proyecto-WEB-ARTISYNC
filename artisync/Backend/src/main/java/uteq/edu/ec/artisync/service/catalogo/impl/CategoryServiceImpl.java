@@ -35,14 +35,9 @@ public class CategoryServiceImpl implements ICategoryService {
     private final UserRepository usuarioRepository;
     private final NotificationService notificacionService;
 
+    /** @return las categorías activas y ya revisadas, para el catálogo público, ordenadas alfabéticamente */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<CategoryResponse> listarCategoriasActivas() {
         return categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()
                 .stream()
@@ -50,14 +45,9 @@ public class CategoryServiceImpl implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    /** @return todas las categorías (incluidas inactivas y sin revisar), para administración */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<CategoryResponse> listarTodasLasCategorias() {
         return categoriaRepository.findAllByOrderByNombreCategoriaAsc()
                 .stream()
@@ -65,34 +55,33 @@ public class CategoryServiceImpl implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * @param idCategoria identificador de la categoría
+     * @return la categoría solicitada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Recupera la informacion detallada y estructurada correspondiente a los criterios de busqueda provistos.
-     *
-     * @param idCategoria identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public CategoryResponse obtenerCategoriaPorId(Long idCategoria) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
         return mapearACategoriaRespuesta(cat);
     }
 
+    /**
+     * Crea una categoría. Si {@code idUsuarioCreador} no es {@code null} (autoservicio de un
+     * creador), la categoría queda sin revisar; si es {@code null} (admin/moderador), queda ya revisada.
+     *
+     * @param idUsuarioCreador identificador del creador que la crea; {@code null} si la crea un admin/moderador
+     * @param peticion nombre y estado activo de la categoría
+     * @return la categoría creada
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una categoría con ese nombre
+     */
     @Override
     @Transactional
     @Auditable(accion = "CATEGORIA_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#resultado.idCategoria",
             detalle = "{nombreCategoria: #peticion.nombreCategoria}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public CategoryResponse crearCategoria(Long idUsuarioCreador, CreateCategoryRequest peticion) {
         if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {
             throw new BusinessRuleException("Ya existe una categoria con el nombre: " + peticion.getNombreCategoria());
@@ -107,19 +96,20 @@ public class CategoryServiceImpl implements ICategoryService {
         return mapearACategoriaRespuesta(cat);
     }
 
+    /**
+     * Actualiza el nombre y/o estado activo de una categoría; los campos {@code null} no se modifican.
+     *
+     * @param idCategoria identificador de la categoría
+     * @param peticion nuevo nombre y/o estado activo
+     * @return la categoría ya actualizada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe otra categoría con el nuevo nombre
+     */
     @Override
     @Transactional
     @Auditable(accion = "CATEGORIA_ACTUALIZAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria",
             detalle = "{nombreCategoria: #peticion.nombreCategoria, estadoActiva: #peticion.estadoActiva}")
-    /**
-     * Aplica modificaciones y validaciones de negocio sobre los datos de un registro existente.
-     *
-     * @param idCategoria identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public CategoryResponse actualizarCategoria(Long idCategoria, UpdateCategoryRequest peticion) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
@@ -138,17 +128,20 @@ public class CategoryServiceImpl implements ICategoryService {
         return mapearACategoriaRespuesta(cat);
     }
 
+    /**
+     * Elimina una categoría, siempre que ninguna de sus subcategorías tenga
+     * servicios publicados. Si la categoría la creó un creador, notifica el motivo.
+     *
+     * @param idCategoria identificador de la categoría a eliminar
+     * @param motivo justificación de la eliminación; obligatorio si la categoría la creó un creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si alguna de sus subcategorías tiene
+     *         servicios publicados, o si la creó un creador y no se indica motivo
+     */
     @Override
     @Transactional
     @Auditable(accion = "CATEGORIA_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria", detalle = "{motivo: #motivo}")
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idCategoria identificador unico que referencia de manera univoca al registro
-     * @param motivo parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void eliminarCategoria(Long idCategoria, String motivo) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
@@ -170,15 +163,13 @@ public class CategoryServiceImpl implements ICategoryService {
         }
     }
 
+    /**
+     * @param idCategoria identificador de la categoría
+     * @return las subcategorías de esa categoría, ordenadas alfabéticamente
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @param idCategoria identificador unico que referencia de manera univoca al registro
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<SubcategoryResponse> listarSubcategoriasPorCategoria(Long idCategoria) {
         if (!categoriaRepository.existsById(idCategoria)) {
             throw new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria);
@@ -189,14 +180,9 @@ public class CategoryServiceImpl implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    /** @return todas las subcategorías del catálogo, ordenadas alfabéticamente */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<SubcategoryResponse> listarTodasLasSubcategorias() {
         return subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()
                 .stream()
@@ -204,19 +190,22 @@ public class CategoryServiceImpl implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Crea una subcategoría bajo una categoría existente. Si {@code idUsuarioCreador} no es
+     * {@code null} (autoservicio de un creador), queda sin revisar; si es {@code null} (admin/moderador),
+     * queda ya revisada.
+     *
+     * @param idUsuarioCreador identificador del creador que la crea; {@code null} si la crea un admin/moderador
+     * @param peticion categoría a la que pertenece y nombre de la subcategoría
+     * @return la subcategoría creada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe esa subcategoría en esa categoría
+     */
     @Override
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "subcategorias", idEntidad = "#resultado.idSubcategoria",
             detalle = "{idCategoria: #peticion.idCategoria, nombreSubcategoria: #peticion.nombreSubcategoria}")
-    /**
-     * Procesa y persiste la creacion de un nuevo recurso en el contexto de negocio aplicable.
-     *
-     * @param idUsuarioCreador identificador unico que referencia de manera univoca al registro
-     * @param peticion estructura de transferencia de datos con la informacion estructurada de entrada
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public SubcategoryResponse crearSubcategoria(Long idUsuarioCreador, CreateSubcategoryRequest peticion) {
         Category cat = categoriaRepository.findById(peticion.getIdCategoria())
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + peticion.getIdCategoria()));
@@ -236,17 +225,20 @@ public class CategoryServiceImpl implements ICategoryService {
         return mapearASubcategoriaRespuesta(sub);
     }
 
+    /**
+     * Elimina una subcategoría, siempre que no tenga servicios publicados. Si
+     * la creó un creador, notifica el motivo.
+     *
+     * @param idSubcategoria identificador de la subcategoría a eliminar
+     * @param motivo justificación de la eliminación; obligatorio si la subcategoría la creó un creador
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
+     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si tiene servicios publicados,
+     *         o si la creó un creador y no se indica motivo
+     */
     @Override
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "subcategorias", idEntidad = "#idSubcategoria", detalle = "{motivo: #motivo}")
-    /**
-     * Ejecuta la eliminacion logica o fisica del registro indicado, comprobando dependencias previas.
-     *
-     * @param idSubcategoria identificador unico que referencia de manera univoca al registro
-     * @param motivo parametro requerido para la correcta ejecucion del procedimiento
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public void eliminarSubcategoria(Long idSubcategoria, String motivo) {
         Subcategory sub = subcategoriaRepository.findById(idSubcategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory no encontrada con ID: " + idSubcategoria));
@@ -264,14 +256,9 @@ public class CategoryServiceImpl implements ICategoryService {
         }
     }
 
+    /** @return las categorías creadas por creadores aún sin revisar, más recientes primero */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<CategoryResponse> listarCategoriasPendientesRevision() {
         return categoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()
                 .stream()
@@ -279,14 +266,9 @@ public class CategoryServiceImpl implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    /** @return las subcategorías creadas por creadores aún sin revisar, más recientes primero */
     @Override
     @Transactional(readOnly = true)
-    /**
-     * Obtiene y estructura un listado completo o filtrado de los registros pertinentes del sistema.
-     *
-     * @return una coleccion indexada con todos los elementos resultantes de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public List<SubcategoryResponse> listarSubcategoriasPendientesRevision() {
         return subcategoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()
                 .stream()
@@ -294,17 +276,17 @@ public class CategoryServiceImpl implements ICategoryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Marca una categoría creada por un creador como ya revisada por un moderador.
+     *
+     * @param idCategoria identificador de la categoría
+     * @return la categoría ya marcada como revisada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
+     */
     @Override
     @Transactional
     @Auditable(accion = "CATEGORIA_REVISAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria")
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idCategoria identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public CategoryResponse marcarCategoriaRevisada(Long idCategoria) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
@@ -313,17 +295,17 @@ public class CategoryServiceImpl implements ICategoryService {
         return mapearACategoriaRespuesta(cat);
     }
 
+    /**
+     * Marca una subcategoría creada por un creador como ya revisada por un moderador.
+     *
+     * @param idSubcategoria identificador de la subcategoría
+     * @return la subcategoría ya marcada como revisada
+     * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
+     */
     @Override
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_REVISAR", modulo = AuditModule.CATALOGO,
             entidad = "subcategorias", idEntidad = "#idSubcategoria")
-    /**
-     * Ejecuta la logica de negocio asociada a la operacion solicitada por el flujo principal.
-     *
-     * @param idSubcategoria identificador unico que referencia de manera univoca al registro
-     * @return un objeto especializado con el resultado estructurado de la operacion
-     * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
-     */
     public SubcategoryResponse marcarSubcategoriaRevisada(Long idSubcategoria) {
         Subcategory sub = subcategoriaRepository.findById(idSubcategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory no encontrada con ID: " + idSubcategoria));

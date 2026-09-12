@@ -19,10 +19,13 @@ import java.util.Optional;
 @Repository
 public interface TagRepository extends JpaRepository<Tag, Long> {
 
+    /** Etiqueta por nombre exacto, sin distinguir mayúsculas/minúsculas. */
     Optional<Tag> findByNombreEtiquetaIgnoreCase(String nombreEtiqueta);
 
+    /** Etiquetas cuyo nombre está en la lista dada. */
     List<Tag> findByNombreEtiquetaIn(List<String> nombres);
 
+    /** @return {@code true} si ya existe una etiqueta con ese nombre (sin distinguir mayúsculas/minúsculas) */
     boolean existsByNombreEtiquetaIgnoreCase(String nombreEtiqueta);
 }
 
