@@ -49,6 +49,6 @@ public interface TwoFactorService {
      * @param codigoIngresado código TOTP o de respaldo a validar
      * @return {@code true} si el código coincide con el TOTP vigente o con un código de respaldo no usado
      */
-    boolean validarCodigoOBackup(String correo, String codigoIngresado);
+    boolean validateCodeOrBackup(String correo, String codigoIngresado);
 }
 

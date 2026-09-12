@@ -207,7 +207,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
-            actualizarRoles(usuario, request.getRoles());
+            updateRoles(usuario, request.getRoles());
         }
 
         // Persiste primero nombres/apellidos/fechaNacimiento/pais (los unicos
@@ -253,7 +253,7 @@ public class AdminUserServiceImpl implements AdminUserService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el admin intenta desactivar su propia cuenta
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
-    public UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual) {
+    public UserResponse changeStatus(Long id, ChangeEstadoRequest request, Long idAdminActual) {
         if (id.equals(idAdminActual) && !request.getEstadoCuenta()) {
             throw new BusinessRuleException("No puedes desactivar tu propia cuenta.");
         }
@@ -309,7 +309,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                         .map(ur -> ur.getRol().getNombreRol())
                         .toList()));
 
-        actualizarRoles(usuario, request.getRoles());
+        updateRoles(usuario, request.getRoles());
         sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles
 
         return usuarioMapper.toUserResponse(usuario);
@@ -357,8 +357,8 @@ public class AdminUserServiceImpl implements AdminUserService {
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el listado de usuarios
      */
-    public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, String correoSolicitante) {
-        return exportar(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, null, null, correoSolicitante);
+    public GeneratedDocument export(UserFilter filtro, ReportFormat formato, String correoSolicitante) {
+        return export(filtro, formato, uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, null, null, correoSolicitante);
     }
 
     /**
@@ -372,17 +372,17 @@ public class AdminUserServiceImpl implements AdminUserService {
      */
     @Override
     @Transactional(readOnly = true)
-    public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato,
+    public GeneratedDocument export(UserFilter filtro, ReportFormat formato,
                                       uteq.edu.ec.artisync.service.shared.reporte.ReportChartType tipoGrafica,
                                       String correoSolicitante) {
-        return exportar(filtro, formato, tipoGrafica, null, null, correoSolicitante);
+        return export(filtro, formato, tipoGrafica, null, null, correoSolicitante);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Auditable(accion = "USUARIO_EXPORTAR", modulo = AuditModule.SEGURIDAD, entidad = "usuarios",
             detalle = "{formato: #formato, grafica: #tipoGrafica, page: #page, size: #size}")
-    public GeneratedDocument exportar(UserFilter filtro, ReportFormat formato,
+    public GeneratedDocument export(UserFilter filtro, ReportFormat formato,
                                       uteq.edu.ec.artisync.service.shared.reporte.ReportChartType tipoGrafica,
                                       Integer page, Integer size,
                                       String correoSolicitante) {
@@ -406,7 +406,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             if (total > formato.topeFilas()) {
                 throw new BusinessRuleException(
                         "El listado filtrado tiene " + total + " usuarios, más de los " + formato.topeFilas()
-                                + " que admite una exportación en " + formato + ". Acote los filtros o utilice la opción de exportar por partes.");
+                                + " que admite una exportación en " + formato + ". Acote los filtros o utilice la opción de export por partes.");
             }
 
             pagina = usuarioRepository.findAll(
@@ -469,7 +469,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         ReportModel<UserResponse> modelo = ReportModel.<UserResponse>builder()
                 .titulo(titulo)
                 .subtitulo(subtitulo)
-                .filtrosAplicados(filtrosLegibles(filtro))
+                .filtrosAplicados(readableFilters(filtro))
                 .kpis(kpis)
                 .graficas(graficas)
                 .columnas(List.of(
@@ -488,7 +488,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         return servicioExportacion.exportar(modelo, formato);
     }
 
-    private Map<String, String> filtrosLegibles(UserFilter filtro) {
+    private Map<String, String> readableFilters(UserFilter filtro) {
         Map<String, String> filtros = new LinkedHashMap<>();
         if (filtro.getBusqueda() != null && !filtro.getBusqueda().isBlank()) {
             filtros.put("Búsqueda", filtro.getBusqueda());
@@ -531,7 +531,7 @@ public class AdminUserServiceImpl implements AdminUserService {
      * usuario a la vez, y el estado a medias (usuario sin ningun rol) si el
      * bucle en Java fallaba despues del delete.
      */
-    private void actualizarRoles(User usuario, List<String> nuevosRoles) {
+    private void updateRoles(User usuario, List<String> nuevosRoles) {
         try {
             usuarioRolRepository.sincronizarRoles(
                     usuario.getIdUsuario(),

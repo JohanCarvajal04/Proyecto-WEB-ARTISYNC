@@ -73,14 +73,14 @@ public class AdminUserController {
     @Operation(summary = "Exportar el listado de usuarios en CSV, XLSX o PDF con gráficas y paginación opcionales")
     @GetMapping("/exportar")
     @PreAuthorize("hasAuthority('USUARIO_EXPORTAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportar(
+    public ResponseEntity<byte[]> export(
             UserFilter filtro,
             @RequestParam ReportFormat formato,
             @RequestParam(required = false, defaultValue = "AMBAS") uteq.edu.ec.artisync.service.shared.reporte.ReportChartType grafica,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             Authentication authentication) {
-        GeneratedDocument documento = adminUserService.exportar(filtro, formato, grafica, page, size, authentication.getName());
+        GeneratedDocument documento = adminUserService.export(filtro, formato, grafica, page, size, authentication.getName());
         return DocumentResponse.de(documento);
     }
 
@@ -136,9 +136,9 @@ public class AdminUserController {
     @Operation(summary = "Activar o desactivar cuenta de un usuario (Soft Delete / Suspensión)")
     @PatchMapping("/{id}/estado")
     @PreAuthorize("hasAuthority('USUARIO_SUSPENDER') or hasAuthority('USUARIO_ELIMINAR') or hasAuthority('USUARIO_EDITAR') or hasRole('ADMIN')")
-    public ResponseEntity<UserResponse> changeEstado(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request,
+    public ResponseEntity<UserResponse> changeStatus(@PathVariable Long id, @Valid @RequestBody ChangeEstadoRequest request,
                                                       @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(adminUserService.changeEstado(id, request, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(adminUserService.changeStatus(id, request, userDetails.getIdUsuario()));
     }
 
     /**
@@ -199,11 +199,11 @@ public class AdminUserController {
      * @return mensaje de confirmación, incluyendo excepciones legales si las hay
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario ya tiene la supresión ejecutada, o si el admin se apunta a sí mismo
      */
-    @Operation(summary = "Suprimir (anonimizar) los datos personales de un usuario, en nombre del titular")
+    @Operation(summary = "Suprimir (anonymize) los datos personales de un usuario, en nombre del titular")
     @PostMapping("/{id}/supresion")
     @PreAuthorize("hasAuthority('USUARIO_ELIMINAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> anonimizarUsuario(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(privacidadService.anonimizarUsuarioAdmin(id, userDetails.getIdUsuario()));
+    public ResponseEntity<RespuestaMensaje> anonymizeUser(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(privacidadService.anonymizeUserAsAdmin(id, userDetails.getIdUsuario()));
     }
 }
 

@@ -164,7 +164,7 @@ class AdminUserServiceImplTest {
             return null;
         }).when(entityManager).refresh(usuario);
 
-        UserResponse result = adminUserService.changeEstado(1L, request, 999L);
+        UserResponse result = adminUserService.changeStatus(1L, request, 999L);
 
         assertNotNull(result);
         verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
@@ -182,7 +182,7 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(inactivo));
         when(usuarioMapper.toUserResponse(inactivo)).thenReturn(userResponse);
 
-        adminUserService.changeEstado(1L, request, 999L);
+        adminUserService.changeStatus(1L, request, 999L);
 
         // La decision de revocar (o no) ahora vive dentro de fn_cambiar_estado_cuenta;
         // el servicio siempre delega, sin ramificar en Java.
@@ -196,7 +196,7 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> adminUserService.changeEstado(99L, request, 999L));
+                () -> adminUserService.changeStatus(99L, request, 999L));
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
@@ -206,7 +206,7 @@ class AdminUserServiceImplTest {
         request.setEstadoCuenta(false);
 
         assertThrows(uteq.edu.ec.artisync.exception.BusinessRuleException.class,
-                () -> adminUserService.changeEstado(1L, request, 1L));
+                () -> adminUserService.changeStatus(1L, request, 1L));
         verify(usuarioRepository, never()).findById(any());
     }
 
@@ -409,7 +409,7 @@ class AdminUserServiceImplTest {
 
     @Test
     void updateUser_ShouldUpdateRoles_WhenRolesProvided() {
-        // Fase 1 concurrencia: actualizarRoles() delega en fn_sincronizar_roles_usuario
+        // Fase 1 concurrencia: updateRoles() delega en fn_sincronizar_roles_usuario
         // (una unica llamada atomica) en vez del find+deleteAll+bucle de save() anterior.
         AdminUpdateUserRequest request = AdminUpdateUserRequest.builder().roles(List.of("CLIENTE")).build();
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
@@ -435,7 +435,7 @@ class AdminUserServiceImplTest {
 
     @Test
     void assignRoles_ShouldUpdateRolesAndRevokeSessions() {
-        // Fase 1 concurrencia: actualizarRoles() delega en fn_sincronizar_roles_usuario
+        // Fase 1 concurrencia: updateRoles() delega en fn_sincronizar_roles_usuario
         // (incluye el alta perezosa de perfiles_creadores dentro del motor); ya no
         // hay llamadas a rolRepository/perfilCreadorRepository desde este metodo.
         AssignRolesRequest request = AssignRolesRequest.builder().roles(List.of("CREADOR")).build();
@@ -542,7 +542,7 @@ class AdminUserServiceImplTest {
         assertThrows(ResponseStatusException.class, () -> adminUserService.revokeUserSessions(99L));
     }
 
-    // ── exportar (USUARIO_EXPORTAR) ─────────────────────────────────────────
+    // ── export (USUARIO_EXPORTAR) ─────────────────────────────────────────
 
     @Test
     void exportar_ShouldThrowReglaNegocio_WhenExcedeTopeDeFilas() {
@@ -550,7 +550,7 @@ class AdminUserServiceImplTest {
 
         UserFilter filtro = new UserFilter();
         assertThrows(uteq.edu.ec.artisync.exception.BusinessRuleException.class,
-                () -> adminUserService.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev"));
+                () -> adminUserService.export(filtro, ReportFormat.CSV, "admin@artisync.dev"));
         verify(usuarioRepository, never()).findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class));
     }
 
@@ -570,7 +570,7 @@ class AdminUserServiceImplTest {
         filtro.setRol("ADMIN");
         filtro.setEstadoCuenta(true);
 
-        GeneratedDocument resultado = adminUserService.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
+        GeneratedDocument resultado = adminUserService.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         assertSame(esperado, resultado);
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
@@ -591,7 +591,7 @@ class AdminUserServiceImplTest {
         when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF)))
                 .thenReturn(esperado);
 
-        GeneratedDocument resultado = adminUserService.exportar(
+        GeneratedDocument resultado = adminUserService.export(
                 new UserFilter(), ReportFormat.PDF, uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.NINGUNA, 0, 5000, "admin@artisync.dev");
 
         assertSame(esperado, resultado);
@@ -614,7 +614,7 @@ class AdminUserServiceImplTest {
         UserFilter filtro = new UserFilter();
         filtro.setEstadoCuenta(false);
 
-        adminUserService.exportar(filtro, ReportFormat.CSV, "admin@artisync.dev");
+        adminUserService.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
         verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
@@ -631,7 +631,7 @@ class AdminUserServiceImplTest {
         when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
                 .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv"));
 
-        adminUserService.exportar(new UserFilter(), ReportFormat.CSV, "admin@artisync.dev");
+        adminUserService.export(new UserFilter(), ReportFormat.CSV, "admin@artisync.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
         verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
@@ -639,7 +639,7 @@ class AdminUserServiceImplTest {
     }
 
     @Test
-    @org.junit.jupiter.api.DisplayName("exportar con ReportChartType genera métricas y gráficas esperadas")
+    @org.junit.jupiter.api.DisplayName("export con ReportChartType genera métricas y gráficas esperadas")
     void exportar_ConGraficas_GeneraModeloConGraficas() {
         when(usuarioRepository.count(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<User>>any())).thenReturn(2L);
 
@@ -664,7 +664,7 @@ class AdminUserServiceImplTest {
 
         uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter filtro = new uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter();
         uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument resultado =
-                adminUserService.exportar(filtro, uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF,
+                adminUserService.export(filtro, uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF,
                         uteq.edu.ec.artisync.service.shared.reporte.ReportChartType.AMBAS, "admin@artisync.com");
 
         assertNotNull(resultado);

@@ -31,8 +31,8 @@ class CountryControllerTest {
 
     @Test
     void getAllPaises_ShouldReturnOk() {
-        when(paisService.getAllPaises()).thenReturn(List.of());
-        ResponseEntity<List<CountryResponse>> result = paisController.getAllPaises();
+        when(paisService.getAllCountries()).thenReturn(List.of());
+        ResponseEntity<List<CountryResponse>> result = paisController.getAllCountries();
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
@@ -40,9 +40,9 @@ class CountryControllerTest {
     void createPais_ShouldReturnCreated() {
         CountryRequest request = new CountryRequest("Perú");
         CountryResponse response = new CountryResponse(2L, "Perú", true);
-        when(paisService.createPais(request)).thenReturn(response);
+        when(paisService.createCountry(request)).thenReturn(response);
 
-        ResponseEntity<CountryResponse> result = paisController.createPais(request);
+        ResponseEntity<CountryResponse> result = paisController.createCountry(request);
 
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
         assertEquals("Perú", result.getBody().getNombrePais());
@@ -50,8 +50,8 @@ class CountryControllerTest {
 
     @Test
     void deletePais_ShouldReturnOk() {
-        when(paisService.deletePais(1L)).thenReturn(new RespuestaMensaje("Eliminado"));
-        ResponseEntity<RespuestaMensaje> result = paisController.deletePais(1L);
+        when(paisService.deleteCountry(1L)).thenReturn(new RespuestaMensaje("Eliminado"));
+        ResponseEntity<RespuestaMensaje> result = paisController.deleteCountry(1L);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

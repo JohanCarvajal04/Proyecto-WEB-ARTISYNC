@@ -48,7 +48,7 @@ public class SessionRevocationService {
      * activa->inactiva, revoca las sesiones del usuario, todo bajo un unico
      * {@code SELECT ... FOR UPDATE} en el motor. Sustituye al patron
      * "leer estadoAnterior en Java -> comparar -> revocar aparte" que usaban
-     * AdminUserServiceImpl.changeEstado/deleteUser/updateUser y
+     * AdminUserServiceImpl.changeStatus/deleteUser/updateUser y
      * UserServiceImpl.deleteOwnAccount: sin el FOR UPDATE, dos administradores
      * concurrentes sobre el mismo usuario podian pisarse la decision de si
      * correspondia revocar sesiones (actualizacion perdida, A6 del plan).

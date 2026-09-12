@@ -66,7 +66,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<PermissionResponse> getAllPermisos() {
+    public List<PermissionResponse> getAllPermissions() {
         return permisoRepository.findAll().stream()
                 .map(p -> PermissionResponse.builder()
                         .idPermiso(p.getIdPermiso())
@@ -141,10 +141,10 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // menú y los accesos anteriores hasta que su access token caducara.
         // assignRoles() ya revoca por este mismo motivo cuando cambian los roles
         // de un usuario; aquí toca hacerlo para todos los usuarios del rol.
-        revocarSesionesDeUsuariosConRol(nombreRolUpper);
+        revokeSessionsForUsersWithRole(nombreRolUpper);
     }
 
-    private void revocarSesionesDeUsuariosConRol(String roleName) {
+    private void revokeSessionsForUsersWithRole(String roleName) {
         // NUNCA se revoca la sesión de quien está haciendo el cambio. El panel de
         // "Roles y Permisos" preselecciona el primer rol de la lista, que es
         // ADMIN, así que sin esta exclusión el administrador se cerraba la sesión
@@ -153,7 +153,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
         // daba 401, el refresh fallaba y la UI acababa mostrando que no tenía los
         // permisos necesarios. Él ya conoce los permisos nuevos porque acaba de
         // fijarlos; el frontend recarga los suyos con GET /api/v1/permissions/me.
-        Long idActual = idUsuarioAutenticado();
+        Long idActual = authenticatedUserId();
 
         List<Long> afectados = usuarioRolRepository.findIdsUsuarioByNombreRol(roleName).stream()
                 .filter(id -> !id.equals(idActual))
@@ -169,7 +169,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     }
 
     /** Id del usuario autenticado, o null si la petición no lleva un principal propio. */
-    private Long idUsuarioAutenticado() {
+    private Long authenticatedUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof CustomUserDetails detalles) {
             return detalles.getIdUsuario();

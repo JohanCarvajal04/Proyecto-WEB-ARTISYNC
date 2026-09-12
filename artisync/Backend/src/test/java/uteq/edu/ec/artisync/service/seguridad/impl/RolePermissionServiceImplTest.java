@@ -197,7 +197,7 @@ class RolePermissionServiceImplTest {
         Permission permiso = Permission.builder().idPermiso(1L).nombrePermiso("CATALOGO_VER").moduloAplicacion("catalogo").build();
         when(permisoRepository.findAll()).thenReturn(List.of(permiso));
 
-        List<PermissionResponse> resultado = service.getAllPermisos();
+        List<PermissionResponse> resultado = service.getAllPermissions();
 
         assertEquals(1, resultado.size());
         assertEquals("CATALOGO_VER", resultado.get(0).getNombrePermiso());

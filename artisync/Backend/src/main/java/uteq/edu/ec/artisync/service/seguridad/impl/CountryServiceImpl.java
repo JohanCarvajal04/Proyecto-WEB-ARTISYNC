@@ -35,7 +35,7 @@ public class CountryServiceImpl implements CountryService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<CountryResponse> getAllPaises() {
+    public List<CountryResponse> getAllCountries() {
         return paisRepository.findAll(Sort.by(Sort.Direction.ASC, "nombrePais")).stream()
                 .map(this::toResponse)
                 .toList();
@@ -49,7 +49,7 @@ public class CountryServiceImpl implements CountryService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<CountryResponse> getPaisesActivos() {
+    public List<CountryResponse> getActiveCountries() {
         return paisRepository.findByEstadoTrue(Sort.by(Sort.Direction.ASC, "nombrePais")).stream()
                 .map(this::toResponse)
                 .toList();
@@ -64,7 +64,7 @@ public class CountryServiceImpl implements CountryService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public CountryResponse getPaisById(Long id) {
+    public CountryResponse getCountryById(Long id) {
         Country pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("País no encontrado con ID: " + id));
         return toResponse(pais);
@@ -79,7 +79,7 @@ public class CountryServiceImpl implements CountryService {
     // en fn_guardar_pais, que captura unique_violation sobre el nombre en vez
     // de la comprobacion findByNombrePais previa a esta version, que no era
     // atomica respecto al save() (lectura fantasma, misma clase de anomalia
-    // que A9 en updatePais). El tipo de excepcion de negocio se preserva
+    // que A9 en updateCountry). El tipo de excepcion de negocio se preserva
     // (DuplicateResourceException) para no romper el contrato ya establecido
     // de este servicio con su capa de presentacion.
     /**
@@ -89,12 +89,12 @@ public class CountryServiceImpl implements CountryService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public CountryResponse createPais(CountryRequest request) {
+    public CountryResponse createCountry(CountryRequest request) {
         Long idPais;
         try {
             idPais = paisRepository.guardarPais(null, request.getNombrePais());
         } catch (RuntimeException e) {
-            throw traducirExcepcionDuplicado(e, request.getNombrePais());
+            throw translateDuplicateException(e, request.getNombrePais());
         }
 
         // Camino inalcanzable en operacion normal (la fila que se acaba de
@@ -127,7 +127,7 @@ public class CountryServiceImpl implements CountryService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public CountryResponse updatePais(Long id, CountryRequest request) {
+    public CountryResponse updateCountry(Long id, CountryRequest request) {
         if (!paisRepository.existsById(id)) {
             throw new ResourceNotFoundException("País no encontrado con ID: " + id);
         }
@@ -135,7 +135,7 @@ public class CountryServiceImpl implements CountryService {
         try {
             paisRepository.guardarPais(id, request.getNombrePais());
         } catch (RuntimeException e) {
-            throw traducirExcepcionDuplicado(e, request.getNombrePais());
+            throw translateDuplicateException(e, request.getNombrePais());
         }
 
         Country pais = paisRepository.findById(id)
@@ -150,7 +150,7 @@ public class CountryServiceImpl implements CountryService {
      * StoredProcedureExceptionTranslator solo para el trabajo de desenvolver
      * la SQLException y limpiar el mensaje.
      */
-    private RuntimeException traducirExcepcionDuplicado(RuntimeException origen, String nombrePais) {
+    private RuntimeException translateDuplicateException(RuntimeException origen, String nombrePais) {
         ResponseStatusException traducido = StoredProcedureExceptionTranslator.traducir(origen, HttpStatus.BAD_REQUEST);
         if (traducido.getStatusCode() == HttpStatus.CONFLICT) {
             return new DuplicateResourceException(traducido.getReason());
@@ -171,7 +171,7 @@ public class CountryServiceImpl implements CountryService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje deletePais(Long id) {
+    public RespuestaMensaje deleteCountry(Long id) {
         Country pais = paisRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("País no encontrado con ID: " + id));
 

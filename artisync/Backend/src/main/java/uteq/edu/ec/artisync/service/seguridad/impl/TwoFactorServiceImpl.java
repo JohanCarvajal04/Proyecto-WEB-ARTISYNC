@@ -106,7 +106,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         for (int i = 0; i < 8; i++) {
             String codigo = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
             codigosPlano.add(codigo);
-            hashes[i] = hashSha256(codigo);
+            hashes[i] = hmacSha256(codigo);
         }
 
         // Fase 3 concurrencia (§7): fn_configurar_2fa hace el upsert del
@@ -144,7 +144,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         TwoFactorAuthentication dosFactores = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se ha iniciado la configuración de 2FA"));
 
-        if (!validarTotp(dosFactores.getLlaveSecreta(), codigo)) {
+        if (!validateTotp(dosFactores.getLlaveSecreta(), codigo)) {
             intentosAutenticacionService.verificarCuota(
                     AMBITO_2FA_CONFIRM, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código inválido o expirado");
@@ -179,7 +179,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El 2FA no se encuentra activo");
         }
 
-        if (!validarCodigoOBackup(correo, codigo)) {
+        if (!validateCodeOrBackup(correo, codigo)) {
             intentosAutenticacionService.verificarCuota(
                     AMBITO_2FA_DISABLE, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
@@ -204,7 +204,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public boolean validarCodigoOBackup(String correo, String codigoIngresado) {
+    public boolean validateCodeOrBackup(String correo, String codigoIngresado) {
         if (codigoIngresado == null || codigoIngresado.isBlank()) {
             return false;
         }
@@ -222,7 +222,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
         // Probar si es código TOTP de 6 dígitos
         if (codigoIngresado.matches("^[0-9]{6}$")) {
-            if (validarTotp(dosFactores.getLlaveSecreta(), codigoIngresado)) {
+            if (validateTotp(dosFactores.getLlaveSecreta(), codigoIngresado)) {
                 return true;
             }
         }
@@ -233,7 +233,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         // códigos no usados a memoria y comparar en un bucle Java -- ese patrón
         // read-modify-write permitía que dos peticiones concurrentes con el
         // mismo código de respaldo lo consumieran ambas (actualización perdida).
-        String hashIngresado = hashSha256(codigoIngresado.trim().toUpperCase());
+        String hashIngresado = hmacSha256(codigoIngresado.trim().toUpperCase());
         boolean consumido = codigoRespaldo2FaRepository.consumirCodigoRespaldo(usuario.getIdUsuario(), hashIngresado);
         if (consumido) {
             log.info("Código de respaldo 2FA utilizado para el usuario: {}", correo);
@@ -241,7 +241,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         return consumido;
     }
 
-    private boolean validarTotp(String secreto, String codigo) {
+    private boolean validateTotp(String secreto, String codigo) {
         try {
             int codigoInt = Integer.parseInt(codigo);
             return gAuth.authorize(secreto, codigoInt);
@@ -250,7 +250,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
     }
 
-    private String hashSha256(String input) {
+    private String hmacSha256(String input) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(claveHmac.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));

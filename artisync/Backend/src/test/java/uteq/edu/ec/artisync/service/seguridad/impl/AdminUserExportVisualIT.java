@@ -97,13 +97,13 @@ class AdminUserExportVisualIT {
         UserFilter filtro = new UserFilter();
 
         // 1. Exportar en PDF
-        GeneratedDocument docPdf = adminUserService.exportar(filtro, ReportFormat.PDF, ReportChartType.AMBAS, "admin@artisync.com");
+        GeneratedDocument docPdf = adminUserService.export(filtro, ReportFormat.PDF, ReportChartType.AMBAS, "admin@artisync.com");
         assertThat(docPdf).isNotNull();
         assertThat(docPdf.contenido()).isNotEmpty();
         assertThat(docPdf.contentType()).isEqualTo("application/pdf");
 
         // 2. Exportar en XLSX
-        GeneratedDocument docXlsx = adminUserService.exportar(filtro, ReportFormat.XLSX, ReportChartType.AMBAS, "admin@artisync.com");
+        GeneratedDocument docXlsx = adminUserService.export(filtro, ReportFormat.XLSX, ReportChartType.AMBAS, "admin@artisync.com");
         assertThat(docXlsx).isNotNull();
         assertThat(docXlsx.contenido()).isNotEmpty();
         assertThat(docXlsx.contentType()).isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

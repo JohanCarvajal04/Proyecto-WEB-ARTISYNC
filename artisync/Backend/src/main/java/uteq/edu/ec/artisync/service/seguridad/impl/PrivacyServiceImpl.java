@@ -60,7 +60,7 @@ import java.util.stream.Stream;
  *
  * Antes de tocar cualquier dato, se rechaza la operación completa si el
  * usuario tiene un pedido cuya etapa actual no es la etapa final de su flujo
- * ("en curso"): anonimizar a alguien en medio de una transacción activa
+ * ("en curso"): anonymize a alguien en medio de una transacción activa
  * rompería la atribución de mensajería, entregables y reseñas para la
  * contraparte. El titular debe esperar a que sus pedidos en curso terminen o
  * se cancelen antes de solicitar la supresión.
@@ -119,22 +119,22 @@ public class PrivacyServiceImpl implements PrivacyService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje solicitarSupresionPropia(Long idUsuario, String codigo) {
+    public RespuestaMensaje requestOwnErasure(Long idUsuario, String codigo) {
         User usuario = usuarioRepository.findByIdParaAnonimizar(idUsuario)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
 
-        if (estaAnonimizado(usuario)) {
+        if (isAnonymized(usuario)) {
             return new RespuestaMensaje(MENSAJE_YA_ANONIMIZADO);
         }
 
-        exigirSegundoFactorSiHabilitado(usuario, codigo);
+        requireSecondFactorIfEnabled(usuario, codigo);
 
-        if (tienePedidoEnCurso(idUsuario)) {
+        if (hasOrderInProgress(idUsuario)) {
             return new RespuestaMensaje(MENSAJE_PEDIDO_EN_CURSO);
         }
 
-        List<String> excepciones = anonimizar(usuario);
-        return construirMensaje(excepciones);
+        List<String> excepciones = anonymize(usuario);
+        return buildMessage(excepciones);
     }
 
     /**
@@ -142,9 +142,9 @@ public class PrivacyServiceImpl implements PrivacyService {
      * acción irreversible — mismo criterio que ya exige
      * {@code TwoFactorServiceImpl#disable2Fa} para desactivar el propio 2FA.
      * Solo aplica al autoservicio: el administrador no tiene el código 2FA
-     * del usuario, por eso existe la vía {@code anonimizarUsuarioAdmin}.
+     * del usuario, por eso existe la vía {@code anonymizeUserAsAdmin}.
      */
-    private void exigirSegundoFactorSiHabilitado(User usuario, String codigo) {
+    private void requireSecondFactorIfEnabled(User usuario, String codigo) {
         boolean tiene2Fa = autenticacionDosFactoresRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
                 .map(TwoFactorAuthentication::getEstaHabilitado)
                 .map(Boolean.TRUE::equals)
@@ -158,7 +158,7 @@ public class PrivacyServiceImpl implements PrivacyService {
                     "Se requiere tu código de autenticación de dos factores para suprimir tus datos");
         }
 
-        if (!twoFactorService.validarCodigoOBackup(usuario.getCorreo(), codigo)) {
+        if (!twoFactorService.validateCodeOrBackup(usuario.getCorreo(), codigo)) {
             intentosAutenticacionService.verificarCuota(
                     AMBITO_2FA_SUPRESION, usuario.getCorreo(), LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
@@ -179,7 +179,7 @@ public class PrivacyServiceImpl implements PrivacyService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje anonimizarUsuarioAdmin(Long idUsuario, Long idAdminActual) {
+    public RespuestaMensaje anonymizeUserAsAdmin(Long idUsuario, Long idAdminActual) {
         if (idUsuario.equals(idAdminActual)) {
             throw new BusinessRuleException("No puedes suprimir tus propios datos desde el panel administrativo; usa la opción de autoservicio.");
         }
@@ -190,20 +190,20 @@ public class PrivacyServiceImpl implements PrivacyService {
         // A diferencia del autoservicio, aquí SÍ se rechaza en vez de responder
         // de forma idempotente: el administrador solo debe ejecutar esta acción
         // cuando el usuario no la tiene ya solicitada/realizada.
-        if (estaAnonimizado(usuario)) {
+        if (isAnonymized(usuario)) {
             throw new BusinessRuleException(
                     "El usuario ya tiene sus datos personales suprimidos; no es necesario repetir la acción.");
         }
 
-        if (tienePedidoEnCurso(idUsuario)) {
+        if (hasOrderInProgress(idUsuario)) {
             throw new BusinessRuleException(MENSAJE_PEDIDO_EN_CURSO);
         }
 
-        List<String> excepciones = anonimizar(usuario);
-        return construirMensaje(excepciones);
+        List<String> excepciones = anonymize(usuario);
+        return buildMessage(excepciones);
     }
 
-    private boolean estaAnonimizado(User usuario) {
+    private boolean isAnonymized(User usuario) {
         return usuario.getCorreo() != null && usuario.getCorreo().endsWith(CORREO_ANONIMO_DOMINIO);
     }
 
@@ -213,7 +213,7 @@ public class PrivacyServiceImpl implements PrivacyService {
      * pedido sin ninguna transición registrada se trata, conservadoramente,
      * como "en curso": no hay evidencia de que haya terminado.
      */
-    private boolean tienePedidoEnCurso(Long idUsuario) {
+    private boolean hasOrderInProgress(Long idUsuario) {
         List<Order> pedidos = Stream.concat(
                         pedidoRepository.findByUsuarioClienteIdUsuario(idUsuario).stream(),
                         pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idUsuario).stream())
@@ -236,18 +236,18 @@ public class PrivacyServiceImpl implements PrivacyService {
         return false;
     }
 
-    private List<String> anonimizar(User usuario) {
+    private List<String> anonymize(User usuario) {
         List<String> excepciones = new ArrayList<>();
 
-        anonimizarDatosUsuario(usuario);
-        anonimizarCertificados(usuario.getIdUsuario());
-        anonimizarDatosPago(usuario.getIdUsuario(), excepciones);
+        anonymizeUserData(usuario);
+        anonymizeCertificates(usuario.getIdUsuario());
+        anonymizePaymentDetails(usuario.getIdUsuario(), excepciones);
 
         AuditContext.aportar("excepcionesLegales", excepciones);
         return excepciones;
     }
 
-    private void anonimizarDatosUsuario(User usuario) {
+    private void anonymizeUserData(User usuario) {
         if (usuario.getUrlFotoPerfil() != null) {
             try {
                 almacenamientoDocumentos.eliminar(usuario.getUrlFotoPerfil());
@@ -282,7 +282,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), false);
     }
 
-    private void anonimizarCertificados(Long idUsuario) {
+    private void anonymizeCertificates(Long idUsuario) {
         List<AiCertificate> certificados = certificadoIaRepository.findByUsuarioIdUsuario(idUsuario);
         for (AiCertificate certificado : certificados) {
             if (!certificado.isDocumentoEliminado() && certificado.getUrlDocumentoS3() != null) {
@@ -305,13 +305,13 @@ public class PrivacyServiceImpl implements PrivacyService {
      * cliente o como creador) con fondos aún retenidos en garantía — en ese
      * caso el dato de pago se conserva y la excepción legal queda declarada.
      */
-    private void anonimizarDatosPago(Long idUsuario, List<String> excepciones) {
+    private void anonymizePaymentDetails(Long idUsuario, List<String> excepciones) {
         Optional<CreatorPaymentDetails> datosPago = datosPagoCreadorRepository.findByUsuarioIdUsuario(idUsuario);
         if (datosPago.isEmpty()) {
             return;
         }
 
-        if (tieneFondosRetenidos(idUsuario)) {
+        if (hasHeldFunds(idUsuario)) {
             excepciones.add(
                     "datos_pago_creador: correo de PayPal conservado por tener fondos retenidos en garantía "
                             + "en un contrato activo (registro contable pendiente).");
@@ -323,7 +323,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         datosPagoCreadorRepository.save(entidad);
     }
 
-    private boolean tieneFondosRetenidos(Long idUsuario) {
+    private boolean hasHeldFunds(Long idUsuario) {
         List<Contract> contratos = Stream.concat(
                         contratoRepository.findByPedidoUsuarioClienteIdUsuario(idUsuario).stream(),
                         contratoRepository.findByPedidoServicioPerfilUsuarioIdUsuario(idUsuario).stream())
@@ -338,7 +338,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         return false;
     }
 
-    private RespuestaMensaje construirMensaje(List<String> excepciones) {
+    private RespuestaMensaje buildMessage(List<String> excepciones) {
         if (excepciones.isEmpty()) {
             return new RespuestaMensaje("Datos personales suprimidos exitosamente.");
         }

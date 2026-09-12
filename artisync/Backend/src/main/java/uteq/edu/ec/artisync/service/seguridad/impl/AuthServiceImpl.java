@@ -152,7 +152,7 @@ public class AuthServiceImpl implements AuthService {
      * @throws org.springframework.web.server.ResponseStatusException 404 si el usuario no existe
      */
     public TokenResponse login(LoginRequest request) {
-        String ip = obtenerIpActual();
+        String ip = getCurrentIp();
 
         try {
             authenticationManager.authenticate(
@@ -178,7 +178,7 @@ public class AuthServiceImpl implements AuthService {
         if (estadoLoginJson == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado");
         }
-        JsonNode estado = parseEstadoLogin(estadoLoginJson);
+        JsonNode estado = parseLoginState(estadoLoginJson);
         Long idUsuario = estado.get("idUsuario").asLong();
         String correoUsuario = estado.get("correo").asText();
         boolean dosFactoresHabilitado = estado.get("dosFactoresHabilitado").asBoolean();
@@ -204,15 +204,15 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtService.generarToken(userDetails);
         String refreshToken = jwtService.generarRefreshToken(userDetails);
 
-        List<String> roles = extraerRoles(estado);
+        List<String> roles = extractRoles(estado);
 
         List<String> permisos = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .filter(a -> !a.startsWith("ROLE_"))
                 .toList();
 
-        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
-        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
+        recordSessionBestEffort(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
+        recordSessionRequired(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
 
         log.info("evento=LOGIN resultado=EXITOSO correo={} ip={} sub={}", correoUsuario, ip, idUsuario);
 
@@ -259,7 +259,7 @@ public class AuthServiceImpl implements AuthService {
         if (estadoLoginJson == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado");
         }
-        JsonNode estado = parseEstadoLogin(estadoLoginJson);
+        JsonNode estado = parseLoginState(estadoLoginJson);
         Long idUsuario = estado.get("idUsuario").asLong();
         boolean dosFactoresHabilitado = estado.get("dosFactoresHabilitado").asBoolean();
 
@@ -269,7 +269,7 @@ public class AuthServiceImpl implements AuthService {
 
         User usuario = usuarioRepository.getReferenceById(idUsuario);
 
-        if (!twoFactorService.validarCodigoOBackup(datos.correo(), request.getCodigo())) {
+        if (!twoFactorService.validateCodeOrBackup(datos.correo(), request.getCodigo())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
 
@@ -284,15 +284,15 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtService.generarToken(userDetails);
         String refreshToken = jwtService.generarRefreshToken(userDetails);
 
-        List<String> roles = extraerRoles(estado);
+        List<String> roles = extractRoles(estado);
 
         List<String> permisos = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .filter(a -> !a.startsWith("ROLE_"))
                 .toList();
 
-        registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
-        registrarSesionObligatoria(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
+        recordSessionBestEffort(usuario, jwtService.extraerJti(accessToken), jwtService.getExpirationMs());
+        recordSessionRequired(usuario, jwtService.extraerJti(refreshToken), jwtService.getRefreshExpirationMs());
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
@@ -350,8 +350,8 @@ public class AuthServiceImpl implements AuthService {
             String nuevoAccessToken = jwtService.generarToken(userDetails);
             String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);
 
-            registrarSesionMejorEsfuerzo(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());
-            registrarSesionObligatoria(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());
+            recordSessionBestEffort(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());
+            recordSessionRequired(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());
 
             List<String> roles = usuarioRolRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).stream()
                     .map(ur -> ur.getRol().getNombreRol())
@@ -482,7 +482,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /** OBS-08 (A09 OWASP): IP del solicitante actual, usada tanto en el registro de sesión como en el log de auditoría de login. */
-    private String obtenerIpActual() {
+    private String getCurrentIp() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes != null && attributes.getRequest() != null) {
             return ClientIpResolver.resolver(attributes.getRequest());
@@ -495,9 +495,9 @@ public class AuthServiceImpl implements AuthService {
      * sesiones); si falla, el usuario ya tiene su access token en la respuesta y
      * puede seguir operando con él con normalidad.
      */
-    private void registrarSesionMejorEsfuerzo(User usuario, String jti, long expirationMs) {
+    private void recordSessionBestEffort(User usuario, String jti, long expirationMs) {
         try {
-            registrarSesion(usuario, jti, expirationMs);
+            recordSession(usuario, jti, expirationMs);
         } catch (Exception e) {
             log.error("Error registrando sesión de acceso para usuario {}", usuario.getIdUsuario(), e);
         }
@@ -511,12 +511,12 @@ public class AuthServiceImpl implements AuthService {
      * usuario con un refresh token que el sistema rechazaría como "revocado o
      * expirado" en el siguiente intento, sin ninguna pista del motivo real.
      */
-    private void registrarSesionObligatoria(User usuario, String jti, long expirationMs) {
-        registrarSesion(usuario, jti, expirationMs);
+    private void recordSessionRequired(User usuario, String jti, long expirationMs) {
+        recordSession(usuario, jti, expirationMs);
     }
 
-    private void registrarSesion(User usuario, String jti, long expirationMs) {
-        String ip = obtenerIpActual();
+    private void recordSession(User usuario, String jti, long expirationMs) {
+        String ip = getCurrentIp();
         UserSession sesion = UserSession.builder()
                 .usuario(usuario)
                 .jti(jti)
@@ -537,7 +537,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /** Deserializa el JSONB devuelto por fn_resolver_estado_login (REQ-F-002). */
-    private JsonNode parseEstadoLogin(String estadoLoginJson) {
+    private JsonNode parseLoginState(String estadoLoginJson) {
         return parseJson(estadoLoginJson, "Error al interpretar el estado de login");
     }
 
@@ -550,7 +550,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private List<String> extraerRoles(JsonNode estado) {
+    private List<String> extractRoles(JsonNode estado) {
         List<String> roles = new ArrayList<>();
         estado.get("roles").forEach(nodo -> roles.add(nodo.asText()));
         return roles;

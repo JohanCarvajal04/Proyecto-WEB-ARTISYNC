@@ -15,14 +15,14 @@ public interface CountryService {
      *
      * @return todos los países registrados
      */
-    List<CountryResponse> getAllPaises();
+    List<CountryResponse> getAllCountries();
 
     /**
      * Lista únicamente los países marcados como activos.
      *
      * @return los países activos
      */
-    List<CountryResponse> getPaisesActivos();
+    List<CountryResponse> getActiveCountries();
 
     /**
      * Obtiene un país por su id.
@@ -31,7 +31,7 @@ public interface CountryService {
      * @return el país encontrado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
      */
-    CountryResponse getPaisById(Long id);
+    CountryResponse getCountryById(Long id);
 
     /**
      * Crea un país nuevo.
@@ -39,7 +39,7 @@ public interface CountryService {
      * @param request nombre y demás datos del país a crear
      * @return el país recién creado
      */
-    CountryResponse createPais(CountryRequest request);
+    CountryResponse createCountry(CountryRequest request);
 
     /**
      * Actualiza los datos de un país existente.
@@ -49,7 +49,7 @@ public interface CountryService {
      * @return el país ya actualizado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
      */
-    CountryResponse updatePais(Long id, CountryRequest request);
+    CountryResponse updateCountry(Long id, CountryRequest request);
 
     /**
      * Invierte el estado activo/inactivo de un país (a pesar del nombre, no lo elimina).
@@ -58,6 +58,6 @@ public interface CountryService {
      * @return mensaje indicando si el país quedó activado o desactivado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el país no existe
      */
-    RespuestaMensaje deletePais(Long id);
+    RespuestaMensaje deleteCountry(Long id);
 }
 

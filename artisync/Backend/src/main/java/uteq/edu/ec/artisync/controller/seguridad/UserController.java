@@ -108,11 +108,11 @@ public class UserController {
      */
     @Operation(summary = "Solicitar la supresión (anonimización) de los datos personales del usuario actual")
     @PostMapping("/me/solicitud-supresion")
-    public ResponseEntity<RespuestaMensaje> solicitarSupresionDatos(
+    public ResponseEntity<RespuestaMensaje> requestDataErasure(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody(required = false) TwoFactorConfirmRequest request) {
         String codigo = request != null ? request.getCodigo() : null;
-        return ResponseEntity.ok(privacidadService.solicitarSupresionPropia(userDetails.getIdUsuario(), codigo));
+        return ResponseEntity.ok(privacidadService.requestOwnErasure(userDetails.getIdUsuario(), codigo));
     }
 
     /**

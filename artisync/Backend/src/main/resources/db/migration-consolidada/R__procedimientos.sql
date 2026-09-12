@@ -226,7 +226,7 @@ COMMENT ON FUNCTION fn_configurar_2fa(BIGINT, VARCHAR, TEXT[])
 -- =============================================================================
 -- Marca un codigo de respaldo 2FA como usado, si y solo si sigue sin usar.
 --
--- Sustituye a TwoFactorServiceImpl.validarCodigoOBackup() en la rama de
+-- Sustituye a TwoFactorServiceImpl.validateCodeOrBackup() en la rama de
 -- codigos de respaldo, que hacia: SELECT de todos los codigos no usados del
 -- usuario -> comparar el hash en un bucle Java -> UPDATE del que coincide.
 -- Ese patron read-modify-write NO es atomico: dos peticiones concurrentes con

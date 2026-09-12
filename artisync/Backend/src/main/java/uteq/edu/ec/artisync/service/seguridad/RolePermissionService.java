@@ -23,7 +23,7 @@ public interface RolePermissionService {
      *
      * @return los permisos existentes
      */
-    List<PermissionResponse> getAllPermisos();
+    List<PermissionResponse> getAllPermissions();
 
     /**
      * Lista los códigos de permiso asignados a un rol.

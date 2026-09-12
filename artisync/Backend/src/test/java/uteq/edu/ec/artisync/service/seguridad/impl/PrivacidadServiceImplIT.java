@@ -209,7 +209,7 @@ class PrivacidadServiceImplIT {
     void anonimizarUsuarioAdmin_anonimizaTodo_sinPedidoEnCursoNiFondosRetenidos() {
         sembrarDatos(true, false);
 
-        privacidadService.anonimizarUsuarioAdmin(ID_CREADOR, ID_ADMIN);
+        privacidadService.anonymizeUserAsAdmin(ID_CREADOR, ID_ADMIN);
         entityManager.flush(); // sincroniza los UPDATE de Hibernate antes de leer con JdbcTemplate
 
         String correo = jdbcTemplate.queryForObject(
@@ -235,7 +235,7 @@ class PrivacidadServiceImplIT {
     void anonimizarUsuarioAdmin_rechaza_siHayPedidoSinTransicionRegistrada() {
         sembrarDatos(false, false);
 
-        assertThatThrownBy(() -> privacidadService.anonimizarUsuarioAdmin(ID_CREADOR, ID_ADMIN))
+        assertThatThrownBy(() -> privacidadService.anonymizeUserAsAdmin(ID_CREADOR, ID_ADMIN))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("pedido en curso");
 
@@ -248,7 +248,7 @@ class PrivacidadServiceImplIT {
     void anonimizarUsuarioAdmin_declaraExcepcionLegal_conFondosRetenidos() {
         sembrarDatos(true, true);
 
-        var respuesta = privacidadService.anonimizarUsuarioAdmin(ID_CREADOR, ID_ADMIN);
+        var respuesta = privacidadService.anonymizeUserAsAdmin(ID_CREADOR, ID_ADMIN);
         entityManager.flush();
 
         assertThat(respuesta.getMensaje()).contains("excepciones legales");
@@ -267,8 +267,8 @@ class PrivacidadServiceImplIT {
     void solicitarSupresionPropia_esIdempotente_contraElBloqueoPesimistaReal() {
         sembrarDatos(true, false);
 
-        privacidadService.solicitarSupresionPropia(ID_CREADOR, null);
-        var segundaRespuesta = privacidadService.solicitarSupresionPropia(ID_CREADOR, null);
+        privacidadService.requestOwnErasure(ID_CREADOR, null);
+        var segundaRespuesta = privacidadService.requestOwnErasure(ID_CREADOR, null);
 
         assertThat(segundaRespuesta.getMensaje())
                 .isEqualTo("Tus datos personales ya fueron suprimidos anteriormente.");

@@ -302,7 +302,7 @@ class AuthServiceImplTest {
                 .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
-        when(twoFactorService.validarCodigoOBackup("juan@example.com", "000000")).thenReturn(false);
+        when(twoFactorService.validateCodeOrBackup("juan@example.com", "000000")).thenReturn(false);
 
         TwoFactorRequest request = TwoFactorRequest.builder().codigo("000000").build();
 
@@ -321,7 +321,7 @@ class AuthServiceImplTest {
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
         when(usuarioRepository.getReferenceById(1L)).thenReturn(usuario);
-        when(twoFactorService.validarCodigoOBackup("juan@example.com", "123456")).thenReturn(true);
+        when(twoFactorService.validateCodeOrBackup("juan@example.com", "123456")).thenReturn(true);
         when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(true);
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
@@ -343,7 +343,7 @@ class AuthServiceImplTest {
                 .thenReturn(Optional.of(new PreAuth2faTicketService.DatosTicket(1L, "juan@example.com")));
         when(usuarioRepository.resolverEstadoLogin("juan@example.com"))
                 .thenReturn(estadoLoginJson(1L, "juan@example.com", true, "CLIENTE"));
-        when(twoFactorService.validarCodigoOBackup("juan@example.com", "123456")).thenReturn(true);
+        when(twoFactorService.validateCodeOrBackup("juan@example.com", "123456")).thenReturn(true);
         when(preAuth2faTicketService.consumir("ticket-valido")).thenReturn(false); // otra petición lo consumió antes
 
         TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();

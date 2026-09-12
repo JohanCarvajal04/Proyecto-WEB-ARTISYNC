@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * fn_consumir_codigo_respaldo_2fa (Fase 1, anomalia A1).
  *
  * Reproduce contra Postgres real la condicion de carrera que tenia
- * TwoFactorServiceImpl.validarCodigoOBackup ANTES de esta rutina: N hilos
+ * TwoFactorServiceImpl.validateCodeOrBackup ANTES de esta rutina: N hilos
  * enviando el MISMO codigo de respaldo al mismo tiempo. Con el patron anterior
  * (leer todos los codigos no usados a memoria + comparar en Java + save()),
  * varios hilos podian leer usado = FALSE antes de que ninguno escribiera, y

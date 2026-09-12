@@ -46,8 +46,8 @@ public class RolePermissionController {
     @Operation(summary = "Listar el catálogo completo de permisos disponibles por módulo")
     @GetMapping("/permisos")
     @PreAuthorize("hasAuthority('PERMISO_VER') or hasAuthority('ROL_GESTIONAR') or hasAuthority('ROL_ASIGNAR_PERMISO') or hasRole('ADMIN')")
-    public ResponseEntity<List<PermissionResponse>> getAllPermisos() {
-        return ResponseEntity.ok(service.getAllPermisos());
+    public ResponseEntity<List<PermissionResponse>> getAllPermissions() {
+        return ResponseEntity.ok(service.getAllPermissions());
     }
 
     /**

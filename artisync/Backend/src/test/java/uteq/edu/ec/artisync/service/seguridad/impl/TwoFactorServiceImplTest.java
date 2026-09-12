@@ -95,7 +95,7 @@ class TwoFactorServiceImplTest {
         verify(autenticacionDosFactoresRepository).configurar2Fa(eq(1L), eq(response.getSecreto()), any());
     }
 
-    // ── validarCodigoOBackup: codigos de respaldo (Fase 1 concurrencia) ─────
+    // ── validateCodeOrBackup: codigos de respaldo (Fase 1 concurrencia) ─────
     // fn_consumir_codigo_respaldo_2fa (docs/basedatos/PLAN-CONCURRENCIA-SP.md §2)
     // hace el UPDATE atomico en una sola llamada al motor; estas pruebas
     // verifican que el servicio delega en ella en vez de leer todos los codigos
@@ -109,7 +109,7 @@ class TwoFactorServiceImplTest {
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
         when(codigoRespaldo2FaRepository.consumirCodigoRespaldo(eq(1L), anyString())).thenReturn(true);
 
-        boolean resultado = twoFactorService.validarCodigoOBackup("creador@example.com", "ABCD1234");
+        boolean resultado = twoFactorService.validateCodeOrBackup("creador@example.com", "ABCD1234");
 
         assertTrue(resultado);
         verify(codigoRespaldo2FaRepository).consumirCodigoRespaldo(eq(1L), anyString());
@@ -126,7 +126,7 @@ class TwoFactorServiceImplTest {
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
         when(codigoRespaldo2FaRepository.consumirCodigoRespaldo(eq(1L), anyString())).thenReturn(false);
 
-        boolean resultado = twoFactorService.validarCodigoOBackup("creador@example.com", "ABCD1234");
+        boolean resultado = twoFactorService.validateCodeOrBackup("creador@example.com", "ABCD1234");
 
         assertFalse(resultado);
     }

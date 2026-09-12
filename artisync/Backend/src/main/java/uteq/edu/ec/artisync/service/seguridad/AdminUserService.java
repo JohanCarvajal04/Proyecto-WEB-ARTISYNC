@@ -56,7 +56,7 @@ public interface AdminUserService {
      * @return el usuario con su estado ya actualizado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el administrador intenta desactivar su propia cuenta
      */
-    UserResponse changeEstado(Long id, ChangeEstadoRequest request, Long idAdminActual);
+    UserResponse changeStatus(Long id, ChangeEstadoRequest request, Long idAdminActual);
 
     /**
      * Reasigna los roles de un usuario y revoca sus sesiones para forzar el refresco de claims del JWT.
@@ -95,7 +95,7 @@ public interface AdminUserService {
      * @return el documento generado con el listado de usuarios
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado filtrado excede el tope de filas admitido por el formato
      */
-    GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, String correoSolicitante);
+    GeneratedDocument export(UserFilter filtro, ReportFormat formato, String correoSolicitante);
 
     /**
      * Exporta el listado de usuarios filtrado, incluyendo la gráfica indicada, sin paginar.
@@ -106,7 +106,7 @@ public interface AdminUserService {
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con el listado de usuarios y la gráfica solicitada
      */
-    GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, ReportChartType tipoGrafica, String correoSolicitante);
+    GeneratedDocument export(UserFilter filtro, ReportFormat formato, ReportChartType tipoGrafica, String correoSolicitante);
 
     /**
      * Exporta una página del listado de usuarios filtrado, incluyendo la gráfica indicada.
@@ -114,11 +114,11 @@ public interface AdminUserService {
      * @param filtro            criterios de búsqueda, rol y estado de cuenta
      * @param formato           formato del documento a generar
      * @param tipoGrafica       gráfica(s) a incluir en el documento junto con la tabla
-     * @param page              número de página a exportar (0-index); {@code null} exporta la primera página completa
+     * @param page              número de página a export (0-index); {@code null} exporta la primera página completa
      * @param size              tamaño de página deseado, acotado al tope de filas del formato
      * @param correoSolicitante correo de quien solicita la exportación, registrado en el documento
      * @return el documento generado con la página de usuarios solicitada
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si {@code page} es {@code null} y el total de usuarios filtrados supera el tope de filas del formato
      */
-    GeneratedDocument exportar(UserFilter filtro, ReportFormat formato, ReportChartType tipoGrafica, Integer page, Integer size, String correoSolicitante);
+    GeneratedDocument export(UserFilter filtro, ReportFormat formato, ReportChartType tipoGrafica, Integer page, Integer size, String correoSolicitante);
 }

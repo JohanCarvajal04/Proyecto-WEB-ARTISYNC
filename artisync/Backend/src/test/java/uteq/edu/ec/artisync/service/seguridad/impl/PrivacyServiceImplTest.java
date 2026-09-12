@@ -108,7 +108,7 @@ class PrivacyServiceImplTest {
     void solicitarSupresionPropia_anonimizaDatosDelUsuario_sinImpedimentos() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, null);
+        RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, null);
 
         assertNotNull(respuesta);
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
@@ -126,7 +126,7 @@ class PrivacyServiceImplTest {
         usuario.setCorreo("usuario-1-abc@eliminado.artisync.invalid");
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, null);
+        RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, null);
 
         assertEquals("Tus datos personales ya fueron suprimidos anteriormente.", respuesta.getMensaje());
         verify(usuarioRepository, never()).save(any());
@@ -146,7 +146,7 @@ class PrivacyServiceImplTest {
         EscrowPayment pagoGarantia = EscrowPayment.builder().idPago(20L).estadoFondos("Retenido").build();
         when(pagoGarantiaRepository.findByContratoIdContrato(10L)).thenReturn(Optional.of(pagoGarantia));
 
-        RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, null);
+        RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, null);
 
         assertTrue(respuesta.getMensaje().contains("excepciones legales"));
         assertEquals("ana@paypal.com", datosPago.getCorreoPaypal());
@@ -170,7 +170,7 @@ class PrivacyServiceImplTest {
         when(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(7L, 3L))
                 .thenReturn(false);
 
-        RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, null);
+        RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, null);
 
         assertTrue(respuesta.getMensaje().contains("pedido en curso"));
         verify(usuarioRepository, never()).save(any());
@@ -192,7 +192,7 @@ class PrivacyServiceImplTest {
         when(flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue(7L, 9L))
                 .thenReturn(true);
 
-        RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, null);
+        RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, null);
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
         verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
@@ -203,13 +203,13 @@ class PrivacyServiceImplTest {
         usuario.setCorreo("usuario-1-abc@eliminado.artisync.invalid");
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        assertThrows(BusinessRuleException.class, () -> privacidadService.anonimizarUsuarioAdmin(1L, 99L));
+        assertThrows(BusinessRuleException.class, () -> privacidadService.anonymizeUserAsAdmin(1L, 99L));
         verify(usuarioRepository, never()).save(any());
     }
 
     @Test
     void anonimizarUsuarioAdmin_rechaza_siAdminSeApuntaASiMismo() {
-        assertThrows(BusinessRuleException.class, () -> privacidadService.anonimizarUsuarioAdmin(1L, 1L));
+        assertThrows(BusinessRuleException.class, () -> privacidadService.anonymizeUserAsAdmin(1L, 1L));
         verifyNoInteractions(usuarioRepository);
     }
 
@@ -224,7 +224,7 @@ class PrivacyServiceImplTest {
         when(historialEstadoPedidoRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(100L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(BusinessRuleException.class, () -> privacidadService.anonimizarUsuarioAdmin(1L, 99L));
+        assertThrows(BusinessRuleException.class, () -> privacidadService.anonymizeUserAsAdmin(1L, 99L));
         verify(usuarioRepository, never()).save(any());
     }
 
@@ -232,7 +232,7 @@ class PrivacyServiceImplTest {
     void anonimizarUsuarioAdmin_anonimiza_cuandoUsuarioNoLoHaSolicitado() {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje respuesta = privacidadService.anonimizarUsuarioAdmin(1L, 99L);
+        RespuestaMensaje respuesta = privacidadService.anonymizeUserAsAdmin(1L, 99L);
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
         verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
@@ -245,7 +245,7 @@ class PrivacyServiceImplTest {
         TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder().estaHabilitado(true).build();
         lenient().when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
 
-        RespuestaMensaje respuesta = privacidadService.anonimizarUsuarioAdmin(1L, 99L);
+        RespuestaMensaje respuesta = privacidadService.anonymizeUserAsAdmin(1L, 99L);
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
         verifyNoInteractions(twoFactorService);
@@ -256,7 +256,7 @@ class PrivacyServiceImplTest {
         when(usuarioRepository.findByIdParaAnonimizar(404L)).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> privacidadService.solicitarSupresionPropia(404L, null));
+                () -> privacidadService.requestOwnErasure(404L, null));
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
@@ -273,7 +273,7 @@ class PrivacyServiceImplTest {
                 .build();
         when(certificadoIaRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(certificado));
 
-        privacidadService.solicitarSupresionPropia(1L, null);
+        privacidadService.requestOwnErasure(1L, null);
 
         assertNull(certificado.getDatosExtraidosIa());
         assertNull(certificado.getHashDocumento());
@@ -291,7 +291,7 @@ class PrivacyServiceImplTest {
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> privacidadService.solicitarSupresionPropia(1L, null));
+                () -> privacidadService.requestOwnErasure(1L, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(usuarioRepository, never()).save(any());
@@ -303,10 +303,10 @@ class PrivacyServiceImplTest {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
         TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder().estaHabilitado(true).build();
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
-        when(twoFactorService.validarCodigoOBackup("ana@example.com", "000000")).thenReturn(false);
+        when(twoFactorService.validateCodeOrBackup("ana@example.com", "000000")).thenReturn(false);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> privacidadService.solicitarSupresionPropia(1L, "000000"));
+                () -> privacidadService.requestOwnErasure(1L, "000000"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
         verify(intentosAutenticacionService).verificarCuota(eq("2fa-supresion-cuenta"), eq("ana@example.com"), anyInt(), any());
@@ -318,9 +318,9 @@ class PrivacyServiceImplTest {
         when(usuarioRepository.findByIdParaAnonimizar(1L)).thenReturn(Optional.of(usuario));
         TwoFactorAuthentication dosFactores = TwoFactorAuthentication.builder().estaHabilitado(true).build();
         when(autenticacionDosFactoresRepository.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(dosFactores));
-        when(twoFactorService.validarCodigoOBackup("ana@example.com", "123456")).thenReturn(true);
+        when(twoFactorService.validateCodeOrBackup("ana@example.com", "123456")).thenReturn(true);
 
-        RespuestaMensaje respuesta = privacidadService.solicitarSupresionPropia(1L, "123456");
+        RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, "123456");
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
         verify(intentosAutenticacionService).limpiar("2fa-supresion-cuenta", "ana@example.com");
@@ -340,7 +340,7 @@ class PrivacyServiceImplTest {
                 .thenThrow(new DataIntegrityViolationException("correo duplicado", sqlException));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> privacidadService.solicitarSupresionPropia(1L, null));
+                () -> privacidadService.requestOwnErasure(1L, null));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
         verify(sessionRevocationService, never()).cambiarEstadoCuenta(any(), anyBoolean());

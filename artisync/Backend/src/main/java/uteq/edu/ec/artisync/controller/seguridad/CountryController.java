@@ -32,8 +32,8 @@ public class CountryController {
      */
     @Operation(summary = "Listar todos los países ordenados alfabéticamente")
     @GetMapping
-    public ResponseEntity<List<CountryResponse>> getAllPaises() {
-        return ResponseEntity.ok(paisService.getAllPaises());
+    public ResponseEntity<List<CountryResponse>> getAllCountries() {
+        return ResponseEntity.ok(paisService.getAllCountries());
     }
 
     /**
@@ -43,8 +43,8 @@ public class CountryController {
      */
     @Operation(summary = "Listar solo los países activos ordenados alfabéticamente")
     @GetMapping("/activos")
-    public ResponseEntity<List<CountryResponse>> getPaisesActivos() {
-        return ResponseEntity.ok(paisService.getPaisesActivos());
+    public ResponseEntity<List<CountryResponse>> getActiveCountries() {
+        return ResponseEntity.ok(paisService.getActiveCountries());
     }
 
     /**
@@ -56,8 +56,8 @@ public class CountryController {
      */
     @Operation(summary = "Obtener un país por su ID")
     @GetMapping("/{id}")
-    public ResponseEntity<CountryResponse> getPaisById(@PathVariable Long id) {
-        return ResponseEntity.ok(paisService.getPaisById(id));
+    public ResponseEntity<CountryResponse> getCountryById(@PathVariable Long id) {
+        return ResponseEntity.ok(paisService.getCountryById(id));
     }
 
     /**
@@ -70,8 +70,8 @@ public class CountryController {
     @Operation(summary = "Crear un nuevo país", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_CREAR') or hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<CountryResponse> createPais(@Valid @RequestBody CountryRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createPais(request));
+    public ResponseEntity<CountryResponse> createCountry(@Valid @RequestBody CountryRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(paisService.createCountry(request));
     }
 
     /**
@@ -86,8 +86,8 @@ public class CountryController {
     @Operation(summary = "Actualizar el nombre de un país existente", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_EDITAR') or hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<CountryResponse> updatePais(@PathVariable Long id, @Valid @RequestBody CountryRequest request) {
-        return ResponseEntity.ok(paisService.updatePais(id, request));
+    public ResponseEntity<CountryResponse> updateCountry(@PathVariable Long id, @Valid @RequestBody CountryRequest request) {
+        return ResponseEntity.ok(paisService.updateCountry(id, request));
     }
 
     /**
@@ -100,8 +100,8 @@ public class CountryController {
     @Operation(summary = "Eliminar un país si no tiene usuarios asociados", security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAuthority('PAIS_ELIMINAR') or hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<RespuestaMensaje> deletePais(@PathVariable Long id) {
-        return ResponseEntity.ok(paisService.deletePais(id));
+    public ResponseEntity<RespuestaMensaje> deleteCountry(@PathVariable Long id) {
+        return ResponseEntity.ok(paisService.deleteCountry(id));
     }
 }
 
