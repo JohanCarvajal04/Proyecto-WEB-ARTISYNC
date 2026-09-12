@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Pruebas unitarias para ViolationServiceImpl.registrarInfraccion (RF-15).
+ * Pruebas unitarias para ViolationServiceImpl.registerViolation (RF-15).
  * Es el unico punto de entrada real para registrar infracciones: ChatServiceImpl
  * delega aqui para que el INSERT + conteo + suspension corran en su propia
  * transaccion (REQUIRES_NEW), independiente de la del llamador.
@@ -54,53 +54,53 @@ class ViolationServiceImplTest {
     }
 
     @Test
-    @DisplayName("registrarInfraccion — por debajo del umbral no suspende ni notifica")
+    @DisplayName("registerViolation — por debajo del umbral no suspende ni notifica")
     void registrarInfraccion_bajoUmbral_noSuspende() {
         String mensaje = "Llámame al +593 99 123 4567";
-        when(mensajeFilterService.detectarPatron(mensaje)).thenReturn("TELEFONO");
-        when(infraccionRepo.registrarInfraccion(1L, 10L, mensaje, "TELEFONO"))
+        when(mensajeFilterService.detectPattern(mensaje)).thenReturn("TELEFONO");
+        when(infraccionRepo.registerViolation(1L, 10L, mensaje, "TELEFONO"))
                 .thenReturn("{\"idInfraccion\":1,\"totalInfraccionesPeriodo\":1,\"cuentaSuspendida\":false}");
 
-        assertThatCode(() -> infraccionService.registrarInfraccion(1L, 10L, mensaje))
+        assertThatCode(() -> infraccionService.registerViolation(1L, 10L, mensaje))
                 .doesNotThrowAnyException();
 
-        verify(infraccionRepo).registrarInfraccion(1L, 10L, mensaje, "TELEFONO");
-        verify(notificacionService, never()).notificar(any(), eq("CUENTA_SUSPENDIDA"), anyString());
+        verify(infraccionRepo).registerViolation(1L, 10L, mensaje, "TELEFONO");
+        verify(notificacionService, never()).notify(any(), eq("CUENTA_SUSPENDIDA"), anyString());
         verifyNoInteractions(usuarioRepo);
     }
 
     @Test
-    @DisplayName("registrarInfraccion — al cruzar el umbral suspende la cuenta y notifica")
+    @DisplayName("registerViolation — al cruzar el umbral suspende la cuenta y notifica")
     void registrarInfraccion_cruzaUmbral_suspendeYNotifica() {
         String mensaje = "Escríbeme a test@ejemplo.com";
         User usuario = User.builder().idUsuario(1L).correo("test-user@example.com").estadoCuenta(false).build();
 
-        when(mensajeFilterService.detectarPatron(mensaje)).thenReturn("EMAIL");
-        when(infraccionRepo.registrarInfraccion(1L, 10L, mensaje, "EMAIL"))
+        when(mensajeFilterService.detectPattern(mensaje)).thenReturn("EMAIL");
+        when(infraccionRepo.registerViolation(1L, 10L, mensaje, "EMAIL"))
                 .thenReturn("{\"idInfraccion\":3,\"totalInfraccionesPeriodo\":3,\"cuentaSuspendida\":true}");
         when(usuarioRepo.findById(1L)).thenReturn(Optional.of(usuario));
 
-        infraccionService.registrarInfraccion(1L, 10L, mensaje);
+        infraccionService.registerViolation(1L, 10L, mensaje);
 
-        verify(notificacionService).notificar(eq(usuario), eq("CUENTA_SUSPENDIDA"), anyString());
+        verify(notificacionService).notify(eq(usuario), eq("CUENTA_SUSPENDIDA"), anyString());
     }
 
     @Test
-    @DisplayName("registrarInfraccion — cuenta ya suspendida antes (cuentaSuspendida=false) no repite la notificación")
+    @DisplayName("registerViolation — cuenta ya suspendida antes (cuentaSuspendida=false) no repite la notificación")
     void registrarInfraccion_yaSuspendida_noRepiteNotificacion() {
         String mensaje = "Contáctame por whatsapp al 0991234567";
-        when(mensajeFilterService.detectarPatron(mensaje)).thenReturn("TELEFONO");
-        when(infraccionRepo.registrarInfraccion(1L, 10L, mensaje, "TELEFONO"))
+        when(mensajeFilterService.detectPattern(mensaje)).thenReturn("TELEFONO");
+        when(infraccionRepo.registerViolation(1L, 10L, mensaje, "TELEFONO"))
                 .thenReturn("{\"idInfraccion\":5,\"totalInfraccionesPeriodo\":5,\"cuentaSuspendida\":false}");
 
-        infraccionService.registrarInfraccion(1L, 10L, mensaje);
+        infraccionService.registerViolation(1L, 10L, mensaje);
 
         verifyNoInteractions(usuarioRepo);
-        verify(notificacionService, never()).notificar(any(), eq("CUENTA_SUSPENDIDA"), anyString());
+        verify(notificacionService, never()).notify(any(), eq("CUENTA_SUSPENDIDA"), anyString());
     }
 
     @Test
-    @DisplayName("historialPorUsuario — filtra en la consulta, no devuelve infracciones de otros usuarios")
+    @DisplayName("getHistoryByUser — filtra en la consulta, no devuelve infracciones de otros usuarios")
     void historialPorUsuario_filtraPorUsuarioEnLaQuery() {
         User usuario1 = User.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
         Order pedido = Order.builder().idPedido(10L).build();
@@ -116,7 +116,7 @@ class ViolationServiceImplTest {
         when(infraccionRepo.findByUsuarioIdUsuario(1L, pageable))
                 .thenReturn(new PageImpl<>(List.of(infraccionDeUsuario1), pageable, 1));
 
-        var resultado = infraccionService.historialPorUsuario(1L, pageable);
+        var resultado = infraccionService.getHistoryByUser(1L, pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(1);
         assertThat(resultado.getContent()).extracting(ViolationResponse::getIdUsuario).containsOnly(1L);
@@ -125,7 +125,7 @@ class ViolationServiceImplTest {
     }
 
     @Test
-    @DisplayName("listarInfracciones — lista todas las infracciones del sistema, sin filtrar por usuario")
+    @DisplayName("listViolations — lista todas las infracciones del sistema, sin filtrar por usuario")
     void listarInfracciones_listaTodasSinFiltrarPorUsuario() {
         User usuario1 = User.builder().idUsuario(1L).nombres("Juan").apellidos("Pérez").correo("juan@example.com").build();
         Order pedido = Order.builder().idPedido(10L).build();
@@ -141,7 +141,7 @@ class ViolationServiceImplTest {
         when(infraccionRepo.findAll(pageable))
                 .thenReturn(new PageImpl<>(List.of(infraccion), pageable, 1));
 
-        var resultado = infraccionService.listarInfracciones(pageable);
+        var resultado = infraccionService.listViolations(pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(1);
         assertThat(resultado.getContent()).extracting(ViolationResponse::getIdUsuario).containsOnly(1L);
@@ -150,12 +150,12 @@ class ViolationServiceImplTest {
     }
 
     @Test
-    @DisplayName("revertirSuspension — reactiva la cuenta y devuelve el mensaje con el correo del usuario")
+    @DisplayName("revertSuspension — reactiva la cuenta y devuelve el mensaje con el correo del usuario")
     void revertirSuspension_reactivaLaCuenta() {
         User usuario = User.builder().idUsuario(1L).correo("juan@example.com").estadoCuenta(false).build();
         when(usuarioRepo.findById(1L)).thenReturn(Optional.of(usuario));
 
-        RespuestaMensaje respuesta = infraccionService.revertirSuspension(1L);
+        RespuestaMensaje respuesta = infraccionService.revertSuspension(1L);
 
         assertThat(usuario.getEstadoCuenta()).isTrue();
         assertThat(respuesta.getMensaje()).isEqualTo("Cuenta del usuario juan@example.com reactivada correctamente");
@@ -163,13 +163,13 @@ class ViolationServiceImplTest {
     }
 
     @Test
-    @DisplayName("revertirSuspension — usuario inexistente lanza ResourceNotFoundException")
+    @DisplayName("revertSuspension — usuario inexistente lanza ResourceNotFoundException")
     void revertirSuspension_usuarioNoExiste_lanzaExcepcion() {
         when(usuarioRepo.findById(99L)).thenReturn(Optional.empty());
 
         org.junit.jupiter.api.Assertions.assertThrows(
                 ResourceNotFoundException.class,
-                () -> infraccionService.revertirSuspension(99L));
+                () -> infraccionService.revertSuspension(99L));
 
         verify(usuarioRepo, never()).save(any());
     }

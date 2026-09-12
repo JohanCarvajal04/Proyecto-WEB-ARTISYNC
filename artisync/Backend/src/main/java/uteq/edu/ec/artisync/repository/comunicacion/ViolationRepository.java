@@ -37,7 +37,7 @@ public interface ViolationRepository extends JpaRepository<MessageViolation, Lon
      * hallazgo completo en docs/basedatos/CATALOGO-SP.md §14.
      */
     @Query(value = "SELECT fn_registrar_infraccion(:p_id_usuario, :p_id_pedido, :p_mensaje_original, :p_patron_detectado)::text", nativeQuery = true)
-    String registrarInfraccion(
+    String registerViolation(
             @Param("p_id_usuario") Long idUsuario,
             @Param("p_id_pedido") Long idPedido,
             @Param("p_mensaje_original") String mensajeOriginal,

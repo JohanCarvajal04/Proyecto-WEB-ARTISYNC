@@ -158,7 +158,7 @@ public class CategoryServiceImpl implements ICategoryService {
         }
         categoriaRepository.deleteById(idCategoria);
         if (cat.getCreador() != null) {
-            notificacionService.notificar(cat.getCreador(), "CATEGORIA_ELIMINADA",
+            notificacionService.notify(cat.getCreador(), "CATEGORIA_ELIMINADA",
                     "Tu categoria '" + cat.getNombreCategoria() + "' fue eliminada por un moderador. Motivo: " + motivo);
         }
     }
@@ -251,7 +251,7 @@ public class CategoryServiceImpl implements ICategoryService {
         }
         subcategoriaRepository.deleteById(idSubcategoria);
         if (sub.getCreador() != null) {
-            notificacionService.notificar(sub.getCreador(), "SUBCATEGORIA_ELIMINADA",
+            notificacionService.notify(sub.getCreador(), "SUBCATEGORIA_ELIMINADA",
                     "Tu subcategoria '" + sub.getNombreSubcategoria() + "' fue eliminada por un moderador. Motivo: " + motivo);
         }
     }

@@ -59,12 +59,12 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    @DisplayName("notificar guarda el texto propio de cada notificación, no el del tipo")
+    @DisplayName("notify guarda el texto propio de cada notificación, no el del tipo")
     void notificar_guardaMensajePropio() {
         given(tipoNotificacionRepo.findByNombreEvento("MENSAJE_RECIBIDO")).willReturn(Optional.of(tipo));
         given(notificacionRepo.save(any(SystemNotification.class))).willAnswer(inv -> inv.getArgument(0));
 
-        notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO", "Juan te escribió: hola");
+        notificacionService.notify(destinatario, "MENSAJE_RECIBIDO", "Juan te escribió: hola");
 
         ArgumentCaptor<SystemNotification> captor = ArgumentCaptor.forClass(SystemNotification.class);
         verify(notificacionRepo).save(captor.capture());
@@ -72,9 +72,9 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    @DisplayName("notificar no propaga una falla del envío WebSocket -- es un efecto secundario de mejor esfuerzo")
+    @DisplayName("notify no propaga una falla del envío WebSocket -- es un efecto secundario de mejor esfuerzo")
     void notificar_noPropagaFalloDeEnvio() {
-        // Si notificar() se llama dentro de la transacción de una operación
+        // Si notify() se llama dentro de la transacción de una operación
         // de negocio real (pago liberado, ganador de sorteo...), dejar
         // escapar esta excepción marcaría esa transacción como
         // rollback-only y revertiría en silencio el cambio ya confirmado.
@@ -85,11 +85,11 @@ class NotificationServiceImplTest {
                         org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
 
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(() ->
-                notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO", "hola"));
+                notificacionService.notify(destinatario, "MENSAJE_RECIBIDO", "hola"));
     }
 
     @Test
-    @DisplayName("listarMisNotificaciones muestra el texto propio de cada una, no uno compartido")
+    @DisplayName("listMyNotifications muestra el texto propio de cada una, no uno compartido")
     void listarMisNotificaciones_dosDelMismoTipoConTextoDistinto() {
         SystemNotification n1 = SystemNotification.builder()
                 .idNotificacion(1L).usuario(destinatario).tipoNotificacion(tipo)
@@ -102,7 +102,7 @@ class NotificationServiceImplTest {
                 .willReturn(new PageImpl<>(List.of(n2, n1)));
 
         List<NotificationResponse> resultado = notificacionService
-                .listarMisNotificaciones(1L, PageRequest.of(0, 10)).getContent();
+                .listMyNotifications(1L, PageRequest.of(0, 10)).getContent();
 
         assertThat(resultado).extracting(NotificationResponse::getMensaje)
                 .containsExactly(

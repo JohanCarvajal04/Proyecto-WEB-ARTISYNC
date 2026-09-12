@@ -34,9 +34,9 @@ public class AdminCommentController {
     @Operation(summary = "Listar todos los comentarios del sistema")
     @GetMapping
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<Page<CommentResponse>> listarParaModeracion(
+    public ResponseEntity<Page<CommentResponse>> listForModeration(
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(comentarioService.listarParaModeracion(pageable));
+        return ResponseEntity.ok(comentarioService.listForModeration(pageable));
     }
 
     /**
@@ -49,8 +49,8 @@ public class AdminCommentController {
     @Operation(summary = "Ocultar un comentario (moderación)")
     @PatchMapping("/{idComentario}/ocultar")
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<CommentResponse> ocultarComentario(@PathVariable Long idComentario) {
-        return ResponseEntity.ok(comentarioService.ocultarComentario(idComentario));
+    public ResponseEntity<CommentResponse> hideComment(@PathVariable Long idComentario) {
+        return ResponseEntity.ok(comentarioService.hideComment(idComentario));
     }
 
     /**
@@ -63,8 +63,8 @@ public class AdminCommentController {
     @Operation(summary = "Reactivar un comentario previamente oculto")
     @PatchMapping("/{idComentario}/reactivar")
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<CommentResponse> reactivarComentario(@PathVariable Long idComentario) {
-        return ResponseEntity.ok(comentarioService.reactivarComentario(idComentario));
+    public ResponseEntity<CommentResponse> reactivateComment(@PathVariable Long idComentario) {
+        return ResponseEntity.ok(comentarioService.reactivateComment(idComentario));
     }
 
     /**
@@ -76,8 +76,8 @@ public class AdminCommentController {
     @Operation(summary = "Eliminar definitivamente un comentario (moderación)")
     @DeleteMapping("/{idComentario}")
     @PreAuthorize("hasAuthority('COMENTARIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<Void> eliminarComentario(@PathVariable Long idComentario) {
-        comentarioService.eliminarComentario(idComentario, null, true);
+    public ResponseEntity<Void> deleteComment(@PathVariable Long idComentario) {
+        comentarioService.deleteComment(idComentario, null, true);
         return ResponseEntity.noContent().build();
     }
 }

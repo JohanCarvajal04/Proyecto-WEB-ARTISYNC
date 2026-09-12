@@ -53,10 +53,10 @@ public class BriefingServiceImpl implements BriefingService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public BriefingResponse crearPlantilla(Long idUsuario, CreateBriefingTemplateRequest peticion) {
+    public BriefingResponse createTemplate(Long idUsuario, CreateBriefingTemplateRequest peticion) {
         CreatorProfile perfil = resolverPerfilPropio(idUsuario);
 
-        validarCantidadPreguntas(peticion.getPreguntas().size());
+        validateQuestionCount(peticion.getPreguntas().size());
 
         BriefingTemplate plantilla = BriefingTemplate.builder()
                 .perfilCreador(perfil)
@@ -65,11 +65,11 @@ public class BriefingServiceImpl implements BriefingService {
                 .build();
         plantilla = plantillaRepo.save(plantilla);
 
-        agregarPreguntas(plantilla, peticion.getPreguntas());
+        addQuestions(plantilla, peticion.getPreguntas());
         plantilla = plantillaRepo.save(plantilla);
 
         log.info("Plantilla de briefing '{}' creada para perfil {}", peticion.getNombrePlantilla(), perfil.getIdPerfil());
-        return mapPlantillaToResponse(plantilla, null);
+        return mapTemplateToResponse(plantilla, null);
     }
 
     @Override
@@ -81,11 +81,11 @@ public class BriefingServiceImpl implements BriefingService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<BriefingResponse> obtenerMisPlantillas(Long idUsuario) {
+    public List<BriefingResponse> getMyTemplates(Long idUsuario) {
         CreatorProfile perfil = resolverPerfilPropio(idUsuario);
         return plantillaRepo.findByPerfilCreadorIdPerfil(perfil.getIdPerfil())
                 .stream()
-                .map(p -> mapPlantillaToResponse(p, null))
+                .map(p -> mapTemplateToResponse(p, null))
                 .toList();
     }
 
@@ -98,7 +98,7 @@ public class BriefingServiceImpl implements BriefingService {
      */
     @Override
     @Transactional
-    public BriefingResponse editarPlantilla(Long idPlantilla, Long idUsuario,
+    public BriefingResponse updateTemplate(Long idPlantilla, Long idUsuario,
                                              CreateBriefingTemplateRequest peticion) {
         CreatorProfile perfil = resolverPerfilPropio(idUsuario);
         BriefingTemplate plantilla = plantillaRepo.findById(idPlantilla)
@@ -108,17 +108,17 @@ public class BriefingServiceImpl implements BriefingService {
             throw new BusinessRuleException("No tienes permiso para editar esta plantilla");
         }
 
-        validarCantidadPreguntas(peticion.getPreguntas().size());
+        validateQuestionCount(peticion.getPreguntas().size());
 
         plantilla.setNombrePlantilla(peticion.getNombrePlantilla());
         // Reemplazar preguntas (cascade orphanRemoval las elimina)
         plantilla.getPreguntas().clear();
         plantillaRepo.flush(); // Asegura el DELETE antes del INSERT
-        agregarPreguntas(plantilla, peticion.getPreguntas());
+        addQuestions(plantilla, peticion.getPreguntas());
         plantilla = plantillaRepo.save(plantilla);
 
         log.info("Plantilla {} actualizada", idPlantilla);
-        return mapPlantillaToResponse(plantilla, null);
+        return mapTemplateToResponse(plantilla, null);
     }
 
     @Override
@@ -131,7 +131,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idUsuario) {
+    public RespuestaMensaje deleteTemplate(Long idPlantilla, Long idUsuario) {
         CreatorProfile perfil = resolverPerfilPropio(idUsuario);
         BriefingTemplate plantilla = plantillaRepo.findById(idPlantilla)
                 .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada: " + idPlantilla));
@@ -178,7 +178,7 @@ public class BriefingServiceImpl implements BriefingService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public BriefingResponse obtenerBriefing(Long idPedido, Long idUsuarioSolicitante) {
+    public BriefingResponse getBriefing(Long idPedido, Long idUsuarioSolicitante) {
         SentBriefing enviado = enviadoRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe briefing para el pedido " + idPedido));
@@ -192,13 +192,13 @@ public class BriefingServiceImpl implements BriefingService {
     // Helpers de mapeo
     // =========================================================================
 
-    private void validarCantidadPreguntas(int cantidad) {
+    private void validateQuestionCount(int cantidad) {
         if (cantidad > MAX_PREGUNTAS) {
             throw new BusinessRuleException("Una plantilla no puede tener más de " + MAX_PREGUNTAS + " preguntas");
         }
     }
 
-    private void agregarPreguntas(BriefingTemplate plantilla,
+    private void addQuestions(BriefingTemplate plantilla,
                                    List<CreateBriefingTemplateRequest.PreguntaRequest> preguntas) {
         preguntas.forEach(p -> {
             BriefingQuestion pregunta = BriefingQuestion.builder()
@@ -210,7 +210,7 @@ public class BriefingServiceImpl implements BriefingService {
         });
     }
 
-    private BriefingResponse mapPlantillaToResponse(BriefingTemplate plantilla,
+    private BriefingResponse mapTemplateToResponse(BriefingTemplate plantilla,
                                                       SentBriefing enviado) {
         List<BriefingResponse.PreguntaRespuestaItem> items = plantilla.getPreguntas().stream()
                 .map(p -> BriefingResponse.PreguntaRespuestaItem.builder()

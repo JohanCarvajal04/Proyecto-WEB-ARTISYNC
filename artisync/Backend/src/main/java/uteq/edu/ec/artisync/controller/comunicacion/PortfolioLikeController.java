@@ -36,11 +36,11 @@ public class PortfolioLikeController {
     @PostMapping("/{idItemPortafolio}/likes")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<LikeStatusResponse> darLike(
+    public ResponseEntity<LikeStatusResponse> like(
             @PathVariable Long idItemPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(likeService.darLike(idItemPortafolio, userDetails.getIdUsuario()));
+                .body(likeService.like(idItemPortafolio, userDetails.getIdUsuario()));
     }
 
     /**
@@ -54,10 +54,10 @@ public class PortfolioLikeController {
     @Operation(summary = "Quitar el like de un ítem de portafolio")
     @DeleteMapping("/{idItemPortafolio}/likes")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<LikeStatusResponse> quitarLike(
+    public ResponseEntity<LikeStatusResponse> unlike(
             @PathVariable Long idItemPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(likeService.quitarLike(idItemPortafolio, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(likeService.unlike(idItemPortafolio, userDetails.getIdUsuario()));
     }
 
     /**
@@ -70,10 +70,10 @@ public class PortfolioLikeController {
      */
     @Operation(summary = "Estado de likes de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/likes")
-    public ResponseEntity<LikeStatusResponse> obtenerEstado(
+    public ResponseEntity<LikeStatusResponse> getStatus(
             @PathVariable Long idItemPortafolio,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;
-        return ResponseEntity.ok(likeService.obtenerEstado(idItemPortafolio, idUsuario));
+        return ResponseEntity.ok(likeService.getStatus(idItemPortafolio, idUsuario));
     }
 }

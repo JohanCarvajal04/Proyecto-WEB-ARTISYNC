@@ -12,7 +12,7 @@ public interface MessageFilterService {
      * @param texto cuerpo del mensaje a analizar
      * @return {@code true} si se detecta un teléfono o un correo electrónico
      */
-    boolean contieneContacto(String texto);
+    boolean containsContactInfo(String texto);
 
     /**
      * Retorna el nombre del patrón detectado ("TELEFONO" | "EMAIL" | "DESCONOCIDO").
@@ -21,5 +21,5 @@ public interface MessageFilterService {
      * @param texto cuerpo del mensaje a analizar
      * @return el nombre del patrón detectado
      */
-    String detectarPatron(String texto);
+    String detectPattern(String texto);
 }

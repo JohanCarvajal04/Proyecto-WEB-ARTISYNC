@@ -44,9 +44,9 @@ class ChatControllerTest {
         CustomUserDetails user = mockUserDetails();
         Pageable pageable = mock(Pageable.class);
         Page<ChatMessageResponse> page = new PageImpl<>(Collections.emptyList());
-        when(chatService.obtenerMensajes(10L, 1L, pageable)).thenReturn(page);
+        when(chatService.getMessages(10L, 1L, pageable)).thenReturn(page);
 
-        ResponseEntity<Page<ChatMessageResponse>> res = controlador.obtenerMensajes(10L, pageable, user);
+        ResponseEntity<Page<ChatMessageResponse>> res = controlador.getMessages(10L, pageable, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(page);
     }
@@ -57,9 +57,9 @@ class ChatControllerTest {
         SendMessageRequest peticion = new SendMessageRequest();
         peticion.setCuerpoMensaje("hola");
         ChatMessageResponse respuesta = new ChatMessageResponse();
-        when(chatService.enviarMensaje(10L, 1L, "hola")).thenReturn(respuesta);
+        when(chatService.sendMessage(10L, 1L, "hola")).thenReturn(respuesta);
 
-        ResponseEntity<ChatMessageResponse> res = controlador.enviarMensaje(10L, peticion, user);
+        ResponseEntity<ChatMessageResponse> res = controlador.sendMessage(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -68,9 +68,9 @@ class ChatControllerTest {
     void obtenerEstado_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         ChatRoomResponse respuesta = new ChatRoomResponse();
-        when(chatService.obtenerEstadoSala(10L, 1L)).thenReturn(respuesta);
+        when(chatService.getRoomStatus(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<ChatRoomResponse> res = controlador.obtenerEstado(10L, user);
+        ResponseEntity<ChatRoomResponse> res = controlador.getStatus(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -82,7 +82,7 @@ class ChatControllerTest {
         peticion.setCuerpoMensaje("hola");
         // idPedido es null
 
-        assertThrows(BusinessRuleException.class, () -> controlador.enviarMensajeWs(peticion, user));
+        assertThrows(BusinessRuleException.class, () -> controlador.sendMessageWs(peticion, user));
     }
 
     @Test
@@ -92,7 +92,7 @@ class ChatControllerTest {
         peticion.setIdPedido(10L);
         peticion.setCuerpoMensaje("hola");
 
-        controlador.enviarMensajeWs(peticion, user);
-        org.mockito.Mockito.verify(chatService).enviarMensaje(10L, 1L, "hola");
+        controlador.sendMessageWs(peticion, user);
+        org.mockito.Mockito.verify(chatService).sendMessage(10L, 1L, "hola");
     }
 }

@@ -54,7 +54,7 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @return el comentario creado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la obra o el usuario no existen
      */
-    public CommentResponse crearComentario(Long idItemPortafolio, CreateCommentRequest peticion, Long idUsuarioAutor) {
+    public CommentResponse createComment(Long idItemPortafolio, CreateCommentRequest peticion, Long idUsuarioAutor) {
         PortfolioItem item = portafolioItemRepository.findById(idItemPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Ítem de portafolio no encontrado: " + idItemPortafolio));
@@ -81,7 +81,7 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @param pageable paginación y ordenamiento solicitados
      * @return los comentarios activos (públicos) de esa obra
      */
-    public Page<CommentResponse> listarComentarios(Long idItemPortafolio, Pageable pageable) {
+    public Page<CommentResponse> listComments(Long idItemPortafolio, Pageable pageable) {
         return comentarioRepository
                 .findByItemPortafolioIdItemPortafolioAndEstadoModeracion(idItemPortafolio, ESTADO_ACTIVO, pageable)
                 .map(this::mapToResponse);
@@ -93,7 +93,7 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @param idItemPortafolio identificador de la obra
      * @return la cantidad de comentarios activos (públicos) de esa obra
      */
-    public long contarComentarios(Long idItemPortafolio) {
+    public long countComments(Long idItemPortafolio) {
         return comentarioRepository.countByItemPortafolioIdItemPortafolioAndEstadoModeracion(
                 idItemPortafolio, ESTADO_ACTIVO);
     }
@@ -101,7 +101,7 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
     /**
      * REQ-F-010: el autor o el dueño del portafolio hacen un borrado lógico
      * (estado "Eliminado"): desaparece de la vista pública pero el admin sigue
-     * pudiendo consultarlo vía {@link #listarParaModeracion}. Solo el purgado
+     * pudiendo consultarlo vía {@link #listForModeration}. Solo el purgado
      * explícito de ADMIN (vía {@code AdminCommentController}) borra la fila
      * de verdad; es una herramienta de moderación aparte, no lo que pide este
      * requisito.
@@ -121,8 +121,8 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @throws org.springframework.security.access.AccessDeniedException si quien elimina no es
      *         admin, ni el autor, ni el dueño del portafolio
      */
-    public void eliminarComentario(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin) {
-        PortfolioComment comentario = obtenerComentario(idComentario);
+    public void deleteComment(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin) {
+        PortfolioComment comentario = getComment(idComentario);
 
         boolean esAutor = comentario.getUsuarioAutor() != null
                 && comentario.getUsuarioAutor().getIdUsuario().equals(idUsuarioSolicitante);
@@ -152,7 +152,7 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @param pageable paginación y ordenamiento solicitados
      * @return todos los comentarios (en cualquier estado de moderación), para el panel de moderación
      */
-    public Page<CommentResponse> listarParaModeracion(Pageable pageable) {
+    public Page<CommentResponse> listForModeration(Pageable pageable) {
         return comentarioRepository.findAll(pageable).map(this::mapToResponse);
     }
 
@@ -167,8 +167,8 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @return el comentario ya marcado como {@code Oculto}
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
-    public CommentResponse ocultarComentario(Long idComentario) {
-        PortfolioComment comentario = obtenerComentarioParaModerar(idComentario);
+    public CommentResponse hideComment(Long idComentario) {
+        PortfolioComment comentario = getCommentForModeration(idComentario);
         comentario.setEstadoModeracion(ESTADO_OCULTO);
         log.info("Comentario {} ocultado por moderación", idComentario);
         return mapToResponse(comentario);
@@ -185,8 +185,8 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * @return el comentario ya marcado como {@code Activo}
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
-    public CommentResponse reactivarComentario(Long idComentario) {
-        PortfolioComment comentario = obtenerComentarioParaModerar(idComentario);
+    public CommentResponse reactivateComment(Long idComentario) {
+        PortfolioComment comentario = getCommentForModeration(idComentario);
         comentario.setEstadoModeracion(ESTADO_ACTIVO);
         log.info("Comentario {} reactivado por moderación", idComentario);
         return mapToResponse(comentario);
@@ -200,13 +200,13 @@ public class PortfolioCommentServiceImpl implements PortfolioCommentService {
      * ningún aviso. La segunda llamada espera a que la primera confirme y
      * relee el estado ya actualizado antes de aplicar la suya.
      */
-    private PortfolioComment obtenerComentarioParaModerar(Long idComentario) {
+    private PortfolioComment getCommentForModeration(Long idComentario) {
         return comentarioRepository.findByIdParaModerar(idComentario)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Comentario no encontrado: " + idComentario));
     }
 
-    private PortfolioComment obtenerComentario(Long idComentario) {
+    private PortfolioComment getComment(Long idComentario) {
         return comentarioRepository.findById(idComentario)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Comentario no encontrado: " + idComentario));

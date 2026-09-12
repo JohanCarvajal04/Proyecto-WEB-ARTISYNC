@@ -19,14 +19,14 @@ public interface ViolationService {
      * @param idPedido  id del pedido relacionado al chat donde ocurrió
      * @param mensaje   texto del mensaje que contenía el dato de contacto
      */
-    void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje);
+    void registerViolation(Long idUsuario, Long idPedido, String mensaje);
 
     /** Lista todas las infracciones (solo ADMIN). */
-    Page<ViolationResponse> listarInfracciones(Pageable pageable);
+    Page<ViolationResponse> listViolations(Pageable pageable);
 
     /** Historial de infracciones de un usuario específico (solo ADMIN). */
-    Page<ViolationResponse> historialPorUsuario(Long idUsuario, Pageable pageable);
+    Page<ViolationResponse> getHistoryByUser(Long idUsuario, Pageable pageable);
 
     /** Revierte una suspensión reactivando la cuenta del usuario (solo ADMIN). */
-    RespuestaMensaje revertirSuspension(Long idUsuario);
+    RespuestaMensaje revertSuspension(Long idUsuario);
 }

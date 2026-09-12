@@ -46,11 +46,11 @@ public class ChatController {
     @Operation(summary = "Historial de mensajes de un pedido (paginado)")
     @GetMapping("/mensajes")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Page<ChatMessageResponse>> obtenerMensajes(
+    public ResponseEntity<Page<ChatMessageResponse>> getMessages(
             @PathVariable Long idPedido,
             Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(chatService.obtenerMensajes(idPedido, userDetails.getIdUsuario(), pageable));
+        return ResponseEntity.ok(chatService.getMessages(idPedido, userDetails.getIdUsuario(), pageable));
     }
 
     /**
@@ -66,11 +66,11 @@ public class ChatController {
     @Operation(summary = "Enviar mensaje por REST (fallback sin WebSocket)")
     @PostMapping("/mensajes")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ChatMessageResponse> enviarMensaje(
+    public ResponseEntity<ChatMessageResponse> sendMessage(
             @PathVariable Long idPedido,
             @Valid @RequestBody SendMessageRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ChatMessageResponse respuesta = chatService.enviarMensaje(
+        ChatMessageResponse respuesta = chatService.sendMessage(
                 idPedido, userDetails.getIdUsuario(), peticion.getCuerpoMensaje());
         return ResponseEntity.ok(respuesta);
     }
@@ -87,10 +87,10 @@ public class ChatController {
     @Operation(summary = "Estado actual de la sala de chat de un pedido")
     @GetMapping("/estado")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ChatRoomResponse> obtenerEstado(
+    public ResponseEntity<ChatRoomResponse> getStatus(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(chatService.obtenerEstadoSala(idPedido, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(chatService.getRoomStatus(idPedido, userDetails.getIdUsuario()));
     }
 
     // -------------------------------------------------------------------------
@@ -107,13 +107,13 @@ public class ChatController {
      *      la sala está cerrada o el mensaje contiene datos de contacto
      */
     @MessageMapping("/chat.enviar")
-    public void enviarMensajeWs(
+    public void sendMessageWs(
             @Payload SendMessageRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         if (peticion.getIdPedido() == null) {
             log.warn("Message STOMP recibido sin idPedido, usuario {}", userDetails.getIdUsuario());
             throw new BusinessRuleException("idPedido es obligatorio para enviar mensajes por WebSocket");
         }
-        chatService.enviarMensaje(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());
+        chatService.sendMessage(peticion.getIdPedido(), userDetails.getIdUsuario(), peticion.getCuerpoMensaje());
     }
 }

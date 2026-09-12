@@ -168,8 +168,8 @@ public class RevisionTicketPaymentServiceImpl implements IRevisionTicketPaymentS
 
         String mensaje = "Se confirmó el pago de la revisión adicional del pedido \""
                 + pedido.getServicio().getTituloServicio() + "\".";
-        notificacionService.notificar(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
-        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO", mensaje);
+        notificacionService.notify(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
+        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO", mensaje);
         return true;
     }
 

@@ -178,7 +178,7 @@ class OrderServiceImplTest {
         assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("20.00");
         // La sala se abre desde la creación, no al firmar: así pueden
         // negociar por chat antes de comprometerse con el contrato.
-        verify(chatService).crearSala(any(Order.class));
+        verify(chatService).createRoom(any(Order.class));
     }
 
     @Test
@@ -336,7 +336,7 @@ class OrderServiceImplTest {
 
         assertThat(respuesta.getPrecioPropuesto()).isEqualByComparingTo("35.00");
         assertThat(respuesta.getEstado()).isEqualTo(OrderTermsProposal.PENDIENTE);
-        verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(creador), anyString(), anyString());
+        verify(notificacionService).notify(org.mockito.ArgumentMatchers.eq(creador), anyString(), anyString());
     }
 
     @Test
@@ -375,7 +375,7 @@ class OrderServiceImplTest {
         assertThat(respuesta.getPrecioPactado()).isEqualByComparingTo("35.00");
         assertThat(propuesta.getEstado()).isEqualTo(OrderTermsProposal.ACEPTADA);
         verify(contratoServicio).generarContrato(10L, 2L);
-        verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
+        verify(notificacionService).notify(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
     }
 
     @Test
@@ -429,7 +429,7 @@ class OrderServiceImplTest {
 
         assertThat(respuesta.getEstado()).isEqualTo(OrderTermsProposal.RECHAZADA);
         verify(pedidoRepository, never()).save(any());
-        verify(notificacionService).notificar(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
+        verify(notificacionService).notify(org.mockito.ArgumentMatchers.eq(cliente), anyString(), anyString());
     }
 
     @Test

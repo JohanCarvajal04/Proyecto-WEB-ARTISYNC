@@ -44,12 +44,12 @@ public class BriefingController {
     @PostMapping("/api/v1/briefing/plantillas")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<BriefingResponse> crearPlantilla(
+    public ResponseEntity<BriefingResponse> createTemplate(
             @Valid @RequestBody CreateBriefingTemplateRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         // BriefingServiceImpl resuelve el CreatorProfile propio a partir de este idUsuario.
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(briefingService.crearPlantilla(userDetails.getIdUsuario(), peticion));
+                .body(briefingService.createTemplate(userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -60,9 +60,9 @@ public class BriefingController {
     @Operation(summary = "Listar mis plantillas de briefing")
     @GetMapping("/api/v1/briefing/plantillas")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<BriefingResponse>> obtenerMisPlantillas(
+    public ResponseEntity<List<BriefingResponse>> getMyTemplates(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(briefingService.obtenerMisPlantillas(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(briefingService.getMyTemplates(userDetails.getIdUsuario()));
     }
 
     /**
@@ -75,12 +75,12 @@ public class BriefingController {
     @Operation(summary = "Editar plantilla de briefing")
     @PutMapping("/api/v1/briefing/plantillas/{idPlantilla}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BriefingResponse> editarPlantilla(
+    public ResponseEntity<BriefingResponse> updateTemplate(
             @PathVariable Long idPlantilla,
             @Valid @RequestBody CreateBriefingTemplateRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
-                briefingService.editarPlantilla(idPlantilla, userDetails.getIdUsuario(), peticion));
+                briefingService.updateTemplate(idPlantilla, userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -92,11 +92,11 @@ public class BriefingController {
     @Operation(summary = "Eliminar plantilla de briefing")
     @DeleteMapping("/api/v1/briefing/plantillas/{idPlantilla}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> eliminarPlantilla(
+    public ResponseEntity<RespuestaMensaje> deleteTemplate(
             @PathVariable Long idPlantilla,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
-                briefingService.eliminarPlantilla(idPlantilla, userDetails.getIdUsuario()));
+                briefingService.deleteTemplate(idPlantilla, userDetails.getIdUsuario()));
     }
 
     // =========================================================================
@@ -114,9 +114,9 @@ public class BriefingController {
     @Operation(summary = "Ver el cuestionario respondido de un pedido")
     @GetMapping("/api/v1/pedidos/{idPedido}/briefing")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BriefingResponse> obtenerBriefing(
+    public ResponseEntity<BriefingResponse> getBriefing(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(briefingService.obtenerBriefing(idPedido, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(briefingService.getBriefing(idPedido, userDetails.getIdUsuario()));
     }
 }

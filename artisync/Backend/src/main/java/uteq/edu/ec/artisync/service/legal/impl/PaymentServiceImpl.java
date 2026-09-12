@@ -302,8 +302,8 @@ public class PaymentServiceImpl implements IPaymentService {
         Order pedido = pago.getContrato().getPedido();
         String mensaje = "El pago de tu pedido \"" + pedido.getServicio().getTituloServicio()
                 + "\" fue confirmado. Los fondos quedan en garantía hasta la aprobación de la entrega.";
-        notificacionService.notificar(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
-        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO",
+        notificacionService.notify(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
+        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO",
                 "Se confirmó el pago de garantía para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
     }
 
@@ -489,8 +489,8 @@ public class PaymentServiceImpl implements IPaymentService {
         String tituloServicio = pedido.getServicio().getTituloServicio();
         String mensaje = "El pedido \"" + tituloServicio + "\" fue cancelado. Estado del pago: "
                 + pago.getEstadoFondos() + ".";
-        notificacionService.notificar(pedido.getUsuarioCliente(), "PEDIDO_CANCELADO", mensaje);
-        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PEDIDO_CANCELADO", mensaje);
+        notificacionService.notify(pedido.getUsuarioCliente(), "PEDIDO_CANCELADO", mensaje);
+        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), "PEDIDO_CANCELADO", mensaje);
 
         return PaymentResponse.builder()
                 .idPago(pago.getIdPago())

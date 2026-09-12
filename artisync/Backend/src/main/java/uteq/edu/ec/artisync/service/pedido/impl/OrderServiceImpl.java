@@ -158,7 +158,7 @@ public class OrderServiceImpl implements IOrderService {
         // creador pueden negociar precio/alcance por chat antes de
         // comprometerse con un contrato (ver proponerTerminos). Antes solo
         // se abría cuando ambas partes ya habían firmado.
-        chatService.crearSala(pedido);
+        chatService.createRoom(pedido);
 
         return mapToRespuesta(pedido);
     }
@@ -210,7 +210,7 @@ public class OrderServiceImpl implements IOrderService {
                 idPedido, propuesta.getIdPropuesta(), idUsuario, propuesta.getPrecioPropuesto(), propuesta.getFechaEntregaPropuesta());
 
         User otraParte = obtenerContraparte(pedido, idUsuario);
-        notificacionService.notificar(otraParte, "PEDIDO_PROPUESTA_TERMINOS_CREADA",
+        notificacionService.notify(otraParte, "PEDIDO_PROPUESTA_TERMINOS_CREADA",
                 "Te proponen nuevos términos para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
 
         return mapPropuesta(propuesta);
@@ -271,7 +271,7 @@ public class OrderServiceImpl implements IOrderService {
             contratoServicio.generarContrato(idPedido, idUsuario);
         }
 
-        notificacionService.notificar(propuesta.getPropuestoPor(),
+        notificacionService.notify(propuesta.getPropuestoPor(),
                 contratoRecienGenerado ? "PEDIDO_PROPUESTA_TERMINOS_ACEPTADA_CONTRATO_GENERADO" : "PEDIDO_PROPUESTA_TERMINOS_ACEPTADA",
                 "Aceptaron tus términos propuestos para el pedido \"" + pedido.getServicio().getTituloServicio() + "\"."
                         + (contratoRecienGenerado ? " Se generó el contrato." : ""));
@@ -308,7 +308,7 @@ public class OrderServiceImpl implements IOrderService {
 
         log.info("Order {} rechazó propuesta de términos {} (usuario {})", idPedido, idPropuesta, idUsuario);
 
-        notificacionService.notificar(propuesta.getPropuestoPor(), "PEDIDO_PROPUESTA_TERMINOS_RECHAZADA",
+        notificacionService.notify(propuesta.getPropuestoPor(), "PEDIDO_PROPUESTA_TERMINOS_RECHAZADA",
                 "Rechazaron tus términos propuestos para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
 
         return mapPropuesta(propuesta);
@@ -720,7 +720,7 @@ public class OrderServiceImpl implements IOrderService {
         log.info("Order {} avanzó a etapa '{}' (orden {})",
                 idPedido, siguienteConfig.getEtapa().getNombreEtapa(), siguienteConfig.getNumeroOrden());
 
-        notificacionService.notificar(pedido.getUsuarioCliente(), "PEDIDO_AVANCE",
+        notificacionService.notify(pedido.getUsuarioCliente(), "PEDIDO_AVANCE",
                 "Tu pedido ha avanzado a: " + siguienteConfig.getEtapa().getNombreEtapa());
 
         return mapToRespuesta(pedido);

@@ -59,12 +59,12 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("seguirCreador — exito cuando usuario no es el creador")
+    @DisplayName("followCreator — exito cuando usuario no es el creador")
     void seguirCreador_exito() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(12400L);
 
-        FollowStatusResponse respuesta = seguidorServicio.seguirCreador(20L, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.followCreator(20L, 1L);
 
         assertThat(respuesta).isNotNull();
         assertThat(respuesta.getEsSeguidor()).isTrue();
@@ -75,31 +75,31 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("seguirCreador — lanza excepcion si el creador se intenta seguir a si mismo")
+    @DisplayName("followCreator — lanza excepcion si el creador se intenta seguir a si mismo")
     void seguirCreador_autoSeguimiento_lanzaExcepcion() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
 
-        assertThatThrownBy(() -> seguidorServicio.seguirCreador(10L, 1L))
+        assertThatThrownBy(() -> seguidorServicio.followCreator(10L, 1L))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("no puede seguirse a sí mismo");
     }
 
     @Test
-    @DisplayName("seguirCreador — lanza excepcion si el perfil no existe")
+    @DisplayName("followCreator — lanza excepcion si el perfil no existe")
     void seguirCreador_perfilNoExiste_lanzaExcepcion() {
         given(perfilCreadorRepository.findById(99L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> seguidorServicio.seguirCreador(20L, 99L))
+        assertThatThrownBy(() -> seguidorServicio.followCreator(20L, 99L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("dejarDeSeguirCreador — exito")
+    @DisplayName("unfollowCreator — exito")
     void dejarDeSeguirCreador_exito() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(12399L);
 
-        FollowStatusResponse respuesta = seguidorServicio.dejarDeSeguirCreador(20L, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.unfollowCreator(20L, 1L);
 
         assertThat(respuesta.getEsSeguidor()).isFalse();
         assertThat(respuesta.getTotalSeguidores()).isEqualTo(12399L);
@@ -108,12 +108,12 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerEstadoSeguimiento — detecta perfil propio")
+    @DisplayName("getFollowStatus — detecta perfil propio")
     void obtenerEstadoSeguimiento_esPropioPerfil() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(12400L);
 
-        FollowStatusResponse respuesta = seguidorServicio.obtenerEstadoSeguimiento(10L, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.getFollowStatus(10L, 1L);
 
         assertThat(respuesta.getEsPropioPerfil()).isTrue();
         assertThat(respuesta.getEsSeguidor()).isFalse();
@@ -121,46 +121,46 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("dejarDeSeguirCreador — lanza excepcion si el perfil no existe")
+    @DisplayName("unfollowCreator — lanza excepcion si el perfil no existe")
     void dejarDeSeguirCreador_perfilNoExiste_lanzaExcepcion() {
         given(perfilCreadorRepository.findById(99L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> seguidorServicio.dejarDeSeguirCreador(20L, 99L))
+        assertThatThrownBy(() -> seguidorServicio.unfollowCreator(20L, 99L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerEstadoSeguimiento — visitante autenticado que si es seguidor")
+    @DisplayName("getFollowStatus — visitante autenticado que si es seguidor")
     void obtenerEstadoSeguimiento_visitanteEsSeguidor() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnEsSeguidor(20L, 1L)).willReturn(Boolean.TRUE);
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(12400L);
 
-        FollowStatusResponse respuesta = seguidorServicio.obtenerEstadoSeguimiento(20L, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.getFollowStatus(20L, 1L);
 
         assertThat(respuesta.getEsPropioPerfil()).isFalse();
         assertThat(respuesta.getEsSeguidor()).isTrue();
     }
 
     @Test
-    @DisplayName("obtenerEstadoSeguimiento — visitante autenticado que no es seguidor")
+    @DisplayName("getFollowStatus — visitante autenticado que no es seguidor")
     void obtenerEstadoSeguimiento_visitanteNoEsSeguidor() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnEsSeguidor(20L, 1L)).willReturn(Boolean.FALSE);
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(12400L);
 
-        FollowStatusResponse respuesta = seguidorServicio.obtenerEstadoSeguimiento(20L, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.getFollowStatus(20L, 1L);
 
         assertThat(respuesta.getEsSeguidor()).isFalse();
     }
 
     @Test
-    @DisplayName("obtenerEstadoSeguimiento — visitante anonimo (sin usuario autenticado)")
+    @DisplayName("getFollowStatus — visitante anonimo (sin usuario autenticado)")
     void obtenerEstadoSeguimiento_visitanteAnonimo() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(12400L);
 
-        FollowStatusResponse respuesta = seguidorServicio.obtenerEstadoSeguimiento(null, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.getFollowStatus(null, 1L);
 
         assertThat(respuesta.getEsPropioPerfil()).isFalse();
         assertThat(respuesta.getEsSeguidor()).isFalse();
@@ -168,18 +168,18 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("obtenerEstadoSeguimiento — total nulo se reporta como cero")
+    @DisplayName("getFollowStatus — total nulo se reporta como cero")
     void obtenerEstadoSeguimiento_totalNulo_seReportaComoCero() {
         given(perfilCreadorRepository.findById(1L)).willReturn(Optional.of(perfilCreador));
         given(seguidorRepository.ejecutarFnConteoSeguidores(1L)).willReturn(null);
 
-        FollowStatusResponse respuesta = seguidorServicio.obtenerEstadoSeguimiento(null, 1L);
+        FollowStatusResponse respuesta = seguidorServicio.getFollowStatus(null, 1L);
 
         assertThat(respuesta.getTotalSeguidores()).isEqualTo(0L);
     }
 
     @Test
-    @DisplayName("listarSeguidores — mapea la lista de seguidores del perfil")
+    @DisplayName("listFollowers — mapea la lista de seguidores del perfil")
     void listarSeguidores_mapeaLista() {
         User seguidor = User.builder().idUsuario(30L).nombres("Carlos").apellidos("Pino").build();
         Follower s = Follower.builder()
@@ -187,7 +187,7 @@ class FollowerServiceImplTest {
                 .notificacionesActivas(true).fechaSeguimiento(LocalDateTime.now()).build();
         given(seguidorRepository.findByPerfilCreadorIdPerfil(1L)).willReturn(List.of(s));
 
-        List<FollowerResponse> resultado = seguidorServicio.listarSeguidores(1L);
+        List<FollowerResponse> resultado = seguidorServicio.listFollowers(1L);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getNombreSeguidor()).isEqualTo("Carlos Pino");
@@ -195,14 +195,14 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("listarCreadoresSeguidosNovedades — genera el handle a partir del nombre")
+    @DisplayName("listFollowedCreatorUpdates — genera el handle a partir del nombre")
     void listarCreadoresSeguidosNovedades_generaHandle() {
         Follower s = Follower.builder()
                 .idSeguimiento(5L).usuarioSeguidor(User.builder().idUsuario(20L).build())
                 .perfilCreador(perfilCreador).fechaSeguimiento(LocalDateTime.now()).build();
         given(seguidorRepository.findByUsuarioSeguidorIdUsuario(20L)).willReturn(List.of(s));
 
-        List<FollowedCreatorUpdateResponse> resultado = seguidorServicio.listarCreadoresSeguidosNovedades(20L);
+        List<FollowedCreatorUpdateResponse> resultado = seguidorServicio.listFollowedCreatorUpdates(20L);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getHandle()).isEqualTo("@valentina");
@@ -210,7 +210,7 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("listarCreadoresSeguidosNovedades — usa handle por defecto si el creador no tiene nombre")
+    @DisplayName("listFollowedCreatorUpdates — usa handle por defecto si el creador no tiene nombre")
     void listarCreadoresSeguidosNovedades_sinNombre_usaHandlePorDefecto() {
         User creadorSinNombre = User.builder().idUsuario(11L).build();
         CreatorProfile perfilSinNombre = CreatorProfile.builder().idPerfil(2L).usuario(creadorSinNombre).build();
@@ -219,26 +219,26 @@ class FollowerServiceImplTest {
                 .perfilCreador(perfilSinNombre).fechaSeguimiento(LocalDateTime.now()).build();
         given(seguidorRepository.findByUsuarioSeguidorIdUsuario(20L)).willReturn(List.of(s));
 
-        List<FollowedCreatorUpdateResponse> resultado = seguidorServicio.listarCreadoresSeguidosNovedades(20L);
+        List<FollowedCreatorUpdateResponse> resultado = seguidorServicio.listFollowedCreatorUpdates(20L);
 
         assertThat(resultado.get(0).getHandle()).isEqualTo("@creador");
     }
 
     @Test
-    @DisplayName("actualizarPortadaYTitulo — lanza excepcion si el usuario no tiene perfil de creador")
+    @DisplayName("updateCoverAndTitle — lanza excepcion si el usuario no tiene perfil de creador")
     void actualizarPortadaYTitulo_sinPerfil_lanzaExcepcion() {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(99L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> seguidorServicio.actualizarPortadaYTitulo(99L, "url", "titulo"))
+        assertThatThrownBy(() -> seguidorServicio.updateCoverAndTitle(99L, "url", "titulo"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("actualizarPortadaYTitulo — actualiza ambos campos cuando vienen informados")
+    @DisplayName("updateCoverAndTitle — actualiza ambos campos cuando vienen informados")
     void actualizarPortadaYTitulo_actualizaAmbosCampos() {
         given(perfilCreadorRepository.findByUsuarioIdUsuario(10L)).willReturn(Optional.of(perfilCreador));
 
-        boolean resultado = seguidorServicio.actualizarPortadaYTitulo(10L, "https://cdn/portada.jpg", "Ilustradora Senior");
+        boolean resultado = seguidorServicio.updateCoverAndTitle(10L, "https://cdn/portada.jpg", "Ilustradora Senior");
 
         assertThat(resultado).isTrue();
         assertThat(perfilCreador.getUrlPortada()).isEqualTo("https://cdn/portada.jpg");
@@ -247,13 +247,13 @@ class FollowerServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarPortadaYTitulo — no sobrescribe campos que llegan nulos")
+    @DisplayName("updateCoverAndTitle — no sobrescribe campos que llegan nulos")
     void actualizarPortadaYTitulo_camposNulos_noSobrescribe() {
         perfilCreador.setUrlPortada("https://cdn/original.jpg");
         perfilCreador.setTituloProfesional("Original");
         given(perfilCreadorRepository.findByUsuarioIdUsuario(10L)).willReturn(Optional.of(perfilCreador));
 
-        seguidorServicio.actualizarPortadaYTitulo(10L, null, null);
+        seguidorServicio.updateCoverAndTitle(10L, null, null);
 
         assertThat(perfilCreador.getUrlPortada()).isEqualTo("https://cdn/original.jpg");
         assertThat(perfilCreador.getTituloProfesional()).isEqualTo("Original");

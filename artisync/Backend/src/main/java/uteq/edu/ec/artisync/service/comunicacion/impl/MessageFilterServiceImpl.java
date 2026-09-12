@@ -42,7 +42,7 @@ public class MessageFilterServiceImpl implements MessageFilterService {
      * @return valor logico verdadero si la comprobacion fue exitosa, o falso si no cumplio los requisitos
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public boolean contieneContacto(String texto) {
+    public boolean containsContactInfo(String texto) {
         if (texto == null || texto.isBlank()) {
             return false;
         }
@@ -58,7 +58,7 @@ public class MessageFilterServiceImpl implements MessageFilterService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public String detectarPatron(String texto) {
+    public String detectPattern(String texto) {
         if (texto == null || texto.isBlank()) {
             return "DESCONOCIDO";
         }

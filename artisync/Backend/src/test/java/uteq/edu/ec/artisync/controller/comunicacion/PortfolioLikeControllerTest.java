@@ -34,9 +34,9 @@ class PortfolioLikeControllerTest {
     void darLike_devuelveCreated() {
         CustomUserDetails user = mockUserDetails();
         LikeStatusResponse respuesta = new LikeStatusResponse(1L, 10L, true);
-        when(likeService.darLike(10L, 1L)).thenReturn(respuesta);
+        when(likeService.like(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<LikeStatusResponse> res = controlador.darLike(10L, user);
+        ResponseEntity<LikeStatusResponse> res = controlador.like(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -45,9 +45,9 @@ class PortfolioLikeControllerTest {
     void quitarLike_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         LikeStatusResponse respuesta = new LikeStatusResponse(1L, 9L, false);
-        when(likeService.quitarLike(10L, 1L)).thenReturn(respuesta);
+        when(likeService.unlike(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<LikeStatusResponse> res = controlador.quitarLike(10L, user);
+        ResponseEntity<LikeStatusResponse> res = controlador.unlike(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -56,9 +56,9 @@ class PortfolioLikeControllerTest {
     void obtenerEstado_conUsuario_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         LikeStatusResponse respuesta = new LikeStatusResponse(1L, 10L, true);
-        when(likeService.obtenerEstado(10L, 1L)).thenReturn(respuesta);
+        when(likeService.getStatus(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<LikeStatusResponse> res = controlador.obtenerEstado(10L, user);
+        ResponseEntity<LikeStatusResponse> res = controlador.getStatus(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -66,9 +66,9 @@ class PortfolioLikeControllerTest {
     @Test
     void obtenerEstado_sinUsuario_devuelveOk() {
         LikeStatusResponse respuesta = new LikeStatusResponse(1L, 10L, false);
-        when(likeService.obtenerEstado(10L, null)).thenReturn(respuesta);
+        when(likeService.getStatus(10L, null)).thenReturn(respuesta);
 
-        ResponseEntity<LikeStatusResponse> res = controlador.obtenerEstado(10L, null);
+        ResponseEntity<LikeStatusResponse> res = controlador.getStatus(10L, null);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

@@ -73,11 +73,11 @@ class BriefingServiceImplTest {
     }
 
     // =========================================================================
-    // crearPlantilla
+    // createTemplate
     // =========================================================================
 
     @Test
-    @DisplayName("crearPlantilla — crea plantilla con preguntas correctamente")
+    @DisplayName("createTemplate — crea plantilla con preguntas correctamente")
     void crearPlantilla_valida_creaExitosamente() {
         CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
                 .nombrePlantilla("Briefing Logo")
@@ -94,7 +94,7 @@ class BriefingServiceImplTest {
                 .preguntas(new ArrayList<>())
                 .build();
 
-        // idUsuario (1L) != idPerfil (5L) a propósito: si crearPlantilla buscara
+        // idUsuario (1L) != idPerfil (5L) a propósito: si createTemplate buscara
         // el perfil con findById(idUsuario) en vez de findByUsuarioIdUsuario,
         // este stub no aplicaría y el test fallaría con "Perfil creador no
         // encontrado" — así queda protegida la regresión real que reportó el
@@ -102,14 +102,14 @@ class BriefingServiceImplTest {
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
         when(plantillaRepo.save(any(BriefingTemplate.class))).thenReturn(plantilla);
 
-        BriefingResponse respuesta = briefingService.crearPlantilla(1L, peticion);
+        BriefingResponse respuesta = briefingService.createTemplate(1L, peticion);
 
         assertThat(respuesta.getNombrePlantilla()).isEqualTo("Briefing Logo");
         verify(plantillaRepo, times(2)).save(any(BriefingTemplate.class));
     }
 
     @Test
-    @DisplayName("crearPlantilla — más de 10 preguntas lanza excepción")
+    @DisplayName("createTemplate — más de 10 preguntas lanza excepción")
     void crearPlantilla_masDeMaxPreguntas_lanzaExcepcion() {
         List<CreateBriefingTemplateRequest.PreguntaRequest> muchasPreguntas = new ArrayList<>();
         for (int i = 1; i <= 11; i++) {
@@ -123,29 +123,29 @@ class BriefingServiceImplTest {
 
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
 
-        assertThatThrownBy(() -> briefingService.crearPlantilla(1L, peticion))
+        assertThatThrownBy(() -> briefingService.createTemplate(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("10 preguntas");
     }
 
     @Test
-    @DisplayName("crearPlantilla — usuario sin perfil de creador lanza ResourceNotFoundException")
+    @DisplayName("createTemplate — usuario sin perfil de creador lanza ResourceNotFoundException")
     void crearPlantilla_sinPerfilCreador_lanzaExcepcion() {
         CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
                 .nombrePlantilla("X").preguntas(List.of(new CreateBriefingTemplateRequest.PreguntaRequest("¿?", 1)))
                 .build();
         when(perfilRepo.findByUsuarioIdUsuario(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> briefingService.crearPlantilla(999L, peticion))
+        assertThatThrownBy(() -> briefingService.createTemplate(999L, peticion))
                 .isInstanceOf(uteq.edu.ec.artisync.exception.ResourceNotFoundException.class);
     }
 
     // =========================================================================
-    // obtenerMisPlantillas / editarPlantilla / eliminarPlantilla
+    // getMyTemplates / updateTemplate / deleteTemplate
     // =========================================================================
 
     @Test
-    @DisplayName("obtenerMisPlantillas — filtra por el id_perfil real del usuario autenticado, no por su id_usuario")
+    @DisplayName("getMyTemplates — filtra por el id_perfil real del usuario autenticado, no por su id_usuario")
     void obtenerMisPlantillas_resuelvePerfilPorUsuario() {
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
         when(plantillaRepo.findByPerfilCreadorIdPerfil(5L)).thenReturn(List.of(
@@ -153,14 +153,14 @@ class BriefingServiceImplTest {
                         .nombrePlantilla("Briefing Logo").preguntas(new ArrayList<>()).build()
         ));
 
-        List<BriefingResponse> resultado = briefingService.obtenerMisPlantillas(1L);
+        List<BriefingResponse> resultado = briefingService.getMyTemplates(1L);
 
         assertThat(resultado).hasSize(1);
         assertThat(resultado.get(0).getNombrePlantilla()).isEqualTo("Briefing Logo");
     }
 
     @Test
-    @DisplayName("editarPlantilla — el dueño real (por id_perfil) puede editar su plantilla")
+    @DisplayName("updateTemplate — el dueño real (por id_perfil) puede editar su plantilla")
     void editarPlantilla_dueno_puedeEditar() {
         BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
@@ -173,13 +173,13 @@ class BriefingServiceImplTest {
         when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
         when(plantillaRepo.save(any(BriefingTemplate.class))).thenReturn(plantilla);
 
-        BriefingResponse respuesta = briefingService.editarPlantilla(1L, 1L, peticion);
+        BriefingResponse respuesta = briefingService.updateTemplate(1L, 1L, peticion);
 
         assertThat(respuesta.getNombrePlantilla()).isEqualTo("Nueva");
     }
 
     @Test
-    @DisplayName("editarPlantilla — un creador ajeno (otro id_perfil) no puede editarla")
+    @DisplayName("updateTemplate — un creador ajeno (otro id_perfil) no puede editarla")
     void editarPlantilla_ajeno_rechaza() {
         BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador)
@@ -193,13 +193,13 @@ class BriefingServiceImplTest {
         CreateBriefingTemplateRequest peticion = CreateBriefingTemplateRequest.builder()
                 .nombrePlantilla("Nueva").preguntas(List.of()).build();
 
-        assertThatThrownBy(() -> briefingService.editarPlantilla(1L, 2L, peticion))
+        assertThatThrownBy(() -> briefingService.updateTemplate(1L, 2L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("permiso");
     }
 
     @Test
-    @DisplayName("eliminarPlantilla — el dueño real (por id_perfil) puede eliminar su plantilla")
+    @DisplayName("deleteTemplate — el dueño real (por id_perfil) puede eliminar su plantilla")
     void eliminarPlantilla_dueno_puedeEliminar() {
         BriefingTemplate plantilla = BriefingTemplate.builder()
                 .idBriefingPlantilla(1L).perfilCreador(perfilCreador).build();
@@ -207,25 +207,25 @@ class BriefingServiceImplTest {
         when(perfilRepo.findByUsuarioIdUsuario(1L)).thenReturn(Optional.of(perfilCreador));
         when(plantillaRepo.findById(1L)).thenReturn(Optional.of(plantilla));
 
-        assertThat(briefingService.eliminarPlantilla(1L, 1L).getMessage()).contains("eliminada");
+        assertThat(briefingService.deleteTemplate(1L, 1L).getMessage()).contains("eliminada");
         verify(plantillaRepo).delete(plantilla);
     }
 
     // =========================================================================
-    // obtenerBriefing (solo lectura)
+    // getBriefing (solo lectura)
     // =========================================================================
 
     @Test
-    @DisplayName("obtenerBriefing — briefing inexistente lanza ResourceNotFoundException")
+    @DisplayName("getBriefing — briefing inexistente lanza ResourceNotFoundException")
     void obtenerBriefing_noExiste_lanzaExcepcion() {
         when(enviadoRepo.findByPedidoIdPedido(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> briefingService.obtenerBriefing(99L, 2L))
+        assertThatThrownBy(() -> briefingService.getBriefing(99L, 2L))
                 .isInstanceOf(uteq.edu.ec.artisync.exception.ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerBriefing — el cliente del pedido puede consultarlo")
+    @DisplayName("getBriefing — el cliente del pedido puede consultarlo")
     void obtenerBriefing_cliente_puedeConsultar() {
         SentBriefing enviado = SentBriefing.builder()
                 .idBriefingEnviado(20L)
@@ -235,11 +235,11 @@ class BriefingServiceImplTest {
                 .build();
         when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
 
-        assertThat(briefingService.obtenerBriefing(10L, 2L)).isNotNull();
+        assertThat(briefingService.getBriefing(10L, 2L)).isNotNull();
     }
 
     @Test
-    @DisplayName("obtenerBriefing — el creador del servicio puede consultarlo")
+    @DisplayName("getBriefing — el creador del servicio puede consultarlo")
     void obtenerBriefing_creador_puedeConsultar() {
         SentBriefing enviado = SentBriefing.builder()
                 .idBriefingEnviado(20L)
@@ -249,11 +249,11 @@ class BriefingServiceImplTest {
                 .build();
         when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
 
-        assertThat(briefingService.obtenerBriefing(10L, 1L)).isNotNull();
+        assertThat(briefingService.getBriefing(10L, 1L)).isNotNull();
     }
 
     @Test
-    @DisplayName("obtenerBriefing — usuario ajeno al pedido recibe AccessDenied")
+    @DisplayName("getBriefing — usuario ajeno al pedido recibe AccessDenied")
     void obtenerBriefing_usuarioAjeno_lanzaAccessDenied() {
         SentBriefing enviado = SentBriefing.builder()
                 .idBriefingEnviado(20L)
@@ -262,7 +262,7 @@ class BriefingServiceImplTest {
                 .build();
         when(enviadoRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(enviado));
 
-        assertThatThrownBy(() -> briefingService.obtenerBriefing(10L, 999L))
+        assertThatThrownBy(() -> briefingService.getBriefing(10L, 999L))
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 

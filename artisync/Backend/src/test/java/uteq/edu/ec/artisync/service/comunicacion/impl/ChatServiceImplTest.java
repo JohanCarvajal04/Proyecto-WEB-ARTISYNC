@@ -90,16 +90,16 @@ class ChatServiceImplTest {
     }
 
     // =========================================================================
-    // crearSala
+    // createRoom
     // =========================================================================
 
     @Test
-    @DisplayName("crearSala — crea nueva sala cuando no existe")
+    @DisplayName("createRoom — crea nueva sala cuando no existe")
     void crearSala_cuandoNoExiste_creaYRetorna() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.empty());
         when(salaChatRepo.save(any(ChatRoom.class))).thenReturn(sala);
 
-        ChatRoom resultado = chatService.crearSala(pedido);
+        ChatRoom resultado = chatService.createRoom(pedido);
 
         assertThat(resultado.getIdSala()).isEqualTo(100L);
         assertThat(resultado.getSalaActiva()).isTrue();
@@ -107,45 +107,45 @@ class ChatServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearSala — retorna sala existente sin duplicar")
+    @DisplayName("createRoom — retorna sala existente sin duplicar")
     void crearSala_cuandoYaExiste_retornaSalaExistente() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        ChatRoom resultado = chatService.crearSala(pedido);
+        ChatRoom resultado = chatService.createRoom(pedido);
 
         assertThat(resultado.getIdSala()).isEqualTo(100L);
         verify(salaChatRepo, never()).save(any());
     }
 
     // =========================================================================
-    // cerrarSala
+    // closeRoom
     // =========================================================================
 
     @Test
-    @DisplayName("cerrarSala — desactiva sala y notifica vía WebSocket")
+    @DisplayName("closeRoom — desactiva sala y notifica vía WebSocket")
     void cerrarSala_desactivaSalaYNotifica() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(salaChatRepo.save(any(ChatRoom.class))).thenReturn(sala);
 
-        chatService.cerrarSala(10L);
+        chatService.closeRoom(10L);
 
         assertThat(sala.getSalaActiva()).isFalse();
         verify(messagingTemplate).convertAndSend(eq("/topic/sala.100"), (Object) any());
     }
 
     @Test
-    @DisplayName("cerrarSala — no lanza error si no existe sala")
+    @DisplayName("closeRoom — no lanza error si no existe sala")
     void cerrarSala_sinSala_noLanzaError() {
         when(salaChatRepo.findByPedidoIdPedido(99L)).thenReturn(Optional.empty());
-        assertThatCode(() -> chatService.cerrarSala(99L)).doesNotThrowAnyException();
+        assertThatCode(() -> chatService.closeRoom(99L)).doesNotThrowAnyException();
     }
 
     // =========================================================================
-    // enviarMensaje — RF-14
+    // sendMessage — RF-14
     // =========================================================================
 
     @Test
-    @DisplayName("enviarMensaje — mensaje limpio se persiste y publica en WebSocket")
+    @DisplayName("sendMessage — mensaje limpio se persiste y publica en WebSocket")
     void enviarMensaje_sinContacto_persisteYPublica() {
         Message msg = Message.builder()
                 .idMensaje(1L)
@@ -157,21 +157,21 @@ class ChatServiceImplTest {
                 .build();
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
-        when(mensajeFilterService.contieneContacto(anyString())).thenReturn(false);
+        when(mensajeFilterService.containsContactInfo(anyString())).thenReturn(false);
         when(usuarioRepo.getReferenceById(1L)).thenReturn(remitente);
         when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
-        ChatMessageResponse respuesta = chatService.enviarMensaje(10L, 1L, "Hola, ¿cómo va el proyecto?");
+        ChatMessageResponse respuesta = chatService.sendMessage(10L, 1L, "Hola, ¿cómo va el proyecto?");
 
         assertThat(respuesta.getCuerpoMensaje()).isEqualTo("Hola, ¿cómo va el proyecto?");
         verify(messagingTemplate).convertAndSend(eq("/topic/sala.100"), any(ChatMessageResponse.class));
         // El remitente (1L) es el cliente: la notificación debe ir al creador (2L), no a él mismo.
-        verify(notificacionService).notificar(eq(creador), eq("MENSAJE_RECIBIDO"), anyString());
-        verify(notificacionService, never()).notificar(eq(remitente), eq("MENSAJE_RECIBIDO"), anyString());
+        verify(notificacionService).notify(eq(creador), eq("MENSAJE_RECIBIDO"), anyString());
+        verify(notificacionService, never()).notify(eq(remitente), eq("MENSAJE_RECIBIDO"), anyString());
     }
 
     @Test
-    @DisplayName("enviarMensaje — cuando escribe el creador, notifica al cliente")
+    @DisplayName("sendMessage — cuando escribe el creador, notifica al cliente")
     void enviarMensaje_delCreador_notificaAlCliente() {
         Message msg = Message.builder()
                 .idMensaje(2L)
@@ -183,17 +183,17 @@ class ChatServiceImplTest {
                 .build();
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
-        when(mensajeFilterService.contieneContacto(anyString())).thenReturn(false);
+        when(mensajeFilterService.containsContactInfo(anyString())).thenReturn(false);
         when(usuarioRepo.getReferenceById(ID_CREADOR)).thenReturn(creador);
         when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
-        chatService.enviarMensaje(10L, ID_CREADOR, "Ya tengo el boceto listo");
+        chatService.sendMessage(10L, ID_CREADOR, "Ya tengo el boceto listo");
 
-        verify(notificacionService).notificar(eq(remitente), eq("MENSAJE_RECIBIDO"), anyString());
+        verify(notificacionService).notify(eq(remitente), eq("MENSAJE_RECIBIDO"), anyString());
     }
 
     @Test
-    @DisplayName("enviarMensaje — el mensaje de la notificacion se trunca si es muy largo")
+    @DisplayName("sendMessage — el mensaje de la notificacion se trunca si es muy largo")
     void enviarMensaje_notificacionTruncaMensajesLargos() {
         String mensajeLargo = "a".repeat(200);
         Message msg = Message.builder()
@@ -206,19 +206,19 @@ class ChatServiceImplTest {
                 .build();
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
-        when(mensajeFilterService.contieneContacto(anyString())).thenReturn(false);
+        when(mensajeFilterService.containsContactInfo(anyString())).thenReturn(false);
         when(usuarioRepo.getReferenceById(1L)).thenReturn(remitente);
         when(mensajeRepo.save(any(Message.class))).thenReturn(msg);
 
-        chatService.enviarMensaje(10L, 1L, mensajeLargo);
+        chatService.sendMessage(10L, 1L, mensajeLargo);
 
         org.mockito.ArgumentCaptor<String> textoCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(notificacionService).notificar(eq(creador), eq("MENSAJE_RECIBIDO"), textoCaptor.capture());
+        verify(notificacionService).notify(eq(creador), eq("MENSAJE_RECIBIDO"), textoCaptor.capture());
         assertThat(textoCaptor.getValue()).contains("…").doesNotContain(mensajeLargo);
     }
 
     // =========================================================================
-    // enviarMensaje — RF-15 (filtrado de contactos)
+    // sendMessage — RF-15 (filtrado de contactos)
     // =========================================================================
 
     @Test
@@ -227,16 +227,16 @@ class ChatServiceImplTest {
         String mensajeConTelefono = "Llámame al +593 99 123 4567";
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
-        when(mensajeFilterService.contieneContacto(mensajeConTelefono)).thenReturn(true);
+        when(mensajeFilterService.containsContactInfo(mensajeConTelefono)).thenReturn(true);
 
-        assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, mensajeConTelefono))
+        assertThatThrownBy(() -> chatService.sendMessage(10L, 1L, mensajeConTelefono))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("datos de contacto");
 
         // El registro de la infraccion se delega a ViolationService, que corre
         // en su propia transaccion (REQUIRES_NEW) para que quede confirmada
         // aunque este metodo termine lanzando la excepcion de arriba.
-        verify(infraccionService).registrarInfraccion(1L, 10L, mensajeConTelefono);
+        verify(infraccionService).registerViolation(1L, 10L, mensajeConTelefono);
         verify(mensajeRepo, never()).save(any());
     }
 
@@ -246,99 +246,99 @@ class ChatServiceImplTest {
         String mensajeConEmail = "Escríbeme a test@ejemplo.com";
 
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
-        when(mensajeFilterService.contieneContacto(mensajeConEmail)).thenReturn(true);
+        when(mensajeFilterService.containsContactInfo(mensajeConEmail)).thenReturn(true);
 
-        assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, mensajeConEmail))
+        assertThatThrownBy(() -> chatService.sendMessage(10L, 1L, mensajeConEmail))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(mensajeRepo, never()).save(any());
-        verify(notificacionService, never()).notificar(any(), eq("MENSAJE_RECIBIDO"), anyString());
+        verify(notificacionService, never()).notify(any(), eq("MENSAJE_RECIBIDO"), anyString());
     }
 
     @Test
-    @DisplayName("enviarMensaje en sala cerrada lanza BusinessRuleException")
+    @DisplayName("sendMessage en sala cerrada lanza BusinessRuleException")
     void enviarMensaje_salaCerrada_lanzaExcepcion() {
         sala.setSalaActiva(false);
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        assertThatThrownBy(() -> chatService.enviarMensaje(10L, 1L, "Hola"))
+        assertThatThrownBy(() -> chatService.sendMessage(10L, 1L, "Hola"))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("cerrada");
     }
 
     @Test
-    @DisplayName("obtenerEstadoSala — retorna estado correcto al cliente")
+    @DisplayName("getRoomStatus — retorna estado correcto al cliente")
     void obtenerEstadoSala_retornaEstadoAlCliente() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        ChatRoomResponse estado = chatService.obtenerEstadoSala(10L, 1L);
+        ChatRoomResponse estado = chatService.getRoomStatus(10L, 1L);
 
         assertThat(estado.getIdSala()).isEqualTo(100L);
         assertThat(estado.getSalaActiva()).isTrue();
     }
 
     @Test
-    @DisplayName("obtenerEstadoSala — retorna estado correcto al creador")
+    @DisplayName("getRoomStatus — retorna estado correcto al creador")
     void obtenerEstadoSala_retornaEstadoAlCreador() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        ChatRoomResponse estado = chatService.obtenerEstadoSala(10L, ID_CREADOR);
+        ChatRoomResponse estado = chatService.getRoomStatus(10L, ID_CREADOR);
 
         assertThat(estado.getIdSala()).isEqualTo(100L);
     }
 
     @Test
-    @DisplayName("obtenerEstadoSala — rechaza a un usuario ajeno al pedido")
+    @DisplayName("getRoomStatus — rechaza a un usuario ajeno al pedido")
     void obtenerEstadoSala_usuarioAjeno_rechaza() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        assertThatThrownBy(() -> chatService.obtenerEstadoSala(10L, ID_AJENO))
+        assertThatThrownBy(() -> chatService.getRoomStatus(10L, ID_AJENO))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("obtenerEstadoSala — sala inexistente lanza ResourceNotFoundException")
+    @DisplayName("getRoomStatus — sala inexistente lanza ResourceNotFoundException")
     void obtenerEstadoSala_sinSala_lanzaExcepcion() {
         when(salaChatRepo.findByPedidoIdPedido(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> chatService.obtenerEstadoSala(99L, 1L))
+        assertThatThrownBy(() -> chatService.getRoomStatus(99L, 1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     // =========================================================================
-    // obtenerMensajes
+    // getMessages
     // =========================================================================
 
     @Test
-    @DisplayName("obtenerMensajes — el cliente puede leer el historial")
+    @DisplayName("getMessages — el cliente puede leer el historial")
     void obtenerMensajes_permiteAlCliente() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
         when(mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(100L)).thenReturn(List.of());
 
-        assertThatCode(() -> chatService.obtenerMensajes(10L, 1L, org.springframework.data.domain.PageRequest.of(0, 10)))
+        assertThatCode(() -> chatService.getMessages(10L, 1L, org.springframework.data.domain.PageRequest.of(0, 10)))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("obtenerMensajes — rechaza a un usuario ajeno al pedido")
+    @DisplayName("getMessages — rechaza a un usuario ajeno al pedido")
     void obtenerMensajes_usuarioAjeno_rechaza() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        assertThatThrownBy(() -> chatService.obtenerMensajes(
+        assertThatThrownBy(() -> chatService.getMessages(
                 10L, ID_AJENO, org.springframework.data.domain.PageRequest.of(0, 10)))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     // =========================================================================
-    // enviarMensaje — control de acceso
+    // sendMessage — control de acceso
     // =========================================================================
 
     @Test
-    @DisplayName("enviarMensaje — rechaza a un usuario ajeno al pedido")
+    @DisplayName("sendMessage — rechaza a un usuario ajeno al pedido")
     void enviarMensaje_usuarioAjeno_rechaza() {
         when(salaChatRepo.findByPedidoIdPedido(10L)).thenReturn(Optional.of(sala));
 
-        assertThatThrownBy(() -> chatService.enviarMensaje(10L, ID_AJENO, "Hola"))
+        assertThatThrownBy(() -> chatService.sendMessage(10L, ID_AJENO, "Hola"))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(mensajeRepo, never()).save(any());

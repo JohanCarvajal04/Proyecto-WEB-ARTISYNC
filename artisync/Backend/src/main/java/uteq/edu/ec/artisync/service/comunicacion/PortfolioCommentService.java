@@ -21,7 +21,7 @@ public interface PortfolioCommentService {
      * @return el comentario recién creado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio o el usuario no existen
      */
-    CommentResponse crearComentario(Long idItemPortafolio, CreateCommentRequest peticion, Long idUsuarioAutor);
+    CommentResponse createComment(Long idItemPortafolio, CreateCommentRequest peticion, Long idUsuarioAutor);
 
     /**
      * Lista los comentarios activos de un ítem de portafolio (público, paginado).
@@ -30,7 +30,7 @@ public interface PortfolioCommentService {
      * @param pageable         configuración de paginación y orden
      * @return la página de comentarios activos
      */
-    Page<CommentResponse> listarComentarios(Long idItemPortafolio, Pageable pageable);
+    Page<CommentResponse> listComments(Long idItemPortafolio, Pageable pageable);
 
     /**
      * Número de comentarios activos de un ítem de portafolio.
@@ -38,7 +38,7 @@ public interface PortfolioCommentService {
      * @param idItemPortafolio id del ítem de portafolio
      * @return la cantidad de comentarios activos
      */
-    long contarComentarios(Long idItemPortafolio);
+    long countComments(Long idItemPortafolio);
 
     /**
      * Elimina un comentario. Solo puede hacerlo el autor, el dueño del
@@ -49,7 +49,7 @@ public interface PortfolioCommentService {
      * @param esAdmin              si el solicitante tiene rol de administrador
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es el autor, el dueño del portafolio, ni administrador
      */
-    void eliminarComentario(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin);
+    void deleteComment(Long idComentario, Long idUsuarioSolicitante, boolean esAdmin);
 
     /**
      * Lista todos los comentarios del sistema para moderación (solo ADMIN).
@@ -57,7 +57,7 @@ public interface PortfolioCommentService {
      * @param pageable configuración de paginación y orden
      * @return la página de todos los comentarios, activos u ocultos
      */
-    Page<CommentResponse> listarParaModeracion(Pageable pageable);
+    Page<CommentResponse> listForModeration(Pageable pageable);
 
     /**
      * Oculta un comentario sin eliminarlo (moderación, solo ADMIN).
@@ -66,7 +66,7 @@ public interface PortfolioCommentService {
      * @return el comentario ya marcado como oculto
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
-    CommentResponse ocultarComentario(Long idComentario);
+    CommentResponse hideComment(Long idComentario);
 
     /**
      * Reactiva un comentario previamente oculto (moderación, solo ADMIN).
@@ -75,5 +75,5 @@ public interface PortfolioCommentService {
      * @return el comentario ya marcado como activo
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el comentario no existe
      */
-    CommentResponse reactivarComentario(Long idComentario);
+    CommentResponse reactivateComment(Long idComentario);
 }

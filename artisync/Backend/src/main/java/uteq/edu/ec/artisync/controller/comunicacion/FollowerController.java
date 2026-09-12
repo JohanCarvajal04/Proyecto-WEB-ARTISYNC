@@ -34,10 +34,10 @@ public class FollowerController {
     @Operation(summary = "Seguir a un perfil de creador")
     @PostMapping("/{idPerfil}/seguir")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<FollowStatusResponse> seguirCreador(
+    public ResponseEntity<FollowStatusResponse> followCreator(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(seguidorServicio.seguirCreador(userDetails.getIdUsuario(), idPerfil));
+        return ResponseEntity.ok(seguidorServicio.followCreator(userDetails.getIdUsuario(), idPerfil));
     }
 
     /**
@@ -49,10 +49,10 @@ public class FollowerController {
     @Operation(summary = "Dejar de seguir a un perfil de creador")
     @DeleteMapping("/{idPerfil}/seguir")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<FollowStatusResponse> dejarDeSeguirCreador(
+    public ResponseEntity<FollowStatusResponse> unfollowCreator(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(seguidorServicio.dejarDeSeguirCreador(userDetails.getIdUsuario(), idPerfil));
+        return ResponseEntity.ok(seguidorServicio.unfollowCreator(userDetails.getIdUsuario(), idPerfil));
     }
 
     /**
@@ -63,11 +63,11 @@ public class FollowerController {
      */
     @Operation(summary = "Obtener el estado de seguimiento y conteo de un perfil de creador")
     @GetMapping("/{idPerfil}/es-seguidor")
-    public ResponseEntity<FollowStatusResponse> obtenerEstadoSeguimiento(
+    public ResponseEntity<FollowStatusResponse> getFollowStatus(
             @PathVariable Long idPerfil,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuario = userDetails != null ? userDetails.getIdUsuario() : null;
-        return ResponseEntity.ok(seguidorServicio.obtenerEstadoSeguimiento(idUsuario, idPerfil));
+        return ResponseEntity.ok(seguidorServicio.getFollowStatus(idUsuario, idPerfil));
     }
 
     /**
@@ -77,8 +77,8 @@ public class FollowerController {
      */
     @Operation(summary = "Listar los seguidores de un perfil de creador")
     @GetMapping("/{idPerfil}/seguidores")
-    public ResponseEntity<List<FollowerResponse>> listarSeguidores(@PathVariable Long idPerfil) {
-        return ResponseEntity.ok(seguidorServicio.listarSeguidores(idPerfil));
+    public ResponseEntity<List<FollowerResponse>> listFollowers(@PathVariable Long idPerfil) {
+        return ResponseEntity.ok(seguidorServicio.listFollowers(idPerfil));
     }
 
     /**
@@ -89,9 +89,9 @@ public class FollowerController {
     @Operation(summary = "Listar las novedades de los creadores que el usuario sigue")
     @GetMapping("/siguiendo/novedades")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<FollowedCreatorUpdateResponse>> listarCreadoresSeguidosNovedades(
+    public ResponseEntity<List<FollowedCreatorUpdateResponse>> listFollowedCreatorUpdates(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(seguidorServicio.listarCreadoresSeguidosNovedades(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(seguidorServicio.listFollowedCreatorUpdates(userDetails.getIdUsuario()));
     }
 
     /**
@@ -104,11 +104,11 @@ public class FollowerController {
     @Operation(summary = "Actualizar la portada y título profesional del creador")
     @PutMapping("/mi-perfil/portada")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> actualizarPortadaYTitulo(
+    public ResponseEntity<RespuestaMensaje> updateCoverAndTitle(
             @RequestParam(required = false) String urlPortada,
             @RequestParam(required = false) String tituloProfesional,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        seguidorServicio.actualizarPortadaYTitulo(userDetails.getIdUsuario(), urlPortada, tituloProfesional);
+        seguidorServicio.updateCoverAndTitle(userDetails.getIdUsuario(), urlPortada, tituloProfesional);
         return ResponseEntity.ok(new RespuestaMensaje("Portada y especialidad del perfil actualizadas correctamente."));
     }
 }

@@ -67,7 +67,7 @@ public class RaffleExecutorService {
                     ? "¡Felicidades! Has ganado el premio '" + descripcionPremio + "' en el sorteo: " + tituloSorteo
                     : "¡Felicidades! Has ganado el sorteo: " + tituloSorteo;
             // Notificación en tiempo real al ganador vía WebSocket (M6)
-            notificacionService.notificar(usuario, "SORTEO_GANADOR", mensaje);
+            notificacionService.notify(usuario, "SORTEO_GANADOR", mensaje);
         }
 
         log.info("[RaffleScheduler] Raffle '{}' (ID={}) finalizado. {} ganador(es).",

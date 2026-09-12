@@ -42,9 +42,9 @@ class NotificationControllerTest {
         CustomUserDetails user = mockUserDetails();
         Pageable pageable = mock(Pageable.class);
         Page<NotificationResponse> page = new PageImpl<>(Collections.emptyList());
-        when(notificacionService.listarMisNotificaciones(1L, pageable)).thenReturn(page);
+        when(notificacionService.listMyNotifications(1L, pageable)).thenReturn(page);
 
-        ResponseEntity<Page<NotificationResponse>> res = controlador.listarMisNotificaciones(user, pageable);
+        ResponseEntity<Page<NotificationResponse>> res = controlador.listMyNotifications(user, pageable);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(page);
     }
@@ -53,9 +53,9 @@ class NotificationControllerTest {
     void marcarComoLeida_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         NotificationResponse respuesta = new NotificationResponse();
-        when(notificacionService.marcarComoLeida(10L, 1L)).thenReturn(respuesta);
+        when(notificacionService.markAsRead(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<NotificationResponse> res = controlador.marcarComoLeida(10L, user);
+        ResponseEntity<NotificationResponse> res = controlador.markAsRead(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -63,9 +63,9 @@ class NotificationControllerTest {
     @Test
     void marcarTodasLeidas_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        when(notificacionService.marcarTodasLeidas(1L)).thenReturn(5);
+        when(notificacionService.markAllAsRead(1L)).thenReturn(5);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.marcarTodasLeidas(user);
+        ResponseEntity<RespuestaMensaje> res = controlador.markAllAsRead(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().mensaje()).isEqualTo("5 notificaciones marcadas como leídas");
     }
@@ -73,9 +73,9 @@ class NotificationControllerTest {
     @Test
     void contarNoLeidas_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        when(notificacionService.contarNoLeidas(1L)).thenReturn(10L);
+        when(notificacionService.countUnread(1L)).thenReturn(10L);
 
-        ResponseEntity<Map<String, Long>> res = controlador.contarNoLeidas(user);
+        ResponseEntity<Map<String, Long>> res = controlador.countUnread(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsEntry("noLeidas", 10L);
     }

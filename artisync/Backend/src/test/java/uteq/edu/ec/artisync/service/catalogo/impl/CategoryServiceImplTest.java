@@ -144,7 +144,7 @@ class CategoryServiceImplTest {
         categoriaServicio.eliminarCategoria(1L, null);
 
         verify(categoriaRepository).deleteById(1L);
-        verify(notificacionService, never()).notificar(any(), any(), any());
+        verify(notificacionService, never()).notify(any(), any(), any());
     }
 
     @Test
@@ -180,7 +180,7 @@ class CategoryServiceImplTest {
         categoriaServicio.eliminarCategoria(2L, "Rubro duplicado con Arte");
 
         verify(categoriaRepository).deleteById(2L);
-        verify(notificacionService, times(1)).notificar(
+        verify(notificacionService, times(1)).notify(
                 org.mockito.ArgumentMatchers.eq(creador),
                 org.mockito.ArgumentMatchers.eq("CATEGORIA_ELIMINADA"),
                 org.mockito.ArgumentMatchers.contains("Rubro duplicado con Arte"));
@@ -196,7 +196,7 @@ class CategoryServiceImplTest {
         CategoryResponse respuesta = categoriaServicio.marcarCategoriaRevisada(3L);
 
         assertThat(respuesta.getRevisado()).isTrue();
-        verify(notificacionService, never()).notificar(any(), any(), any());
+        verify(notificacionService, never()).notify(any(), any(), any());
     }
 
     @Test
@@ -322,7 +322,7 @@ class CategoryServiceImplTest {
         categoriaServicio.eliminarSubcategoria(1L, null);
 
         verify(subcategoriaRepository).deleteById(1L);
-        verify(notificacionService, never()).notificar(any(), any(), any());
+        verify(notificacionService, never()).notify(any(), any(), any());
     }
 
     @Test
@@ -360,7 +360,7 @@ class CategoryServiceImplTest {
         categoriaServicio.eliminarSubcategoria(5L, "No corresponde a esta categoria");
 
         verify(subcategoriaRepository).deleteById(5L);
-        verify(notificacionService, times(1)).notificar(
+        verify(notificacionService, times(1)).notify(
                 org.mockito.ArgumentMatchers.eq(creador),
                 org.mockito.ArgumentMatchers.eq("SUBCATEGORIA_ELIMINADA"),
                 org.mockito.ArgumentMatchers.contains("No corresponde a esta categoria"));

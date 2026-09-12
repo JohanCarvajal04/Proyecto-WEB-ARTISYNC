@@ -17,7 +17,7 @@ public interface IFollowerService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario intenta seguirse a sí mismo como creador
      */
-    FollowStatusResponse seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador);
+    FollowStatusResponse followCreator(Long idUsuarioSeguidor, Long idPerfilCreador);
 
     /**
      * Quita el seguimiento del usuario indicado sobre un creador.
@@ -27,7 +27,7 @@ public interface IFollowerService {
      * @return el estado de seguimiento resultante
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
      */
-    FollowStatusResponse dejarDeSeguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador);
+    FollowStatusResponse unfollowCreator(Long idUsuarioSeguidor, Long idPerfilCreador);
 
     /**
      * Consulta si un usuario sigue a un creador.
@@ -37,7 +37,7 @@ public interface IFollowerService {
      * @return el estado de seguimiento entre ambos
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
      */
-    FollowStatusResponse obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador);
+    FollowStatusResponse getFollowStatus(Long idUsuarioConsulta, Long idPerfilCreador);
 
     /**
      * Lista los seguidores de un creador.
@@ -45,7 +45,7 @@ public interface IFollowerService {
      * @param idPerfilCreador id del perfil de creador
      * @return los seguidores del creador
      */
-    List<FollowerResponse> listarSeguidores(Long idPerfilCreador);
+    List<FollowerResponse> listFollowers(Long idPerfilCreador);
 
     /**
      * Lista las novedades de los creadores que sigue un usuario.
@@ -53,7 +53,7 @@ public interface IFollowerService {
      * @param idUsuarioSeguidor id del usuario seguidor
      * @return las novedades de los creadores seguidos
      */
-    List<FollowedCreatorUpdateResponse> listarCreadoresSeguidosNovedades(Long idUsuarioSeguidor);
+    List<FollowedCreatorUpdateResponse> listFollowedCreatorUpdates(Long idUsuarioSeguidor);
 
     /**
      * Actualiza la imagen de portada y el título profesional del perfil de creador propio.
@@ -64,5 +64,5 @@ public interface IFollowerService {
      * @return {@code true} si la actualización se aplicó
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador asociado
      */
-    boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional);
+    boolean updateCoverAndTitle(Long idUsuario, String urlPortada, String tituloProfesional);
 }

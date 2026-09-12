@@ -45,9 +45,9 @@ class PortfolioCommentControllerTest {
         CustomUserDetails user = mockUserDetails(false);
         CreateCommentRequest peticion = new CreateCommentRequest();
         CommentResponse respuesta = new CommentResponse();
-        when(comentarioService.crearComentario(10L, peticion, 1L)).thenReturn(respuesta);
+        when(comentarioService.createComment(10L, peticion, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<CommentResponse> res = controlador.crearComentario(10L, peticion, user);
+        ResponseEntity<CommentResponse> res = controlador.createComment(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -56,18 +56,18 @@ class PortfolioCommentControllerTest {
     void listarComentarios_devuelveOk() {
         Pageable pageable = mock(Pageable.class);
         Page<CommentResponse> page = new PageImpl<>(Collections.emptyList());
-        when(comentarioService.listarComentarios(10L, pageable)).thenReturn(page);
+        when(comentarioService.listComments(10L, pageable)).thenReturn(page);
 
-        ResponseEntity<Page<CommentResponse>> res = controlador.listarComentarios(10L, pageable);
+        ResponseEntity<Page<CommentResponse>> res = controlador.listComments(10L, pageable);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(page);
     }
 
     @Test
     void contarComentarios_devuelveOk() {
-        when(comentarioService.contarComentarios(10L)).thenReturn(5L);
+        when(comentarioService.countComments(10L)).thenReturn(5L);
 
-        ResponseEntity<Map<String, Object>> res = controlador.contarComentarios(10L);
+        ResponseEntity<Map<String, Object>> res = controlador.countComments(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsEntry("total", 5L);
     }
@@ -75,14 +75,14 @@ class PortfolioCommentControllerTest {
     @Test
     void eliminarComentario_comoAdmin_devuelveOk() {
         CustomUserDetails user = mockUserDetails(true);
-        controlador.eliminarComentario(10L, user);
-        verify(comentarioService).eliminarComentario(10L, 1L, true);
+        controlador.deleteComment(10L, user);
+        verify(comentarioService).deleteComment(10L, 1L, true);
     }
 
     @Test
     void eliminarComentario_noAdmin_devuelveOk() {
         CustomUserDetails user = mockUserDetails(false);
-        controlador.eliminarComentario(10L, user);
-        verify(comentarioService).eliminarComentario(10L, 1L, false);
+        controlador.deleteComment(10L, user);
+        verify(comentarioService).deleteComment(10L, 1L, false);
     }
 }

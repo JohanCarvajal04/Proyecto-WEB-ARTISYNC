@@ -68,8 +68,8 @@ public class RevisionTicketExpirationService {
         Order pedido = ticket.getPedido();
         String mensaje = "Tu solicitud de revisión adicional del pedido \"" + pedido.getServicio().getTituloServicio()
                 + "\" fue rechazada automáticamente por falta de pago.";
-        notificacionService.notificar(pedido.getUsuarioCliente(), "TICKET_RECHAZADO", mensaje);
-        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "TICKET_RECHAZADO",
+        notificacionService.notify(pedido.getUsuarioCliente(), "TICKET_RECHAZADO", mensaje);
+        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), "TICKET_RECHAZADO",
                 "Un ticket de revisión sin pagar del pedido \"" + pedido.getServicio().getTituloServicio()
                         + "\" se rechazó automáticamente.");
     }

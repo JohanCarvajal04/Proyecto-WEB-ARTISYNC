@@ -36,7 +36,7 @@ public class FollowerServiceImpl implements IFollowerService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el creador intenta seguirse a sí mismo
      */
-    public FollowStatusResponse seguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
+    public FollowStatusResponse followCreator(Long idUsuarioSeguidor, Long idPerfilCreador) {
         CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
@@ -66,7 +66,7 @@ public class FollowerServiceImpl implements IFollowerService {
      * @return el estado de seguimiento actualizado, con el nuevo total de seguidores
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
-    public FollowStatusResponse dejarDeSeguirCreador(Long idUsuarioSeguidor, Long idPerfilCreador) {
+    public FollowStatusResponse unfollowCreator(Long idUsuarioSeguidor, Long idPerfilCreador) {
         perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
@@ -90,7 +90,7 @@ public class FollowerServiceImpl implements IFollowerService {
      * @return si ese usuario sigue al creador, si es su propio perfil, y el total de seguidores
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil no existe
      */
-    public FollowStatusResponse obtenerEstadoSeguimiento(Long idUsuarioConsulta, Long idPerfilCreador) {
+    public FollowStatusResponse getFollowStatus(Long idUsuarioConsulta, Long idPerfilCreador) {
         CreatorProfile perfil = perfilCreadorRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil de creador no encontrado con ID: " + idPerfilCreador));
 
@@ -117,7 +117,7 @@ public class FollowerServiceImpl implements IFollowerService {
      * @param idPerfilCreador identificador del perfil de creador
      * @return los seguidores de ese perfil
      */
-    public List<FollowerResponse> listarSeguidores(Long idPerfilCreador) {
+    public List<FollowerResponse> listFollowers(Long idPerfilCreador) {
         List<Follower> lista = seguidorRepository.findByPerfilCreadorIdPerfil(idPerfilCreador);
         return lista.stream()
                 .map(s -> FollowerResponse.builder()
@@ -137,7 +137,7 @@ public class FollowerServiceImpl implements IFollowerService {
      * @param idUsuarioSeguidor identificador del usuario
      * @return los perfiles de creador que sigue, con su novedad más reciente
      */
-    public List<FollowedCreatorUpdateResponse> listarCreadoresSeguidosNovedades(Long idUsuarioSeguidor) {
+    public List<FollowedCreatorUpdateResponse> listFollowedCreatorUpdates(Long idUsuarioSeguidor) {
         List<Follower> seguidos = seguidorRepository.findByUsuarioSeguidorIdUsuario(idUsuarioSeguidor);
         return seguidos.stream()
                 .map(s -> {
@@ -170,7 +170,7 @@ public class FollowerServiceImpl implements IFollowerService {
      * @return {@code true} si se actualizó
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene perfil de creador
      */
-    public boolean actualizarPortadaYTitulo(Long idUsuario, String urlPortada, String tituloProfesional) {
+    public boolean updateCoverAndTitle(Long idUsuario, String urlPortada, String tituloProfesional) {
         CreatorProfile perfil = perfilCreadorRepository.findByUsuarioIdUsuario(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de creador asociado."));
 

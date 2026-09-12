@@ -43,12 +43,12 @@ public class PortfolioCommentController {
     @PostMapping("/{idItemPortafolio}/comentarios")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<CommentResponse> crearComentario(
+    public ResponseEntity<CommentResponse> createComment(
             @PathVariable Long idItemPortafolio,
             @Valid @RequestBody CreateCommentRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(comentarioService.crearComentario(idItemPortafolio, peticion, userDetails.getIdUsuario()));
+                .body(comentarioService.createComment(idItemPortafolio, peticion, userDetails.getIdUsuario()));
     }
 
     /**
@@ -60,10 +60,10 @@ public class PortfolioCommentController {
      */
     @Operation(summary = "Listar comentarios activos de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/comentarios")
-    public ResponseEntity<Page<CommentResponse>> listarComentarios(
+    public ResponseEntity<Page<CommentResponse>> listComments(
             @PathVariable Long idItemPortafolio,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(comentarioService.listarComentarios(idItemPortafolio, pageable));
+        return ResponseEntity.ok(comentarioService.listComments(idItemPortafolio, pageable));
     }
 
     /**
@@ -74,10 +74,10 @@ public class PortfolioCommentController {
      */
     @Operation(summary = "Contar comentarios de un ítem de portafolio (público)")
     @GetMapping("/{idItemPortafolio}/comentarios/conteo")
-    public ResponseEntity<Map<String, Object>> contarComentarios(@PathVariable Long idItemPortafolio) {
+    public ResponseEntity<Map<String, Object>> countComments(@PathVariable Long idItemPortafolio) {
         return ResponseEntity.ok(Map.of(
                 "idItemPortafolio", idItemPortafolio,
-                "total", comentarioService.contarComentarios(idItemPortafolio)
+                "total", comentarioService.countComments(idItemPortafolio)
         ));
     }
 
@@ -92,11 +92,11 @@ public class PortfolioCommentController {
     @DeleteMapping("/comentarios/{idComentario}")
     @PreAuthorize("isAuthenticated()")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminarComentario(
+    public void deleteComment(
             @PathVariable Long idComentario,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         boolean esAdmin = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        comentarioService.eliminarComentario(idComentario, userDetails.getIdUsuario(), esAdmin);
+        comentarioService.deleteComment(idComentario, userDetails.getIdUsuario(), esAdmin);
     }
 }

@@ -40,9 +40,9 @@ class BriefingControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateBriefingTemplateRequest peticion = new CreateBriefingTemplateRequest();
         BriefingResponse respuesta = new BriefingResponse();
-        when(briefingService.crearPlantilla(1L, peticion)).thenReturn(respuesta);
+        when(briefingService.createTemplate(1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<BriefingResponse> res = controlador.crearPlantilla(peticion, user);
+        ResponseEntity<BriefingResponse> res = controlador.createTemplate(peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -51,9 +51,9 @@ class BriefingControllerTest {
     void obtenerMisPlantillas_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         List<BriefingResponse> lista = Collections.emptyList();
-        when(briefingService.obtenerMisPlantillas(1L)).thenReturn(lista);
+        when(briefingService.getMyTemplates(1L)).thenReturn(lista);
 
-        ResponseEntity<List<BriefingResponse>> res = controlador.obtenerMisPlantillas(user);
+        ResponseEntity<List<BriefingResponse>> res = controlador.getMyTemplates(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -63,9 +63,9 @@ class BriefingControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateBriefingTemplateRequest peticion = new CreateBriefingTemplateRequest();
         BriefingResponse respuesta = new BriefingResponse();
-        when(briefingService.editarPlantilla(10L, 1L, peticion)).thenReturn(respuesta);
+        when(briefingService.updateTemplate(10L, 1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<BriefingResponse> res = controlador.editarPlantilla(10L, peticion, user);
+        ResponseEntity<BriefingResponse> res = controlador.updateTemplate(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -74,9 +74,9 @@ class BriefingControllerTest {
     void eliminarPlantilla_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         RespuestaMensaje respuesta = new RespuestaMensaje("Ok");
-        when(briefingService.eliminarPlantilla(10L, 1L)).thenReturn(respuesta);
+        when(briefingService.deleteTemplate(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarPlantilla(10L, user);
+        ResponseEntity<RespuestaMensaje> res = controlador.deleteTemplate(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -85,9 +85,9 @@ class BriefingControllerTest {
     void obtenerBriefing_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         BriefingResponse respuesta = new BriefingResponse();
-        when(briefingService.obtenerBriefing(10L, 1L)).thenReturn(respuesta);
+        when(briefingService.getBriefing(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<BriefingResponse> res = controlador.obtenerBriefing(10L, user);
+        ResponseEntity<BriefingResponse> res = controlador.getBriefing(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }

@@ -40,21 +40,21 @@ class AdminCommentControllerTest {
     void listarParaModeracion_devuelveOk_conTodosLosComentarios() {
         Pageable pageable = mock(Pageable.class);
         Page<CommentResponse> page = new PageImpl<>(Collections.emptyList());
-        when(comentarioService.listarParaModeracion(pageable)).thenReturn(page);
+        when(comentarioService.listForModeration(pageable)).thenReturn(page);
 
-        ResponseEntity<Page<CommentResponse>> res = controlador.listarParaModeracion(pageable);
+        ResponseEntity<Page<CommentResponse>> res = controlador.listForModeration(pageable);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(page);
-        verify(comentarioService).listarParaModeracion(pageable);
+        verify(comentarioService).listForModeration(pageable);
     }
 
     @Test
     void ocultarComentario_devuelveOk_conElComentarioActualizado() {
         CommentResponse respuesta = new CommentResponse();
-        when(comentarioService.ocultarComentario(10L)).thenReturn(respuesta);
+        when(comentarioService.hideComment(10L)).thenReturn(respuesta);
 
-        ResponseEntity<CommentResponse> res = controlador.ocultarComentario(10L);
+        ResponseEntity<CommentResponse> res = controlador.hideComment(10L);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
@@ -62,18 +62,18 @@ class AdminCommentControllerTest {
 
     @Test
     void ocultarComentario_propagaExcepcion_siNoExiste() {
-        when(comentarioService.ocultarComentario(99L))
+        when(comentarioService.hideComment(99L))
                 .thenThrow(new ResourceNotFoundException("Comentario no encontrado: 99"));
 
-        assertThrows(ResourceNotFoundException.class, () -> controlador.ocultarComentario(99L));
+        assertThrows(ResourceNotFoundException.class, () -> controlador.hideComment(99L));
     }
 
     @Test
     void reactivarComentario_devuelveOk_conElComentarioActualizado() {
         CommentResponse respuesta = new CommentResponse();
-        when(comentarioService.reactivarComentario(10L)).thenReturn(respuesta);
+        when(comentarioService.reactivateComment(10L)).thenReturn(respuesta);
 
-        ResponseEntity<CommentResponse> res = controlador.reactivarComentario(10L);
+        ResponseEntity<CommentResponse> res = controlador.reactivateComment(10L);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
@@ -81,19 +81,19 @@ class AdminCommentControllerTest {
 
     @Test
     void reactivarComentario_propagaExcepcion_siNoExiste() {
-        when(comentarioService.reactivarComentario(99L))
+        when(comentarioService.reactivateComment(99L))
                 .thenThrow(new ResourceNotFoundException("Comentario no encontrado: 99"));
 
-        assertThrows(ResourceNotFoundException.class, () -> controlador.reactivarComentario(99L));
+        assertThrows(ResourceNotFoundException.class, () -> controlador.reactivateComment(99L));
     }
 
     @Test
     void eliminarComentario_devuelveNoContent_yBorraComoAdmin() {
-        ResponseEntity<Void> res = controlador.eliminarComentario(10L);
+        ResponseEntity<Void> res = controlador.deleteComment(10L);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         // esAdmin=true: borrado fisico definitivo, distinto del borrado logico
         // que usa la ruta de autor/dueno en PortfolioCommentController.
-        verify(comentarioService).eliminarComentario(10L, null, true);
+        verify(comentarioService).deleteComment(10L, null, true);
     }
 }

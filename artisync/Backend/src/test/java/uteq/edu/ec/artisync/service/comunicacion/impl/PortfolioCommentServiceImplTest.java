@@ -65,7 +65,7 @@ class PortfolioCommentServiceImplTest {
                 .build();
         when(comentarioRepository.save(any())).thenReturn(guardado);
 
-        CommentResponse res = servicio.crearComentario(10L, peticion, 1L);
+        CommentResponse res = servicio.createComment(10L, peticion, 1L);
         assertThat(res.getIdComentario()).isEqualTo(99L);
         assertThat(res.getNombreAutor()).isEqualTo("A B");
     }
@@ -75,7 +75,7 @@ class PortfolioCommentServiceImplTest {
         CreateCommentRequest peticion = new CreateCommentRequest();
         when(portafolioItemRepository.findById(10L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> servicio.crearComentario(10L, peticion, 1L));
+        assertThrows(ResourceNotFoundException.class, () -> servicio.createComment(10L, peticion, 1L));
     }
 
     @Test
@@ -84,23 +84,23 @@ class PortfolioCommentServiceImplTest {
         when(portafolioItemRepository.findById(10L)).thenReturn(Optional.of(new PortfolioItem()));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> servicio.crearComentario(10L, peticion, 1L));
+        assertThrows(ResourceNotFoundException.class, () -> servicio.createComment(10L, peticion, 1L));
     }
 
     @Test
-    void listarComentarios() {
+    void listComments() {
         Page<PortfolioComment> page = new PageImpl<>(Collections.emptyList());
         when(comentarioRepository.findByItemPortafolioIdItemPortafolioAndEstadoModeracion(eq(10L), eq("Activo"), any()))
                 .thenReturn(page);
         
-        Page<CommentResponse> res = servicio.listarComentarios(10L, Pageable.unpaged());
+        Page<CommentResponse> res = servicio.listComments(10L, Pageable.unpaged());
         assertThat(res).isNotNull();
     }
 
     @Test
-    void contarComentarios() {
+    void countComments() {
         when(comentarioRepository.countByItemPortafolioIdItemPortafolioAndEstadoModeracion(10L, "Activo")).thenReturn(5L);
-        long total = servicio.contarComentarios(10L);
+        long total = servicio.countComments(10L);
         assertThat(total).isEqualTo(5L);
     }
 
@@ -109,7 +109,7 @@ class PortfolioCommentServiceImplTest {
         PortfolioComment c = new PortfolioComment();
         when(comentarioRepository.findById(99L)).thenReturn(Optional.of(c));
 
-        servicio.eliminarComentario(99L, 1L, true);
+        servicio.deleteComment(99L, 1L, true);
         verify(comentarioRepository).delete(c);
     }
 
@@ -121,7 +121,7 @@ class PortfolioCommentServiceImplTest {
         c.setUsuarioAutor(u);
         when(comentarioRepository.findById(99L)).thenReturn(Optional.of(c));
 
-        servicio.eliminarComentario(99L, 1L, false);
+        servicio.deleteComment(99L, 1L, false);
         assertThat(c.getEstadoModeracion()).isEqualTo("Eliminado");
     }
 
@@ -141,7 +141,7 @@ class PortfolioCommentServiceImplTest {
         
         when(comentarioRepository.findById(99L)).thenReturn(Optional.of(c));
 
-        servicio.eliminarComentario(99L, 2L, false);
+        servicio.deleteComment(99L, 2L, false);
         assertThat(c.getEstadoModeracion()).isEqualTo("Eliminado");
     }
 
@@ -150,7 +150,7 @@ class PortfolioCommentServiceImplTest {
         PortfolioComment c = new PortfolioComment(); // Ni autor ni dueno
         when(comentarioRepository.findById(99L)).thenReturn(Optional.of(c));
 
-        assertThrows(AccessDeniedException.class, () -> servicio.eliminarComentario(99L, 1L, false));
+        assertThrows(AccessDeniedException.class, () -> servicio.deleteComment(99L, 1L, false));
     }
     
     @Test
@@ -160,15 +160,15 @@ class PortfolioCommentServiceImplTest {
         c.setItemPortafolio(item);
         when(comentarioRepository.findById(99L)).thenReturn(Optional.of(c));
 
-        assertThrows(AccessDeniedException.class, () -> servicio.eliminarComentario(99L, 1L, false));
+        assertThrows(AccessDeniedException.class, () -> servicio.deleteComment(99L, 1L, false));
     }
 
     @Test
-    void listarParaModeracion() {
+    void listForModeration() {
         Page<PortfolioComment> page = new PageImpl<>(Collections.emptyList());
         when(comentarioRepository.findAll(any(Pageable.class))).thenReturn(page);
         
-        Page<CommentResponse> res = servicio.listarParaModeracion(Pageable.unpaged());
+        Page<CommentResponse> res = servicio.listForModeration(Pageable.unpaged());
         assertThat(res).isNotNull();
     }
 
@@ -177,14 +177,14 @@ class PortfolioCommentServiceImplTest {
         PortfolioComment c = new PortfolioComment();
         when(comentarioRepository.findByIdParaModerar(99L)).thenReturn(Optional.of(c));
 
-        CommentResponse res = servicio.ocultarComentario(99L);
+        CommentResponse res = servicio.hideComment(99L);
         assertThat(c.getEstadoModeracion()).isEqualTo("Oculto");
     }
 
     @Test
     void ocultarComentario_noEncontrado() {
         when(comentarioRepository.findByIdParaModerar(99L)).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> servicio.ocultarComentario(99L));
+        assertThrows(ResourceNotFoundException.class, () -> servicio.hideComment(99L));
     }
 
     @Test
@@ -192,7 +192,7 @@ class PortfolioCommentServiceImplTest {
         PortfolioComment c = new PortfolioComment();
         when(comentarioRepository.findByIdParaModerar(99L)).thenReturn(Optional.of(c));
 
-        CommentResponse res = servicio.reactivarComentario(99L);
+        CommentResponse res = servicio.reactivateComment(99L);
         assertThat(c.getEstadoModeracion()).isEqualTo("Activo");
     }
     
@@ -201,6 +201,6 @@ class PortfolioCommentServiceImplTest {
         PortfolioComment c = new PortfolioComment();
         when(comentarioRepository.findById(99L)).thenReturn(Optional.of(c));
 
-        servicio.eliminarComentario(99L, 1L, true); // internamente pasa por algo que no llama a map, pero listados sí.
+        servicio.deleteComment(99L, 1L, true); // internamente pasa por algo que no llama a map, pero listados sí.
     }
 }

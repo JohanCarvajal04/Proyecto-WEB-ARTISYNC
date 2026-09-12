@@ -41,9 +41,9 @@ class FollowerControllerTest {
     void seguirCreador_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         FollowStatusResponse respuesta = new FollowStatusResponse(true, 10L, true);
-        when(seguidorServicio.seguirCreador(1L, 10L)).thenReturn(respuesta);
+        when(seguidorServicio.followCreator(1L, 10L)).thenReturn(respuesta);
 
-        ResponseEntity<FollowStatusResponse> res = controlador.seguirCreador(10L, user);
+        ResponseEntity<FollowStatusResponse> res = controlador.followCreator(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -52,9 +52,9 @@ class FollowerControllerTest {
     void dejarDeSeguirCreador_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         FollowStatusResponse respuesta = new FollowStatusResponse(false, 9L, false);
-        when(seguidorServicio.dejarDeSeguirCreador(1L, 10L)).thenReturn(respuesta);
+        when(seguidorServicio.unfollowCreator(1L, 10L)).thenReturn(respuesta);
 
-        ResponseEntity<FollowStatusResponse> res = controlador.dejarDeSeguirCreador(10L, user);
+        ResponseEntity<FollowStatusResponse> res = controlador.unfollowCreator(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -63,9 +63,9 @@ class FollowerControllerTest {
     void obtenerEstadoSeguimiento_conUsuario_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         FollowStatusResponse respuesta = new FollowStatusResponse(true, 10L, true);
-        when(seguidorServicio.obtenerEstadoSeguimiento(1L, 10L)).thenReturn(respuesta);
+        when(seguidorServicio.getFollowStatus(1L, 10L)).thenReturn(respuesta);
 
-        ResponseEntity<FollowStatusResponse> res = controlador.obtenerEstadoSeguimiento(10L, user);
+        ResponseEntity<FollowStatusResponse> res = controlador.getFollowStatus(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -73,9 +73,9 @@ class FollowerControllerTest {
     @Test
     void obtenerEstadoSeguimiento_sinUsuario_devuelveOk() {
         FollowStatusResponse respuesta = new FollowStatusResponse(false, 10L, false);
-        when(seguidorServicio.obtenerEstadoSeguimiento(null, 10L)).thenReturn(respuesta);
+        when(seguidorServicio.getFollowStatus(null, 10L)).thenReturn(respuesta);
 
-        ResponseEntity<FollowStatusResponse> res = controlador.obtenerEstadoSeguimiento(10L, null);
+        ResponseEntity<FollowStatusResponse> res = controlador.getFollowStatus(10L, null);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -83,9 +83,9 @@ class FollowerControllerTest {
     @Test
     void listarSeguidores_devuelveOk() {
         List<FollowerResponse> lista = Collections.emptyList();
-        when(seguidorServicio.listarSeguidores(10L)).thenReturn(lista);
+        when(seguidorServicio.listFollowers(10L)).thenReturn(lista);
 
-        ResponseEntity<List<FollowerResponse>> res = controlador.listarSeguidores(10L);
+        ResponseEntity<List<FollowerResponse>> res = controlador.listFollowers(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -94,9 +94,9 @@ class FollowerControllerTest {
     void listarCreadoresSeguidosNovedades_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         List<FollowedCreatorUpdateResponse> lista = Collections.emptyList();
-        when(seguidorServicio.listarCreadoresSeguidosNovedades(1L)).thenReturn(lista);
+        when(seguidorServicio.listFollowedCreatorUpdates(1L)).thenReturn(lista);
 
-        ResponseEntity<List<FollowedCreatorUpdateResponse>> res = controlador.listarCreadoresSeguidosNovedades(user);
+        ResponseEntity<List<FollowedCreatorUpdateResponse>> res = controlador.listFollowedCreatorUpdates(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -104,8 +104,8 @@ class FollowerControllerTest {
     @Test
     void actualizarPortadaYTitulo_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
-        ResponseEntity<RespuestaMensaje> res = controlador.actualizarPortadaYTitulo("url", "titulo", user);
+        ResponseEntity<RespuestaMensaje> res = controlador.updateCoverAndTitle("url", "titulo", user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(seguidorServicio).actualizarPortadaYTitulo(1L, "url", "titulo");
+        verify(seguidorServicio).updateCoverAndTitle(1L, "url", "titulo");
     }
 }

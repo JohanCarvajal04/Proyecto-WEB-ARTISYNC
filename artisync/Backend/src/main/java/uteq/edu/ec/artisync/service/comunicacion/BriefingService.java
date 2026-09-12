@@ -28,7 +28,7 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador configurado
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el cuestionario supera el máximo de preguntas permitido
      */
-    BriefingResponse crearPlantilla(Long idUsuario, CreateBriefingTemplateRequest peticion);
+    BriefingResponse createTemplate(Long idUsuario, CreateBriefingTemplateRequest peticion);
 
     /**
      * Lista las plantillas de briefing propias del creador.
@@ -37,7 +37,7 @@ public interface BriefingService {
      * @return las plantillas del creador
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no tiene un perfil de creador configurado
      */
-    List<BriefingResponse> obtenerMisPlantillas(Long idUsuario);
+    List<BriefingResponse> getMyTemplates(Long idUsuario);
 
     /**
      * Reemplaza el nombre y las preguntas de una plantilla existente.
@@ -49,7 +49,7 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño de la plantilla, o si el cuestionario supera el máximo de preguntas permitido
      */
-    BriefingResponse editarPlantilla(Long idPlantilla, Long idUsuario, CreateBriefingTemplateRequest peticion);
+    BriefingResponse updateTemplate(Long idPlantilla, Long idUsuario, CreateBriefingTemplateRequest peticion);
 
     /**
      * Elimina una plantilla de briefing.
@@ -60,7 +60,7 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la plantilla no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el dueño de la plantilla
      */
-    RespuestaMensaje eliminarPlantilla(Long idPlantilla, Long idUsuario);
+    RespuestaMensaje deleteTemplate(Long idPlantilla, Long idUsuario);
 
     /**
      * Obtiene el briefing respondido de un pedido (solo lectura). Solo el
@@ -72,5 +72,5 @@ public interface BriefingService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no tiene un briefing respondido
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es parte del pedido ni administrador
      */
-    BriefingResponse obtenerBriefing(Long idPedido, Long idUsuarioSolicitante);
+    BriefingResponse getBriefing(Long idPedido, Long idUsuarioSolicitante);
 }

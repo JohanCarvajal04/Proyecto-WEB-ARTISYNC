@@ -41,8 +41,8 @@ public class PortfolioLikeServiceImpl implements PortfolioLikeService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public LikeStatusResponse darLike(Long idItemPortafolio, Long idUsuario) {
-        PortfolioItem item = obtenerItem(idItemPortafolio);
+    public LikeStatusResponse like(Long idItemPortafolio, Long idUsuario) {
+        PortfolioItem item = getItem(idItemPortafolio);
 
         // La restricción UNIQUE de la tabla ya lo impide; se comprueba antes
         // para devolver un 409 con mensaje de dominio en vez de un error de
@@ -60,7 +60,7 @@ public class PortfolioLikeServiceImpl implements PortfolioLikeService {
                 .build());
 
         log.info("User {} dio like al ítem de portafolio {}", idUsuario, idItemPortafolio);
-        return construirEstado(idItemPortafolio, true);
+        return buildStatus(idItemPortafolio, true);
     }
 
     @Override
@@ -75,14 +75,14 @@ public class PortfolioLikeServiceImpl implements PortfolioLikeService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public LikeStatusResponse quitarLike(Long idItemPortafolio, Long idUsuario) {
+    public LikeStatusResponse unlike(Long idItemPortafolio, Long idUsuario) {
         PortfolioLike like = likeRepository
                 .findByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("No le has dado like a esta obra"));
 
         likeRepository.delete(like);
         log.info("User {} quitó el like del ítem de portafolio {}", idUsuario, idItemPortafolio);
-        return construirEstado(idItemPortafolio, false);
+        return buildStatus(idItemPortafolio, false);
     }
 
     @Override
@@ -95,20 +95,20 @@ public class PortfolioLikeServiceImpl implements PortfolioLikeService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public LikeStatusResponse obtenerEstado(Long idItemPortafolio, Long idUsuario) {
+    public LikeStatusResponse getStatus(Long idItemPortafolio, Long idUsuario) {
         boolean meGusta = idUsuario != null
                 && likeRepository.existsByItemPortafolioIdItemPortafolioAndUsuarioIdUsuario(idItemPortafolio, idUsuario);
-        return construirEstado(idItemPortafolio, meGusta);
+        return buildStatus(idItemPortafolio, meGusta);
     }
 
     // -------------------------------------------------------------------------
-    private PortfolioItem obtenerItem(Long idItemPortafolio) {
+    private PortfolioItem getItem(Long idItemPortafolio) {
         return portafolioItemRepository.findById(idItemPortafolio)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Ítem de portafolio no encontrado: " + idItemPortafolio));
     }
 
-    private LikeStatusResponse construirEstado(Long idItemPortafolio, boolean meGusta) {
+    private LikeStatusResponse buildStatus(Long idItemPortafolio, boolean meGusta) {
         long total = likeRepository.countByItemPortafolioIdItemPortafolio(idItemPortafolio);
         return LikeStatusResponse.builder()
                 .idItemPortafolio(idItemPortafolio)

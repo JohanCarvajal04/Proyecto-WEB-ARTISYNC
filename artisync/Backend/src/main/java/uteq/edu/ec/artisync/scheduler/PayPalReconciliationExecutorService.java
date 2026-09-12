@@ -132,8 +132,8 @@ public class PayPalReconciliationExecutorService {
         Order pedido = pago.getContrato().getPedido();
         String mensaje = "El pago de tu pedido \"" + pedido.getServicio().getTituloServicio()
                 + "\" fue confirmado. Los fondos quedan en garantía hasta la aprobación de la entrega.";
-        notificacionService.notificar(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
-        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO",
+        notificacionService.notify(pedido.getUsuarioCliente(), "PAGO_CONFIRMADO", mensaje);
+        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), "PAGO_CONFIRMADO",
                 "Se confirmó el pago de garantía para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
     }
 }

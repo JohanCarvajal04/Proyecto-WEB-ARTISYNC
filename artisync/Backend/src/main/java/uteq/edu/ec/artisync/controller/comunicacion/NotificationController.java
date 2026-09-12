@@ -38,11 +38,11 @@ public class NotificationController {
     @Operation(summary = "Listar mis notificaciones (paginado)")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Page<NotificationResponse>> listarMisNotificaciones(
+    public ResponseEntity<Page<NotificationResponse>> listMyNotifications(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable) {
         return ResponseEntity.ok(
-                notificacionService.listarMisNotificaciones(userDetails.getIdUsuario(), pageable));
+                notificacionService.listMyNotifications(userDetails.getIdUsuario(), pageable));
     }
 
     /**
@@ -56,11 +56,11 @@ public class NotificationController {
     @Operation(summary = "Marcar una notificación como leída")
     @PutMapping("/{id}/leer")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<NotificationResponse> marcarComoLeida(
+    public ResponseEntity<NotificationResponse> markAsRead(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(
-                notificacionService.marcarComoLeida(id, userDetails.getIdUsuario()));
+                notificacionService.markAsRead(id, userDetails.getIdUsuario()));
     }
 
     /**
@@ -72,9 +72,9 @@ public class NotificationController {
     @Operation(summary = "Marcar todas las notificaciones como leídas")
     @PutMapping("/leer-todas")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<RespuestaMensaje> marcarTodasLeidas(
+    public ResponseEntity<RespuestaMensaje> markAllAsRead(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        int count = notificacionService.marcarTodasLeidas(userDetails.getIdUsuario());
+        int count = notificacionService.markAllAsRead(userDetails.getIdUsuario());
         return ResponseEntity.ok(new RespuestaMensaje(count + " notificaciones marcadas como leídas"));
     }
 
@@ -87,9 +87,9 @@ public class NotificationController {
     @Operation(summary = "Contador de notificaciones no leídas")
     @GetMapping("/no-leidas/count")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, Long>> contarNoLeidas(
+    public ResponseEntity<Map<String, Long>> countUnread(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        long count = notificacionService.contarNoLeidas(userDetails.getIdUsuario());
+        long count = notificacionService.countUnread(userDetails.getIdUsuario());
         return ResponseEntity.ok(Map.of("noLeidas", count));
     }
 }

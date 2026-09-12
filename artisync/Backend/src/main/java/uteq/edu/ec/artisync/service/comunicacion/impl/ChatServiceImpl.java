@@ -58,7 +58,7 @@ public class ChatServiceImpl implements ChatService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ChatRoom crearSala(Order pedido) {
+    public ChatRoom createRoom(Order pedido) {
         // Prevenir duplicados: un pedido → una sala
         return salaChatRepo.findByPedidoIdPedido(pedido.getIdPedido())
                 .orElseGet(() -> {
@@ -79,7 +79,7 @@ public class ChatServiceImpl implements ChatService {
      * @param idPedido identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void cerrarSala(Long idPedido) {
+    public void closeRoom(Long idPedido) {
         salaChatRepo.findByPedidoIdPedido(idPedido).ifPresent(sala -> {
             sala.setSalaActiva(false);
             salaChatRepo.save(sala);
@@ -108,7 +108,7 @@ public class ChatServiceImpl implements ChatService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ChatMessageResponse enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje) {
+    public ChatMessageResponse sendMessage(Long idPedido, Long idRemitente, String cuerpoMensaje) {
         ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
@@ -116,19 +116,19 @@ public class ChatServiceImpl implements ChatService {
         // Los controladores (REST y @MessageMapping) solo exigen
         // isAuthenticated(): sin esto, cualquier usuario logueado podía
         // escribir en el chat de un pedido ajeno.
-        verificarParticipante(sala.getPedido(), idRemitente);
+        verifyParticipant(sala.getPedido(), idRemitente);
 
         if (Boolean.FALSE.equals(sala.getSalaActiva())) {
             throw new BusinessRuleException("Esta sala ha sido cerrada");
         }
 
         // RF-15: Filtrar datos de contacto antes de persistir el mensaje.
-        // infraccionService.registrarInfraccion corre en su propia transaccion
+        // infraccionService.registerViolation corre en su propia transaccion
         // (REQUIRES_NEW): queda confirmada en el motor aunque esta llamada
         // termine lanzando la excepcion de abajo, que hace rollback de la
-        // transaccion de enviarMensaje pero no de la de la infraccion.
-        if (mensajeFilterService.contieneContacto(cuerpoMensaje)) {
-            infraccionService.registrarInfraccion(idRemitente, sala.getPedido().getIdPedido(), cuerpoMensaje);
+        // transaccion de sendMessage pero no de la de la infraccion.
+        if (mensajeFilterService.containsContactInfo(cuerpoMensaje)) {
+            infraccionService.registerViolation(idRemitente, sala.getPedido().getIdPedido(), cuerpoMensaje);
             throw new BusinessRuleException(
                     "Tu mensaje no fue entregado porque contiene datos de contacto. Infracción registrada.");
         }
@@ -154,14 +154,14 @@ public class ChatServiceImpl implements ChatService {
         User destinatario = idRemitente.equals(pedido.getUsuarioCliente().getIdUsuario())
                 ? pedido.getServicio().getPerfil().getUsuario()
                 : pedido.getUsuarioCliente();
-        notificacionService.notificar(destinatario, "MENSAJE_RECIBIDO",
+        notificacionService.notify(destinatario, "MENSAJE_RECIBIDO",
                 remitente.getNombres() + " te escribió en \"" + pedido.getServicio().getTituloServicio()
-                        + "\": " + resumirMensaje(cuerpoMensaje));
+                        + "\": " + summarizeMessage(cuerpoMensaje));
 
         return response;
     }
 
-    private String resumirMensaje(String cuerpoMensaje) {
+    private String summarizeMessage(String cuerpoMensaje) {
         final int maxCaracteres = 80;
         return cuerpoMensaje.length() > maxCaracteres
                 ? cuerpoMensaje.substring(0, maxCaracteres) + "…"
@@ -179,14 +179,14 @@ public class ChatServiceImpl implements ChatService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Page<ChatMessageResponse> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable) {
+    public Page<ChatMessageResponse> getMessages(Long idPedido, Long idUsuario, Pageable pageable) {
         ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
 
         // El controlador solo exige isAuthenticated(): sin esto, cualquier
         // usuario logueado podía leer el historial de un chat ajeno.
-        verificarParticipante(sala.getPedido(), idUsuario);
+        verifyParticipant(sala.getPedido(), idUsuario);
 
         List<Message> mensajes = mensajeRepo.findBySalaIdSalaOrderByFechaHoraEnvioAsc(sala.getIdSala());
         List<ChatMessageResponse> dtos = mensajes.stream()
@@ -209,14 +209,14 @@ public class ChatServiceImpl implements ChatService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ChatRoomResponse obtenerEstadoSala(Long idPedido, Long idUsuario) {
+    public ChatRoomResponse getRoomStatus(Long idPedido, Long idUsuario) {
         ChatRoom sala = salaChatRepo.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe sala de chat para el pedido " + idPedido));
 
         // El controlador solo exige isAuthenticated(): sin esto, cualquier
         // usuario logueado podía ver el estado del chat de un pedido ajeno.
-        verificarParticipante(sala.getPedido(), idUsuario);
+        verifyParticipant(sala.getPedido(), idUsuario);
 
         return ChatRoomResponse.builder()
                 .idSala(sala.getIdSala())
@@ -231,7 +231,7 @@ public class ChatServiceImpl implements ChatService {
      * métodos de arriba: nadie fuera del cliente o el creador del pedido
      * puede leer, escuchar o escribir en su sala de chat.
      */
-    private void verificarParticipante(Order pedido, Long idUsuario) {
+    private void verifyParticipant(Order pedido, Long idUsuario) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuario);
         if (!esCliente && !esCreador) {

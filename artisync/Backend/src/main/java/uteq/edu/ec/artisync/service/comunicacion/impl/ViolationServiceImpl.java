@@ -44,7 +44,7 @@ public class ViolationServiceImpl implements ViolationService {
     private final ObjectMapper            objectMapper;
 
     @Override
-    // REQUIRES_NEW: quien llama a este metodo (ej. ChatServiceImpl.enviarMensaje)
+    // REQUIRES_NEW: quien llama a este metodo (ej. ChatServiceImpl.sendMessage)
     // suele lanzar una excepcion de regla de negocio inmediatamente despues,
     // dentro de su propia transaccion @Transactional -- con la propagacion
     // por defecto (REQUIRED) esa excepcion marca rollback-only y deshace este
@@ -67,18 +67,18 @@ public class ViolationServiceImpl implements ViolationService {
      * @param mensaje parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void registrarInfraccion(Long idUsuario, Long idPedido, String mensaje) {
+    public void registerViolation(Long idUsuario, Long idPedido, String mensaje) {
         // REQ-F-015: fn_registrar_infraccion inserta la infraccion, cuenta el
         // total en la ventana de 30 dias y suspende la cuenta si corresponde,
         // todo en una unica transaccion atomica en el motor (evita la carrera
         // entre el COUNT y el UPDATE condicional que tenia la version en tres
         // llamadas independientes al repositorio).
-        String patron = mensajeFilterService.detectarPatron(mensaje);
+        String patron = mensajeFilterService.detectPattern(mensaje);
         AuditContext.aportar("idUsuarioInfractor", idUsuario);
         AuditContext.aportar("patronDetectado", patron);
         AuditContext.aportar("longitudMensaje", mensaje != null ? mensaje.length() : 0);
 
-        String resultadoJson = infraccionRepo.registrarInfraccion(idUsuario, idPedido, mensaje, patron);
+        String resultadoJson = infraccionRepo.registerViolation(idUsuario, idPedido, mensaje, patron);
         JsonNode resultado = parseResultado(resultadoJson);
         int totalPeriodo = resultado.get("totalInfraccionesPeriodo").asInt();
         boolean cuentaSuspendida = resultado.get("cuentaSuspendida").asBoolean();
@@ -89,7 +89,7 @@ public class ViolationServiceImpl implements ViolationService {
         if (cuentaSuspendida) {
             User usuario = usuarioRepo.findById(idUsuario)
                     .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuario));
-            notificarSuspension(usuario);
+            notifySuspension(usuario);
         }
     }
 
@@ -110,7 +110,7 @@ public class ViolationServiceImpl implements ViolationService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Page<ViolationResponse> listarInfracciones(Pageable pageable) {
+    public Page<ViolationResponse> listViolations(Pageable pageable) {
         return infraccionRepo.findAll(pageable).map(this::mapToResponse);
     }
 
@@ -124,7 +124,7 @@ public class ViolationServiceImpl implements ViolationService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Page<ViolationResponse> historialPorUsuario(Long idUsuario, Pageable pageable) {
+    public Page<ViolationResponse> getHistoryByUser(Long idUsuario, Pageable pageable) {
         return infraccionRepo.findByUsuarioIdUsuario(idUsuario, pageable)
                 .map(this::mapToResponse);
     }
@@ -140,7 +140,7 @@ public class ViolationServiceImpl implements ViolationService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RespuestaMensaje revertirSuspension(Long idUsuario) {
+    public RespuestaMensaje revertSuspension(Long idUsuario) {
         User usuario = usuarioRepo.findById(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado: " + idUsuario));
         usuario.setEstadoCuenta(true);
@@ -152,13 +152,13 @@ public class ViolationServiceImpl implements ViolationService {
     // -------------------------------------------------------------------------
 
     /** El estado_cuenta ya lo actualizo fn_registrar_infraccion; aqui solo se notifica. */
-    private void notificarSuspension(User usuario) {
+    private void notifySuspension(User usuario) {
         LocalDateTime hastaFecha = LocalDateTime.now().plusDays(SUSPENSION_DIAS);
         String mensajeNotif = "Tu cuenta está suspendida hasta " + hastaFecha.toLocalDate()
                 + " por superar el límite de infracciones de datos de contacto.";
 
         log.warn("Cuenta del usuario {} suspendida hasta {}", usuario.getCorreo(), hastaFecha.toLocalDate());
-        notificacionService.notificar(usuario, "CUENTA_SUSPENDIDA", mensajeNotif);
+        notificacionService.notify(usuario, "CUENTA_SUSPENDIDA", mensajeNotif);
     }
 
     private ViolationResponse mapToResponse(MessageViolation i) {

@@ -34,7 +34,7 @@ public interface SystemNotificationRepository extends JpaRepository<SystemNotifi
      */
     @Modifying
     @Query("UPDATE SystemNotification n SET n.estaLeida = true WHERE n.usuario.idUsuario = :idUsuario AND n.estaLeida = false")
-    int marcarTodasLeidas(Long idUsuario);
+    int markAllAsRead(Long idUsuario);
 }
 
 

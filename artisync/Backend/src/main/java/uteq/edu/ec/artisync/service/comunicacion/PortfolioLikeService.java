@@ -19,7 +19,7 @@ public interface PortfolioLikeService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el usuario ya le había dado like
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio o el usuario no existen
      */
-    LikeStatusResponse darLike(Long idItemPortafolio, Long idUsuario);
+    LikeStatusResponse like(Long idItemPortafolio, Long idUsuario);
 
     /**
      * Quita el like. Falla si el usuario no le había dado like.
@@ -29,7 +29,7 @@ public interface PortfolioLikeService {
      * @return el estado de likes resultante
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el usuario no le había dado like a ese ítem
      */
-    LikeStatusResponse quitarLike(Long idItemPortafolio, Long idUsuario);
+    LikeStatusResponse unlike(Long idItemPortafolio, Long idUsuario);
 
     /**
      * Estado de likes de un ítem: total y si `idUsuario` (puede ser null si no
@@ -40,5 +40,5 @@ public interface PortfolioLikeService {
      * @return el estado de likes del ítem
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ítem de portafolio no existe
      */
-    LikeStatusResponse obtenerEstado(Long idItemPortafolio, Long idUsuario);
+    LikeStatusResponse getStatus(Long idItemPortafolio, Long idUsuario);
 }

@@ -207,8 +207,8 @@ public class DeliverableServiceImpl implements IDeliverableService {
 
         log.info("Entrega aprobada para pedido {} por cliente {}", idPedido, idCliente);
 
-        chatService.cerrarSala(idPedido);
-        notificacionService.notificar(pedido.getServicio().getPerfil().getUsuario(), "PAGO_LIBERADO",
+        chatService.closeRoom(idPedido);
+        notificacionService.notify(pedido.getServicio().getPerfil().getUsuario(), "PAGO_LIBERADO",
                 "El cliente aprobó la entrega de \"" + pedido.getServicio().getTituloServicio()
                         + "\" y el pago fue liberado a tu favor.");
     }

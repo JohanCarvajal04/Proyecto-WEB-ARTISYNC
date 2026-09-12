@@ -34,8 +34,8 @@ public class AdminViolationController {
     @Operation(summary = "Listar todas las infracciones del sistema")
     @GetMapping("/infracciones")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<Page<ViolationResponse>> listarInfracciones(Pageable pageable) {
-        return ResponseEntity.ok(infraccionService.listarInfracciones(pageable));
+    public ResponseEntity<Page<ViolationResponse>> listViolations(Pageable pageable) {
+        return ResponseEntity.ok(infraccionService.listViolations(pageable));
     }
 
     /**
@@ -48,10 +48,10 @@ public class AdminViolationController {
     @Operation(summary = "Historial de infracciones de un usuario específico")
     @GetMapping("/infracciones/usuario/{idUsuario}")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<Page<ViolationResponse>> historialPorUsuario(
+    public ResponseEntity<Page<ViolationResponse>> getHistoryByUser(
             @PathVariable Long idUsuario,
             Pageable pageable) {
-        return ResponseEntity.ok(infraccionService.historialPorUsuario(idUsuario, pageable));
+        return ResponseEntity.ok(infraccionService.getHistoryByUser(idUsuario, pageable));
     }
 
     /**
@@ -64,7 +64,7 @@ public class AdminViolationController {
     @Operation(summary = "Revertir suspensión de un usuario")
     @DeleteMapping("/suspensiones/{idUsuario}")
     @PreAuthorize("hasAuthority('INFRACCION_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> revertirSuspension(@PathVariable Long idUsuario) {
-        return ResponseEntity.ok(infraccionService.revertirSuspension(idUsuario));
+    public ResponseEntity<RespuestaMensaje> revertSuspension(@PathVariable Long idUsuario) {
+        return ResponseEntity.ok(infraccionService.revertSuspension(idUsuario));
     }
 }

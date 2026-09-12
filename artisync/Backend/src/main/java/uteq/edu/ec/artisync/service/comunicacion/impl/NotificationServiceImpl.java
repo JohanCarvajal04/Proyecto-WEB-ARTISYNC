@@ -35,8 +35,8 @@ public class NotificationServiceImpl implements NotificationService {
      * @param mensajeTexto parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void notificar(User destinatario, String tipoEvento, String mensajeTexto) {
-        // notificar() casi siempre se llama desde dentro de la transacción de
+    public void notify(User destinatario, String tipoEvento, String mensajeTexto) {
+        // notify() casi siempre se llama desde dentro de la transacción de
         // una operación de negocio real (pago confirmado, ganador de sorteo,
         // etc.). Sin este try/catch, un fallo aquí (choque de UNIQUE al crear
         // NotificationType por una carrera, o una excepción del broker STOMP
@@ -86,7 +86,7 @@ public class NotificationServiceImpl implements NotificationService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Page<NotificationResponse> listarMisNotificaciones(Long idUsuario, Pageable pageable) {
+    public Page<NotificationResponse> listMyNotifications(Long idUsuario, Pageable pageable) {
         return notificacionRepo
                 .findByUsuarioIdUsuarioOrderByFechaEmisionDesc(idUsuario, pageable)
                 .map(n -> mapToResponse(n, n.getMensaje()));
@@ -102,7 +102,7 @@ public class NotificationServiceImpl implements NotificationService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public NotificationResponse marcarComoLeida(Long idNotificacion, Long idUsuario) {
+    public NotificationResponse markAsRead(Long idNotificacion, Long idUsuario) {
         SystemNotification notificacion = notificacionRepo.findById(idNotificacion)
                 .filter(n -> n.getUsuario().getIdUsuario().equals(idUsuario))
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -121,8 +121,8 @@ public class NotificationServiceImpl implements NotificationService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public int marcarTodasLeidas(Long idUsuario) {
-        return notificacionRepo.marcarTodasLeidas(idUsuario);
+    public int markAllAsRead(Long idUsuario) {
+        return notificacionRepo.markAllAsRead(idUsuario);
     }
 
     @Override
@@ -134,7 +134,7 @@ public class NotificationServiceImpl implements NotificationService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public long contarNoLeidas(Long idUsuario) {
+    public long countUnread(Long idUsuario) {
         return notificacionRepo.countByUsuarioIdUsuarioAndEstaLeidaFalse(idUsuario);
     }
 

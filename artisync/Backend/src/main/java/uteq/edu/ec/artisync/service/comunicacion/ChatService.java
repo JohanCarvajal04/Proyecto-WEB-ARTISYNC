@@ -14,16 +14,16 @@ import uteq.edu.ec.artisync.entity.pedido.Order;
 public interface ChatService {
 
     /** Crea la sala de chat al firmarse el contrato de un pedido. */
-    ChatRoom crearSala(Order pedido);
+    ChatRoom createRoom(Order pedido);
 
     /** Cierra la sala y notifica vía WebSocket cuando el pedido finaliza. */
-    void cerrarSala(Long idPedido);
+    void closeRoom(Long idPedido);
 
     /**
      * Envía un mensaje aplicando el filtro RF-15.
      * Lanza BusinessRuleException si la sala está cerrada o el mensaje contiene datos de contacto.
      */
-    ChatMessageResponse enviarMensaje(Long idPedido, Long idRemitente, String cuerpoMensaje);
+    ChatMessageResponse sendMessage(Long idPedido, Long idRemitente, String cuerpoMensaje);
 
     /**
      * Historial de mensajes paginado de un pedido (por su sala).
@@ -31,7 +31,7 @@ public interface ChatService {
      * @param idUsuario quien consulta; debe ser el cliente o el creador del
      *                  pedido, o se rechaza (ver BusinessRuleException).
      */
-    Page<ChatMessageResponse> obtenerMensajes(Long idPedido, Long idUsuario, Pageable pageable);
+    Page<ChatMessageResponse> getMessages(Long idPedido, Long idUsuario, Pageable pageable);
 
     /**
      * Estado actual de la sala (activa/cerrada).
@@ -39,5 +39,5 @@ public interface ChatService {
      * @param idUsuario quien consulta; debe ser el cliente o el creador del
      *                  pedido, o se rechaza (ver BusinessRuleException).
      */
-    ChatRoomResponse obtenerEstadoSala(Long idPedido, Long idUsuario);
+    ChatRoomResponse getRoomStatus(Long idPedido, Long idUsuario);
 }
