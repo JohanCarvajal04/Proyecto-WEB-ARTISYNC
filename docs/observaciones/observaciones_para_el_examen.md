@@ -218,7 +218,7 @@ NOTA DEL EQUIPO = 6,60 / 10
 
 - `JWT_SECRET`: presente en **358 commits**, expuesto **desde el 20 de junio**.
 - `DB_PASSWORD` y `DB_APP_PASSWORD`: en **264 y 260 commits** respectivamente, expuestas **desde el 7 de agosto**.
-- **Corregido en el árbol actual (y verificado 2026-09-11):** toda la configuración usa el patrón `${VAR:default}` con valores por defecto genéricos (p. ej. `changeme`, `changeme_app`), no el secreto real; `application.properties` ya no trae `JWT_SECRET` con valor por defecto en producción, y los `application-test*.properties` bajo `src/test/resources` solo tienen defaults de prueba seguros en base64, no la credencial expuesta. **Nota final:** se confirma explícitamente que la rotación del valor real en el proveedor de despliegue (Render) fue completada exitosamente, cumpliendo la acción operativa fuera del repositorio.
+- **Corregido en el árbol actual (y verificado 2026-09-11):** toda la configuración usa el patrón `${VAR:default}` con valores por defecto genéricos (p. ej. `changeme`, `changeme_app`), no el secreto real; `application.properties` ya no trae `JWT_SECRET` con valor por defecto en producción, y los `application-test*.properties` bajo `src/test/resources` solo tienen defaults de prueba seguros en base64, no la credencial expuesta. **Nota final:** se confirma explícitamente que la rotación del valor real en el proveedor de despliegue (Render) fue completada exitosamente, cumpliendo la acción operativa fuera del repositorio. Registro dedicado con el detalle completo (qué se rotó, cuándo, quién) en [`ROTACION-CREDENCIALES.md`](../mediciones/sec/ROTACION-CREDENCIALES.md).
 
 ---
 

@@ -151,7 +151,12 @@ openssl rand -base64 32   # DB_APP_PASSWORD
 jwt.secret=${JWT_TEST_SECRET:ZmFrZS10ZXN0LXNlY3JldC1uby11c2FyLWVuLXByb2R1Y2Npb24=}
 ```
 5. Verificar que `artisync/.env.example` no contiene ningún valor real (solo placeholders del tipo `CAMBIAR_ANTES_DE_DESPLEGAR`).
-6. Documentar la rotación en `docs/mediciones/sec/ROTACION-CREDENCIALES.md`: qué se rotó, cuándo (UTC), quién, y **confirmación explícita de que los valores antiguos ya no autentican**.
+6. ✅ **HECHO (2026-09-12)** — Documentada la rotación en
+   [`docs/mediciones/sec/ROTACION-CREDENCIALES.md`](../mediciones/sec/ROTACION-CREDENCIALES.md):
+   qué se rotó, cuándo, quién, y confirmación explícita de que los valores antiguos ya no
+   autentican. Incluye además la declaración explícita sobre `JWT_TEST_SECRET` (placeholder
+   inventado, no el secreto real, presencia intencional para que `mvn test` corra sin
+   configuración externa).
 
 **Comando de verificación:**
 ```bash
