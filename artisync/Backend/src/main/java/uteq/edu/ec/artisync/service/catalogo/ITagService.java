@@ -12,7 +12,7 @@ public interface ITagService {
      *
      * @return las etiquetas registradas
      */
-    List<TagResponse> listarEtiquetas();
+    List<TagResponse> listTags();
 
     /**
      * Obtiene una etiqueta por su id.
@@ -21,7 +21,7 @@ public interface ITagService {
      * @return la etiqueta encontrada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
-    TagResponse obtenerPorId(Long idEtiqueta);
+    TagResponse getById(Long idEtiqueta);
 
     /**
      * Crea una etiqueta nueva.
@@ -30,7 +30,7 @@ public interface ITagService {
      * @return la etiqueta recién creada
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una etiqueta con el mismo nombre
      */
-    TagResponse crearEtiqueta(CreateTagRequest peticion);
+    TagResponse createTag(CreateTagRequest peticion);
 
     /**
      * Elimina una etiqueta del catálogo.
@@ -38,5 +38,5 @@ public interface ITagService {
      * @param idEtiqueta id de la etiqueta a eliminar
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
-    void eliminarEtiqueta(Long idEtiqueta);
+    void deleteTag(Long idEtiqueta);
 }

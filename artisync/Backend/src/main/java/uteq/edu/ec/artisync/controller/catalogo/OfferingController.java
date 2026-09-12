@@ -48,11 +48,11 @@ public class OfferingController {
      */
     @PostMapping("/creador/{idPerfilCreador}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<OfferingResponse> crearServicio(
+    public ResponseEntity<OfferingResponse> createOffering(
             @PathVariable Long idPerfilCreador,
             @Valid @RequestBody CreateOfferingRequest peticion) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(servicioCatalogoServicio.crearServicio(idPerfilCreador, peticion));
+                .body(servicioCatalogoServicio.createOffering(idPerfilCreador, peticion));
     }
 
     /**
@@ -66,10 +66,10 @@ public class OfferingController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<OfferingResponse> actualizarServicio(
+    public ResponseEntity<OfferingResponse> updateOffering(
             @PathVariable Long id,
             @Valid @RequestBody UpdateOfferingRequest peticion) {
-        return ResponseEntity.ok(servicioCatalogoServicio.actualizarServicio(id, peticion));
+        return ResponseEntity.ok(servicioCatalogoServicio.updateOffering(id, peticion));
     }
 
     /**
@@ -80,8 +80,8 @@ public class OfferingController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      */
     @GetMapping("/{id}")
-    public ResponseEntity<OfferingResponse> obtenerServicioPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(servicioCatalogoServicio.obtenerServicioPorId(id));
+    public ResponseEntity<OfferingResponse> getOfferingById(@PathVariable Long id) {
+        return ResponseEntity.ok(servicioCatalogoServicio.getOfferingById(id));
     }
 
     /**
@@ -93,8 +93,8 @@ public class OfferingController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarServicio(@PathVariable Long id) {
-        servicioCatalogoServicio.eliminarServicio(id);
+    public ResponseEntity<RespuestaMensaje> deleteOffering(@PathVariable Long id) {
+        servicioCatalogoServicio.deleteOffering(id);
         return ResponseEntity.ok(new RespuestaMensaje("Offering eliminado exitosamente"));
     }
 
@@ -107,10 +107,10 @@ public class OfferingController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil de creador no existe
      */
     @GetMapping("/creador/{idPerfilCreador}")
-    public ResponseEntity<List<OfferingSummaryResponse>> listarServiciosPorCreador(
+    public ResponseEntity<List<OfferingSummaryResponse>> listOfferingsByCreator(
             @PathVariable Long idPerfilCreador,
             @RequestParam(required = false) String estadoPublicacion) {
-        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));
+        return ResponseEntity.ok(servicioCatalogoServicio.listOfferingsByCreator(idPerfilCreador, estadoPublicacion));
     }
 
     /**
@@ -121,8 +121,8 @@ public class OfferingController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      */
     @GetMapping("/{id}/atributos")
-    public ResponseEntity<List<AttributeResponse>> listarAtributosPorServicio(@PathVariable Long id) {
-        return ResponseEntity.ok(servicioCatalogoServicio.listarAtributosPorServicio(id));
+    public ResponseEntity<List<AttributeResponse>> listAttributesByOffering(@PathVariable Long id) {
+        return ResponseEntity.ok(servicioCatalogoServicio.listAttributesByOffering(id));
     }
 
     /**
@@ -136,11 +136,11 @@ public class OfferingController {
      */
     @PostMapping("/{id}/atributos")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<AttributeResponse> agregarAtributo(
+    public ResponseEntity<AttributeResponse> addAttribute(
             @PathVariable Long id,
             @Valid @RequestBody CreateAttributeRequest peticion) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(servicioCatalogoServicio.agregarAtributo(id, peticion));
+                .body(servicioCatalogoServicio.addAttribute(id, peticion));
     }
 
     /**
@@ -155,11 +155,11 @@ public class OfferingController {
      */
     @PutMapping("/{id}/atributos/{idAtributo}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<AttributeResponse> actualizarAtributo(
+    public ResponseEntity<AttributeResponse> updateAttribute(
             @PathVariable Long id,
             @PathVariable Long idAtributo,
             @Valid @RequestBody UpdateAttributeRequest peticion) {
-        return ResponseEntity.ok(servicioCatalogoServicio.actualizarAtributo(id, idAtributo, peticion));
+        return ResponseEntity.ok(servicioCatalogoServicio.updateAttribute(id, idAtributo, peticion));
     }
 
     /**
@@ -173,10 +173,10 @@ public class OfferingController {
      */
     @DeleteMapping("/{id}/atributos/{idAtributo}")
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarAtributo(
+    public ResponseEntity<RespuestaMensaje> deleteAttribute(
             @PathVariable Long id,
             @PathVariable Long idAtributo) {
-        servicioCatalogoServicio.eliminarAtributo(id, idAtributo);
+        servicioCatalogoServicio.deleteAttribute(id, idAtributo);
         return ResponseEntity.ok(new RespuestaMensaje("Atributo eliminado exitosamente del servicio"));
     }
 
@@ -188,9 +188,9 @@ public class OfferingController {
      */
     @PostMapping(value = "/miniatura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaUrl> subirMiniatura(@RequestParam("archivo") MultipartFile archivo) {
+    public ResponseEntity<RespuestaUrl> uploadThumbnail(@RequestParam("archivo") MultipartFile archivo) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RespuestaUrl(servicioCatalogoServicio.subirMiniatura(archivo)));
+                .body(new RespuestaUrl(servicioCatalogoServicio.uploadThumbnail(archivo)));
     }
 
     /**

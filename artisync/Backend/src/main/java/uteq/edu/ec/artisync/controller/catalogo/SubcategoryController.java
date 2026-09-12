@@ -29,8 +29,8 @@ public class SubcategoryController {
      * @return listado de subcategorías
      */
     @GetMapping
-    public ResponseEntity<List<SubcategoryResponse>> listarTodasLasSubcategorias() {
-        return ResponseEntity.ok(categoriaServicio.listarTodasLasSubcategorias());
+    public ResponseEntity<List<SubcategoryResponse>> listAllSubcategories() {
+        return ResponseEntity.ok(categoriaServicio.listAllSubcategories());
     }
 
     // CATEGORIA_CREAR es autoservicio (cada creador crea las suyas, quedan sin
@@ -48,11 +48,11 @@ public class SubcategoryController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<SubcategoryResponse> crearSubcategoria(
+    public ResponseEntity<SubcategoryResponse> createSubcategory(
             @Valid @RequestBody CreateSubcategoryRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioCreador = esModerador(userDetails) ? null : userDetails.getIdUsuario();
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearSubcategoria(idUsuarioCreador, peticion));
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.createSubcategory(idUsuarioCreador, peticion));
     }
 
     /**
@@ -66,10 +66,10 @@ public class SubcategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarSubcategoria(
+    public ResponseEntity<RespuestaMensaje> deleteSubcategory(
             @PathVariable Long id,
             @RequestParam(required = false) String motivo) {
-        categoriaServicio.eliminarSubcategoria(id, motivo);
+        categoriaServicio.deleteSubcategory(id, motivo);
         return ResponseEntity.ok(new RespuestaMensaje("Subcategory eliminada exitosamente"));
     }
 
@@ -80,8 +80,8 @@ public class SubcategoryController {
      */
     @GetMapping("/pendientes-revision")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<SubcategoryResponse>> listarPendientesRevision() {
-        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPendientesRevision());
+    public ResponseEntity<List<SubcategoryResponse>> listPendingReview() {
+        return ResponseEntity.ok(categoriaServicio.listSubcategoriesPendingReview());
     }
 
     /**
@@ -94,7 +94,7 @@ public class SubcategoryController {
     @PatchMapping("/{id}/revisar")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<SubcategoryResponse> marcarRevisada(@PathVariable Long id) {
-        return ResponseEntity.ok(categoriaServicio.marcarSubcategoriaRevisada(id));
+        return ResponseEntity.ok(categoriaServicio.markSubcategoryReviewed(id));
     }
 
     private boolean esModerador(CustomUserDetails userDetails) {

@@ -38,20 +38,20 @@ public class CategoryServiceImpl implements ICategoryService {
     /** @return las categorías activas y ya revisadas, para el catálogo público, ordenadas alfabéticamente */
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> listarCategoriasActivas() {
+    public List<CategoryResponse> listActiveCategories() {
         return categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()
                 .stream()
-                .map(this::mapearACategoriaRespuesta)
+                .map(this::mapToCategoryResponse)
                 .collect(Collectors.toList());
     }
 
     /** @return todas las categorías (incluidas inactivas y sin revisar), para administración */
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> listarTodasLasCategorias() {
+    public List<CategoryResponse> listAllCategories() {
         return categoriaRepository.findAllByOrderByNombreCategoriaAsc()
                 .stream()
-                .map(this::mapearACategoriaRespuesta)
+                .map(this::mapToCategoryResponse)
                 .collect(Collectors.toList());
     }
 
@@ -62,10 +62,10 @@ public class CategoryServiceImpl implements ICategoryService {
      */
     @Override
     @Transactional(readOnly = true)
-    public CategoryResponse obtenerCategoriaPorId(Long idCategoria) {
+    public CategoryResponse getCategoryById(Long idCategoria) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
-        return mapearACategoriaRespuesta(cat);
+        return mapToCategoryResponse(cat);
     }
 
     /**
@@ -82,7 +82,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Auditable(accion = "CATEGORIA_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#resultado.idCategoria",
             detalle = "{nombreCategoria: #peticion.nombreCategoria}")
-    public CategoryResponse crearCategoria(Long idUsuarioCreador, CreateCategoryRequest peticion) {
+    public CategoryResponse createCategory(Long idUsuarioCreador, CreateCategoryRequest peticion) {
         if (categoriaRepository.existsByNombreCategoriaIgnoreCase(peticion.getNombreCategoria())) {
             throw new BusinessRuleException("Ya existe una categoria con el nombre: " + peticion.getNombreCategoria());
         }
@@ -93,7 +93,7 @@ public class CategoryServiceImpl implements ICategoryService {
                 .revisado(idUsuarioCreador == null)
                 .build();
         cat = categoriaRepository.save(cat);
-        return mapearACategoriaRespuesta(cat);
+        return mapToCategoryResponse(cat);
     }
 
     /**
@@ -110,7 +110,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Auditable(accion = "CATEGORIA_ACTUALIZAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria",
             detalle = "{nombreCategoria: #peticion.nombreCategoria, estadoActiva: #peticion.estadoActiva}")
-    public CategoryResponse actualizarCategoria(Long idCategoria, UpdateCategoryRequest peticion) {
+    public CategoryResponse updateCategory(Long idCategoria, UpdateCategoryRequest peticion) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
 
@@ -125,7 +125,7 @@ public class CategoryServiceImpl implements ICategoryService {
             cat.setEstadoActiva(peticion.getEstadoActiva());
         }
         cat = categoriaRepository.save(cat);
-        return mapearACategoriaRespuesta(cat);
+        return mapToCategoryResponse(cat);
     }
 
     /**
@@ -142,7 +142,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Transactional
     @Auditable(accion = "CATEGORIA_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria", detalle = "{motivo: #motivo}")
-    public void eliminarCategoria(Long idCategoria, String motivo) {
+    public void deleteCategory(Long idCategoria, String motivo) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
         // subcategorias.id_categoria cascada al borrar la categoria, pero
@@ -170,23 +170,23 @@ public class CategoryServiceImpl implements ICategoryService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<SubcategoryResponse> listarSubcategoriasPorCategoria(Long idCategoria) {
+    public List<SubcategoryResponse> listSubcategoriesByCategory(Long idCategoria) {
         if (!categoriaRepository.existsById(idCategoria)) {
             throw new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria);
         }
         return subcategoriaRepository.findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(idCategoria)
                 .stream()
-                .map(this::mapearASubcategoriaRespuesta)
+                .map(this::mapToSubcategoryResponse)
                 .collect(Collectors.toList());
     }
 
     /** @return todas las subcategorías del catálogo, ordenadas alfabéticamente */
     @Override
     @Transactional(readOnly = true)
-    public List<SubcategoryResponse> listarTodasLasSubcategorias() {
+    public List<SubcategoryResponse> listAllSubcategories() {
         return subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()
                 .stream()
-                .map(this::mapearASubcategoriaRespuesta)
+                .map(this::mapToSubcategoryResponse)
                 .collect(Collectors.toList());
     }
 
@@ -206,7 +206,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Auditable(accion = "SUBCATEGORIA_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "subcategorias", idEntidad = "#resultado.idSubcategoria",
             detalle = "{idCategoria: #peticion.idCategoria, nombreSubcategoria: #peticion.nombreSubcategoria}")
-    public SubcategoryResponse crearSubcategoria(Long idUsuarioCreador, CreateSubcategoryRequest peticion) {
+    public SubcategoryResponse createSubcategory(Long idUsuarioCreador, CreateSubcategoryRequest peticion) {
         Category cat = categoriaRepository.findById(peticion.getIdCategoria())
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + peticion.getIdCategoria()));
 
@@ -222,7 +222,7 @@ public class CategoryServiceImpl implements ICategoryService {
                 .revisado(idUsuarioCreador == null)
                 .build();
         sub = subcategoriaRepository.save(sub);
-        return mapearASubcategoriaRespuesta(sub);
+        return mapToSubcategoryResponse(sub);
     }
 
     /**
@@ -239,7 +239,7 @@ public class CategoryServiceImpl implements ICategoryService {
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "subcategorias", idEntidad = "#idSubcategoria", detalle = "{motivo: #motivo}")
-    public void eliminarSubcategoria(Long idSubcategoria, String motivo) {
+    public void deleteSubcategory(Long idSubcategoria, String motivo) {
         Subcategory sub = subcategoriaRepository.findById(idSubcategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory no encontrada con ID: " + idSubcategoria));
         if (servicioSubcategoriaRepository.existsBySubcategoriaIdSubcategoria(idSubcategoria)) {
@@ -259,20 +259,20 @@ public class CategoryServiceImpl implements ICategoryService {
     /** @return las categorías creadas por creadores aún sin revisar, más recientes primero */
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryResponse> listarCategoriasPendientesRevision() {
+    public List<CategoryResponse> listCategoriesPendingReview() {
         return categoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()
                 .stream()
-                .map(this::mapearACategoriaRespuesta)
+                .map(this::mapToCategoryResponse)
                 .collect(Collectors.toList());
     }
 
     /** @return las subcategorías creadas por creadores aún sin revisar, más recientes primero */
     @Override
     @Transactional(readOnly = true)
-    public List<SubcategoryResponse> listarSubcategoriasPendientesRevision() {
+    public List<SubcategoryResponse> listSubcategoriesPendingReview() {
         return subcategoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()
                 .stream()
-                .map(this::mapearASubcategoriaRespuesta)
+                .map(this::mapToSubcategoryResponse)
                 .collect(Collectors.toList());
     }
 
@@ -287,12 +287,12 @@ public class CategoryServiceImpl implements ICategoryService {
     @Transactional
     @Auditable(accion = "CATEGORIA_REVISAR", modulo = AuditModule.CATALOGO,
             entidad = "categorias", idEntidad = "#idCategoria")
-    public CategoryResponse marcarCategoriaRevisada(Long idCategoria) {
+    public CategoryResponse markCategoryReviewed(Long idCategoria) {
         Category cat = categoriaRepository.findById(idCategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Category no encontrada con ID: " + idCategoria));
         cat.setRevisado(true);
         cat = categoriaRepository.save(cat);
-        return mapearACategoriaRespuesta(cat);
+        return mapToCategoryResponse(cat);
     }
 
     /**
@@ -306,12 +306,12 @@ public class CategoryServiceImpl implements ICategoryService {
     @Transactional
     @Auditable(accion = "SUBCATEGORIA_REVISAR", modulo = AuditModule.CATALOGO,
             entidad = "subcategorias", idEntidad = "#idSubcategoria")
-    public SubcategoryResponse marcarSubcategoriaRevisada(Long idSubcategoria) {
+    public SubcategoryResponse markSubcategoryReviewed(Long idSubcategoria) {
         Subcategory sub = subcategoriaRepository.findById(idSubcategoria)
                 .orElseThrow(() -> new ResourceNotFoundException("Subcategory no encontrada con ID: " + idSubcategoria));
         sub.setRevisado(true);
         sub = subcategoriaRepository.save(sub);
-        return mapearASubcategoriaRespuesta(sub);
+        return mapToSubcategoryResponse(sub);
     }
 
     private User resolverCreador(Long idUsuarioCreador) {
@@ -322,7 +322,7 @@ public class CategoryServiceImpl implements ICategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado con ID: " + idUsuarioCreador));
     }
 
-    private CategoryResponse mapearACategoriaRespuesta(Category cat) {
+    private CategoryResponse mapToCategoryResponse(Category cat) {
         return CategoryResponse.builder()
                 .idCategoria(cat.getIdCategoria())
                 .nombreCategoria(cat.getNombreCategoria())
@@ -334,7 +334,7 @@ public class CategoryServiceImpl implements ICategoryService {
                 .build();
     }
 
-    private SubcategoryResponse mapearASubcategoriaRespuesta(Subcategory sub) {
+    private SubcategoryResponse mapToSubcategoryResponse(Subcategory sub) {
         return SubcategoryResponse.builder()
                 .idSubcategoria(sub.getIdSubcategoria())
                 .idCategoria(sub.getCategoria().getIdCategoria())

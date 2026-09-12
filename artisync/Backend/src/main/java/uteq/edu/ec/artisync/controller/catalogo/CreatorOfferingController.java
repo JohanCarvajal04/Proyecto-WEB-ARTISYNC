@@ -24,9 +24,9 @@ public class CreatorOfferingController {
      * @return listado resumido de los servicios del creador
      */
     @GetMapping("/{idPerfilCreador}/servicios")
-    public ResponseEntity<List<OfferingSummaryResponse>> listarServiciosPorCreador(
+    public ResponseEntity<List<OfferingSummaryResponse>> listOfferingsByCreator(
             @PathVariable Long idPerfilCreador,
             @RequestParam(required = false) String estadoPublicacion) {
-        return ResponseEntity.ok(servicioCatalogoServicio.listarServiciosPorCreador(idPerfilCreador, estadoPublicacion));
+        return ResponseEntity.ok(servicioCatalogoServicio.listOfferingsByCreator(idPerfilCreador, estadoPublicacion));
     }
 }

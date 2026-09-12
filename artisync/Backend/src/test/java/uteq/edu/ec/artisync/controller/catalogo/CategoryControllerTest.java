@@ -29,9 +29,9 @@ class CategoryControllerTest {
     void listarCategoriasActivas_DebeRetornarLista() {
         CategoryResponse cat = new CategoryResponse();
         cat.setNombreCategoria("Test");
-        when(categoriaServicio.listarCategoriasActivas()).thenReturn(List.of(cat));
+        when(categoriaServicio.listActiveCategories()).thenReturn(List.of(cat));
 
-        ResponseEntity<List<CategoryResponse>> result = categoriaControlador.listarCategoriasActivas();
+        ResponseEntity<List<CategoryResponse>> result = categoriaControlador.listActiveCategories();
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(1, result.getBody().size());
@@ -40,7 +40,7 @@ class CategoryControllerTest {
 
     @Test
     void eliminarCategoria_DebeRetornarOk() {
-        ResponseEntity<RespuestaMensaje> result = categoriaControlador.eliminarCategoria(1L, null);
+        ResponseEntity<RespuestaMensaje> result = categoriaControlador.deleteCategory(1L, null);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 }

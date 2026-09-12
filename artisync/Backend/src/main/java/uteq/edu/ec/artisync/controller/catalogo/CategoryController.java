@@ -32,8 +32,8 @@ public class CategoryController {
      * @return listado de categorías activas
      */
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> listarCategoriasActivas() {
-        return ResponseEntity.ok(categoriaServicio.listarCategoriasActivas());
+    public ResponseEntity<List<CategoryResponse>> listActiveCategories() {
+        return ResponseEntity.ok(categoriaServicio.listActiveCategories());
     }
 
     // La gestión del catálogo se autoriza por permiso, no por rol: MODERADOR
@@ -46,8 +46,8 @@ public class CategoryController {
      */
     @GetMapping("/todas")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<CategoryResponse>> listarTodasLasCategorias() {
-        return ResponseEntity.ok(categoriaServicio.listarTodasLasCategorias());
+    public ResponseEntity<List<CategoryResponse>> listAllCategories() {
+        return ResponseEntity.ok(categoriaServicio.listAllCategories());
     }
 
     /**
@@ -56,8 +56,8 @@ public class CategoryController {
      * @return datos de la categoría solicitada
      */
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> obtenerCategoriaPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(categoriaServicio.obtenerCategoriaPorId(id));
+    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaServicio.getCategoryById(id));
     }
 
     // CATEGORIA_CREAR es autoservicio (cada creador crea las suyas, quedan sin
@@ -73,11 +73,11 @@ public class CategoryController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasAuthority('CATEGORIA_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<CategoryResponse> crearCategoria(
+    public ResponseEntity<CategoryResponse> createCategory(
             @Valid @RequestBody CreateCategoryRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long idUsuarioCreador = esModerador(userDetails) ? null : userDetails.getIdUsuario();
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.crearCategoria(idUsuarioCreador, peticion));
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaServicio.createCategory(idUsuarioCreador, peticion));
     }
 
     /**
@@ -88,10 +88,10 @@ public class CategoryController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<CategoryResponse> actualizarCategoria(
+    public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody UpdateCategoryRequest peticion) {
-        return ResponseEntity.ok(categoriaServicio.actualizarCategoria(id, peticion));
+        return ResponseEntity.ok(categoriaServicio.updateCategory(id, peticion));
     }
 
     /**
@@ -103,10 +103,10 @@ public class CategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarCategoria(
+    public ResponseEntity<RespuestaMensaje> deleteCategory(
             @PathVariable Long id,
             @RequestParam(required = false) String motivo) {
-        categoriaServicio.eliminarCategoria(id, motivo);
+        categoriaServicio.deleteCategory(id, motivo);
         return ResponseEntity.ok(new RespuestaMensaje("Category eliminada exitosamente"));
     }
 
@@ -116,8 +116,8 @@ public class CategoryController {
      * @return listado de subcategorías asociadas a la categoría
      */
     @GetMapping("/{id}/subcategorias")
-    public ResponseEntity<List<SubcategoryResponse>> listarSubcategoriasPorCategoria(@PathVariable Long id) {
-        return ResponseEntity.ok(categoriaServicio.listarSubcategoriasPorCategoria(id));
+    public ResponseEntity<List<SubcategoryResponse>> listSubcategoriesByCategory(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaServicio.listSubcategoriesByCategory(id));
     }
 
     /**
@@ -127,8 +127,8 @@ public class CategoryController {
      */
     @GetMapping("/pendientes-revision")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<CategoryResponse>> listarPendientesRevision() {
-        return ResponseEntity.ok(categoriaServicio.listarCategoriasPendientesRevision());
+    public ResponseEntity<List<CategoryResponse>> listPendingReview() {
+        return ResponseEntity.ok(categoriaServicio.listCategoriesPendingReview());
     }
 
     /**
@@ -140,7 +140,7 @@ public class CategoryController {
     @PatchMapping("/{id}/revisar")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
     public ResponseEntity<CategoryResponse> marcarRevisada(@PathVariable Long id) {
-        return ResponseEntity.ok(categoriaServicio.marcarCategoriaRevisada(id));
+        return ResponseEntity.ok(categoriaServicio.markCategoryReviewed(id));
     }
 
     private boolean esModerador(CustomUserDetails userDetails) {

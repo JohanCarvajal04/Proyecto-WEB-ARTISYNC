@@ -15,14 +15,14 @@ public interface ICategoryService {
      *
      * @return las categorías con estado activo
      */
-    List<CategoryResponse> listarCategoriasActivas();
+    List<CategoryResponse> listActiveCategories();
 
     /**
      * Lista todas las categorías, activas e inactivas, ordenadas alfabéticamente.
      *
      * @return todas las categorías del catálogo
      */
-    List<CategoryResponse> listarTodasLasCategorias();
+    List<CategoryResponse> listAllCategories();
 
     /**
      * Obtiene una categoría por su id.
@@ -31,7 +31,7 @@ public interface ICategoryService {
      * @return la categoría encontrada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      */
-    CategoryResponse obtenerCategoriaPorId(Long idCategoria);
+    CategoryResponse getCategoryById(Long idCategoria);
 
     /**
      * Crea una categoría de catálogo. Si {@code idUsuarioCreador} es nulo, la categoría queda
@@ -43,7 +43,7 @@ public interface ICategoryService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si {@code idUsuarioCreador} no corresponde a un usuario existente
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una categoría con el mismo nombre
      */
-    CategoryResponse crearCategoria(Long idUsuarioCreador, CreateCategoryRequest peticion);
+    CategoryResponse createCategory(Long idUsuarioCreador, CreateCategoryRequest peticion);
 
     /**
      * Actualiza el nombre y/o estado activo de una categoría.
@@ -54,7 +54,7 @@ public interface ICategoryService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el nuevo nombre ya lo usa otra categoría
      */
-    CategoryResponse actualizarCategoria(Long idCategoria, UpdateCategoryRequest peticion);
+    CategoryResponse updateCategory(Long idCategoria, UpdateCategoryRequest peticion);
 
     /**
      * Elimina una categoría, siempre que ninguna de sus subcategorías tenga servicios publicados.
@@ -64,7 +64,7 @@ public interface ICategoryService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si alguna subcategoría tiene servicios publicados, o si la categoría la creó un creador y no se indicó motivo
      */
-    void eliminarCategoria(Long idCategoria, String motivo);
+    void deleteCategory(Long idCategoria, String motivo);
 
     /**
      * Lista las subcategorías de una categoría, ordenadas alfabéticamente.
@@ -73,14 +73,14 @@ public interface ICategoryService {
      * @return las subcategorías de la categoría
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      */
-    List<SubcategoryResponse> listarSubcategoriasPorCategoria(Long idCategoria);
+    List<SubcategoryResponse> listSubcategoriesByCategory(Long idCategoria);
 
     /**
      * Lista todas las subcategorías del catálogo, ordenadas alfabéticamente.
      *
      * @return todas las subcategorías
      */
-    List<SubcategoryResponse> listarTodasLasSubcategorias();
+    List<SubcategoryResponse> listAllSubcategories();
 
     /**
      * Crea una subcategoría dentro de una categoría existente. Si {@code idUsuarioCreador} es nulo,
@@ -92,7 +92,7 @@ public interface ICategoryService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría padre no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya existe una subcategoría con el mismo nombre en esa categoría
      */
-    SubcategoryResponse crearSubcategoria(Long idUsuarioCreador, CreateSubcategoryRequest peticion);
+    SubcategoryResponse createSubcategory(Long idUsuarioCreador, CreateSubcategoryRequest peticion);
 
     /**
      * Elimina una subcategoría, siempre que no tenga servicios publicados.
@@ -102,21 +102,21 @@ public interface ICategoryService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si tiene servicios publicados, o si la subcategoría la creó un creador y no se indicó motivo
      */
-    void eliminarSubcategoria(Long idSubcategoria, String motivo);
+    void deleteSubcategory(Long idSubcategoria, String motivo);
 
     /**
      * Lista las categorías creadas por creadores que aún no han sido revisadas por un moderador.
      *
      * @return las categorías pendientes de revisión, más recientes primero
      */
-    List<CategoryResponse> listarCategoriasPendientesRevision();
+    List<CategoryResponse> listCategoriesPendingReview();
 
     /**
      * Lista las subcategorías creadas por creadores que aún no han sido revisadas por un moderador.
      *
      * @return las subcategorías pendientes de revisión, más recientes primero
      */
-    List<SubcategoryResponse> listarSubcategoriasPendientesRevision();
+    List<SubcategoryResponse> listSubcategoriesPendingReview();
 
     /**
      * Marca una categoría como ya revisada por un moderador.
@@ -125,7 +125,7 @@ public interface ICategoryService {
      * @return la categoría ya marcada como revisada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la categoría no existe
      */
-    CategoryResponse marcarCategoriaRevisada(Long idCategoria);
+    CategoryResponse markCategoryReviewed(Long idCategoria);
 
     /**
      * Marca una subcategoría como ya revisada por un moderador.
@@ -134,5 +134,5 @@ public interface ICategoryService {
      * @return la subcategoría ya marcada como revisada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la subcategoría no existe
      */
-    SubcategoryResponse marcarSubcategoriaRevisada(Long idSubcategoria);
+    SubcategoryResponse markSubcategoryReviewed(Long idSubcategoria);
 }

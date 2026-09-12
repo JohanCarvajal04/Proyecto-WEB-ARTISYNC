@@ -41,9 +41,9 @@ class SubcategoryControllerTest {
     @Test
     void listarTodasLasSubcategorias_DebeRetornarLista() {
         SubcategoryResponse sub = SubcategoryResponse.builder().idSubcategoria(1L).build();
-        when(categoriaServicio.listarTodasLasSubcategorias()).thenReturn(List.of(sub));
+        when(categoriaServicio.listAllSubcategories()).thenReturn(List.of(sub));
 
-        ResponseEntity<List<SubcategoryResponse>> result = controlador.listarTodasLasSubcategorias();
+        ResponseEntity<List<SubcategoryResponse>> result = controlador.listAllSubcategories();
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).hasSize(1);
@@ -54,10 +54,10 @@ class SubcategoryControllerTest {
         CreateSubcategoryRequest peticion = CreateSubcategoryRequest.builder()
                 .idCategoria(1L).nombreSubcategoria("Nueva").build();
         CustomUserDetails moderador = usuario(9L, "CATEGORIA_GESTIONAR");
-        when(categoriaServicio.crearSubcategoria(isNull(), eq(peticion)))
+        when(categoriaServicio.createSubcategory(isNull(), eq(peticion)))
                 .thenReturn(SubcategoryResponse.builder().idSubcategoria(2L).idUsuarioCreador(null).build());
 
-        ResponseEntity<SubcategoryResponse> result = controlador.crearSubcategoria(peticion, moderador);
+        ResponseEntity<SubcategoryResponse> result = controlador.createSubcategory(peticion, moderador);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody().getIdUsuarioCreador()).isNull();
@@ -68,10 +68,10 @@ class SubcategoryControllerTest {
         CreateSubcategoryRequest peticion = CreateSubcategoryRequest.builder()
                 .idCategoria(1L).nombreSubcategoria("Nueva").build();
         CustomUserDetails creador = usuario(9L, "CATEGORIA_CREAR");
-        when(categoriaServicio.crearSubcategoria(eq(9L), eq(peticion)))
+        when(categoriaServicio.createSubcategory(eq(9L), eq(peticion)))
                 .thenReturn(SubcategoryResponse.builder().idSubcategoria(3L).idUsuarioCreador(9L).build());
 
-        ResponseEntity<SubcategoryResponse> result = controlador.crearSubcategoria(peticion, creador);
+        ResponseEntity<SubcategoryResponse> result = controlador.createSubcategory(peticion, creador);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody().getIdUsuarioCreador()).isEqualTo(9L);
@@ -79,7 +79,7 @@ class SubcategoryControllerTest {
 
     @Test
     void eliminarSubcategoria_ConMotivo_DebeDelegarAlServicio() {
-        ResponseEntity<RespuestaMensaje> result = controlador.eliminarSubcategoria(1L, "duplicada");
+        ResponseEntity<RespuestaMensaje> result = controlador.deleteSubcategory(1L, "duplicada");
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getMensaje()).contains("eliminada");
@@ -87,17 +87,17 @@ class SubcategoryControllerTest {
 
     @Test
     void eliminarSubcategoria_SinMotivo_DebeDelegarAlServicio() {
-        ResponseEntity<RespuestaMensaje> result = controlador.eliminarSubcategoria(1L, null);
+        ResponseEntity<RespuestaMensaje> result = controlador.deleteSubcategory(1L, null);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void listarPendientesRevision_DebeRetornarLista() {
-        when(categoriaServicio.listarSubcategoriasPendientesRevision())
+        when(categoriaServicio.listSubcategoriesPendingReview())
                 .thenReturn(List.of(SubcategoryResponse.builder().idSubcategoria(4L).revisado(false).build()));
 
-        ResponseEntity<List<SubcategoryResponse>> result = controlador.listarPendientesRevision();
+        ResponseEntity<List<SubcategoryResponse>> result = controlador.listPendingReview();
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).hasSize(1);
@@ -105,7 +105,7 @@ class SubcategoryControllerTest {
 
     @Test
     void marcarRevisada_DebeRetornarLaSubcategoriaActualizada() {
-        when(categoriaServicio.marcarSubcategoriaRevisada(5L))
+        when(categoriaServicio.markSubcategoryReviewed(5L))
                 .thenReturn(SubcategoryResponse.builder().idSubcategoria(5L).revisado(true).build());
 
         ResponseEntity<SubcategoryResponse> result = controlador.marcarRevisada(5L);

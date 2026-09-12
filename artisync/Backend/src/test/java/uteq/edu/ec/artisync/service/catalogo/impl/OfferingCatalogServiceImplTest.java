@@ -101,10 +101,10 @@ class OfferingCatalogServiceImplTest {
         SecurityContextHolder.clearContext();
     }
 
-    // ---------- crearServicio ----------
+    // ---------- createOffering ----------
 
     @Test
-    @DisplayName("crearServicio guarda el servicio cuando el precio y las referencias son validas")
+    @DisplayName("createOffering guarda el servicio cuando el precio y las referencias son validas")
     void crearServicio_guardaCuandoEsValido() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .tituloServicio("Ilustracion digital")
@@ -121,7 +121,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        OfferingResponse respuesta = servicioCatalogoServicio.crearServicio(1L, peticion);
+        OfferingResponse respuesta = servicioCatalogoServicio.createOffering(1L, peticion);
 
         assertThat(respuesta.getIdServicio()).isEqualTo(10L);
         assertThat(respuesta.getTituloServicio()).isEqualTo("Ilustracion digital");
@@ -129,27 +129,27 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearServicio rechaza precio nulo o menor a 0.01")
+    @DisplayName("createOffering rechaza precio nulo o menor a 0.01")
     void crearServicio_rechazaPrecioInvalido() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder().precioBase(new BigDecimal("0.00")).build();
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
         verifyNoInteractions(perfilRepository);
     }
 
     @Test
-    @DisplayName("crearServicio lanza recurso no encontrado si el perfil creador no existe")
+    @DisplayName("createOffering lanza recurso no encontrado si el perfil creador no existe")
     void crearServicio_perfilInexistente() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder().precioBase(new BigDecimal("10.00")).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(1L, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("crearServicio rechaza publicar si el perfil no tiene usuario asociado")
+    @DisplayName("createOffering rechaza publicar si el perfil no tiene usuario asociado")
     void crearServicio_perfilSinUsuario_lanzaExcepcionReglaNegocio() {
         CreatorProfile perfilSinUsuario = CreatorProfile.builder().idPerfil(2L).usuario(null).build();
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
@@ -157,13 +157,13 @@ class OfferingCatalogServiceImplTest {
                 .precioBase(new BigDecimal("15.00")).idsSubcategoria(List.of(1L)).build();
         given(perfilRepository.findById(2L)).willReturn(Optional.of(perfilSinUsuario));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(2L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(2L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
     }
 
     @Test
-    @DisplayName("crearServicio permite gestionar cuando la autenticacion no esta autenticada (p.ej. anonima)")
+    @DisplayName("createOffering permite gestionar cuando la autenticacion no esta autenticada (p.ej. anonima)")
     void crearServicio_autenticacionNoAutenticada_noRechaza() {
         var authNoAutenticado = new UsernamePasswordAuthenticationToken("nadie@test.com", "N/A");
         authNoAutenticado.setAuthenticated(false);
@@ -180,11 +180,11 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        assertThat(servicioCatalogoServicio.crearServicio(1L, peticion)).isNotNull();
+        assertThat(servicioCatalogoServicio.createOffering(1L, peticion)).isNotNull();
     }
 
     @Test
-    @DisplayName("crearServicio rechaza publicar si el creador no tiene la identidad verificada")
+    @DisplayName("createOffering rechaza publicar si el creador no tiene la identidad verificada")
     void crearServicio_identidadNoVerificada_lanzaExcepcionReglaNegocio() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .tituloServicio("Ilustracion digital")
@@ -195,7 +195,7 @@ class OfferingCatalogServiceImplTest {
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
         verifyNoInteractions(subcategoriaRepository);
@@ -203,31 +203,31 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearServicio lanza recurso no encontrado si la subcategoria no existe")
+    @DisplayName("createOffering lanza recurso no encontrado si la subcategoria no existe")
     void crearServicio_subcategoriaInexistente() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(99L)).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
         given(subcategoriaRepository.findAllById(List.of(99L))).willReturn(List.of());
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(1L, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("crearServicio rechaza a un usuario autenticado que no es dueno del perfil ni admin")
+    @DisplayName("createOffering rechaza a un usuario autenticado que no es dueno del perfil ni admin")
     void crearServicio_rechazaUsuarioNoPropietario() {
         autenticarComo("otro@test.com");
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of(1L)).build();
         given(perfilRepository.findById(1L)).willReturn(Optional.of(perfil));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.crearServicio(1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.createOffering(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("crearServicio permite a un ADMIN gestionar el servicio de otro creador")
+    @DisplayName("createOffering permite a un ADMIN gestionar el servicio de otro creador")
     void crearServicio_permiteAdmin() {
         autenticarComo("admin@test.com", "ROLE_ADMIN");
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
@@ -241,11 +241,11 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        assertThat(servicioCatalogoServicio.crearServicio(1L, peticion)).isNotNull();
+        assertThat(servicioCatalogoServicio.createOffering(1L, peticion)).isNotNull();
     }
 
     @Test
-    @DisplayName("crearServicio aplica los valores por defecto cuando tipoItem, cargoRevisionAdicional y limiteRevisionesBase no vienen informados")
+    @DisplayName("createOffering aplica los valores por defecto cuando tipoItem, cargoRevisionAdicional y limiteRevisionesBase no vienen informados")
     void crearServicio_camposOpcionalesNulos_aplicaValoresPorDefecto() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .tituloServicio("Ilustracion digital")
@@ -262,7 +262,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioEtiquetaRepository.findByServicioIdServicio(any())).willReturn(List.of());
 
         ArgumentCaptor<Offering> captor = ArgumentCaptor.forClass(Offering.class);
-        servicioCatalogoServicio.crearServicio(1L, peticion);
+        servicioCatalogoServicio.createOffering(1L, peticion);
 
         verify(servicioRepository).save(captor.capture());
         assertThat(captor.getValue().getTipoItem()).isEqualTo("SERVICIO");
@@ -271,7 +271,7 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearServicio asocia las etiquetas solicitadas")
+    @DisplayName("createOffering asocia las etiquetas solicitadas")
     void crearServicio_asociaEtiquetas() {
         CreateOfferingRequest peticion = CreateOfferingRequest.builder()
                 .tituloServicio("Ilustracion digital")
@@ -289,15 +289,15 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.crearServicio(1L, peticion);
+        servicioCatalogoServicio.createOffering(1L, peticion);
 
         verify(servicioEtiquetaRepository).save(any(OfferingTag.class));
     }
 
-    // ---------- actualizarServicio ----------
+    // ---------- updateOffering ----------
 
     @Test
-    @DisplayName("actualizarServicio aplica los cambios permitidos")
+    @DisplayName("updateOffering aplica los cambios permitidos")
     void actualizarServicio_aplicaCambios() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
                 .tituloServicio("Nuevo titulo")
@@ -311,7 +311,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        OfferingResponse respuesta = servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        OfferingResponse respuesta = servicioCatalogoServicio.updateOffering(10L, peticion);
 
         assertThat(respuesta).isNotNull();
         assertThat(servicio.getTituloServicio()).isEqualTo("Nuevo titulo");
@@ -319,7 +319,7 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarServicio rechaza reactivar (ACTIVO) si el creador no tiene la identidad verificada")
+    @DisplayName("updateOffering rechaza reactivar (ACTIVO) si el creador no tiene la identidad verificada")
     void actualizarServicio_reactivarSinIdentidadVerificada_lanzaExcepcionReglaNegocio() {
         servicio.setEstadoPublicacion("PAUSADO");
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
@@ -329,7 +329,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(verificacionServicio.estaIdentidadVerificada(1L)).willReturn(false);
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.updateOffering(10L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("verificar tu identidad");
         assertThat(servicio.getEstadoPublicacion()).isEqualTo("PAUSADO");
@@ -337,7 +337,7 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarServicio mantiene titulo, descripcion, tipoItem y estadoPublicacion cuando no vienen informados")
+    @DisplayName("updateOffering mantiene titulo, descripcion, tipoItem y estadoPublicacion cuando no vienen informados")
     void actualizarServicio_camposOpcionalesNulos_mantieneOriginales() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
                 .precioBase(new BigDecimal("20.00"))
@@ -348,7 +348,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        servicioCatalogoServicio.updateOffering(10L, peticion);
 
         assertThat(servicio.getTituloServicio()).isEqualTo("Ilustracion digital");
         assertThat(servicio.getTipoItem()).isEqualTo("SERVICIO");
@@ -356,7 +356,7 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarServicio ignora titulo, descripcion, tipoItem y estadoPublicacion en blanco")
+    @DisplayName("updateOffering ignora titulo, descripcion, tipoItem y estadoPublicacion en blanco")
     void actualizarServicio_camposEnBlanco_seIgnoran() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
                 .precioBase(new BigDecimal("20.00"))
@@ -371,7 +371,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        servicioCatalogoServicio.updateOffering(10L, peticion);
 
         assertThat(servicio.getTituloServicio()).isEqualTo("Ilustracion digital");
         assertThat(servicio.getTipoItem()).isEqualTo("SERVICIO");
@@ -380,26 +380,26 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarServicio rechaza precio invalido")
+    @DisplayName("updateOffering rechaza precio invalido")
     void actualizarServicio_rechazaPrecioInvalido() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder().precioBase(null).build();
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.updateOffering(10L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("actualizarServicio lanza recurso no encontrado si el servicio no existe")
+    @DisplayName("updateOffering lanza recurso no encontrado si el servicio no existe")
     void actualizarServicio_servicioInexistente() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder().precioBase(new BigDecimal("10.00")).build();
         given(servicioRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.updateOffering(10L, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("actualizarServicio reemplaza las subcategorias cuando la peticion las incluye")
+    @DisplayName("updateOffering reemplaza las subcategorias cuando la peticion las incluye")
     void actualizarServicio_reemplazaSubcategorias() {
         Category otraCategoria = Category.builder().idCategoria(2L).nombreCategoria("Musica").build();
         Subcategory otraSubcategoria = Subcategory.builder().idSubcategoria(2L).categoria(otraCategoria).nombreSubcategoria("Produccion").build();
@@ -412,27 +412,27 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        servicioCatalogoServicio.updateOffering(10L, peticion);
 
         verify(servicioSubcategoriaRepository).deleteByServicioIdServicio(10L);
         verify(servicioSubcategoriaRepository).save(argThat(ss -> ss.getSubcategoria().equals(otraSubcategoria)));
     }
 
     @Test
-    @DisplayName("actualizarServicio rechaza una lista de subcategorias vacia")
+    @DisplayName("updateOffering rechaza una lista de subcategorias vacia")
     void actualizarServicio_rechazaSubcategoriasVacias() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
                 .precioBase(new BigDecimal("10.00")).idsSubcategoria(List.of()).build();
 
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarServicio(10L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.updateOffering(10L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
         verify(servicioRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("actualizarServicio aplica tipoItem, cargoRevisionAdicional y limiteRevisionesBase cuando vienen informados")
+    @DisplayName("updateOffering aplica tipoItem, cargoRevisionAdicional y limiteRevisionesBase cuando vienen informados")
     void actualizarServicio_aplicaCamposAdicionales() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
                 .precioBase(new BigDecimal("10.00"))
@@ -446,7 +446,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        servicioCatalogoServicio.updateOffering(10L, peticion);
 
         assertThat(servicio.getTipoItem()).isEqualTo("PRODUCTO");
         assertThat(servicio.getCargoRevisionAdicional()).isEqualByComparingTo("5.00");
@@ -454,7 +454,7 @@ class OfferingCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("actualizarServicio reactiva (ACTIVO) exitosamente cuando el creador si tiene la identidad verificada")
+    @DisplayName("updateOffering reactiva (ACTIVO) exitosamente cuando el creador si tiene la identidad verificada")
     void actualizarServicio_reactivaConIdentidadVerificada() {
         servicio.setEstadoPublicacion("PAUSADO");
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
@@ -466,14 +466,14 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        servicioCatalogoServicio.updateOffering(10L, peticion);
 
         assertThat(servicio.getEstadoPublicacion()).isEqualTo("ACTIVO");
         verify(verificacionServicio).estaIdentidadVerificada(1L);
     }
 
     @Test
-    @DisplayName("actualizarServicio reemplaza las etiquetas cuando la peticion las incluye")
+    @DisplayName("updateOffering reemplaza las etiquetas cuando la peticion las incluye")
     void actualizarServicio_reemplazaEtiquetas() {
         UpdateOfferingRequest peticion = UpdateOfferingRequest.builder()
                 .precioBase(new BigDecimal("10.00")).etiquetaIds(List.of()).build();
@@ -483,24 +483,24 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.actualizarServicio(10L, peticion);
+        servicioCatalogoServicio.updateOffering(10L, peticion);
 
         verify(servicioEtiquetaRepository).deleteByServicioIdServicio(10L);
     }
 
-    // ---------- obtenerServicioPorId / eliminarServicio ----------
+    // ---------- getOfferingById / deleteOffering ----------
 
     @Test
-    @DisplayName("obtenerServicioPorId lanza recurso no encontrado si no existe")
+    @DisplayName("getOfferingById lanza recurso no encontrado si no existe")
     void obtenerServicioPorId_inexistente() {
         given(servicioRepository.findById(10L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.obtenerServicioPorId(10L))
+        assertThatThrownBy(() -> servicioCatalogoServicio.getOfferingById(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("obtenerServicioPorId usa 'Creador' como nombre por defecto si el perfil no tiene usuario asociado")
+    @DisplayName("getOfferingById usa 'Creador' como nombre por defecto si el perfil no tiene usuario asociado")
     void obtenerServicioPorId_perfilSinUsuario_usaNombrePorDefecto() {
         CreatorProfile perfilSinUsuario = CreatorProfile.builder().idPerfil(2L).usuario(null).build();
         Offering servicioSinUsuario = Offering.builder()
@@ -510,13 +510,13 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(20L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(20L)).willReturn(List.of());
 
-        OfferingResponse respuesta = servicioCatalogoServicio.obtenerServicioPorId(20L);
+        OfferingResponse respuesta = servicioCatalogoServicio.getOfferingById(20L);
 
         assertThat(respuesta.getNombreCreador()).isEqualTo("Creador");
     }
 
     @Test
-    @DisplayName("obtenerServicioPorId incluye las etiquetas asociadas")
+    @DisplayName("getOfferingById incluye las etiquetas asociadas")
     void obtenerServicioPorId_incluyeEtiquetas() {
         Tag etiqueta = Tag.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
         OfferingTag se = OfferingTag.builder().servicio(servicio).etiqueta(etiqueta).build();
@@ -524,72 +524,72 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of(se));
 
-        OfferingResponse respuesta = servicioCatalogoServicio.obtenerServicioPorId(10L);
+        OfferingResponse respuesta = servicioCatalogoServicio.getOfferingById(10L);
 
         assertThat(respuesta.getEtiquetas()).hasSize(1);
         assertThat(respuesta.getEtiquetas().get(0).getNombreEtiqueta()).isEqualTo("Digital");
     }
 
     @Test
-    @DisplayName("eliminarServicio borra el servicio y sus etiquetas asociadas")
+    @DisplayName("deleteOffering borra el servicio y sus etiquetas asociadas")
     void eliminarServicio_borraServicio() {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
 
-        servicioCatalogoServicio.eliminarServicio(10L);
+        servicioCatalogoServicio.deleteOffering(10L);
 
         verify(servicioEtiquetaRepository).deleteByServicioIdServicio(10L);
         verify(servicioRepository).delete(servicio);
     }
 
     @Test
-    @DisplayName("eliminarServicio rechaza a un usuario no propietario")
+    @DisplayName("deleteOffering rechaza a un usuario no propietario")
     void eliminarServicio_rechazaNoPropietario() {
         autenticarComo("otro@test.com");
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.eliminarServicio(10L))
+        assertThatThrownBy(() -> servicioCatalogoServicio.deleteOffering(10L))
                 .isInstanceOf(BusinessRuleException.class);
         verify(servicioRepository, never()).delete(any(Offering.class));
     }
 
-    // ---------- listarServiciosPorCreador ----------
+    // ---------- listOfferingsByCreator ----------
 
     @Test
-    @DisplayName("listarServiciosPorCreador filtra por estado cuando se indica")
+    @DisplayName("listOfferingsByCreator filtra por estado cuando se indica")
     void listarServiciosPorCreador_filtraPorEstado() {
         given(perfilRepository.existsById(1L)).willReturn(true);
         given(servicioRepository.findByPerfilIdPerfilAndEstadoPublicacion(1L, "ACTIVO")).willReturn(List.of(servicio));
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        List<OfferingSummaryResponse> resultado = servicioCatalogoServicio.listarServiciosPorCreador(1L, "ACTIVO");
+        List<OfferingSummaryResponse> resultado = servicioCatalogoServicio.listOfferingsByCreator(1L, "ACTIVO");
 
         assertThat(resultado).hasSize(1);
         verify(servicioRepository).findByPerfilIdPerfilAndEstadoPublicacion(1L, "ACTIVO");
     }
 
     @Test
-    @DisplayName("listarServiciosPorCreador lista todos cuando el estado viene en blanco")
+    @DisplayName("listOfferingsByCreator lista todos cuando el estado viene en blanco")
     void listarServiciosPorCreador_estadoEnBlanco() {
         given(perfilRepository.existsById(1L)).willReturn(true);
         given(servicioRepository.findByPerfilIdPerfil(1L)).willReturn(List.of(servicio));
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        assertThat(servicioCatalogoServicio.listarServiciosPorCreador(1L, "   ")).hasSize(1);
+        assertThat(servicioCatalogoServicio.listOfferingsByCreator(1L, "   ")).hasSize(1);
         verify(servicioRepository, never()).findByPerfilIdPerfilAndEstadoPublicacion(any(), any());
     }
 
     @Test
-    @DisplayName("listarServiciosPorCreador lista todos cuando no se indica estado")
+    @DisplayName("listOfferingsByCreator lista todos cuando no se indica estado")
     void listarServiciosPorCreador_sinFiltro() {
         given(perfilRepository.existsById(1L)).willReturn(true);
         given(servicioRepository.findByPerfilIdPerfil(1L)).willReturn(List.of(servicio));
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        assertThat(servicioCatalogoServicio.listarServiciosPorCreador(1L, null)).hasSize(1);
+        assertThat(servicioCatalogoServicio.listOfferingsByCreator(1L, null)).hasSize(1);
     }
 
     @Test
-    @DisplayName("listarServiciosPorCreador incluye las etiquetas de cada servicio")
+    @DisplayName("listOfferingsByCreator incluye las etiquetas de cada servicio")
     void listarServiciosPorCreador_incluyeEtiquetas() {
         Tag etiqueta = Tag.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
         OfferingTag se = OfferingTag.builder().servicio(servicio).etiqueta(etiqueta).build();
@@ -597,77 +597,77 @@ class OfferingCatalogServiceImplTest {
         given(servicioRepository.findByPerfilIdPerfil(1L)).willReturn(List.of(servicio));
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of(se));
 
-        List<OfferingSummaryResponse> resultado = servicioCatalogoServicio.listarServiciosPorCreador(1L, null);
+        List<OfferingSummaryResponse> resultado = servicioCatalogoServicio.listOfferingsByCreator(1L, null);
 
         assertThat(resultado.get(0).getEtiquetas()).hasSize(1);
         assertThat(resultado.get(0).getEtiquetas().get(0).getNombreEtiqueta()).isEqualTo("Digital");
     }
 
     @Test
-    @DisplayName("listarServiciosPorCreador lanza recurso no encontrado si el perfil no existe")
+    @DisplayName("listOfferingsByCreator lanza recurso no encontrado si el perfil no existe")
     void listarServiciosPorCreador_perfilInexistente() {
         given(perfilRepository.existsById(1L)).willReturn(false);
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.listarServiciosPorCreador(1L, null))
+        assertThatThrownBy(() -> servicioCatalogoServicio.listOfferingsByCreator(1L, null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // ---------- buscarCatalogoServicios ----------
+    // ---------- searchCatalogOfferings ----------
 
     @Test
-    @DisplayName("buscarCatalogoServicios aplica orden por precio ascendente")
+    @DisplayName("searchCatalogOfferings aplica orden por precio ascendente")
     void buscarCatalogoServicios_ordenaPorPrecioAsc() {
         Page<Offering> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
         given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
-        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.searchCatalogOfferings(
                 null, null, null, null, null, null, "precioAsc", 0, 10);
 
         assertThat(resultado.getContent()).hasSize(1);
     }
 
     @Test
-    @DisplayName("buscarCatalogoServicios usa el orden por defecto cuando no se indica sort")
+    @DisplayName("searchCatalogOfferings usa el orden por defecto cuando no se indica sort")
     void buscarCatalogoServicios_ordenPorDefecto() {
         Page<Offering> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
         given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
-        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.searchCatalogOfferings(
                 1L, 1L, BigDecimal.ONE, BigDecimal.TEN, List.of(5L), "ilustracion", null, 0, 10);
 
         assertThat(resultado.getContent()).hasSize(1);
     }
 
     @Test
-    @DisplayName("buscarCatalogoServicios aplica orden por precio descendente")
+    @DisplayName("searchCatalogOfferings aplica orden por precio descendente")
     void buscarCatalogoServicios_ordenaPorPrecioDesc() {
         Page<Offering> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
         given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
-        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.searchCatalogOfferings(
                 null, null, null, null, null, null, "precioDesc", 0, 10);
 
         assertThat(resultado.getContent()).hasSize(1);
     }
 
     @Test
-    @DisplayName("buscarCatalogoServicios aplica orden por titulo ascendente")
+    @DisplayName("searchCatalogOfferings aplica orden por titulo ascendente")
     void buscarCatalogoServicios_ordenaPorTitulo() {
         Page<Offering> pagina = new PageImpl<>(List.of(servicio));
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
         given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of());
 
-        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.searchCatalogOfferings(
                 null, null, null, null, null, null, "tituloServicio,asc", 0, 10);
 
         assertThat(resultado.getContent()).hasSize(1);
     }
 
     @Test
-    @DisplayName("buscarCatalogoServicios incluye las etiquetas de cada servicio de la pagina")
+    @DisplayName("searchCatalogOfferings incluye las etiquetas de cada servicio de la pagina")
     void buscarCatalogoServicios_incluyeEtiquetas() {
         Tag etiqueta = Tag.builder().idEtiqueta(5L).nombreEtiqueta("Digital").build();
         OfferingTag se = OfferingTag.builder().servicio(servicio).etiqueta(etiqueta).build();
@@ -675,7 +675,7 @@ class OfferingCatalogServiceImplTest {
         given(servicioRepository.findAll(any(Specification.class), any(Pageable.class))).willReturn(pagina);
         given(servicioEtiquetaRepository.findByServicioIdServicioIn(List.of(10L))).willReturn(List.of(se));
 
-        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.buscarCatalogoServicios(
+        Page<OfferingSummaryResponse> resultado = servicioCatalogoServicio.searchCatalogOfferings(
                 null, null, null, null, null, null, null, 0, 10);
 
         assertThat(resultado.getContent().get(0).getEtiquetas()).hasSize(1);
@@ -685,27 +685,27 @@ class OfferingCatalogServiceImplTest {
     // ---------- Atributos dinamicos ----------
 
     @Test
-    @DisplayName("listarAtributosPorServicio devuelve los atributos existentes")
+    @DisplayName("listAttributesByOffering devuelve los atributos existentes")
     void listarAtributosPorServicio_devuelveAtributos() {
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).nombreAtributo("Color").tipoDato("TEXTO").build();
         OfferingAttribute sa = OfferingAttribute.builder().idServicioAtributo(1L).servicio(servicio).atributo(atributo).valorAsignado("Rojo").build();
         given(servicioRepository.existsById(10L)).willReturn(true);
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of(sa));
 
-        assertThat(servicioCatalogoServicio.listarAtributosPorServicio(10L)).hasSize(1);
+        assertThat(servicioCatalogoServicio.listAttributesByOffering(10L)).hasSize(1);
     }
 
     @Test
-    @DisplayName("listarAtributosPorServicio lanza recurso no encontrado si el servicio no existe")
+    @DisplayName("listAttributesByOffering lanza recurso no encontrado si el servicio no existe")
     void listarAtributosPorServicio_servicioInexistente() {
         given(servicioRepository.existsById(10L)).willReturn(false);
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.listarAtributosPorServicio(10L))
+        assertThatThrownBy(() -> servicioCatalogoServicio.listAttributesByOffering(10L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("agregarAtributo reutiliza un atributo dinamico existente")
+    @DisplayName("addAttribute reutiliza un atributo dinamico existente")
     void agregarAtributo_reutilizaExistente() {
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).nombreAtributo("Color").tipoDato("TEXTO").build();
         CreateAttributeRequest peticion = CreateAttributeRequest.builder()
@@ -718,14 +718,14 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.save(any(OfferingAttribute.class)))
                 .willAnswer(inv -> inv.getArgument(0));
 
-        AttributeResponse respuesta = servicioCatalogoServicio.agregarAtributo(10L, peticion);
+        AttributeResponse respuesta = servicioCatalogoServicio.addAttribute(10L, peticion);
 
         assertThat(respuesta.getNombreAtributo()).isEqualTo("Color");
         verify(atributoRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("agregarAtributo crea un atributo dinamico nuevo si no existe")
+    @DisplayName("addAttribute crea un atributo dinamico nuevo si no existe")
     void agregarAtributo_creaAtributoNuevo() {
         CreateAttributeRequest peticion = CreateAttributeRequest.builder()
                 .nombreAtributo("Formato").valorAsignado("PDF").tipoDato("TEXTO").build();
@@ -738,25 +738,25 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicioAndAtributoIdAtributo(10L, 2L)).willReturn(Optional.empty());
         given(servicioAtributoRepository.save(any(OfferingAttribute.class))).willAnswer(inv -> inv.getArgument(0));
 
-        AttributeResponse respuesta = servicioCatalogoServicio.agregarAtributo(10L, peticion);
+        AttributeResponse respuesta = servicioCatalogoServicio.addAttribute(10L, peticion);
 
         assertThat(respuesta.getNombreAtributo()).isEqualTo("Formato");
     }
 
     @Test
-    @DisplayName("agregarAtributo rechaza el limite de 10 atributos por servicio")
+    @DisplayName("addAttribute rechaza el limite de 10 atributos por servicio")
     void agregarAtributo_rechazaLimite() {
         CreateAttributeRequest peticion = CreateAttributeRequest.builder()
                 .nombreAtributo("Color").valorAsignado("Rojo").tipoDato("TEXTO").build();
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.countByServicioIdServicio(10L)).willReturn(10L);
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.agregarAtributo(10L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.addAttribute(10L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("agregarAtributo rechaza un atributo ya asociado al servicio")
+    @DisplayName("addAttribute rechaza un atributo ya asociado al servicio")
     void agregarAtributo_rechazaDuplicado() {
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).nombreAtributo("Color").tipoDato("TEXTO").build();
         OfferingAttribute existente = OfferingAttribute.builder().idServicioAtributo(1L).servicio(servicio).atributo(atributo).valorAsignado("Rojo").build();
@@ -768,12 +768,12 @@ class OfferingCatalogServiceImplTest {
         given(atributoRepository.findByNombreAtributoIgnoreCase("Color")).willReturn(Optional.of(atributo));
         given(servicioAtributoRepository.findByServicioIdServicioAndAtributoIdAtributo(10L, 1L)).willReturn(Optional.of(existente));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.agregarAtributo(10L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.addAttribute(10L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("actualizarAtributo cambia el valor asignado")
+    @DisplayName("updateAttribute cambia el valor asignado")
     void actualizarAtributo_cambiaValor() {
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).nombreAtributo("Color").tipoDato("TEXTO").build();
         OfferingAttribute sa = OfferingAttribute.builder().idServicioAtributo(1L).servicio(servicio).atributo(atributo).valorAsignado("Rojo").build();
@@ -783,13 +783,13 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.of(sa));
         given(servicioAtributoRepository.save(any(OfferingAttribute.class))).willAnswer(inv -> inv.getArgument(0));
 
-        AttributeResponse respuesta = servicioCatalogoServicio.actualizarAtributo(10L, 1L, peticion);
+        AttributeResponse respuesta = servicioCatalogoServicio.updateAttribute(10L, 1L, peticion);
 
         assertThat(respuesta.getValorAsignado()).isEqualTo("Azul");
     }
 
     @Test
-    @DisplayName("actualizarAtributo rechaza un atributo que no pertenece al servicio")
+    @DisplayName("updateAttribute rechaza un atributo que no pertenece al servicio")
     void actualizarAtributo_rechazaAtributoDeOtroServicio() {
         Offering otroServicio = Offering.builder().idServicio(20L).build();
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).build();
@@ -799,23 +799,23 @@ class OfferingCatalogServiceImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.of(sa));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarAtributo(10L, 1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.updateAttribute(10L, 1L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("actualizarAtributo lanza recurso no encontrado si el servicio-atributo no existe")
+    @DisplayName("updateAttribute lanza recurso no encontrado si el servicio-atributo no existe")
     void actualizarAtributo_servicioAtributoInexistente() {
         UpdateAttributeRequest peticion = UpdateAttributeRequest.builder().valorAsignado("Azul").build();
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.actualizarAtributo(10L, 1L, peticion))
+        assertThatThrownBy(() -> servicioCatalogoServicio.updateAttribute(10L, 1L, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("eliminarAtributo borra la asociacion cuando pertenece al servicio")
+    @DisplayName("deleteAttribute borra la asociacion cuando pertenece al servicio")
     void eliminarAtributo_borraAsociacion() {
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).build();
         OfferingAttribute sa = OfferingAttribute.builder().idServicioAtributo(1L).servicio(servicio).atributo(atributo).valorAsignado("Rojo").build();
@@ -823,13 +823,13 @@ class OfferingCatalogServiceImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.of(sa));
 
-        servicioCatalogoServicio.eliminarAtributo(10L, 1L);
+        servicioCatalogoServicio.deleteAttribute(10L, 1L);
 
         verify(servicioAtributoRepository).delete(sa);
     }
 
     @Test
-    @DisplayName("eliminarAtributo rechaza un atributo que no pertenece al servicio")
+    @DisplayName("deleteAttribute rechaza un atributo que no pertenece al servicio")
     void eliminarAtributo_rechazaAtributoDeOtroServicio() {
         Offering otroServicio = Offering.builder().idServicio(20L).build();
         DynamicAttribute atributo = DynamicAttribute.builder().idAtributo(1L).build();
@@ -838,15 +838,15 @@ class OfferingCatalogServiceImplTest {
         given(servicioRepository.findById(10L)).willReturn(Optional.of(servicio));
         given(servicioAtributoRepository.findById(1L)).willReturn(Optional.of(sa));
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.eliminarAtributo(10L, 1L))
+        assertThatThrownBy(() -> servicioCatalogoServicio.deleteAttribute(10L, 1L))
                 .isInstanceOf(BusinessRuleException.class);
         verify(servicioAtributoRepository, never()).delete(any());
     }
 
-    // ---------- quitarSubcategoria ----------
+    // ---------- removeSubcategory ----------
 
     @Test
-    @DisplayName("quitarSubcategoria borra la asociacion cuando el servicio tiene mas de una")
+    @DisplayName("removeSubcategory borra la asociacion cuando el servicio tiene mas de una")
     void quitarSubcategoria_borraCuandoQuedaAlMenosUna() {
         given(servicioRepository.existsById(10L)).willReturn(true);
         given(servicioSubcategoriaRepository.countByServicioIdServicio(10L)).willReturn(2L);
@@ -854,18 +854,18 @@ class OfferingCatalogServiceImplTest {
         given(servicioAtributoRepository.findByServicioIdServicio(10L)).willReturn(List.of());
         given(servicioEtiquetaRepository.findByServicioIdServicio(10L)).willReturn(List.of());
 
-        servicioCatalogoServicio.quitarSubcategoria(10L, 1L);
+        servicioCatalogoServicio.removeSubcategory(10L, 1L);
 
         verify(servicioSubcategoriaRepository).deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(10L, 1L);
     }
 
     @Test
-    @DisplayName("quitarSubcategoria rechaza si el servicio se quedaria sin ninguna")
+    @DisplayName("removeSubcategory rechaza si el servicio se quedaria sin ninguna")
     void quitarSubcategoria_rechazaSiQuedaSinNinguna() {
         given(servicioRepository.existsById(10L)).willReturn(true);
         given(servicioSubcategoriaRepository.countByServicioIdServicio(10L)).willReturn(1L);
 
-        assertThatThrownBy(() -> servicioCatalogoServicio.quitarSubcategoria(10L, 1L))
+        assertThatThrownBy(() -> servicioCatalogoServicio.removeSubcategory(10L, 1L))
                 .isInstanceOf(BusinessRuleException.class);
         verify(servicioSubcategoriaRepository, never()).deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(any(), any());
     }

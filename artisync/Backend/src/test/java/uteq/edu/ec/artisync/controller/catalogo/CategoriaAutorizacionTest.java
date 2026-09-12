@@ -79,55 +79,55 @@ class CategoriaAutorizacionTest {
     void crearCategoria_moderadorConCategoriaGestionar_estaAutorizado() {
         var principal = autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
 
-        controlador.crearCategoria(peticion(), principal); // no debe lanzar AccessDeniedException
+        controlador.createCategory(peticion(), principal); // no debe lanzar AccessDeniedException
     }
 
     @Test
     void crearCategoria_administrador_sigueAutorizado() {
         var principal = autenticar("ROLE_ADMIN");
 
-        controlador.crearCategoria(peticion(), principal);
+        controlador.createCategory(peticion(), principal);
     }
 
     @Test
     void crearCategoria_creadorConCategoriaCrear_estaAutorizado() {
         var principal = autenticar("ROLE_CREADOR", "CATEGORIA_CREAR");
 
-        controlador.crearCategoria(peticion(), principal);
+        controlador.createCategory(peticion(), principal);
     }
 
     @Test
     void crearCategoria_rolSinElPermiso_esRechazado() {
         var principal = autenticar("ROLE_CREADOR");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.crearCategoria(peticion(), principal));
+        assertThrows(AccessDeniedException.class, () -> controlador.createCategory(peticion(), principal));
     }
 
     @Test
     void actualizarYEliminar_moderadorConElPermiso_estanAutorizados() {
         autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
 
-        controlador.actualizarCategoria(1L, new UpdateCategoryRequest());
-        controlador.eliminarCategoria(1L, null);
+        controlador.updateCategory(1L, new UpdateCategoryRequest());
+        controlador.deleteCategory(1L, null);
     }
 
     @Test
     void listarTodas_moderadorConElPermiso_estaAutorizado() {
         autenticar("ROLE_MODERADOR", "CATEGORIA_GESTIONAR");
 
-        controlador.listarTodasLasCategorias();
+        controlador.listAllCategories();
     }
 
     @Test
     void listarTodas_sinPermisoNiRol_esRechazado() {
         autenticar("ROLE_CLIENTE");
 
-        assertThrows(AccessDeniedException.class, () -> controlador.listarTodasLasCategorias());
+        assertThrows(AccessDeniedException.class, () -> controlador.listAllCategories());
     }
 
     /** El listado público debe seguir abierto: sin autenticación no debe lanzar. */
     @Test
     void listarActivas_siguePublico() {
-        assertDoesNotThrow(() -> controlador.listarCategoriasActivas());
+        assertDoesNotThrow(() -> controlador.listActiveCategories());
     }
 }

@@ -19,7 +19,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil, alguna subcategoría, el flujo, la plantilla de contrato o el cuestionario indicados no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es inválido, el solicitante no es dueño del perfil, la identidad no está verificada o la plantilla de contrato ya no está activa
      */
-    OfferingResponse crearServicio(Long idPerfilCreador, CreateOfferingRequest peticion);
+    OfferingResponse createOffering(Long idPerfilCreador, CreateOfferingRequest peticion);
 
     /**
      * Actualiza los campos de un servicio existente, incluyendo subcategorías y etiquetas si se envían.
@@ -30,7 +30,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio, alguna subcategoría, el flujo, la plantilla de contrato o el cuestionario indicados no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el precio es inválido, se intenta dejar el servicio sin subcategorías, el solicitante no es dueño del perfil, se publica sin identidad verificada o la plantilla de contrato ya no está activa
      */
-    OfferingResponse actualizarServicio(Long idServicio, UpdateOfferingRequest peticion);
+    OfferingResponse updateOffering(Long idServicio, UpdateOfferingRequest peticion);
 
     /**
      * Obtiene el detalle completo de un servicio, incluyendo atributos, etiquetas y subcategorías.
@@ -39,7 +39,7 @@ public interface IOfferingCatalogService {
      * @return el detalle completo del servicio
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      */
-    OfferingResponse obtenerServicioPorId(Long idServicio);
+    OfferingResponse getOfferingById(Long idServicio);
 
     /**
      * Elimina un servicio del catálogo junto con sus asociaciones de etiquetas y subcategorías.
@@ -48,7 +48,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil del servicio
      */
-    void eliminarServicio(Long idServicio);
+    void deleteOffering(Long idServicio);
 
     /**
      * Lista, en formato resumido, los servicios de un creador, opcionalmente filtrados por estado de publicación.
@@ -58,7 +58,7 @@ public interface IOfferingCatalogService {
      * @return los servicios del creador que cumplen el filtro
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el perfil creador no existe
      */
-    List<OfferingSummaryResponse> listarServiciosPorCreador(Long idPerfilCreador, String estadoPublicacion);
+    List<OfferingSummaryResponse> listOfferingsByCreator(Long idPerfilCreador, String estadoPublicacion);
 
     /**
      * Busca en el catálogo público de servicios activos aplicando filtros combinables de categoría,
@@ -75,7 +75,7 @@ public interface IOfferingCatalogService {
      * @param size           tamaño de página
      * @return la página de servicios resumidos que cumplen los filtros
      */
-    Page<OfferingSummaryResponse> buscarCatalogoServicios(
+    Page<OfferingSummaryResponse> searchCatalogOfferings(
             Long categoriaId,
             Long subcategoriaId,
             BigDecimal precioMin,
@@ -93,7 +93,7 @@ public interface IOfferingCatalogService {
      * @return los atributos asignados al servicio
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      */
-    List<AttributeResponse> listarAtributosPorServicio(Long idServicio);
+    List<AttributeResponse> listAttributesByOffering(Long idServicio);
 
     /**
      * Agrega un atributo dinámico personalizado a un servicio, reutilizando el atributo global
@@ -105,7 +105,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil, se alcanzó el límite de 10 atributos o el atributo ya está asociado al servicio
      */
-    AttributeResponse agregarAtributo(Long idServicio, CreateAttributeRequest peticion);
+    AttributeResponse addAttribute(Long idServicio, CreateAttributeRequest peticion);
 
     /**
      * Actualiza el valor asignado de un atributo ya asociado a un servicio.
@@ -117,7 +117,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asociación de atributo no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil o el atributo no pertenece a este servicio
      */
-    AttributeResponse actualizarAtributo(Long idServicio, Long idAtributo, UpdateAttributeRequest peticion);
+    AttributeResponse updateAttribute(Long idServicio, Long idAtributo, UpdateAttributeRequest peticion);
 
     /**
      * Elimina un atributo dinámico asociado a un servicio.
@@ -127,7 +127,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio o la asociación de atributo no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es dueño del perfil o el atributo no pertenece a este servicio
      */
-    void eliminarAtributo(Long idServicio, Long idAtributo);
+    void deleteAttribute(Long idServicio, Long idAtributo);
 
     /**
      * @param idServicio id del servicio
@@ -136,7 +136,7 @@ public interface IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el servicio no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el servicio se quedaría sin ninguna subcategoria.
      */
-    OfferingResponse quitarSubcategoria(Long idServicio, Long idSubcategoria);
+    OfferingResponse removeSubcategory(Long idServicio, Long idSubcategoria);
 
     /**
      * Para moderación: no filtra por estado de publicación (ve borradores, pausados, etc).
@@ -146,7 +146,7 @@ public interface IOfferingCatalogService {
      * @param size          tamaño de página
      * @return la página de servicios resumidos, en cualquier estado de publicación
      */
-    Page<OfferingSummaryResponse> listarParaModeracion(String textoBusqueda, int page, int size);
+    Page<OfferingSummaryResponse> listForModeration(String textoBusqueda, int page, int size);
 
     /**
      * Sube el archivo de miniatura de un servicio al almacenamiento configurado.
@@ -154,5 +154,5 @@ public interface IOfferingCatalogService {
      * @param archivo archivo de imagen a subir
      * @return la URL pública para usar como urlMiniatura del servicio.
      */
-    String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo);
+    String uploadThumbnail(org.springframework.web.multipart.MultipartFile archivo);
 }

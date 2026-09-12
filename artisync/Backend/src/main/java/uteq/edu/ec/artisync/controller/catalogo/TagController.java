@@ -27,8 +27,8 @@ public class TagController {
      * @return listado de etiquetas
      */
     @GetMapping
-    public ResponseEntity<List<TagResponse>> listarEtiquetas() {
-        return ResponseEntity.ok(etiquetaServicio.listarEtiquetas());
+    public ResponseEntity<List<TagResponse>> listTags() {
+        return ResponseEntity.ok(etiquetaServicio.listTags());
     }
 
     /**
@@ -39,8 +39,8 @@ public class TagController {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la etiqueta no existe
      */
     @GetMapping("/{id}")
-    public ResponseEntity<TagResponse> obtenerPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(etiquetaServicio.obtenerPorId(id));
+    public ResponseEntity<TagResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(etiquetaServicio.getById(id));
     }
 
     /**
@@ -52,8 +52,8 @@ public class TagController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('SERVICIO_CREAR') or hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<TagResponse> crearEtiqueta(@Valid @RequestBody CreateTagRequest peticion) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.crearEtiqueta(peticion));
+    public ResponseEntity<TagResponse> createTag(@Valid @RequestBody CreateTagRequest peticion) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(etiquetaServicio.createTag(peticion));
     }
 
     // Mismo criterio que CategoryController: MODERADOR administra el
@@ -68,8 +68,8 @@ public class TagController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CATEGORIA_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarEtiqueta(@PathVariable Long id) {
-        etiquetaServicio.eliminarEtiqueta(id);
+    public ResponseEntity<RespuestaMensaje> deleteTag(@PathVariable Long id) {
+        etiquetaServicio.deleteTag(id);
         return ResponseEntity.ok(new RespuestaMensaje("Tag eliminada exitosamente"));
     }
 }

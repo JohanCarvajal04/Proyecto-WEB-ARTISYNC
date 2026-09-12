@@ -56,13 +56,13 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearCategoria guarda cuando el nombre no esta repetido")
+    @DisplayName("createCategory guarda cuando el nombre no esta repetido")
     void crearCategoria_guardaCuandoNoRepetida() {
         CreateCategoryRequest peticion = CreateCategoryRequest.builder().nombreCategoria("Musica").estadoActiva(true).build();
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Musica")).willReturn(false);
         given(categoriaRepository.save(any(Category.class))).willAnswer(inv -> inv.getArgument(0));
 
-        CategoryResponse respuesta = categoriaServicio.crearCategoria(null, peticion);
+        CategoryResponse respuesta = categoriaServicio.createCategory(null, peticion);
 
         assertThat(respuesta.getNombreCategoria()).isEqualTo("Musica");
         assertThat(respuesta.getRevisado()).isTrue();
@@ -70,114 +70,114 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    @DisplayName("crearCategoria rechaza un nombre duplicado")
+    @DisplayName("createCategory rechaza un nombre duplicado")
     void crearCategoria_rechazaDuplicado() {
         CreateCategoryRequest peticion = CreateCategoryRequest.builder().nombreCategoria("Arte").build();
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Arte")).willReturn(true);
 
-        assertThatThrownBy(() -> categoriaServicio.crearCategoria(null, peticion))
+        assertThatThrownBy(() -> categoriaServicio.createCategory(null, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("crearCategoria creada por un creador queda sin revisar y con dueño")
+    @DisplayName("createCategory creada por un creador queda sin revisar y con dueño")
     void crearCategoria_deUnCreador_quedaSinRevisar() {
         CreateCategoryRequest peticion = CreateCategoryRequest.builder().nombreCategoria("Ceramica").build();
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Ceramica")).willReturn(false);
         given(usuarioRepository.findById(9L)).willReturn(Optional.of(creador));
         given(categoriaRepository.save(any(Category.class))).willAnswer(inv -> inv.getArgument(0));
 
-        CategoryResponse respuesta = categoriaServicio.crearCategoria(9L, peticion);
+        CategoryResponse respuesta = categoriaServicio.createCategory(9L, peticion);
 
         assertThat(respuesta.getRevisado()).isFalse();
         assertThat(respuesta.getIdUsuarioCreador()).isEqualTo(9L);
     }
 
     @Test
-    @DisplayName("actualizarCategoria cambia el nombre cuando no colisiona")
+    @DisplayName("updateCategory cambia el nombre cuando no colisiona")
     void actualizarCategoria_cambiaNombre() {
         UpdateCategoryRequest peticion = UpdateCategoryRequest.builder().nombreCategoria("Arte Digital").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Arte Digital")).willReturn(false);
         given(categoriaRepository.save(any(Category.class))).willAnswer(inv -> inv.getArgument(0));
 
-        CategoryResponse respuesta = categoriaServicio.actualizarCategoria(1L, peticion);
+        CategoryResponse respuesta = categoriaServicio.updateCategory(1L, peticion);
 
         assertThat(respuesta.getNombreCategoria()).isEqualTo("Arte Digital");
     }
 
     @Test
-    @DisplayName("actualizarCategoria no valida duplicado si el nombre no cambia")
+    @DisplayName("updateCategory no valida duplicado si el nombre no cambia")
     void actualizarCategoria_mismoNombre() {
         UpdateCategoryRequest peticion = UpdateCategoryRequest.builder().nombreCategoria("Arte").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
         given(categoriaRepository.save(any(Category.class))).willAnswer(inv -> inv.getArgument(0));
 
-        assertThat(categoriaServicio.actualizarCategoria(1L, peticion)).isNotNull();
+        assertThat(categoriaServicio.updateCategory(1L, peticion)).isNotNull();
     }
 
     @Test
-    @DisplayName("actualizarCategoria rechaza el nombre si ya existe en otra categoria")
+    @DisplayName("updateCategory rechaza el nombre si ya existe en otra categoria")
     void actualizarCategoria_rechazaDuplicado() {
         UpdateCategoryRequest peticion = UpdateCategoryRequest.builder().nombreCategoria("Musica").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
         given(categoriaRepository.existsByNombreCategoriaIgnoreCase("Musica")).willReturn(true);
 
-        assertThatThrownBy(() -> categoriaServicio.actualizarCategoria(1L, peticion))
+        assertThatThrownBy(() -> categoriaServicio.updateCategory(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("actualizarCategoria lanza recurso no encontrado si la categoria no existe")
+    @DisplayName("updateCategory lanza recurso no encontrado si la categoria no existe")
     void actualizarCategoria_inexistente() {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> categoriaServicio.actualizarCategoria(1L, UpdateCategoryRequest.builder().build()))
+        assertThatThrownBy(() -> categoriaServicio.updateCategory(1L, UpdateCategoryRequest.builder().build()))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("eliminarCategoria borra cuando existe y no tiene dueño, sin exigir motivo")
+    @DisplayName("deleteCategory borra cuando existe y no tiene dueño, sin exigir motivo")
     void eliminarCategoria_borraCuandoExiste() {
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
 
-        categoriaServicio.eliminarCategoria(1L, null);
+        categoriaServicio.deleteCategory(1L, null);
 
         verify(categoriaRepository).deleteById(1L);
         verify(notificacionService, never()).notify(any(), any(), any());
     }
 
     @Test
-    @DisplayName("eliminarCategoria lanza recurso no encontrado si no existe")
+    @DisplayName("deleteCategory lanza recurso no encontrado si no existe")
     void eliminarCategoria_inexistente() {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(1L, null))
+        assertThatThrownBy(() -> categoriaServicio.deleteCategory(1L, null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("eliminarCategoria rechaza si alguna subcategoria tiene servicios publicados")
+    @DisplayName("deleteCategory rechaza si alguna subcategoria tiene servicios publicados")
     void eliminarCategoria_rechazaConServiciosDependientes() {
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
         given(servicioSubcategoriaRepository.existsBySubcategoriaCategoriaIdCategoria(1L)).willReturn(true);
 
-        assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(1L, null))
+        assertThatThrownBy(() -> categoriaServicio.deleteCategory(1L, null))
                 .isInstanceOf(BusinessRuleException.class);
         verify(categoriaRepository, never()).deleteById(any());
     }
 
     @Test
-    @DisplayName("eliminarCategoria de un creador exige motivo y lo notifica al borrar")
+    @DisplayName("deleteCategory de un creador exige motivo y lo notifica al borrar")
     void eliminarCategoria_deUnCreador_exigeMotivoYNotifica() {
         Category deCreador = Category.builder().idCategoria(2L).nombreCategoria("Ceramica").creador(creador).revisado(false).build();
         given(categoriaRepository.findById(2L)).willReturn(Optional.of(deCreador));
 
-        assertThatThrownBy(() -> categoriaServicio.eliminarCategoria(2L, null))
+        assertThatThrownBy(() -> categoriaServicio.deleteCategory(2L, null))
                 .isInstanceOf(BusinessRuleException.class);
         verify(categoriaRepository, never()).deleteById(any());
 
-        categoriaServicio.eliminarCategoria(2L, "Rubro duplicado con Arte");
+        categoriaServicio.deleteCategory(2L, "Rubro duplicado con Arte");
 
         verify(categoriaRepository).deleteById(2L);
         verify(notificacionService, times(1)).notify(
@@ -187,98 +187,98 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    @DisplayName("marcarCategoriaRevisada pone revisado en true")
+    @DisplayName("markCategoryReviewed pone revisado en true")
     void marcarCategoriaRevisada_poneTrue() {
         Category sinRevisar = Category.builder().idCategoria(3L).nombreCategoria("Ceramica").creador(creador).revisado(false).build();
         given(categoriaRepository.findById(3L)).willReturn(Optional.of(sinRevisar));
         given(categoriaRepository.save(any(Category.class))).willAnswer(inv -> inv.getArgument(0));
 
-        CategoryResponse respuesta = categoriaServicio.marcarCategoriaRevisada(3L);
+        CategoryResponse respuesta = categoriaServicio.markCategoryReviewed(3L);
 
         assertThat(respuesta.getRevisado()).isTrue();
         verify(notificacionService, never()).notify(any(), any(), any());
     }
 
     @Test
-    @DisplayName("listarCategoriasActivas mapea las categorias activas")
+    @DisplayName("listActiveCategories mapea las categorias activas")
     void listarCategoriasActivas_mapea() {
         given(categoriaRepository.findByEstadoActivaTrueOrderByNombreCategoriaAsc()).willReturn(List.of(categoria));
 
-        assertThat(categoriaServicio.listarCategoriasActivas()).hasSize(1);
+        assertThat(categoriaServicio.listActiveCategories()).hasSize(1);
     }
 
     @Test
-    @DisplayName("listarTodasLasCategorias mapea todas las categorias")
+    @DisplayName("listAllCategories mapea todas las categorias")
     void listarTodasLasCategorias_mapea() {
         given(categoriaRepository.findAllByOrderByNombreCategoriaAsc()).willReturn(List.of(categoria));
 
-        assertThat(categoriaServicio.listarTodasLasCategorias()).hasSize(1);
+        assertThat(categoriaServicio.listAllCategories()).hasSize(1);
     }
 
     @Test
-    @DisplayName("listarCategoriasPendientesRevision devuelve solo las no revisadas")
+    @DisplayName("listCategoriesPendingReview devuelve solo las no revisadas")
     void listarCategoriasPendientesRevision_devuelveLista() {
         Category sinRevisar = Category.builder().idCategoria(4L).nombreCategoria("Ceramica").creador(creador).revisado(false).build();
         given(categoriaRepository.findByRevisadoFalseOrderByActualizadoEnDesc()).willReturn(List.of(sinRevisar));
 
-        assertThat(categoriaServicio.listarCategoriasPendientesRevision()).hasSize(1);
+        assertThat(categoriaServicio.listCategoriesPendingReview()).hasSize(1);
     }
 
     @Test
-    @DisplayName("obtenerCategoriaPorId lanza recurso no encontrado si no existe")
+    @DisplayName("getCategoryById lanza recurso no encontrado si no existe")
     void obtenerCategoriaPorId_inexistente() {
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> categoriaServicio.obtenerCategoriaPorId(1L))
+        assertThatThrownBy(() -> categoriaServicio.getCategoryById(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("listarSubcategoriasPorCategoria devuelve las subcategorias de la categoria")
+    @DisplayName("listSubcategoriesByCategory devuelve las subcategorias de la categoria")
     void listarSubcategoriasPorCategoria_devuelveLista() {
         Subcategory sub = Subcategory.builder().idSubcategoria(1L).categoria(categoria).nombreSubcategoria("Ilustracion").build();
         given(categoriaRepository.existsById(1L)).willReturn(true);
         given(subcategoriaRepository.findByCategoriaIdCategoriaOrderByNombreSubcategoriaAsc(1L)).willReturn(List.of(sub));
 
-        List<SubcategoryResponse> resultado = categoriaServicio.listarSubcategoriasPorCategoria(1L);
+        List<SubcategoryResponse> resultado = categoriaServicio.listSubcategoriesByCategory(1L);
 
         assertThat(resultado).hasSize(1);
     }
 
     @Test
-    @DisplayName("listarSubcategoriasPorCategoria lanza recurso no encontrado si la categoria no existe")
+    @DisplayName("listSubcategoriesByCategory lanza recurso no encontrado si la categoria no existe")
     void listarSubcategoriasPorCategoria_categoriaInexistente() {
         given(categoriaRepository.existsById(1L)).willReturn(false);
 
-        assertThatThrownBy(() -> categoriaServicio.listarSubcategoriasPorCategoria(1L))
+        assertThatThrownBy(() -> categoriaServicio.listSubcategoriesByCategory(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("listarTodasLasSubcategorias devuelve todas ordenadas")
+    @DisplayName("listAllSubcategories devuelve todas ordenadas")
     void listarTodasLasSubcategorias_devuelveLista() {
         Subcategory sub = Subcategory.builder().idSubcategoria(1L).categoria(categoria).nombreSubcategoria("Ilustracion").build();
         given(subcategoriaRepository.findAllByOrderByNombreSubcategoriaAsc()).willReturn(List.of(sub));
 
-        assertThat(categoriaServicio.listarTodasLasSubcategorias()).hasSize(1);
+        assertThat(categoriaServicio.listAllSubcategories()).hasSize(1);
     }
 
     @Test
-    @DisplayName("crearSubcategoria guarda cuando la categoria existe y el nombre no esta repetido")
+    @DisplayName("createSubcategory guarda cuando la categoria existe y el nombre no esta repetido")
     void crearSubcategoria_guarda() {
         CreateSubcategoryRequest peticion = CreateSubcategoryRequest.builder().idCategoria(1L).nombreSubcategoria("Fotografia").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
         given(subcategoriaRepository.existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(1L, "Fotografia")).willReturn(false);
         given(subcategoriaRepository.save(any(Subcategory.class))).willAnswer(inv -> inv.getArgument(0));
 
-        SubcategoryResponse respuesta = categoriaServicio.crearSubcategoria(null, peticion);
+        SubcategoryResponse respuesta = categoriaServicio.createSubcategory(null, peticion);
 
         assertThat(respuesta.getNombreSubcategoria()).isEqualTo("Fotografia");
         assertThat(respuesta.getRevisado()).isTrue();
     }
 
     @Test
-    @DisplayName("crearSubcategoria de un creador queda sin revisar y con dueño")
+    @DisplayName("createSubcategory de un creador queda sin revisar y con dueño")
     void crearSubcategoria_deUnCreador_quedaSinRevisar() {
         CreateSubcategoryRequest peticion = CreateSubcategoryRequest.builder().idCategoria(1L).nombreSubcategoria("Fotografia").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
@@ -286,78 +286,78 @@ class CategoryServiceImplTest {
         given(usuarioRepository.findById(9L)).willReturn(Optional.of(creador));
         given(subcategoriaRepository.save(any(Subcategory.class))).willAnswer(inv -> inv.getArgument(0));
 
-        SubcategoryResponse respuesta = categoriaServicio.crearSubcategoria(9L, peticion);
+        SubcategoryResponse respuesta = categoriaServicio.createSubcategory(9L, peticion);
 
         assertThat(respuesta.getRevisado()).isFalse();
         assertThat(respuesta.getIdUsuarioCreador()).isEqualTo(9L);
     }
 
     @Test
-    @DisplayName("crearSubcategoria lanza recurso no encontrado si la categoria no existe")
+    @DisplayName("createSubcategory lanza recurso no encontrado si la categoria no existe")
     void crearSubcategoria_categoriaInexistente() {
         CreateSubcategoryRequest peticion = CreateSubcategoryRequest.builder().idCategoria(1L).nombreSubcategoria("Fotografia").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> categoriaServicio.crearSubcategoria(null, peticion))
+        assertThatThrownBy(() -> categoriaServicio.createSubcategory(null, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("crearSubcategoria rechaza un nombre repetido dentro de la misma categoria")
+    @DisplayName("createSubcategory rechaza un nombre repetido dentro de la misma categoria")
     void crearSubcategoria_rechazaDuplicado() {
         CreateSubcategoryRequest peticion = CreateSubcategoryRequest.builder().idCategoria(1L).nombreSubcategoria("Ilustracion").build();
         given(categoriaRepository.findById(1L)).willReturn(Optional.of(categoria));
         given(subcategoriaRepository.existsByCategoriaIdCategoriaAndNombreSubcategoriaIgnoreCase(1L, "Ilustracion")).willReturn(true);
 
-        assertThatThrownBy(() -> categoriaServicio.crearSubcategoria(null, peticion))
+        assertThatThrownBy(() -> categoriaServicio.createSubcategory(null, peticion))
                 .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
-    @DisplayName("eliminarSubcategoria borra cuando existe y no tiene dueño, sin exigir motivo")
+    @DisplayName("deleteSubcategory borra cuando existe y no tiene dueño, sin exigir motivo")
     void eliminarSubcategoria_borraCuandoExiste() {
         given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(
                 Subcategory.builder().idSubcategoria(1L).categoria(categoria).nombreSubcategoria("Ilustracion").build()));
 
-        categoriaServicio.eliminarSubcategoria(1L, null);
+        categoriaServicio.deleteSubcategory(1L, null);
 
         verify(subcategoriaRepository).deleteById(1L);
         verify(notificacionService, never()).notify(any(), any(), any());
     }
 
     @Test
-    @DisplayName("eliminarSubcategoria lanza recurso no encontrado si no existe")
+    @DisplayName("deleteSubcategory lanza recurso no encontrado si no existe")
     void eliminarSubcategoria_inexistente() {
         given(subcategoriaRepository.findById(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(1L, null))
+        assertThatThrownBy(() -> categoriaServicio.deleteSubcategory(1L, null))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    @DisplayName("eliminarSubcategoria rechaza si tiene servicios publicados")
+    @DisplayName("deleteSubcategory rechaza si tiene servicios publicados")
     void eliminarSubcategoria_rechazaConServiciosDependientes() {
         given(subcategoriaRepository.findById(1L)).willReturn(Optional.of(
                 Subcategory.builder().idSubcategoria(1L).categoria(categoria).nombreSubcategoria("Ilustracion").build()));
         given(servicioSubcategoriaRepository.existsBySubcategoriaIdSubcategoria(1L)).willReturn(true);
 
-        assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(1L, null))
+        assertThatThrownBy(() -> categoriaServicio.deleteSubcategory(1L, null))
                 .isInstanceOf(BusinessRuleException.class);
         verify(subcategoriaRepository, never()).deleteById(any());
     }
 
     @Test
-    @DisplayName("eliminarSubcategoria de un creador exige motivo y lo notifica al borrar")
+    @DisplayName("deleteSubcategory de un creador exige motivo y lo notifica al borrar")
     void eliminarSubcategoria_deUnCreador_exigeMotivoYNotifica() {
         Subcategory deCreador = Subcategory.builder().idSubcategoria(5L).categoria(categoria)
                 .nombreSubcategoria("Retratos").creador(creador).revisado(false).build();
         given(subcategoriaRepository.findById(5L)).willReturn(Optional.of(deCreador));
 
-        assertThatThrownBy(() -> categoriaServicio.eliminarSubcategoria(5L, " "))
+        assertThatThrownBy(() -> categoriaServicio.deleteSubcategory(5L, " "))
                 .isInstanceOf(BusinessRuleException.class);
         verify(subcategoriaRepository, never()).deleteById(any());
 
-        categoriaServicio.eliminarSubcategoria(5L, "No corresponde a esta categoria");
+        categoriaServicio.deleteSubcategory(5L, "No corresponde a esta categoria");
 
         verify(subcategoriaRepository).deleteById(5L);
         verify(notificacionService, times(1)).notify(

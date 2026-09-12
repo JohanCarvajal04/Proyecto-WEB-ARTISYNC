@@ -28,10 +28,10 @@ class TagControllerTest {
 
     @Test
     void listarEtiquetas_DebeRetornarLaListaDelServicio() {
-        when(etiquetaServicio.listarEtiquetas())
+        when(etiquetaServicio.listTags())
                 .thenReturn(List.of(TagResponse.builder().idEtiqueta(1L).nombreEtiqueta("3D").build()));
 
-        ResponseEntity<List<TagResponse>> result = controlador.listarEtiquetas();
+        ResponseEntity<List<TagResponse>> result = controlador.listTags();
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).hasSize(1);
@@ -39,10 +39,10 @@ class TagControllerTest {
 
     @Test
     void obtenerPorId_DebeRetornarLaEtiqueta() {
-        when(etiquetaServicio.obtenerPorId(1L))
+        when(etiquetaServicio.getById(1L))
                 .thenReturn(TagResponse.builder().idEtiqueta(1L).nombreEtiqueta("3D").build());
 
-        ResponseEntity<TagResponse> result = controlador.obtenerPorId(1L);
+        ResponseEntity<TagResponse> result = controlador.getById(1L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getNombreEtiqueta()).isEqualTo("3D");
@@ -51,10 +51,10 @@ class TagControllerTest {
     @Test
     void crearEtiqueta_DebeRetornarCreada() {
         CreateTagRequest peticion = CreateTagRequest.builder().nombreEtiqueta("Pixel art").build();
-        when(etiquetaServicio.crearEtiqueta(peticion))
+        when(etiquetaServicio.createTag(peticion))
                 .thenReturn(TagResponse.builder().idEtiqueta(2L).nombreEtiqueta("Pixel art").build());
 
-        ResponseEntity<TagResponse> result = controlador.crearEtiqueta(peticion);
+        ResponseEntity<TagResponse> result = controlador.createTag(peticion);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody().getIdEtiqueta()).isEqualTo(2L);
@@ -62,7 +62,7 @@ class TagControllerTest {
 
     @Test
     void eliminarEtiqueta_DebeRetornarMensajeDeConfirmacion() {
-        ResponseEntity<RespuestaMensaje> result = controlador.eliminarEtiqueta(2L);
+        ResponseEntity<RespuestaMensaje> result = controlador.deleteTag(2L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getMensaje()).contains("eliminada");

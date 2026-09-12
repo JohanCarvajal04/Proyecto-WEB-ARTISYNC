@@ -30,10 +30,10 @@ public class TagServiceImpl implements ITagService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<TagResponse> listarEtiquetas() {
+    public List<TagResponse> listTags() {
         return etiquetaRepository.findAll()
                 .stream()
-                .map(this::mapearAEtiquetaRespuesta)
+                .map(this::mapToTagResponse)
                 .collect(Collectors.toList());
     }
 
@@ -46,10 +46,10 @@ public class TagServiceImpl implements ITagService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public TagResponse obtenerPorId(Long idEtiqueta) {
+    public TagResponse getById(Long idEtiqueta) {
         Tag et = etiquetaRepository.findById(idEtiqueta)
                 .orElseThrow(() -> new ResourceNotFoundException("Tag no encontrada con ID: " + idEtiqueta));
-        return mapearAEtiquetaRespuesta(et);
+        return mapToTagResponse(et);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class TagServiceImpl implements ITagService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public TagResponse crearEtiqueta(CreateTagRequest peticion) {
+    public TagResponse createTag(CreateTagRequest peticion) {
         if (etiquetaRepository.existsByNombreEtiquetaIgnoreCase(peticion.getNombreEtiqueta())) {
             throw new BusinessRuleException("Ya existe la etiqueta: " + peticion.getNombreEtiqueta());
         }
@@ -72,7 +72,7 @@ public class TagServiceImpl implements ITagService {
                 .nombreEtiqueta(peticion.getNombreEtiqueta().trim())
                 .build();
         et = etiquetaRepository.save(et);
-        return mapearAEtiquetaRespuesta(et);
+        return mapToTagResponse(et);
     }
 
     @Override
@@ -85,14 +85,14 @@ public class TagServiceImpl implements ITagService {
      * @param idEtiqueta identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminarEtiqueta(Long idEtiqueta) {
+    public void deleteTag(Long idEtiqueta) {
         if (!etiquetaRepository.existsById(idEtiqueta)) {
             throw new ResourceNotFoundException("Tag no encontrada con ID: " + idEtiqueta);
         }
         etiquetaRepository.deleteById(idEtiqueta);
     }
 
-    private TagResponse mapearAEtiquetaRespuesta(Tag et) {
+    private TagResponse mapToTagResponse(Tag et) {
         return TagResponse.builder()
                 .idEtiqueta(et.getIdEtiqueta())
                 .nombreEtiqueta(et.getNombreEtiqueta())

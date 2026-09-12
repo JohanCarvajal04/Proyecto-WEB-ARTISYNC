@@ -37,9 +37,9 @@ class OfferingControllerTest {
     void crearServicio_devuelveCreated() {
         CreateOfferingRequest peticion = new CreateOfferingRequest();
         OfferingResponse respuesta = new OfferingResponse();
-        when(servicioCatalogoServicio.crearServicio(10L, peticion)).thenReturn(respuesta);
+        when(servicioCatalogoServicio.createOffering(10L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<OfferingResponse> res = controlador.crearServicio(10L, peticion);
+        ResponseEntity<OfferingResponse> res = controlador.createOffering(10L, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -48,9 +48,9 @@ class OfferingControllerTest {
     void actualizarServicio_devuelveOk() {
         UpdateOfferingRequest peticion = new UpdateOfferingRequest();
         OfferingResponse respuesta = new OfferingResponse();
-        when(servicioCatalogoServicio.actualizarServicio(10L, peticion)).thenReturn(respuesta);
+        when(servicioCatalogoServicio.updateOffering(10L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<OfferingResponse> res = controlador.actualizarServicio(10L, peticion);
+        ResponseEntity<OfferingResponse> res = controlador.updateOffering(10L, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -58,17 +58,17 @@ class OfferingControllerTest {
     @Test
     void obtenerServicioPorId_devuelveOk() {
         OfferingResponse respuesta = new OfferingResponse();
-        when(servicioCatalogoServicio.obtenerServicioPorId(10L)).thenReturn(respuesta);
+        when(servicioCatalogoServicio.getOfferingById(10L)).thenReturn(respuesta);
 
-        ResponseEntity<OfferingResponse> res = controlador.obtenerServicioPorId(10L);
+        ResponseEntity<OfferingResponse> res = controlador.getOfferingById(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
 
     @Test
     void eliminarServicio_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarServicio(10L);
-        verify(servicioCatalogoServicio).eliminarServicio(10L);
+        ResponseEntity<RespuestaMensaje> res = controlador.deleteOffering(10L);
+        verify(servicioCatalogoServicio).deleteOffering(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getMensaje()).contains("eliminado exitosamente");
     }
@@ -76,9 +76,9 @@ class OfferingControllerTest {
     @Test
     void listarServiciosPorCreador_devuelveOk() {
         List<OfferingSummaryResponse> lista = Collections.emptyList();
-        when(servicioCatalogoServicio.listarServiciosPorCreador(10L, "ACTIVO")).thenReturn(lista);
+        when(servicioCatalogoServicio.listOfferingsByCreator(10L, "ACTIVO")).thenReturn(lista);
 
-        ResponseEntity<List<OfferingSummaryResponse>> res = controlador.listarServiciosPorCreador(10L, "ACTIVO");
+        ResponseEntity<List<OfferingSummaryResponse>> res = controlador.listOfferingsByCreator(10L, "ACTIVO");
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -86,9 +86,9 @@ class OfferingControllerTest {
     @Test
     void listarAtributosPorServicio_devuelveOk() {
         List<AttributeResponse> lista = Collections.emptyList();
-        when(servicioCatalogoServicio.listarAtributosPorServicio(10L)).thenReturn(lista);
+        when(servicioCatalogoServicio.listAttributesByOffering(10L)).thenReturn(lista);
 
-        ResponseEntity<List<AttributeResponse>> res = controlador.listarAtributosPorServicio(10L);
+        ResponseEntity<List<AttributeResponse>> res = controlador.listAttributesByOffering(10L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -97,9 +97,9 @@ class OfferingControllerTest {
     void agregarAtributo_devuelveCreated() {
         CreateAttributeRequest peticion = new CreateAttributeRequest();
         AttributeResponse respuesta = new AttributeResponse();
-        when(servicioCatalogoServicio.agregarAtributo(10L, peticion)).thenReturn(respuesta);
+        when(servicioCatalogoServicio.addAttribute(10L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<AttributeResponse> res = controlador.agregarAtributo(10L, peticion);
+        ResponseEntity<AttributeResponse> res = controlador.addAttribute(10L, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -108,17 +108,17 @@ class OfferingControllerTest {
     void actualizarAtributo_devuelveOk() {
         UpdateAttributeRequest peticion = new UpdateAttributeRequest();
         AttributeResponse respuesta = new AttributeResponse();
-        when(servicioCatalogoServicio.actualizarAtributo(10L, 20L, peticion)).thenReturn(respuesta);
+        when(servicioCatalogoServicio.updateAttribute(10L, 20L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<AttributeResponse> res = controlador.actualizarAtributo(10L, 20L, peticion);
+        ResponseEntity<AttributeResponse> res = controlador.updateAttribute(10L, 20L, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
 
     @Test
     void eliminarAtributo_devuelveOk() {
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarAtributo(10L, 20L);
-        verify(servicioCatalogoServicio).eliminarAtributo(10L, 20L);
+        ResponseEntity<RespuestaMensaje> res = controlador.deleteAttribute(10L, 20L);
+        verify(servicioCatalogoServicio).deleteAttribute(10L, 20L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getMensaje()).contains("eliminado exitosamente");
     }

@@ -75,7 +75,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     @Auditable(accion = "SERVICIO_CREAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#resultado.idServicio",
             detalle = "{tituloServicio: #peticion.tituloServicio, precioBase: #peticion.precioBase}")
-    public OfferingResponse crearServicio(Long idPerfilCreador, CreateOfferingRequest peticion) {
+    public OfferingResponse createOffering(Long idPerfilCreador, CreateOfferingRequest peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
         }
@@ -83,10 +83,10 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         CreatorProfile perfil = perfilRepository.findById(idPerfilCreador)
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil creador no encontrado con ID: " + idPerfilCreador));
 
-        validarPropiedadOAdmin(perfil);
-        validarIdentidadVerificada(perfil);
+        validateOwnershipOrAdmin(perfil);
+        validateVerifiedIdentity(perfil);
 
-        List<Subcategory> subcategorias = resolverSubcategorias(peticion.getIdsSubcategoria());
+        List<Subcategory> subcategorias = resolveSubcategories(peticion.getIdsSubcategoria());
 
         Offering servicio = Offering.builder()
                 .perfil(perfil)
@@ -105,10 +105,10 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
 
         Offering guardado = servicioRepository.save(servicio);
 
-        guardarSubcategoriasServicio(guardado, subcategorias);
-        guardarEtiquetasServicio(guardado, peticion.getEtiquetaIds());
+        saveOfferingSubcategories(guardado, subcategorias);
+        saveOfferingTags(guardado, peticion.getEtiquetaIds());
 
-        return obtenerServicioPorId(guardado.getIdServicio());
+        return getOfferingById(guardado.getIdServicio());
     }
 
     /**
@@ -130,7 +130,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     @Auditable(accion = "SERVICIO_ACTUALIZAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio",
             detalle = "{estadoPublicacion: #peticion.estadoPublicacion, precioBase: #peticion.precioBase}")
-    public OfferingResponse actualizarServicio(Long idServicio, UpdateOfferingRequest peticion) {
+    public OfferingResponse updateOffering(Long idServicio, UpdateOfferingRequest peticion) {
         if (peticion.getPrecioBase() == null || peticion.getPrecioBase().compareTo(new BigDecimal("0.01")) < 0) {
             throw new BusinessRuleException("El precio debe ser de al menos 0.01 USD");
         }
@@ -138,14 +138,14 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
 
-        validarPropiedadOAdmin(servicio.getPerfil());
+        validateOwnershipOrAdmin(servicio.getPerfil());
 
         List<Subcategory> nuevasSubcategorias = null;
         if (peticion.getIdsSubcategoria() != null) {
             if (peticion.getIdsSubcategoria().isEmpty()) {
                 throw new BusinessRuleException("El servicio necesita al menos una subcategoria");
             }
-            nuevasSubcategorias = resolverSubcategorias(peticion.getIdsSubcategoria());
+            nuevasSubcategorias = resolveSubcategories(peticion.getIdsSubcategoria());
         }
 
         if (peticion.getTituloServicio() != null && !peticion.getTituloServicio().isBlank()) {
@@ -160,7 +160,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         }
         if (peticion.getEstadoPublicacion() != null && !peticion.getEstadoPublicacion().isBlank()) {
             if ("ACTIVO".equals(peticion.getEstadoPublicacion())) {
-                validarIdentidadVerificada(servicio.getPerfil());
+                validateVerifiedIdentity(servicio.getPerfil());
             }
             servicio.setEstadoPublicacion(peticion.getEstadoPublicacion());
         }
@@ -184,15 +184,15 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
             // que ya estaba asociada choca con la fila vieja (todavía no borrada en la
             // base) contra la restricción única id_servicio+id_subcategoria.
             servicioSubcategoriaRepository.flush();
-            guardarSubcategoriasServicio(guardado, nuevasSubcategorias);
+            saveOfferingSubcategories(guardado, nuevasSubcategorias);
         }
 
         if (peticion.getEtiquetaIds() != null) {
             servicioEtiquetaRepository.deleteByServicioIdServicio(idServicio);
-            guardarEtiquetasServicio(guardado, peticion.getEtiquetaIds());
+            saveOfferingTags(guardado, peticion.getEtiquetaIds());
         }
 
-        return obtenerServicioPorId(guardado.getIdServicio());
+        return getOfferingById(guardado.getIdServicio());
     }
 
     /**
@@ -204,10 +204,10 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public OfferingResponse obtenerServicioPorId(Long idServicio) {
+    public OfferingResponse getOfferingById(Long idServicio) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
-        return mapearAServicioRespuestaCompleta(servicio);
+        return mapToFullOfferingResponse(servicio);
     }
 
     /**
@@ -223,11 +223,11 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_ELIMINAR", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio")
-    public void eliminarServicio(Long idServicio) {
+    public void deleteOffering(Long idServicio) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
 
-        validarPropiedadOAdmin(servicio.getPerfil());
+        validateOwnershipOrAdmin(servicio.getPerfil());
 
         servicioEtiquetaRepository.deleteByServicioIdServicio(idServicio);
         servicioSubcategoriaRepository.deleteByServicioIdServicio(idServicio);
@@ -248,7 +248,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     @CacheEvict(cacheNames = "catalogo", allEntries = true)
     @Auditable(accion = "SERVICIO_QUITAR_SUBCATEGORIA", modulo = AuditModule.CATALOGO,
             entidad = "servicios", idEntidad = "#idServicio", detalle = "{idSubcategoria: #idSubcategoria}")
-    public OfferingResponse quitarSubcategoria(Long idServicio, Long idSubcategoria) {
+    public OfferingResponse removeSubcategory(Long idServicio, Long idSubcategoria) {
         if (!servicioRepository.existsById(idServicio)) {
             throw new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio);
         }
@@ -256,7 +256,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
             throw new BusinessRuleException("Un servicio necesita al menos una subcategoria");
         }
         servicioSubcategoriaRepository.deleteByServicioIdServicioAndSubcategoriaIdSubcategoria(idServicio, idSubcategoria);
-        return obtenerServicioPorId(idServicio);
+        return getOfferingById(idServicio);
     }
 
     /**
@@ -270,11 +270,11 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<OfferingSummaryResponse> listarParaModeracion(String textoBusqueda, int page, int size) {
+    public Page<OfferingSummaryResponse> listForModeration(String textoBusqueda, int page, int size) {
         Specification<Offering> spec = OfferingSpecification.conFiltros(
                 null, null, null, null, null, textoBusqueda, null);
         Pageable pageable = PageRequest.of(page, size, Sort.by("idServicio").descending());
-        return servicioRepository.findAll(spec, pageable).map(this::mapearAServicioResumido);
+        return servicioRepository.findAll(spec, pageable).map(this::mapToOfferingSummary);
     }
 
     /**
@@ -285,7 +285,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el archivo no cumple la política de tipo/tamaño
      */
     @Override
-    public String subirMiniatura(org.springframework.web.multipart.MultipartFile archivo) {
+    public String uploadThumbnail(org.springframework.web.multipart.MultipartFile archivo) {
         uteq.edu.ec.artisync.service.shared.almacenamiento.FilePolicy.PERFIL.validar(archivo);
         String referencia = almacenamientoDocumentos.guardar(archivo, uteq.edu.ec.artisync.service.shared.almacenamiento.StoragePrefix.SERVICIOS);
         return "/api/v1/servicios/miniatura/" + referencia;
@@ -302,7 +302,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<OfferingSummaryResponse> listarServiciosPorCreador(Long idPerfilCreador, String estadoPublicacion) {
+    public List<OfferingSummaryResponse> listOfferingsByCreator(Long idPerfilCreador, String estadoPublicacion) {
         if (!perfilRepository.existsById(idPerfilCreador)) {
             throw new ResourceNotFoundException("Perfil creador no encontrado con ID: " + idPerfilCreador);
         }
@@ -313,7 +313,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
             servicios = servicioRepository.findByPerfilIdPerfil(idPerfilCreador);
         }
         return servicios.stream()
-                .map(this::mapearAServicioResumido)
+                .map(this::mapToOfferingSummary)
                 .collect(Collectors.toList());
     }
 
@@ -337,7 +337,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "catalogo")
-    public Page<OfferingSummaryResponse> buscarCatalogoServicios(
+    public Page<OfferingSummaryResponse> searchCatalogOfferings(
             Long categoriaId,
             Long subcategoriaId,
             BigDecimal precioMin,
@@ -387,13 +387,13 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
             subcategoriasPorServicio = todasSubcategorias.stream()
                     .collect(Collectors.groupingBy(
                             ss -> ss.getServicio().getIdServicio(),
-                            Collectors.mapping(this::mapearASubcategoriaRespuesta, Collectors.toList())
+                            Collectors.mapping(this::mapToSubcategoryResponse, Collectors.toList())
                     ));
         }
 
         final Map<Long, List<TagResponse>> etiquetasFinales = etiquetasPorServicio;
         final Map<Long, List<SubcategoryResponse>> subcategoriasFinales = subcategoriasPorServicio;
-        return paginaServicios.map(s -> mapearAServicioResumido(s,
+        return paginaServicios.map(s -> mapToOfferingSummary(s,
                 etiquetasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList()),
                 subcategoriasFinales.getOrDefault(s.getIdServicio(), Collections.emptyList())));
     }
@@ -407,13 +407,13 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<AttributeResponse> listarAtributosPorServicio(Long idServicio) {
+    public List<AttributeResponse> listAttributesByOffering(Long idServicio) {
         if (!servicioRepository.existsById(idServicio)) {
             throw new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio);
         }
         return servicioAtributoRepository.findByServicioIdServicio(idServicio)
                 .stream()
-                .map(this::mapearAAtributoRespuesta)
+                .map(this::mapToAttributeResponse)
                 .collect(Collectors.toList());
     }
 
@@ -430,11 +430,11 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional
-    public AttributeResponse agregarAtributo(Long idServicio, CreateAttributeRequest peticion) {
+    public AttributeResponse addAttribute(Long idServicio, CreateAttributeRequest peticion) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
 
-        validarPropiedadOAdmin(servicio.getPerfil());
+        validateOwnershipOrAdmin(servicio.getPerfil());
 
         long count = servicioAtributoRepository.countByServicioIdServicio(idServicio);
         if (count >= 10) {
@@ -461,7 +461,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .build();
         sa = servicioAtributoRepository.save(sa);
 
-        return mapearAAtributoRespuesta(sa);
+        return mapToAttributeResponse(sa);
     }
 
     /**
@@ -477,11 +477,11 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional
-    public AttributeResponse actualizarAtributo(Long idServicio, Long idServicioAtributo, UpdateAttributeRequest peticion) {
+    public AttributeResponse updateAttribute(Long idServicio, Long idServicioAtributo, UpdateAttributeRequest peticion) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
 
-        validarPropiedadOAdmin(servicio.getPerfil());
+        validateOwnershipOrAdmin(servicio.getPerfil());
 
         OfferingAttribute sa = servicioAtributoRepository.findById(idServicioAtributo)
                 .orElseThrow(() -> new ResourceNotFoundException("Atributo del servicio no encontrado con ID: " + idServicioAtributo));
@@ -493,7 +493,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         sa.setValorAsignado(peticion.getValorAsignado().trim());
         sa = servicioAtributoRepository.save(sa);
 
-        return mapearAAtributoRespuesta(sa);
+        return mapToAttributeResponse(sa);
     }
 
     /**
@@ -507,11 +507,11 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      */
     @Override
     @Transactional
-    public void eliminarAtributo(Long idServicio, Long idServicioAtributo) {
+    public void deleteAttribute(Long idServicio, Long idServicioAtributo) {
         Offering servicio = servicioRepository.findById(idServicio)
                 .orElseThrow(() -> new ResourceNotFoundException("Offering no encontrado con ID: " + idServicio));
 
-        validarPropiedadOAdmin(servicio.getPerfil());
+        validateOwnershipOrAdmin(servicio.getPerfil());
 
         OfferingAttribute sa = servicioAtributoRepository.findById(idServicioAtributo)
                 .orElseThrow(() -> new ResourceNotFoundException("Atributo del servicio no encontrado con ID: " + idServicioAtributo));
@@ -523,7 +523,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         servicioAtributoRepository.delete(sa);
     }
 
-    private void guardarEtiquetasServicio(Offering servicio, List<Long> etiquetaIds) {
+    private void saveOfferingTags(Offering servicio, List<Long> etiquetaIds) {
         if (etiquetaIds != null && !etiquetaIds.isEmpty()) {
             List<Tag> etiquetas = etiquetaRepository.findAllById(etiquetaIds);
             for (Tag et : etiquetas) {
@@ -536,7 +536,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         }
     }
 
-    private List<Subcategory> resolverSubcategorias(List<Long> idsSubcategoria) {
+    private List<Subcategory> resolveSubcategories(List<Long> idsSubcategoria) {
         List<Subcategory> subcategorias = subcategoriaRepository.findAllById(idsSubcategoria);
         if (subcategorias.size() != new java.util.HashSet<>(idsSubcategoria).size()) {
             throw new ResourceNotFoundException("Una o más subcategorias indicadas no existen");
@@ -544,7 +544,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         return subcategorias;
     }
 
-    private void guardarSubcategoriasServicio(Offering servicio, List<Subcategory> subcategorias) {
+    private void saveOfferingSubcategories(Offering servicio, List<Subcategory> subcategorias) {
         for (Subcategory sub : subcategorias) {
             OfferingSubcategory ss = OfferingSubcategory.builder()
                     .servicio(servicio)
@@ -554,10 +554,10 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         }
     }
 
-    private OfferingResponse mapearAServicioRespuestaCompleta(Offering servicio) {
+    private OfferingResponse mapToFullOfferingResponse(Offering servicio) {
         List<AttributeResponse> atributos = servicioAtributoRepository.findByServicioIdServicio(servicio.getIdServicio())
                 .stream()
-                .map(this::mapearAAtributoRespuesta)
+                .map(this::mapToAttributeResponse)
                 .collect(Collectors.toList());
 
         List<TagResponse> etiquetas = servicioEtiquetaRepository.findByServicioIdServicio(servicio.getIdServicio())
@@ -571,7 +571,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
 
         List<SubcategoryResponse> subcategorias = servicioSubcategoriaRepository.findByServicioIdServicio(servicio.getIdServicio())
                 .stream()
-                .map(this::mapearASubcategoriaRespuesta)
+                .map(this::mapToSubcategoryResponse)
                 .collect(Collectors.toList());
 
         String nombreCreador = "Creador";
@@ -618,7 +618,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .collect(Collectors.toList());
     }
 
-    private SubcategoryResponse mapearASubcategoriaRespuesta(OfferingSubcategory ss) {
+    private SubcategoryResponse mapToSubcategoryResponse(OfferingSubcategory ss) {
         Subcategory sub = ss.getSubcategoria();
         return SubcategoryResponse.builder()
                 .idSubcategoria(sub.getIdSubcategoria())
@@ -688,7 +688,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                         "Cuestionario de briefing no encontrado con ID: " + idBriefingPlantilla));
     }
 
-    private OfferingSummaryResponse mapearAServicioResumido(Offering servicio) {
+    private OfferingSummaryResponse mapToOfferingSummary(Offering servicio) {
         List<TagResponse> etiquetas = servicioEtiquetaRepository.findByServicioIdServicio(servicio.getIdServicio())
                 .stream()
                 .map(se -> TagResponse.builder()
@@ -699,12 +699,12 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .collect(Collectors.toList());
         List<SubcategoryResponse> subcategorias = servicioSubcategoriaRepository.findByServicioIdServicio(servicio.getIdServicio())
                 .stream()
-                .map(this::mapearASubcategoriaRespuesta)
+                .map(this::mapToSubcategoryResponse)
                 .collect(Collectors.toList());
-        return mapearAServicioResumido(servicio, etiquetas, subcategorias);
+        return mapToOfferingSummary(servicio, etiquetas, subcategorias);
     }
 
-    private OfferingSummaryResponse mapearAServicioResumido(Offering servicio, List<TagResponse> etiquetas, List<SubcategoryResponse> subcategorias) {
+    private OfferingSummaryResponse mapToOfferingSummary(Offering servicio, List<TagResponse> etiquetas, List<SubcategoryResponse> subcategorias) {
         String nombreCreador = "Creador";
         if (servicio.getPerfil().getUsuario() != null) {
             nombreCreador = servicio.getPerfil().getUsuario().getNombres() + " " + servicio.getPerfil().getUsuario().getApellidos();
@@ -724,7 +724,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
                 .build();
     }
 
-    private AttributeResponse mapearAAtributoRespuesta(OfferingAttribute sa) {
+    private AttributeResponse mapToAttributeResponse(OfferingAttribute sa) {
         return AttributeResponse.builder()
                 .idServicioAtributo(sa.getIdServicioAtributo())
                 .idAtributo(sa.getAtributo().getIdAtributo())
@@ -741,7 +741,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
      * "crear/publicar un servicio" ocurre de verdad. Exigir identidad
      * verificada aquí es exigirla para publicar, tal como pide el requisito.
      */
-    private void validarIdentidadVerificada(CreatorProfile perfil) {
+    private void validateVerifiedIdentity(CreatorProfile perfil) {
         Long idUsuario = perfil.getUsuario() != null ? perfil.getUsuario().getIdUsuario() : null;
         if (idUsuario == null || !verificacionServicio.estaIdentidadVerificada(idUsuario)) {
             throw new BusinessRuleException(
@@ -749,7 +749,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
         }
     }
 
-    private void validarPropiedadOAdmin(CreatorProfile perfil) {
+    private void validateOwnershipOrAdmin(CreatorProfile perfil) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             boolean esAdmin = auth.getAuthorities().stream()

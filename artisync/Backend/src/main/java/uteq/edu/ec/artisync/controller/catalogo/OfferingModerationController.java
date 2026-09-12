@@ -32,11 +32,11 @@ public class OfferingModerationController {
      */
     @GetMapping
     @PreAuthorize("hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<Page<OfferingSummaryResponse>> listarParaModeracion(
+    public ResponseEntity<Page<OfferingSummaryResponse>> listForModeration(
             @RequestParam(required = false) String texto,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(servicioCatalogoServicio.listarParaModeracion(texto, page, size));
+        return ResponseEntity.ok(servicioCatalogoServicio.listForModeration(texto, page, size));
     }
 
     /**
@@ -50,9 +50,9 @@ public class OfferingModerationController {
      */
     @DeleteMapping("/{idServicio}/subcategorias/{idSubcategoria}")
     @PreAuthorize("hasAuthority('SERVICIO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<OfferingResponse> quitarSubcategoria(
+    public ResponseEntity<OfferingResponse> removeSubcategory(
             @PathVariable Long idServicio,
             @PathVariable Long idSubcategoria) {
-        return ResponseEntity.ok(servicioCatalogoServicio.quitarSubcategoria(idServicio, idSubcategoria));
+        return ResponseEntity.ok(servicioCatalogoServicio.removeSubcategory(idServicio, idSubcategoria));
     }
 }

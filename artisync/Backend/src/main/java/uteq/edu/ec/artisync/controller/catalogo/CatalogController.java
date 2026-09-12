@@ -33,7 +33,7 @@ public class CatalogController {
      * @return página de servicios resumidos que cumplen los filtros indicados
      */
     @GetMapping
-    public ResponseEntity<Page<OfferingSummaryResponse>> buscarCatalogo(
+    public ResponseEntity<Page<OfferingSummaryResponse>> searchCatalog(
             @RequestParam(required = false) Long categoria,
             @RequestParam(required = false) Long subcategoria,
             @RequestParam(required = false) BigDecimal precioMin,
@@ -44,7 +44,7 @@ public class CatalogController {
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "10") int size) {
 
-        return ResponseEntity.ok(servicioCatalogoServicio.buscarCatalogoServicios(
+        return ResponseEntity.ok(servicioCatalogoServicio.searchCatalogOfferings(
                 categoria, subcategoria, precioMin, precioMax, etiquetas, q, sort, page, size));
     }
 }
