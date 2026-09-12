@@ -7,7 +7,7 @@
 -- de fn_sincronizar_permisos_rol (REQ-F-003), que ya resolvio este mismo
 -- patron para roles<->permisos.
 --
--- Sustituye a AdminUserServiceImpl.actualizarRoles(): findByUsuarioIdUsuario +
+-- Sustituye a AdminUserServiceImpl.updateRoles(): findByUsuarioIdUsuario +
 -- deleteAll + flush + POR CADA rol nuevo (findByNombreRol + save + consulta
 -- de perfil de creador + save de perfil) -- unos 10 viajes a la base sin
 -- ninguna atomicidad entre ellos.
@@ -106,7 +106,7 @@ BEGIN
     GET DIAGNOSTICS v_total = ROW_COUNT;
 
     -- Alta perezosa del perfil de creador (mismo criterio que
-    -- AdminUserServiceImpl.actualizarRoles ya aplicaba), tambien idempotente.
+    -- AdminUserServiceImpl.updateRoles ya aplicaba), tambien idempotente.
     -- Ademas del perfil, da de alta su portafolio inicial con el mismo tema
     -- por defecto que fn_registrar_usuario usa en el auto-registro: antes de
     -- este cambio, un CREADOR dado de alta o ascendido por un administrador

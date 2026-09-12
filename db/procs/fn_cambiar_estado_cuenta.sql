@@ -7,7 +7,7 @@
 -- inactiva, revoca sus sesiones (fn_revocar_sesiones_usuario) en la MISMA
 -- transaccion. Unifica el par "cambiar estado + revocar sesiones" que hoy se
 -- repite, con ligeras variaciones, en:
---   - AdminUserServiceImpl.changeEstado
+--   - AdminUserServiceImpl.changeStatus
 --   - AdminUserServiceImpl.deleteUser (soft-delete: estadoCuenta = false)
 --   - UserServiceImpl.deleteOwnAccount (idem)
 --   - la rama de estadoCuenta dentro de AdminUserServiceImpl.updateUser
@@ -69,4 +69,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_cambiar_estado_cuenta(BIGINT, BOOLEAN)
-    IS 'Fase 1 concurrencia - Cambia estado_cuenta y revoca sesiones (transicion activa->inactiva) atomicamente bajo SELECT FOR UPDATE, unificando el patron repetido en changeEstado/deleteUser/deleteOwnAccount.';
+    IS 'Fase 1 concurrencia - Cambia estado_cuenta y revoca sesiones (transicion activa->inactiva) atomicamente bajo SELECT FOR UPDATE, unificando el patron repetido en changeStatus/deleteUser/deleteOwnAccount.';

@@ -6,7 +6,7 @@
 -- participantes que aun no han ganado, y marca en bloque tanto a los
 -- participantes ganadores como el sorteo mismo. Es el candidato que el propio
 -- ADR-006 (linea 19) identifica por nombre como pendiente de implementacion.
--- Sustituye a SorteoScheduler.ejecutarSorteo, que traia todos los
+-- Sustituye a RaffleExecutorService.ejecutarSorteo, que traia todos los
 -- participantes a la aplicacion, hacia Collections.shuffle(new SecureRandom())
 -- en Java y actualizaba fila por fila con un save() dentro de un bucle.
 --

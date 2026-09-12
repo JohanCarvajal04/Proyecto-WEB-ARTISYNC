@@ -6,7 +6,7 @@
 -- contacto fuera del chat de la plataforma) y, en la misma transaccion,
 -- cuenta cuantas infracciones acumula el usuario en la ventana movil de los
 -- ultimos 30 dias; si alcanza 3 o mas, suspende la cuenta automaticamente.
--- Sustituye a InfraccionServiceImpl.registrarInfraccion/suspenderCuenta, que
+-- Sustituye a ViolationServiceImpl.registerViolation/suspenderCuenta, que
 -- hacia un INSERT, un COUNT y un UPDATE condicional como tres llamadas
 -- independientes al repositorio.
 --
