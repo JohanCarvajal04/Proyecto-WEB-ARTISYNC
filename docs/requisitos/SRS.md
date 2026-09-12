@@ -68,7 +68,7 @@ La sección 2 describe el producto y sus actores. La sección 3 detalla los requ
 
 Construido por lectura directa de los enums, constantes y lógica de transición reales del backend — no por inferencia de nombres plausibles. Varias suposiciones razonables resultaron incorrectas al verificarlas (ver notas por entidad); se documenta el resultado real.
 
-**Pedido — sin catálogo fijo de etapas.** A diferencia de lo que podría asumirse, `Pedido` no tiene una columna de estado ni un enum de etapas: la etapa vigente se deriva de la fila más reciente en `historial_estados_pedido` (histórico, solo inserción — `PATCH`/`DELETE` sobre él responden 403 por REQ-NF-013). Las etapas mismas (`EtapaFlujo.nombreEtapa`) son texto libre, únicas globalmente, y cualquiera que gestione un flujo de trabajo puede crear nombres nuevos (`WorkflowServiceImpl.obtenerOCrearEtapa`); su orden y cuál es la etapa final se definen por `FlujoEtapaConfig.numeroOrden` (entero) y `esEtapaFinal` (booleano, que en la práctica solo se usa para mostrar, no para bloquear — el corte real de "última etapa" es el número de orden más alto). Transición: `OrderServiceImpl.avanzarEtapa` exige que, si la etapa actual tiene `requiereEntregable=true`, exista un `EntregableFinal`, y avanza a la siguiente por `numeroOrden`; sin etapa siguiente, rechaza ("El pedido ya se encuentra en la etapa final"). **No existe ninguna función de cancelar un pedido** — se verificó explícitamente (cero resultados para cualquier método `cancelarPedido` en el código). Por separado existe `PropuestaTerminosPedido`, una entidad distinta con su propio enum real (`PENDIENTE`, `ACEPTADA`, `RECHAZADA`, `CANCELADA`) para negociar precio/fecha antes del pedido — no debe confundirse con las etapas del pedido mismo.
+**Pedido — sin catálogo fijo de etapas.** A diferencia de lo que podría asumirse, `Order` no tiene una columna de estado ni un enum de etapas: la etapa vigente se deriva de la fila más reciente en `historial_estados_pedido` (histórico, solo inserción — `PATCH`/`DELETE` sobre él responden 403 por REQ-NF-013). Las etapas mismas (`WorkflowStage.nombreEtapa`) son texto libre, únicas globalmente, y cualquiera que gestione un flujo de trabajo puede crear nombres nuevos (`WorkflowServiceImpl.getOrCreateStage`); su orden y cuál es la etapa final se definen por `WorkflowStageConfig.numeroOrden` (entero) y `esEtapaFinal` (booleano, que en la práctica solo se usa para mostrar, no para bloquear — el corte real de "última etapa" es el número de orden más alto). Transición: `OrderServiceImpl.advanceStage` exige que, si la etapa actual tiene `requiereEntregable=true`, exista un `FinalDeliverable`, y avanza a la siguiente por `numeroOrden`; sin etapa siguiente, rechaza ("El pedido ya se encuentra en la etapa final"). **No existe ninguna función de cancelar un pedido** — se verificó explícitamente (cero resultados para cualquier método `cancelarPedido` en el código). Por separado existe `OrderTermsProposal`, una entidad distinta con su propio enum real (`PENDIENTE`, `ACEPTADA`, `RECHAZADA`, `CANCELADA`) para negociar precio/fecha antes del pedido — no debe confundirse con las etapas del pedido mismo.
 
 > **Corrección (v1.3.0):** el enunciado de REQ-F-014 decía antes "se cierra al llegar a Entregado o Cancelado". Verificado contra `ChatServiceImpl.cerrarSala`: su único invocador es `DeliverableServiceImpl.aprobarEntrega` (aprobación del entregable). No existe ninguna ruta de cancelación de pedido que la invoque, porque esa función no existe. El enunciado se corrigió para reflejar solo el comportamiento real.
 
@@ -78,7 +78,7 @@ Construido por lectura directa de los enums, constantes y lógica de transición
 
 **Entregable** (`EntregableFinal.estaLiberado`) — no es un enum, es un booleano de 2 valores. Nace en `false` al subir el entregable; pasa a `true`, de forma irreversible, cuando el Cliente aprueba (`DeliverableServiceImpl.aprobarEntrega`), lo que además libera el escrow y cierra la sala de chat. Antes de `true`, la descarga del archivo limpio (sin marca de agua) está bloqueada.
 
-**Certificado / Verificación** (`EstadoVerificacion`, sembrado en `V7__verificacion_asistida_ia.sql`) — 4 valores reales, en **mayúsculas**: `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REQUIERE_ACLARACION` (no "verificado": ese valor no existe en ningún lugar del código). Transición inicial `subir` → `PENDIENTE`; el análisis de IA (`analizarConIa`) no cambia este estado, solo registra un veredicto no vinculante aparte (`veredictoIa`); la decisión humana (`registrarDecision`, bajo un candado de fila que impide sobrescribir una decisión ya tomada) mueve a `APROBADO`/`RECHAZADO`/`REQUIERE_ACLARACION`, y el documento se elimina físicamente solo si el nuevo estado es `APROBADO` o `RECHAZADO` (`REQUIERE_ACLARACION` conserva el archivo). Caso límite real: un *scheduler* diario expira certificados `PENDIENTE` con más de 30 días y borra su archivo, pero **el estado permanece `PENDIENTE`** — un certificado puede quedar indefinidamente pendiente con su documento ya eliminado.
+**Certificado / Verificación** (`VerificationStatus`, sembrado en `V7__verificacion_asistida_ia.sql`) — 4 valores reales, en **mayúsculas**: `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REQUIERE_ACLARACION` (no "verificado": ese valor no existe en ningún lugar del código). Transición inicial `upload` → `PENDIENTE`; el análisis de IA (`analizarConIa`) no cambia este estado, solo registra un veredicto no vinculante aparte (`veredictoIa`); la decisión humana (`recordDecision`, bajo un candado de fila que impide sobrescribir una decisión ya tomada) mueve a `APROBADO`/`RECHAZADO`/`REQUIERE_ACLARACION`, y el documento se elimina físicamente solo si el nuevo estado es `APROBADO` o `RECHAZADO` (`REQUIERE_ACLARACION` conserva el archivo). Caso límite real: un *scheduler* diario expira certificados `PENDIENTE` con más de 30 días y borra su archivo, pero **el estado permanece `PENDIENTE`** — un certificado puede quedar indefinidamente pendiente con su documento ya eliminado.
 
 ### 1.7 Correspondencia con el Anexo C de ISO/IEC/IEEE 29148:2018
 
@@ -167,7 +167,7 @@ Tabla construida por extracción directa de `artisync/db/seed.sql` (el seed que 
 | --- | --- | --- | --- |
 | PayPal Orders v2 (REQ-F-020, REQ-NF-014, REQ-NF-019) | HTTPS REST, JSON; webhooks entrantes firmados | Credenciales OAuth2 de PayPal vía variables de entorno (`.env`); verificación de firma de webhook (`webhook-id`) | Sin reconciliación activa hoy (ver REQ-NF-019): si el webhook no llega, el pago queda en `Pendiente` indefinidamente sin reintento automático — brecha declarada, no comportamiento diseñado |
 | Servicio de IA — verificación de identidad y certificados (REQ-F-006, REQ-F-007) | HTTPS REST; payload = prompt genérico + imagen en base64 (sin nombre, correo ni número de documento como campos separados — ver REQ-NF-018) | Clave de API del proveedor (Gemini/NVIDIA) vía variable de entorno | Sin respuesta o error del proveedor: el certificado permanece en estado `PENDIENTE` (ver §1.6); no hay reintento automático documentado más allá del scheduler de expiración a 30 días |
-| Almacenamiento de objetos compatible con S3 (Azure Blob Storage) (REQ-NF-011) | HTTPS; SDK de Azure Blob | Cadena de conexión / SAS token vía variable de entorno (`documentos.proveedor`, `DOCUMENTOS_PROVEEDOR`) | Proveedor configurable con `AlmacenamientoLocal` como alternativa de respaldo en código; en producción, mientras `DOCUMENTOS_PROVEEDOR` no esté fijado a `azure` en `render.yaml`, el sistema usa almacenamiento local por defecto — el propio incumplimiento activo declarado en REQ-NF-011, no una estrategia de failover |
+| Almacenamiento de objetos compatible con S3 (Azure Blob Storage) (REQ-NF-011) | HTTPS; SDK de Azure Blob | Cadena de conexión / SAS token vía variable de entorno (`documentos.proveedor`, `DOCUMENTOS_PROVEEDOR`) | Proveedor configurable con `LocalStorage` como alternativa de respaldo en código; en producción, mientras `DOCUMENTOS_PROVEEDOR` no esté fijado a `azure` en `render.yaml`, el sistema usa almacenamiento local por defecto — el propio incumplimiento activo declarado en REQ-NF-011, no una estrategia de failover |
 | Canal WebSocket interno (REQ-F-014) | STOMP sobre WebSocket, con *fallback* a SockJS para navegadores sin soporte nativo (`WebSocketConfig.java`) | JWT validado por un interceptor STOMP en cada conexión, antes de procesar cualquier mensaje | No es una interfaz con un tercero externo (es interna, entre cliente y backend); ante desconexión, SockJS reintenta la conexión según su propio mecanismo de *fallback*; no hay cola de mensajes persistente del lado del servidor para reentrega tras una reconexión |
 
 ### 2.8 Capacidades fuera de alcance
@@ -243,7 +243,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Prioridad: Must
 - Aceptación: aprobado → estado verificado en ≤60s y notificación; minoría de edad → estado sin cambios y mensaje de rechazo; documento no accesible tras respuesta.
 - Verificación: Test + inspección de almacenamiento
-- Estado: verificado (flujo cubierto por `VerificacionServicioImplTest`, `VerificacionControladorTest` y `CertificadoIaRepositoryIT`; el proveedor de IA se sustituye por un doble en las pruebas, de modo que la integración con el servicio real queda como riesgo declarado en §6)
+- Estado: verificado (flujo cubierto por `VerificationServiceImplTest`, `VerificationControllerTest` y `CertificadoIaRepositoryIT`; el proveedor de IA se sustituye por un doble en las pruebas, de modo que la integración con el servicio real queda como riesgo declarado en §6)
 
 **REQ-F-007** (ex RF-07) — Verificación de certificados profesionales por IA; puntaje ≥ umbral configurable (0.75 por defecto) habilita sello de verificación.
 
@@ -274,7 +274,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: los comentarios son la única forma de interacción social directa sobre una obra concreta (a diferencia de los seguidores, que son sobre el perfil); el borrado lógico permite auditar abuso sin destruir evidencia.
 - Prioridad: Should
 - Aceptación: un comentario eliminado por su autor o por el dueño del portafolio deja de aparecer en la vista pública pero sigue siendo consultable por el Administrador vía `GET /api/v1/admin/comentarios`; un usuario no autenticado no puede comentar.
-- Verificación: Test (`ComentarioPortafolioServiceImplTest`, `ComentarioPortafolioControladorTest`, `AdminComentarioControladorTest`)
+- Verificación: Test (`PortfolioCommentServiceImplTest`, `PortfolioCommentControllerTest`, `AdminCommentControllerTest`)
 - Estado: verificado
 
 ### Módulo Catálogo Dinámico de Servicios
@@ -284,7 +284,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: un precio de 0 o negativo rompe el cálculo de comisión (REQ-F-021) y el flujo de pago (REQ-F-020); una descripción mínima evita publicaciones vacías que degradan la calidad del catálogo público.
 - Prioridad: Must
 - Aceptación: precio menor a 0.01 USD → rechazo ("El precio debe ser de al menos 0.01 USD"); un ítem sin al menos una subcategoría asociada → rechazo ("El servicio necesita al menos una subcategoria").
-- Verificación: Test (`ServicioCatalogoServicioImplTest`)
+- Verificación: Test (`OfferingCatalogServiceImplTest`)
 - Estado: verificado
 
 **REQ-F-012** (ex RF-12) — Hasta 10 atributos personalizados por ítem; formularios adaptados dinámicamente a la categoría del Creador.
@@ -292,7 +292,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: cada categoría de servicio (ilustración, desarrollo, música) necesita capturar datos distintos; un límite fijo evita que el formulario dinámico crezca sin control y degrade la experiencia de publicación.
 - Prioridad: Must
 - Aceptación: agregar un atributo número 11 al mismo ítem → rechazo ("Se ha alcanzado el límite de 10 atributos personalizados por ítem"); agregar un atributo ya asociado al mismo ítem → rechazo ("ya se encuentra asociado a este servicio").
-- Verificación: Test (`ServicioCatalogoServicioImplTest`)
+- Verificación: Test (`OfferingCatalogServiceImplTest`)
 - Estado: verificado
 
 **REQ-F-013** (ex RF-13) — Motor de búsqueda con filtros por categoría, subcategoría, rango de precio y etiquetas, más búsqueda textual sobre título/descripción; edición de ítems en cualquier momento.
@@ -352,7 +352,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: cada categoría de servicio tiene un ciclo de trabajo distinto (un diseño gráfico no pasa por las mismas etapas que un desarrollo de software); permitir que el flujo se configure por categoría, en vez de ser único y fijo, refleja esa diferencia sin necesitar código nuevo por categoría.
 - Prioridad: Must
 - Aceptación: un pedido de un flujo sin etapas configuradas no puede avanzar ("no tiene etapas configuradas"); dos flujos no pueden compartir nombre ("Ya existe un flujo de trabajo con el nombre..."); una etapa no puede intercambiarse consigo misma ni con una etapa de otro flujo.
-- Verificación: Test (`FlujoTrabajoServicioImplTest`, `PedidoServicioImplFlujoTest`)
+- Verificación: Test (`WorkflowServiceImplTest`, `OrderServiceImplWorkflowTest`)
 - Estado: verificado
 
 **REQ-F-020** (ex RF-20) — Generación de enlace de pago vía PayPal Orders v2 al iniciar pedido; actualización de estado de fondos al recibir webhook confirmado.
@@ -361,7 +361,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Prioridad: Must
 - Aceptación: al iniciar un pedido se genera una orden de PayPal y un enlace de pago asociado; al recibir un webhook confirmado con firma válida, el estado de los fondos del pago en garantía cambia de `Pendiente` a `Retenido`.
 - Verificación: Test (`PayPalWebhookController`, sandbox)
-- Estado: verificado (el webhook y su validación de firma están cubiertos por `PagoServicioImplWebhookTest`; queda como trabajo futuro la validación end-to-end contra el sandbox real de PayPal)
+- Estado: verificado (el webhook y su validación de firma están cubiertos por `PaymentServiceImplWebhookTest`; queda como trabajo futuro la validación end-to-end contra el sandbox real de PayPal)
 
 **REQ-F-021** (ex RF-21) — Entrega con marca de agua para previsualización; aprobación del Cliente libera fondos y habilita descarga limpia; comisión de plataforma registrada automáticamente.
 
@@ -376,7 +376,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: sin un cargo por revisión adicional, el Creador no tiene forma de monetizar el tiempo de trabajo extra que pide un Cliente más allá de lo acordado originalmente en el pedido.
 - Prioridad: Should
 - Aceptación: el monto del cargo es configurable sin cambio de código; el ticket de revisión queda asociado al pedido correspondiente.
-- Verificación: Test (`TicketRevisionServicioImplTest`)
+- Verificación: Test (`RevisionTicketServiceImplTest`)
 - Estado: verificado
 
 **REQ-F-022b** (ex RF-22) — Un ticket de revisión que supera el límite de revisiones configurado genera un nuevo enlace de pago para la revisión adicional.
@@ -416,7 +416,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Rationale: el escrow de REQ-F-021 retiene fondos hasta la aprobación del entregable, pero sin un flujo de retiro el Creador nunca recibe el dinero fuera de la plataforma; es el cierre natural del ciclo de pago.
 - Prioridad: Must
 - Aceptación: solicitar retiro sin correo de PayPal configurado → rechazo; monto menor al mínimo configurado (USD 10.00 por defecto, `RETIROS_MONTO_MINIMO`) → rechazo; monto mayor al saldo disponible → rechazo; ya existe una solicitud en curso → rechazo; aprobar ejecuta el pago vía PayPal Payouts y cambia el estado; rechazar exige nota administrativa; reintentar solo aplica a solicitudes en estado "Fallido".
-- Verificación: Test (`SolicitudRetiroServicioImplTest`, `SolicitudRetiroServicioImplPayoutTest`, `SolicitudRetiroControladorTest`, `SolicitudRetiroAdminControladorTest`, `SolicitudRetiroAutorizacionTest`, `SolicitudRetiroConcurrenciaIT`, `DatosPagoControladorTest`)
+- Verificación: Test (`WithdrawalRequestServiceImplTest`, `WithdrawalRequestServiceImplPayoutTest`, `WithdrawalRequestControllerTest`, `WithdrawalRequestAdminControllerTest`, `WithdrawalRequestAuthorizationTest`, `SolicitudRetiroConcurrenciaIT`, `PaymentDetailsControllerTest`)
 - Estado: verificado
 
 **REQ-F-025** — El Auditor Financiero (o Administrador) debe poder listar de forma paginada y filtrada los pagos en garantía (escrow), ver el detalle con su historial de transacciones, y obtener un resumen agregado de fondos por estado.
@@ -424,7 +424,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Rationale: el patrón escrow retiene dinero de clientes; sin una pantalla de supervisión, nadie puede auditar cuánto dinero está retenido, por cuánto tiempo, ni en qué estado, lo cual es un riesgo financiero y de cumplimiento.
 - Prioridad: Must
 - Aceptación: acceso restringido a `PAGO_AUDITAR` o rol Administrador; el resumen agrega cantidad y monto total por estado; el detalle de un pago inexistente devuelve 404.
-- Verificación: Test (`PagoGarantiaAuditoriaServicioImplTest`)
+- Verificación: Test (`EscrowPaymentAuditServiceImplTest`)
 - Estado: verificado
 
 ### Módulo de Reportes
@@ -433,8 +433,8 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 - Rationale: estos reportes exponen datos financieros y de contratos de terceros; sin requisito propio, nadie declaró quién puede generarlos ni bajo qué límites.
 - Prioridad: Should
-- Aceptación: exportar con un número de transacciones que excede el tope de filas del formato solicitado → rechazo (`ExcepcionReglaNegocio`); el acceso a `/exportar` exige el permiso específico, distinto del permiso de solo lectura del reporte.
-- Verificación: Test (`ReporteFinancieroServicioImplTest`, `ReporteFinancieroAutorizacionTest`, `ReporteContratoServicioImplTest`, `ReporteContratoAutorizacionTest`)
+- Aceptación: exportar con un número de transacciones que excede el tope de filas del formato solicitado → rechazo (`BusinessRuleException`); el acceso a `/exportar` exige el permiso específico, distinto del permiso de solo lectura del reporte.
+- Verificación: Test (`FinancialReportServiceImplTest`, `FinancialReportAuthorizationTest`, `ContractReportServiceImplTest`, `ContractReportAuthorizationTest`)
 - Estado: verificado
 
 ### Módulo de Notificaciones
@@ -444,7 +444,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Rationale: varios módulos (verificación, pedidos, retiros) ya notifican al usuario en la práctica; sin este requisito, el mecanismo transversal que los sostiene no está especificado.
 - Prioridad: Should
 - Aceptación: listar devuelve solo las notificaciones del usuario autenticado; marcar como leída una notificación ajena → 404; el contador de no leídas baja a 0 tras "marcar todas".
-- Verificación: Test (`NotificacionServiceImplTest`, `NotificacionControladorTest`)
+- Verificación: Test (`NotificationServiceImplTest`, `NotificationControllerTest`)
 - Estado: verificado
 
 ### Módulo Catálogo — Gestión Auxiliar
@@ -453,8 +453,8 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 - Rationale: REQ-F-011/012/013 dan por hecho un catálogo de categorías/subcategorías/etiquetas ya existente, pero ningún requisito especifica cómo se crean, revisan ni moderan esos catálogos, y hoy tienen CRUD y flujo de revisión propios.
 - Prioridad: Must (es prerrequisito operativo de REQ-F-011/012/013)
-- Aceptación: una categoría creada por un Creador con `CATEGORIA_CREAR` queda pendiente de revisión y no aparece en el listado público hasta ser marcada revisada; quitar la última subcategoría de un servicio en moderación → rechazo (`ExcepcionReglaNegocio`).
-- Verificación: Test (`CategoriaServicioImplTest`, `CategoriaControladorTest`, `CategoriaAutorizacionTest`, `EtiquetaServicioImplTest`, `ServicioCatalogoServicioImplTest` — cubre la moderación de subcategorías)
+- Aceptación: una categoría creada por un Creador con `CATEGORIA_CREAR` queda pendiente de revisión y no aparece en el listado público hasta ser marcada revisada; quitar la última subcategoría de un servicio en moderación → rechazo (`BusinessRuleException`).
+- Verificación: Test (`CategoryServiceImplTest`, `CategoryControllerTest`, `CategoriaAutorizacionTest`, `TagServiceImplTest`, `OfferingCatalogServiceImplTest` — cubre la moderación de subcategorías)
 - Estado: verificado
 
 ### Módulo Social — Reseñas
@@ -463,8 +463,8 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 - Rationale: REQ-F-009 ya menciona que el perfil "muestra... calificación promedio", pero ese requisito solo cubre la exhibición, no el flujo completo de creación/edición/eliminación que alimenta ese promedio.
 - Prioridad: Must
-- Aceptación: crear reseña sobre un pedido sin entregable liberado → rechazo; crear una segunda reseña sobre el mismo pedido → rechazo (`ExcepcionRecursoDuplicado`); el promedio público se recalcula tras cada alta/edición/baja.
-- Verificación: Test (`ResenaServiceImplTest`, `ResenaControladorTest`)
+- Aceptación: crear reseña sobre un pedido sin entregable liberado → rechazo; crear una segunda reseña sobre el mismo pedido → rechazo (`DuplicateResourceException`); el promedio público se recalcula tras cada alta/edición/baja.
+- Verificación: Test (`ReviewServiceImplTest`, `ReviewControllerTest`)
 - Estado: verificado
 
 ### Módulo Seguridad — Administración de Cuentas
@@ -473,7 +473,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 - Rationale: es distinto de REQ-F-002 (RBAC operativo por permiso): este requisito es la gestión del ciclo de vida de la cuenta en sí, con auto-protecciones (un administrador no puede desactivarse, cambiarse sus propios roles ni eliminarse a sí mismo).
 - Prioridad: Should
-- Aceptación: un administrador que intenta desactivar, cambiar roles o eliminar su propia cuenta → rechazo (`ExcepcionReglaNegocio`); revocar sesiones invalida inmediatamente cualquier JWT activo del usuario afectado.
+- Aceptación: un administrador que intenta desactivar, cambiar roles o eliminar su propia cuenta → rechazo (`BusinessRuleException`); revocar sesiones invalida inmediatamente cualquier JWT activo del usuario afectado.
 - Verificación: Test (`AdminUserServiceImplTest`, `AdminUserControllerTest`)
 - Estado: verificado
 
@@ -483,8 +483,8 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 - Rationale: son dos capacidades menores, sin impacto financiero ni legal, agrupadas por bajo riesgo; documentarlas cierra la brecha de cobertura sin inflar la prioridad del corpus.
 - Prioridad: Could
-- Aceptación: dar like dos veces al mismo ítem → rechazo (`ExcepcionRecursoDuplicado`); el estado de like es consultable sin autenticación (usuario anónimo ve el conteo, no si "ya dio like").
-- Verificación: Test (`PaisServiceImplTest`, `PaisControllerTest`, `LikePortafolioServiceImplTest`, `LikePortafolioControladorTest`)
+- Aceptación: dar like dos veces al mismo ítem → rechazo (`DuplicateResourceException`); el estado de like es consultable sin autenticación (usuario anónimo ve el conteo, no si "ya dio like").
+- Verificación: Test (`CountryServiceImplTest`, `CountryControllerTest`, `PortfolioLikeServiceImplTest`, `PortfolioLikeControllerTest`)
 - Estado: verificado
 
 ### Módulo Portafolio — Gestión de Obras (v1.3.0)
@@ -494,17 +494,17 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Rationale: un portafolio sin límite de obras degrada el rendimiento de la vista pública y facilita abuso de almacenamiento; servir un ítem con `Content-Disposition: attachment` evita que un SVG subido como obra se interprete como HTML en el dominio de la plataforma (XSS almacenado).
 - Prioridad: Must
 - Aceptación: subir una obra número 51 al mismo portafolio → rechazo; un usuario que no es dueño del portafolio no puede modificar ni eliminar sus obras; un portafolio no público solo es visible para su dueño; toda descarga de archivo lleva la cabecera `Content-Disposition: attachment`.
-- Verificación: Test (`PortafolioItemControladorTest`, `PortafolioItemControladorRutasTest`, `PortafolioItemServicioImplTest`)
+- Verificación: Test (`PortfolioItemControllerTest`, `PortfolioItemControllerRoutesTest`, `PortfolioItemServiceImplTest`)
 - Estado: verificado
 
 ### Módulo Comunicación — Administración de Infracciones (v1.3.0)
 
 **REQ-F-033** — El Administrador (o titular de `INFRACCION_GESTIONAR`) debe poder listar todas las infracciones registradas en el sistema, consultar el historial de infracciones de un usuario específico, y revertir manualmente la suspensión de una cuenta.
 
-- Rationale: REQ-F-015 detecta y suspende automáticamente, y ya cita `AdminViolationController` en `matriz.csv` como parte de su módulo, pero solo cubre (con prueba) el flujo de detección en el chat; los endpoints administrativos `listarInfracciones` y `revertirSuspension` no tienen historia, caso de uso ni prueba propios. Además, una suspensión automática puede ser un falso positivo (por ejemplo, un número de teléfono que en realidad forma parte del texto de un servicio); sin esta capacidad, revertirla exigiría acceso directo a la base de datos.
+- Rationale: REQ-F-015 detecta y suspende automáticamente, y ya cita `AdminViolationController` en `matriz.csv` como parte de su módulo, pero solo cubre (con prueba) el flujo de detección en el chat; los endpoints administrativos `listViolations` y `revertSuspension` no tienen historia, caso de uso ni prueba propios. Además, una suspensión automática puede ser un falso positivo (por ejemplo, un número de teléfono que en realidad forma parte del texto de un servicio); sin esta capacidad, revertirla exigiría acceso directo a la base de datos.
 - Prioridad: Should
 - Aceptación: el listado y el historial por usuario son de solo lectura; revertir la suspensión de una cuenta no suspendida no debe producir un estado inconsistente.
-- Verificación: Test (`InfraccionServiceImplTest`, con los 3 endpoints cubiertos)
+- Verificación: Test (`ViolationServiceImplTest`, con los 3 endpoints cubiertos)
 - Estado: verificado
 
 ---
@@ -629,7 +629,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Prioridad: Must
 - Aceptación: un intento de UPDATE, DELETE o TRUNCATE sobre la tabla de eventos de auditoría, incluso con la cuenta de aplicación, es rechazado por el motor de base de datos.
 - Verificación: test (UPDATE/DELETE/TRUNCATE → error de base de datos)
-- Estado: verificado (además de `historial_estados_pedido` (dominio, insert-only — `PATCH`/`DELETE` responden 403), existe desde V15\_\_modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre 7 módulos — incluido `FINANZAS` (`PAGO_ORDEN_CREAR`, `PAGO_WEBHOOK_RECIBIR`, `PAGO_CANCELAR`, `PAGO_RECONCILIAR`, `RETIRO_DATOS_PAGO_ACTUALIZAR`), que es lo que cubre hoy "transacciones" en el enunciado —, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV/XLSX/PDF vía `/api/v1/admin/auditoria/exportar`; verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real. **Corrección (ronda de revisión externa, 2026-09-11):** el enunciado citaba `AuditControlador` como "el exportador de transacciones" y un endpoint `GET /api/v1/admin/transacciones/{idPerfil}/csv`; esa clase (paquete `controller.social`, junto con `AuditService`/`AuditServiceImpl` del mismo paquete) fue eliminada el 2026-08-26 (commit `6bca09b8`, "Elimina el modulo legacy de auditoria social... reemplazado por el modulo de auditoria actual") y el endpoint nunca existió bajo esa ruta — la cita quedó huérfana en `SRS.md`/`matriz.csv` durante más de dos semanas sin que `validate-traceability.sh` lo detectara, porque el script nunca compara contra el código real. Se retiró la cita muerta; la cobertura de "transacciones" que el enunciado promete la sostiene la bitácora transversal filtrable por módulo `FINANZAS`, no una clase dedicada)
+- Estado: verificado (además de `historial_estados_pedido` (dominio, insert-only — `PATCH`/`DELETE` responden 403), existe desde V15\_\_modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre 7 módulos — incluido `FINANZAS` (`PAGO_ORDEN_CREAR`, `PAGO_WEBHOOK_RECIBIR`, `PAGO_CANCELAR`, `PAGO_RECONCILIAR`, `RETIRO_DATOS_PAGO_ACTUALIZAR`), que es lo que cubre hoy "transacciones" en el enunciado —, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV/XLSX/PDF vía `/api/v1/admin/auditoria/exportar`; verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real. **Corrección (ronda de revisión externa, 2026-09-11):** el enunciado citaba `AuditController` como "el exportador de transacciones" y un endpoint `GET /api/v1/admin/transacciones/{idPerfil}/csv`; esa clase (paquete `controller.social`, junto con `AuditService`/`AuditServiceImpl` del mismo paquete) fue eliminada el 2026-08-26 (commit `6bca09b8`, "Elimina el modulo legacy de auditoria social... reemplazado por el modulo de auditoria actual") y el endpoint nunca existió bajo esa ruta — la cita quedó huérfana en `SRS.md`/`matriz.csv` durante más de dos semanas sin que `validate-traceability.sh` lo detectara, porque el script nunca compara contra el código real. Se retiró la cita muerta; la cobertura de "transacciones" que el enunciado promete la sostiene la bitácora transversal filtrable por módulo `FINANZAS`, no una clase dedicada)
 
 **REQ-NF-014** (ex RNF-14) — Integración exclusiva con PayPal Orders v2; credenciales en variables de entorno; verificación de firma de webhook.
 
@@ -637,7 +637,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 - Prioridad: Must
 - Aceptación: un webhook con firma inválida o ausente es rechazado antes de procesar cualquier cambio de estado de fondos; las credenciales de PayPal no aparecen en ningún archivo versionado.
 - Verificación: inspección de Git + simulación de webhook inválido
-- Estado: verificado (credenciales de PayPal vía `.env`; `PagoServicioImplWebhookTest` cubre firma inválida, cabeceras ausentes, payload ilegible y ausencia de `webhook-id`, además del camino feliz)
+- Estado: verificado (credenciales de PayPal vía `.env`; `PaymentServiceImplWebhookTest` cubre firma inválida, cabeceras ausentes, payload ilegible y ausencia de `webhook-id`, además del camino feliz)
 
 ### 4.1 Requisitos no funcionales adicionales (post v1.0.0)
 
@@ -649,7 +649,7 @@ Igual que en §3.1, los tres requisitos siguientes (REQ-NF-015 a REQ-NF-017) se 
 - Prioridad: Must
 - Aceptación: ante la caída simulada de Redis, cada servicio dependiente degrada según el comportamiento documentado en su ADR (fail-open o fail-closed), nunca lanza un error no controlado; el TTL de la caché del catálogo cambia con la variable de entorno sin requerir cambio de código.
 - Verificación: Test (simulación de caída de Redis)
-- Estado: verificado (`IntentosAutenticacionServiceTest` prueba explícitamente los dos escenarios "Redis caído, fail-open" para verificación de cuota y limpieza; `app.cache.catalogo.ttl-seconds` es configurable vía `CATALOGO_CACHE_TTL`, ver `docs/adr/adr-004-estrategia-cache.md`)
+- Estado: verificado (`AuthAttemptsServiceTest` prueba explícitamente los dos escenarios "Redis caído, fail-open" para verificación de cuota y limpieza; `app.cache.catalogo.ttl-seconds` es configurable vía `CATALOGO_CACHE_TTL`, ver `docs/adr/adr-004-estrategia-cache.md`)
 
 **REQ-NF-016** — La cobertura de código del backend (líneas) debe ser ≥70% según JaCoCo, medida sobre la rama principal antes de cada entrega.
 
@@ -676,7 +676,7 @@ Los ocho requisitos siguientes (REQ-NF-018 a REQ-NF-025) se incorporan en v1.3.0
 - Rationale: la política de retención actual (`docs/basedatos/POLITICA-RETENCION.md`) cubre datos técnicos de sesión (`sesiones_usuario`, `tokens_recuperacion`, `codigos_respaldo_2fa`, `notificaciones_sistema`, 90 días) pero excluye por diseño los datos personales de mayor sensibilidad del corpus; `docs/etica/ETHICS.md` ya reconoce la tensión entre auditoría inmutable y derecho al olvido sin resolverla en código. Es una obligación legal en el marco de protección de datos personales aplicable (Ecuador: Ley Orgánica de Protección de Datos Personales), no solo buena práctica.
 - Prioridad: Must
 - Aceptación: `POLITICA-RETENCION.md` declara un período de retención verificable para documentos de identidad, certificados, datos de pago, contratos y mensajería; un usuario puede solicitar la supresión de sus datos personales (más allá de desactivar la cuenta) y el sistema la ejecuta o declara la excepción legal que la impide (p. ej. registros contables); se mantiene verificado que el payload enviado a los servicios externos de IA no incorpora campos identificativos adicionales a prompt + imagen.
-- Verificación: inspección de código (payload minimizado, verificado en `GeminiIaService`/`NvidiaIaService`) + `docs/basedatos/POLITICA-RETENCION.md` extendida a `certificados_ia`, `datos_pago_creador` y `contratos` + `PrivacidadServiceImplTest` (16 casos unitarios con Mockito) + `PrivacidadServiceImplIT` (prueba de integración contra PostgreSQL real: bloqueo pesimista de `findByIdParaAnonimizar`, detección de pedido en curso vía `existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue`, y excepción legal por fondos retenidos, las tres ejercitadas contra el esquema real); frontend implementado en `configuracion-cuenta.component.ts` (autoservicio, con advertencia explícita de irreversibilidad) y `users.component.ts` (admin)
+- Verificación: inspección de código (payload minimizado, verificado en `GeminiAiService`/`NvidiaAiService`) + `docs/basedatos/POLITICA-RETENCION.md` extendida a `certificados_ia`, `datos_pago_creador` y `contratos` + `PrivacyServiceImplTest` (16 casos unitarios con Mockito) + `PrivacidadServiceImplIT` (prueba de integración contra PostgreSQL real: bloqueo pesimista de `findByIdParaAnonimizar`, detección de pedido en curso vía `existsByFlujoIdFlujoAndEtapaIdEtapaAndEsEtapaFinalTrue`, y excepción legal por fondos retenidos, las tres ejercitadas contra el esquema real); frontend implementado en `configuracion-cuenta.component.ts` (autoservicio, con advertencia explícita de irreversibilidad) y `users.component.ts` (admin)
 - Estado: verificado
 
 **REQ-NF-019** — Ante un webhook de PayPal que llega duplicado, o un pedido con fondos ya retenidos en escrow que necesita cancelarse, el sistema debe tener un comportamiento determinista y auditable: idempotencia ante reintentos del mismo webhook, un mecanismo de reconciliación (consulta activa a la API de PayPal) si el webhook no llega en una ventana razonable, y un flujo de reembolso o liberación explícito ante cancelación con fondos retenidos.
