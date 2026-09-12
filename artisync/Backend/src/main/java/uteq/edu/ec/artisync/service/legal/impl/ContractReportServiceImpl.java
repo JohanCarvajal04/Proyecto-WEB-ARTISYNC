@@ -117,7 +117,7 @@ public class ContractReportServiceImpl implements IContractReportService {
                         ReportColumn.texto("Creador", ContractReportRow::creador),
                         ReportColumn.moneda("Precio pactado", ContractReportRow::precioPactado),
                         ReportColumn.entero("Límite de revisiones", ContractReportRow::limiteRevisiones),
-                        ReportColumn.fechaHora("Formalizado", ContractReportRow::fechaFormalizacion),
+                        ReportColumn.dateTime("Formalizado", ContractReportRow::fechaFormalizacion),
                         ReportColumn.booleano("Firmado (cliente)", ContractReportRow::firmadoCliente),
                         ReportColumn.booleano("Firmado (creador)", ContractReportRow::firmadoCreador)))
                 .filas(pagina.getContent())
@@ -125,7 +125,7 @@ public class ContractReportServiceImpl implements IContractReportService {
                 .generadoPor(correoSolicitante)
                 .build();
 
-        return servicioExportacion.exportar(modelo, formato);
+        return servicioExportacion.export(modelo, formato);
     }
 
     @Override

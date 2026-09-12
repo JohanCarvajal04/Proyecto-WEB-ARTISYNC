@@ -161,7 +161,7 @@ class ChatWebSocketLoadIT {
         sembrarPedidoConSala();
 
         UserDetails userDetails = userDetailsService.loadUserByUsername("cliente-ws-load-it@test.dev");
-        String token = jwtService.generarToken(userDetails);
+        String token = jwtService.generateToken(userDetails);
 
         WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
         MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();

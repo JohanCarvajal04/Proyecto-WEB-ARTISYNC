@@ -100,7 +100,7 @@ public class JwtService {
      *                     (no el correo), para no exponerlo en el JWT decodificado
      * @return el JWT compacto firmado, con vigencia {@link #expirationMs}
      */
-    public String generarToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         List<String> rolesList = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -144,10 +144,10 @@ public class JwtService {
      * de negocio por sí solo, ver {@link JwtAuthenticationFilter}, que solo acepta
      * {@code type=access}).
      *
-     * @param userDetails usuario autenticado; mismo criterio de subject que {@link #generarToken}
+     * @param userDetails usuario autenticado; mismo criterio de subject que {@link #generateToken}
      * @return el JWT compacto firmado, con vigencia {@link #refreshExpirationMs}
      */
-    public String generarRefreshToken(UserDetails userDetails) {
+    public String generateRefreshToken(UserDetails userDetails) {
         String sub = userDetails.getUsername();
         if (userDetails instanceof CustomUserDetails customUser && customUser.getIdUsuario() != null) {
             sub = customUser.getIdUsuario().toString();
@@ -217,7 +217,7 @@ public class JwtService {
      * de reloj (todo a cargo del {@link #parser}), tipo (allowlist: solo "access"),
      * titular y que la cuenta siga habilitada y no bloqueada (§2.4 — OBS-AUTO-05).
      */
-    public boolean esAccessTokenValido(String token, UserDetails userDetails) {
+    public boolean isAccessTokenValid(String token, UserDetails userDetails) {
         try {
             Claims claims = parsear(token).getPayload();
             if (!TIPO_ACCESO.equals(claims.get("type"))) {
@@ -244,12 +244,12 @@ public class JwtService {
      * @return {@code true} si el refresh token es válido para ese usuario
      * @throws io.jsonwebtoken.JwtException si el token está mal firmado o no cumple issuer/audience
      */
-    public boolean esRefreshTokenValido(String token, UserDetails userDetails) {
+    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
         String username = extraerUsername(token);
         Date expiracion = parsear(token).getPayload().getExpiration();
         return username.equals(userDetails.getUsername())
                 && expiracion.after(new Date())
-                && esRefreshToken(token)
+                && isRefreshToken(token)
                 && userDetails.isEnabled()
                 && userDetails.isAccountNonLocked();
     }
@@ -260,7 +260,7 @@ public class JwtService {
      *         {@code false} también ante cualquier token inválido o malformado
      *         (nunca propaga la excepción, a diferencia del resto de métodos de extracción)
      */
-    public boolean esRefreshToken(String token) {
+    public boolean isRefreshToken(String token) {
         try {
             return TIPO_REFRESH.equals(extraerTodosLosClaims(token).get("type"));
         } catch (Exception e) {

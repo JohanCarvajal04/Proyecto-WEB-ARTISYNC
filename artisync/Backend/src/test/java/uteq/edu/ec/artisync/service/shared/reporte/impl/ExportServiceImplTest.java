@@ -31,7 +31,7 @@ class ExportServiceImplTest {
             }
 
             @Override
-            public <T> GeneratedDocument generar(ReportModel<T> modelo) {
+            public <T> GeneratedDocument generate(ReportModel<T> modelo) {
                 return new GeneratedDocument(new byte[]{1}, ReportFormat.PDF.contentType(), null);
             }
         };
@@ -40,7 +40,7 @@ class ExportServiceImplTest {
     @Test
     @DisplayName("Construye el nombre de archivo como slug_yyyyMMdd_HHmm.ext")
     void exportar_ConstruyeNombreDeArchivo() {
-        GeneratedDocument documento = servicio.exportar(ReporteDePrueba.modeloBasico(), ReportFormat.CSV);
+        GeneratedDocument documento = servicio.export(ReporteDePrueba.modeloBasico(), ReportFormat.CSV);
 
         assertThat(documento.nombreArchivo()).matches("reporte_de_prueba_\\d{8}_\\d{4}\\.csv");
     }
@@ -58,7 +58,7 @@ class ExportServiceImplTest {
                 .generadoPor("admin")
                 .build();
 
-        assertThatThrownBy(() -> servicio.exportar(modelo, ReportFormat.PDF))
+        assertThatThrownBy(() -> servicio.export(modelo, ReportFormat.PDF))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining(String.valueOf(ReportFormat.PDF.topeFilas()));
     }
@@ -76,7 +76,7 @@ class ExportServiceImplTest {
                 .generadoPor("admin")
                 .build();
 
-        GeneratedDocument documento = servicio.exportar(modelo, ReportFormat.CSV);
+        GeneratedDocument documento = servicio.export(modelo, ReportFormat.CSV);
 
         assertThat(documento.contenido()).isNotEmpty();
     }

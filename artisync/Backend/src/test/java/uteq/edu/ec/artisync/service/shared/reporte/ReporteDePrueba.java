@@ -14,7 +14,7 @@ public record ReporteDePrueba(String nombre, BigDecimal monto, LocalDateTime fec
                 .columnas(java.util.List.of(
                         ReportColumn.texto("Nombre", ReporteDePrueba::nombre),
                         ReportColumn.moneda("Monto", ReporteDePrueba::monto),
-                        ReportColumn.fechaHora("Fecha", ReporteDePrueba::fecha),
+                        ReportColumn.dateTime("Fecha", ReporteDePrueba::fecha),
                         ReportColumn.entero("Id", ReporteDePrueba::id)))
                 .filas(java.util.List.of(
                         new ReporteDePrueba("Juan Pérez", new BigDecimal("1234.5"),

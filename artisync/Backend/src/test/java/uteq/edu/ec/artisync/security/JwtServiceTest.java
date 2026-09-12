@@ -49,8 +49,8 @@ class JwtServiceTest {
     }
 
     @Test
-    void generarToken_ShouldIncludeTypeAccessIssuerAndAudience() {
-        String token = jwtService.generarToken(usuario);
+    void generateToken_ShouldIncludeTypeAccessIssuerAndAudience() {
+        String token = jwtService.generateToken(usuario);
         Claims claims = jwtService.extraerTodosLosClaims(token);
 
         assertEquals("access", claims.get("type"));
@@ -64,12 +64,12 @@ class JwtServiceTest {
     }
 
     @Test
-    void generarRefreshToken_ShouldIncludeTypeRefresh() {
-        String token = jwtService.generarRefreshToken(usuario);
+    void generateRefreshToken_ShouldIncludeTypeRefresh() {
+        String token = jwtService.generateRefreshToken(usuario);
         Claims claims = jwtService.extraerTodosLosClaims(token);
 
         assertEquals("refresh", claims.get("type"));
-        assertTrue(jwtService.esRefreshToken(token));
+        assertTrue(jwtService.isRefreshToken(token));
     }
 
     @Test
@@ -131,45 +131,45 @@ class JwtServiceTest {
     }
 
     @Test
-    void esAccessTokenValido_ShouldReturnTrue_WhenTokenAndUserMatch() {
-        String token = jwtService.generarToken(usuario);
-        assertTrue(jwtService.esAccessTokenValido(token, usuario));
+    void isAccessTokenValid_ShouldReturnTrue_WhenTokenAndUserMatch() {
+        String token = jwtService.generateToken(usuario);
+        assertTrue(jwtService.isAccessTokenValid(token, usuario));
     }
 
     @Test
-    void esAccessTokenValido_ShouldReturnFalse_WhenUserDisabled() {
-        String token = jwtService.generarToken(usuario);
+    void isAccessTokenValid_ShouldReturnFalse_WhenUserDisabled() {
+        String token = jwtService.generateToken(usuario);
         CustomUserDetails deshabilitado = new CustomUserDetails(
                 1L, "usuario@example.com", "hash-irrelevante", false, true, true, true,
                 List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
 
-        assertFalse(jwtService.esAccessTokenValido(token, deshabilitado));
+        assertFalse(jwtService.isAccessTokenValid(token, deshabilitado));
     }
 
     @Test
-    void esAccessTokenValido_ShouldReturnFalse_WhenTypeIsRefresh() {
-        String refreshToken = jwtService.generarRefreshToken(usuario);
-        assertFalse(jwtService.esAccessTokenValido(refreshToken, usuario));
+    void isAccessTokenValid_ShouldReturnFalse_WhenTypeIsRefresh() {
+        String refreshToken = jwtService.generateRefreshToken(usuario);
+        assertFalse(jwtService.isAccessTokenValid(refreshToken, usuario));
     }
 
     @Test
-    void esAccessTokenValido_ShouldReturnFalse_WhenUsernameDoesNotMatch() {
-        String token = jwtService.generarToken(usuario);
+    void isAccessTokenValid_ShouldReturnFalse_WhenUsernameDoesNotMatch() {
+        String token = jwtService.generateToken(usuario);
         CustomUserDetails otroUsuario = new CustomUserDetails(
                 2L, "otro@example.com", "hash-irrelevante", true, true, true, true,
                 List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
 
-        assertFalse(jwtService.esAccessTokenValido(token, otroUsuario));
+        assertFalse(jwtService.isAccessTokenValid(token, otroUsuario));
     }
 
     @Test
-    void esRefreshTokenValido_ShouldReturnFalse_WhenUserDisabled() {
-        String refreshToken = jwtService.generarRefreshToken(usuario);
+    void isRefreshTokenValid_ShouldReturnFalse_WhenUserDisabled() {
+        String refreshToken = jwtService.generateRefreshToken(usuario);
         CustomUserDetails deshabilitado = new CustomUserDetails(
                 1L, "usuario@example.com", "hash-irrelevante", false, true, true, true,
                 List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
 
-        assertFalse(jwtService.esRefreshTokenValido(refreshToken, deshabilitado));
+        assertFalse(jwtService.isRefreshTokenValid(refreshToken, deshabilitado));
     }
 
     @Test
@@ -184,7 +184,7 @@ class JwtServiceTest {
 
     @Test
     void extraerJti_ShouldReturnTokenId() {
-        String token = jwtService.generarToken(usuario);
+        String token = jwtService.generateToken(usuario);
         String jti = jwtService.extraerJti(token);
 
         assertNotNull(jti);
@@ -193,7 +193,7 @@ class JwtServiceTest {
 
     @Test
     void extraerTiempoRestante_ShouldReturnPositiveValue_ForFreshToken() {
-        String token = jwtService.generarToken(usuario);
+        String token = jwtService.generateToken(usuario);
 
         long restante = jwtService.extraerTiempoRestante(token);
 
@@ -222,65 +222,65 @@ class JwtServiceTest {
     }
 
     @Test
-    void esAccessTokenValido_ShouldReturnFalse_WhenTokenEsMalformado() {
-        assertFalse(jwtService.esAccessTokenValido("token-malformado-no-jwt", usuario));
+    void isAccessTokenValid_ShouldReturnFalse_WhenTokenEsMalformado() {
+        assertFalse(jwtService.isAccessTokenValid("token-malformado-no-jwt", usuario));
     }
 
     @Test
-    void esAccessTokenValido_ShouldReturnFalse_WhenAccountIsLocked() {
-        String token = jwtService.generarToken(usuario);
+    void isAccessTokenValid_ShouldReturnFalse_WhenAccountIsLocked() {
+        String token = jwtService.generateToken(usuario);
         CustomUserDetails bloqueado = new CustomUserDetails(
                 1L, "usuario@example.com", "hash-irrelevante", true, true, true, false,
                 List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
 
-        assertFalse(jwtService.esAccessTokenValido(token, bloqueado));
+        assertFalse(jwtService.isAccessTokenValid(token, bloqueado));
     }
 
     @Test
-    void esRefreshToken_ShouldReturnFalse_WhenTokenEsMalformado() {
-        assertFalse(jwtService.esRefreshToken("token-malformado-no-jwt"));
+    void isRefreshToken_ShouldReturnFalse_WhenTokenEsMalformado() {
+        assertFalse(jwtService.isRefreshToken("token-malformado-no-jwt"));
     }
 
     @Test
-    void esRefreshTokenValido_ShouldReturnTrue_WhenTodoCoincide() {
-        String refreshToken = jwtService.generarRefreshToken(usuario);
+    void isRefreshTokenValid_ShouldReturnTrue_WhenTodoCoincide() {
+        String refreshToken = jwtService.generateRefreshToken(usuario);
 
-        assertTrue(jwtService.esRefreshTokenValido(refreshToken, usuario));
+        assertTrue(jwtService.isRefreshTokenValid(refreshToken, usuario));
     }
 
     @Test
-    void esRefreshTokenValido_ShouldReturnFalse_WhenUsernameNoCoincide() {
-        String refreshToken = jwtService.generarRefreshToken(usuario);
+    void isRefreshTokenValid_ShouldReturnFalse_WhenUsernameNoCoincide() {
+        String refreshToken = jwtService.generateRefreshToken(usuario);
         CustomUserDetails otroUsuario = new CustomUserDetails(
                 2L, "otro@example.com", "hash-irrelevante", true, true, true, true,
                 List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
 
-        assertFalse(jwtService.esRefreshTokenValido(refreshToken, otroUsuario));
+        assertFalse(jwtService.isRefreshTokenValid(refreshToken, otroUsuario));
     }
 
     @Test
-    void esRefreshTokenValido_ShouldReturnFalse_WhenTokenEsDeAcceso() {
-        String accessToken = jwtService.generarToken(usuario);
+    void isRefreshTokenValid_ShouldReturnFalse_WhenTokenEsDeAcceso() {
+        String accessToken = jwtService.generateToken(usuario);
 
-        assertFalse(jwtService.esRefreshTokenValido(accessToken, usuario));
+        assertFalse(jwtService.isRefreshTokenValid(accessToken, usuario));
     }
 
     @Test
-    void esRefreshTokenValido_ShouldReturnFalse_WhenAccountIsLocked() {
-        String refreshToken = jwtService.generarRefreshToken(usuario);
+    void isRefreshTokenValid_ShouldReturnFalse_WhenAccountIsLocked() {
+        String refreshToken = jwtService.generateRefreshToken(usuario);
         CustomUserDetails bloqueado = new CustomUserDetails(
                 1L, "usuario@example.com", "hash-irrelevante", true, true, true, false,
                 List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")));
 
-        assertFalse(jwtService.esRefreshTokenValido(refreshToken, bloqueado));
+        assertFalse(jwtService.isRefreshTokenValid(refreshToken, bloqueado));
     }
 
     @Test
-    void esRefreshTokenValido_ShouldReturnFalse_WhenTokenEstaExpiradoDentroDeLaToleranciaDeReloj() {
+    void isRefreshTokenValid_ShouldReturnFalse_WhenTokenEstaExpiradoDentroDeLaToleranciaDeReloj() {
         // clockSkewSeconds=60 en el parser tolera una expiracion pasada de hasta
         // 60s (no lanza ExpiredJwtException), por eso una expiracion de hace 30s
         // SI llega al chequeo manual expiracion.after(new Date()) de
-        // esRefreshTokenValido, que es el que debe devolver false aqui.
+        // isRefreshTokenValid, que es el que debe devolver false aqui.
         SecretKey clave = Keys.hmacShaKeyFor(SECRETO_VALIDO.getBytes(StandardCharsets.UTF_8));
         Date hace30Segundos = new Date(System.currentTimeMillis() - 30_000);
         String refreshExpirado = Jwts.builder()
@@ -294,6 +294,6 @@ class JwtServiceTest {
                 .signWith(clave)
                 .compact();
 
-        assertFalse(jwtService.esRefreshTokenValido(refreshExpirado, usuario));
+        assertFalse(jwtService.isRefreshTokenValid(refreshExpirado, usuario));
     }
 }

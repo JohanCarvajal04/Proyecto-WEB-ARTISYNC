@@ -220,7 +220,7 @@ class PrivacidadServiceImplIT {
         // consultas JPA que se ejercitan aqui): el efecto real de desactivar
         // la cuenta lo cubre SessionRevocationServiceTest por separado; aqui
         // solo se verifica que PrivacyServiceImpl lo invoca correctamente.
-        verify(sessionRevocationService).cambiarEstadoCuenta(ID_CREADOR, false);
+        verify(sessionRevocationService).changeAccountStatus(ID_CREADOR, false);
 
         String correoPaypal = jdbcTemplate.queryForObject(
                 "SELECT correo_paypal FROM datos_pago_creador WHERE id_usuario = ?", String.class, ID_CREADOR);

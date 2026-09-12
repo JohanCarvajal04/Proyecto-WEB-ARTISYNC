@@ -75,7 +75,7 @@ class VerificationServiceImplTest {
 
         assertThat(respuesta.nombreEstadoVerificacion()).isEqualTo("PENDIENTE");
         assertThat(respuesta.tipoDocumento()).isEqualTo("IDENTIDAD");
-        verify(preprocesador).validarFormato(documento);
+        verify(preprocesador).validateFormat(documento);
         verifyNoInteractions(iaService);
     }
 

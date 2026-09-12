@@ -98,12 +98,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // §2.4 (OBS-AUTO-05): esAccessTokenValido comprueba, ademas de la firma
+                // §2.4 (OBS-AUTO-05): isAccessTokenValid comprueba, ademas de la firma
                 // y el titular, que la cuenta siga habilitada y no bloqueada. Antes el
                 // filtro ignoraba por completo userDetails.isEnabled(), asi que una
                 // cuenta suspendida seguia autenticando hasta que expirara el token
                 // (hasta 24h) si la revocacion en Redis fallaba o no llegaba a tiempo.
-                if (jwtService.esAccessTokenValido(token, userDetails)) {
+                if (jwtService.isAccessTokenValid(token, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
@@ -113,7 +113,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    log.debug("Token rechazado por esAccessTokenValido (cuenta deshabilitada o titular no coincide): {}", username);
+                    log.debug("Token rechazado por isAccessTokenValid (cuenta deshabilitada o titular no coincide): {}", username);
                     request.setAttribute("JWT_ERROR", "Credenciales inválidas o cuenta deshabilitada");
                 }
             }

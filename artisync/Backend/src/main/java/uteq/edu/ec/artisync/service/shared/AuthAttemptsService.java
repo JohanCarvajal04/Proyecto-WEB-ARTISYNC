@@ -41,7 +41,7 @@ public class AuthAttemptsService {
      * porque ahí no hay noción de "fallo": cada llamada implica el mismo
      * costo de abuso (email potencialmente enviado) exista o no la cuenta.
      */
-    public void verificarCuota(String ambito, String identificador, int limite, Duration ventana) {
+    public void checkQuota(String ambito, String identificador, int limite, Duration ventana) {
         String clave = construirClave(ambito, identificador);
         try {
             Long intentos = redisTemplate.opsForValue().increment(clave);

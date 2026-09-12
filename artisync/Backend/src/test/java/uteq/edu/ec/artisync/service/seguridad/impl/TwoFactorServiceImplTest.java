@@ -147,7 +147,7 @@ class TwoFactorServiceImplTest {
                 () -> twoFactorService.disable2Fa("creador@example.com", "WRONGCODE"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
-        verify(intentosAutenticacionService).verificarCuota(
+        verify(intentosAutenticacionService).checkQuota(
                 eq("2fa-desactivar-cuenta"), eq("creador@example.com"), anyInt(), any());
         verify(autenticacionDosFactoresRepository, never()).desactivar2Fa(any());
     }
@@ -163,7 +163,7 @@ class TwoFactorServiceImplTest {
         twoFactorService.disable2Fa("creador@example.com", "ABCD1234");
 
         verify(intentosAutenticacionService).limpiar("2fa-desactivar-cuenta", "creador@example.com");
-        verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
+        verify(intentosAutenticacionService, never()).checkQuota(anyString(), anyString(), anyInt(), any());
         verify(autenticacionDosFactoresRepository).desactivar2Fa(1L);
     }
 
@@ -236,7 +236,7 @@ class TwoFactorServiceImplTest {
                 () -> twoFactorService.confirm2Fa("creador@example.com", "000000"));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(intentosAutenticacionService).verificarCuota(
+        verify(intentosAutenticacionService).checkQuota(
                 eq("2fa-confirmar-cuenta"), eq("creador@example.com"), anyInt(), any());
         verify(autenticacionDosFactoresRepository, never()).save(any());
     }
@@ -258,7 +258,7 @@ class TwoFactorServiceImplTest {
         assertNotNull(respuesta);
         assertTrue(dosFactores.getEstaHabilitado());
         verify(intentosAutenticacionService).limpiar("2fa-confirmar-cuenta", "creador@example.com");
-        verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
+        verify(intentosAutenticacionService, never()).checkQuota(anyString(), anyString(), anyInt(), any());
         verify(autenticacionDosFactoresRepository).save(dosFactores);
     }
 }

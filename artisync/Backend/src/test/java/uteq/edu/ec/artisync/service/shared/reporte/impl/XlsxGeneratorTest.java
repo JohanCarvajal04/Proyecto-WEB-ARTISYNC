@@ -22,7 +22,7 @@ class XlsxGeneratorTest {
     @Test
     @DisplayName("Genera un libro XLSX válido con hojas Datos e Info")
     void generar_LibroValidoConDosHojas() throws IOException {
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
             assertThat(libro.getNumberOfSheets()).isEqualTo(2);
@@ -34,7 +34,7 @@ class XlsxGeneratorTest {
     @Test
     @DisplayName("La celda de fecha tiene tipo numérico real, no texto")
     void generar_CeldaFechaEsTipoNumerico() throws IOException {
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
             Sheet datos = libro.getSheet("Datos");
@@ -48,7 +48,7 @@ class XlsxGeneratorTest {
     @Test
     @DisplayName("La celda de monto tiene tipo numérico real, no texto")
     void generar_CeldaMontoEsTipoNumerico() throws IOException {
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
             Sheet datos = libro.getSheet("Datos");
@@ -61,7 +61,7 @@ class XlsxGeneratorTest {
     @Test
     @DisplayName("Escribe la fila de totales debajo de los datos")
     void generar_EscribeTotales() throws IOException {
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
             Sheet datos = libro.getSheet("Datos");
@@ -80,7 +80,7 @@ class XlsxGeneratorTest {
     @Test
     @DisplayName("La hoja Info incluye el título y los filtros aplicados")
     void generar_HojaInfoConMetadatos() throws IOException {
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(documento.contenido()))) {
             Sheet info = libro.getSheet("Info");
@@ -99,7 +99,7 @@ class XlsxGeneratorTest {
     @Test
     @DisplayName("Content-Type es el de spreadsheetml")
     void generar_ContentTypeCorrecto() {
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         assertThat(documento.contentType())
                 .isEqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

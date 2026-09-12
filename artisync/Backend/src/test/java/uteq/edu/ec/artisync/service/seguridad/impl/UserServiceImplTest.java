@@ -154,7 +154,7 @@ class UserServiceImplTest {
 
         assertNotNull(response);
         assertEquals("Cuenta desactivada exitosamente", response.getMensaje());
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
         verify(usuarioRepository, never()).save(any());
     }
 
@@ -187,7 +187,7 @@ class UserServiceImplTest {
 
         assertNotNull(respuesta);
         verify(usuarioRepository).cambiarContrasena(1L, "hash", "nuevo-hash");
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).revokeUserSessions(1L);
     }
 
     @Test
@@ -206,7 +206,7 @@ class UserServiceImplTest {
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> userService.changePassword("user@example.com", request));
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        verify(sessionRevocationService, never()).revocarSesionesUsuario(any());
+        verify(sessionRevocationService, never()).revokeUserSessions(any());
     }
 
     @Test
@@ -244,7 +244,7 @@ class UserServiceImplTest {
         RespuestaMensaje respuesta = userService.revokeAllMySessions("user@example.com");
 
         assertNotNull(respuesta);
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).revokeUserSessions(1L);
     }
 
     @Test

@@ -161,7 +161,7 @@ public class AuditServiceImpl implements IAuditService {
                 .subtitulo(subtitulo)
                 .filtrosAplicados(readableFilters(filtro))
                 .columnas(List.of(
-                        ReportColumn.fechaHora("Fecha", AuditEvent::getFechaEvento),
+                        ReportColumn.dateTime("Fecha", AuditEvent::getFechaEvento),
                         ReportColumn.texto("Actor", AuditEvent::getCorreoActor),
                         ReportColumn.texto("Módulo", AuditEvent::getModuloAuditoria),
                         ReportColumn.texto("Acción", AuditEvent::getAccionAuditoria),
@@ -174,7 +174,7 @@ public class AuditServiceImpl implements IAuditService {
                 .generadoPor(correoSolicitante)
                 .build();
 
-        return servicioExportacion.exportar(modelo, formato);
+        return servicioExportacion.export(modelo, formato);
     }
 
     /**

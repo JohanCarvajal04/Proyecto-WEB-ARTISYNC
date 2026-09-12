@@ -145,7 +145,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se ha iniciado la configuración de 2FA"));
 
         if (!validateTotp(dosFactores.getLlaveSecreta(), codigo)) {
-            intentosAutenticacionService.verificarCuota(
+            intentosAutenticacionService.checkQuota(
                     AMBITO_2FA_CONFIRM, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código inválido o expirado");
         }
@@ -180,7 +180,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
 
         if (!validateCodeOrBackup(correo, codigo)) {
-            intentosAutenticacionService.verificarCuota(
+            intentosAutenticacionService.checkQuota(
                     AMBITO_2FA_DISABLE, correo, LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }

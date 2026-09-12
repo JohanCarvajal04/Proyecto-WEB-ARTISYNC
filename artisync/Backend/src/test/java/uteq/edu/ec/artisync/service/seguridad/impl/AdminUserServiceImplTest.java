@@ -167,7 +167,7 @@ class AdminUserServiceImplTest {
         UserResponse result = adminUserService.changeStatus(1L, request, 999L);
 
         assertNotNull(result);
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
         verify(entityManager).refresh(usuario);
         verify(usuarioRepository, never()).save(any());
         assertFalse(usuario.getEstadoCuenta());
@@ -186,7 +186,7 @@ class AdminUserServiceImplTest {
 
         // La decision de revocar (o no) ahora vive dentro de fn_cambiar_estado_cuenta;
         // el servicio siempre delega, sin ramificar en Java.
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, true);
+        verify(sessionRevocationService).changeAccountStatus(1L, true);
     }
 
     @Test
@@ -386,7 +386,7 @@ class AdminUserServiceImplTest {
 
         adminUserService.updateUser(1L, request);
 
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
         verify(usuarioRepository, times(1)).save(usuario);
         verify(entityManager).refresh(usuario);
     }
@@ -448,7 +448,7 @@ class AdminUserServiceImplTest {
 
         assertNotNull(result);
         verify(usuarioRolRepository).sincronizarRoles(1L, new String[]{"CREADOR"});
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).revokeUserSessions(1L);
     }
 
     @Test
@@ -464,7 +464,7 @@ class AdminUserServiceImplTest {
         UserResponse result = adminUserService.assignRoles(1L, request, 999L);
 
         assertNotNull(result);
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).revokeUserSessions(1L);
     }
 
     @Test
@@ -478,7 +478,7 @@ class AdminUserServiceImplTest {
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> adminUserService.assignRoles(1L, request, 999L));
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(sessionRevocationService, never()).revocarSesionesUsuario(any());
+        verify(sessionRevocationService, never()).revokeUserSessions(any());
     }
 
     @Test
@@ -506,14 +506,14 @@ class AdminUserServiceImplTest {
         // fn_cambiar_estado_cuenta.
         adminUserService.deleteUser(1L, 999L);
 
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
         verify(usuarioRepository, never()).save(any());
     }
 
     @Test
     void deleteUser_ShouldThrowNotFound_WhenUsuarioNoExiste() {
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado con ID: 99"))
-                .when(sessionRevocationService).cambiarEstadoCuenta(99L, false);
+                .when(sessionRevocationService).changeAccountStatus(99L, false);
 
         assertThrows(ResponseStatusException.class, () -> adminUserService.deleteUser(99L, 999L));
     }
@@ -522,7 +522,7 @@ class AdminUserServiceImplTest {
     void deleteUser_ShouldThrowReglaNegocio_WhenAdminSeEliminaASiMismo() {
         assertThrows(uteq.edu.ec.artisync.exception.BusinessRuleException.class,
                 () -> adminUserService.deleteUser(1L, 1L));
-        verify(sessionRevocationService, never()).cambiarEstadoCuenta(any(), org.mockito.ArgumentMatchers.anyBoolean());
+        verify(sessionRevocationService, never()).changeAccountStatus(any(), org.mockito.ArgumentMatchers.anyBoolean());
     }
 
     @Test
@@ -532,7 +532,7 @@ class AdminUserServiceImplTest {
         RespuestaMensaje respuesta = adminUserService.revokeUserSessions(1L);
 
         assertNotNull(respuesta);
-        verify(sessionRevocationService).revocarSesionesUsuario(1L);
+        verify(sessionRevocationService).revokeUserSessions(1L);
     }
 
     @Test
@@ -562,7 +562,7 @@ class AdminUserServiceImplTest {
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv");
-        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
+        when(servicioExportacion.export(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
                 .thenReturn(esperado);
 
         UserFilter filtro = new UserFilter();
@@ -574,7 +574,7 @@ class AdminUserServiceImplTest {
 
         assertSame(esperado, resultado);
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         ReportModel<UserResponse> modelo = captor.getValue();
         assertEquals(List.of(userResponse), modelo.getFilas());
         assertEquals("admin@artisync.dev", modelo.getGeneradoPor());
@@ -588,7 +588,7 @@ class AdminUserServiceImplTest {
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "usuarios_parte_1.pdf");
-        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF)))
+        when(servicioExportacion.export(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF)))
                 .thenReturn(esperado);
 
         GeneratedDocument resultado = adminUserService.export(
@@ -596,7 +596,7 @@ class AdminUserServiceImplTest {
 
         assertSame(esperado, resultado);
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.PDF));
         assertEquals("Usuarios - Parte 1", captor.getValue().getTitulo());
         org.assertj.core.api.Assertions.assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 10");
     }
@@ -608,7 +608,7 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
-        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
+        when(servicioExportacion.export(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
                 .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv"));
 
         UserFilter filtro = new UserFilter();
@@ -617,7 +617,7 @@ class AdminUserServiceImplTest {
         adminUserService.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertEquals("Suspendido", captor.getValue().getFiltrosAplicados().get("Estado"));
     }
 
@@ -628,13 +628,13 @@ class AdminUserServiceImplTest {
         when(usuarioRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(pagina);
         when(usuarioMapper.toUserResponseList(List.of(usuario))).thenReturn(List.of(userResponse));
-        when(servicioExportacion.exportar(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
+        when(servicioExportacion.export(any(ReportModel.class), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV)))
                 .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "usuarios.csv"));
 
         adminUserService.export(new UserFilter(), ReportFormat.CSV, "admin@artisync.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertTrue(captor.getValue().getFiltrosAplicados().isEmpty());
     }
 
@@ -660,7 +660,7 @@ class AdminUserServiceImplTest {
 
         uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument esperado =
                 new uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument(new byte[]{1}, "application/pdf", "usuarios.pdf");
-        when(servicioExportacion.exportar(any(), any())).thenReturn(esperado);
+        when(servicioExportacion.export(any(), any())).thenReturn(esperado);
 
         uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter filtro = new uteq.edu.ec.artisync.dto.peticion.seguridad.UserFilter();
         uteq.edu.ec.artisync.service.shared.reporte.GeneratedDocument resultado =
@@ -670,6 +670,6 @@ class AdminUserServiceImplTest {
         assertNotNull(resultado);
         verify(generadorGraficaReporte).generarGraficaRol(any());
         verify(generadorGraficaReporte).generarGraficaPais(any());
-        verify(servicioExportacion).exportar(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF));
+        verify(servicioExportacion).export(any(), org.mockito.ArgumentMatchers.eq(uteq.edu.ec.artisync.service.shared.reporte.ReportFormat.PDF));
     }
 }

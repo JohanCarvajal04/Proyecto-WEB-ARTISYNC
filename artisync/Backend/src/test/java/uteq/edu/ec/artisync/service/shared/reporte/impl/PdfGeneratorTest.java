@@ -64,7 +64,7 @@ class PdfGeneratorTest {
                 .generadoPor("admin")
                 .build();
 
-        generador.generar(modelo);
+        generador.generate(modelo);
 
         String html = htmlCaptor.getValue();
         assertThat(html).doesNotContain("<script>alert(1)</script>");
@@ -78,7 +78,7 @@ class PdfGeneratorTest {
         when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[0]);
         PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
 
-        generador.generar(ReporteDePrueba.modeloBasico());
+        generador.generate(ReporteDePrueba.modeloBasico());
 
         String html = htmlCaptor.getValue();
         assertThat(html).contains("Reporte de Prueba");
@@ -92,7 +92,7 @@ class PdfGeneratorTest {
         when(pdfGeneracionServicio.generatePdfFromHtml(htmlCaptor.capture())).thenReturn(new byte[]{1, 2, 3});
         PdfGenerator generador = new PdfGenerator(crearTemplateEngine(), pdfGeneracionServicio);
 
-        GeneratedDocument documento = generador.generar(ReporteDePrueba.modeloBasico());
+        GeneratedDocument documento = generador.generate(ReporteDePrueba.modeloBasico());
 
         assertThat(documento.contentType()).isEqualTo("application/pdf");
     }
@@ -111,7 +111,7 @@ class PdfGeneratorTest {
                 .generadoPor("admin")
                 .build();
 
-        GeneratedDocument documento = generador.generar(modelo);
+        GeneratedDocument documento = generador.generate(modelo);
 
         assertThat(documento.contenido()).isNotEmpty();
         String cabecera = new String(documento.contenido(), 0, Math.min(5, documento.contenido().length),

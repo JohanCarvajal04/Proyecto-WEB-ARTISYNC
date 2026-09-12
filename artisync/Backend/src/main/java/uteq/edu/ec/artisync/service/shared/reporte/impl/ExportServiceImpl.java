@@ -43,7 +43,7 @@ public class ExportServiceImpl implements IExportService {
     }
 
     @Override
-    public <T> GeneratedDocument exportar(ReportModel<T> modelo, ReportFormat formato) {
+    public <T> GeneratedDocument export(ReportModel<T> modelo, ReportFormat formato) {
         int totalFilas = modelo.getFilas().size();
         if (totalFilas > formato.topeFilas()) {
             throw new BusinessRuleException(
@@ -53,16 +53,16 @@ public class ExportServiceImpl implements IExportService {
         }
 
         ReportGenerator generador = generadoresPorFormato.get(formato);
-        GeneratedDocument documento = generador.generar(modelo);
+        GeneratedDocument documento = generador.generate(modelo);
 
         log.info("Reporte '{}' exportado en {}: {} filas, {} bytes",
                 modelo.getTitulo(), formato, totalFilas, documento.contenido().length);
 
-        String nombreArchivo = nombreArchivo(modelo.getTitulo(), formato);
+        String nombreArchivo = fileName(modelo.getTitulo(), formato);
         return new GeneratedDocument(documento.contenido(), documento.contentType(), nombreArchivo);
     }
 
-    private String nombreArchivo(String titulo, ReportFormat formato) {
+    private String fileName(String titulo, ReportFormat formato) {
         String slug = CARACTERES_NO_SLUG.matcher(titulo.toLowerCase(Locale.ROOT)).replaceAll("_");
         slug = slug.replaceAll("^_+|_+$", "");
         if (slug.isEmpty()) {

@@ -51,7 +51,7 @@ public class PdfGenerator implements ReportGenerator {
     }
 
     @Override
-    public <T> GeneratedDocument generar(ReportModel<T> modelo) {
+    public <T> GeneratedDocument generate(ReportModel<T> modelo) {
         Context contexto = new Context();
         contexto.setVariable("titulo", modelo.getTitulo());
         contexto.setVariable("subtitulo", modelo.getSubtitulo());

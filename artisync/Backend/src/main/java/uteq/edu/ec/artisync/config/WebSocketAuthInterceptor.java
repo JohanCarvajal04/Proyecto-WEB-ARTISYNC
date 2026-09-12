@@ -177,7 +177,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     }
 
     private void autorizarSala(StompHeaderAccessor accessor, String destino) {
-        Long idUsuario = idUsuarioDe(accessor);
+        Long idUsuario = userIdFrom(accessor);
         if (idUsuario == null) {
             log.warn("SUBSCRIBE rechazado a {}: sesión sin Principal autenticado", destino);
             throw new MessagingException("No autenticado");
@@ -205,7 +205,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
     }
 
-    private Long idUsuarioDe(StompHeaderAccessor accessor) {
+    private Long userIdFrom(StompHeaderAccessor accessor) {
         if (!(accessor.getUser() instanceof Authentication autenticacion)) {
             return null;
         }

@@ -357,7 +357,7 @@ public class OrderServiceImpl implements IOrderService {
     public TermsProposalResponse getPendingProposal(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
-        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(pedido, idUsuarioSolicitante);
 
         OrderTermsProposal propuesta = propuestaTerminosPedidoRepository
                 .findByPedidoIdPedidoAndEstado(idPedido, OrderTermsProposal.PENDIENTE)
@@ -540,7 +540,7 @@ public class OrderServiceImpl implements IOrderService {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
         // OBS-08 / H-02: evita el acceso indebido (IDOR) a pedidos ajenos.
-        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(pedido, idUsuarioSolicitante);
         return mapToRespuesta(pedido);
     }
 
@@ -632,15 +632,15 @@ public class OrderServiceImpl implements IOrderService {
                         ReportColumn.texto("Offering", OrderSummaryResponse::getTituloServicio),
                         ReportColumn.texto("Etapa", OrderSummaryResponse::getEtapaActual),
                         ReportColumn.moneda("Precio pactado", OrderSummaryResponse::getPrecioPactado),
-                        ReportColumn.fechaHora("Inicio", OrderSummaryResponse::getFechaInicio),
-                        ReportColumn.fechaHora("Entrega estimada", OrderSummaryResponse::getFechaEntregaEstimada),
+                        ReportColumn.dateTime("Inicio", OrderSummaryResponse::getFechaInicio),
+                        ReportColumn.dateTime("Entrega estimada", OrderSummaryResponse::getFechaEntregaEstimada),
                         ReportColumn.texto("Creador", OrderSummaryResponse::getNombreCreador),
                         ReportColumn.texto("Cliente", OrderSummaryResponse::getNombreCliente)))
                 .filas(filas)
                 .generadoPor(correoSolicitante)
                 .build();
 
-        return servicioExportacion.exportar(modelo, formato);
+        return servicioExportacion.export(modelo, formato);
     }
 
     @Override
@@ -750,7 +750,7 @@ public class OrderServiceImpl implements IOrderService {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
         // Evita que cualquier autenticado lea el historial de un pedido ajeno.
-        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(pedido, idUsuarioSolicitante);
 
         return historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido)
                 .stream()
@@ -773,7 +773,7 @@ public class OrderServiceImpl implements IOrderService {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
         // Evita que cualquier autenticado lea el seguimiento de un pedido ajeno.
-        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(pedido, idUsuarioSolicitante);
 
         List<WorkflowStageConfig> etapasConfig = flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo());

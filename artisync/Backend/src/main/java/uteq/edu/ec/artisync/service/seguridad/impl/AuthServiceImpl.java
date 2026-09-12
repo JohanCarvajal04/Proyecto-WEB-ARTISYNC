@@ -163,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
             // Cuota por CUENTA: se incrementa únicamente cuando la autenticación
             // ACABA de fallar (no antes de intentarla), para que un usuario que
             // conoce su contraseña nunca se vea afectado — solo los fallos cuentan.
-            intentosAutenticacionService.verificarCuota(
+            intentosAutenticacionService.checkQuota(
                     AMBITO_LOGIN, request.getCorreo(), LIMITE_INTENTOS_LOGIN, VENTANA_INTENTOS_LOGIN);
             throw e;
         }
@@ -201,8 +201,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(correoUsuario);
-        String accessToken = jwtService.generarToken(userDetails);
-        String refreshToken = jwtService.generarRefreshToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
 
         List<String> roles = extractRoles(estado);
 
@@ -281,8 +281,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(datos.correo());
-        String accessToken = jwtService.generarToken(userDetails);
-        String refreshToken = jwtService.generarRefreshToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
 
         List<String> roles = extractRoles(estado);
 
@@ -333,7 +333,7 @@ public class AuthServiceImpl implements AuthService {
             String username = jwtService.extraerUsername(refreshToken);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (!jwtService.esRefreshTokenValido(refreshToken, userDetails)) {
+            if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido");
             }
 
@@ -344,11 +344,11 @@ public class AuthServiceImpl implements AuthService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta del usuario está inactiva");
             }
 
-            sessionRevocationService.revocarToken(refreshToken);
+            sessionRevocationService.revokeToken(refreshToken);
             sesionUsuarioRepository.deleteByJti(jti);
 
-            String nuevoAccessToken = jwtService.generarToken(userDetails);
-            String nuevoRefreshToken = jwtService.generarRefreshToken(userDetails);
+            String nuevoAccessToken = jwtService.generateToken(userDetails);
+            String nuevoRefreshToken = jwtService.generateRefreshToken(userDetails);
 
             recordSessionBestEffort(usuario, jwtService.extraerJti(nuevoAccessToken), jwtService.getExpirationMs());
             recordSessionRequired(usuario, jwtService.extraerJti(nuevoRefreshToken), jwtService.getRefreshExpirationMs());
@@ -394,9 +394,9 @@ public class AuthServiceImpl implements AuthService {
      * @return mensaje de confirmación
      */
     public RespuestaMensaje logout(String tokenHeader, String refreshToken) {
-        sessionRevocationService.revocarTokenPorCabecera(tokenHeader);
+        sessionRevocationService.revokeTokenFromHeader(tokenHeader);
         if (refreshToken != null && !refreshToken.isBlank()) {
-            sessionRevocationService.revocarToken(refreshToken);
+            sessionRevocationService.revokeToken(refreshToken);
             // Best-effort: un refresh token ya expirado o malformado en el momento del
             // logout no debe impedir cerrar sesión (no hay fila que borrar de todas formas).
             try {
@@ -430,7 +430,7 @@ public class AuthServiceImpl implements AuthService {
         // Incondicional (a diferencia de login): aquí no hay noción de "fallo", toda
         // llamada implica el mismo costo de abuso (correo potencialmente enviado)
         // exista o no la cuenta — mail-bombing a una víctima, cuota SMTP agotada.
-        intentosAutenticacionService.verificarCuota(
+        intentosAutenticacionService.checkQuota(
                 AMBITO_RECUPERACION, request.getCorreo(), LIMITE_INTENTOS_RECUPERACION, VENTANA_INTENTOS_RECUPERACION);
 
         String tokenPlain = UUID.randomUUID().toString();

@@ -6,7 +6,7 @@
 -- Borra todas las sesiones de un usuario y devuelve, en la misma sentencia,
 -- el jti y el tiempo de vida restante de cada una que borro.
 --
--- Sustituye la parte SQL de SessionRevocationService.revocarSesionesUsuario():
+-- Sustituye la parte SQL de SessionRevocationService.revokeUserSessions():
 --   (1) List<SesionUsuario> sesiones = findByUsuarioIdUsuario(idUsuario);
 --   (2) por cada sesion: revocarJtiEnRedis(...)
 --   (3) deleteByUsuarioIdUsuario(idUsuario);

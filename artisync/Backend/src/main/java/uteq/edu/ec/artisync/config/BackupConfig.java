@@ -33,7 +33,7 @@ public class BackupConfig {
     private final BackupProperties respaldoProperties;
 
     /**
-     * CRÍTICO: declarar cualquier otro bean DataSource (respaldoDataSource,
+     * CRÍTICO: declarar cualquier otro bean DataSource (backupDataSource,
      * más abajo) desactiva por completo el DataSourceAutoConfiguration de
      * Spring Boot -- su @ConditionalOnMissingBean(DataSource.class) deja de
      * cumplirse en cuanto existe OTRO DataSource en el contexto -- así que el
@@ -46,7 +46,7 @@ public class BackupConfig {
      * artisync_app), y cualquier login falla con "permission denied" al no
      * poder ni insertar en auditoria_eventos. Este bean reconstruye
      * exactamente el datasource que DataSourceAutoConfiguration habría
-     * creado y lo marca @Primary para que gane sobre respaldoDataSource en
+     * creado y lo marca @Primary para que gane sobre backupDataSource en
      * cualquier punto de inyección sin @Qualifier.
      */
     @Bean
@@ -75,8 +75,8 @@ public class BackupConfig {
      *
      * @return el {@link DataSource} del pool de respaldos (tamaño máximo 2 conexiones)
      */
-    @Bean(name = "respaldoDataSource")
-    public DataSource respaldoDataSource() {
+    @Bean(name = "backupDataSource")
+    public DataSource backupDataSource() {
         BackupProperties.Db db = respaldoProperties.getDb();
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:postgresql://%s:%d/%s".formatted(db.getHost(), db.getPuerto(), db.getNombre()));
@@ -100,7 +100,7 @@ public class BackupConfig {
      * Spring Boot registra por defecto un HealthContributor por cada bean
      * DataSource del contexto (DataSourceHealthContributorAutoConfiguration,
      * {@code @ConditionalOnMissingBean(name = {"dbHealthIndicator",
-     * "dbHealthContributor"})}). Sin este bean, respaldoDataSource entraría
+     * "dbHealthContributor"})}). Sin este bean, backupDataSource entraría
      * también en /actuator/health: un pg_dump/respaldo temporalmente
      * inalcanzable haría que TODA la aplicación reporte DOWN (503), aunque el
      * resto siga funcionando con normalidad. Al declarar aquí el bean
@@ -123,8 +123,8 @@ public class BackupConfig {
      *
      * @return un {@link ThreadPoolTaskExecutor} de 1 hilo, cola de 10
      */
-    @Bean(name = "respaldoTaskExecutor")
-    public Executor respaldoTaskExecutor() {
+    @Bean(name = "backupTaskExecutor")
+    public Executor backupTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
         executor.setMaxPoolSize(1);

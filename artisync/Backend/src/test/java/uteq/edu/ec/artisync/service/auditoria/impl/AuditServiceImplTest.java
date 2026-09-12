@@ -123,13 +123,13 @@ class AuditServiceImplTest {
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "auditoria.csv");
-        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
+        when(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
 
         GeneratedDocument resultado = auditoriaServicio.export(new AuditFilter(), ReportFormat.CSV, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.CSV));
         ReportModel<AuditEvent> modelo = captor.getValue();
         assertThat(modelo.getFilas()).containsExactly(evento);
         assertThat(modelo.getGeneradoPor()).isEqualTo("admin@artisync.dev");
@@ -151,7 +151,7 @@ class AuditServiceImplTest {
         Page<AuditEvent> pagina = new PageImpl<>(List.of(eventoDe(1L, "PAIS_CREAR")));
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
-        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV)))
+        when(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV)))
                 .thenReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "auditoria.csv"));
 
         AuditFilter filtro = new AuditFilter();
@@ -166,7 +166,7 @@ class AuditServiceImplTest {
         auditoriaServicio.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.CSV));
         Map<String, String> filtrosAplicados = captor.getValue().getFiltrosAplicados();
         assertThat(filtrosAplicados)
                 .containsEntry("Actor", "ana@artisync.dev")
@@ -217,13 +217,13 @@ class AuditServiceImplTest {
         when(eventoAuditoriaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pagina);
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "auditoria_parte_1.pdf");
-        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
+        when(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
 
         GeneratedDocument resultado = auditoriaServicio.export(new AuditFilter(), ReportFormat.PDF, 0, 5000, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.PDF));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.PDF));
         assertThat(captor.getValue().getTitulo()).isEqualTo("Auditoría - Parte 1");
         assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 10");
     }

@@ -127,7 +127,7 @@ class JwtAuthenticationFilterTest {
 
         UserDetails userDetailsDeshabilitado = mock(UserDetails.class);
         when(userDetailsService.loadUserByUsername("deshabilitado@example.com")).thenReturn(userDetailsDeshabilitado);
-        when(jwtService.esAccessTokenValido("disabled-user-token", userDetailsDeshabilitado)).thenReturn(false);
+        when(jwtService.isAccessTokenValid("disabled-user-token", userDetailsDeshabilitado)).thenReturn(false);
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
@@ -149,7 +149,7 @@ class JwtAuthenticationFilterTest {
 
         UserDetails userDetailsActivo = mock(UserDetails.class);
         when(userDetailsService.loadUserByUsername("activo@example.com")).thenReturn(userDetailsActivo);
-        when(jwtService.esAccessTokenValido("valid-token", userDetailsActivo)).thenReturn(true);
+        when(jwtService.isAccessTokenValid("valid-token", userDetailsActivo)).thenReturn(true);
         when(userDetailsActivo.getAuthorities()).thenReturn(java.util.List.of());
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);

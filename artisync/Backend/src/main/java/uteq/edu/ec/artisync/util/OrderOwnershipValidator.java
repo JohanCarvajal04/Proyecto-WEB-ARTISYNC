@@ -22,7 +22,7 @@ public final class OrderOwnershipValidator {
      * ADMIN pueden acceder al recurso. Lanza AccessDeniedException (403) en
      * cualquier otro caso.
      */
-    public static void validarPertenenciaOAdmin(Order pedido, Long idUsuarioSolicitante) {
+    public static void validateOwnershipOrAdmin(Order pedido, Long idUsuarioSolicitante) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
         boolean esCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario().equals(idUsuarioSolicitante);
 

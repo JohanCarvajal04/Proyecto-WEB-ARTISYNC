@@ -17,29 +17,29 @@ class AiImagePreprocessorTest {
     private final AiImagePreprocessor preprocesador = new AiImagePreprocessor();
 
     @Test
-    void validarFormato_pdfRechazado() {
+    void validateFormat_pdfRechazado() {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "doc.pdf", "application/pdf", "contenido".getBytes());
-        assertThrows(BusinessRuleException.class, () -> preprocesador.validarFormato(archivo));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.validateFormat(archivo));
     }
 
     @Test
-    void validarFormato_jpegAceptado() {
+    void validateFormat_jpegAceptado() {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "doc.jpg", "image/jpeg", "contenido".getBytes());
-        preprocesador.validarFormato(archivo); // no debe lanzar
+        preprocesador.validateFormat(archivo); // no debe lanzar
     }
 
     @Test
-    void validarFormato_archivoVacio_esRechazado() {
+    void validateFormat_archivoVacio_esRechazado() {
         MockMultipartFile archivo = new MockMultipartFile("documento", "doc.jpg", "image/jpeg", new byte[0]);
-        assertThrows(BusinessRuleException.class, () -> preprocesador.validarFormato(archivo));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.validateFormat(archivo));
     }
 
     @Test
-    void validarFormato_contentTypeNulo_esRechazado() {
+    void validateFormat_contentTypeNulo_esRechazado() {
         MockMultipartFile archivo = new MockMultipartFile("documento", "doc", null, "contenido".getBytes());
-        assertThrows(BusinessRuleException.class, () -> preprocesador.validarFormato(archivo));
+        assertThrows(BusinessRuleException.class, () -> preprocesador.validateFormat(archivo));
     }
 
     /**
@@ -47,22 +47,22 @@ class AiImagePreprocessorTest {
      * así que el límite de verificación vive aquí y debe seguir vigente.
      */
     @Test
-    void validarFormato_imagenQueSuperaLos5MB_esRechazada() {
+    void validateFormat_imagenQueSuperaLos5MB_esRechazada() {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "cedula.jpg", "image/jpeg", new byte[6 * 1024 * 1024]);
 
         BusinessRuleException error = assertThrows(BusinessRuleException.class,
-                () -> preprocesador.validarFormato(archivo));
+                () -> preprocesador.validateFormat(archivo));
 
         assertThat(error).hasMessageContaining("5 MB");
     }
 
     @Test
-    void validarFormato_imagenJustoBajoElLimite_esAceptada() {
+    void validateFormat_imagenJustoBajoElLimite_esAceptada() {
         MockMultipartFile archivo = new MockMultipartFile(
                 "documento", "cedula.jpg", "image/jpeg", new byte[5 * 1024 * 1024]);
 
-        preprocesador.validarFormato(archivo); // no debe lanzar
+        preprocesador.validateFormat(archivo); // no debe lanzar
     }
 
     @Test

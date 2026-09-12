@@ -12,5 +12,5 @@ public interface IExportService {
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el modelo supera
      *         el tope de filas del formato pedido (422 — el llamador debe acotar filtros)
      */
-    <T> GeneratedDocument exportar(ReportModel<T> modelo, ReportFormat formato);
+    <T> GeneratedDocument export(ReportModel<T> modelo, ReportFormat formato);
 }

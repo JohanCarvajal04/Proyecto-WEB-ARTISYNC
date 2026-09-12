@@ -49,7 +49,7 @@ public class AiImagePreprocessor {
      * @param archivo objeto binario multipart representando el documento o medio fisico
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void validarFormato(MultipartFile archivo) {
+    public void validateFormat(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new BusinessRuleException("El documento está vacío.");
         }
@@ -100,7 +100,7 @@ public class AiImagePreprocessor {
     }
 
     private byte[] comprimirJpeg(BufferedImage imagen, float calidad) {
-        BufferedImage sinAlfa = quitarCanalAlfa(imagen);
+        BufferedImage sinAlfa = removeAlphaChannel(imagen);
         Iterator<ImageWriter> escritores = ImageIO.getImageWritersByFormatName("jpg");
         if (!escritores.hasNext()) {
             throw new RuntimeException("No hay un ImageWriter de JPEG disponible en esta JVM.");
@@ -122,7 +122,7 @@ public class AiImagePreprocessor {
         }
     }
 
-    private BufferedImage quitarCanalAlfa(BufferedImage original) {
+    private BufferedImage removeAlphaChannel(BufferedImage original) {
         if (!original.getColorModel().hasAlpha()) {
             return original;
         }

@@ -35,46 +35,46 @@ class AuthAttemptsServiceTest {
     private AuthAttemptsService intentosAutenticacionService;
 
     @Test
-    @DisplayName("verificarCuota — primer intento fija el TTL de la ventana")
-    void verificarCuota_primerIntento_fijaVentana() {
+    @DisplayName("checkQuota — primer intento fija el TTL de la ventana")
+    void checkQuota_primerIntento_fijaVentana() {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.increment(anyString())).willReturn(1L);
 
-        assertThatCode(() -> intentosAutenticacionService.verificarCuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
+        assertThatCode(() -> intentosAutenticacionService.checkQuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
                 .doesNotThrowAnyException();
 
         verify(redisTemplate).expire(anyString(), any(Duration.class));
     }
 
     @Test
-    @DisplayName("verificarCuota — intentos dentro del limite, sin reiniciar la ventana")
-    void verificarCuota_dentroDelLimite_noReiniciaVentana() {
+    @DisplayName("checkQuota — intentos dentro del limite, sin reiniciar la ventana")
+    void checkQuota_dentroDelLimite_noReiniciaVentana() {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.increment(anyString())).willReturn(3L);
 
-        assertThatCode(() -> intentosAutenticacionService.verificarCuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
+        assertThatCode(() -> intentosAutenticacionService.checkQuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
                 .doesNotThrowAnyException();
 
         verify(redisTemplate, never()).expire(anyString(), any(Duration.class));
     }
 
     @Test
-    @DisplayName("verificarCuota — supera el limite y lanza QuotaExceededException")
-    void verificarCuota_superaLimite_lanzaExcepcion() {
+    @DisplayName("checkQuota — supera el limite y lanza QuotaExceededException")
+    void checkQuota_superaLimite_lanzaExcepcion() {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.increment(anyString())).willReturn(6L);
 
-        assertThatThrownBy(() -> intentosAutenticacionService.verificarCuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
+        assertThatThrownBy(() -> intentosAutenticacionService.checkQuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
                 .isInstanceOf(QuotaExceededException.class);
     }
 
     @Test
-    @DisplayName("verificarCuota — Redis caido, se permite la solicitud (fail-open)")
-    void verificarCuota_redisCaido_permiteFailOpen() {
+    @DisplayName("checkQuota — Redis caido, se permite la solicitud (fail-open)")
+    void checkQuota_redisCaido_permiteFailOpen() {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.increment(anyString())).willThrow(new QueryTimeoutException("timeout"));
 
-        assertThatCode(() -> intentosAutenticacionService.verificarCuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
+        assertThatCode(() -> intentosAutenticacionService.checkQuota("2fa-confirm", "ana@artisync.dev", 5, Duration.ofMinutes(15)))
                 .doesNotThrowAnyException();
     }
 

@@ -655,13 +655,13 @@ class OrderServiceImplTest {
                 .flujo(flujo).precioPactado(new BigDecimal("30.00")).build();
         given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido, pedidoOtro));
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
-        given(servicioExportacion.exportar(any(), any()))
+        given(servicioExportacion.export(any(), any()))
                 .willReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
 
         pedidoServicio.exportMyCommissions(2L, null, ReportFormat.CSV, "creador@test.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertThat(captor.getValue().getFilas()).hasSize(2);
     }
 
@@ -672,13 +672,13 @@ class OrderServiceImplTest {
                 .flujo(flujo).precioPactado(new BigDecimal("30.00")).build();
         given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido, pedidoOtro));
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(any())).willReturn(Optional.empty());
-        given(servicioExportacion.exportar(any(), any()))
+        given(servicioExportacion.export(any(), any()))
                 .willReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
 
         pedidoServicio.exportMyCommissions(2L, List.of(10L), ReportFormat.CSV, "creador@test.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         List<OrderSummaryResponse> filas = captor.getValue().getFilas();
         assertThat(filas).hasSize(1);
         assertThat(filas.get(0).getIdPedido()).isEqualTo(10L);
@@ -689,13 +689,13 @@ class OrderServiceImplTest {
     void exportarMisComisiones_idAjeno_noAparece() {
         given(pedidoRepository.findByServicioPerfilUsuarioIdUsuario(2L)).willReturn(List.of(pedido));
         given(historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(10L)).willReturn(Optional.empty());
-        given(servicioExportacion.exportar(any(), any()))
+        given(servicioExportacion.export(any(), any()))
                 .willReturn(new GeneratedDocument(new byte[0], "text/csv", "comisiones.csv"));
 
         pedidoServicio.exportMyCommissions(2L, List.of(999L), ReportFormat.CSV, "creador@test.dev");
 
         org.mockito.ArgumentCaptor<ReportModel> captor = org.mockito.ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), org.mockito.ArgumentMatchers.eq(ReportFormat.CSV));
         assertThat(captor.getValue().getFilas()).isEmpty();
     }
 

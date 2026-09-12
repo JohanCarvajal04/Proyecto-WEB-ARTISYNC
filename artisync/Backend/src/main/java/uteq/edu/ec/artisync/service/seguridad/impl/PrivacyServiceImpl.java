@@ -159,7 +159,7 @@ public class PrivacyServiceImpl implements PrivacyService {
         }
 
         if (!twoFactorService.validateCodeOrBackup(usuario.getCorreo(), codigo)) {
-            intentosAutenticacionService.verificarCuota(
+            intentosAutenticacionService.checkQuota(
                     AMBITO_2FA_SUPRESION, usuario.getCorreo(), LIMITE_INTENTOS_2FA, VENTANA_INTENTOS_2FA);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Código inválido o expirado");
         }
@@ -279,7 +279,7 @@ public class PrivacyServiceImpl implements PrivacyService {
 
         // fn_cambiar_estado_cuenta desactiva la cuenta y revoca sus sesiones
         // atómicamente (mismo mecanismo que el soft-delete existente).
-        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), false);
+        sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), false);
     }
 
     private void anonymizeCertificates(Long idUsuario) {

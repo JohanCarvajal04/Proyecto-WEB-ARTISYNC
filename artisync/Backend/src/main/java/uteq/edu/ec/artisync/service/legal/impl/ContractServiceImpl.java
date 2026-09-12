@@ -70,7 +70,7 @@ public class ContractServiceImpl implements IContractService {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
         // H-02: evita que cualquier autenticado genere un contrato sobre un pedido ajeno.
-        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(pedido, idUsuarioSolicitante);
 
         // Verificar que no exista ya un contrato para este pedido
         if (contratoRepository.findByPedidoIdPedido(idPedido).isPresent()) {
@@ -211,7 +211,7 @@ public class ContractServiceImpl implements IContractService {
         Contract contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
         // H-02: evita el acceso a contratos ajenos (IDOR).
-        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(contrato.getPedido(), idUsuarioSolicitante);
         return mapToRespuesta(contrato);
     }
 
@@ -229,7 +229,7 @@ public class ContractServiceImpl implements IContractService {
         Contract contrato = contratoRepository.findByPedidoIdPedido(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe contrato para el pedido con ID: " + idPedido));
         // H-02: evita el acceso a contratos ajenos (IDOR).
-        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(contrato.getPedido(), idUsuarioSolicitante);
         return mapToRespuesta(contrato);
     }
 
@@ -247,7 +247,7 @@ public class ContractServiceImpl implements IContractService {
         Contract contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
         // H-02: evita el acceso a contratos ajenos (IDOR).
-        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
         boolean firmaCreador = contrato.getHashFirmaCreador() != null;
         boolean firmaCliente = contrato.getHashFirmaCliente() != null;
@@ -281,7 +281,7 @@ public class ContractServiceImpl implements IContractService {
         Contract contrato = contratoRepository.findById(idContrato)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract no encontrado"));
         // H-02: evita descargar el PDF de un contrato ajeno (IDOR).
-        OrderOwnershipValidator.validarPertenenciaOAdmin(contrato.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(contrato.getPedido(), idUsuarioSolicitante);
 
         String html = renderFullContract(contrato);
         byte[] pdf = pdfGeneracionServicio.generatePdfFromHtml(html);

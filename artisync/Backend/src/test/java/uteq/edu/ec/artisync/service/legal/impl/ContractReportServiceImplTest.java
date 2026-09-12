@@ -86,7 +86,7 @@ class ContractReportServiceImplTest {
         given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(pagina);
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "contratos.csv");
-        given(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV))).willReturn(esperado);
+        given(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV))).willReturn(esperado);
 
         ContractReportFilter filtro = new ContractReportFilter();
         filtro.setDesde(LocalDateTime.of(2026, 1, 1, 0, 0));
@@ -98,7 +98,7 @@ class ContractReportServiceImplTest {
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.CSV));
         ReportModel<ContractReportRow> modelo = captor.getValue();
         assertThat(modelo.getTotales()).hasSize(1);
         assertThat((BigDecimal) modelo.getTotales().get(0).valor()).isEqualByComparingTo("100.00");
@@ -115,7 +115,7 @@ class ContractReportServiceImplTest {
         Page<ContractReportRow> pagina = new PageImpl<>(List.of(filaDe(1L, BigDecimal.ONE)));
         given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(pagina);
-        given(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV)))
+        given(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV)))
                 .willReturn(new GeneratedDocument(new byte[]{1}, "text/csv", "contratos.csv"));
 
         ContractReportFilter filtro = new ContractReportFilter();
@@ -124,7 +124,7 @@ class ContractReportServiceImplTest {
         reporteContratoServicio.export(filtro, ReportFormat.CSV, "admin@artisync.dev");
 
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.CSV));
         assertThat(captor.getValue().getFiltrosAplicados()).isEqualTo(Map.of("Solo firmados", "No"));
     }
 
@@ -137,14 +137,14 @@ class ContractReportServiceImplTest {
         given(contratoRepository.buscarParaReporte(any(), any(), any(), any(), any(Pageable.class)))
                 .willReturn(paginaParte);
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1, 2}, "application/pdf", "contratos_parte_1.pdf");
-        given(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).willReturn(esperado);
+        given(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.PDF))).willReturn(esperado);
 
         GeneratedDocument resultado = reporteContratoServicio.export(
                 new ContractReportFilter(), ReportFormat.PDF, 0, 5000, "admin@artisync.dev");
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.PDF));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.PDF));
         assertThat(captor.getValue().getTitulo()).isEqualTo("Contratos - Parte 1");
         assertThat(captor.getValue().getSubtitulo()).contains("Parte 1 de 16");
     }

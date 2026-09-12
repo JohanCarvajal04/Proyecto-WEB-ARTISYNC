@@ -35,7 +35,7 @@ public class SessionRevocationService {
      * permanece aquí porque no participa de la transacción de PostgreSQL.
      */
     @Transactional
-    public void revocarSesionesUsuario(Long idUsuario) {
+    public void revokeUserSessions(Long idUsuario) {
         List<RevokedSessionProjection> revocadas = sesionUsuarioRepository.revocarSesionesUsuario(idUsuario);
         for (RevokedSessionProjection sesion : revocadas) {
             revocarJtiEnRedis(sesion.getJti(), Duration.ofSeconds(sesion.getSegundosRestantes()), idUsuario);
@@ -54,7 +54,7 @@ public class SessionRevocationService {
      * correspondia revocar sesiones (actualizacion perdida, A6 del plan).
      */
     @Transactional
-    public void cambiarEstadoCuenta(Long idUsuario, boolean estado) {
+    public void changeAccountStatus(Long idUsuario, boolean estado) {
         List<RevokedSessionProjection> revocadas;
         try {
             revocadas = usuarioRepository.cambiarEstadoCuenta(idUsuario, estado);
@@ -73,11 +73,11 @@ public class SessionRevocationService {
      * @param tokenHeader parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void revocarTokenPorCabecera(String tokenHeader) {
+    public void revokeTokenFromHeader(String tokenHeader) {
         if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
             String token = tokenHeader.substring(7);
-            revocarToken(token);
-            eliminarSesionPorToken(token);
+            revokeToken(token);
+            deleteSessionByToken(token);
         }
     }
 
@@ -87,7 +87,7 @@ public class SessionRevocationService {
      * @param token parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void revocarToken(String token) {
+    public void revokeToken(String token) {
         try {
             String jti = jwtService.extraerJti(token);
             long tiempoRestanteMs = jwtService.extraerTiempoRestante(token);
@@ -97,7 +97,7 @@ public class SessionRevocationService {
         }
     }
 
-    private void eliminarSesionPorToken(String token) {
+    private void deleteSessionByToken(String token) {
         try {
             String jti = jwtService.extraerJti(token);
             if (jti != null) {

@@ -160,7 +160,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .toList();
 
         for (Long idUsuario : afectados) {
-            sessionRevocationService.revocarSesionesUsuario(idUsuario);
+            sessionRevocationService.revokeUserSessions(idUsuario);
         }
         if (!afectados.isEmpty()) {
             log.info("Revocadas las sesiones de {} usuario(s) con el rol {} para que recarguen sus permisos",

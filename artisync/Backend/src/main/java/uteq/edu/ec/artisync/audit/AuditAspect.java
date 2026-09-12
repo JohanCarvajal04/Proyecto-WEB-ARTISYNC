@@ -100,9 +100,9 @@ public class AuditAspect {
             throw t;
         } finally {
             try {
-                registrarEvento(pjp, auditable, actorSesion, solicitud, resultado, error, resultadoEvento, inicioNanos);
+                recordEvent(pjp, auditable, actorSesion, solicitud, resultado, error, resultadoEvento, inicioNanos);
             } finally {
-                // Siempre se limpia, incluso si registrarEvento explota: una fuga
+                // Siempre se limpia, incluso si recordEvent explota: una fuga
                 // de este ThreadLocal contaminaría la siguiente petición atendida
                 // por el mismo hilo del pool de Tomcat.
                 AuditContext.limpiar();
@@ -110,7 +110,7 @@ public class AuditAspect {
         }
     }
 
-    private void registrarEvento(
+    private void recordEvent(
             ProceedingJoinPoint pjp, Auditable auditable,
             AuthenticatedActor.Actor actorSesion, RequestContext.Datos solicitud,
             Object resultado, Throwable error, AuditResult resultadoEvento,
@@ -118,7 +118,7 @@ public class AuditAspect {
         try {
             StandardEvaluationContext contextoSpel = construirContextoSpel(pjp, resultado, error);
 
-            String correoActor = resolverCorreoActor(auditable, actorSesion, contextoSpel);
+            String correoActor = resolveActorEmail(auditable, actorSesion, contextoSpel);
             Long idActor = actorSesion.correo().equals(correoActor) ? actorSesion.id() : null;
 
             Long idEntidad = evaluarLong(auditable.idEntidad(), contextoSpel);
@@ -176,7 +176,7 @@ public class AuditAspect {
         return contexto;
     }
 
-    private String resolverCorreoActor(Auditable auditable, AuthenticatedActor.Actor actorSesion, StandardEvaluationContext contextoSpel) {
+    private String resolveActorEmail(Auditable auditable, AuthenticatedActor.Actor actorSesion, StandardEvaluationContext contextoSpel) {
         if (!auditable.correoActor().isBlank()) {
             try {
                 Object valor = PARSER.parseExpression(auditable.correoActor()).getValue(contextoSpel);

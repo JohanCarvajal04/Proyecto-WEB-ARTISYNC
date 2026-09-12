@@ -39,7 +39,7 @@ public class AsyncBackupJobService {
     private final IncrementalBackupExporter incrementalExportador;
 
     /**
-     * Ejecuta en un hilo del pool {@code respaldoTaskExecutor} el volcado real
+     * Ejecuta en un hilo del pool {@code backupTaskExecutor} el volcado real
      * (FULL vía {@code PgDumpExecutor}, INCREMENTAL vía {@code IncrementalBackupExporter})
      * y actualiza el registro con el resultado (archivo generado, tamaño, duración,
      * o mensaje de error si falla).
@@ -47,7 +47,7 @@ public class AsyncBackupJobService {
      * @param idRespaldo identificador del respaldo a execute; si no existe,
      *                    se registra un error y no se hace nada más
      */
-    @Async("respaldoTaskExecutor")
+    @Async("backupTaskExecutor")
     public void execute(Long idRespaldo) {
         Backup respaldo = respaldoRepository.findById(idRespaldo).orElse(null);
         if (respaldo == null) {

@@ -443,7 +443,7 @@ public class PaymentServiceImpl implements IPaymentService {
 
         Order pedido = contrato.getPedido();
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuarioSolicitante);
-        boolean esAdmin = tienePermisoAdmin();
+        boolean esAdmin = hasAdminPermission();
         // El creador nunca puede cancelar-y-cobrar su propio reembolso o
         // liberación: solo quien pagó, o un administrador que arbitra la disputa.
         if (!esCliente && !esAdmin) {
@@ -574,7 +574,7 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     /** Mismo patrón que RevisionTicketServiceImpl.tienePermisoDeSoporteOAdmin. */
-    private boolean tienePermisoAdmin() {
+    private boolean hasAdminPermission() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return false;
         return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));

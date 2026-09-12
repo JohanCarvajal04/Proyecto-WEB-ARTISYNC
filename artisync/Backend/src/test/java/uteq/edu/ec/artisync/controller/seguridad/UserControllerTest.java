@@ -111,20 +111,20 @@ class UserControllerTest {
     }
 
     @Test
-    void servirFotoPerfil_pathInvalido_lanzaExcepcion() {
+    void serveProfilePhoto_pathInvalido_lanzaExcepcion() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/api/v1/usuarios/foto/privado/archivo.jpg");
 
-        assertThrows(ResourceNotFoundException.class, () -> userController.servirFotoPerfil(request));
+        assertThrows(ResourceNotFoundException.class, () -> userController.serveProfilePhoto(request));
     }
 
     @Test
-    void servirFotoPerfil_pathValido_devuelveOk() {
+    void serveProfilePhoto_pathValido_devuelveOk() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/api/v1/usuarios/foto/perfiles/uuid.jpg");
         when(almacenamientoDocumentos.leer("perfiles/uuid.jpg")).thenReturn(new byte[]{1, 2, 3});
 
-        ResponseEntity<byte[]> res = userController.servirFotoPerfil(request);
+        ResponseEntity<byte[]> res = userController.serveProfilePhoto(request);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).containsExactly(1, 2, 3);
         assertThat(res.getHeaders().getContentType().toString()).isEqualTo("image/jpeg");

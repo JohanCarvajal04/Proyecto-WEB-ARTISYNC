@@ -7,5 +7,5 @@ public interface ReportGenerator {
 
     ReportFormat formato();
 
-    <T> GeneratedDocument generar(ReportModel<T> modelo);
+    <T> GeneratedDocument generate(ReportModel<T> modelo);
 }

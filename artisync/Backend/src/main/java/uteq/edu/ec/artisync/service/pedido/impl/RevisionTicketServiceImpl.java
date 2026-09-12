@@ -111,7 +111,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
         // OBS-08 / H-02: evita el acceso indebido (IDOR) a tickets de un pedido ajeno.
-        OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(pedido, idUsuarioSolicitante);
 
         return ticketRevisionRepository.findByPedidoIdPedidoOrderByIdTicketDesc(idPedido)
                 .stream()

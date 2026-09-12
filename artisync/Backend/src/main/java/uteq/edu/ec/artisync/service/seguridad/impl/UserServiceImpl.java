@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
             throw StoredProcedureExceptionTranslator.traducir(e, HttpStatus.CONFLICT);
         }
 
-        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
+        sessionRevocationService.revokeUserSessions(usuario.getIdUsuario());
 
         return new RespuestaMensaje("Contraseña cambiada exitosamente. Vuelve a iniciar sesión.");
     }
@@ -148,7 +148,7 @@ public class UserServiceImpl implements UserService {
         // Fase 1 concurrencia (docs/basedatos/PLAN-CONCURRENCIA-SP.md §5):
         // fn_cambiar_estado_cuenta desactiva la cuenta (soft delete) y revoca
         // sus sesiones atomicamente, bajo SELECT FOR UPDATE.
-        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), false);
+        sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), false);
 
         return new RespuestaMensaje("Cuenta desactivada exitosamente");
     }
@@ -163,7 +163,7 @@ public class UserServiceImpl implements UserService {
     public RespuestaMensaje revokeAllMySessions(String correo) {
         User usuario = usuarioRepository.findByCorreo(correo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado"));
-        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario());
+        sessionRevocationService.revokeUserSessions(usuario.getIdUsuario());
         return new RespuestaMensaje("Todas las sesiones activas han sido cerradas.");
     }
 

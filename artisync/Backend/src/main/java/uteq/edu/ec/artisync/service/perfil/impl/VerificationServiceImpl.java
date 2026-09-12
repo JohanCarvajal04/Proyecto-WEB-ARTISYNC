@@ -80,7 +80,7 @@ public class VerificationServiceImpl implements IVerificationService {
                     "Ya existe una verificación pendiente para tu cuenta. Espera a que sea revisada antes de upload otra.");
         }
 
-        preprocesador.validarFormato(documento);
+        preprocesador.validateFormat(documento);
 
         VerificationStatus pendiente = estadoVerificacionRepository.findByNombreEstado("PENDIENTE")
                 .orElseThrow(() -> new BusinessRuleException(

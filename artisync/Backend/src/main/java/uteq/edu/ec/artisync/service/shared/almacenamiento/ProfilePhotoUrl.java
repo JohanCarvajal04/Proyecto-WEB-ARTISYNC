@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.shared.almacenamiento;
 /**
  * Traduce la referencia de almacenamiento cruda (p. ej. "perfiles/uuid.jpg",
  * tal como la guarda {@code User.getUrlFotoPerfil()})
- * en la URL pública que sirve {@code UserController.servirFotoPerfil}.
+ * en la URL pública que sirve {@code UserController.serveProfilePhoto}.
  *
  * <p>Único punto de esta regla: antes solo vivía dentro de UserMapper, y
  * cualquier otra respuesta que quisiera mostrar la foto (p. ej. el perfil

@@ -32,7 +32,7 @@ public class CsvGenerator implements ReportGenerator {
     }
 
     @Override
-    public <T> GeneratedDocument generar(ReportModel<T> modelo) {
+    public <T> GeneratedDocument generate(ReportModel<T> modelo) {
         StringBuilder csv = new StringBuilder(CsvUtil.BOM_UTF8);
 
         var columnas = modelo.getColumnas();

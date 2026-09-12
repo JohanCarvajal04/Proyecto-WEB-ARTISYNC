@@ -23,11 +23,11 @@ public final class StoredProcedureExceptionTranslator {
     }
 
     public static ResponseStatusException traducir(RuntimeException origen, HttpStatus porDefecto) {
-        SQLException sql = buscarSQLException(origen);
+        SQLException sql = findSQLException(origen);
         if (sql == null) {
             throw origen;
         }
-        String mensaje = limpiarMensaje(sql.getMessage());
+        String mensaje = cleanMessage(sql.getMessage());
         HttpStatus status = switch (String.valueOf(sql.getSQLState())) {
             case "23505" -> HttpStatus.CONFLICT;
             case "23514", "22004", "23503" -> HttpStatus.BAD_REQUEST;
@@ -37,7 +37,7 @@ public final class StoredProcedureExceptionTranslator {
         return new ResponseStatusException(status, mensaje);
     }
 
-    private static SQLException buscarSQLException(Throwable t) {
+    private static SQLException findSQLException(Throwable t) {
         while (t != null) {
             if (t instanceof SQLException sql) {
                 return sql;
@@ -47,7 +47,7 @@ public final class StoredProcedureExceptionTranslator {
         return null;
     }
 
-    private static String limpiarMensaje(String mensajeOriginal) {
+    private static String cleanMessage(String mensajeOriginal) {
         if (mensajeOriginal == null) {
             return "Error al ejecutar la operacion";
         }

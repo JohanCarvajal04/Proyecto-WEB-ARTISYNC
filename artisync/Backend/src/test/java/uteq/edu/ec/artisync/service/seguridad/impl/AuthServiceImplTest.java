@@ -220,8 +220,8 @@ class AuthServiceImplTest {
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
-        when(jwtService.generarToken(userDetails)).thenReturn("access-token");
-        when(jwtService.generarRefreshToken(userDetails)).thenReturn("refresh-token");
+        when(jwtService.generateToken(userDetails)).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(userDetails)).thenReturn("refresh-token");
 
         TokenResponse response = authService.login(loginRequest);
 
@@ -230,7 +230,7 @@ class AuthServiceImplTest {
         assertFalse(response.isRequiere2fa());
         assertEquals(List.of("CLIENTE"), response.getRoles());
         verify(intentosAutenticacionService).limpiar("login-cuenta", "juan@example.com");
-        verify(intentosAutenticacionService, never()).verificarCuota(anyString(), anyString(), anyInt(), any());
+        verify(intentosAutenticacionService, never()).checkQuota(anyString(), anyString(), anyInt(), any());
     }
 
     @Test
@@ -245,7 +245,7 @@ class AuthServiceImplTest {
         assertThrows(org.springframework.security.authentication.BadCredentialsException.class,
                 () -> authService.login(loginRequest));
 
-        verify(intentosAutenticacionService).verificarCuota("login-cuenta", "juan@example.com", 5, java.time.Duration.ofMinutes(15));
+        verify(intentosAutenticacionService).checkQuota("login-cuenta", "juan@example.com", 5, java.time.Duration.ofMinutes(15));
         verify(intentosAutenticacionService, never()).limpiar(anyString(), anyString());
     }
 
@@ -326,8 +326,8 @@ class AuthServiceImplTest {
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
-        when(jwtService.generarToken(userDetails)).thenReturn("access-token");
-        when(jwtService.generarRefreshToken(userDetails)).thenReturn("refresh-token");
+        when(jwtService.generateToken(userDetails)).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(userDetails)).thenReturn("refresh-token");
 
         TwoFactorRequest request = TwoFactorRequest.builder().codigo("123456").build();
         TokenResponse response = authService.verify2Fa("ticket-valido", request);
@@ -416,7 +416,7 @@ class AuthServiceImplTest {
         when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
-        when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(false);
+        when(jwtService.isRefreshTokenValid("refresh-token", userDetails)).thenReturn(false);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.refreshToken("refresh-token"));
@@ -432,7 +432,7 @@ class AuthServiceImplTest {
         when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
-        when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(true);
+        when(jwtService.isRefreshTokenValid("refresh-token", userDetails)).thenReturn(true);
         when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(inactivo));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
@@ -447,10 +447,10 @@ class AuthServiceImplTest {
         when(jwtService.extraerUsername("refresh-token")).thenReturn("juan@example.com");
         UserDetails userDetails = new org.springframework.security.core.userdetails.User("juan@example.com", "hashed", List.of(new SimpleGrantedAuthority("CLIENTE")));
         when(userDetailsService.loadUserByUsername("juan@example.com")).thenReturn(userDetails);
-        when(jwtService.esRefreshTokenValido("refresh-token", userDetails)).thenReturn(true);
+        when(jwtService.isRefreshTokenValid("refresh-token", userDetails)).thenReturn(true);
         when(usuarioRepository.findByCorreo("juan@example.com")).thenReturn(Optional.of(usuario));
-        when(jwtService.generarToken(userDetails)).thenReturn("nuevo-access");
-        when(jwtService.generarRefreshToken(userDetails)).thenReturn("nuevo-refresh");
+        when(jwtService.generateToken(userDetails)).thenReturn("nuevo-access");
+        when(jwtService.generateRefreshToken(userDetails)).thenReturn("nuevo-refresh");
         when(jwtService.extraerJti("nuevo-access")).thenReturn("jti-access");
         when(jwtService.extraerJti("nuevo-refresh")).thenReturn("jti-refresh");
         when(usuarioRolRepository.findByUsuarioIdUsuario(1L)).thenReturn(List.of(UserRole.builder().rol(rolCliente).build()));
@@ -458,7 +458,7 @@ class AuthServiceImplTest {
         TokenResponse response = authService.refreshToken("refresh-token");
 
         assertEquals("nuevo-access", response.getAccessToken());
-        verify(sessionRevocationService).revocarToken("refresh-token");
+        verify(sessionRevocationService).revokeToken("refresh-token");
         verify(sesionUsuarioRepository).deleteByJti("jti-1");
     }
 
@@ -480,8 +480,8 @@ class AuthServiceImplTest {
         RespuestaMensaje respuesta = authService.logout("Bearer access-token", "refresh-token");
 
         assertNotNull(respuesta);
-        verify(sessionRevocationService).revocarTokenPorCabecera("Bearer access-token");
-        verify(sessionRevocationService).revocarToken("refresh-token");
+        verify(sessionRevocationService).revokeTokenFromHeader("Bearer access-token");
+        verify(sessionRevocationService).revokeToken("refresh-token");
         verify(sesionUsuarioRepository).deleteByJti("jti-1");
     }
 
@@ -490,7 +490,7 @@ class AuthServiceImplTest {
         RespuestaMensaje respuesta = authService.logout("Bearer access-token", "");
 
         assertNotNull(respuesta);
-        verify(sessionRevocationService, never()).revocarToken(anyString());
+        verify(sessionRevocationService, never()).revokeToken(anyString());
     }
 
     @Test

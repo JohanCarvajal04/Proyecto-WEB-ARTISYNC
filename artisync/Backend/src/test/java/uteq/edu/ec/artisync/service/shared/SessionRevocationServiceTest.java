@@ -49,89 +49,89 @@ class SessionRevocationServiceTest {
     }
 
     @Test
-    void revocarSesionesUsuario_ok() {
+    void revokeUserSessions_ok() {
         RevokedSessionProjection proy = mockProyeccion("jti-1", 100);
         when(sesionUsuarioRepository.revocarSesionesUsuario(1L)).thenReturn(List.of(proy));
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-        servicio.revocarSesionesUsuario(1L);
+        servicio.revokeUserSessions(1L);
 
         verify(valueOperations).set(eq("jti:jti-1"), eq("revocado"), eq(Duration.ofSeconds(100L)));
     }
-    
+
     @Test
-    void revocarSesionesUsuario_sinJti_ok() {
+    void revokeUserSessions_sinJti_ok() {
         RevokedSessionProjection proy = mockProyeccion(null, 100);
         when(sesionUsuarioRepository.revocarSesionesUsuario(1L)).thenReturn(List.of(proy));
 
-        servicio.revocarSesionesUsuario(1L); // No debería fallar ni llamar redis
+        servicio.revokeUserSessions(1L); // No debería fallar ni llamar redis
         verifyNoInteractions(redisTemplate);
     }
 
     @Test
-    void cambiarEstadoCuenta_ok() {
+    void changeAccountStatus_ok() {
         RevokedSessionProjection proy = mockProyeccion("jti-2", 200);
         when(usuarioRepository.cambiarEstadoCuenta(1L, false)).thenReturn(List.of(proy));
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-        servicio.cambiarEstadoCuenta(1L, false);
+        servicio.changeAccountStatus(1L, false);
 
         verify(valueOperations).set(eq("jti:jti-2"), eq("revocado"), eq(Duration.ofSeconds(200L)));
     }
 
     @Test
-    void cambiarEstadoCuenta_error() {
+    void changeAccountStatus_error() {
         when(usuarioRepository.cambiarEstadoCuenta(1L, false)).thenThrow(new RuntimeException("SQL Error"));
-        assertThrows(RuntimeException.class, () -> servicio.cambiarEstadoCuenta(1L, false));
+        assertThrows(RuntimeException.class, () -> servicio.changeAccountStatus(1L, false));
     }
 
     @Test
-    void revocarTokenPorCabecera_ok() {
+    void revokeTokenFromHeader_ok() {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(jwtService.extraerJti("token123")).thenReturn("jti-3");
         when(jwtService.extraerTiempoRestante("token123")).thenReturn(300000L); // 5 mins
-        
-        servicio.revocarTokenPorCabecera("Bearer token123");
+
+        servicio.revokeTokenFromHeader("Bearer token123");
 
         verify(valueOperations).set(eq("jti:jti-3"), eq("revocado"), eq(Duration.ofMillis(300000L)));
         verify(sesionUsuarioRepository).deleteByJti("jti-3");
     }
 
     @Test
-    void revocarTokenPorCabecera_noBearer() {
-        servicio.revocarTokenPorCabecera("Basic token123");
+    void revokeTokenFromHeader_noBearer() {
+        servicio.revokeTokenFromHeader("Basic token123");
         verifyNoInteractions(jwtService);
         verifyNoInteractions(redisTemplate);
         verifyNoInteractions(sesionUsuarioRepository);
     }
 
     @Test
-    void revocarToken_errorRedis() {
+    void revokeToken_errorRedis() {
         when(jwtService.extraerJti("token123")).thenReturn("jti-3");
-        when(jwtService.extraerTiempoRestante("token123")).thenReturn(300000L); 
+        when(jwtService.extraerTiempoRestante("token123")).thenReturn(300000L);
         when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis connection error"));
-        
-        servicio.revocarToken("token123"); // shouldn't throw error
+
+        servicio.revokeToken("token123"); // shouldn't throw error
         verify(redisTemplate).opsForValue();
     }
-    
+
     @Test
-    void eliminarSesionPorToken_jtiNull() {
+    void deleteSessionByToken_jtiNull() {
         when(jwtService.extraerJti("token123")).thenReturn(null);
-        // No hay manera de llamar a eliminarSesionPorToken directamente, 
-        // pero podemos pasar por revocarTokenPorCabecera con un redis ok.
-        
-        servicio.revocarTokenPorCabecera("Bearer token123");
-        
+        // No hay manera de llamar a deleteSessionByToken directamente,
+        // pero podemos pasar por revokeTokenFromHeader con un redis ok.
+
+        servicio.revokeTokenFromHeader("Bearer token123");
+
         verify(sesionUsuarioRepository, never()).deleteByJti(any());
     }
 
     @Test
-    void eliminarSesionPorToken_error() {
+    void deleteSessionByToken_error() {
         when(jwtService.extraerJti("token123")).thenThrow(new RuntimeException("invalid token"));
-        // Llamado a revocarToken falla en try/catch y luego eliminarSesionPorToken falla en su propio try/catch
-        servicio.revocarTokenPorCabecera("Bearer token123");
-        
+        // Llamado a revokeToken falla en try/catch y luego deleteSessionByToken falla en su propio try/catch
+        servicio.revokeTokenFromHeader("Bearer token123");
+
         verify(sesionUsuarioRepository, never()).deleteByJti(any());
     }
 }

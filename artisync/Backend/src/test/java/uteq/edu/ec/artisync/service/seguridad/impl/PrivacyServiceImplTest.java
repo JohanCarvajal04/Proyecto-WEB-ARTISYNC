@@ -117,7 +117,7 @@ class PrivacyServiceImplTest {
         assertNull(usuario.getUrlFotoPerfil());
         assertTrue(usuario.getCorreo().contains("@eliminado.artisync.invalid"));
         verify(almacenamientoDocumentos).eliminar("perfiles/ana.jpg");
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
         verify(usuarioRepository).save(usuario);
     }
 
@@ -130,7 +130,7 @@ class PrivacyServiceImplTest {
 
         assertEquals("Tus datos personales ya fueron suprimidos anteriormente.", respuesta.getMensaje());
         verify(usuarioRepository, never()).save(any());
-        verify(sessionRevocationService, never()).cambiarEstadoCuenta(any(), anyBoolean());
+        verify(sessionRevocationService, never()).changeAccountStatus(any(), anyBoolean());
     }
 
     @Test
@@ -174,7 +174,7 @@ class PrivacyServiceImplTest {
 
         assertTrue(respuesta.getMensaje().contains("pedido en curso"));
         verify(usuarioRepository, never()).save(any());
-        verify(sessionRevocationService, never()).cambiarEstadoCuenta(any(), anyBoolean());
+        verify(sessionRevocationService, never()).changeAccountStatus(any(), anyBoolean());
     }
 
     @Test
@@ -195,7 +195,7 @@ class PrivacyServiceImplTest {
         RespuestaMensaje respuesta = privacidadService.requestOwnErasure(1L, null);
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
     }
 
     @Test
@@ -235,7 +235,7 @@ class PrivacyServiceImplTest {
         RespuestaMensaje respuesta = privacidadService.anonymizeUserAsAdmin(1L, 99L);
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
     }
 
     @Test
@@ -309,7 +309,7 @@ class PrivacyServiceImplTest {
                 () -> privacidadService.requestOwnErasure(1L, "000000"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
-        verify(intentosAutenticacionService).verificarCuota(eq("2fa-supresion-cuenta"), eq("ana@example.com"), anyInt(), any());
+        verify(intentosAutenticacionService).checkQuota(eq("2fa-supresion-cuenta"), eq("ana@example.com"), anyInt(), any());
         verify(usuarioRepository, never()).save(any());
     }
 
@@ -324,7 +324,7 @@ class PrivacyServiceImplTest {
 
         assertEquals("Datos personales suprimidos exitosamente.", respuesta.getMensaje());
         verify(intentosAutenticacionService).limpiar("2fa-supresion-cuenta", "ana@example.com");
-        verify(sessionRevocationService).cambiarEstadoCuenta(1L, false);
+        verify(sessionRevocationService).changeAccountStatus(1L, false);
     }
 
     // ── Ajuste 3: colisión del correo anonimizado ───────────────────────────
@@ -343,6 +343,6 @@ class PrivacyServiceImplTest {
                 () -> privacidadService.requestOwnErasure(1L, null));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        verify(sessionRevocationService, never()).cambiarEstadoCuenta(any(), anyBoolean());
+        verify(sessionRevocationService, never()).changeAccountStatus(any(), anyBoolean());
     }
 }

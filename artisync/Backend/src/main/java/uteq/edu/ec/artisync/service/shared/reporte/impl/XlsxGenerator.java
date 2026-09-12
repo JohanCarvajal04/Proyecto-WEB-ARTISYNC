@@ -56,12 +56,12 @@ public class XlsxGenerator implements ReportGenerator {
     }
 
     @Override
-    public <T> GeneratedDocument generar(ReportModel<T> modelo) {
+    public <T> GeneratedDocument generate(ReportModel<T> modelo) {
         try (SXSSFWorkbook libro = new SXSSFWorkbook(FILAS_EN_MEMORIA)) {
             try {
-                Map<ColumnType, CellStyle> estilosPorTipo = crearEstilosPorTipo(libro);
-                CellStyle estiloEncabezado = crearEstiloEncabezado(libro);
-                CellStyle estiloTotal = crearEstiloTotal(libro);
+                Map<ColumnType, CellStyle> estilosPorTipo = createStylesByType(libro);
+                CellStyle estiloEncabezado = createHeaderStyle(libro);
+                CellStyle estiloTotal = createTotalStyle(libro);
 
                 // Si el reporte incluye gráficas o métricas clave, creamos primero la hoja "Resumen" para que sea visible de inmediato
                 if (!modelo.getGraficas().isEmpty() || !modelo.getKpis().isEmpty()) {
@@ -137,7 +137,7 @@ public class XlsxGenerator implements ReportGenerator {
         int filaActual = 0;
 
         // Estilo título resumen
-        CellStyle estiloTitulo = crearEstiloTitulo(libro);
+        CellStyle estiloTitulo = createTitleStyle(libro);
         SXSSFRow filaTitulo = hoja.createRow(filaActual++);
         filaTitulo.setHeightInPoints(28);
         SXSSFCell celdaTit = filaTitulo.createCell(0);
@@ -294,7 +294,7 @@ public class XlsxGenerator implements ReportGenerator {
         return numeroFila + 1;
     }
 
-    private CellStyle crearEstiloEncabezado(SXSSFWorkbook libro) {
+    private CellStyle createHeaderStyle(SXSSFWorkbook libro) {
         Font fuente = libro.createFont();
         fuente.setBold(true);
         fuente.setColor(IndexedColors.WHITE.getIndex());
@@ -314,7 +314,7 @@ public class XlsxGenerator implements ReportGenerator {
         return estilo;
     }
 
-    private CellStyle crearEstiloTitulo(SXSSFWorkbook libro) {
+    private CellStyle createTitleStyle(SXSSFWorkbook libro) {
         Font fuente = libro.createFont();
         fuente.setBold(true);
         fuente.setFontHeightInPoints((short) 14);
@@ -334,7 +334,7 @@ public class XlsxGenerator implements ReportGenerator {
         return estilo;
     }
 
-    private CellStyle crearEstiloTotal(SXSSFWorkbook libro) {
+    private CellStyle createTotalStyle(SXSSFWorkbook libro) {
         Font fuente = libro.createFont();
         fuente.setBold(true);
         CellStyle estilo = libro.createCellStyle();
@@ -347,7 +347,7 @@ public class XlsxGenerator implements ReportGenerator {
         return estilo;
     }
 
-    private Map<ColumnType, CellStyle> crearEstilosPorTipo(SXSSFWorkbook libro) {
+    private Map<ColumnType, CellStyle> createStylesByType(SXSSFWorkbook libro) {
         Map<ColumnType, CellStyle> estilos = new EnumMap<>(ColumnType.class);
         var formato = libro.createDataFormat();
 

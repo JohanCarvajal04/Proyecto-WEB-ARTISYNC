@@ -230,7 +230,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             // resincroniza el snapshot de Hibernate, evitando que el commit de
             // esta transaccion dispare un SEGUNDO UPDATE redundante reescribiendo
             // el mismo valor que la funcion atomica ya persistio.
-            sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());
+            sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), request.getEstadoCuenta());
             entityManager.refresh(usuario);
         }
 
@@ -273,7 +273,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         // emitiria, al confirmar la transaccion, un UPDATE adicional reescribiendo
         // el mismo valor que la funcion atomica ya persistio. refresh() releae la
         // fila real (sin escribir nada) y resincroniza el snapshot de Hibernate.
-        sessionRevocationService.cambiarEstadoCuenta(usuario.getIdUsuario(), request.getEstadoCuenta());
+        sessionRevocationService.changeAccountStatus(usuario.getIdUsuario(), request.getEstadoCuenta());
         entityManager.refresh(usuario);
 
         return usuarioMapper.toUserResponse(usuario);
@@ -310,7 +310,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                         .toList()));
 
         updateRoles(usuario, request.getRoles());
-        sessionRevocationService.revocarSesionesUsuario(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles
+        sessionRevocationService.revokeUserSessions(usuario.getIdUsuario()); // Revocar sesiones para obligar a refrescar claims JWT con nuevos roles
 
         return usuarioMapper.toUserResponse(usuario);
     }
@@ -342,7 +342,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         // existsById previo era redundante: fn_cambiar_estado_cuenta ya
         // lanza P0002 si el usuario no existe, y SessionRevocationService
         // ya lo traduce a 404 (revision de codigo, hallazgo de eficiencia).
-        sessionRevocationService.cambiarEstadoCuenta(id, false);
+        sessionRevocationService.changeAccountStatus(id, false);
     }
 
     @Override
@@ -478,14 +478,14 @@ public class AdminUserServiceImpl implements AdminUserService {
                         ReportColumn.texto("Apellidos", UserResponse::getApellidos),
                         ReportColumn.texto("Correo", UserResponse::getCorreo),
                         ReportColumn.texto("País", UserResponse::getNombrePais),
-                        ReportColumn.fechaHora("Registrado", UserResponse::getFechaRegistro),
+                        ReportColumn.dateTime("Registrado", UserResponse::getFechaRegistro),
                         ReportColumn.booleano("Activo", UserResponse::getEstadoCuenta),
                         ReportColumn.texto("Roles", u -> u.getRoles() == null ? "" : String.join(", ", u.getRoles()))))
                 .filas(filas)
                 .generadoPor(correoSolicitante)
                 .build();
 
-        return servicioExportacion.exportar(modelo, formato);
+        return servicioExportacion.export(modelo, formato);
     }
 
     private Map<String, String> readableFilters(UserFilter filtro) {
@@ -517,7 +517,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User no encontrado con ID: " + id);
         }
-        sessionRevocationService.revocarSesionesUsuario(id);
+        sessionRevocationService.revokeUserSessions(id);
         return new RespuestaMensaje("Se han revocado exitosamente todas las sesiones del usuario ID: " + id);
     }
 

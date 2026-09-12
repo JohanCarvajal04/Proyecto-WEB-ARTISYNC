@@ -261,8 +261,8 @@ class RolePermissionServiceImplTest {
 
         service.syncPermissions("supervisor", List.of("USUARIO_VER"));
 
-        verify(sessionRevocationService).revocarSesionesUsuario(7L);
-        verify(sessionRevocationService).revocarSesionesUsuario(9L);
+        verify(sessionRevocationService).revokeUserSessions(7L);
+        verify(sessionRevocationService).revokeUserSessions(9L);
     }
 
     /**
@@ -283,8 +283,8 @@ class RolePermissionServiceImplTest {
             SecurityContextHolder.clearContext();
         }
 
-        verify(sessionRevocationService, never()).revocarSesionesUsuario(1L);
-        verify(sessionRevocationService).revocarSesionesUsuario(42L);
+        verify(sessionRevocationService, never()).revokeUserSessions(1L);
+        verify(sessionRevocationService).revokeUserSessions(42L);
     }
 
     private static void autenticarComoUsuario(Long idUsuario) {

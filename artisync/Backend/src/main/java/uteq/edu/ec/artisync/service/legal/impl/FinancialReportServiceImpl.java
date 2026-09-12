@@ -121,7 +121,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
                 .subtitulo(subtitulo)
                 .filtrosAplicados(filtrosLegibles(filtro, reporte))
                 .columnas(List.of(
-                        ReportColumn.fechaHora("Fecha", CommissionDetail::fechaEjecucion),
+                        ReportColumn.dateTime("Fecha", CommissionDetail::fechaEjecucion),
                         ReportColumn.entero("Id. transacción", CommissionDetail::idTransaccion),
                         ReportColumn.entero("Id. pedido", CommissionDetail::idPedido),
                         ReportColumn.texto("Offering", CommissionDetail::servicio),
@@ -135,7 +135,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
                 .generadoPor(correoSolicitante)
                 .build();
 
-        return servicioExportacion.exportar(modelo, formato);
+        return servicioExportacion.export(modelo, formato);
     }
 
     @Override
@@ -177,13 +177,13 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
                     textoONulo(item.get("servicio")),
                     textoONulo(item.get("tipo")),
                     item.get("monto").decimalValue(),
-                    fechaONula(item.get("fechaEjecucion"))));
+                    dateOrNull(item.get("fechaEjecucion"))));
         }
 
         return new CommissionReportResponse(
                 nodo.get("idPerfil").asLong(),
-                fechaONula(nodo.get("fechaDesde")),
-                fechaONula(nodo.get("fechaHasta")),
+                dateOrNull(nodo.get("fechaDesde")),
+                dateOrNull(nodo.get("fechaHasta")),
                 nodo.get("tasaComision").decimalValue(),
                 nodo.get("totalPedidos").asLong(),
                 nodo.get("totalOperaciones").asLong(),
@@ -197,7 +197,7 @@ public class FinancialReportServiceImpl implements IFinancialReportService {
         return nodo == null || nodo.isNull() ? null : nodo.asText();
     }
 
-    private LocalDateTime fechaONula(JsonNode nodo) {
+    private LocalDateTime dateOrNull(JsonNode nodo) {
         if (nodo == null || nodo.isNull()) {
             return null;
         }

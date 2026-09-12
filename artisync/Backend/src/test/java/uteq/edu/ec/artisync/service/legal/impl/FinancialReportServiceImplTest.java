@@ -164,7 +164,7 @@ class FinancialReportServiceImplTest {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "text/csv", "comisiones.csv");
-        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
+        when(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.CSV))).thenReturn(esperado);
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
@@ -172,7 +172,7 @@ class FinancialReportServiceImplTest {
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.CSV));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.CSV));
         ReportModel<CommissionDetail> modelo = captor.getValue();
         assertThat(modelo.getFilas()).hasSize(2);
         assertThat(modelo.getTotales()).hasSize(3);
@@ -186,7 +186,7 @@ class FinancialReportServiceImplTest {
         when(transaccionPagoRepository.reporteComisionesJson(eq(7L), any(), any(), any())).thenReturn(JSON_REPORTE);
         servicio = crearServicio();
         GeneratedDocument esperado = new GeneratedDocument(new byte[]{1}, "application/pdf", "comisiones_7_parte_1.pdf");
-        when(servicioExportacion.exportar(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
+        when(servicioExportacion.export(any(ReportModel.class), eq(ReportFormat.PDF))).thenReturn(esperado);
 
         FinancialReportFilter filtro = new FinancialReportFilter();
         filtro.setIdPerfil(7L);
@@ -194,7 +194,7 @@ class FinancialReportServiceImplTest {
 
         assertThat(resultado).isSameAs(esperado);
         ArgumentCaptor<ReportModel> captor = ArgumentCaptor.forClass(ReportModel.class);
-        verify(servicioExportacion).exportar(captor.capture(), eq(ReportFormat.PDF));
+        verify(servicioExportacion).export(captor.capture(), eq(ReportFormat.PDF));
         ReportModel<CommissionDetail> modelo = captor.getValue();
         assertThat(modelo.getFilas()).hasSize(1);
         assertThat(modelo.getTitulo()).isEqualTo("Comisiones - Parte 1");

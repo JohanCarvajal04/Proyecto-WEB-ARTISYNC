@@ -196,7 +196,7 @@ public class OfferingController {
     /**
      * Sirve la miniatura públicamente (sin autenticación): se muestra en el
      * catálogo a cualquier visitante. Mismo criterio que
-     * UserController.servirFotoPerfil: solo referencias bajo "servicios/" son
+     * UserController.serveProfilePhoto: solo referencias bajo "servicios/" son
      * válidas aquí, para no convertir esto en una puerta trasera a otros
      * prefijos (verificacion, entregables) que sí son privados.
      *

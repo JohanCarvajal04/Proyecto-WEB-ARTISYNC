@@ -43,7 +43,7 @@ public class IncrementalBackupExporter {
     private static final DateTimeFormatter MARCA_TIEMPO = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
     private static final DateTimeFormatter CORTE_SQL = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
 
-    private final @Qualifier("respaldoDataSource") DataSource respaldoDataSource;
+    private final @Qualifier("backupDataSource") DataSource respaldoDataSource;
     private final BackupTablesProperties tablasProperties;
     private final BackupFileStorage storage;
     private final ObjectMapper objectMapper;

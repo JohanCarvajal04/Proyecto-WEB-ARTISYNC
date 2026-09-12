@@ -29,11 +29,11 @@ public record ReportColumn<T>(String encabezado, ColumnType tipo, Function<T, Ob
         return new ReportColumn<>(encabezado, ColumnType.MONEDA, extractor, 16);
     }
 
-    public static <T> ReportColumn<T> fecha(String encabezado, Function<T, Object> extractor) {
+    public static <T> ReportColumn<T> date(String encabezado, Function<T, Object> extractor) {
         return new ReportColumn<>(encabezado, ColumnType.FECHA, extractor, 14);
     }
 
-    public static <T> ReportColumn<T> fechaHora(String encabezado, Function<T, Object> extractor) {
+    public static <T> ReportColumn<T> dateTime(String encabezado, Function<T, Object> extractor) {
         return new ReportColumn<>(encabezado, ColumnType.FECHA_HORA, extractor, 20);
     }
 

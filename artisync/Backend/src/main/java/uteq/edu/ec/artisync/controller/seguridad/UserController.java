@@ -156,7 +156,7 @@ public class UserController {
      */
     @Operation(summary = "Servir la foto de perfil de un usuario (público)")
     @GetMapping("/foto/**")
-    public ResponseEntity<byte[]> servirFotoPerfil(HttpServletRequest request) {
+    public ResponseEntity<byte[]> serveProfilePhoto(HttpServletRequest request) {
         String fullPath = request.getRequestURI();
         String prefix = "/api/v1/usuarios/foto/";
         String referencia = fullPath.substring(fullPath.indexOf(prefix) + prefix.length());

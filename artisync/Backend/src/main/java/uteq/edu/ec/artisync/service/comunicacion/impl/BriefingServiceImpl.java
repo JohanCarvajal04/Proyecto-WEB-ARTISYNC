@@ -184,7 +184,7 @@ public class BriefingServiceImpl implements BriefingService {
                         "No existe briefing para el pedido " + idPedido));
         // Evita que cualquier autenticado lea el briefing (datos de
         // presupuesto/proyecto) de un pedido ajeno.
-        OrderOwnershipValidator.validarPertenenciaOAdmin(enviado.getPedido(), idUsuarioSolicitante);
+        OrderOwnershipValidator.validateOwnershipOrAdmin(enviado.getPedido(), idUsuarioSolicitante);
         return mapEnviadoToResponse(enviado);
     }
 
