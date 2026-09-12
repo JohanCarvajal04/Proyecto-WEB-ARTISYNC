@@ -33,9 +33,9 @@
 
 REQ-NF-009  # (Must) Disponibilidad y reinicio automatico ante fallos. La politica `restart: unless-stopped` y los healthcheck estan declarados en los cinco servicios de artisync/docker-compose.yml. Demostracion real ejecutada el 2026-09-10 contra el entorno local (docker kill sobre pfc_backend y pfc_postgres, Docker Desktop/WSL2): el reinicio automatico NO se disparo en ninguno de los dos casos en ~70-150s de espera - ver docs/mediciones/resiliencia/REPORTE-RECUPERACION.md. Esto es un hallazgo activo confirmado, no evidencia pendiente de algo que funciona; no se puede extrapolar al despliegue real en Render, que no usa docker-compose para gestionar sus propios servicios. Cierre: investigar la causa raiz del fallo de reinicio en Docker Desktop/WSL2 (o migrar la demostracion a un entorno Linux nativo), y/o demostrar la resiliencia real de Render por otro medio (reinicio forzado desde su dashboard + healthcheck). Script reejecutable: scripts/demo-recuperacion-docker.sh.
 
-REQ-F-022b  # (Should) Un ticket de revision que supera el limite configurado genera automaticamente un enlace de pago (PagoTicketRevisionServicioImpl, entidad propia pagos_ticket_revision para no competir con el escrow principal), probado con PagoTicketRevisionServicioImplTest. Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad. Cierre: ejercitar el flujo completo contra el sandbox real de PayPal (hoy solo probado con respuestas mockeadas) para subir a 'verificado'.
+REQ-F-022b  # (Should) Un ticket de revision que supera el limite configurado genera automaticamente un enlace de pago (RevisionTicketPaymentServiceImpl, entidad propia pagos_ticket_revision para no competir con el escrow principal), probado con RevisionTicketPaymentServiceImplTest. Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad. Cierre: ejercitar el flujo completo contra el sandbox real de PayPal (hoy solo probado con respuestas mockeadas) para subir a 'verificado'.
 
-REQ-F-022c  # (Should) Un ticket de revision sin pago tras 48h se rechaza automaticamente vía un 5º scheduler nuevo (TicketRevisionExpiracionScheduler/Servicio), probado con TicketRevisionExpiracionSchedulerTest, TicketRevisionExpiracionServicioTest y TicketRevisionRepositoryIT (la query JPQL con LEFT JOIN ON explicito se valida contra un motor JPA real, no solo con mocks). Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad, mismo motivo que REQ-F-022b. Cierre: mismo que REQ-F-022b -- verificacion contra el sandbox real de PayPal.
+REQ-F-022c  # (Should) Un ticket de revision sin pago tras 48h se rechaza automaticamente vía un 5º scheduler nuevo (RevisionTicketExpirationScheduler/Service), probado con RevisionTicketExpirationSchedulerTest, RevisionTicketExpirationServiceTest y TicketRevisionRepositoryIT (la query JPQL con LEFT JOIN ON explicito se valida contra un motor JPA real, no solo con mocks). Un Should en estado 'implementado' ya cumple su minimo sin excepcion obligatoria; se declara aqui por honestidad, mismo motivo que REQ-F-022b. Cierre: mismo que REQ-F-022b -- verificacion contra el sandbox real de PayPal.
 
 # REQ-NF-005 (Should) ya no esta aqui: ChatWebSocketLoadIT (nueva, @SpringBootTest
 # con 10 conexiones STOMP reales concurrentes, 5 rondas) mide la latencia extremo-a-
@@ -52,16 +52,16 @@ REQ-F-022c  # (Should) Un ticket de revision sin pago tras 48h se rechaza automa
 
 REQ-NF-017  # (Should) Usabilidad SUS medida en 61.25/100 (docs/mediciones/sus/REPORTE-SUS.md, sesiones del 2026-08-16), por debajo del umbral propio del proyecto (68). Un Should en estado `implementado` cumple su minimo formal sin excepcion obligatoria, pero se declara aqui por honestidad: el resultado medido no alcanza el objetivo, y eso es una brecha real, no solo una brecha de documentacion. El dato 61.25 es el real y verificado (ver docs/mediciones/sus/PLAN-MEJORA-SUS.md: se detecto y corrigio un problema de integridad en sus-raw.csv que antes daba un 76.88 falso) y se publica tal cual, sin sustituirlo. Los items peor puntuados son Q10 (2.06/4, "necesite aprender muchas cosas antes de poder empezar a usar el sistema"), seguido de Q6 y Q8 - patron de carga de aprendizaje inicial, no una funcion puntual rota. Cierre (ver docs/etica/INFORME-SITUACION-ESTUDIO-USABILIDAD.md §3): el equipo aplicara cambios concretos de UX (onboarding, ayuda contextual, menos pasos en tareas guiadas) y medira una ronda adicional DESPUES de ese cambio real y documentado, con aprobacion previa esta vez fechada antes de la recoleccion, consentimiento individual y n>=15; se reportara el resultado exista lo que exista, sin sobrescribir la referencia del 2026-08-16.
 
-REQ-NF-019  # (Must) Idempotencia por estado implementada y probada (PagoServicioImplWebhookTest.reintentoNoDuplica); reconciliacion activa (ReconciliacionPayPalScheduler/EjecutorServicio) y flujo de reembolso/liberacion ante cancelacion con fondos en escrow (PagoServicioImpl.cancelarPedidoConFondosRetenidos) ya existen y estan probados unitariamente (PagoServicioImplCancelacionTest, ReconciliacionPayPalSchedulerTest, ReconciliacionPayPalEjecutorServicioTest), pero contra respuestas de PayPal mockeadas, no contra el sandbox real. Es el requisito de mayor riesgo financiero del corpus (patron escrow), asi que no se sube a 'verificado' solo con prueba unitaria. Cierre: ejercitar el flujo completo (reconciliacion de un pago con webhook retrasado, reembolso de una captura real) contra api-m.sandbox.paypal.com y archivar la evidencia.
+REQ-NF-019  # (Must) Idempotencia por estado implementada y probada (PaymentServiceImplWebhookTest.reintentoNoDuplica); reconciliacion activa (PayPalReconciliationScheduler/ExecutorService) y flujo de reembolso/liberacion ante cancelacion con fondos en escrow (PaymentServiceImpl.cancelOrderWithHeldFunds) ya existen y estan probados unitariamente (PaymentServiceImplCancellationTest, PayPalReconciliationSchedulerTest, PayPalReconciliationExecutorServiceTest), pero contra respuestas de PayPal mockeadas, no contra el sandbox real. Es el requisito de mayor riesgo financiero del corpus (patron escrow), asi que no se sube a 'verificado' solo con prueba unitaria. Cierre: ejercitar el flujo completo (reconciliacion de un pago con webhook retrasado, reembolso de una captura real) contra api-m.sandbox.paypal.com y archivar la evidencia.
 
 # REQ-NF-020 (Should) ya no esta aqui: se introdujo un hash de CONTENIDO nuevo y separado
 # del hash de firma existente (este ultimo solo es una huella evento/quien/cuando con
 # Instant.now(), nunca reproducible, y se deja intacto con ese proposito); el nuevo hash
 # se calcula una sola vez, sobre el HTML ya renderizado y congelado, al completarse la
-# segunda firma. ContratoIntegridadScheduler reverifica todos los contratos firmados cada
+# segunda firma. ContractIntegrityScheduler reverifica todos los contratos firmados cada
 # noche y POST /api/v1/admin/contratos/{id}/verificar-integridad permite una verificacion
-# puntual. Probado con ContratoServicioImplTest (congelar al firmar, integro, discrepancia),
-# ContratoIntegridadSchedulerTest y ContratoIntegridadControladorTest. Sube a 'verificado'.
+# puntual. Probado con ContractServiceImplTest (congelar al firmar, integro, discrepancia),
+# ContractIntegritySchedulerTest y ContractIntegrityControllerTest. Sube a 'verificado'.
 
 # REQ-NF-024 (Should) ya no esta aqui: restauracion de prueba ejecutada el 2026-09-10 sobre el
 # ambiente local de la Entrega Final. Respaldo FULL id=1 (respaldo_full_20260910_1230.dump, 349 KB,
@@ -69,12 +69,12 @@ REQ-NF-019  # (Must) Idempotencia por estado implementada y probada (PagoServici
 # post-restauracion: pedidos=4, usuarios=10, contratos=3. Evidencia: docs/despliegue/BACKUP.md
 # §Registro de restauraciones de prueba. Sube a 'verificado'.
 
-# REQ-F-010 (Should) ya no esta aqui: AdminComentarioControladorTest (nuevo) cierra el
-# unico hueco real que quedaba (ComentarioPortafolioServiceImpl/Controlador ya estaban
+# REQ-F-010 (Should) ya no esta aqui: AdminCommentControllerTest (nuevo) cierra el
+# unico hueco real que quedaba (PortfolioCommentServiceImpl/Controller ya estaban
 # bien probados desde antes). Sube a 'verificado'.
 #
-# REQ-F-033 (Should) ya no esta aqui: InfraccionServiceImplTest se amplio con
-# listarInfracciones y revertirSuspension (los dos metodos que faltaban). Sube a 'verificado'.
+# REQ-F-033 (Should) ya no esta aqui: ViolationServiceImplTest se amplio con
+# listViolations y revertSuspension (los dos metodos que faltaban). Sube a 'verificado'.
 #
 # REQ-NF-018 (Must) ya no esta aqui: PrivacidadServiceImplIT (nueva, @DataJpaTest contra
 # Postgres real via docker compose -f artisync/docker-compose.yml up -d postgres) ejercita
