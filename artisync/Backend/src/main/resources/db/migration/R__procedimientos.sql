@@ -115,7 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_servicios_estado_publicacion
 -- inactiva, revoca sus sesiones (fn_revocar_sesiones_usuario) en la MISMA
 -- transaccion. Unifica el par "cambiar estado + revocar sesiones" que hoy se
 -- repite, con ligeras variaciones, en:
---   - AdminUserServiceImpl.changeEstado
+--   - AdminUserServiceImpl.changeStatus
 --   - AdminUserServiceImpl.deleteUser (soft-delete: estadoCuenta = false)
 --   - UserServiceImpl.deleteOwnAccount (idem)
 --   - la rama de estadoCuenta dentro de AdminUserServiceImpl.updateUser
@@ -177,7 +177,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_cambiar_estado_cuenta(BIGINT, BOOLEAN)
-    IS 'Fase 1 concurrencia - Cambia estado_cuenta y revoca sesiones (transicion activa->inactiva) atomicamente bajo SELECT FOR UPDATE, unificando el patron repetido en changeEstado/deleteUser/deleteOwnAccount.';
+    IS 'Fase 1 concurrencia - Cambia estado_cuenta y revoca sesiones (transicion activa->inactiva) atomicamente bajo SELECT FOR UPDATE, unificando el patron repetido en changeStatus/deleteUser/deleteOwnAccount.';
 
 
 -- ---------------------------------------------------------------------------
@@ -752,7 +752,7 @@ COMMENT ON FUNCTION fn_es_seguidor(BIGINT, BIGINT)
 -- Crea (p_id_pais NULL) o renombra (p_id_pais con valor) un pais, validando
 -- la unicidad del nombre de forma atomica respecto a la escritura.
 --
--- Sustituye la parte de escritura de PaisServiceImpl.createPais y .updatePais,
+-- Sustituye la parte de escritura de CountryServiceImpl.createCountry y .updateCountry,
 -- que comprobaban paisRepository.findByNombrePais(...) y luego hacian save()
 -- en sentencias separadas -- lectura fantasma no atomica: entre la
 -- comprobacion y el insert/update, otra transaccion podia tomar el mismo
@@ -937,7 +937,7 @@ COMMENT ON FUNCTION fn_permisos_efectivos_usuario(VARCHAR)
 -- contacto fuera del chat de la plataforma) y, en la misma transaccion,
 -- cuenta cuantas infracciones acumula el usuario en la ventana movil de los
 -- ultimos 30 dias; si alcanza 3 o mas, suspende la cuenta automaticamente.
--- Sustituye a InfraccionServiceImpl.registrarInfraccion/suspenderCuenta, que
+-- Sustituye a ViolationServiceImpl.registerViolation/suspenderCuenta, que
 -- hacia un INSERT, un COUNT y un UPDATE condicional como tres llamadas
 -- independientes al repositorio.
 --
@@ -1139,7 +1139,7 @@ COMMENT ON FUNCTION fn_registrar_usuario(VARCHAR, VARCHAR, VARCHAR, VARCHAR, DAT
 --   transacciones_pago -> pagos_garantia -> contratos -> pedidos -> servicios
 --
 -- Sustituye a la consulta JPQL de tres JOIN de
---   repository/legal/TransaccionPagoRepository.findByCreadorPerfilId
+--   repository/legal/PaymentTransactionRepository.findByCreadorPerfilId
 -- que devolvia entidades crudas y obligaba a agregar en Java.
 --
 -- La comision de la plataforma se parametriza (p_tasa_comision) en lugar de
@@ -1453,7 +1453,7 @@ COMMENT ON FUNCTION fn_seguir_creador(BIGINT, BIGINT)
 -- participantes que aun no han ganado, y marca en bloque tanto a los
 -- participantes ganadores como el sorteo mismo. Es el candidato que el propio
 -- ADR-006 (linea 19) identifica por nombre como pendiente de implementacion.
--- Sustituye a SorteoScheduler.ejecutarSorteo, que traia todos los
+-- Sustituye a RaffleExecutorService.ejecutarSorteo, que traia todos los
 -- participantes a la aplicacion, hacia Collections.shuffle(new SecureRandom())
 -- en Java y actualizaba fila por fila con un save() dentro de un bucle.
 --
@@ -1720,7 +1720,7 @@ COMMENT ON FUNCTION fn_sincronizar_permisos_rol(VARCHAR, TEXT[])
 -- de fn_sincronizar_permisos_rol (REQ-F-003), que ya resolvio este mismo
 -- patron para roles<->permisos.
 --
--- Sustituye a AdminUserServiceImpl.actualizarRoles(): findByUsuarioIdUsuario +
+-- Sustituye a AdminUserServiceImpl.updateRoles(): findByUsuarioIdUsuario +
 -- deleteAll + flush + POR CADA rol nuevo (findByNombreRol + save + consulta
 -- de perfil de creador + save de perfil) -- unos 10 viajes a la base sin
 -- ninguna atomicidad entre ellos.
@@ -1819,7 +1819,7 @@ BEGIN
     GET DIAGNOSTICS v_total = ROW_COUNT;
 
     -- Alta perezosa del perfil de creador (mismo criterio que
-    -- AdminUserServiceImpl.actualizarRoles ya aplicaba), tambien idempotente.
+    -- AdminUserServiceImpl.updateRoles ya aplicaba), tambien idempotente.
     -- Ademas del perfil, da de alta su portafolio inicial con el mismo tema
     -- por defecto que fn_registrar_usuario usa en el auto-registro: antes de
     -- este cambio, un CREADOR dado de alta o ascendido por un administrador

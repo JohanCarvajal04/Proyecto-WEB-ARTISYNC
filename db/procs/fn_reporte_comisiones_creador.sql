@@ -8,7 +8,7 @@
 --   transacciones_pago -> pagos_garantia -> contratos -> pedidos -> servicios
 --
 -- Sustituye a la consulta JPQL de tres JOIN de
---   repository/legal/TransaccionPagoRepository.findByCreadorPerfilId
+--   repository/legal/PaymentTransactionRepository.findByCreadorPerfilId
 -- que devolvia entidades crudas y obligaba a agregar en Java.
 --
 -- La comision de la plataforma se parametriza (p_tasa_comision) en lugar de

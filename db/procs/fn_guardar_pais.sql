@@ -6,7 +6,7 @@
 -- Crea (p_id_pais NULL) o renombra (p_id_pais con valor) un pais, validando
 -- la unicidad del nombre de forma atomica respecto a la escritura.
 --
--- Sustituye la parte de escritura de PaisServiceImpl.createPais y .updatePais,
+-- Sustituye la parte de escritura de CountryServiceImpl.createCountry y .updateCountry,
 -- que comprobaban paisRepository.findByNombrePais(...) y luego hacian save()
 -- en sentencias separadas -- lectura fantasma no atomica: entre la
 -- comprobacion y el insert/update, otra transaccion podia tomar el mismo
