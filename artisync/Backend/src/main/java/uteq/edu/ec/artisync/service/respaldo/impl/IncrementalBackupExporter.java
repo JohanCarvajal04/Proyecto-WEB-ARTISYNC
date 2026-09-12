@@ -55,9 +55,9 @@ public class IncrementalBackupExporter {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Path ejecutar(Backup respaldo) throws IOException, SQLException {
+    public Path execute(Backup respaldo) throws IOException, SQLException {
         String nombreArchivo = "respaldo_incremental_" + LocalDateTime.now().format(MARCA_TIEMPO) + ".zip";
-        Path destino = storage.resolverRutaDestino(nombreArchivo);
+        Path destino = storage.resolveDestinationPath(nombreArchivo);
         List<ManifiestoTabla> manifiestoTablas = new ArrayList<>();
 
         try (Connection conexion = respaldoDataSource.getConnection();
@@ -67,7 +67,7 @@ public class IncrementalBackupExporter {
 
             for (String tabla : tablasProperties.getIncluidas()) {
                 String columnaFecha = tablasProperties.getColumnaFecha().get(tabla);
-                String sql = construirSentenciaCopy(tabla, columnaFecha, respaldo.getFechaDesdeIncremental());
+                String sql = buildCopyStatement(tabla, columnaFecha, respaldo.getFechaDesdeIncremental());
 
                 zip.putNextEntry(new ZipEntry(tabla + ".csv"));
                 long filas = copyManager.copyOut(sql, new FlujoSinCierre(zip));
@@ -94,7 +94,7 @@ public class IncrementalBackupExporter {
      * un LocalDateTime calculado internamente por el servicio — no hay
      * entrada no confiable en esta cadena de texto.
      */
-    String construirSentenciaCopy(String tabla, String columnaFecha, LocalDateTime corte) {
+    String buildCopyStatement(String tabla, String columnaFecha, LocalDateTime corte) {
         if (columnaFecha == null || corte == null) {
             return "COPY %s TO STDOUT WITH (FORMAT csv, HEADER true)".formatted(tabla);
         }

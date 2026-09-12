@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS respaldo_programaciones (
 );
 
 -- El scheduler hace exactamente este WHERE cada 60s
--- (RespaldoProgramacionScheduler.procesarProgramacionesPendientes).
+-- (BackupScheduler.procesarProgramacionesPendientes).
 CREATE INDEX IF NOT EXISTS idx_programaciones_pendientes
     ON respaldo_programaciones (proxima_ejecucion)
     WHERE activo = true;

@@ -51,9 +51,9 @@ class BackupControllerTest {
         CreateBackupRequest peticion = new CreateBackupRequest();
         peticion.setTipoRespaldo(BackupType.FULL);
         BackupResponse respuesta = BackupResponse.builder().idRespaldo(1L).build();
-        when(respaldoServicio.solicitarRespaldo(BackupType.FULL, "admin@artisync.dev")).thenReturn(respuesta);
+        when(respaldoServicio.requestBackup(BackupType.FULL, "admin@artisync.dev")).thenReturn(respuesta);
 
-        ResponseEntity<BackupResponse> result = controlador.crear(peticion, authentication);
+        ResponseEntity<BackupResponse> result = controlador.create(peticion, authentication);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         assertThat(result.getBody().getIdRespaldo()).isEqualTo(1L);
@@ -67,9 +67,9 @@ class BackupControllerTest {
                 .content(List.of(BackupResponse.builder().idRespaldo(1L).build()))
                 .totalElements(1)
                 .build();
-        when(respaldoServicio.listar(filtro, pageable)).thenReturn(pagina);
+        when(respaldoServicio.list(filtro, pageable)).thenReturn(pagina);
 
-        ResponseEntity<PagedResponse<BackupResponse>> result = controlador.listar(filtro, pageable);
+        ResponseEntity<PagedResponse<BackupResponse>> result = controlador.list(filtro, pageable);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getContent()).hasSize(1);
@@ -77,9 +77,9 @@ class BackupControllerTest {
 
     @Test
     void obtenerPorId_DebeRetornarElRespaldo() {
-        when(respaldoServicio.obtenerPorId(5L)).thenReturn(BackupResponse.builder().idRespaldo(5L).build());
+        when(respaldoServicio.getById(5L)).thenReturn(BackupResponse.builder().idRespaldo(5L).build());
 
-        ResponseEntity<BackupResponse> result = controlador.obtenerPorId(5L);
+        ResponseEntity<BackupResponse> result = controlador.getById(5L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getIdRespaldo()).isEqualTo(5L);
@@ -88,9 +88,9 @@ class BackupControllerTest {
     @Test
     void descargar_DebeExponerHeadersDeContenido() {
         BackupFile archivo = new BackupFile(new ByteArrayResource("contenido".getBytes()), "backup.sql", 9L);
-        when(respaldoServicio.descargar(3L)).thenReturn(archivo);
+        when(respaldoServicio.download(3L)).thenReturn(archivo);
 
-        ResponseEntity<org.springframework.core.io.Resource> result = controlador.descargar(3L);
+        ResponseEntity<org.springframework.core.io.Resource> result = controlador.download(3L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getHeaders().getContentLength()).isEqualTo(9L);
@@ -99,10 +99,10 @@ class BackupControllerTest {
 
     @Test
     void eliminar_DebeRetornarSinContenido() {
-        ResponseEntity<Void> result = controlador.eliminar(2L);
+        ResponseEntity<Void> result = controlador.delete(2L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        verify(respaldoServicio).eliminar(2L);
+        verify(respaldoServicio).delete(2L);
     }
 
     @Test
@@ -111,9 +111,9 @@ class BackupControllerTest {
         when(authentication.getName()).thenReturn("admin@artisync.dev");
         CreateScheduleRequest peticion = new CreateScheduleRequest();
         ScheduleResponse respuesta = ScheduleResponse.builder().idProgramacion(1L).build();
-        when(programacionServicio.crear(eq(peticion), eq("admin@artisync.dev"))).thenReturn(respuesta);
+        when(programacionServicio.create(eq(peticion), eq("admin@artisync.dev"))).thenReturn(respuesta);
 
-        ResponseEntity<ScheduleResponse> result = controlador.crearProgramacion(peticion, authentication);
+        ResponseEntity<ScheduleResponse> result = controlador.createSchedule(peticion, authentication);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody().getIdProgramacion()).isEqualTo(1L);
@@ -121,9 +121,9 @@ class BackupControllerTest {
 
     @Test
     void listarProgramaciones_DebeRetornarListaDelServicio() {
-        when(programacionServicio.listar()).thenReturn(List.of(ScheduleResponse.builder().idProgramacion(1L).build()));
+        when(programacionServicio.list()).thenReturn(List.of(ScheduleResponse.builder().idProgramacion(1L).build()));
 
-        ResponseEntity<List<ScheduleResponse>> result = controlador.listarProgramaciones();
+        ResponseEntity<List<ScheduleResponse>> result = controlador.listSchedules();
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).hasSize(1);
@@ -131,9 +131,9 @@ class BackupControllerTest {
 
     @Test
     void obtenerProgramacion_DebeRetornarLaProgramacion() {
-        when(programacionServicio.obtenerPorId(4L)).thenReturn(ScheduleResponse.builder().idProgramacion(4L).build());
+        when(programacionServicio.getById(4L)).thenReturn(ScheduleResponse.builder().idProgramacion(4L).build());
 
-        ResponseEntity<ScheduleResponse> result = controlador.obtenerProgramacion(4L);
+        ResponseEntity<ScheduleResponse> result = controlador.getSchedule(4L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getIdProgramacion()).isEqualTo(4L);
@@ -142,10 +142,10 @@ class BackupControllerTest {
     @Test
     void actualizarProgramacion_DebeRetornarLaProgramacionActualizada() {
         UpdateScheduleRequest peticion = new UpdateScheduleRequest();
-        when(programacionServicio.actualizar(eq(6L), eq(peticion)))
+        when(programacionServicio.update(eq(6L), eq(peticion)))
                 .thenReturn(ScheduleResponse.builder().idProgramacion(6L).build());
 
-        ResponseEntity<ScheduleResponse> result = controlador.actualizarProgramacion(6L, peticion);
+        ResponseEntity<ScheduleResponse> result = controlador.updateSchedule(6L, peticion);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getIdProgramacion()).isEqualTo(6L);
@@ -155,10 +155,10 @@ class BackupControllerTest {
     void cambiarEstadoProgramacion_DebeDelegarElBooleanoAlServicio() {
         ChangeScheduleStatusRequest peticion = new ChangeScheduleStatusRequest();
         peticion.setActivo(Boolean.FALSE);
-        when(programacionServicio.cambiarEstado(7L, false))
+        when(programacionServicio.changeStatus(7L, false))
                 .thenReturn(ScheduleResponse.builder().idProgramacion(7L).activo(false).build());
 
-        ResponseEntity<ScheduleResponse> result = controlador.cambiarEstadoProgramacion(7L, peticion);
+        ResponseEntity<ScheduleResponse> result = controlador.changeScheduleStatus(7L, peticion);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody().getActivo()).isFalse();
@@ -166,9 +166,9 @@ class BackupControllerTest {
 
     @Test
     void eliminarProgramacion_DebeRetornarSinContenido() {
-        ResponseEntity<Void> result = controlador.eliminarProgramacion(8L);
+        ResponseEntity<Void> result = controlador.deleteSchedule(8L);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        verify(programacionServicio).eliminar(8L);
+        verify(programacionServicio).delete(8L);
     }
 }

@@ -44,11 +44,11 @@ public class AsyncBackupJobService {
      * y actualiza el registro con el resultado (archivo generado, tamaño, duración,
      * o mensaje de error si falla).
      *
-     * @param idRespaldo identificador del respaldo a ejecutar; si no existe,
+     * @param idRespaldo identificador del respaldo a execute; si no existe,
      *                    se registra un error y no se hace nada más
      */
     @Async("respaldoTaskExecutor")
-    public void ejecutar(Long idRespaldo) {
+    public void execute(Long idRespaldo) {
         Backup respaldo = respaldoRepository.findById(idRespaldo).orElse(null);
         if (respaldo == null) {
             log.error("[AsyncBackupJobService] Backup {} no encontrado para ejecución async", idRespaldo);
@@ -58,8 +58,8 @@ public class AsyncBackupJobService {
         long inicioNanos = System.nanoTime();
         try {
             Path archivo = respaldo.getTipoRespaldo() == BackupType.FULL
-                    ? pgDumpEjecutor.ejecutar(respaldo)
-                    : incrementalExportador.ejecutar(respaldo);
+                    ? pgDumpEjecutor.execute(respaldo)
+                    : incrementalExportador.execute(respaldo);
 
             respaldo.setEstadoRespaldo(BackupStatus.COMPLETADO);
             respaldo.setNombreArchivo(archivo.getFileName().toString());

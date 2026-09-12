@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prueba de caracterización de BackupFileStorage, escrita ANTES de renombrar
- * resolverRutaDestino/eliminar (clase en 0% de cobertura real). Sin mocks: opera
+ * resolveDestinationPath/delete (clase en 0% de cobertura real). Sin mocks: opera
  * sobre un directorio temporal real.
  */
 class BackupFileStorageTest {
@@ -28,7 +28,7 @@ class BackupFileStorageTest {
         Path base = tempDir.resolve("respaldos");
         BackupFileStorage storage = storage(base);
 
-        Path resultado = storage.resolverRutaDestino("archivo.dump");
+        Path resultado = storage.resolveDestinationPath("archivo.dump");
 
         assertThat(Files.isDirectory(base)).isTrue();
         assertThat(resultado).isEqualTo(base.resolve("archivo.dump"));
@@ -38,7 +38,7 @@ class BackupFileStorageTest {
     void resolverRutaDestino_ConDirectorioBaseYaExistente_NoFalla(@TempDir Path tempDir) throws IOException {
         BackupFileStorage storage = storage(tempDir);
 
-        Path resultado = storage.resolverRutaDestino("otro.zip");
+        Path resultado = storage.resolveDestinationPath("otro.zip");
 
         assertThat(resultado).isEqualTo(tempDir.resolve("otro.zip"));
     }
@@ -49,7 +49,7 @@ class BackupFileStorageTest {
         Path archivo = tempDir.resolve("borrar.dump");
         Files.writeString(archivo, "contenido");
 
-        storage.eliminar(archivo);
+        storage.delete(archivo);
 
         assertThat(Files.exists(archivo)).isFalse();
     }
@@ -59,7 +59,7 @@ class BackupFileStorageTest {
         BackupFileStorage storage = storage(tempDir);
         Path archivo = tempDir.resolve("no-existe.dump");
 
-        org.assertj.core.api.Assertions.assertThatCode(() -> storage.eliminar(archivo))
+        org.assertj.core.api.Assertions.assertThatCode(() -> storage.delete(archivo))
                 .doesNotThrowAnyException();
     }
 }

@@ -55,12 +55,12 @@ public class BackupServiceImpl implements IBackupService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public BackupResponse solicitarRespaldo(BackupType tipo, String correoSolicitante) {
+    public BackupResponse requestBackup(BackupType tipo, String correoSolicitante) {
         if (respaldoRepository.existsByEstadoRespaldo(BackupStatus.EN_PROGRESO)) {
             throw new BusinessRuleException("Ya hay un respaldo en progreso. Espere a que termine antes de iniciar otro.");
         }
         Backup respaldo = respaldoEjecutorServicio.iniciarManual(tipo, correoSolicitante);
-        return aRespuesta(respaldo);
+        return toResponse(respaldo);
     }
 
     @Override
@@ -73,9 +73,9 @@ public class BackupServiceImpl implements IBackupService {
      * @return una estructura de datos paginada con la porcion de resultados solicitada y metadatos de pagina
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public PagedResponse<BackupResponse> listar(BackupFilter filtro, Pageable pageable) {
+    public PagedResponse<BackupResponse> list(BackupFilter filtro, Pageable pageable) {
         Page<Backup> pagina = respaldoRepository.findAll(BackupSpecification.conFiltro(filtro), pageable);
-        return PagedResponseBuilder.buildAndMap(pagina, this::aRespuesta);
+        return PagedResponseBuilder.buildAndMap(pagina, this::toResponse);
     }
 
     @Override
@@ -87,8 +87,8 @@ public class BackupServiceImpl implements IBackupService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public BackupResponse obtenerPorId(Long idRespaldo) {
-        return aRespuesta(obtenerOFallar(idRespaldo));
+    public BackupResponse getById(Long idRespaldo) {
+        return toResponse(getOrFail(idRespaldo));
     }
 
     @Override
@@ -100,8 +100,8 @@ public class BackupServiceImpl implements IBackupService {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public BackupFile descargar(Long idRespaldo) {
-        Backup respaldo = obtenerOFallar(idRespaldo);
+    public BackupFile download(Long idRespaldo) {
+        Backup respaldo = getOrFail(idRespaldo);
         if (respaldo.getRutaArchivo() == null) {
             throw new ResourceNotFoundException("El respaldo " + idRespaldo + " todavía no tiene un archivo generado");
         }
@@ -113,7 +113,7 @@ public class BackupServiceImpl implements IBackupService {
         // en streaming, nunca un byte[] completo en memoria (a diferencia de
         // GeneratedDocument/DocumentResponse, pensados para reportes
         // pequeños; un dump de BD puede ser mucho más grande).
-        return new BackupFile(new FileSystemResource(ruta), respaldo.getNombreArchivo(), tamano(ruta));
+        return new BackupFile(new FileSystemResource(ruta), respaldo.getNombreArchivo(), size(ruta));
     }
 
     @Auditable(accion = "RESPALDO_ELIMINAR", modulo = AuditModule.SISTEMA,
@@ -126,14 +126,14 @@ public class BackupServiceImpl implements IBackupService {
      * @param idRespaldo identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminar(Long idRespaldo) {
-        Backup respaldo = obtenerOFallar(idRespaldo);
+    public void delete(Long idRespaldo) {
+        Backup respaldo = getOrFail(idRespaldo);
         if (respaldo.getEstadoRespaldo() == BackupStatus.EN_PROGRESO) {
-            throw new BusinessRuleException("No se puede eliminar un respaldo en progreso.");
+            throw new BusinessRuleException("No se puede delete un respaldo en progreso.");
         }
         if (!retencionScheduler.esSeguroEliminar(respaldo)) {
             throw new BusinessRuleException(
-                    "No se puede eliminar: existen respaldos incrementales que dependen de este FULL. Elimínelos primero.");
+                    "No se puede delete: existen respaldos incrementales que dependen de este FULL. Elimínelos primero.");
         }
         if (respaldo.getRutaArchivo() != null) {
             try {
@@ -145,12 +145,12 @@ public class BackupServiceImpl implements IBackupService {
         respaldoRepository.delete(respaldo);
     }
 
-    private Backup obtenerOFallar(Long idRespaldo) {
+    private Backup getOrFail(Long idRespaldo) {
         return respaldoRepository.findById(idRespaldo)
                 .orElseThrow(() -> new ResourceNotFoundException("Backup no encontrado con ID: " + idRespaldo));
     }
 
-    private long tamano(Path ruta) {
+    private long size(Path ruta) {
         try {
             return Files.size(ruta);
         } catch (IOException e) {
@@ -158,7 +158,7 @@ public class BackupServiceImpl implements IBackupService {
         }
     }
 
-    private BackupResponse aRespuesta(Backup respaldo) {
+    private BackupResponse toResponse(Backup respaldo) {
         return BackupResponse.builder()
                 .idRespaldo(respaldo.getIdRespaldo())
                 .tipoRespaldo(respaldo.getTipoRespaldo())

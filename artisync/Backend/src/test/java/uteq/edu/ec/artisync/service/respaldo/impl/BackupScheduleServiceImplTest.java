@@ -29,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Prueba de caracterización del comportamiento actual de BackupScheduleServiceImpl,
- * escrita ANTES de renombrar sus métodos en español (crear/actualizar/cambiarEstado/
- * eliminar/listar/obtenerPorId), ya que la clase estaba en 0% de cobertura real. Mismo
+ * escrita ANTES de renombrar sus métodos en español (create/update/changeStatus/
+ * delete/list/getById), ya que la clase estaba en 0% de cobertura real. Mismo
  * estilo de mocks que BackupServiceImplTest.
  */
 @ExtendWith(MockitoExtension.class)
@@ -70,7 +70,7 @@ class BackupScheduleServiceImplTest {
             return guardada;
         });
 
-        ScheduleResponse resultado = servicio.crear(peticion, "admin@artisync.dev");
+        ScheduleResponse resultado = servicio.create(peticion, "admin@artisync.dev");
 
         assertThat(resultado.getIdProgramacion()).isEqualTo(1L);
         assertThat(resultado.getNombre()).isEqualTo("Respaldo diario");
@@ -88,7 +88,7 @@ class BackupScheduleServiceImplTest {
         peticion.setExpresionCron("no-es-un-cron-valido");
         peticion.setRetencionDias(30);
 
-        assertThatThrownBy(() -> servicio.crear(peticion, "admin@artisync.dev"))
+        assertThatThrownBy(() -> servicio.create(peticion, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class);
         verify(programacionRepository, never()).save(any());
     }
@@ -102,7 +102,7 @@ class BackupScheduleServiceImplTest {
         peticion.setExpresionCron("0 0 0 31 2 *");
         peticion.setRetencionDias(30);
 
-        assertThatThrownBy(() -> servicio.crear(peticion, "admin@artisync.dev"))
+        assertThatThrownBy(() -> servicio.create(peticion, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class);
         verify(programacionRepository, never()).save(any());
     }
@@ -119,7 +119,7 @@ class BackupScheduleServiceImplTest {
         peticion.setExpresionCron(CRON_CADA_MINUTO);
         peticion.setRetencionDias(7);
 
-        ScheduleResponse resultado = servicio.actualizar(1L, peticion);
+        ScheduleResponse resultado = servicio.update(1L, peticion);
 
         assertThat(resultado.getNombre()).isEqualTo("Respaldo semanal");
         assertThat(resultado.getTipoRespaldo()).isEqualTo(BackupType.INCREMENTAL);
@@ -137,7 +137,7 @@ class BackupScheduleServiceImplTest {
         peticion.setExpresionCron(CRON_CADA_MINUTO);
         peticion.setRetencionDias(1);
 
-        assertThatThrownBy(() -> servicio.actualizar(99L, peticion))
+        assertThatThrownBy(() -> servicio.update(99L, peticion))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(programacionRepository, never()).save(any());
     }
@@ -149,7 +149,7 @@ class BackupScheduleServiceImplTest {
         when(programacionRepository.findById(1L)).thenReturn(Optional.of(existente));
         when(programacionRepository.save(any(BackupSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ScheduleResponse resultado = servicio.cambiarEstado(1L, false);
+        ScheduleResponse resultado = servicio.changeStatus(1L, false);
 
         assertThat(resultado.getActivo()).isFalse();
     }
@@ -158,7 +158,7 @@ class BackupScheduleServiceImplTest {
     void cambiarEstado_Inexistente_DebeLanzarNoEncontrado() {
         when(programacionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.cambiarEstado(99L, true))
+        assertThatThrownBy(() -> servicio.changeStatus(99L, true))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(programacionRepository, never()).save(any());
     }
@@ -168,7 +168,7 @@ class BackupScheduleServiceImplTest {
         BackupSchedule existente = programacionBase(1L);
         when(programacionRepository.findById(1L)).thenReturn(Optional.of(existente));
 
-        servicio.eliminar(1L);
+        servicio.delete(1L);
 
         verify(programacionRepository, times(1)).delete(existente);
     }
@@ -177,7 +177,7 @@ class BackupScheduleServiceImplTest {
     void eliminar_Inexistente_DebeLanzarNoEncontrado() {
         when(programacionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.eliminar(99L))
+        assertThatThrownBy(() -> servicio.delete(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(programacionRepository, never()).delete(any(BackupSchedule.class));
     }
@@ -186,7 +186,7 @@ class BackupScheduleServiceImplTest {
     void listar_DebeMapearTodasLasProgramaciones() {
         when(programacionRepository.findAll()).thenReturn(List.of(programacionBase(1L), programacionBase(2L)));
 
-        List<ScheduleResponse> resultado = servicio.listar();
+        List<ScheduleResponse> resultado = servicio.list();
 
         assertThat(resultado).hasSize(2);
         assertThat(resultado.get(0).getIdProgramacion()).isEqualTo(1L);
@@ -197,7 +197,7 @@ class BackupScheduleServiceImplTest {
     void obtenerPorId_Existente_DebeRetornarla() {
         when(programacionRepository.findById(1L)).thenReturn(Optional.of(programacionBase(1L)));
 
-        ScheduleResponse resultado = servicio.obtenerPorId(1L);
+        ScheduleResponse resultado = servicio.getById(1L);
 
         assertThat(resultado.getIdProgramacion()).isEqualTo(1L);
         assertThat(resultado.getNombre()).isEqualTo("Respaldo diario");
@@ -207,7 +207,7 @@ class BackupScheduleServiceImplTest {
     void obtenerPorId_Inexistente_DebeLanzarNoEncontrado() {
         when(programacionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.obtenerPorId(99L))
+        assertThatThrownBy(() -> servicio.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

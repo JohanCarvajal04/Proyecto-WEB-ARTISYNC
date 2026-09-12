@@ -74,7 +74,7 @@ class BackupServiceImplTest {
         Backup creado = respaldoBase(1L);
         when(respaldoEjecutorServicio.iniciarManual(BackupType.FULL, "admin@artisync.dev")).thenReturn(creado);
 
-        BackupResponse resultado = servicio.solicitarRespaldo(BackupType.FULL, "admin@artisync.dev");
+        BackupResponse resultado = servicio.requestBackup(BackupType.FULL, "admin@artisync.dev");
 
         assertThat(resultado.getIdRespaldo()).isEqualTo(1L);
     }
@@ -83,7 +83,7 @@ class BackupServiceImplTest {
     void solicitarRespaldo_ConRespaldoEnProgreso_DebeRechazar() {
         when(respaldoRepository.existsByEstadoRespaldo(BackupStatus.EN_PROGRESO)).thenReturn(true);
 
-        assertThatThrownBy(() -> servicio.solicitarRespaldo(BackupType.FULL, "admin@artisync.dev"))
+        assertThatThrownBy(() -> servicio.requestBackup(BackupType.FULL, "admin@artisync.dev"))
                 .isInstanceOf(BusinessRuleException.class);
         verify(respaldoEjecutorServicio, never()).iniciarManual(any(), any());
     }
@@ -95,7 +95,7 @@ class BackupServiceImplTest {
         when(respaldoRepository.findAll(any(Specification.class), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(respaldoBase(1L))));
 
-        PagedResponse<BackupResponse> resultado = servicio.listar(filtro, pageable);
+        PagedResponse<BackupResponse> resultado = servicio.list(filtro, pageable);
 
         assertThat(resultado.getContent()).hasSize(1);
         assertThat(resultado.getContent().get(0).getIdRespaldo()).isEqualTo(1L);
@@ -105,7 +105,7 @@ class BackupServiceImplTest {
     void obtenerPorId_Existente_DebeRetornarlo() {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldoBase(1L)));
 
-        BackupResponse resultado = servicio.obtenerPorId(1L);
+        BackupResponse resultado = servicio.getById(1L);
 
         assertThat(resultado.getIdRespaldo()).isEqualTo(1L);
     }
@@ -114,7 +114,7 @@ class BackupServiceImplTest {
     void obtenerPorId_Inexistente_DebeLanzarNoEncontrado() {
         when(respaldoRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> servicio.obtenerPorId(99L))
+        assertThatThrownBy(() -> servicio.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -126,7 +126,7 @@ class BackupServiceImplTest {
         respaldo.setProgramacion(programacion);
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
-        BackupResponse resultado = servicio.obtenerPorId(1L);
+        BackupResponse resultado = servicio.getById(1L);
 
         assertThat(resultado.getIdProgramacion()).isEqualTo(7L);
     }
@@ -137,7 +137,7 @@ class BackupServiceImplTest {
         respaldo.setRutaArchivo(null);
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
-        assertThatThrownBy(() -> servicio.descargar(1L))
+        assertThatThrownBy(() -> servicio.download(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -147,7 +147,7 @@ class BackupServiceImplTest {
         respaldo.setRutaArchivo(tempDir.resolve("no-existe.sql").toString());
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
-        assertThatThrownBy(() -> servicio.descargar(1L))
+        assertThatThrownBy(() -> servicio.download(1L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -160,7 +160,7 @@ class BackupServiceImplTest {
         respaldo.setNombreArchivo("backup.sql");
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
-        BackupFile resultado = servicio.descargar(1L);
+        BackupFile resultado = servicio.download(1L);
 
         assertThat(resultado.nombreArchivo()).isEqualTo("backup.sql");
         assertThat(resultado.tamanoBytes()).isEqualTo(Files.size(archivo));
@@ -172,7 +172,7 @@ class BackupServiceImplTest {
         respaldo.setEstadoRespaldo(BackupStatus.EN_PROGRESO);
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
 
-        assertThatThrownBy(() -> servicio.eliminar(1L))
+        assertThatThrownBy(() -> servicio.delete(1L))
                 .isInstanceOf(BusinessRuleException.class);
         verify(respaldoRepository, never()).delete(any(Backup.class));
     }
@@ -183,7 +183,7 @@ class BackupServiceImplTest {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
         when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(false);
 
-        assertThatThrownBy(() -> servicio.eliminar(1L))
+        assertThatThrownBy(() -> servicio.delete(1L))
                 .isInstanceOf(BusinessRuleException.class);
         verify(respaldoRepository, never()).delete(any(Backup.class));
     }
@@ -195,7 +195,7 @@ class BackupServiceImplTest {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
         when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(true);
 
-        servicio.eliminar(1L);
+        servicio.delete(1L);
 
         verify(respaldoRepository, times(1)).delete(respaldo);
     }
@@ -209,7 +209,7 @@ class BackupServiceImplTest {
         when(respaldoRepository.findById(1L)).thenReturn(Optional.of(respaldo));
         when(retencionScheduler.esSeguroEliminar(respaldo)).thenReturn(true);
 
-        servicio.eliminar(1L);
+        servicio.delete(1L);
 
         assertThat(Files.exists(archivo)).isFalse();
         verify(respaldoRepository).delete(respaldo);

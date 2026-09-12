@@ -41,7 +41,7 @@ public class BackupRetentionScheduler {
             try {
                 if (haVencido(respaldo) && esSeguroEliminar(respaldo)) {
                     if (respaldo.getRutaArchivo() != null) {
-                        storage.eliminar(Path.of(respaldo.getRutaArchivo()));
+                        storage.delete(Path.of(respaldo.getRutaArchivo()));
                     }
                     respaldoRepository.delete(respaldo);
                     log.info("[BackupRetentionScheduler] Backup {} eliminado (retención vencida)", respaldo.getIdRespaldo());
@@ -69,7 +69,7 @@ public class BackupRetentionScheduler {
      * retención configurada mientras algún incremental la necesite.
      *
      * Reutilizado también por la eliminación manual del controlador
-     * (BackupServiceImpl#eliminar): un admin tampoco puede borrar a mano
+     * (BackupServiceImpl#delete): un admin tampoco puede borrar a mano
      * un FULL del que dependen incrementales vivos.
      */
     public boolean esSeguroEliminar(Backup respaldo) {

@@ -54,9 +54,9 @@ public class BackupController {
     @Operation(summary = "Dispara un respaldo FULL o INCREMENTAL bajo demanda")
     @PostMapping
     @PreAuthorize("hasAuthority('RESPALDO_CREAR') or hasRole('ADMIN')")
-    public ResponseEntity<BackupResponse> crear(
+    public ResponseEntity<BackupResponse> create(
             @Valid @RequestBody CreateBackupRequest peticion, Authentication authentication) {
-        BackupResponse respuesta = respaldoServicio.solicitarRespaldo(peticion.getTipoRespaldo(), authentication.getName());
+        BackupResponse respuesta = respaldoServicio.requestBackup(peticion.getTipoRespaldo(), authentication.getName());
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(respuesta);
     }
 
@@ -69,8 +69,8 @@ public class BackupController {
     @Operation(summary = "Listado paginado y filtrado de respaldos")
     @GetMapping
     @PreAuthorize("hasAuthority('RESPALDO_VER') or hasRole('ADMIN')")
-    public ResponseEntity<PagedResponse<BackupResponse>> listar(BackupFilter filtro, Pageable pageable) {
-        return ResponseEntity.ok(respaldoServicio.listar(filtro, pageable));
+    public ResponseEntity<PagedResponse<BackupResponse>> list(BackupFilter filtro, Pageable pageable) {
+        return ResponseEntity.ok(respaldoServicio.list(filtro, pageable));
     }
 
     /**
@@ -82,21 +82,21 @@ public class BackupController {
     @Operation(summary = "Detalle de un respaldo")
     @GetMapping("/{idRespaldo}")
     @PreAuthorize("hasAuthority('RESPALDO_VER') or hasRole('ADMIN')")
-    public ResponseEntity<BackupResponse> obtenerPorId(@PathVariable Long idRespaldo) {
-        return ResponseEntity.ok(respaldoServicio.obtenerPorId(idRespaldo));
+    public ResponseEntity<BackupResponse> getById(@PathVariable Long idRespaldo) {
+        return ResponseEntity.ok(respaldoServicio.getById(idRespaldo));
     }
 
     /**
      * Descarga físicamente el archivo del respaldo generado desde el sistema de almacenamiento.
-     * @param idRespaldo identificador único del respaldo a descargar
+     * @param idRespaldo identificador único del respaldo a download
      * @return el archivo comprimido del respaldo como un stream de octetos
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el archivo físico no existe en disco
      */
     @Operation(summary = "Descarga el archivo generado de un respaldo")
     @GetMapping("/{idRespaldo}/descargar")
     @PreAuthorize("hasAuthority('RESPALDO_DESCARGAR') or hasRole('ADMIN')")
-    public ResponseEntity<Resource> descargar(@PathVariable Long idRespaldo) {
-        BackupFile archivo = respaldoServicio.descargar(idRespaldo);
+    public ResponseEntity<Resource> download(@PathVariable Long idRespaldo) {
+        BackupFile archivo = respaldoServicio.download(idRespaldo);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -107,15 +107,15 @@ public class BackupController {
 
     /**
      * Elimina el registro y el archivo físico de un respaldo del sistema.
-     * @param idRespaldo identificador del respaldo a eliminar
+     * @param idRespaldo identificador del respaldo a delete
      * @return respuesta sin contenido confirmando la eliminación exitosa
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si es un respaldo FULL y existen respaldos INCREMENTALES que dependen de él
      */
     @Operation(summary = "Elimina un respaldo guardado (rechaza si aún tiene incrementales que dependen de él)")
     @DeleteMapping("/{idRespaldo}")
     @PreAuthorize("hasAuthority('RESPALDO_ELIMINAR') or hasRole('ADMIN')")
-    public ResponseEntity<Void> eliminar(@PathVariable Long idRespaldo) {
-        respaldoServicio.eliminar(idRespaldo);
+    public ResponseEntity<Void> delete(@PathVariable Long idRespaldo) {
+        respaldoServicio.delete(idRespaldo);
         return ResponseEntity.noContent().build();
     }
 
@@ -128,9 +128,9 @@ public class BackupController {
     @Operation(summary = "Crea una programación recurrente de respaldos")
     @PostMapping("/programaciones")
     @PreAuthorize("hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')")
-    public ResponseEntity<ScheduleResponse> crearProgramacion(
+    public ResponseEntity<ScheduleResponse> createSchedule(
             @Valid @RequestBody CreateScheduleRequest peticion, Authentication authentication) {
-        ScheduleResponse respuesta = programacionServicio.crear(peticion, authentication.getName());
+        ScheduleResponse respuesta = programacionServicio.create(peticion, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
@@ -141,8 +141,8 @@ public class BackupController {
     @Operation(summary = "Lista las programaciones de respaldo existentes")
     @GetMapping("/programaciones")
     @PreAuthorize("hasAuthority('RESPALDO_VER') or hasRole('ADMIN')")
-    public ResponseEntity<List<ScheduleResponse>> listarProgramaciones() {
-        return ResponseEntity.ok(programacionServicio.listar());
+    public ResponseEntity<List<ScheduleResponse>> listSchedules() {
+        return ResponseEntity.ok(programacionServicio.list());
     }
 
     /**
@@ -154,8 +154,8 @@ public class BackupController {
     @Operation(summary = "Detalle de una programación de respaldo")
     @GetMapping("/programaciones/{idProgramacion}")
     @PreAuthorize("hasAuthority('RESPALDO_VER') or hasRole('ADMIN')")
-    public ResponseEntity<ScheduleResponse> obtenerProgramacion(@PathVariable Long idProgramacion) {
-        return ResponseEntity.ok(programacionServicio.obtenerPorId(idProgramacion));
+    public ResponseEntity<ScheduleResponse> getSchedule(@PathVariable Long idProgramacion) {
+        return ResponseEntity.ok(programacionServicio.getById(idProgramacion));
     }
 
     /**
@@ -168,9 +168,9 @@ public class BackupController {
     @Operation(summary = "Actualiza una programación de respaldo existente")
     @PutMapping("/programaciones/{idProgramacion}")
     @PreAuthorize("hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')")
-    public ResponseEntity<ScheduleResponse> actualizarProgramacion(
+    public ResponseEntity<ScheduleResponse> updateSchedule(
             @PathVariable Long idProgramacion, @Valid @RequestBody UpdateScheduleRequest peticion) {
-        return ResponseEntity.ok(programacionServicio.actualizar(idProgramacion, peticion));
+        return ResponseEntity.ok(programacionServicio.update(idProgramacion, peticion));
     }
 
     /**
@@ -183,9 +183,9 @@ public class BackupController {
     @Operation(summary = "Activa o desactiva una programación de respaldo")
     @PatchMapping("/programaciones/{idProgramacion}/estado")
     @PreAuthorize("hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')")
-    public ResponseEntity<ScheduleResponse> cambiarEstadoProgramacion(
+    public ResponseEntity<ScheduleResponse> changeScheduleStatus(
             @PathVariable Long idProgramacion, @Valid @RequestBody ChangeScheduleStatusRequest peticion) {
-        return ResponseEntity.ok(programacionServicio.cambiarEstado(idProgramacion, peticion.getActivo()));
+        return ResponseEntity.ok(programacionServicio.changeStatus(idProgramacion, peticion.getActivo()));
     }
 
     /**
@@ -197,8 +197,8 @@ public class BackupController {
     @Operation(summary = "Elimina una programación de respaldo")
     @DeleteMapping("/programaciones/{idProgramacion}")
     @PreAuthorize("hasAuthority('RESPALDO_PROGRAMAR') or hasRole('ADMIN')")
-    public ResponseEntity<Void> eliminarProgramacion(@PathVariable Long idProgramacion) {
-        programacionServicio.eliminar(idProgramacion);
+    public ResponseEntity<Void> deleteSchedule(@PathVariable Long idProgramacion) {
+        programacionServicio.delete(idProgramacion);
         return ResponseEntity.noContent().build();
     }
 }

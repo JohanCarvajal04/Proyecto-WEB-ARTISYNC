@@ -3,7 +3,7 @@ package uteq.edu.ec.artisync.service.respaldo;
 import org.springframework.core.io.Resource;
 
 /**
- * Archivo de un respaldo listo para transmitirse en streaming (ver BackupController#descargar).
+ * Archivo de un respaldo listo para transmitirse en streaming (ver BackupController#download).
  *
  * @param recurso contenido binario del respaldo, listo para escribirse en la respuesta HTTP
  * @param nombreArchivo nombre con el que se ofrece la descarga al cliente

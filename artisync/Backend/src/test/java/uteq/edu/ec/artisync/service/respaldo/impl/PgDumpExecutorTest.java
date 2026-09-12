@@ -9,11 +9,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Prueba de caracterización de PgDumpExecutor, escrita ANTES de renombrar `ejecutar`.
+ * Prueba de caracterización de PgDumpExecutor, escrita ANTES de renombrar `execute`.
  * La ejecución real del binario pg_dump no se puede probar sin Postgres/pg_dump
  * instalados (fuera de este entorno) — este test cubre la parte determinista y
  * testeable sin invocar el proceso real: la construcción de los argumentos del
- * comando, extraída a construirComando(...) específicamente para esto.
+ * comando, extraída a buildCommand(...) específicamente para esto.
  */
 class PgDumpExecutorTest {
 
@@ -27,7 +27,7 @@ class PgDumpExecutorTest {
         db.setNombre("artisyncbd_prod");
         Path destino = Path.of("/tmp/respaldos/full.dump");
 
-        List<String> comando = ejecutor.construirComando(db, destino);
+        List<String> comando = ejecutor.buildCommand(db, destino);
 
         assertThat(comando).containsExactly(
                 "pg_dump",

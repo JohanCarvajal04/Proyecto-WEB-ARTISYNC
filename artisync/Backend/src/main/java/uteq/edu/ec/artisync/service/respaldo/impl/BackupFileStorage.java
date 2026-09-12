@@ -28,7 +28,7 @@ public class BackupFileStorage {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Path resolverRutaDestino(String nombreArchivo) throws IOException {
+    public Path resolveDestinationPath(String nombreArchivo) throws IOException {
         Path base = Path.of(respaldoProperties.getRutaBase());
         Files.createDirectories(base);
         return base.resolve(nombreArchivo);
@@ -40,7 +40,7 @@ public class BackupFileStorage {
      * @param ruta parametro requerido para la correcta ejecucion del procedimiento
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminar(Path ruta) throws IOException {
+    public void delete(Path ruta) throws IOException {
         Files.deleteIfExists(ruta);
     }
 }

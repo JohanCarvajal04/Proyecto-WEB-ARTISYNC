@@ -37,8 +37,8 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ScheduleResponse crear(CreateScheduleRequest peticion, String creadoPor) {
-        LocalDateTime proximaEjecucion = calcularProximaEjecucion(peticion.getExpresionCron());
+    public ScheduleResponse create(CreateScheduleRequest peticion, String creadoPor) {
+        LocalDateTime proximaEjecucion = calculateNextExecution(peticion.getExpresionCron());
         LocalDateTime ahora = LocalDateTime.now();
 
         BackupSchedule programacion = BackupSchedule.builder()
@@ -53,7 +53,7 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
                 .actualizadoEn(ahora)
                 .build();
 
-        return aRespuesta(programacionRepository.save(programacion));
+        return toResponse(programacionRepository.save(programacion));
     }
 
     @Auditable(accion = "RESPALDO_PROGRAMACION_ACTUALIZAR", modulo = AuditModule.SISTEMA,
@@ -69,17 +69,17 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ScheduleResponse actualizar(Long idProgramacion, UpdateScheduleRequest peticion) {
-        BackupSchedule programacion = obtenerOFallar(idProgramacion);
+    public ScheduleResponse update(Long idProgramacion, UpdateScheduleRequest peticion) {
+        BackupSchedule programacion = getOrFail(idProgramacion);
 
         programacion.setNombre(peticion.getNombre());
         programacion.setTipoRespaldo(peticion.getTipoRespaldo());
         programacion.setExpresionCron(peticion.getExpresionCron());
         programacion.setRetencionDias(peticion.getRetencionDias());
-        programacion.setProximaEjecucion(calcularProximaEjecucion(peticion.getExpresionCron()));
+        programacion.setProximaEjecucion(calculateNextExecution(peticion.getExpresionCron()));
         programacion.setActualizadoEn(LocalDateTime.now());
 
-        return aRespuesta(programacionRepository.save(programacion));
+        return toResponse(programacionRepository.save(programacion));
     }
 
     @Auditable(accion = "RESPALDO_PROGRAMACION_CAMBIAR_ESTADO", modulo = AuditModule.SISTEMA,
@@ -94,11 +94,11 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ScheduleResponse cambiarEstado(Long idProgramacion, boolean activo) {
-        BackupSchedule programacion = obtenerOFallar(idProgramacion);
+    public ScheduleResponse changeStatus(Long idProgramacion, boolean activo) {
+        BackupSchedule programacion = getOrFail(idProgramacion);
         programacion.setActivo(activo);
         programacion.setActualizadoEn(LocalDateTime.now());
-        return aRespuesta(programacionRepository.save(programacion));
+        return toResponse(programacionRepository.save(programacion));
     }
 
     @Auditable(accion = "RESPALDO_PROGRAMACION_ELIMINAR", modulo = AuditModule.SISTEMA,
@@ -111,8 +111,8 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
      * @param idProgramacion identificador unico que referencia de manera univoca al registro
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public void eliminar(Long idProgramacion) {
-        BackupSchedule programacion = obtenerOFallar(idProgramacion);
+    public void delete(Long idProgramacion) {
+        BackupSchedule programacion = getOrFail(idProgramacion);
         programacionRepository.delete(programacion);
     }
 
@@ -124,8 +124,8 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<ScheduleResponse> listar() {
-        return programacionRepository.findAll().stream().map(this::aRespuesta).toList();
+    public List<ScheduleResponse> list() {
+        return programacionRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -137,11 +137,11 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public ScheduleResponse obtenerPorId(Long idProgramacion) {
-        return aRespuesta(obtenerOFallar(idProgramacion));
+    public ScheduleResponse getById(Long idProgramacion) {
+        return toResponse(getOrFail(idProgramacion));
     }
 
-    private LocalDateTime calcularProximaEjecucion(String expresionCron) {
+    private LocalDateTime calculateNextExecution(String expresionCron) {
         try {
             LocalDateTime siguiente = CronExpression.parse(expresionCron).next(LocalDateTime.now());
             if (siguiente == null) {
@@ -153,12 +153,12 @@ public class BackupScheduleServiceImpl implements IBackupScheduleService {
         }
     }
 
-    private BackupSchedule obtenerOFallar(Long idProgramacion) {
+    private BackupSchedule getOrFail(Long idProgramacion) {
         return programacionRepository.findById(idProgramacion)
                 .orElseThrow(() -> new ResourceNotFoundException("Programación de respaldo no encontrada con ID: " + idProgramacion));
     }
 
-    private ScheduleResponse aRespuesta(BackupSchedule programacion) {
+    private ScheduleResponse toResponse(BackupSchedule programacion) {
         return ScheduleResponse.builder()
                 .idProgramacion(programacion.getIdProgramacion())
                 .nombre(programacion.getNombre())

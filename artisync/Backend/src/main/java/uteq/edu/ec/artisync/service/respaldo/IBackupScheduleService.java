@@ -27,7 +27,7 @@ public interface IBackupScheduleService {
      * @return la programación creada, activa y con su próxima ejecución ya calculada
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la expresión cron es inválida o no produce ninguna ejecución futura
      */
-    ScheduleResponse crear(CreateScheduleRequest peticion, String creadoPor);
+    ScheduleResponse create(CreateScheduleRequest peticion, String creadoPor);
 
     /**
      * Actualiza los datos de una programación existente y recalcula su próxima ejecución.
@@ -38,7 +38,7 @@ public interface IBackupScheduleService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la expresión cron es inválida o no produce ninguna ejecución futura
      */
-    ScheduleResponse actualizar(Long idProgramacion, UpdateScheduleRequest peticion);
+    ScheduleResponse update(Long idProgramacion, UpdateScheduleRequest peticion);
 
     /**
      * Activa o desactiva una programación, sin alterar el resto de sus datos.
@@ -48,22 +48,22 @@ public interface IBackupScheduleService {
      * @return la programación con su estado ya actualizado
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
      */
-    ScheduleResponse cambiarEstado(Long idProgramacion, boolean activo);
+    ScheduleResponse changeStatus(Long idProgramacion, boolean activo);
 
     /**
      * Elimina una programación de respaldos recurrentes.
      *
-     * @param idProgramacion identificador de la programación a eliminar
+     * @param idProgramacion identificador de la programación a delete
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
      */
-    void eliminar(Long idProgramacion);
+    void delete(Long idProgramacion);
 
     /**
      * Lista todas las programaciones de respaldo registradas.
      *
      * @return el listado completo de programaciones
      */
-    List<ScheduleResponse> listar();
+    List<ScheduleResponse> list();
 
     /**
      * Obtiene el detalle de una programación por su identificador.
@@ -72,5 +72,5 @@ public interface IBackupScheduleService {
      * @return la programación solicitada
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la programación no existe
      */
-    ScheduleResponse obtenerPorId(Long idProgramacion);
+    ScheduleResponse getById(Long idProgramacion);
 }

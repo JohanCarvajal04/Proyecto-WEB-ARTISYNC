@@ -29,7 +29,7 @@ public class BackupExecutorService {
     /** Disparo manual (admin autenticado, sin programación asociada). */
     public Backup iniciarManual(BackupType tipo, String correoSolicitante) {
         Backup respaldo = crearRespaldo(tipo, BackupOrigin.MANUAL, null, correoSolicitante);
-        trabajoAsincronoServicio.ejecutar(respaldo.getIdRespaldo());
+        trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());
         return respaldo;
     }
 
@@ -47,7 +47,7 @@ public class BackupExecutorService {
         programacion.setActualizadoEn(ahora);
         programacionRepository.save(programacion);
 
-        trabajoAsincronoServicio.ejecutar(respaldo.getIdRespaldo());
+        trabajoAsincronoServicio.execute(respaldo.getIdRespaldo());
     }
 
     private Backup crearRespaldo(BackupType tipo, BackupOrigin origen,

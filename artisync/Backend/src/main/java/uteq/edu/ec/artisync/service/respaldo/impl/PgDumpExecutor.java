@@ -42,13 +42,13 @@ public class PgDumpExecutor {
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public Path ejecutar(Backup respaldo) throws IOException, InterruptedException {
+    public Path execute(Backup respaldo) throws IOException, InterruptedException {
         BackupProperties.Db db = respaldoProperties.getDb();
         String nombreArchivo = "respaldo_full_" + LocalDateTime.now(ValueFormatter.zona()).format(MARCA_TIEMPO) + ".dump";
-        Path destino = storage.resolverRutaDestino(nombreArchivo);
-        Path logError = storage.resolverRutaDestino(nombreArchivo + ".stderr.log");
+        Path destino = storage.resolveDestinationPath(nombreArchivo);
+        Path logError = storage.resolveDestinationPath(nombreArchivo + ".stderr.log");
 
-        List<String> comando = construirComando(db, destino);
+        List<String> comando = buildCommand(db, destino);
 
         ProcessBuilder pb = new ProcessBuilder(comando);
         pb.environment().put("PGPASSWORD", db.getPassword());
@@ -75,7 +75,7 @@ public class PgDumpExecutor {
     }
 
     /** Extraído para poder probar la construcción del comando sin invocar pg_dump real. */
-    List<String> construirComando(BackupProperties.Db db, Path destino) {
+    List<String> buildCommand(BackupProperties.Db db, Path destino) {
         return List.of(
                 "pg_dump",
                 "-h", db.getHost(),

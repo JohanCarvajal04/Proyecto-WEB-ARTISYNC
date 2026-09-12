@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Prueba de caracterización de IncrementalBackupExporter, escrita ANTES de renombrar
- * `ejecutar`/`construirSentenciaCopy` (clase en ~7% de cobertura real). No requiere
+ * `execute`/`buildCopyStatement` (clase en ~7% de cobertura real). No requiere
  * Postgres real: mockea la cadena DataSource -> Connection -> PGConnection ->
  * CopyManager, que es lo único que el método invoca de verdad contra la base.
  */
@@ -81,7 +81,7 @@ class IncrementalBackupExporterTest {
 
         when(copyManager.copyOut(anyString(), any(OutputStream.class))).thenReturn(3L);
 
-        Path resultado = exportador.ejecutar(respaldoIncremental(10L, null));
+        Path resultado = exportador.execute(respaldoIncremental(10L, null));
 
         verify(copyManager).copyOut(
                 eq("COPY usuarios TO STDOUT WITH (FORMAT csv, HEADER true)"), any(OutputStream.class));
@@ -104,9 +104,9 @@ class IncrementalBackupExporterTest {
         when(copyManager.copyOut(anyString(), any(OutputStream.class))).thenReturn(7L);
         LocalDateTime corte = LocalDateTime.of(2026, 1, 1, 0, 0, 0);
 
-        exportador.ejecutar(respaldoIncremental(5L, corte));
+        exportador.execute(respaldoIncremental(5L, corte));
 
-        String sqlEsperado = exportador.construirSentenciaCopy("pedidos", "actualizado_en", corte);
+        String sqlEsperado = exportador.buildCopyStatement("pedidos", "actualizado_en", corte);
         verify(copyManager).copyOut(eq(sqlEsperado), any(OutputStream.class));
     }
 
@@ -114,7 +114,7 @@ class IncrementalBackupExporterTest {
     void construirSentenciaCopy_SinColumnaFecha_GeneraCopyCompleto(@TempDir Path tempDir) {
         IncrementalBackupExporter exportador = exportadorSinConexion(tempDir, new BackupTablesProperties());
 
-        String sql = exportador.construirSentenciaCopy("usuarios", null, null);
+        String sql = exportador.buildCopyStatement("usuarios", null, null);
 
         assertThat(sql).isEqualTo("COPY usuarios TO STDOUT WITH (FORMAT csv, HEADER true)");
     }
@@ -124,7 +124,7 @@ class IncrementalBackupExporterTest {
         IncrementalBackupExporter exportador = exportadorSinConexion(tempDir, new BackupTablesProperties());
         LocalDateTime corte = LocalDateTime.of(2026, 3, 15, 8, 30, 0);
 
-        String sql = exportador.construirSentenciaCopy("pedidos", "actualizado_en", corte);
+        String sql = exportador.buildCopyStatement("pedidos", "actualizado_en", corte);
 
         assertThat(sql).isEqualTo(
                 "COPY (SELECT * FROM pedidos WHERE actualizado_en > '2026-03-15 08:30:00.000000') TO STDOUT WITH (FORMAT csv, HEADER true)");
