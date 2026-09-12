@@ -674,7 +674,7 @@ public class OfferingCatalogServiceImpl implements IOfferingCatalogService {
 
     /**
      * `null` es válido: el servicio queda sin cuestionario y crear un pedido
-     * no pide preguntas extra (ver OrderServiceImpl.crearPedido). Un id que
+     * no pide preguntas extra (ver OrderServiceImpl.createOrder). Un id que
      * no existe, o que pertenece a otro creador, se rechaza: un creador solo
      * puede asignarle a su servicio uno de sus propios cuestionarios.
      */

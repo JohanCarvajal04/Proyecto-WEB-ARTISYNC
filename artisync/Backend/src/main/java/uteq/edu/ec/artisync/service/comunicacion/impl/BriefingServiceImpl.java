@@ -164,8 +164,8 @@ public class BriefingServiceImpl implements BriefingService {
     // Lectura del briefing respondido (solo lectura)
     // =========================================================================
     // El envío y la respuesta ya no son endpoints propios: REQ-F-016 ampliado
-    // los colapsó en OrderServiceImpl.crearPedido (validarRespuestasBriefingCompletas
-    // + registrarBriefingCompletado), porque el cuestionario ahora cuelga del
+    // los colapsó en OrderServiceImpl.createOrder (validateBriefingAnswersComplete
+    // + recordBriefingCompleted), porque el cuestionario ahora cuelga del
     // servicio (Offering.briefingPlantilla) y se responde al crear el pedido.
 
     @Override

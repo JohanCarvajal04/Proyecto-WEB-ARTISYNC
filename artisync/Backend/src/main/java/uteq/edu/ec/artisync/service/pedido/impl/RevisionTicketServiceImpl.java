@@ -49,7 +49,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
      * @param peticion peticion
      * @return el resultado esperado de aplicar las reglas de negocio de la funcion
      */
-    public RevisionTicketResponse crearTicketRevision(Long idPedido, Long idCliente,
+    public RevisionTicketResponse createRevisionTicket(Long idPedido, Long idCliente,
                                                         CreateRevisionTicketRequest peticion) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
@@ -107,7 +107,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
      * @return una coleccion indexada con todos los elementos resultantes de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public List<RevisionTicketResponse> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante) {
+    public List<RevisionTicketResponse> listTicketsByOrder(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
         // OBS-08 / H-02: evita el acceso indebido (IDOR) a tickets de un pedido ajeno.
@@ -133,7 +133,7 @@ public class RevisionTicketServiceImpl implements IRevisionTicketService {
      * @return un objeto especializado con el resultado estructurado de la operacion
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException ante un flujo inconsistente u omision en restricciones primarias de la entidad
      */
-    public RevisionTicketResponse cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado) {
+    public RevisionTicketResponse changeTicketStatus(Long idTicket, Long idCreador, String nuevoEstado) {
         RevisionTicket ticket = ticketRevisionRepository.findById(idTicket)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket de revision no encontrado"));
 

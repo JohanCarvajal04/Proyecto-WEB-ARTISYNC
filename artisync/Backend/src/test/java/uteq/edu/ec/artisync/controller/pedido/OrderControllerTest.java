@@ -49,9 +49,9 @@ class OrderControllerTest {
         CreateOrderRequest peticion = new CreateOrderRequest();
         OrderResponse respuesta = new OrderResponse();
         CustomUserDetails user = mockUserDetails();
-        when(pedidoServicio.crearPedido(1L, peticion)).thenReturn(respuesta);
+        when(pedidoServicio.createOrder(1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<OrderResponse> res = controlador.crearPedido(user, peticion);
+        ResponseEntity<OrderResponse> res = controlador.createOrder(user, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -60,9 +60,9 @@ class OrderControllerTest {
     void obtenerPedido_devuelveOk() {
         OrderResponse respuesta = new OrderResponse();
         CustomUserDetails user = mockUserDetails();
-        when(pedidoServicio.obtenerPedidoPorId(10L, 1L)).thenReturn(respuesta);
+        when(pedidoServicio.getOrderById(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<OrderResponse> res = controlador.obtenerPedido(10L, user);
+        ResponseEntity<OrderResponse> res = controlador.getOrder(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -71,9 +71,9 @@ class OrderControllerTest {
     void listarMisPedidos_devuelveOk() {
         List<OrderSummaryResponse> lista = Collections.emptyList();
         CustomUserDetails user = mockUserDetails();
-        when(pedidoServicio.listarMisPedidos(1L)).thenReturn(lista);
+        when(pedidoServicio.listMyOrders(1L)).thenReturn(lista);
 
-        ResponseEntity<List<OrderSummaryResponse>> res = controlador.listarMisPedidos(user);
+        ResponseEntity<List<OrderSummaryResponse>> res = controlador.listMyOrders(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -82,9 +82,9 @@ class OrderControllerTest {
     void listarMisComisiones_devuelveOk() {
         List<OrderSummaryResponse> lista = Collections.emptyList();
         CustomUserDetails user = mockUserDetails();
-        when(pedidoServicio.listarMisComisiones(1L)).thenReturn(lista);
+        when(pedidoServicio.listMyCommissions(1L)).thenReturn(lista);
 
-        ResponseEntity<List<OrderSummaryResponse>> res = controlador.listarMisComisiones(user);
+        ResponseEntity<List<OrderSummaryResponse>> res = controlador.listMyCommissions(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -95,9 +95,9 @@ class OrderControllerTest {
         Authentication auth = mock(Authentication.class);
         when(auth.getName()).thenReturn("test@test.com");
         GeneratedDocument doc = new GeneratedDocument(new byte[]{1, 2, 3}, "application/pdf", "pedidos.pdf");
-        when(pedidoServicio.exportarMisPedidos(1L, ReportFormat.PDF, "test@test.com")).thenReturn(doc);
+        when(pedidoServicio.exportMyOrders(1L, ReportFormat.PDF, "test@test.com")).thenReturn(doc);
 
-        ResponseEntity<byte[]> res = controlador.exportarMisPedidos(user, ReportFormat.PDF, auth);
+        ResponseEntity<byte[]> res = controlador.exportMyOrders(user, ReportFormat.PDF, auth);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -108,9 +108,9 @@ class OrderControllerTest {
         when(auth.getName()).thenReturn("test@test.com");
         GeneratedDocument doc = new GeneratedDocument(new byte[]{1, 2, 3}, "application/pdf", "comisiones.pdf");
         List<Long> ids = List.of(1L, 2L);
-        when(pedidoServicio.exportarMisComisiones(1L, ids, ReportFormat.PDF, "test@test.com")).thenReturn(doc);
+        when(pedidoServicio.exportMyCommissions(1L, ids, ReportFormat.PDF, "test@test.com")).thenReturn(doc);
 
-        ResponseEntity<byte[]> res = controlador.exportarMisComisiones(user, ReportFormat.PDF, ids, auth);
+        ResponseEntity<byte[]> res = controlador.exportMyCommissions(user, ReportFormat.PDF, ids, auth);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -119,9 +119,9 @@ class OrderControllerTest {
         CustomUserDetails user = mockUserDetails();
         AdvanceStageRequest peticion = new AdvanceStageRequest();
         OrderResponse respuesta = new OrderResponse();
-        when(pedidoServicio.avanzarEtapa(10L, 1L, peticion)).thenReturn(respuesta);
+        when(pedidoServicio.advanceStage(10L, 1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<OrderResponse> res = controlador.avanzarEtapa(10L, user, peticion);
+        ResponseEntity<OrderResponse> res = controlador.advanceStage(10L, user, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -131,9 +131,9 @@ class OrderControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateTermsProposalRequest peticion = new CreateTermsProposalRequest();
         TermsProposalResponse respuesta = new TermsProposalResponse();
-        when(pedidoServicio.proponerTerminos(10L, 1L, peticion)).thenReturn(respuesta);
+        when(pedidoServicio.proposeTerms(10L, 1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<TermsProposalResponse> res = controlador.proponerTerminos(10L, user, peticion);
+        ResponseEntity<TermsProposalResponse> res = controlador.proposeTerms(10L, user, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -142,9 +142,9 @@ class OrderControllerTest {
     void obtenerPropuestaPendiente_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         TermsProposalResponse respuesta = new TermsProposalResponse();
-        when(pedidoServicio.obtenerPropuestaPendiente(10L, 1L)).thenReturn(respuesta);
+        when(pedidoServicio.getPendingProposal(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<TermsProposalResponse> res = controlador.obtenerPropuestaPendiente(10L, user);
+        ResponseEntity<TermsProposalResponse> res = controlador.getPendingProposal(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -153,9 +153,9 @@ class OrderControllerTest {
     void aceptarPropuestaTerminos_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         OrderResponse respuesta = new OrderResponse();
-        when(pedidoServicio.aceptarPropuestaTerminos(10L, 20L, 1L)).thenReturn(respuesta);
+        when(pedidoServicio.acceptTermsProposal(10L, 20L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<OrderResponse> res = controlador.aceptarPropuestaTerminos(10L, 20L, user);
+        ResponseEntity<OrderResponse> res = controlador.acceptTermsProposal(10L, 20L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -164,9 +164,9 @@ class OrderControllerTest {
     void rechazarPropuestaTerminos_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         TermsProposalResponse respuesta = new TermsProposalResponse();
-        when(pedidoServicio.rechazarPropuestaTerminos(10L, 20L, 1L)).thenReturn(respuesta);
+        when(pedidoServicio.rejectTermsProposal(10L, 20L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<TermsProposalResponse> res = controlador.rechazarPropuestaTerminos(10L, 20L, user);
+        ResponseEntity<TermsProposalResponse> res = controlador.rejectTermsProposal(10L, 20L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -175,9 +175,9 @@ class OrderControllerTest {
     void cancelarPropuestaTerminos_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         TermsProposalResponse respuesta = new TermsProposalResponse();
-        when(pedidoServicio.cancelarPropuestaTerminos(10L, 20L, 1L)).thenReturn(respuesta);
+        when(pedidoServicio.cancelTermsProposal(10L, 20L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<TermsProposalResponse> res = controlador.cancelarPropuestaTerminos(10L, 20L, user);
+        ResponseEntity<TermsProposalResponse> res = controlador.cancelTermsProposal(10L, 20L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -186,9 +186,9 @@ class OrderControllerTest {
     void obtenerHistorial_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         List<StatusHistoryResponse> lista = Collections.emptyList();
-        when(pedidoServicio.obtenerHistorial(10L, 1L)).thenReturn(lista);
+        when(pedidoServicio.getHistory(10L, 1L)).thenReturn(lista);
 
-        ResponseEntity<List<StatusHistoryResponse>> res = controlador.obtenerHistorial(10L, user);
+        ResponseEntity<List<StatusHistoryResponse>> res = controlador.getHistory(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -197,22 +197,22 @@ class OrderControllerTest {
     void obtenerSeguimiento_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         OrderTrackingResponse respuesta = new OrderTrackingResponse();
-        when(pedidoServicio.obtenerSeguimiento(10L, 1L)).thenReturn(respuesta);
+        when(pedidoServicio.getTracking(10L, 1L)).thenReturn(respuesta);
 
-        ResponseEntity<OrderTrackingResponse> res = controlador.obtenerSeguimiento(10L, user);
+        ResponseEntity<OrderTrackingResponse> res = controlador.getTracking(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
 
     @Test
     void bloquearDeleteHistorial_devuelveForbidden() {
-        ResponseEntity<RespuestaMensaje> res = controlador.bloquearDeleteHistorial(1L);
+        ResponseEntity<RespuestaMensaje> res = controlador.blockDeleteHistory(1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     void bloquearPatchHistorial_devuelveForbidden() {
-        ResponseEntity<RespuestaMensaje> res = controlador.bloquearPatchHistorial(1L);
+        ResponseEntity<RespuestaMensaje> res = controlador.blockPatchHistory(1L);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 }

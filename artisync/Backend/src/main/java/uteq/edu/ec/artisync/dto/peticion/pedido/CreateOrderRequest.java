@@ -33,7 +33,7 @@ public class CreateOrderRequest {
     /**
      * Obligatorio solo si el servicio tiene un cuestionario asignado
      * (Offering.briefingPlantilla): debe traer una respuesta por cada
-     * pregunta de esa plantilla. Se valida en OrderServiceImpl.crearPedido,
+     * pregunta de esa plantilla. Se valida en OrderServiceImpl.createOrder,
      * no aquí, porque la obligatoriedad depende del servicio elegido.
      */
     @Valid

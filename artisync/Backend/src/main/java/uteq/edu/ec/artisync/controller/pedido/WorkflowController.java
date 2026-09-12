@@ -43,11 +43,11 @@ public class WorkflowController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<WorkflowResponse> crearFlujo(
+    public ResponseEntity<WorkflowResponse> createWorkflow(
             @Valid @RequestBody CreateWorkflowRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(flujoTrabajoServicio.crearFlujoTrabajo(userDetails.getIdUsuario(), peticion));
+                .body(flujoTrabajoServicio.createWorkflow(userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -59,9 +59,9 @@ public class WorkflowController {
      */
     @GetMapping
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<WorkflowResponse>> listarFlujos(
+    public ResponseEntity<List<WorkflowResponse>> listWorkflows(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(flujoTrabajoServicio.listarFlujosTrabajo(
+        return ResponseEntity.ok(flujoTrabajoServicio.listWorkflows(
                 userDetails.getIdUsuario(), puedeVerTodos(userDetails)));
     }
 
@@ -75,10 +75,10 @@ public class WorkflowController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<WorkflowResponse> obtenerFlujo(
+    public ResponseEntity<WorkflowResponse> getWorkflow(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(flujoTrabajoServicio.obtenerFlujoPorId(
+        return ResponseEntity.ok(flujoTrabajoServicio.getWorkflowById(
                 id, userDetails.getIdUsuario(), puedeVerTodos(userDetails)));
     }
 
@@ -94,11 +94,11 @@ public class WorkflowController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<WorkflowResponse> actualizarFlujo(
+    public ResponseEntity<WorkflowResponse> updateWorkflow(
             @PathVariable Long id,
             @Valid @RequestBody CreateWorkflowRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(flujoTrabajoServicio.actualizarFlujoTrabajo(
+        return ResponseEntity.ok(flujoTrabajoServicio.updateWorkflow(
                 id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
     }
 
@@ -115,12 +115,12 @@ public class WorkflowController {
      */
     @PostMapping("/{id}/etapas")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<WorkflowResponse> agregarEtapa(
+    public ResponseEntity<WorkflowResponse> addStage(
             @PathVariable Long id,
             @Valid @RequestBody StageConfigRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(flujoTrabajoServicio.agregarEtapa(
+                .body(flujoTrabajoServicio.addStage(
                         id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
     }
 
@@ -137,12 +137,12 @@ public class WorkflowController {
      */
     @PutMapping("/{id}/etapas/{etapaId}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<WorkflowResponse> actualizarEtapa(
+    public ResponseEntity<WorkflowResponse> updateStage(
             @PathVariable Long id,
             @PathVariable Long etapaId,
             @Valid @RequestBody StageConfigRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(flujoTrabajoServicio.actualizarEtapa(
+        return ResponseEntity.ok(flujoTrabajoServicio.updateStage(
                 id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
     }
 
@@ -158,11 +158,11 @@ public class WorkflowController {
      */
     @PutMapping("/{id}/etapas/reordenar")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<WorkflowResponse> intercambiarOrdenEtapas(
+    public ResponseEntity<WorkflowResponse> swapStageOrder(
             @PathVariable Long id,
             @Valid @RequestBody SwapStagesRequest peticion,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(flujoTrabajoServicio.intercambiarOrdenEtapas(
+        return ResponseEntity.ok(flujoTrabajoServicio.swapStageOrder(
                 id, userDetails.getIdUsuario(), puedeVerTodos(userDetails), peticion));
     }
 
@@ -178,11 +178,11 @@ public class WorkflowController {
      */
     @DeleteMapping("/{id}/etapas/{etapaId}")
     @PreAuthorize("hasAuthority('FLUJO_GESTIONAR') or hasAuthority('FLUJO_MODERAR') or hasRole('ADMIN')")
-    public ResponseEntity<RespuestaMensaje> eliminarEtapa(
+    public ResponseEntity<RespuestaMensaje> deleteStage(
             @PathVariable Long id,
             @PathVariable Long etapaId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        flujoTrabajoServicio.eliminarEtapa(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));
+        flujoTrabajoServicio.deleteStage(id, etapaId, userDetails.getIdUsuario(), puedeVerTodos(userDetails));
         return ResponseEntity.ok(new RespuestaMensaje("Etapa eliminada exitosamente del flujo de trabajo"));
     }
 

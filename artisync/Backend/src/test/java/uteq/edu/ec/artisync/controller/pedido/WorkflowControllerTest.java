@@ -49,9 +49,9 @@ class WorkflowControllerTest {
         CustomUserDetails user = mockUserDetails(false);
         CreateWorkflowRequest peticion = new CreateWorkflowRequest();
         WorkflowResponse respuesta = new WorkflowResponse();
-        when(flujoTrabajoServicio.crearFlujoTrabajo(1L, peticion)).thenReturn(respuesta);
+        when(flujoTrabajoServicio.createWorkflow(1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<WorkflowResponse> res = controlador.crearFlujo(peticion, user);
+        ResponseEntity<WorkflowResponse> res = controlador.createWorkflow(peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -60,9 +60,9 @@ class WorkflowControllerTest {
     void listarFlujos_conModerador_devuelveOk() {
         CustomUserDetails user = mockUserDetails(true);
         List<WorkflowResponse> lista = Collections.emptyList();
-        when(flujoTrabajoServicio.listarFlujosTrabajo(1L, true)).thenReturn(lista);
+        when(flujoTrabajoServicio.listWorkflows(1L, true)).thenReturn(lista);
 
-        ResponseEntity<List<WorkflowResponse>> res = controlador.listarFlujos(user);
+        ResponseEntity<List<WorkflowResponse>> res = controlador.listWorkflows(user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -71,9 +71,9 @@ class WorkflowControllerTest {
     void obtenerFlujo_devuelveOk() {
         CustomUserDetails user = mockUserDetails(false);
         WorkflowResponse respuesta = new WorkflowResponse();
-        when(flujoTrabajoServicio.obtenerFlujoPorId(10L, 1L, false)).thenReturn(respuesta);
+        when(flujoTrabajoServicio.getWorkflowById(10L, 1L, false)).thenReturn(respuesta);
 
-        ResponseEntity<WorkflowResponse> res = controlador.obtenerFlujo(10L, user);
+        ResponseEntity<WorkflowResponse> res = controlador.getWorkflow(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -83,9 +83,9 @@ class WorkflowControllerTest {
         CustomUserDetails user = mockUserDetails(false);
         CreateWorkflowRequest peticion = new CreateWorkflowRequest();
         WorkflowResponse respuesta = new WorkflowResponse();
-        when(flujoTrabajoServicio.actualizarFlujoTrabajo(10L, 1L, false, peticion)).thenReturn(respuesta);
+        when(flujoTrabajoServicio.updateWorkflow(10L, 1L, false, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<WorkflowResponse> res = controlador.actualizarFlujo(10L, peticion, user);
+        ResponseEntity<WorkflowResponse> res = controlador.updateWorkflow(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -95,9 +95,9 @@ class WorkflowControllerTest {
         CustomUserDetails user = mockUserDetails(false);
         StageConfigRequest peticion = new StageConfigRequest();
         WorkflowResponse respuesta = new WorkflowResponse();
-        when(flujoTrabajoServicio.agregarEtapa(10L, 1L, false, peticion)).thenReturn(respuesta);
+        when(flujoTrabajoServicio.addStage(10L, 1L, false, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<WorkflowResponse> res = controlador.agregarEtapa(10L, peticion, user);
+        ResponseEntity<WorkflowResponse> res = controlador.addStage(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -107,9 +107,9 @@ class WorkflowControllerTest {
         CustomUserDetails user = mockUserDetails(false);
         StageConfigRequest peticion = new StageConfigRequest();
         WorkflowResponse respuesta = new WorkflowResponse();
-        when(flujoTrabajoServicio.actualizarEtapa(10L, 20L, 1L, false, peticion)).thenReturn(respuesta);
+        when(flujoTrabajoServicio.updateStage(10L, 20L, 1L, false, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<WorkflowResponse> res = controlador.actualizarEtapa(10L, 20L, peticion, user);
+        ResponseEntity<WorkflowResponse> res = controlador.updateStage(10L, 20L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -119,9 +119,9 @@ class WorkflowControllerTest {
         CustomUserDetails user = mockUserDetails(false);
         SwapStagesRequest peticion = new SwapStagesRequest();
         WorkflowResponse respuesta = new WorkflowResponse();
-        when(flujoTrabajoServicio.intercambiarOrdenEtapas(10L, 1L, false, peticion)).thenReturn(respuesta);
+        when(flujoTrabajoServicio.swapStageOrder(10L, 1L, false, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<WorkflowResponse> res = controlador.intercambiarOrdenEtapas(10L, peticion, user);
+        ResponseEntity<WorkflowResponse> res = controlador.swapStageOrder(10L, peticion, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -130,8 +130,8 @@ class WorkflowControllerTest {
     void eliminarEtapa_devuelveOk() {
         CustomUserDetails user = mockUserDetails(false);
 
-        ResponseEntity<RespuestaMensaje> res = controlador.eliminarEtapa(10L, 20L, user);
-        verify(flujoTrabajoServicio).eliminarEtapa(10L, 20L, 1L, false);
+        ResponseEntity<RespuestaMensaje> res = controlador.deleteStage(10L, 20L, user);
+        verify(flujoTrabajoServicio).deleteStage(10L, 20L, 1L, false);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getMensaje()).contains("eliminada exitosamente");
     }

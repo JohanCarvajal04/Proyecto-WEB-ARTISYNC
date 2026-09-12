@@ -41,11 +41,11 @@ public class OrderController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<OrderResponse> crearPedido(
+    public ResponseEntity<OrderResponse> createOrder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateOrderRequest peticion) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(pedidoServicio.crearPedido(userDetails.getIdUsuario(), peticion));
+                .body(pedidoServicio.createOrder(userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -57,10 +57,10 @@ public class OrderController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<OrderResponse> obtenerPedido(
+    public ResponseEntity<OrderResponse> getOrder(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.obtenerPedidoPorId(id, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.getOrderById(id, userDetails.getIdUsuario()));
     }
 
     /**
@@ -70,9 +70,9 @@ public class OrderController {
      */
     @GetMapping("/mis-pedidos")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<OrderSummaryResponse>> listarMisPedidos(
+    public ResponseEntity<List<OrderSummaryResponse>> listMyOrders(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.listarMisPedidos(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.listMyOrders(userDetails.getIdUsuario()));
     }
 
     /**
@@ -82,9 +82,9 @@ public class OrderController {
      */
     @GetMapping("/mis-comisiones")
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<List<OrderSummaryResponse>> listarMisComisiones(
+    public ResponseEntity<List<OrderSummaryResponse>> listMyCommissions(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.listarMisComisiones(userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.listMyCommissions(userDetails.getIdUsuario()));
     }
 
     /**
@@ -106,11 +106,11 @@ public class OrderController {
      */
     @GetMapping("/mis-pedidos/exportar")
     @PreAuthorize("hasAuthority('PEDIDO_CREAR') or hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportarMisPedidos(
+    public ResponseEntity<byte[]> exportMyOrders(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam ReportFormat formato,
             Authentication authentication) {
-        GeneratedDocument documento = pedidoServicio.exportarMisPedidos(
+        GeneratedDocument documento = pedidoServicio.exportMyOrders(
                 userDetails.getIdUsuario(), formato, authentication.getName());
         return DocumentResponse.de(documento);
     }
@@ -126,12 +126,12 @@ public class OrderController {
      */
     @GetMapping("/mis-comisiones/exportar")
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<byte[]> exportarMisComisiones(
+    public ResponseEntity<byte[]> exportMyCommissions(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam ReportFormat formato,
             @RequestParam(required = false) List<Long> idsPedido,
             Authentication authentication) {
-        GeneratedDocument documento = pedidoServicio.exportarMisComisiones(
+        GeneratedDocument documento = pedidoServicio.exportMyCommissions(
                 userDetails.getIdUsuario(), idsPedido, formato, authentication.getName());
         return DocumentResponse.de(documento);
     }
@@ -145,11 +145,11 @@ public class OrderController {
      */
     @PutMapping("/{id}/avanzar")
     @PreAuthorize("hasAuthority('PEDIDO_GESTIONAR') or hasRole('ADMIN')")
-    public ResponseEntity<OrderResponse> avanzarEtapa(
+    public ResponseEntity<OrderResponse> advanceStage(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody AdvanceStageRequest peticion) {
-        return ResponseEntity.ok(pedidoServicio.avanzarEtapa(id, userDetails.getIdUsuario(), peticion));
+        return ResponseEntity.ok(pedidoServicio.advanceStage(id, userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -161,12 +161,12 @@ public class OrderController {
      */
     @PostMapping("/{id}/propuestas-terminos")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<TermsProposalResponse> proponerTerminos(
+    public ResponseEntity<TermsProposalResponse> proposeTerms(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateTermsProposalRequest peticion) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(pedidoServicio.proponerTerminos(id, userDetails.getIdUsuario(), peticion));
+                .body(pedidoServicio.proposeTerms(id, userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -177,10 +177,10 @@ public class OrderController {
      */
     @GetMapping("/{id}/propuestas-terminos/pendiente")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<TermsProposalResponse> obtenerPropuestaPendiente(
+    public ResponseEntity<TermsProposalResponse> getPendingProposal(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.obtenerPropuestaPendiente(id, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.getPendingProposal(id, userDetails.getIdUsuario()));
     }
 
     /**
@@ -192,11 +192,11 @@ public class OrderController {
      */
     @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/aceptar")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<OrderResponse> aceptarPropuestaTerminos(
+    public ResponseEntity<OrderResponse> acceptTermsProposal(
             @PathVariable Long id,
             @PathVariable Long idPropuesta,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.aceptarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.acceptTermsProposal(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
     /**
@@ -208,11 +208,11 @@ public class OrderController {
      */
     @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/rechazar")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<TermsProposalResponse> rechazarPropuestaTerminos(
+    public ResponseEntity<TermsProposalResponse> rejectTermsProposal(
             @PathVariable Long id,
             @PathVariable Long idPropuesta,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.rechazarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.rejectTermsProposal(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
     /**
@@ -224,11 +224,11 @@ public class OrderController {
      */
     @PutMapping("/{id}/propuestas-terminos/{idPropuesta}/cancelar")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<TermsProposalResponse> cancelarPropuestaTerminos(
+    public ResponseEntity<TermsProposalResponse> cancelTermsProposal(
             @PathVariable Long id,
             @PathVariable Long idPropuesta,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.cancelarPropuestaTerminos(id, idPropuesta, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.cancelTermsProposal(id, idPropuesta, userDetails.getIdUsuario()));
     }
 
     /**
@@ -239,10 +239,10 @@ public class OrderController {
      */
     @GetMapping("/{id}/historial")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<StatusHistoryResponse>> obtenerHistorial(
+    public ResponseEntity<List<StatusHistoryResponse>> getHistory(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.obtenerHistorial(id, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.getHistory(id, userDetails.getIdUsuario()));
     }
 
     /**
@@ -253,10 +253,10 @@ public class OrderController {
      */
     @GetMapping("/{id}/seguimiento")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<OrderTrackingResponse> obtenerSeguimiento(
+    public ResponseEntity<OrderTrackingResponse> getTracking(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(pedidoServicio.obtenerSeguimiento(id, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(pedidoServicio.getTracking(id, userDetails.getIdUsuario()));
     }
 
     // ── Inmutabilidad del Historial (RNF-13) ─────────────────────────────────
@@ -269,7 +269,7 @@ public class OrderController {
      * @return respuesta con estado 403 (Forbidden) y un mensaje explicativo
      */
     @DeleteMapping("/{id}/historial")
-    public ResponseEntity<RespuestaMensaje> bloquearDeleteHistorial(@PathVariable Long id) {
+    public ResponseEntity<RespuestaMensaje> blockDeleteHistory(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new RespuestaMensaje("Operacion no permitida sobre registros de auditoria"));
     }
@@ -281,7 +281,7 @@ public class OrderController {
      * @return respuesta con estado 403 (Forbidden) y un mensaje explicativo
      */
     @PatchMapping("/{id}/historial")
-    public ResponseEntity<RespuestaMensaje> bloquearPatchHistorial(@PathVariable Long id) {
+    public ResponseEntity<RespuestaMensaje> blockPatchHistory(@PathVariable Long id) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new RespuestaMensaje("Operacion no permitida sobre registros de auditoria"));
     }

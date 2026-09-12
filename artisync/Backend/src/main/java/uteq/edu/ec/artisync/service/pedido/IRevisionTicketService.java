@@ -17,7 +17,7 @@ public interface IRevisionTicketService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o el motivo indicado no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el cliente del pedido
      */
-    RevisionTicketResponse crearTicketRevision(Long idPedido, Long idCliente, CreateRevisionTicketRequest peticion);
+    RevisionTicketResponse createRevisionTicket(Long idPedido, Long idCliente, CreateRevisionTicketRequest peticion);
 
     /**
      * Lista los tickets de revisión asociados a un pedido.
@@ -27,7 +27,7 @@ public interface IRevisionTicketService {
      * @return los tickets de revisión del pedido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
-    List<RevisionTicketResponse> listarTicketsPorPedido(Long idPedido, Long idUsuarioSolicitante);
+    List<RevisionTicketResponse> listTicketsByOrder(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * Cambia el estado de un ticket de revisión. Solo puede hacerlo el creador
@@ -40,5 +40,5 @@ public interface IRevisionTicketService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el ticket no existe
      * @throws org.springframework.security.access.AccessDeniedException si el solicitante no es el creador del servicio ni tiene permiso de soporte/administración
      */
-    RevisionTicketResponse cambiarEstadoTicket(Long idTicket, Long idCreador, String nuevoEstado);
+    RevisionTicketResponse changeTicketStatus(Long idTicket, Long idCreador, String nuevoEstado);
 }

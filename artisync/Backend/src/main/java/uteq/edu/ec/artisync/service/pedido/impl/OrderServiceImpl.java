@@ -89,7 +89,7 @@ public class OrderServiceImpl implements IOrderService {
     @Auditable(accion = "PEDIDO_CREAR", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#resultado.idPedido",
             detalle = "{idServicio: #peticion.idServicio}")
-    public OrderResponse crearPedido(Long idCliente, CreateOrderRequest peticion) {
+    public OrderResponse createOrder(Long idCliente, CreateOrderRequest peticion) {
         User cliente = usuarioRepository.findById(idCliente)
                 .orElseThrow(() -> new ResourceNotFoundException("User cliente no encontrado"));
 
@@ -106,7 +106,7 @@ public class OrderServiceImpl implements IOrderService {
             throw new BusinessRuleException("No puedes crear un pedido para tu propio servicio");
         }
 
-        Workflow flujo = resolverFlujoDelServicio(servicio);
+        Workflow flujo = resolveServiceWorkflow(servicio);
 
         // Verificar que el flujo tenga etapas configuradas
         List<WorkflowStageConfig> etapas = flujoEtapaConfigRepository
@@ -123,7 +123,7 @@ public class OrderServiceImpl implements IOrderService {
         // a medias (el método completo sigue siendo @Transactional).
         BriefingTemplate plantillaBriefing = servicio.getBriefingPlantilla();
         if (plantillaBriefing != null) {
-            validarRespuestasBriefingCompletas(plantillaBriefing, peticion.getRespuestasBriefing());
+            validateBriefingAnswersComplete(plantillaBriefing, peticion.getRespuestasBriefing());
         }
 
         // Crear el pedido
@@ -140,7 +140,7 @@ public class OrderServiceImpl implements IOrderService {
         pedido = pedidoRepository.save(pedido);
 
         if (plantillaBriefing != null) {
-            registrarBriefingCompletado(pedido, plantillaBriefing, peticion.getRespuestasBriefing());
+            recordBriefingCompleted(pedido, plantillaBriefing, peticion.getRespuestasBriefing());
         }
 
         // Registrar estado inicial (primera etapa del flujo)
@@ -156,7 +156,7 @@ public class OrderServiceImpl implements IOrderService {
 
         // La sala se abre desde ya, antes de cualquier firma: así cliente y
         // creador pueden negociar precio/alcance por chat antes de
-        // comprometerse con un contrato (ver proponerTerminos). Antes solo
+        // comprometerse con un contrato (ver proposeTerms). Antes solo
         // se abría cuando ambas partes ya habían firmado.
         chatService.createRoom(pedido);
 
@@ -180,7 +180,7 @@ public class OrderServiceImpl implements IOrderService {
     @Transactional
     @Auditable(accion = "PEDIDO_PROPONER_TERMINOS", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
-    public TermsProposalResponse proponerTerminos(Long idPedido, Long idUsuario, CreateTermsProposalRequest peticion) {
+    public TermsProposalResponse proposeTerms(Long idPedido, Long idUsuario, CreateTermsProposalRequest peticion) {
         if (peticion.getPrecioPropuesto() == null && peticion.getFechaEntregaPropuesta() == null) {
             throw new BusinessRuleException("Debes indicar al menos un término a proponer");
         }
@@ -188,10 +188,10 @@ public class OrderServiceImpl implements IOrderService {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
 
-        User proponente = obtenerParteDelPedido(pedido, idUsuario,
+        User proponente = getOrderParty(pedido, idUsuario,
                 "No tienes permiso para proponer términos de este pedido");
 
-        validarContratoSinFirmar(idPedido);
+        validateContractUnsigned(idPedido);
 
         if (propuestaTerminosPedidoRepository.findByPedidoIdPedidoAndEstado(idPedido, OrderTermsProposal.PENDIENTE).isPresent()) {
             throw new BusinessRuleException(
@@ -209,11 +209,11 @@ public class OrderServiceImpl implements IOrderService {
         log.info("Order {} recibió propuesta de términos {} (usuario {}): precio={}, entrega={}",
                 idPedido, propuesta.getIdPropuesta(), idUsuario, propuesta.getPrecioPropuesto(), propuesta.getFechaEntregaPropuesta());
 
-        User otraParte = obtenerContraparte(pedido, idUsuario);
+        User otraParte = getCounterparty(pedido, idUsuario);
         notificacionService.notify(otraParte, "PEDIDO_PROPUESTA_TERMINOS_CREADA",
                 "Te proponen nuevos términos para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
 
-        return mapPropuesta(propuesta);
+        return mapProposal(propuesta);
     }
 
     /**
@@ -234,17 +234,17 @@ public class OrderServiceImpl implements IOrderService {
     @Transactional
     @Auditable(accion = "PEDIDO_ACEPTAR_PROPUESTA_TERMINOS", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido")
-    public OrderResponse aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
+    public OrderResponse acceptTermsProposal(Long idPedido, Long idPropuesta, Long idUsuario) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
-        OrderTermsProposal propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
+        OrderTermsProposal propuesta = getPendingProposalForOrder(idPedido, idPropuesta);
 
         if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {
             throw new BusinessRuleException("No puedes aceptar tu propia propuesta; debe hacerlo la otra parte");
         }
-        obtenerParteDelPedido(pedido, idUsuario, "No tienes permiso para aceptar esta propuesta");
+        getOrderParty(pedido, idUsuario, "No tienes permiso para aceptar esta propuesta");
 
-        validarContratoSinFirmar(idPedido);
+        validateContractUnsigned(idPedido);
 
         if (propuesta.getPrecioPropuesto() != null) {
             pedido.setPrecioPactado(propuesta.getPrecioPropuesto());
@@ -292,15 +292,15 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional
-    public TermsProposalResponse rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
+    public TermsProposalResponse rejectTermsProposal(Long idPedido, Long idPropuesta, Long idUsuario) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
-        OrderTermsProposal propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
+        OrderTermsProposal propuesta = getPendingProposalForOrder(idPedido, idPropuesta);
 
         if (propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {
             throw new BusinessRuleException("No puedes rechazar tu propia propuesta; debe hacerlo la otra parte");
         }
-        obtenerParteDelPedido(pedido, idUsuario, "No tienes permiso para rechazar esta propuesta");
+        getOrderParty(pedido, idUsuario, "No tienes permiso para rechazar esta propuesta");
 
         propuesta.setEstado(OrderTermsProposal.RECHAZADA);
         propuesta.setFechaResolucion(LocalDateTime.now());
@@ -311,7 +311,7 @@ public class OrderServiceImpl implements IOrderService {
         notificacionService.notify(propuesta.getPropuestoPor(), "PEDIDO_PROPUESTA_TERMINOS_RECHAZADA",
                 "Rechazaron tus términos propuestos para el pedido \"" + pedido.getServicio().getTituloServicio() + "\".");
 
-        return mapPropuesta(propuesta);
+        return mapProposal(propuesta);
     }
 
     /**
@@ -326,8 +326,8 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional
-    public TermsProposalResponse cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario) {
-        OrderTermsProposal propuesta = obtenerPropuestaPendienteDelPedido(idPedido, idPropuesta);
+    public TermsProposalResponse cancelTermsProposal(Long idPedido, Long idPropuesta, Long idUsuario) {
+        OrderTermsProposal propuesta = getPendingProposalForOrder(idPedido, idPropuesta);
 
         if (!propuesta.getPropuestoPor().getIdUsuario().equals(idUsuario)) {
             throw new BusinessRuleException("Solo quien propuso los términos puede cancelar la propuesta");
@@ -339,7 +339,7 @@ public class OrderServiceImpl implements IOrderService {
 
         log.info("Order {} canceló propuesta de términos {} (usuario {})", idPedido, idPropuesta, idUsuario);
 
-        return mapPropuesta(propuesta);
+        return mapProposal(propuesta);
     }
 
     /**
@@ -353,7 +353,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public TermsProposalResponse obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante) {
+    public TermsProposalResponse getPendingProposal(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
         OrderOwnershipValidator.validarPertenenciaOAdmin(pedido, idUsuarioSolicitante);
@@ -362,10 +362,10 @@ public class OrderServiceImpl implements IOrderService {
                 .findByPedidoIdPedidoAndEstado(idPedido, OrderTermsProposal.PENDIENTE)
                 .orElseThrow(() -> new ResourceNotFoundException("No hay ninguna propuesta de términos pendiente para el pedido con ID: " + idPedido));
 
-        return mapPropuesta(propuesta);
+        return mapProposal(propuesta);
     }
 
-    private OrderTermsProposal obtenerPropuestaPendienteDelPedido(Long idPedido, Long idPropuesta) {
+    private OrderTermsProposal getPendingProposalForOrder(Long idPedido, Long idPropuesta) {
         OrderTermsProposal propuesta = propuestaTerminosPedidoRepository.findById(idPropuesta)
                 .orElseThrow(() -> new ResourceNotFoundException("Propuesta no encontrada"));
         if (!propuesta.getPedido().getIdPedido().equals(idPedido)) {
@@ -377,7 +377,7 @@ public class OrderServiceImpl implements IOrderService {
         return propuesta;
     }
 
-    private User obtenerParteDelPedido(Order pedido, Long idUsuario, String mensajeError) {
+    private User getOrderParty(Order pedido, Long idUsuario, String mensajeError) {
         Long idCliente = pedido.getUsuarioCliente().getIdUsuario();
         Long idCreador = pedido.getServicio().getPerfil().getUsuario().getIdUsuario();
         if (idCliente.equals(idUsuario)) {
@@ -389,7 +389,7 @@ public class OrderServiceImpl implements IOrderService {
         throw new BusinessRuleException(mensajeError);
     }
 
-    private User obtenerContraparte(Order pedido, Long idUsuario) {
+    private User getCounterparty(Order pedido, Long idUsuario) {
         boolean esCliente = pedido.getUsuarioCliente().getIdUsuario().equals(idUsuario);
         return esCliente ? pedido.getServicio().getPerfil().getUsuario() : pedido.getUsuarioCliente();
     }
@@ -401,7 +401,7 @@ public class OrderServiceImpl implements IOrderService {
      * de que alguien firmó reescribiría en silencio lo que esa persona ya
      * aceptó.
      */
-    private void validarContratoSinFirmar(Long idPedido) {
+    private void validateContractUnsigned(Long idPedido) {
         contratoRepository.findByPedidoIdPedido(idPedido).ifPresent(contrato -> {
             if (contrato.getHashFirmaCreador() != null || contrato.getHashFirmaCliente() != null) {
                 throw new BusinessRuleException(
@@ -410,7 +410,7 @@ public class OrderServiceImpl implements IOrderService {
         });
     }
 
-    private TermsProposalResponse mapPropuesta(OrderTermsProposal propuesta) {
+    private TermsProposalResponse mapProposal(OrderTermsProposal propuesta) {
         User propuestoPor = propuesta.getPropuestoPor();
         return TermsProposalResponse.builder()
                 .idPropuesta(propuesta.getIdPropuesta())
@@ -437,7 +437,7 @@ public class OrderServiceImpl implements IOrderService {
      * tiene ninguno, al flujo por defecto global. La columna es nullable a
      * propósito para que un catálogo a medio configurar no impida vender.
      */
-    private Workflow resolverFlujoDelServicio(Offering servicio) {
+    private Workflow resolveServiceWorkflow(Offering servicio) {
         if (servicio.getFlujo() != null) {
             return servicio.getFlujo();
         }
@@ -447,7 +447,7 @@ public class OrderServiceImpl implements IOrderService {
                 .orElseGet(() -> {
                     log.warn("El servicio '{}' no tiene flujo asignado ni su creador tiene flujos propios; se usa el flujo por defecto",
                             servicio.getTituloServicio());
-                    return obtenerFlujoPorDefecto();
+                    return getDefaultWorkflow();
                 });
     }
 
@@ -461,7 +461,7 @@ public class OrderServiceImpl implements IOrderService {
      * frente al {@code findAll().get(0)} anterior es que la elección sea
      * determinista.
      */
-    private Workflow obtenerFlujoPorDefecto() {
+    private Workflow getDefaultWorkflow() {
         return flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()
                 .orElseThrow(() -> new BusinessRuleException(
                         "No hay flujos de trabajo configurados en el sistema"));
@@ -474,7 +474,7 @@ public class OrderServiceImpl implements IOrderService {
      * llama antes de persistir el pedido para que un cuestionario incompleto
      * rechace la creación completa, no solo el briefing.
      */
-    private void validarRespuestasBriefingCompletas(BriefingTemplate plantilla,
+    private void validateBriefingAnswersComplete(BriefingTemplate plantilla,
                                                       List<AnswerBriefingRequest.RespuestaItem> respuestas) {
         if (respuestas == null || respuestas.isEmpty()) {
             throw new BusinessRuleException(
@@ -500,7 +500,7 @@ public class OrderServiceImpl implements IOrderService {
      * pasos (BriefingServiceImpl.enviarBriefing + responderBriefing), que
      * dependía de que el creador lo disparara manualmente después.
      */
-    private void registrarBriefingCompletado(Order pedido, BriefingTemplate plantilla,
+    private void recordBriefingCompleted(Order pedido, BriefingTemplate plantilla,
                                               List<AnswerBriefingRequest.RespuestaItem> respuestas) {
         SentBriefing enviado = SentBriefing.builder()
                 .pedido(pedido)
@@ -535,7 +535,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public OrderResponse obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante) {
+    public OrderResponse getOrderById(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
         // OBS-08 / H-02: evita el acceso indebido (IDOR) a pedidos ajenos.
@@ -549,7 +549,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<OrderSummaryResponse> listarMisPedidos(Long idCliente) {
+    public List<OrderSummaryResponse> listMyOrders(Long idCliente) {
         return pedidoRepository.findByUsuarioClienteIdUsuario(idCliente)
                 .stream()
                 .map(this::mapToResumido)
@@ -562,7 +562,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<OrderSummaryResponse> listarMisComisiones(Long idCreador) {
+    public List<OrderSummaryResponse> listMyCommissions(Long idCreador) {
         return pedidoRepository.findByServicioPerfilUsuarioIdUsuario(idCreador)
                 .stream()
                 .map(this::mapToResumido)
@@ -580,8 +580,8 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public GeneratedDocument exportarMisPedidos(Long idCliente, ReportFormat formato, String correoSolicitante) {
-        return exportarResumen(listarMisPedidos(idCliente), "Mis pedidos", "Pedidos como cliente",
+    public GeneratedDocument exportMyOrders(Long idCliente, ReportFormat formato, String correoSolicitante) {
+        return exportSummary(listMyOrders(idCliente), "Mis pedidos", "Pedidos como cliente",
                 formato, correoSolicitante);
     }
 
@@ -598,9 +598,9 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public GeneratedDocument exportarMisComisiones(Long idCreador, List<Long> idsPedido, ReportFormat formato,
+    public GeneratedDocument exportMyCommissions(Long idCreador, List<Long> idsPedido, ReportFormat formato,
                                                      String correoSolicitante) {
-        List<OrderSummaryResponse> comisiones = listarMisComisiones(idCreador);
+        List<OrderSummaryResponse> comisiones = listMyCommissions(idCreador);
         if (idsPedido != null && !idsPedido.isEmpty()) {
             // 1.4: filtra sobre el propio listado del creador, así que un id
             // ajeno enviado por el cliente simplemente no matchea — no es una
@@ -610,11 +610,11 @@ public class OrderServiceImpl implements IOrderService {
                     .filter(c -> idsSolicitados.contains(c.getIdPedido()))
                     .collect(Collectors.toList());
         }
-        return exportarResumen(comisiones, "Mis comisiones", "Pedidos como creador",
+        return exportSummary(comisiones, "Mis comisiones", "Pedidos como creador",
                 formato, correoSolicitante);
     }
 
-    private GeneratedDocument exportarResumen(List<OrderSummaryResponse> filas, String titulo, String subtitulo,
+    private GeneratedDocument exportSummary(List<OrderSummaryResponse> filas, String titulo, String subtitulo,
                                                ReportFormat formato, String correoSolicitante) {
         if (filas.size() > formato.topeFilas()) {
             throw new BusinessRuleException(
@@ -661,7 +661,7 @@ public class OrderServiceImpl implements IOrderService {
     @Auditable(accion = "PEDIDO_AVANZAR_ETAPA", modulo = AuditModule.PEDIDOS,
             entidad = "pedidos", idEntidad = "#idPedido",
             detalle = "{observacion: #peticion.observacion}")
-    public OrderResponse avanzarEtapa(Long idPedido, Long idCreador, AdvanceStageRequest peticion) {
+    public OrderResponse advanceStage(Long idPedido, Long idCreador, AdvanceStageRequest peticion) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
 
@@ -680,7 +680,7 @@ public class OrderServiceImpl implements IOrderService {
         // Si ya no está en la configuración del flujo (p. ej. se borró la
         // etapa), no hay un "siguiente" seguro que calcular — tratarlo como
         // orden 0 avanzaría el pedido a la primera etapa en vez de fallar.
-        WorkflowStageConfig configActual = obtenerConfigActual(pedido, ultimoEstado);
+        WorkflowStageConfig configActual = getCurrentConfig(pedido, ultimoEstado);
         if (configActual == null) {
             throw new BusinessRuleException(
                     "La etapa actual del pedido ('" + ultimoEstado.getEtapa().getNombreEtapa()
@@ -736,7 +736,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<StatusHistoryResponse> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante) {
+    public List<StatusHistoryResponse> getHistory(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado con ID: " + idPedido));
         // Evita que cualquier autenticado lea el historial de un pedido ajeno.
@@ -744,7 +744,7 @@ public class OrderServiceImpl implements IOrderService {
 
         return historialRepository.findByPedidoIdPedidoOrderByFechaTransicionAsc(idPedido)
                 .stream()
-                .map(this::mapHistorial)
+                .map(this::mapHistory)
                 .collect(Collectors.toList());
     }
 
@@ -759,7 +759,7 @@ public class OrderServiceImpl implements IOrderService {
      */
     @Override
     @Transactional(readOnly = true)
-    public OrderTrackingResponse obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante) {
+    public OrderTrackingResponse getTracking(Long idPedido, Long idUsuarioSolicitante) {
         Order pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Order no encontrado"));
         // Evita que cualquier autenticado lea el seguimiento de un pedido ajeno.
@@ -807,8 +807,8 @@ public class OrderServiceImpl implements IOrderService {
                 .porcentajeProgreso(porcentaje)
                 .fechaUltimaActualizacion(ultimoEstado != null ? ultimoEstado.getFechaTransicion() : null)
                 .bloqueadoPorEntregable(bloqueadoPorEntregable)
-                .etapasDelFlujo(etapasConfig.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))
-                .historial(historial.stream().map(this::mapHistorial).collect(Collectors.toList()))
+                .etapasDelFlujo(etapasConfig.stream().map(this::mapStageConfig).collect(Collectors.toList()))
+                .historial(historial.stream().map(this::mapHistory).collect(Collectors.toList()))
                 .build();
     }
 
@@ -818,10 +818,10 @@ public class OrderServiceImpl implements IOrderService {
      * Null cuando la etapa del último historial ya no está en la
      * configuración del flujo (p. ej. alguien la borró mientras el pedido
      * estaba detenido ahí). Nunca debe tratarse como "orden 0": eso haría
-     * que avanzarEtapa tome la primera etapa del flujo como "siguiente" y el
+     * que advanceStage tome la primera etapa del flujo como "siguiente" y el
      * pedido retroceda en silencio.
      */
-    private WorkflowStageConfig obtenerConfigActual(Order pedido, OrderStatusHistory ultimoEstado) {
+    private WorkflowStageConfig getCurrentConfig(Order pedido, OrderStatusHistory ultimoEstado) {
         return flujoEtapaConfigRepository
                 .findByFlujoIdFlujoOrderByNumeroOrdenAsc(pedido.getFlujo().getIdFlujo())
                 .stream()
@@ -830,7 +830,7 @@ public class OrderServiceImpl implements IOrderService {
                 .orElse(null);
     }
 
-    private String obtenerEtapaActual(Long idPedido) {
+    private String getCurrentStage(Long idPedido) {
         return historialRepository.findTopByPedidoIdPedidoOrderByFechaTransicionDesc(idPedido)
                 .map(h -> h.getEtapa().getNombreEtapa())
                 .orElse("Sin estado");
@@ -840,7 +840,7 @@ public class OrderServiceImpl implements IOrderService {
         List<StatusHistoryResponse> historial = historialRepository
                 .findByPedidoIdPedidoOrderByFechaTransicionAsc(pedido.getIdPedido())
                 .stream()
-                .map(this::mapHistorial)
+                .map(this::mapHistory)
                 .collect(Collectors.toList());
 
         User creador = pedido.getServicio().getPerfil().getUsuario();
@@ -854,7 +854,7 @@ public class OrderServiceImpl implements IOrderService {
                 .idCreador(creador.getIdUsuario())
                 .nombreCreador(creador.getNombres() + " " + creador.getApellidos())
                 // 1.2: dato ya presente en `historial` (ordenado ASC), evita repetir
-                // la consulta que obtenerEtapaActual(idPedido) haría por separado.
+                // la consulta que getCurrentStage(idPedido) haría por separado.
                 .etapaActual(historial.isEmpty() ? "Sin estado" : historial.get(historial.size() - 1).getNombreEtapa())
                 .precioPactado(pedido.getPrecioPactado())
                 .fechaInicio(pedido.getFechaInicio())
@@ -870,7 +870,7 @@ public class OrderServiceImpl implements IOrderService {
         return OrderSummaryResponse.builder()
                 .idPedido(pedido.getIdPedido())
                 .tituloServicio(pedido.getServicio().getTituloServicio())
-                .etapaActual(obtenerEtapaActual(pedido.getIdPedido()))
+                .etapaActual(getCurrentStage(pedido.getIdPedido()))
                 .precioPactado(pedido.getPrecioPactado())
                 .fechaInicio(pedido.getFechaInicio())
                 .fechaEntregaEstimada(pedido.getFechaEntregaEstimada())
@@ -879,7 +879,7 @@ public class OrderServiceImpl implements IOrderService {
                 .build();
     }
 
-    private StatusHistoryResponse mapHistorial(OrderStatusHistory h) {
+    private StatusHistoryResponse mapHistory(OrderStatusHistory h) {
         return StatusHistoryResponse.builder()
                 .idHistorial(h.getIdHistorialEstado())
                 .nombreEtapa(h.getEtapa().getNombreEtapa())
@@ -888,7 +888,7 @@ public class OrderServiceImpl implements IOrderService {
                 .build();
     }
 
-    private StageConfigResponse mapEtapaConfig(WorkflowStageConfig config) {
+    private StageConfigResponse mapStageConfig(WorkflowStageConfig config) {
         return StageConfigResponse.builder()
                 .idFlujoEtapa(config.getIdFlujoEtapa())
                 .idEtapa(config.getEtapa().getIdEtapa())

@@ -19,7 +19,7 @@ public interface IWorkflowService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el creador ya tiene un flujo con el mismo nombre
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si las etapas iniciales tienen nombres o números de orden repetidos
      */
-    WorkflowResponse crearFlujoTrabajo(Long idUsuario, CreateWorkflowRequest peticion);
+    WorkflowResponse createWorkflow(Long idUsuario, CreateWorkflowRequest peticion);
 
     /** puedeVerTodos: el llamador tiene FLUJO_MODERAR (o es ADMIN) — ve los flujos de todos los creadores, no solo los suyos.
      *
@@ -27,7 +27,7 @@ public interface IWorkflowService {
      * @param puedeVerTodos si puede ver los flujos de todos los creadores
      * @return los flujos de trabajo visibles para el solicitante
      */
-    List<WorkflowResponse> listarFlujosTrabajo(Long idUsuario, boolean puedeVerTodos);
+    List<WorkflowResponse> listWorkflows(Long idUsuario, boolean puedeVerTodos);
 
     /**
      * Obtiene el detalle de un flujo de trabajo, con sus etapas configuradas.
@@ -38,7 +38,7 @@ public interface IWorkflowService {
      * @return el detalle del flujo de trabajo
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el solicitante
      */
-    WorkflowResponse obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos);
+    WorkflowResponse getWorkflowById(Long idFlujo, Long idUsuario, boolean puedeVerTodos);
 
     /**
      * Actualiza el nombre y descripción de un flujo de trabajo.
@@ -51,7 +51,7 @@ public interface IWorkflowService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo no existe o no es accesible para el solicitante
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si el dueño del flujo ya tiene otro flujo con el nuevo nombre
      */
-    WorkflowResponse actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, CreateWorkflowRequest peticion);
+    WorkflowResponse updateWorkflow(Long idFlujo, Long idUsuario, boolean puedeVerTodos, CreateWorkflowRequest peticion);
 
     /**
      * Agrega una nueva etapa a un flujo de trabajo existente.
@@ -65,7 +65,7 @@ public interface IWorkflowService {
      * @throws uteq.edu.ec.artisync.exception.DuplicateResourceException si la etapa ya existe en este flujo
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si ya hay una etapa con el mismo número de orden en el flujo
      */
-    WorkflowResponse agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion);
+    WorkflowResponse addStage(Long idFlujo, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion);
 
     /**
      * Actualiza la configuración (orden, si es final, si requiere entregable) de una etapa de un flujo.
@@ -79,7 +79,7 @@ public interface IWorkflowService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o la configuración de etapa no existen, o el flujo no es accesible
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece al flujo indicado o el nuevo orden ya está ocupado por otra etapa
      */
-    WorkflowResponse actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion);
+    WorkflowResponse updateStage(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion);
 
     /** Swap atómico de numeroOrden entre dos etapas — lo usa "mover etapa arriba/abajo".
      *
@@ -91,7 +91,7 @@ public interface IWorkflowService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el flujo o alguna de las configuraciones de etapa no existen, o el flujo no es accesible
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si se intenta intercambiar una etapa consigo misma o alguna etapa no pertenece al flujo indicado
      */
-    WorkflowResponse intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, SwapStagesRequest peticion);
+    WorkflowResponse swapStageOrder(Long idFlujo, Long idUsuario, boolean puedeVerTodos, SwapStagesRequest peticion);
 
     /**
      * Elimina una etapa de un flujo, siempre que ningún pedido esté actualmente detenido en ella.
@@ -103,5 +103,5 @@ public interface IWorkflowService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la configuración de etapa no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la etapa no pertenece al flujo o el solicitante no tiene permisos, o hay pedidos detenidos en esa etapa
      */
-    void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos);
+    void deleteStage(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos);
 }

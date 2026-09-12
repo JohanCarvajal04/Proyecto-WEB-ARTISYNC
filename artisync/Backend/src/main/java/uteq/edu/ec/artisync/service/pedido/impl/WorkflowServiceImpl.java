@@ -49,12 +49,12 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional
-    public WorkflowResponse crearFlujoTrabajo(Long idUsuario, CreateWorkflowRequest peticion) {
+    public WorkflowResponse createWorkflow(Long idUsuario, CreateWorkflowRequest peticion) {
         if (flujoTrabajoRepository.existsByNombreFlujoAndCreadorIdUsuario(peticion.getNombreFlujo(), idUsuario)) {
             throw new DuplicateResourceException("Ya existe un flujo de trabajo con el nombre: " + peticion.getNombreFlujo());
         }
 
-        validarEtapasSinDuplicados(peticion.getEtapas());
+        validateStagesNoDuplicates(peticion.getEtapas());
 
         uteq.edu.ec.artisync.entity.seguridad.User creador = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new ResourceNotFoundException("User no encontrado"));
@@ -70,7 +70,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
         // Crear etapas si se proporcionaron
         if (peticion.getEtapas() != null && !peticion.getEtapas().isEmpty()) {
             for (StageConfigRequest etapaReq : peticion.getEtapas()) {
-                WorkflowStage etapa = obtenerOCrearEtapa(etapaReq.getNombreEtapa());
+                WorkflowStage etapa = getOrCreateStage(etapaReq.getNombreEtapa());
 
                 WorkflowStageConfig config = WorkflowStageConfig.builder()
                         .flujo(flujo)
@@ -96,7 +96,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<WorkflowResponse> listarFlujosTrabajo(Long idUsuario, boolean puedeVerTodos) {
+    public List<WorkflowResponse> listWorkflows(Long idUsuario, boolean puedeVerTodos) {
         List<Workflow> flujos = puedeVerTodos
                 ? flujoTrabajoRepository.findAllByOrderByIdFlujoAsc()
                 : flujoTrabajoRepository.findByCreadorIdUsuario(idUsuario);
@@ -116,8 +116,8 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional(readOnly = true)
-    public WorkflowResponse obtenerFlujoPorId(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
-        return mapToRespuesta(buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos));
+    public WorkflowResponse getWorkflowById(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
+        return mapToRespuesta(findAccessibleWorkflow(idFlujo, idUsuario, puedeVerTodos));
     }
 
     /**
@@ -135,8 +135,8 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional
-    public WorkflowResponse actualizarFlujoTrabajo(Long idFlujo, Long idUsuario, boolean puedeVerTodos, CreateWorkflowRequest peticion) {
-        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+    public WorkflowResponse updateWorkflow(Long idFlujo, Long idUsuario, boolean puedeVerTodos, CreateWorkflowRequest peticion) {
+        Workflow flujo = findAccessibleWorkflow(idFlujo, idUsuario, puedeVerTodos);
 
         // La unicidad de nombre es por dueño real del flujo (V25:
         // UNIQUE(id_usuario_creador, nombre_flujo)), no por quien lo edita.
@@ -169,10 +169,10 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional
-    public WorkflowResponse agregarEtapa(Long idFlujo, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
-        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+    public WorkflowResponse addStage(Long idFlujo, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
+        Workflow flujo = findAccessibleWorkflow(idFlujo, idUsuario, puedeVerTodos);
 
-        WorkflowStage etapa = obtenerOCrearEtapa(peticion.getNombreEtapa());
+        WorkflowStage etapa = getOrCreateStage(peticion.getNombreEtapa());
 
         if (flujoEtapaConfigRepository.existsByFlujoIdFlujoAndEtapaIdEtapa(idFlujo, etapa.getIdEtapa())) {
             throw new DuplicateResourceException("La etapa '" + peticion.getNombreEtapa() + "' ya existe en este flujo");
@@ -215,8 +215,8 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional
-    public WorkflowResponse actualizarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
-        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+    public WorkflowResponse updateStage(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos, StageConfigRequest peticion) {
+        Workflow flujo = findAccessibleWorkflow(idFlujo, idUsuario, puedeVerTodos);
 
         WorkflowStageConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
                 .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
@@ -227,7 +227,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
 
         // Solo valida si el orden realmente cambia: alternarEtapaFinal reenvía
         // el mismo numeroOrden en cada toggle, y compararlo contra sí mismo
-        // siempre "colisionaría". Reordenar de verdad usa intercambiarOrdenEtapas,
+        // siempre "colisionaría". Reordenar de verdad usa swapStageOrder,
         // que hace el swap atómico — este chequeo es para llamadas directas a la
         // API que intenten mover una etapa a un orden ya ocupado por OTRA.
         if (!config.getNumeroOrden().equals(peticion.getNumeroOrden())
@@ -262,8 +262,8 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional
-    public WorkflowResponse intercambiarOrdenEtapas(Long idFlujo, Long idUsuario, boolean puedeVerTodos, SwapStagesRequest peticion) {
-        Workflow flujo = buscarFlujoAccesible(idFlujo, idUsuario, puedeVerTodos);
+    public WorkflowResponse swapStageOrder(Long idFlujo, Long idUsuario, boolean puedeVerTodos, SwapStagesRequest peticion) {
+        Workflow flujo = findAccessibleWorkflow(idFlujo, idUsuario, puedeVerTodos);
 
         if (peticion.getIdFlujoEtapaA().equals(peticion.getIdFlujoEtapaB())) {
             throw new BusinessRuleException("No se puede intercambiar una etapa consigo misma");
@@ -303,7 +303,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
      */
     @Override
     @Transactional
-    public void eliminarEtapa(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos) {
+    public void deleteStage(Long idFlujo, Long idFlujoEtapa, Long idUsuario, boolean puedeVerTodos) {
         WorkflowStageConfig config = flujoEtapaConfigRepository.findById(idFlujoEtapa)
                 .orElseThrow(() -> new ResourceNotFoundException("Configuracion de etapa no encontrada"));
 
@@ -328,7 +328,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
     // ── Métodos auxiliares ───────────────────────────────────────────────────
 
     /** Con puedeVerTodos=true (FLUJO_MODERAR/ADMIN) accede a cualquier flujo; si no, solo a los propios. */
-    private Workflow buscarFlujoAccesible(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
+    private Workflow findAccessibleWorkflow(Long idFlujo, Long idUsuario, boolean puedeVerTodos) {
         if (puedeVerTodos) {
             return flujoTrabajoRepository.findById(idFlujo)
                     .orElseThrow(() -> new ResourceNotFoundException("Flujo de trabajo no encontrado con ID: " + idFlujo));
@@ -342,10 +342,10 @@ public class WorkflowServiceImpl implements IWorkflowService {
      * mandar dos con el mismo nombre o el mismo numeroOrden. Un nombre
      * repetido reventaba con un 500 crudo al chocar contra el UNIQUE
      * (id_flujo, id_etapa) de flujo_etapas_config (V25); un numeroOrden
-     * repetido no tenía ninguna restricción y dejaba avanzarEtapa eligiendo
+     * repetido no tenía ninguna restricción y dejaba advanceStage eligiendo
      * entre etapas empatadas sin desempate determinista.
      */
-    private void validarEtapasSinDuplicados(List<StageConfigRequest> etapas) {
+    private void validateStagesNoDuplicates(List<StageConfigRequest> etapas) {
         if (etapas == null || etapas.isEmpty()) {
             return;
         }
@@ -367,7 +367,7 @@ public class WorkflowServiceImpl implements IWorkflowService {
         }
     }
 
-    private WorkflowStage obtenerOCrearEtapa(String nombreEtapa) {
+    private WorkflowStage getOrCreateStage(String nombreEtapa) {
         return etapaFlujoRepository.findByNombreEtapa(nombreEtapa)
                 .orElseGet(() -> {
                     WorkflowStage nueva = WorkflowStage.builder()
@@ -385,13 +385,13 @@ public class WorkflowServiceImpl implements IWorkflowService {
                 .idFlujo(flujo.getIdFlujo())
                 .nombreFlujo(flujo.getNombreFlujo())
                 .descripcionFlujo(flujo.getDescripcionFlujo())
-                .etapas(etapas.stream().map(this::mapEtapaConfig).collect(Collectors.toList()))
+                .etapas(etapas.stream().map(this::mapStageConfig).collect(Collectors.toList()))
                 .idUsuarioCreador(flujo.getCreador().getIdUsuario())
                 .nombreCreador(flujo.getCreador().getNombres() + " " + flujo.getCreador().getApellidos())
                 .build();
     }
 
-    private StageConfigResponse mapEtapaConfig(WorkflowStageConfig config) {
+    private StageConfigResponse mapStageConfig(WorkflowStageConfig config) {
         return StageConfigResponse.builder()
                 .idFlujoEtapa(config.getIdFlujoEtapa())
                 .idEtapa(config.getEtapa().getIdEtapa())

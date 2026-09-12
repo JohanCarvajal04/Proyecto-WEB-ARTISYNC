@@ -39,9 +39,9 @@ class RevisionTicketControllerTest {
         CustomUserDetails user = mockUserDetails();
         CreateRevisionTicketRequest peticion = new CreateRevisionTicketRequest();
         RevisionTicketResponse respuesta = new RevisionTicketResponse();
-        when(ticketRevisionServicio.crearTicketRevision(10L, 1L, peticion)).thenReturn(respuesta);
+        when(ticketRevisionServicio.createRevisionTicket(10L, 1L, peticion)).thenReturn(respuesta);
 
-        ResponseEntity<RevisionTicketResponse> res = controlador.crearTicket(10L, user, peticion);
+        ResponseEntity<RevisionTicketResponse> res = controlador.createTicket(10L, user, peticion);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(res.getBody()).isEqualTo(respuesta);
     }
@@ -50,9 +50,9 @@ class RevisionTicketControllerTest {
     void listarTickets_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         List<RevisionTicketResponse> lista = Collections.emptyList();
-        when(ticketRevisionServicio.listarTicketsPorPedido(10L, 1L)).thenReturn(lista);
+        when(ticketRevisionServicio.listTicketsByOrder(10L, 1L)).thenReturn(lista);
 
-        ResponseEntity<List<RevisionTicketResponse>> res = controlador.listarTickets(10L, user);
+        ResponseEntity<List<RevisionTicketResponse>> res = controlador.listTickets(10L, user);
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(lista);
     }
@@ -61,7 +61,7 @@ class RevisionTicketControllerTest {
     void cambiarEstado_devuelveOk() {
         CustomUserDetails user = mockUserDetails();
         RevisionTicketResponse respuesta = new RevisionTicketResponse();
-        when(ticketRevisionServicio.cambiarEstadoTicket(10L, 1L, "ABIERTO")).thenReturn(respuesta);
+        when(ticketRevisionServicio.changeTicketStatus(10L, 1L, "ABIERTO")).thenReturn(respuesta);
 
         ResponseEntity<RevisionTicketResponse> res = controlador.cambiarEstado(10L, user, "ABIERTO");
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);

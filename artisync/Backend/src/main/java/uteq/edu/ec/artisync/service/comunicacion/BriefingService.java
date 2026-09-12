@@ -10,7 +10,7 @@ import java.util.List;
  * Offering de briefing interactivo.
  * REQ-F-016 ampliado: el cuestionario se asigna a un servicio
  * (Offering.briefingPlantilla) y el Cliente lo responde al crear el pedido
- * (ver OrderServiceImpl.crearPedido), no con un envío manual posterior del
+ * (ver OrderServiceImpl.createOrder), no con un envío manual posterior del
  * Creador. Las respuestas son inmutables una vez creado el pedido.
  */
 public interface BriefingService {

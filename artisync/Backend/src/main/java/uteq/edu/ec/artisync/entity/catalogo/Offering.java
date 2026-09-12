@@ -92,7 +92,7 @@ public class Offering {
      * Cuestionario que el cliente debe responder al crear un pedido para este
      * servicio, entre las plantillas propias del creador. Nullable a
      * propósito: un servicio sin cuestionario asignado no pide nada extra al
-     * crear el pedido (ver OrderServiceImpl.crearPedido).
+     * crear el pedido (ver OrderServiceImpl.createOrder).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_briefing_plantilla")

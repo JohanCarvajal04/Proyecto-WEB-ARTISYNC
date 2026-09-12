@@ -26,7 +26,7 @@ public interface IOrderService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el cliente o el servicio no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si la identidad no está verificada, el cliente es dueño del servicio, el flujo no tiene etapas configuradas o falta responder el cuestionario
      */
-    OrderResponse crearPedido(Long idCliente, CreateOrderRequest peticion);
+    OrderResponse createOrder(Long idCliente, CreateOrderRequest peticion);
 
     /**
      * Obtiene el detalle de un pedido, validando que el solicitante sea parte
@@ -37,7 +37,7 @@ public interface IOrderService {
      * @return el detalle del pedido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
-    OrderResponse obtenerPedidoPorId(Long idPedido, Long idUsuarioSolicitante);
+    OrderResponse getOrderById(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * Lista, en formato resumido, los pedidos donde el usuario indicado actúa como cliente.
@@ -45,7 +45,7 @@ public interface IOrderService {
      * @param idCliente id del cliente
      * @return los pedidos del cliente, ordenados según el repositorio
      */
-    List<OrderSummaryResponse> listarMisPedidos(Long idCliente);
+    List<OrderSummaryResponse> listMyOrders(Long idCliente);
 
     /**
      * Lista, en formato resumido, los pedidos (comisiones) donde el usuario indicado actúa como creador.
@@ -53,7 +53,7 @@ public interface IOrderService {
      * @param idCreador id del creador
      * @return las comisiones del creador, ordenadas según el repositorio
      */
-    List<OrderSummaryResponse> listarMisComisiones(Long idCreador);
+    List<OrderSummaryResponse> listMyCommissions(Long idCreador);
 
     /**
      * Exportación "propia": el permiso lo da ya tener sesión como el cliente
@@ -67,7 +67,7 @@ public interface IOrderService {
      * @return el documento generado con el listado de pedidos del cliente
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
-    GeneratedDocument exportarMisPedidos(Long idCliente, ReportFormat formato, String correoSolicitante);
+    GeneratedDocument exportMyOrders(Long idCliente, ReportFormat formato, String correoSolicitante);
 
     /**
      * 1.4 (INFORME-REVISION-COMPLETA.md): {@code idsPedido} nulo o vacío exporta
@@ -83,7 +83,7 @@ public interface IOrderService {
      * @return el documento generado con el listado de comisiones del creador
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el listado excede el tope de filas admitido por el formato
      */
-    GeneratedDocument exportarMisComisiones(Long idCreador, List<Long> idsPedido, ReportFormat formato, String correoSolicitante);
+    GeneratedDocument exportMyCommissions(Long idCreador, List<Long> idsPedido, ReportFormat formato, String correoSolicitante);
 
     /**
      * Avanza el pedido a la siguiente etapa del flujo de trabajo configurado,
@@ -97,13 +97,13 @@ public interface IOrderService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el solicitante no es el creador del servicio, la etapa actual ya no está en el flujo, exige un entregable pendiente o el pedido ya está en la etapa final
      */
-    OrderResponse avanzarEtapa(Long idPedido, Long idCreador, AdvanceStageRequest peticion);
+    OrderResponse advanceStage(Long idPedido, Long idCreador, AdvanceStageRequest peticion);
 
     /**
      * Propone un precio y/o fecha de entrega final, negociados por chat,
      * antes de que el contrato tenga alguna firma. Puede llamarlo el cliente
      * o el creador del pedido. El cambio no se aplica al pedido hasta que la
-     * contraparte lo acepte con {@link #aceptarPropuestaTerminos}.
+     * contraparte lo acepte con {@link #acceptTermsProposal}.
      *
      * @param idPedido  id del pedido sobre el que se proponen los términos
      * @param idUsuario id del usuario que propone (cliente o creador del pedido)
@@ -112,7 +112,7 @@ public interface IOrderService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si no se indica ningún término, el usuario no es parte del pedido, el contrato ya tiene alguna firma o ya existe una propuesta pendiente
      */
-    TermsProposalResponse proponerTerminos(Long idPedido, Long idUsuario, CreateTermsProposalRequest peticion);
+    TermsProposalResponse proposeTerms(Long idPedido, Long idUsuario, CreateTermsProposalRequest peticion);
 
     /**
      * Solo la contraparte del proponente puede aceptar. Aplica los valores
@@ -126,7 +126,7 @@ public interface IOrderService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o la propuesta no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario es el propio proponente, no es parte del pedido, el contrato ya tiene alguna firma o la propuesta ya fue resuelta
      */
-    OrderResponse aceptarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
+    OrderResponse acceptTermsProposal(Long idPedido, Long idPropuesta, Long idUsuario);
 
     /**
      * Solo la contraparte del proponente puede rechazar. No modifica el pedido.
@@ -138,7 +138,7 @@ public interface IOrderService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido o la propuesta no existen
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario es el propio proponente, no es parte del pedido o la propuesta ya fue resuelta
      */
-    TermsProposalResponse rechazarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
+    TermsProposalResponse rejectTermsProposal(Long idPedido, Long idPropuesta, Long idUsuario);
 
     /**
      * Solo el propio proponente puede cancelar su propuesta pendiente.
@@ -150,7 +150,7 @@ public interface IOrderService {
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si la propuesta no existe
      * @throws uteq.edu.ec.artisync.exception.BusinessRuleException si el usuario no es quien propuso los términos o la propuesta ya fue resuelta
      */
-    TermsProposalResponse cancelarPropuestaTerminos(Long idPedido, Long idPropuesta, Long idUsuario);
+    TermsProposalResponse cancelTermsProposal(Long idPedido, Long idPropuesta, Long idUsuario);
 
     /**
      * Lanza ResourceNotFoundException si no hay ninguna propuesta pendiente.
@@ -160,7 +160,7 @@ public interface IOrderService {
      * @return la propuesta de términos actualmente pendiente
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe o no hay ninguna propuesta pendiente
      */
-    TermsProposalResponse obtenerPropuestaPendiente(Long idPedido, Long idUsuarioSolicitante);
+    TermsProposalResponse getPendingProposal(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * Obtiene el historial completo de transiciones de etapa de un pedido, en orden cronológico.
@@ -170,7 +170,7 @@ public interface IOrderService {
      * @return el historial de estados del pedido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
-    List<StatusHistoryResponse> obtenerHistorial(Long idPedido, Long idUsuarioSolicitante);
+    List<StatusHistoryResponse> getHistory(Long idPedido, Long idUsuarioSolicitante);
 
     /**
      * Obtiene una vista de seguimiento del pedido: etapa actual, progreso
@@ -181,5 +181,5 @@ public interface IOrderService {
      * @return el resumen de seguimiento del pedido
      * @throws uteq.edu.ec.artisync.exception.ResourceNotFoundException si el pedido no existe
      */
-    OrderTrackingResponse obtenerSeguimiento(Long idPedido, Long idUsuarioSolicitante);
+    OrderTrackingResponse getTracking(Long idPedido, Long idUsuarioSolicitante);
 }

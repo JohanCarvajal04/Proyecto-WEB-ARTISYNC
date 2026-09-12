@@ -99,7 +99,7 @@ class OrderServiceImplWorkflowTest {
         lenient().when(verificacionServicio.estaIdentidadVerificada(anyLong())).thenReturn(true);
     }
 
-    /** Configura etapas para el flujo indicado, que es lo que exige crearPedido. */
+    /** Configura etapas para el flujo indicado, que es lo que exige createOrder. */
     private void conEtapas(Workflow flujo) {
         WorkflowStage etapa = WorkflowStage.builder().idEtapa(1L).nombreEtapa("Briefing").build();
         WorkflowStageConfig config = WorkflowStageConfig.builder()
@@ -115,7 +115,7 @@ class OrderServiceImplWorkflowTest {
         servicio.setFlujo(flujoDelServicio);
         conEtapas(flujoDelServicio);
 
-        pedidoServicio.crearPedido(1L, peticion);
+        pedidoServicio.createOrder(1L, peticion);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         verify(pedidoRepository).save(captor.capture());
@@ -130,7 +130,7 @@ class OrderServiceImplWorkflowTest {
         given(flujoTrabajoRepository.findFirstByCreadorIdUsuarioOrderByIdFlujoAsc(ID_CREADOR))
                 .willReturn(Optional.of(flujoDelCreador));
 
-        pedidoServicio.crearPedido(1L, peticion);
+        pedidoServicio.createOrder(1L, peticion);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         verify(pedidoRepository).save(captor.capture());
@@ -147,7 +147,7 @@ class OrderServiceImplWorkflowTest {
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc())
                 .willReturn(Optional.of(flujoPorDefecto));
 
-        pedidoServicio.crearPedido(1L, peticion);
+        pedidoServicio.createOrder(1L, peticion);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         verify(pedidoRepository).save(captor.capture());
@@ -165,7 +165,7 @@ class OrderServiceImplWorkflowTest {
                 .willReturn(Optional.empty());
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()).willReturn(Optional.of(conOtroNombre));
 
-        pedidoServicio.crearPedido(1L, peticion);
+        pedidoServicio.createOrder(1L, peticion);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         verify(pedidoRepository).save(captor.capture());
@@ -180,7 +180,7 @@ class OrderServiceImplWorkflowTest {
                 .willReturn(Optional.empty());
         given(flujoTrabajoRepository.findFirstByOrderByIdFlujoAsc()).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
+        assertThatThrownBy(() -> pedidoServicio.createOrder(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("No hay flujos de trabajo configurados");
     }
@@ -192,7 +192,7 @@ class OrderServiceImplWorkflowTest {
         given(flujoEtapaConfigRepository.findByFlujoIdFlujoOrderByNumeroOrdenAsc(anyLong()))
                 .willReturn(List.of());
 
-        assertThatThrownBy(() -> pedidoServicio.crearPedido(1L, peticion))
+        assertThatThrownBy(() -> pedidoServicio.createOrder(1L, peticion))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Flujo ilustracion");
     }

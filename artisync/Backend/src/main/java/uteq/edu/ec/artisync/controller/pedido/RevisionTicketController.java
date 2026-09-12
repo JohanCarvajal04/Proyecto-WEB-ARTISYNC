@@ -34,12 +34,12 @@ public class RevisionTicketController {
      */
     @PostMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("hasAuthority('TICKET_REVISAR') or hasRole('ADMIN')")
-    public ResponseEntity<RevisionTicketResponse> crearTicket(
+    public ResponseEntity<RevisionTicketResponse> createTicket(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateRevisionTicketRequest peticion) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ticketRevisionServicio.crearTicketRevision(idPedido, userDetails.getIdUsuario(), peticion));
+                .body(ticketRevisionServicio.createRevisionTicket(idPedido, userDetails.getIdUsuario(), peticion));
     }
 
     /**
@@ -52,10 +52,10 @@ public class RevisionTicketController {
      */
     @GetMapping("/pedidos/{idPedido}/tickets-revision")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<RevisionTicketResponse>> listarTickets(
+    public ResponseEntity<List<RevisionTicketResponse>> listTickets(
             @PathVariable Long idPedido,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(ticketRevisionServicio.listarTicketsPorPedido(idPedido, userDetails.getIdUsuario()));
+        return ResponseEntity.ok(ticketRevisionServicio.listTicketsByOrder(idPedido, userDetails.getIdUsuario()));
     }
 
     /**
@@ -74,6 +74,6 @@ public class RevisionTicketController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String nuevoEstado) {
         return ResponseEntity.ok(
-                ticketRevisionServicio.cambiarEstadoTicket(idTicket, userDetails.getIdUsuario(), nuevoEstado));
+                ticketRevisionServicio.changeTicketStatus(idTicket, userDetails.getIdUsuario(), nuevoEstado));
     }
 }
