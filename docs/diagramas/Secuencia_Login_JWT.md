@@ -24,7 +24,7 @@ sequenceDiagram
     participant TwoFa as TwoFactorServiceImpl
     participant UDS as CustomUserDetailsService
     participant JwtSvc as JwtService
-    participant SessionRepo as SesionUsuarioRepository
+    participant SessionRepo as UserSessionRepository
     participant Filter as JwtAuthenticationFilter
     participant Revoke as SessionRevocationService
     participant Redis
@@ -37,7 +37,7 @@ sequenceDiagram
         AuthSvc->>UDS: loadUserByUsername(email)
         AuthSvc->>JwtSvc: generarToken() / generarRefreshToken()
         JwtSvc-->>AuthSvc: accessToken, refreshToken
-        AuthSvc->>SessionRepo: save(SesionUsuario)
+        AuthSvc->>SessionRepo: save(UserSession)
         AuthSvc-->>Client: 200 OK + Set-Cookie refreshToken
     else 2FA enabled
         AuthSvc->>Ticket: emitir(idUsuario, email)
@@ -52,7 +52,7 @@ sequenceDiagram
         AuthSvc->>UDS: loadUserByUsername(email)
         AuthSvc->>JwtSvc: generarToken() / generarRefreshToken()
         JwtSvc-->>AuthSvc: accessToken, refreshToken
-        AuthSvc->>SessionRepo: save(SesionUsuario)
+        AuthSvc->>SessionRepo: save(UserSession)
         AuthSvc-->>Client: 200 OK + Set-Cookie refreshToken
     end
 
@@ -88,7 +88,7 @@ sequenceDiagram
 
 ---
 
-## Detalle por escenario (referencia, no exportado como figura independiente)
+## Per-scenario detail (reference only, not exported as a standalone figure)
 
 ### 1. Login without 2FA, and per-request JWT validation
 
@@ -98,11 +98,11 @@ sequenceDiagram
     participant AuthCtrl as AuthController
     participant AuthSvc as AuthServiceImpl
     participant AuthMgr as AuthenticationManager
-    participant Quota as IntentosAutenticacionService
-    participant UserRepo as UsuarioRepository
+    participant Quota as AuthAttemptsService
+    participant UserRepo as UserRepository
     participant UDS as CustomUserDetailsService
     participant JwtSvc as JwtService
-    participant SessionRepo as SesionUsuarioRepository
+    participant SessionRepo as UserSessionRepository
     participant Filter as JwtAuthenticationFilter
     participant Redis
 
@@ -125,7 +125,7 @@ sequenceDiagram
         JwtSvc-->>AuthSvc: accessToken (jti, type=access)
         AuthSvc->>JwtSvc: generarRefreshToken(userDetails)
         JwtSvc-->>AuthSvc: refreshToken (jti)
-        AuthSvc->>SessionRepo: save(SesionUsuario)
+        AuthSvc->>SessionRepo: save(UserSession)
         SessionRepo-->>AuthSvc: persisted
         AuthSvc-->>AuthCtrl: accessToken, refreshToken
         AuthCtrl-->>Client: 200 OK + Set-Cookie refreshToken
@@ -157,12 +157,12 @@ sequenceDiagram
     actor Client
     participant AuthCtrl as AuthController
     participant AuthSvc as AuthServiceImpl
-    participant UserRepo as UsuarioRepository
+    participant UserRepo as UserRepository
     participant Ticket as PreAuth2faTicketService
     participant TwoFa as TwoFactorServiceImpl
     participant UDS as CustomUserDetailsService
     participant JwtSvc as JwtService
-    participant SessionRepo as SesionUsuarioRepository
+    participant SessionRepo as UserSessionRepository
 
     Client->>AuthCtrl: POST /auth/login (email, password)
     AuthCtrl->>AuthSvc: login(request)
@@ -190,7 +190,7 @@ sequenceDiagram
         UDS-->>AuthSvc: UserDetails
         AuthSvc->>JwtSvc: generarToken() / generarRefreshToken()
         JwtSvc-->>AuthSvc: accessToken, refreshToken
-        AuthSvc->>SessionRepo: save(SesionUsuario)
+        AuthSvc->>SessionRepo: save(UserSession)
         AuthSvc-->>AuthCtrl: accessToken, refreshToken
         AuthCtrl-->>Client: 200 OK + Set-Cookie refreshToken
     end
@@ -203,7 +203,7 @@ sequenceDiagram
     actor Client
     participant AuthCtrl as AuthController
     participant AuthSvc as AuthServiceImpl
-    participant SessionRepo as SesionUsuarioRepository
+    participant SessionRepo as UserSessionRepository
     participant JwtSvc as JwtService
     participant Revoke as SessionRevocationService
     participant Redis

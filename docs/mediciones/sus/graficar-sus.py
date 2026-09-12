@@ -30,10 +30,10 @@ plt.boxplot(puntajes, patch_artist=True,
             boxprops=dict(facecolor='lightblue', color='blue'), 
             medianprops=dict(color='red', linewidth=2),
             flierprops=dict(markerfacecolor='r', marker='o'))
-plt.title("Distribución de Puntuaciones SUS (n=16)")
-plt.ylabel("Puntuación (0-100)")
+plt.title("Distribution of SUS Scores (n=16)")
+plt.ylabel("Score (0-100)")
 plt.ylim(0, 105)
-plt.axhline(y=68, color='green', linestyle='--', label='Umbral de Aceptación (68)')
+plt.axhline(y=68, color='green', linestyle='--', label='Acceptance Threshold (68)')
 plt.legend()
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()

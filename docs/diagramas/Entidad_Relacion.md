@@ -1,250 +1,550 @@
-# Diagrama Entidad-Relación - Artisync PFC (Backend)
+﻿# Diagrama Entidad-Relación - Artisync PFC (Backend)
 
 Este documento contiene el diagrama Entidad-Relación (ER) del modelo de dominio del
-backend de Artisync, construido a partir de las clases `@Entity` reales en
-`artisync/Backend/src/main/java/uteq/edu/ec/artisync/entity/`, agrupadas por los 7
-módulos de negocio (`seguridad`, `perfil`, `catalogo`, `pedido`, `legal`,
-`comunicacion`, `social`) más `auditoria`.
+backend de Artisync, construido a partir de las clases @Entity reales en
+rtisync/Backend/src/main/java/uteq/edu/ec/artisync/entity/.
 
-Los nombres de entidad y atributo están en inglés, con el nombre real de la clase Java
-y el paquete entre paréntesis para trazabilidad. La entidad `EventoAuditoria`
-(auditoria) queda deliberadamente sin relaciones de clave foránea en el modelo — su
-campo `idUsuarioActor` es un `Long` plano por diseño, no una omisión.
+**Nota sobre idiomas:** Las clases de dominio (Entity) en el código fuente de Java están en **inglés** (ej. User, Country, Role), por lo que los bloques del diagrama utilizan estos nombres. Sin embargo, los atributos internos y las columnas mapeadas a la base de datos están en **español** (ej. idUsuario, 
+ombres, pellidos), lo cual se refleja fielmente en los campos de cada entidad.
 
-> Reemplaza a `docs/diagramas/diagrama-clases.md`, que contenía un `classDiagram`
-> desactualizado (referenciaba entidades ya eliminadas del código como `Habilidad` o
-> `TokenRecuperacion`). Este archivo es la fuente vigente.
-
-```mermaid
+`mermaid
 erDiagram
-    %% seguridad
-    COUNTRY ||--o{ USER : "has"
-    USER ||--o{ USER_ROLE : "has"
-    ROLE ||--o{ USER_ROLE : "has"
-    ROLE }o--o{ PERMISSION : "grants"
-    USER ||--o{ USER_SESSION : "opens"
-    USER ||--o| TWO_FACTOR_AUTH : "configures"
-    USER ||--o{ BACKUP_CODE_2FA : "has"
-
-    %% perfil
-    USER ||--o| CREATOR_PROFILE : "owns"
-    CREATOR_PROFILE ||--o| PORTFOLIO : "has"
-    PORTFOLIO ||--o{ PORTFOLIO_ITEM : "contains"
-    USER ||--o{ AI_CERTIFICATE : "requests"
-    VERIFICATION_STATUS ||--o{ AI_CERTIFICATE : "qualifies"
-    USER ||--o| CREATOR_PAYMENT_DATA : "registers"
-
-    %% catalogo
-    USER ||--o{ CATEGORY : "creates"
-    CATEGORY ||--o{ SUBCATEGORY : "groups"
-    SUBCATEGORY }o--o{ SERVICE : "classifies"
-    CREATOR_PROFILE ||--o{ SERVICE : "publishes"
-    WORKFLOW ||--o{ SERVICE : "drives"
-    USER ||--o{ WORKFLOW : "creates"
-
-    %% pedido
-    USER ||--o{ ORDER : "requests"
-    SERVICE ||--o{ ORDER : "is ordered as"
-    WORKFLOW ||--o{ ORDER : "governs"
-    WORKFLOW ||--o{ WORKFLOW_STAGE_CONFIG : "configures"
-    WORKFLOW_STAGE ||--o{ WORKFLOW_STAGE_CONFIG : "defines"
-    ORDER ||--o{ ORDER_STATUS_HISTORY : "logs"
-    WORKFLOW_STAGE ||--o{ ORDER_STATUS_HISTORY : "records"
-    ORDER ||--o{ REVIEW_TICKET : "raises"
-    REJECTION_REASON ||--o{ REVIEW_TICKET : "explains"
-    ORDER ||--o{ ORDER_TERMS_PROPOSAL : "renegotiates"
-    USER ||--o{ ORDER_TERMS_PROPOSAL : "proposes"
-
-    %% legal
-    ORDER ||--o| CONTRACT : "formalizes"
-    CONTRACT_TEMPLATE ||--o{ CONTRACT : "instantiates"
-    CONTRACT ||--o| ESCROW_PAYMENT : "secures"
-    ESCROW_PAYMENT ||--o{ PAYMENT_TRANSACTION : "records"
-    ORDER ||--o| CHAT_ROOM : "opens"
-    CHAT_ROOM ||--o{ MESSAGE : "contains"
-    USER ||--o{ MESSAGE : "sends"
-    ORDER ||--o{ FINAL_DELIVERABLE : "produces"
-    USER ||--o{ WITHDRAWAL_REQUEST : "submits"
-
-    %% comunicacion
-    CREATOR_PROFILE ||--o{ BRIEFING_TEMPLATE : "defines"
-    BRIEFING_TEMPLATE ||--o{ BRIEFING_QUESTION : "asks"
-    ORDER ||--o| SUBMITTED_BRIEFING : "onboards with"
-    BRIEFING_TEMPLATE ||--o{ SUBMITTED_BRIEFING : "instantiates"
-    SUBMITTED_BRIEFING ||--o{ BRIEFING_ANSWER : "collects"
-    BRIEFING_QUESTION ||--o{ BRIEFING_ANSWER : "answers"
-    PORTFOLIO_ITEM ||--o{ PORTFOLIO_COMMENT : "receives"
-    PORTFOLIO_ITEM ||--o{ PORTFOLIO_LIKE : "receives"
-    USER ||--o{ PORTFOLIO_COMMENT : "writes"
-    USER ||--o{ PORTFOLIO_LIKE : "gives"
-    USER ||--o{ MESSAGE_INFRACTION : "commits"
-    ORDER ||--o{ MESSAGE_INFRACTION : "occurs in"
-    USER ||--o{ SYSTEM_NOTIFICATION : "receives"
-    NOTIFICATION_TYPE ||--o{ SYSTEM_NOTIFICATION : "classifies"
-    USER ||--o{ FOLLOWER : "follows as"
-    CREATOR_PROFILE ||--o{ FOLLOWER : "is followed by"
-
-    %% social
-    CREATOR_PROFILE ||--o{ RAFFLE : "hosts"
-    RAFFLE ||--o{ RAFFLE_PRIZE : "offers"
-    RAFFLE ||--o{ RAFFLE_PARTICIPANT : "has"
-    USER ||--o{ RAFFLE_PARTICIPANT : "joins as"
-    RAFFLE_PRIZE ||--o| RAFFLE_PARTICIPANT : "wins"
-    ORDER ||--o| SERVICE_REVIEW : "is reviewed via"
-    USER ||--o{ SERVICE_REVIEW : "authors"
-
-    COUNTRY {
-        Long idPais PK
-        string nombrePais
+    CreatorProfile ||--o{ Offering : "profile"
+    Workflow ||--o{ Offering : "workflow"
+    ContractTemplate ||--o{ Offering : "contractTemplate"
+    BriefingTemplate ||--o{ Offering : "briefingTemplate"
+    Offering ||--o{ OfferingAttribute : "offering"
+    DynamicAttribute ||--o{ OfferingAttribute : "attribute"
+    Offering ||--o{ OfferingSubcategory : "offering"
+    Subcategory ||--o{ OfferingSubcategory : "subcategory"
+    Offering ||--o{ OfferingTag : "offering"
+    Tag ||--o{ OfferingTag : "tag"
+    Category ||--o{ Subcategory : "category"
+    SentBriefing ||--o{ BriefingAnswer : "sentBriefing"
+    BriefingQuestion ||--o{ BriefingAnswer : "question"
+    BriefingTemplate ||--o{ BriefingQuestion : "template"
+    CreatorProfile ||--o{ BriefingTemplate : "creatorProfile"
+    User ||--o{ Follower : "followerUser"
+    CreatorProfile ||--o{ Follower : "creatorProfile"
+    User ||--o{ MessageViolation : "user"
+    Order ||--o{ MessageViolation : "order"
+    PortfolioItem ||--o{ PortfolioComment : "portfolioItem"
+    User ||--o{ PortfolioComment : "authorUser"
+    PortfolioItem ||--o{ PortfolioLike : "portfolioItem"
+    User ||--o{ PortfolioLike : "user"
+    Order ||--o{ SentBriefing : "order"
+    BriefingTemplate ||--o{ SentBriefing : "template"
+    User ||--o{ SystemNotification : "user"
+    NotificationType ||--o{ SystemNotification : "notificationType"
+    Order ||--o{ ChatRoom : "order"
+    Order ||--o{ Contract : "order"
+    ContractTemplate ||--o{ Contract : "template"
+    Contract ||--o{ EscrowPayment : "contract"
+    Order ||--o{ FinalDeliverable : "order"
+    ChatRoom ||--o{ Message : "room"
+    User ||--o{ Message : "sender"
+    EscrowPayment ||--o{ PaymentTransaction : "payment"
+    RevisionTicket ||--o{ RevisionTicketPayment : "ticket"
+    User ||--o{ WithdrawalRequest : "creatorUser"
+    User ||--o{ WithdrawalRequest : "adminDecider"
+    User ||--o{ Order : "clientUser"
+    Offering ||--o{ Order : "offering"
+    Workflow ||--o{ Order : "workflow"
+    Order ||--o{ OrderStatusHistory : "order"
+    WorkflowStage ||--o{ OrderStatusHistory : "stage"
+    Order ||--o{ OrderTermsProposal : "order"
+    User ||--o{ OrderTermsProposal : "proposedBy"
+    Order ||--o{ RevisionTicket : "order"
+    RejectionReason ||--o{ RevisionTicket : "reason"
+    Workflow ||--o{ WorkflowStageConfig : "workflow"
+    WorkflowStage ||--o{ WorkflowStageConfig : "stage"
+    User ||--o{ AiCertificate : "user"
+    VerificationStatus ||--o{ AiCertificate : "verificationStatus"
+    User ||--o{ AiCertificate : "moderator"
+    User ||--o{ CreatorPaymentDetails : "user"
+    User ||--o{ CreatorProfile : "user"
+    CreatorProfile ||--o{ Portfolio : "profile"
+    Portfolio ||--o{ PortfolioItem : "portfolio"
+    BackupSchedule ||--o{ Backup : "schedule"
+    User ||--o{ TwoFactorAuthentication : "user"
+    User ||--o{ TwoFactorBackupCode : "user"
+    Country ||--o{ User : "country"
+    User ||--o{ UserRole : "user"
+    Role ||--o{ UserRole : "role"
+    User ||--o{ UserSession : "user"
+    Order ||--o{ OfferingReview : "order"
+    CreatorProfile ||--o{ Raffle : "creatorProfile"
+    Raffle ||--o{ RaffleParticipant : "raffle"
+    User ||--o{ RaffleParticipant : "user"
+    RafflePrize ||--o{ RaffleParticipant : "prize"
+    Raffle ||--o{ RafflePrize : "raffle"
+    AuditEvent {
+        Long idEventoAuditoria PK
+        LocalDateTime fechaEvento
+        Long idUsuarioActor PK
+        String correoActor
+        String moduloAuditoria
+        String accionAuditoria
+        String resultadoEvento
+        String entidadAfectada
+        Long idEntidadAfectada PK
+        Json detalleCambio
+        String mensajeError
+        String direccionIp
+        String agenteUsuario
+        String metodoHttp
+        String rutaSolicitud
+        Integer duracionMs
     }
-    USER {
-        Long idUsuario PK
-        string nombres
-        string apellidos
-        string correo UK
-        string contrasenaHash
-        datetime fechaRegistro
-    }
-    ROLE {
-        Long idRol PK
-        string nombre
-    }
-    PERMISSION {
-        Long idPermiso PK
-        string nombre
-    }
-    USER_SESSION {
-        Long idSesion PK
-        string jti UK
-        datetime fechaExpiracion
-    }
-    TWO_FACTOR_AUTH {
-        Long idUsuario PK,FK
-        string llaveSecreta
-        boolean estaHabilitado
-    }
-    CREATOR_PROFILE {
-        Long idPerfil PK
-        Long idUsuario FK
-        string biografia
-        string tituloProfesional
-    }
-    PORTFOLIO_ITEM {
-        Long idItem PK
-        Long idPortafolio FK
-    }
-    CATEGORY {
+    Category {
         Long idCategoria PK
-        string nombre
+        String nombreCategoria
     }
-    SUBCATEGORY {
-        Long idSubcategoria PK
-        Long idCategoria FK
+    DynamicAttribute {
+        Long idAtributo PK
+        String nombreAtributo
+        String tipoDato
     }
-    SERVICE {
+    Offering {
         Long idServicio PK
-        Long idPerfilCreador FK
-        Long idFlujoTrabajo FK
-        string titulo
-        decimal precio
+        Long perfilId FK
+        String tituloServicio
+        String descripcionDetallada
+        BigDecimal precioBase
+        String urlMiniatura
+        Long flujoId FK
+        Long plantillaContratoId FK
+        Long briefingPlantillaId FK
     }
-    WORKFLOW {
-        Long idFlujoTrabajo PK
-        Long idUsuarioCreador FK
+    OfferingAttribute {
+        Long idServicioAtributo PK
+        Long servicioId FK
+        Long atributoId FK
+        String valorAsignado
     }
-    ORDER {
-        Long idPedido PK
-        Long idUsuarioCliente FK
-        Long idServicio FK
-        string estado
+    OfferingSubcategory {
+        Long idServicioSubcategoria PK
+        Long servicioId FK
+        Long subcategoriaId FK
     }
-    CONTRACT {
-        Long idContrato PK
-        Long idPedido FK
-        Long idPlantilla FK
+    OfferingTag {
+        Long idServicioEtiqueta PK
+        Long servicioId FK
+        Long etiquetaId FK
     }
-    ESCROW_PAYMENT {
-        Long idPagoGarantia PK
-        Long idContrato FK
-        decimal monto
+    Subcategory {
+        Long idSubcategoria PK
+        Long categoriaId FK
+        String nombreSubcategoria
     }
-    CHAT_ROOM {
+    Tag {
+        Long idEtiqueta PK
+        String nombreEtiqueta
+    }
+    Workflow {
+        Long idFlujo PK
+        String nombreFlujo
+        String descripcionFlujo
+    }
+    BriefingAnswer {
+        Long idRespuesta PK
+        Long briefingEnviadoId FK
+        Long preguntaId FK
+        String textoRespuesta
+        LocalDateTime fechaRespuesta
+    }
+    BriefingQuestion {
+        Long idPregunta PK
+        Long plantillaId FK
+        String textoPregunta
+        Integer numeroOrden
+    }
+    BriefingTemplate {
+        Long idBriefingPlantilla PK
+        Long perfilCreadorId FK
+        String nombrePlantilla
+        LocalDateTime fechaCreacion
+    }
+    Follower {
+        Long idSeguimiento PK
+        Long usuarioSeguidorId FK
+        Long perfilCreadorId FK
+        LocalDateTime fechaSeguimiento
+    }
+    MessageViolation {
+        Long idInfraccion PK
+        Long usuarioId FK
+        Long pedidoId FK
+        String mensajeOriginal
+        String patronDetectado
+        LocalDateTime fechaInfraccion
+    }
+    NotificationType {
+        Long idTipoNotificacion PK
+        String nombreEvento
+        String formatoMensaje
+    }
+    PortfolioComment {
+        Long idComentario PK
+        Long itemPortafolioId FK
+        Long usuarioAutorId FK
+        String textoComentario
+        LocalDateTime fechaPublicacion
+    }
+    PortfolioLike {
+        Long idLike PK
+        Long itemPortafolioId FK
+        Long usuarioId FK
+        LocalDateTime fechaLike
+    }
+    SentBriefing {
+        Long idBriefingEnviado PK
+        Long pedidoId FK
+        Long plantillaId FK
+        LocalDateTime fechaEnvio
+    }
+    SystemNotification {
+        Long idNotificacion PK
+        Long usuarioId FK
+        Long tipoNotificacionId FK
+        String mensaje
+        LocalDateTime fechaEmision
+    }
+    ChatRoom {
         Long idSala PK
-        Long idPedido FK
+        Long pedidoId FK
+        LocalDateTime fechaApertura
     }
-    MESSAGE {
-        Long idMensaje PK
-        Long idSala FK
-        Long idRemitente FK
+    Contract {
+        Long idContrato PK
+        Long pedidoId FK
+        Long plantillaId FK
+        String hashFirmaCliente
+        String hashFirmaCreador
+        LocalDateTime fechaFormalizacion
+        String urlDocumentoPdf
+        String contenidoCongelado
+        String hashContenido
+        LocalDateTime fechaHashContenido
+        LocalDateTime fechaLimiteRetencion
     }
-    FINAL_DELIVERABLE {
+    EscrowPayment {
+        Long idPago PK
+        Long contratoId FK
+        String idOrdenPaypal PK
+        BigDecimal montoRetenido
+        String mensajeError
+        LocalDateTime fechaCreacion
+        LocalDateTime fechaActualizacion
+    }
+    FinalDeliverable {
         Long idEntregable PK
-        Long idPedido FK
-        string urlArchivo
+        Long pedidoId FK
+        String urlVersionMarcaAgua
+        String urlVersionLimpia
     }
-    SERVICE_REVIEW {
+    Message {
+        Long idMensaje PK
+        Long salaId FK
+        Long remitenteId FK
+        String cuerpoMensaje
+        LocalDateTime fechaHoraEnvio
+    }
+    PaymentTransaction {
+        Long idTransaccion PK
+        Long pagoId FK
+        String tipoTransaccion
+        BigDecimal monto
+        LocalDateTime fechaEjecucion
+    }
+    RevisionTicketPayment {
+        Long idPagoTicket PK
+        Long ticketId FK
+        String idOrdenPaypal PK
+        String urlAprobacion
+        BigDecimal monto
+        String mensajeError
+        LocalDateTime fechaCreacion
+        LocalDateTime fechaActualizacion
+    }
+    WithdrawalRequest {
+        Long idSolicitud PK
+        Long usuarioCreadorId FK
+        BigDecimal montoSolicitado
+        String correoPaypalDestino
+        String idPayoutPaypal PK
+        String idItemPayoutPaypal PK
+        String notaAdmin
+        String mensajeError
+        LocalDateTime fechaSolicitud
+        LocalDateTime fechaDecision
+        LocalDateTime fechaPago
+        Long adminDecisorId FK
+    }
+    ContractTemplate {
+        Long idPlantilla PK
+        String versionLegal
+        String cuerpoHtmlPlantilla
+        String nombrePlantilla
+        Long idCreador PK
+    }
+    Order {
+        Long idPedido PK
+        Long usuarioClienteId FK
+        Long servicioId FK
+        Long flujoId FK
+        LocalDateTime fechaInicio
+        LocalDateTime fechaEntregaEstimada
+        BigDecimal precioPactado
+    }
+    OrderStatusHistory {
+        Long idHistorialEstado PK
+        Long pedidoId FK
+        Long etapaId FK
+        LocalDateTime fechaTransicion
+        String observacion
+    }
+    OrderTermsProposal {
+        Long idPropuesta PK
+        Long pedidoId FK
+        Long propuestoPorId FK
+        BigDecimal precioPropuesto
+        LocalDateTime fechaEntregaPropuesta
+        LocalDateTime fechaCreacion
+        LocalDateTime fechaResolucion
+    }
+    RejectionReason {
+        Long idMotivo PK
+        String descripcionMotivo
+    }
+    RevisionTicket {
+        Long idTicket PK
+        Long pedidoId FK
+        Long motivoId FK
+        String descripcionCliente
+        LocalDateTime fechaCreacion
+    }
+    WorkflowStage {
+        Long idEtapa PK
+        String nombreEtapa
+    }
+    WorkflowStageConfig {
+        Long idFlujoEtapa PK
+        Long flujoId FK
+        Long etapaId FK
+        Integer numeroOrden
+    }
+    AiCertificate {
+        Long idCertificado PK
+        Long usuarioId FK
+        Long estadoVerificacionId FK
+        String urlDocumentoS3
+        BigDecimal puntajeConfianzaIa
+        String hashDocumento
+        String veredictoIa
+        String razonIa
+        String datosExtraidosIa
+        LocalDateTime fechaDictamenIa
+        Long moderadorId FK
+        LocalDateTime fechaDecision
+        String notaModerador
+        LocalDateTime fechaAnalisis
+    }
+    CreatorPaymentDetails {
+        Long idDatosPago PK
+        Long usuarioId FK
+        String correoPaypal
+        LocalDateTime fechaActualizacion
+    }
+    CreatorProfile {
+        Long idPerfil PK
+        Long usuarioId FK
+        String biografia
+        String urlRedSocial
+        String urlPortada
+        String tituloProfesional
+    }
+    Portfolio {
+        Long idPortafolio PK
+        Long perfilId FK
+        LocalDateTime fechaCreacion
+    }
+    PortfolioItem {
+        Long idItemPortafolio PK
+        Long portafolioId FK
+        String tituloObra
+        String descripcionObra
+        String urlArchivoMultimedia
+        LocalDateTime fechaSubida
+    }
+    VerificationStatus {
+        Long idEstadoVerificacion PK
+        String nombreEstado
+    }
+    Backup {
+        Long idRespaldo PK
+        BackupType tipoRespaldo
+        BackupOrigin origen
+        Long programacionId FK
+        Long idRespaldoFullBase PK
+        String nombreArchivo
+        String rutaArchivo
+        Long tamanoBytes
+        LocalDateTime fechaInicio
+        LocalDateTime fechaFin
+        Integer duracionMs
+        String mensajeError
+        String correoSolicitante
+        LocalDateTime fechaDesdeIncremental
+    }
+    BackupSchedule {
+        Long idProgramacion PK
+        String nombre
+        BackupType tipoRespaldo
+        String expresionCron
+        Integer retencionDias
+        LocalDateTime proximaEjecucion
+        LocalDateTime ultimaEjecucion
+        String creadoPor
+        LocalDateTime fechaCreacion
+        LocalDateTime actualizadoEn
+    }
+    Country {
+        Long idPais PK
+        String nombrePais
+    }
+    Permission {
+        Long idPermiso PK
+        String nombrePermiso
+        String moduloAplicacion
+    }
+    Role {
+        Long idRol PK
+        String nombreRol
+        String descripcionRol
+    }
+    TwoFactorAuthentication {
+        Long id2fa PK
+        Long usuarioId FK
+        String llaveSecreta
+    }
+    TwoFactorBackupCode {
+        Long idCodigo PK
+        Long usuarioId FK
+        String codigoHash
+    }
+    User {
+        Long idUsuario PK
+        String nombres
+        String apellidos
+        String correo
+        String contrasenaHash
+        Long paisId FK
+        LocalDateTime fechaRegistro
+        LocalDateTime actualizadoEn
+        LocalDate fechaNacimiento
+        String urlFotoPerfil
+    }
+    UserRole {
+        Long idUsuarioRol PK
+        Long usuarioId FK
+        Long rolId FK
+    }
+    UserSession {
+        Long idSesion PK
+        Long usuarioId FK
+        String jti
+        String direccionIp
+        LocalDateTime fechaCreacion
+        LocalDateTime fechaExpiracion
+    }
+    OfferingReview {
         Long idResena PK
-        Long idPedido FK
-        Long idAutor FK
-        int calificacion
+        Long pedidoId FK
+        Integer calificacionEstrellas
+        String textoResena
+        LocalDateTime fechaResena
     }
-    EVENTO_AUDITORIA {
-        Long idEvento PK
-        Long idUsuarioActor "sin FK, por diseño"
-        string accion
-        datetime fechaEvento
+    Raffle {
+        Long idSorteo PK
+        Long perfilCreadorId FK
+        String tituloSorteo
+        LocalDateTime fechaInicio
+        LocalDateTime fechaCierre
     }
-```
+    RaffleParticipant {
+        Long idParticipacion PK
+        Long sorteoId FK
+        Long usuarioId FK
+        LocalDateTime fechaInscripcion
+        LocalDateTime fechaNotificacionPremio
+        Long premioId FK
+    }
+    RafflePrize {
+        Long idPremio PK
+        Long sorteoId FK
+        String descripcionPremio
+        Integer orden
+    }
+`
 
-## Mapeo de nombres (inglés → clase Java real)
+## Mapeo de Entidades
 
-| Entidad en el diagrama | Clase Java (paquete) |
+| Entidad en el diagrama | Clase Java |
 | :--- | :--- |
-| COUNTRY | `Pais` (seguridad) |
-| USER | `Usuario` (seguridad) |
-| ROLE | `Rol` (seguridad) |
-| PERMISSION | `Permiso` (seguridad) |
-| USER_ROLE | `UsuarioRol` (seguridad) |
-| USER_SESSION | `SesionUsuario` (seguridad) |
-| TWO_FACTOR_AUTH | `AutenticacionDosFactores` (seguridad) |
-| BACKUP_CODE_2FA | `CodigoRespaldo2Fa` (seguridad) |
-| CREATOR_PROFILE | `PerfilCreador` (perfil) |
-| PORTFOLIO | `Portafolio` (perfil) |
-| PORTFOLIO_ITEM | `PortafolioItem` (perfil) |
-| VERIFICATION_STATUS | `EstadoVerificacion` (perfil) |
-| AI_CERTIFICATE | `CertificadoIa` (perfil) |
-| CREATOR_PAYMENT_DATA | `DatosPagoCreador` (perfil) |
-| CATEGORY | `Categoria` (catalogo) |
-| SUBCATEGORY | `Subcategoria` (catalogo) |
-| SERVICE | `Servicio` (catalogo) |
-| WORKFLOW | `FlujoTrabajo` (catalogo) |
-| ORDER | `Pedido` (pedido) |
-| WORKFLOW_STAGE | `EtapaFlujo` (pedido) |
-| WORKFLOW_STAGE_CONFIG | `FlujoEtapaConfig` (pedido) |
-| ORDER_STATUS_HISTORY | `HistorialEstadoPedido` (pedido) |
-| REJECTION_REASON | `MotivoRechazo` (pedido) |
-| REVIEW_TICKET | `TicketRevision` (pedido) |
-| ORDER_TERMS_PROPOSAL | `PropuestaTerminosPedido` (pedido) |
-| CONTRACT_TEMPLATE | `PlantillaContrato` (pedido) |
-| CONTRACT | `Contrato` (legal) |
-| ESCROW_PAYMENT | `PagoGarantia` (legal) |
-| PAYMENT_TRANSACTION | `TransaccionPago` (legal) |
-| CHAT_ROOM | `SalaChat` (legal) |
-| MESSAGE | `Mensaje` (legal) |
-| FINAL_DELIVERABLE | `EntregableFinal` (legal) |
-| WITHDRAWAL_REQUEST | `SolicitudRetiro` (legal) |
-| BRIEFING_TEMPLATE | `BriefingPlantilla` (comunicacion) |
-| BRIEFING_QUESTION | `BriefingPregunta` (comunicacion) |
-| SUBMITTED_BRIEFING | `BriefingEnviado` (comunicacion) |
-| BRIEFING_ANSWER | `BriefingRespuesta` (comunicacion) |
-| PORTFOLIO_COMMENT | `ComentarioPortafolio` (comunicacion) |
-| PORTFOLIO_LIKE | `LikePortafolio` (comunicacion) |
-| MESSAGE_INFRACTION | `InfraccionMensaje` (comunicacion) |
-| SYSTEM_NOTIFICATION | `NotificacionSistema` (comunicacion) |
-| NOTIFICATION_TYPE | `TipoNotificacion` (comunicacion) |
-| FOLLOWER | `Seguidor` (comunicacion) |
-| RAFFLE | `Sorteo` (social) |
-| RAFFLE_PRIZE | `PremioSorteo` (social) |
-| RAFFLE_PARTICIPANT | `ParticipanteSorteo` (social) |
-| SERVICE_REVIEW | `ResenaServicio` (social) |
-| EVENTO_AUDITORIA | `EventoAuditoria` (auditoria) |
+| AiCertificate | AiCertificate.java |
+| AuditEvent | AuditEvent.java |
+| Backup | Backup.java |
+| BackupSchedule | BackupSchedule.java |
+| BriefingAnswer | BriefingAnswer.java |
+| BriefingQuestion | BriefingQuestion.java |
+| BriefingTemplate | BriefingTemplate.java |
+| Category | Category.java |
+| ChatRoom | ChatRoom.java |
+| Contract | Contract.java |
+| ContractTemplate | ContractTemplate.java |
+| Country | Country.java |
+| CreatorPaymentDetails | CreatorPaymentDetails.java |
+| CreatorProfile | CreatorProfile.java |
+| DynamicAttribute | DynamicAttribute.java |
+| EscrowPayment | EscrowPayment.java |
+| FinalDeliverable | FinalDeliverable.java |
+| Follower | Follower.java |
+| Message | Message.java |
+| MessageViolation | MessageViolation.java |
+| NotificationType | NotificationType.java |
+| Offering | Offering.java |
+| OfferingAttribute | OfferingAttribute.java |
+| OfferingReview | OfferingReview.java |
+| OfferingSubcategory | OfferingSubcategory.java |
+| OfferingTag | OfferingTag.java |
+| Order | Order.java |
+| OrderStatusHistory | OrderStatusHistory.java |
+| OrderTermsProposal | OrderTermsProposal.java |
+| PaymentTransaction | PaymentTransaction.java |
+| Permission | Permission.java |
+| Portfolio | Portfolio.java |
+| PortfolioComment | PortfolioComment.java |
+| PortfolioItem | PortfolioItem.java |
+| PortfolioLike | PortfolioLike.java |
+| Raffle | Raffle.java |
+| RaffleParticipant | RaffleParticipant.java |
+| RafflePrize | RafflePrize.java |
+| RejectionReason | RejectionReason.java |
+| RevisionTicket | RevisionTicket.java |
+| RevisionTicketPayment | RevisionTicketPayment.java |
+| Role | Role.java |
+| SentBriefing | SentBriefing.java |
+| Subcategory | Subcategory.java |
+| SystemNotification | SystemNotification.java |
+| Tag | Tag.java |
+| TwoFactorAuthentication | TwoFactorAuthentication.java |
+| TwoFactorBackupCode | TwoFactorBackupCode.java |
+| User | User.java |
+| UserRole | UserRole.java |
+| UserSession | UserSession.java |
+| VerificationStatus | VerificationStatus.java |
+| WithdrawalRequest | WithdrawalRequest.java |
+| Workflow | Workflow.java |
+| WorkflowStage | WorkflowStage.java |
+| WorkflowStageConfig | WorkflowStageConfig.java |

@@ -82,13 +82,13 @@ en el diagrama PRISMA (Figura~\ref{fig:prisma}).
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[node distance=1.5cm, every node/.style={rectangle, draw, align=center, text width=6cm, minimum height=1cm}]
-  \node (ident) {Identificaci\'on en bases de datos\\(n = 145)};
-  \node (screen) [below of=ident, yshift=-0.5cm] {Cribado por t\'itulo y abstract\\(n = 62)};
-  \node (elig) [below of=screen, yshift=-0.5cm] {Evaluaci\'on a texto completo\\(n = 21)};
-  \node (incl) [below of=elig, yshift=-0.5cm] {Estudios incluidos\\(n = 8)};
-  
-  \node (exc1) [right of=screen, xshift=5cm] {Excluidos (irrelevantes)\\ (n = 83)};
-  \node (exc2) [right of=elig, xshift=5cm] {Excluidos (sin aporte t\'ecnico)\\ (n = 41)};
+  \node (ident) {Identification in databases\\(n = 145)};
+  \node (screen) [below of=ident, yshift=-0.5cm] {Screening by title and abstract\\(n = 62)};
+  \node (elig) [below of=screen, yshift=-0.5cm] {Full-text assessment\\(n = 21)};
+  \node (incl) [below of=elig, yshift=-0.5cm] {Studies included\\(n = 8)};
+
+  \node (exc1) [right of=screen, xshift=5cm] {Excluded (not relevant)\\ (n = 83)};
+  \node (exc2) [right of=elig, xshift=5cm] {Excluded (no technical contribution)\\ (n = 41)};
   
   \draw[->] (ident) -- (screen);
   \draw[->] (ident) -| (exc1);
