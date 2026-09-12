@@ -2,6 +2,56 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com), adaptado a requisitos de software.
 
+## [v1.3.11] - 2026-09-11 — Rationale/Aceptación completos en 19 requisitos heredados; se limpia la prosa del SRS de nombres de clase obsoletos
+
+### Added — Rationale y Aceptación en 19 requisitos que carecían de ambos campos
+
+La observación M4 de la ronda de revisión externa señalaba que el corpus heredado no traía
+`Rationale` ni `Aceptación` en todos los requisitos; una corrección previa cerró esto para los
+funcionales (REQ-F-004 a 023) pero no se verificó contra los no funcionales. Al reanalizar el
+corpus completo se confirmó que **19 requisitos** aún usaban el formato compacto de una sola
+línea sin esos dos campos: REQ-NF-001a, 001b, 001c, 002 a 017 (16 heredados/v1.1.2) y REQ-F-020
+(un funcional que también se había quedado atrás, sin `Aceptación`). Se les aplicó la misma
+plantilla que ya usan REQ-F-024 en adelante y REQ-NF-018 en adelante: enunciado, luego
+`Rationale`, `Prioridad`, `Aceptación`, `Verificación` y `Estado` en bullets separados,
+preservando textualmente el valor de `Estado` y toda nota entre paréntesis ya existente.
+
+Se verificó empíricamente, antes de aplicar el cambio a los 19, que reformatear de la línea
+compacta a bullets separados no rompe la sincronización de estado que exige
+`validate-traceability.sh` (el script extrae el estado línea por línea, no por bloque completo):
+se probó en un requisito, se corrió el validador, y se revirtió la prueba antes de aplicar el
+cambio real.
+
+### Fixed — prosa del SRS con nombres de clase en español, obsoletos desde el refactor i18n de hoy
+
+Al completar los campos anteriores se encontraron y corrigieron ~20 citas adicionales de clases
+en español dentro de la prosa del SRS (secciones 1.6, 3, 4 y 7) que el mapeo de `[v1.3.9]`
+nunca tocó porque ese mapeo solo cubrió `matriz.csv`, no el texto narrativo del SRS. Entre ellas:
+`PayPalWebhookControlador`→`PayPalWebhookController`, `RespaldoServicioImpl`→
+`BackupServiceImpl`, `ContratoControlador`→`ContractController`, `EntregableControlador`/
+`PagoControlador`→`DeliverableController`/`PaymentController`, `PerfilCreadorControlador`→
+`CreatorProfileController`, `PagoTicketRevisionServicioImpl`→`RevisionTicketPaymentServiceImpl`,
+`PdfGeneracionServicioImpl`→`PdfGenerationServiceImpl`, `ContratoServicioImpl`→
+`ContractServiceImpl`, `AdminInfraccionControlador`→`AdminViolationController`,
+`ReconciliacionPayPalScheduler`/`ReconciliacionPayPalEjecutorServicio`→
+`PayPalReconciliationScheduler`/`PayPalReconciliationExecutorService`,
+`TicketRevisionExpiracionScheduler`→`RevisionTicketExpirationScheduler`,
+`ContratoIntegridadScheduler`→`ContractIntegrityScheduler`, y las de §1.6 (`PedidoServicioImpl`,
+`EntregableServicioImpl`, `SolicitudRetiroServicioImpl`, `PagoServicioImpl`,
+`FlujoTrabajoServicioImpl`). Se dejaron intactas las menciones que SÍ siguen vigentes bajo su
+nombre en español (`ContratoPdfTimingIT`, `PrivacidadServiceImplIT`, `CategoriaAutorizacionTest`
+— confirmado contra el árbol fuente que esas clases de prueba `*IT`/puntuales no fueron
+alcanzadas por el refactor i18n) y la mención histórica a `AuditControlador` en la nota de
+corrección de `[v1.3.10]`, que describe deliberadamente una clase ya eliminada.
+
+Verificado tras ambos cambios: los 62 requisitos tienen ahora los 5 campos completos
+(`Rationale`, `Prioridad`, `Aceptación`, `Verificación`, `Estado`); ninguna clase en español
+sigue citada en el SRS salvo las tres excepciones legítimas arriba señaladas. El estado de cada
+requisito no cambió: 53 `verificado`, 9 `implementado`, 0 `pendiente`, idéntico a antes de esta
+entrada.
+
+`bash scripts/validate-traceability.sh`: 0 errores, 62/62.
+
 ## [v1.3.10] - 2026-09-11 — REQ-NF-013: se retira la cita huérfana a `AuditControlador`, muerta desde el 2026-08-26
 
 ### Fixed — REQ-NF-013 citaba una clase y un endpoint que llevaban más de dos semanas eliminados

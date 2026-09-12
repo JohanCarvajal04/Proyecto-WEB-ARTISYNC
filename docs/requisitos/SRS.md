@@ -68,15 +68,15 @@ La sección 2 describe el producto y sus actores. La sección 3 detalla los requ
 
 Construido por lectura directa de los enums, constantes y lógica de transición reales del backend — no por inferencia de nombres plausibles. Varias suposiciones razonables resultaron incorrectas al verificarlas (ver notas por entidad); se documenta el resultado real.
 
-**Pedido — sin catálogo fijo de etapas.** A diferencia de lo que podría asumirse, `Pedido` no tiene una columna de estado ni un enum de etapas: la etapa vigente se deriva de la fila más reciente en `historial_estados_pedido` (histórico, solo inserción — `PATCH`/`DELETE` sobre él responden 403 por REQ-NF-013). Las etapas mismas (`EtapaFlujo.nombreEtapa`) son texto libre, únicas globalmente, y cualquiera que gestione un flujo de trabajo puede crear nombres nuevos (`FlujoTrabajoServicioImpl.obtenerOCrearEtapa`); su orden y cuál es la etapa final se definen por `FlujoEtapaConfig.numeroOrden` (entero) y `esEtapaFinal` (booleano, que en la práctica solo se usa para mostrar, no para bloquear — el corte real de "última etapa" es el número de orden más alto). Transición: `PedidoServicioImpl.avanzarEtapa` exige que, si la etapa actual tiene `requiereEntregable=true`, exista un `EntregableFinal`, y avanza a la siguiente por `numeroOrden`; sin etapa siguiente, rechaza ("El pedido ya se encuentra en la etapa final"). **No existe ninguna función de cancelar un pedido** — se verificó explícitamente (cero resultados para cualquier método `cancelarPedido` en el código). Por separado existe `PropuestaTerminosPedido`, una entidad distinta con su propio enum real (`PENDIENTE`, `ACEPTADA`, `RECHAZADA`, `CANCELADA`) para negociar precio/fecha antes del pedido — no debe confundirse con las etapas del pedido mismo.
+**Pedido — sin catálogo fijo de etapas.** A diferencia de lo que podría asumirse, `Pedido` no tiene una columna de estado ni un enum de etapas: la etapa vigente se deriva de la fila más reciente en `historial_estados_pedido` (histórico, solo inserción — `PATCH`/`DELETE` sobre él responden 403 por REQ-NF-013). Las etapas mismas (`EtapaFlujo.nombreEtapa`) son texto libre, únicas globalmente, y cualquiera que gestione un flujo de trabajo puede crear nombres nuevos (`WorkflowServiceImpl.obtenerOCrearEtapa`); su orden y cuál es la etapa final se definen por `FlujoEtapaConfig.numeroOrden` (entero) y `esEtapaFinal` (booleano, que en la práctica solo se usa para mostrar, no para bloquear — el corte real de "última etapa" es el número de orden más alto). Transición: `OrderServiceImpl.avanzarEtapa` exige que, si la etapa actual tiene `requiereEntregable=true`, exista un `EntregableFinal`, y avanza a la siguiente por `numeroOrden`; sin etapa siguiente, rechaza ("El pedido ya se encuentra en la etapa final"). **No existe ninguna función de cancelar un pedido** — se verificó explícitamente (cero resultados para cualquier método `cancelarPedido` en el código). Por separado existe `PropuestaTerminosPedido`, una entidad distinta con su propio enum real (`PENDIENTE`, `ACEPTADA`, `RECHAZADA`, `CANCELADA`) para negociar precio/fecha antes del pedido — no debe confundirse con las etapas del pedido mismo.
 
-> **Corrección (v1.3.0):** el enunciado de REQ-F-014 decía antes "se cierra al llegar a Entregado o Cancelado". Verificado contra `ChatServiceImpl.cerrarSala`: su único invocador es `EntregableServicioImpl.aprobarEntrega` (aprobación del entregable). No existe ninguna ruta de cancelación de pedido que la invoque, porque esa función no existe. El enunciado se corrigió para reflejar solo el comportamiento real.
+> **Corrección (v1.3.0):** el enunciado de REQ-F-014 decía antes "se cierra al llegar a Entregado o Cancelado". Verificado contra `ChatServiceImpl.cerrarSala`: su único invocador es `DeliverableServiceImpl.aprobarEntrega` (aprobación del entregable). No existe ninguna ruta de cancelación de pedido que la invoque, porque esa función no existe. El enunciado se corrigió para reflejar solo el comportamiento real.
 
-**Solicitud de retiro** (`SolicitudRetiroServicioImpl`) — enum real de 5 valores (constantes `String`, no `@Enumerated`): `Pendiente`, `Aprobado`, `Pagado`, `Rechazado`, `Fallido`. Transiciones: `solicitar` (Creador) → `Pendiente`; `aprobar` (Auditor Financiero/Admin) ejecuta el payout de PayPal y bifurca por su resultado: `SUCCESS` → `Pagado`, `PENDING`/`PROCESSING` → `Aprobado`, cualquier otro resultado o excepción → `Fallido`; `rechazar` (con nota obligatoria) → `Rechazado`; `reintentar` solo aplica desde `Fallido` y repite la misma bifurcación. Nota de diseño: no existe ningún mecanismo (webhook o *poller*) que haga avanzar automáticamente una solicitud `Aprobado` a `Pagado` — depende de una acción administrativa manual adicional.
+**Solicitud de retiro** (`WithdrawalRequestServiceImpl`) — enum real de 5 valores (constantes `String`, no `@Enumerated`): `Pendiente`, `Aprobado`, `Pagado`, `Rechazado`, `Fallido`. Transiciones: `solicitar` (Creador) → `Pendiente`; `aprobar` (Auditor Financiero/Admin) ejecuta el payout de PayPal y bifurca por su resultado: `SUCCESS` → `Pagado`, `PENDING`/`PROCESSING` → `Aprobado`, cualquier otro resultado o excepción → `Fallido`; `rechazar` (con nota obligatoria) → `Rechazado`; `reintentar` solo aplica desde `Fallido` y repite la misma bifurcación. Nota de diseño: no existe ningún mecanismo (webhook o *poller*) que haga avanzar automáticamente una solicitud `Aprobado` a `Pagado` — depende de una acción administrativa manual adicional.
 
-**Pago en garantía (escrow)** (`PagoServicioImpl`, `PagoGarantia.estadoFondos`) — confirmado exactamente 3 valores: `Pendiente` (al crear la orden de PayPal) → `Retenido` (al confirmarse el webhook con firma válida y captura `COMPLETED`) → `Liberado` (al aprobar el Cliente el entregable, sin volver a verificar `estadoFondos`: el guardián real contra doble liberación es el booleano `EntregableFinal.estaLiberado`). **No existe un cuarto estado de cancelación o reembolso** — se confirmó explícitamente (cero resultados para "Reembolso"/"Disputa"/"refund" en el código); es precisamente la brecha que documenta REQ-NF-019.
+**Pago en garantía (escrow)** (`PaymentServiceImpl`, `PagoGarantia.estadoFondos`) — confirmado exactamente 3 valores: `Pendiente` (al crear la orden de PayPal) → `Retenido` (al confirmarse el webhook con firma válida y captura `COMPLETED`) → `Liberado` (al aprobar el Cliente el entregable, sin volver a verificar `estadoFondos`: el guardián real contra doble liberación es el booleano `EntregableFinal.estaLiberado`). **No existe un cuarto estado de cancelación o reembolso** — se confirmó explícitamente (cero resultados para "Reembolso"/"Disputa"/"refund" en el código); es precisamente la brecha que documenta REQ-NF-019.
 
-**Entregable** (`EntregableFinal.estaLiberado`) — no es un enum, es un booleano de 2 valores. Nace en `false` al subir el entregable; pasa a `true`, de forma irreversible, cuando el Cliente aprueba (`EntregableServicioImpl.aprobarEntrega`), lo que además libera el escrow y cierra la sala de chat. Antes de `true`, la descarga del archivo limpio (sin marca de agua) está bloqueada.
+**Entregable** (`EntregableFinal.estaLiberado`) — no es un enum, es un booleano de 2 valores. Nace en `false` al subir el entregable; pasa a `true`, de forma irreversible, cuando el Cliente aprueba (`DeliverableServiceImpl.aprobarEntrega`), lo que además libera el escrow y cierra la sala de chat. Antes de `true`, la descarga del archivo limpio (sin marca de agua) está bloqueada.
 
 **Certificado / Verificación** (`EstadoVerificacion`, sembrado en `V7__verificacion_asistida_ia.sql`) — 4 valores reales, en **mayúsculas**: `PENDIENTE`, `APROBADO`, `RECHAZADO`, `REQUIERE_ACLARACION` (no "verificado": ese valor no existe en ningún lugar del código). Transición inicial `subir` → `PENDIENTE`; el análisis de IA (`analizarConIa`) no cambia este estado, solo registra un veredicto no vinculante aparte (`veredictoIa`); la decisión humana (`registrarDecision`, bajo un candado de fila que impide sobrescribir una decisión ya tomada) mueve a `APROBADO`/`RECHAZADO`/`REQUIERE_ACLARACION`, y el documento se elimina físicamente solo si el nuevo estado es `APROBADO` o `RECHAZADO` (`REQUIERE_ACLARACION` conserva el archivo). Caso límite real: un *scheduler* diario expira certificados `PENDIENTE` con más de 30 días y borra su archivo, pero **el estado permanece `PENDIENTE`** — un certificado puede quedar indefinidamente pendiente con su documento ya eliminado.
 
@@ -258,7 +258,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: El perfil público es la vitrina de venta del Creador; limitar biografía e imagen y prohibir contacto directo evita que el perfil se use para negociar y cobrar fuera de la plataforma, eludiendo la comisión de REQ-F-021.
 - Prioridad: Must
 - Aceptación: biografía con contacto directo → rechazo; imagen >5MB → rechazo; URL válida se muestra como enlace.
-- Verificación: Test (`PerfilCreadorControlador`)
+- Verificación: Test (`CreatorProfileController`)
 - Estado: verificado
 
 **REQ-F-009** (ex RF-09) — El perfil público muestra seguidores, servicios activos, calificación promedio y estado de verificación; cualquier usuario autenticado puede seguir/dejar de seguir.
@@ -336,7 +336,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: (ver también `CHANGELOG-REQ.md` v1.1.0) un catálogo curado por Administrador permite personalizar el texto legal por tipo de servicio sin exponer a la plataforma a cláusulas no revisadas escritas por cualquier Creador; debe existir siempre una plantilla predeterminada para que ningún servicio quede sin contrato generable.
 - Prioridad: Must
 - Aceptación: crear una plantilla con una versión legal ya existente → rechazo ("Ya existe una plantilla con la version legal..."); intentar desmarcar la única plantilla predeterminada sin marcar otra antes → rechazo; desactivar la plantilla predeterminada → rechazo ("No se puede desactivar la plantilla predeterminada; marca otra como predeterminada primero").
-- Verificación: Test (`ContratoControlador`, `PlantillaContratoAdminServicioImplTest`)
+- Verificación: Test (`ContractController`, `ContractTemplateAdminServiceImplTest`)
 - Estado: verificado
 
 **REQ-F-018** (ex RF-18) — Firma electrónica como acción explícita de cada parte; el pedido no avanza sin ambas firmas; PDF descargable con hashes de firma.
@@ -359,7 +359,8 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 
 - Rationale: Sin un enlace de pago generado automáticamente al iniciar el pedido, el cobro dependería de un proceso manual fuera de la plataforma, rompiendo la trazabilidad exigida por el patrón escrow.
 - Prioridad: Must
-- Verificación: Test (`PayPalWebhookControlador`, sandbox)
+- Aceptación: al iniciar un pedido se genera una orden de PayPal y un enlace de pago asociado; al recibir un webhook confirmado con firma válida, el estado de los fondos del pago en garantía cambia de `Pendiente` a `Retenido`.
+- Verificación: Test (`PayPalWebhookController`, sandbox)
 - Estado: verificado (el webhook y su validación de firma están cubiertos por `PagoServicioImplWebhookTest`; queda como trabajo futuro la validación end-to-end contra el sandbox real de PayPal)
 
 **REQ-F-021** (ex RF-21) — Entrega con marca de agua para previsualización; aprobación del Cliente libera fondos y habilita descarga limpia; comisión de plataforma registrada automáticamente.
@@ -367,7 +368,7 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: La marca de agua permite al Cliente evaluar el entregable antes de pagar sin poder usarlo todavía; ligar la liberación de fondos a su aprobación es lo que materializa el patrón escrow declarado en el alcance (§1.2).
 - Prioridad: Must
 - Aceptación: la comisión de plataforma es 10% del monto bruto (configurable vía `PLATAFORMA_COMISION_TASA`), registrada automáticamente en la transacción al aprobar el entregable.
-- Verificación: Test (`EntregableControlador`, `PagoControlador`)
+- Verificación: Test (`DeliverableController`, `PaymentController`)
 - Estado: verificado
 
 **REQ-F-022a** (ex RF-22) — Cargo configurable por revisión adicional de un pedido que supera las revisiones incluidas.
@@ -383,16 +384,16 @@ Para cada uno de los 23 requisitos funcionales especificados a continuación, se
 - Rationale: cobrar la revisión adicional exige un medio de pago concreto; sin un enlace de pago generado automáticamente, el cargo configurado en REQ-F-022a no tiene forma de cobrarse.
 - Prioridad: Should
 - Aceptación: al superar el límite de revisiones configurado, el sistema genera un nuevo enlace de pago asociado al ticket de revisión.
-- Verificación: Test (`PagoTicketRevisionServicioImplTest`, `TicketRevisionServicioImplTest#crearTicketRevision_superaLimite_disparaCreacionDeOrdenDePago`)
-- Estado: implementado (`PagoTicketRevisionServicioImpl` crea la orden PayPal automáticamente al crear el ticket cuando supera el límite, entidad propia `pagos_ticket_revision` para no competir con el escrow principal; falta una prueba contra el sandbox real de PayPal para subir a verificado — ver excepciones-estado.txt)
+- Verificación: Test (`RevisionTicketPaymentServiceImplTest`, `RevisionTicketServiceImplTest#crearTicketRevision_superaLimite_disparaCreacionDeOrdenDePago`)
+- Estado: implementado (`RevisionTicketPaymentServiceImpl` crea la orden PayPal automáticamente al crear el ticket cuando supera el límite, entidad propia `pagos_ticket_revision` para no competir con el escrow principal; falta una prueba contra el sandbox real de PayPal para subir a verificado — ver excepciones-estado.txt)
 
 **REQ-F-022c** (ex RF-22) — Un ticket de revisión sin pago confirmado tras 48 horas se rechaza automáticamente.
 
 - Rationale: sin un rechazo automático, un ticket de revisión impago quedaría indefinidamente abierto, bloqueando el avance del pedido sin que nadie lo resuelva.
 - Prioridad: Should
 - Aceptación: un ticket de revisión que no recibe confirmación de pago dentro de 48 horas desde su creación cambia automáticamente a un estado de rechazo.
-- Verificación: Test (`TicketRevisionExpiracionSchedulerTest`, `TicketRevisionExpiracionServicioTest`, `TicketRevisionRepositoryIT`)
-- Estado: implementado (`TicketRevisionExpiracionScheduler` nuevo, umbral configurable vía `ticketrevision.expiracion-horas`, default 48h; solo afecta tickets que sí generaron cargo y siguen sin pago confirmado — un ticket que nunca superó el límite no se auto-rechaza; falta una prueba contra el sandbox real de PayPal para subir a verificado — ver excepciones-estado.txt)
+- Verificación: Test (`RevisionTicketExpirationSchedulerTest`, `RevisionTicketExpirationServiceTest`, `TicketRevisionRepositoryIT`)
+- Estado: implementado (`RevisionTicketExpirationScheduler` nuevo, umbral configurable vía `ticketrevision.expiracion-horas`, default 48h; solo afecta tickets que sí generaron cargo y siguen sin pago confirmado — un ticket que nunca superó el límite no se auto-rechaza; falta una prueba contra el sandbox real de PayPal para subir a verificado — ver excepciones-estado.txt)
 
 ### Módulo Social, Comunidad y Sorteos
 
@@ -500,7 +501,7 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-F-033** — El Administrador (o titular de `INFRACCION_GESTIONAR`) debe poder listar todas las infracciones registradas en el sistema, consultar el historial de infracciones de un usuario específico, y revertir manualmente la suspensión de una cuenta.
 
-- Rationale: REQ-F-015 detecta y suspende automáticamente, y ya cita `AdminInfraccionControlador` en `matriz.csv` como parte de su módulo, pero solo cubre (con prueba) el flujo de detección en el chat; los endpoints administrativos `listarInfracciones` y `revertirSuspension` no tienen historia, caso de uso ni prueba propios. Además, una suspensión automática puede ser un falso positivo (por ejemplo, un número de teléfono que en realidad forma parte del texto de un servicio); sin esta capacidad, revertirla exigiría acceso directo a la base de datos.
+- Rationale: REQ-F-015 detecta y suspende automáticamente, y ya cita `AdminViolationController` en `matriz.csv` como parte de su módulo, pero solo cubre (con prueba) el flujo de detección en el chat; los endpoints administrativos `listarInfracciones` y `revertirSuspension` no tienen historia, caso de uso ni prueba propios. Además, una suspensión automática puede ser un falso positivo (por ejemplo, un número de teléfono que en realidad forma parte del texto de un servicio); sin esta capacidad, revertirla exigiría acceso directo a la base de datos.
 - Prioridad: Should
 - Aceptación: el listado y el historial por usuario son de solo lectura; revertir la suspensión de una cuenta no suspendida no debe producir un estado inconsistente.
 - Verificación: Test (`InfraccionServiceImplTest`, con los 3 endpoints cubiertos)
@@ -512,67 +513,131 @@ Los 23 requisitos anteriores (REQ-F-001 a REQ-F-023) son el corpus original here
 
 **REQ-NF-001a** (ex RNF-01) — Redirección forzada de HTTP a HTTPS (301).
 
-- Prioridad: Must · Verificación: análisis externo (SSL Labs) + script re-ejecutable · Estado: verificado (`scripts/verificar-tls-ssllabs.sh` registrado como `prueba_automatizada` — el script tiene asserts y exit code 0/1; análisis SSL Labs contra `artisync-frontend.onrender.com` ejecutado y archivado el 2026-09-10: `curl -i http://artisync-frontend.onrender.com` responde `301` a `https://`, grade A+ — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`)
+- Rationale: sin redirección forzada, un cliente que escribe `http://` por error queda expuesto en texto plano durante ese primer contacto, antes de que el servidor tenga oportunidad de cifrar la conexión; forzar el salto a HTTPS en el primer byte cierra esa ventana de exposición.
+- Prioridad: Must
+- Aceptación: una solicitud HTTP a la raíz del dominio responde `301` con cabecera `Location` apuntando al equivalente HTTPS; ninguna ruta de la aplicación permanece accesible por HTTP sin esa redirección previa.
+- Verificación: análisis externo (SSL Labs) + script re-ejecutable
+- Estado: verificado (`scripts/verificar-tls-ssllabs.sh` registrado como `prueba_automatizada` — el script tiene asserts y exit code 0/1; análisis SSL Labs contra `artisync-frontend.onrender.com` ejecutado y archivado el 2026-09-10: `curl -i http://artisync-frontend.onrender.com` responde `301` a `https://`, grade A+ — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`)
 
 **REQ-NF-001b** (ex RNF-01) — Rechazo de conexiones con TLS inferior a 1.2.
 
-- Prioridad: Must · Verificación: análisis externo (SSL Labs) + script re-ejecutable · Estado: verificado (`scripts/verificar-tls-ssllabs.sh` registrado como `prueba_automatizada`; SSL Labs solo reporta TLS 1.2 y TLS 1.3 como protocolos aceptados por el servidor, grade A+ — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md` y `ssllabs-api-response-20260910.json`)
+- Rationale: TLS 1.0 y 1.1 tienen vulnerabilidades conocidas (POODLE, BEAST) y fueron retirados por los navegadores modernos; aceptarlos expondría a los usuarios a ataques de downgrade sobre una conexión que debería ser segura por diseño.
+- Prioridad: Must
+- Aceptación: un intento de conexión que fuerza TLS 1.0 o 1.1 es rechazado por el servidor; solo TLS 1.2 y TLS 1.3 son negociables.
+- Verificación: análisis externo (SSL Labs) + script re-ejecutable
+- Estado: verificado (`scripts/verificar-tls-ssllabs.sh` registrado como `prueba_automatizada`; SSL Labs solo reporta TLS 1.2 y TLS 1.3 como protocolos aceptados por el servidor, grade A+ — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md` y `ssllabs-api-response-20260910.json`)
 
 **REQ-NF-001c** (ex RNF-01) — Preferencia de TLS 1.3 cuando el cliente lo soporta.
 
-- Prioridad: Must · Verificación: análisis externo (SSL Labs) + script re-ejecutable · Estado: verificado (`scripts/verificar-tls-ssllabs.sh` registrado como `prueba_automatizada`; el servidor negocia TLS 1.3 cuando el cliente lo ofrece — `openssl s_client` sin forzar versión negocia `TLSv1.3`/`TLS_AES_256_GCM_SHA384`, `forwardSecrecy=4` en SSL Labs — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`)
+- Rationale: TLS 1.3 reduce la latencia del handshake y elimina por diseño los cifrados obsoletos que TLS 1.2 todavía permite negociar; preferirlo cuando el cliente lo soporta mejora seguridad y rendimiento sin ningún costo adicional.
+- Prioridad: Must
+- Aceptación: ante un cliente que ofrece TLS 1.3, el servidor lo selecciona en vez de negociar una versión anterior.
+- Verificación: análisis externo (SSL Labs) + script re-ejecutable
+- Estado: verificado (`scripts/verificar-tls-ssllabs.sh` registrado como `prueba_automatizada`; el servidor negocia TLS 1.3 cuando el cliente lo ofrece — `openssl s_client` sin forzar versión negocia `TLSv1.3`/`TLS_AES_256_GCM_SHA384`, `forwardSecrecy=4` en SSL Labs — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`)
 
 **REQ-NF-002** (ex RNF-02) — Contraseñas con hash bcrypt, factor de coste ≥10; nunca texto plano.
 
-- Prioridad: Must · Verificación: inspección de BD · Estado: verificado
+- Rationale: un factor de coste bajo permite crackear por fuerza bruta un volcado de la tabla de usuarios en tiempo razonable; bcrypt con coste ≥10 encarece ese ataque exponencialmente sin degradar de forma perceptible el login legítimo.
+- Prioridad: Must
+- Aceptación: toda contraseña almacenada en `usuarios.contrasena_hash` es un hash bcrypt con factor de coste ≥10; ninguna ruta del sistema persiste ni registra la contraseña en texto plano, logs incluidos.
+- Verificación: inspección de BD
+- Estado: verificado
 
 **REQ-NF-003** (ex RNF-03) — JWT firmado HS256 con clave ≥256 bits en variable de entorno (nunca en código/repositorio); rechazo de firma inválida con 401.
 
-- Prioridad: Must · Verificación: análisis + test · Estado: verificado (clave vía `.env`, validada al arrancar; los claims `iss`, `aud`, `nbf` y `jti` se emiten y se validan al parsear — ver OBS-AUTO-01 y OBS-AUTO-08 en `docs/observaciones/OBSERVACIONES.md`)
+- Rationale: una clave de firma corta o embebida en el repositorio es trivialmente comprometible; separarla en variable de entorno y exigir 256 bits mínimos hace inviable falsificar tokens por fuerza bruta o por lectura del código fuente.
+- Prioridad: Must
+- Aceptación: un token con firma alterada o firmado con una clave distinta responde 401 antes de procesar la solicitud; la clave de firma no aparece en ningún archivo versionado del repositorio.
+- Verificación: análisis + test
+- Estado: verificado (clave vía `.env`, validada al arrancar; los claims `iss`, `aud`, `nbf` y `jti` se emiten y se validan al parsear — ver OBS-AUTO-01 y OBS-AUTO-08 en `docs/observaciones/OBSERVACIONES.md`)
 
 **REQ-NF-004** (ex RNF-04) — LCP del catálogo ≤2s bajo 4G simulada con ≥20 servicios publicados.
 
-- Prioridad: Should · Verificación: Lighthouse · Estado: implementado (LCP medido ~2.8s)
+- Rationale: el catálogo es la puerta de entrada del producto para un Cliente que aún no decidió contratar; un tiempo de carga inicial lento eleva la tasa de abandono antes de que vea ningún servicio publicado.
+- Prioridad: Should
+- Aceptación: medido con Lighthouse bajo perfil de red 4G simulada y con al menos 20 servicios publicados en el catálogo, el LCP es ≤2s.
+- Verificación: Lighthouse
+- Estado: implementado (LCP medido ~2.8s)
 
 **REQ-NF-005** (ex RNF-05) — WebSocket: ≥10 conexiones simultáneas sin degradación; latencia extremo-a-extremo ≤500ms en red local.
 
-- Prioridad: Should · Verificación: `ChatWebSocketLoadIT` (prueba automatizada, 10 conexiones STOMP reales × 5 rondas) · Estado: verificado (p95=346ms, máximo=346ms, 0 conexiones fallidas — ver `docs/mediciones/ws/REPORTE-WS.md`. La prueba expuso y forzó a corregir un defecto real: `@AuthenticationPrincipal` no se resolvía en `@MessageMapping` sin `AuthenticationPrincipalArgumentResolver` + `SecurityContextChannelInterceptor` en `WebSocketConfig`, dejando roto el envío de chat por WebSocket para cualquier cliente real)
+- Rationale: REQ-F-014 exige centralizar toda la comunicación del pedido en el chat interno; si el canal no soporta múltiples conexiones simultáneas sin degradar la latencia, ese requisito de negocio se vuelve inviable a partir de cierto volumen de usuarios concurrentes.
+- Prioridad: Should
+- Aceptación: con ≥10 conexiones STOMP simultáneas en red local, la latencia extremo-a-extremo del envío de un mensaje no supera 500ms.
+- Verificación: `ChatWebSocketLoadIT` (prueba automatizada, 10 conexiones STOMP reales × 5 rondas)
+- Estado: verificado (p95=346ms, máximo=346ms, 0 conexiones fallidas — ver `docs/mediciones/ws/REPORTE-WS.md`. La prueba expuso y forzó a corregir un defecto real: `@AuthenticationPrincipal` no se resolvía en `@MessageMapping` sin `AuthenticationPrincipalArgumentResolver` + `SecurityContextChannelInterceptor` en `WebSocketConfig`, dejando roto el envío de chat por WebSocket para cualquier cliente real)
 
 **REQ-NF-006** (ex RNF-06) — Generación de contrato PDF ≤5s bajo carga normal.
 
-- Prioridad: Should · Verificación: `ContratoPdfTimingIT` (prueba automatizada, 5 corridas contra Postgres real) · Estado: verificado (1218/29/30/20/20 ms, media 263.4ms — ver `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`)
+- Rationale: el pedido no puede avanzar sin que ambas partes firmen el contrato (REQ-F-018); una generación lenta del PDF bloquea todo el flujo de contratación justo en el momento en que el Cliente ya decidió comprar.
+- Prioridad: Should
+- Aceptación: bajo carga normal, la generación del PDF del contrato completa en ≤5s.
+- Verificación: `ContratoPdfTimingIT` (prueba automatizada, 5 corridas contra Postgres real)
+- Estado: verificado (1218/29/30/20/20 ms, media 263.4ms — ver `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`)
 
 **REQ-NF-007** (ex RNF-07) — Interfaz sin desbordamiento horizontal en 360/768/1440px; controles operables táctilmente (≥44px).
 
-- Prioridad: Should · Verificación: DevTools — sin scroll horizontal visible en 360/768/1440px; todo control interactivo mide ≥44×44px en el inspector · Estado: implementado
+- Rationale: sin una interfaz operable en pantallas pequeñas, una parte significativa de los Clientes que navegan desde el móvil no puede completar el flujo de contratación, afectando directamente el modelo de negocio de doble lado.
+- Prioridad: Should
+- Aceptación: en 360px, 768px y 1440px de ancho, ninguna vista principal produce scroll horizontal, y todo control interactivo mide al menos 44×44px.
+- Verificación: DevTools — sin scroll horizontal visible en 360/768/1440px; todo control interactivo mide ≥44×44px en el inspector
+- Estado: implementado
 
 **REQ-NF-008** (ex RNF-08) — Formularios de catálogo dinámicos sin recarga; flujo de contratación en ≤5 pantallas.
 
-- Prioridad: Should · Verificación: prueba manual — completar el flujo de contratación de principio a fin sin recarga de página, contando el número de pantallas distintas visitadas · Estado: implementado
+- Rationale: un flujo de contratación con demasiados pasos o con recargas de página completas eleva la fricción justo antes de que el Cliente pague, aumentando el riesgo de abandono en el momento de mayor valor del negocio.
+- Prioridad: Should
+- Aceptación: completar el flujo de contratación de principio a fin no requiere recargar la página en ningún punto, y visita como máximo 5 pantallas distintas.
+- Verificación: prueba manual — completar el flujo de contratación de principio a fin sin recarga de página, contando el número de pantallas distintas visitadas
+- Estado: implementado
 
 **REQ-NF-009** (ex RNF-09) — Disponibilidad durante semanas de evaluación 16–17; reinicio automático ante fallos.
 
-- Prioridad: Must · Verificación: demostración (ps aux, healthcheck Docker) · Estado: implementado (los cinco servicios de `artisync/docker-compose.yml` declaran `restart: unless-stopped` y healthcheck; demostración real ejecutada el 2026-09-10 contra el entorno local — `docker kill` sobre `pfc_backend` y `pfc_postgres` **no** disparó el reinicio automático en ninguno de los dos casos, ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`. Hallazgo activo, no evidencia pendiente; no aplica al despliegue real en Render, que no usa esta política de `docker-compose` — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Rationale: la Entrega Final se evalúa en vivo durante las semanas 16-17; una caída de contenedor que no se recupera sola durante la evaluación puede costar la calificación de funcionalidades que en realidad sí funcionan, por una interrupción de infraestructura ajena al código.
+- Prioridad: Must
+- Aceptación: los servicios declaran una política de reinicio automático y healthcheck; ante la caída de un contenedor, el servicio se recupera sin intervención manual dentro de una ventana razonable.
+- Verificación: demostración (ps aux, healthcheck Docker)
+- Estado: implementado (los cinco servicios de `artisync/docker-compose.yml` declaran `restart: unless-stopped` y healthcheck; demostración real ejecutada el 2026-09-10 contra el entorno local — `docker kill` sobre `pfc_backend` y `pfc_postgres` **no** disparó el reinicio automático en ninguno de los dos casos, ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`. Hallazgo activo, no evidencia pendiente; no aplica al despliegue real en Render, que no usa esta política de `docker-compose` — excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
 
 **REQ-NF-010** (ex RNF-10) — Módulos WebSocket, REST y generación de PDF desacoplados (sin imports cruzados directos).
 
-- Prioridad: Should · Verificación: inspección de dependencias — `grep` de imports en la clase `legal.impl.PdfGeneracionServicioImpl`: solo importa su propia interfaz y la librería de generación de PDF, sin ningún import de `service.comunicacion` (WebSocket) ni de un controlador REST; el desacople es de esa clase específica, no de todo el paquete `legal` (otras clases del mismo paquete, como `PagoServicioImpl`, sí dependen de `comunicacion` para notificaciones) · Estado: implementado (paquetes separados por módulo)
+- Rationale: acoplar los módulos de WebSocket, REST y generación de PDF dificultaría probar, desplegar o reemplazar uno sin arrastrar cambios en los otros dos, elevando el costo de mantenimiento a medida que el sistema crece.
+- Prioridad: Should
+- Aceptación: la clase de generación de PDF no importa directamente clases de los paquetes de WebSocket ni de ningún controlador REST.
+- Verificación: inspección de dependencias — `grep` de imports en la clase `legal.impl.PdfGenerationServiceImpl`: solo importa su propia interfaz y la librería de generación de PDF, sin ningún import de `service.comunicacion` (WebSocket) ni de un controlador REST; el desacople es de esa clase específica, no de todo el paquete `legal` (otras clases del mismo paquete, como `PaymentServiceImpl`, sí dependen de `comunicacion` para notificaciones)
+- Estado: implementado (paquetes separados por módulo)
 
 **REQ-NF-011** (ex RNF-11) — Archivos binarios en almacenamiento externo compatible con S3; sin archivos locales en el servidor.
 
-- Prioridad: Must · Verificación: inspección de configuración y de URL servida — confirmar que `documentos.proveedor` (`DOCUMENTOS_PROVEEDOR`) resuelve a `azure` en el entorno auditado, y que la URL de descarga de un documento recién subido apunta a un dominio `*.blob.core.windows.net` (Azure), no a una ruta local del servidor (`/uploads/...` o equivalente) · Estado: verificado (se fijó el valor real de `AZURE_STORAGE_CONNECTION_STRING` en el dashboard de Render, se redesplegó y se confirmó la carga y descarga con una URL real servida desde Azure Blob Storage, cerrando el incumplimiento activo previo — evidencia archivada en `docs/despliegue/EVIDENCIA-AZURE.md`)
+- Rationale: guardar archivos en el disco del servidor de aplicación los pierde en cualquier redeploy o reinicio de contenedor, dado que el filesystem del hosting usado no es persistente, y además impide escalar horizontalmente sin sincronizar discos entre instancias.
+- Prioridad: Must
+- Aceptación: la variable de entorno de proveedor de almacenamiento resuelve a un proveedor externo compatible con S3 en el entorno auditado, y la URL de descarga de un documento recién subido apunta a ese proveedor, no a una ruta local del servidor.
+- Verificación: inspección de configuración y de URL servida — confirmar que `documentos.proveedor` (`DOCUMENTOS_PROVEEDOR`) resuelve a `azure` en el entorno auditado, y que la URL de descarga de un documento recién subido apunta a un dominio `*.blob.core.windows.net` (Azure), no a una ruta local del servidor (`/uploads/...` o equivalente)
+- Estado: verificado (se fijó el valor real de `AZURE_STORAGE_CONNECTION_STRING` en el dashboard de Render, se redesplegó y se confirmó la carga y descarga con una URL real servida desde Azure Blob Storage, cerrando el incumplimiento activo previo — evidencia archivada en `docs/despliegue/EVIDENCIA-AZURE.md`)
 
 **REQ-NF-012** (ex RNF-12) — Bloqueo de registro a menores de 18; checkbox obligatorio de términos y privacidad.
 
-- Prioridad: Must · Verificación: test + inspección HTML · Estado: verificado
+- Rationale: operar con menores de edad sin controles de registro expone a la plataforma a responsabilidad legal, dado el alcance geográfico inicial declarado en §2.4 (Ecuador, validación de mayoría de edad).
+- Prioridad: Must
+- Aceptación: un registro con fecha de nacimiento que resulte en menos de 18 años es rechazado; el registro no se completa sin marcar el checkbox de términos y privacidad.
+- Verificación: test + inspección HTML
+- Estado: verificado
 
 **REQ-NF-013** (ex RNF-13) — Auditoría inmutable de transiciones de pedido y transacciones; exportación CSV por el administrador.
 
-- Prioridad: Must · Verificación: test (UPDATE/DELETE/TRUNCATE → error de base de datos) · Estado: verificado (además de `historial_estados_pedido` (dominio, insert-only — `PATCH`/`DELETE` responden 403), existe desde V15\_\_modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre 7 módulos — incluido `FINANZAS` (`PAGO_ORDEN_CREAR`, `PAGO_WEBHOOK_RECIBIR`, `PAGO_CANCELAR`, `PAGO_RECONCILIAR`, `RETIRO_DATOS_PAGO_ACTUALIZAR`), que es lo que cubre hoy "transacciones" en el enunciado —, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV/XLSX/PDF vía `/api/v1/admin/auditoria/exportar`; verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real. **Corrección (ronda de revisión externa, 2026-09-11):** el enunciado citaba `AuditControlador` como "el exportador de transacciones" y un endpoint `GET /api/v1/admin/transacciones/{idPerfil}/csv`; esa clase (paquete `controller.social`, junto con `AuditService`/`AuditServiceImpl` del mismo paquete) fue eliminada el 2026-08-26 (commit `6bca09b8`, "Elimina el modulo legacy de auditoria social... reemplazado por el modulo de auditoria actual") y el endpoint nunca existió bajo esa ruta — la cita quedó huérfana en `SRS.md`/`matriz.csv` durante más de dos semanas sin que `validate-traceability.sh` lo detectara, porque el script nunca compara contra el código real. Se retiró la cita muerta; la cobertura de "transacciones" que el enunciado promete la sostiene la bitácora transversal filtrable por módulo `FINANZAS`, no una clase dedicada)
+- Rationale: sin una bitácora que ni siquiera un administrador pueda alterar o borrar, cualquier disputa sobre quién hizo qué y cuándo —crítico en un sistema con dinero retenido en escrow— dependería de la palabra de quien tuviera acceso a la base de datos, incluido un atacante interno.
+- Prioridad: Must
+- Aceptación: un intento de UPDATE, DELETE o TRUNCATE sobre la tabla de eventos de auditoría, incluso con la cuenta de aplicación, es rechazado por el motor de base de datos.
+- Verificación: test (UPDATE/DELETE/TRUNCATE → error de base de datos)
+- Estado: verificado (además de `historial_estados_pedido` (dominio, insert-only — `PATCH`/`DELETE` responden 403), existe desde V15\_\_modulo_auditoria.sql una bitácora transversal `auditoria_eventos` con trigger PL/pgSQL que bloquea UPDATE/DELETE/TRUNCATE (SQLState 42501) y GRANT restringido a `SELECT, INSERT` para la cuenta de aplicación, alimentada por un aspecto AOP (`@Auditable`) sobre 7 módulos — incluido `FINANZAS` (`PAGO_ORDEN_CREAR`, `PAGO_WEBHOOK_RECIBIR`, `PAGO_CANCELAR`, `PAGO_RECONCILIAR`, `RETIRO_DATOS_PAGO_ACTUALIZAR`), que es lo que cubre hoy "transacciones" en el enunciado —, expuesta en `/api/v1/admin/auditoria` con listado filtrado, detalle y exportación CSV/XLSX/PDF vía `/api/v1/admin/auditoria/exportar`; verificado con `EventoAuditoriaInmutabilidadIT` contra PostgreSQL real. **Corrección (ronda de revisión externa, 2026-09-11):** el enunciado citaba `AuditControlador` como "el exportador de transacciones" y un endpoint `GET /api/v1/admin/transacciones/{idPerfil}/csv`; esa clase (paquete `controller.social`, junto con `AuditService`/`AuditServiceImpl` del mismo paquete) fue eliminada el 2026-08-26 (commit `6bca09b8`, "Elimina el modulo legacy de auditoria social... reemplazado por el modulo de auditoria actual") y el endpoint nunca existió bajo esa ruta — la cita quedó huérfana en `SRS.md`/`matriz.csv` durante más de dos semanas sin que `validate-traceability.sh` lo detectara, porque el script nunca compara contra el código real. Se retiró la cita muerta; la cobertura de "transacciones" que el enunciado promete la sostiene la bitácora transversal filtrable por módulo `FINANZAS`, no una clase dedicada)
 
 **REQ-NF-014** (ex RNF-14) — Integración exclusiva con PayPal Orders v2; credenciales en variables de entorno; verificación de firma de webhook.
 
-- Prioridad: Must · Verificación: inspección de Git + simulación de webhook inválido · Estado: verificado (credenciales de PayPal vía `.env`; `PagoServicioImplWebhookTest` cubre firma inválida, cabeceras ausentes, payload ilegible y ausencia de `webhook-id`, además del camino feliz)
+- Rationale: integrar más de un proveedor de pagos multiplicaría la superficie de riesgo financiero y de cumplimiento sin necesidad real en un proyecto de alcance acotado; exigir credenciales fuera del código y verificar la firma del webhook evita que un tercero falsifique notificaciones de pago.
+- Prioridad: Must
+- Aceptación: un webhook con firma inválida o ausente es rechazado antes de procesar cualquier cambio de estado de fondos; las credenciales de PayPal no aparecen en ningún archivo versionado.
+- Verificación: inspección de Git + simulación de webhook inválido
+- Estado: verificado (credenciales de PayPal vía `.env`; `PagoServicioImplWebhookTest` cubre firma inválida, cabeceras ausentes, payload ilegible y ausencia de `webhook-id`, además del camino feliz)
 
 ### 4.1 Requisitos no funcionales adicionales (post v1.0.0)
 
@@ -580,15 +645,27 @@ Igual que en §3.1, los tres requisitos siguientes (REQ-NF-015 a REQ-NF-017) se 
 
 **REQ-NF-015** — Ante indisponibilidad de Redis, los servicios que dependen de él (cuota de intentos de login, lista de revocación de JWT, caché del catálogo) deben degradar de forma explícita y documentada (fail-open o fail-closed según el servicio, ver ADR-004), nunca fallar en silencio; el TTL de la caché del catálogo debe ser configurable por variable de entorno.
 
-- Prioridad: Must · Verificación: Test (simulación de caída de Redis) · Estado: verificado (`IntentosAutenticacionServiceTest` prueba explícitamente los dos escenarios "Redis caído, fail-open" para verificación de cuota y limpieza; `app.cache.catalogo.ttl-seconds` es configurable vía `CATALOGO_CACHE_TTL`, ver `docs/adr/adr-004-estrategia-cache.md`)
+- Rationale: si el catálogo, la cuota de login o la revocación de JWT dependen de Redis y este cae sin un comportamiento definido, el sistema podría fallar en silencio (ej. dejar pasar intentos de login ilimitados) o caerse por completo por una dependencia que debería ser un acelerador, no un punto único de fallo.
+- Prioridad: Must
+- Aceptación: ante la caída simulada de Redis, cada servicio dependiente degrada según el comportamiento documentado en su ADR (fail-open o fail-closed), nunca lanza un error no controlado; el TTL de la caché del catálogo cambia con la variable de entorno sin requerir cambio de código.
+- Verificación: Test (simulación de caída de Redis)
+- Estado: verificado (`IntentosAutenticacionServiceTest` prueba explícitamente los dos escenarios "Redis caído, fail-open" para verificación de cuota y limpieza; `app.cache.catalogo.ttl-seconds` es configurable vía `CATALOGO_CACHE_TTL`, ver `docs/adr/adr-004-estrategia-cache.md`)
 
 **REQ-NF-016** — La cobertura de código del backend (líneas) debe ser ≥70% según JaCoCo, medida sobre la rama principal antes de cada entrega.
 
-- Prioridad: Should · Verificación: `docs/mediciones/jacoco/REPORTE-JACOCO.md` · Estado: verificado (82,93% líneas / 71,50% ramas, medición del 2026-09-11 ronda 2; el requisito solo exige líneas ≥70%, y se cumple con margen. Nota: una ronda anterior el mismo día había detectado la cobertura de ramas de la capa de Controladores en 67,07% tras incorporar las funcionalidades V45-V48 sin pruebas equivalentes — brecha declarada para OBS-P1-01 — pero se cerró el mismo día (86,18% líneas / 78,05% ramas en Controladores tras añadir pruebas para los 5 controladores y `RespaldoServicioImpl` sin cobertura propia); las tres capas superan hoy el 70% en líneas y ramas)
+- Rationale: un backend sin piso de cobertura medido puede acumular código sin ninguna prueba que lo respalde, especialmente en capas que crecen rápido (como ocurrió con V45-V48); fijar un umbral verificable en cada entrega es lo que convierte "tenemos pruebas" en una afirmación auditable.
+- Prioridad: Should
+- Aceptación: el reporte JaCoCo de la rama principal, medido antes de la entrega, muestra cobertura de líneas ≥70% a nivel global del backend.
+- Verificación: `docs/mediciones/jacoco/REPORTE-JACOCO.md`
+- Estado: verificado (82,93% líneas / 71,50% ramas, medición del 2026-09-11 ronda 2; el requisito solo exige líneas ≥70%, y se cumple con margen. Nota: una ronda anterior el mismo día había detectado la cobertura de ramas de la capa de Controladores en 67,07% tras incorporar las funcionalidades V45-V48 sin pruebas equivalentes — brecha declarada para OBS-P1-01 — pero se cerró el mismo día (86,18% líneas / 78,05% ramas en Controladores tras añadir pruebas para los 5 controladores y `BackupServiceImpl` sin cobertura propia); las tres capas superan hoy el 70% en líneas y ramas)
 
 **REQ-NF-017** — La usabilidad percibida del frontend, medida con System Usability Scale (SUS) sobre una muestra representativa de usuarios, debe alcanzar un puntaje ≥68/100.
 
-- Prioridad: Should · Verificación: `docs/mediciones/sus/REPORTE-SUS.md` · Estado: implementado (no cumple el umbral: 61,25/100 medido el 2026-08-16, calificación "D"; por debajo de 68 — brecha reconocida, excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
+- Rationale: una plataforma que conecta clientes y creadores depende de que ambos puedan usarla sin fricción; sin un umbral de usabilidad medido con un instrumento estándar, una interfaz confusa podría pasar inadvertida hasta que ya esté afectando la adopción real.
+- Prioridad: Should
+- Aceptación: el puntaje SUS agregado sobre una muestra representativa de usuarios es ≥68/100.
+- Verificación: `docs/mediciones/sus/REPORTE-SUS.md`
+- Estado: implementado (no cumple el umbral: 61,25/100 medido el 2026-08-16, calificación "D"; por debajo de 68 — brecha reconocida, excepción declarada en `docs/trazabilidad/excepciones-estado.txt`)
 
 ### 4.2 Requisitos no funcionales adicionales (v1.3.0)
 
@@ -607,16 +684,16 @@ Los ocho requisitos siguientes (REQ-NF-018 a REQ-NF-025) se incorporan en v1.3.0
 - Rationale: con patrón escrow, la ausencia de un flujo de cancelación-con-fondos-retenidos es el riesgo financiero más serio del corpus: hoy, un pedido con dinero en escrow no tiene camino de cancelación.
 - Prioridad: Must
 - Aceptación: un reintento del mismo webhook de PayPal (mismo pago, mismo estado de fondos) no genera una segunda actualización de estado ni un segundo registro de transacción; un pedido cancelado con fondos en escrow dispara un flujo de reembolso o retención documentado; existe un job o endpoint de reconciliación que consulta el estado real en PayPal para pedidos con webhook pendiente más allá de un umbral de tiempo configurable.
-- Verificación: Test (`PagoServicioImplWebhookTest.reintentoNoDuplica` cubre la idempotencia por estado de fondos; `PagoServicioImplCancelacionTest` cubre el reembolso/liberación; `ReconciliacionPayPalSchedulerTest` + `ReconciliacionPayPalEjecutorServicioTest` cubren la reconciliación)
-- Estado: implementado (`ReconciliacionPayPalScheduler`/`ReconciliacionPayPalEjecutorServicio` nuevos, umbral configurable vía `paypal.reconciliacion.umbral-minutos`; `PagoServicioImpl.cancelarPedidoConFondosRetenidos` nuevo, con reembolso vía PayPal o liberación solo-admin; guard añadido en `EntregableServicioImpl.aprobarEntrega` para que un pedido ya cancelado no pueda aprobarse y pagarse dos veces; falta una prueba contra el sandbox real de PayPal para subir a verificado — ver excepciones-estado.txt)
+- Verificación: Test (`PaymentServiceImplWebhookTest.reintentoNoDuplica` cubre la idempotencia por estado de fondos; `PaymentServiceImplCancellationTest` cubre el reembolso/liberación; `PayPalReconciliationSchedulerTest` + `PayPalReconciliationExecutorServiceTest` cubren la reconciliación)
+- Estado: implementado (`PayPalReconciliationScheduler`/`PayPalReconciliationExecutorService` nuevos, umbral configurable vía `paypal.reconciliacion.umbral-minutos`; `PaymentServiceImpl.cancelarPedidoConFondosRetenidos` nuevo, con reembolso vía PayPal o liberación solo-admin; guard añadido en `DeliverableServiceImpl.aprobarEntrega` para que un pedido ya cancelado no pueda aprobarse y pagarse dos veces; falta una prueba contra el sandbox real de PayPal para subir a verificado — ver excepciones-estado.txt)
 
 **REQ-NF-020** — Los contratos firmados deben conservarse durante un período declarado, con integridad verificable del hash de firma.
 
-- Rationale: `generarHashFirma()` (`ContratoServicioImpl`) calcula el hash una sola vez al firmar; nada lo recomputa ni lo re-verifica después, y la tabla `contratos` no declara retención ni expiración — un contrato es evidencia legal del acuerdo entre las partes y no puede depender de que nadie lo borre por accidente ni de que el hash nunca se corrompa sin detectarlo.
+- Rationale: `generarHashFirma()` (`ContractServiceImpl`) calcula el hash una sola vez al firmar; nada lo recomputa ni lo re-verifica después, y la tabla `contratos` no declara retención ni expiración — un contrato es evidencia legal del acuerdo entre las partes y no puede depender de que nadie lo borre por accidente ni de que el hash nunca se corrompa sin detectarlo.
 - Prioridad: Should
 - Aceptación: existe un período de retención declarado para los contratos firmados; existe un mecanismo (manual o automatizado) que re-verifica el hash de firma contra el contenido del contrato y señala una discrepancia si el hash no coincide.
-- Verificación: Test (`ContratoServicioImplTest` — congela contenido y hash al completarse la segunda firma, detecta discrepancia por manipulación posterior; `ContratoIntegridadSchedulerTest`; `ContratoIntegridadControladorTest`)
-- Estado: verificado (se introdujo un hash de CONTENIDO nuevo y separado del hash de firma existente — este último es una huella evento/quién/cuándo con `Instant.now()`, nunca reproducible, y se deja intacto con ese propósito; el nuevo hash se calcula una sola vez sobre el HTML ya renderizado y congelado al completarse la segunda firma. `ContratoIntegridadScheduler` reverifica todos los contratos firmados cada noche y `POST /api/v1/admin/contratos/{id}/verificar-integridad` permite una verificación puntual. Retención declarada vía `contrato.retencion-anios` — confirmar la cifra exacta bajo la normativa ecuatoriana aplicable)
+- Verificación: Test (`ContractServiceImplTest` — congela contenido y hash al completarse la segunda firma, detecta discrepancia por manipulación posterior; `ContractIntegritySchedulerTest`; `ContractIntegrityControllerTest`)
+- Estado: verificado (se introdujo un hash de CONTENIDO nuevo y separado del hash de firma existente — este último es una huella evento/quién/cuándo con `Instant.now()`, nunca reproducible, y se deja intacto con ese propósito; el nuevo hash se calcula una sola vez sobre el HTML ya renderizado y congelado al completarse la segunda firma. `ContractIntegrityScheduler` reverifica todos los contratos firmados cada noche y `POST /api/v1/admin/contratos/{id}/verificar-integridad` permite una verificación puntual. Retención declarada vía `contrato.retencion-anios` — confirmar la cifra exacta bajo la normativa ecuatoriana aplicable)
 
 **REQ-NF-021** — Las contraseñas deben cumplir una política de complejidad mínima (longitud y composición), y cambiar la contraseña debe revocar las demás sesiones activas del usuario.
 
@@ -713,11 +790,11 @@ Desglose por prioridad, que es lo que evalúa el criterio D0R:
 Los dos requisitos Must que no alcanzan `verificado` están declarados uno a uno, con su motivo y su condición de cierre, en [`docs/trazabilidad/excepciones-estado.txt`](../trazabilidad/excepciones-estado.txt) — y agrupan dos situaciones distintas que conviene no tratar como equivalentes:
 
 - **Falla confirmada en el entorno local, alcance incierto en producción** (REQ-NF-009): la política `restart: unless-stopped` y el healthcheck están correctamente declarados, pero la demostración real ejecutada el 2026-09-10 (`docker kill` sobre `pfc_backend` y `pfc_postgres`, Docker Desktop/WSL2 local) mostró que el reinicio automático **no se disparó** en ninguno de los dos casos — ver `docs/mediciones/resiliencia/REPORTE-RECUPERACION.md`. No es evidencia pendiente de algo que funciona: es un resultado negativo real. No se puede extrapolar a Render, que no usa `docker-compose` ni esta política para gestionar sus propios servicios.
-- **Implementado y probado unitariamente, pendiente de evidencia contra el entorno real** (REQ-NF-019): la idempotencia por estado ante webhook duplicado, la reconciliación activa contra la API de PayPal (`ReconciliacionPayPalScheduler`/`ReconciliacionPayPalEjecutorServicio`) y el flujo de reembolso/liberación ante cancelación con fondos en escrow (`PagoServicioImpl.cancelarPedidoConFondosRetenidos`) ya existen en código y están probados (`PagoServicioImplWebhookTest`, `PagoServicioImplCancelacionTest`, `ReconciliacionPayPalSchedulerTest`, `ReconciliacionPayPalEjecutorServicioTest`), pero contra respuestas de PayPal mockeadas, no contra el sandbox real. Al ser el requisito de mayor riesgo financiero del corpus (patrón escrow), no sube a `verificado` solo con prueba unitaria — falta ejercitar el flujo completo contra `api-m.sandbox.paypal.com` y archivar la evidencia.
+- **Implementado y probado unitariamente, pendiente de evidencia contra el entorno real** (REQ-NF-019): la idempotencia por estado ante webhook duplicado, la reconciliación activa contra la API de PayPal (`PayPalReconciliationScheduler`/`PayPalReconciliationExecutorService`) y el flujo de reembolso/liberación ante cancelación con fondos en escrow (`PaymentServiceImpl.cancelarPedidoConFondosRetenidos`) ya existen en código y están probados (`PaymentServiceImplWebhookTest`, `PaymentServiceImplCancellationTest`, `PayPalReconciliationSchedulerTest`, `PayPalReconciliationExecutorServiceTest`), pero contra respuestas de PayPal mockeadas, no contra el sandbox real. Al ser el requisito de mayor riesgo financiero del corpus (patrón escrow), no sube a `verificado` solo con prueba unitaria — falta ejercitar el flujo completo contra `api-m.sandbox.paypal.com` y archivar la evidencia.
 
 REQ-NF-001a, REQ-NF-001b y REQ-NF-001c ya no figuran en este grupo: `scripts/verificar-tls-ssllabs.sh` fue registrado como `prueba_automatizada` en `matriz.csv` (el validador exige cadena no vacía, no una clase JUnit), y el análisis SSL Labs archivado el 2026-09-10 contra `artisync-frontend.onrender.com` (grade A+, solo TLS 1.2/1.3 aceptados, redirección HTTPS forzada confirmada — ver `docs/mediciones/sec/ssl-labs/REPORTE-SSL-LABS.md`) respalda el cierre. Los tres subieron a `verificado`.
 
-Los tres requisitos Should que quedaban en `pendiente` con excepción declarada se resolvieron el 2026-09-10. REQ-F-022b (`PagoTicketRevisionServicioImpl` genera automáticamente la orden PayPal de un ticket de revisión que supera el límite configurado, con una entidad propia `pagos_ticket_revision` para no competir con el escrow principal) y REQ-F-022c (`TicketRevisionExpiracionScheduler` rechaza automáticamente un ticket con cargo pendiente de pago tras 48h configurables) subieron a `implementado` — ya cumplen su mínimo formal sin excepción obligatoria, y se mantienen declarados en `excepciones-estado.txt` solo por honestidad porque su prueba contra el sandbox real de PayPal sigue pendiente. REQ-NF-020 subió a `verificado`: se introdujo un hash de contenido nuevo y separado del hash de firma existente (que se deja intacto como huella evento/quién/cuándo con `Instant.now()`, nunca reproducible por diseño), calculado una sola vez sobre el HTML ya renderizado y congelado al completarse la segunda firma, con reverificación nocturna (`ContratoIntegridadScheduler`) y bajo demanda (`POST /api/v1/admin/contratos/{id}/verificar-integridad`). Un requisito Should en `implementado` se documenta también por honestidad aunque ya cumple su mínimo formal (REQ-NF-017) — el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-F-010, REQ-F-033, REQ-NF-018 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminComentarioControladorTest`, `InfraccionServiceImplTest` ampliado, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`. REQ-NF-005 y REQ-NF-006 salieron de este grupo el 2026-09-10 con pruebas automatizadas reales (`ChatWebSocketLoadIT`, `ContratoPdfTimingIT` — ver `docs/mediciones/ws/REPORTE-WS.md` y `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`) y subieron a `verificado`; la primera, además, expuso y forzó a corregir un defecto real de producción en el envío de mensajes de chat por WebSocket (`WebSocketConfig` no resolvía `@AuthenticationPrincipal` en mensajes STOMP). REQ-NF-024 salió de este grupo el 2026-09-10 tras ejecutar y documentar una restauración de prueba real contra el mecanismo automatizado del panel admin (respaldo FULL `pg_restore` exit 0, pedidos=4/usuarios=10/contratos=3 — ver `docs/despliegue/BACKUP.md §Registro de restauraciones de prueba`) y sube a `verificado`.
+Los tres requisitos Should que quedaban en `pendiente` con excepción declarada se resolvieron el 2026-09-10. REQ-F-022b (`RevisionTicketPaymentServiceImpl` genera automáticamente la orden PayPal de un ticket de revisión que supera el límite configurado, con una entidad propia `pagos_ticket_revision` para no competir con el escrow principal) y REQ-F-022c (`RevisionTicketExpirationScheduler` rechaza automáticamente un ticket con cargo pendiente de pago tras 48h configurables) subieron a `implementado` — ya cumplen su mínimo formal sin excepción obligatoria, y se mantienen declarados en `excepciones-estado.txt` solo por honestidad porque su prueba contra el sandbox real de PayPal sigue pendiente. REQ-NF-020 subió a `verificado`: se introdujo un hash de contenido nuevo y separado del hash de firma existente (que se deja intacto como huella evento/quién/cuándo con `Instant.now()`, nunca reproducible por diseño), calculado una sola vez sobre el HTML ya renderizado y congelado al completarse la segunda firma, con reverificación nocturna (`ContractIntegrityScheduler`) y bajo demanda (`POST /api/v1/admin/contratos/{id}/verificar-integridad`). Un requisito Should en `implementado` se documenta también por honestidad aunque ya cumple su mínimo formal (REQ-NF-017) — el resultado medido de usabilidad, 61,25/100, no alcanza el umbral propio del proyecto. REQ-F-010, REQ-F-033, REQ-NF-018 y REQ-NF-022 ya salieron de este grupo tras completar su prueba automatizada (`AdminCommentControllerTest`, `ViolationServiceImplTest` ampliado, `PrivacidadServiceImplIT`, `AuthRateLimitFilterTest` ampliado, respectivamente) y subieron a `verificado`. REQ-NF-005 y REQ-NF-006 salieron de este grupo el 2026-09-10 con pruebas automatizadas reales (`ChatWebSocketLoadIT`, `ContratoPdfTimingIT` — ver `docs/mediciones/ws/REPORTE-WS.md` y `docs/mediciones/perf/REPORTE-PDF-CONTRATO.md`) y subieron a `verificado`; la primera, además, expuso y forzó a corregir un defecto real de producción en el envío de mensajes de chat por WebSocket (`WebSocketConfig` no resolvía `@AuthenticationPrincipal` en mensajes STOMP). REQ-NF-024 salió de este grupo el 2026-09-10 tras ejecutar y documentar una restauración de prueba real contra el mecanismo automatizado del panel admin (respaldo FULL `pg_restore` exit 0, pedidos=4/usuarios=10/contratos=3 — ver `docs/despliegue/BACKUP.md §Registro de restauraciones de prueba`) y sube a `verificado`.
 
 ### 7.3 Cobertura de trazabilidad
 
@@ -728,7 +805,7 @@ Los tres requisitos Should que quedaban en `pendiente` con excepción declarada 
 | Requisitos Must con prueba automatizada     | 36 / 37 (97,3 %) |
 | Requisitos con evidencia empírica archivada | 40 (64,5 %)      |
 
-El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. De los 2 requisitos Must que no alcanzan `verificado`, REQ-NF-009 depende de una demostración operativa (caída/recuperación de contenedor) que por su propia naturaleza no se ejecuta como una clase de prueba del repositorio; REQ-NF-019 sí tiene prueba automatizada (`PagoServicioImplWebhookTest`, `PagoServicioImplCancelacionTest`, `ReconciliacionPayPalSchedulerTest`, `ReconciliacionPayPalEjecutorServicioTest`), pero solo contra respuestas de PayPal mockeadas — al ser el requisito de mayor riesgo financiero del corpus, no sube a `verificado` sin evidencia contra el sandbox real. REQ-NF-001a, REQ-NF-001b y REQ-NF-001c ya no figuran aquí: `scripts/verificar-tls-ssllabs.sh` fue registrado como `prueba_automatizada` (el validador solo exige cadena no vacía; el script tiene asserts y exit code 0/1), cerrando los tres sub-requisitos como `verificado`. REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-011, REQ-NF-018, REQ-NF-020 y REQ-NF-022 también alcanzaron `verificado` en rondas anteriores.
+El criterio D0R exige prueba automatizada para todo `Must` en estado `verificado`: el validador lo impone y hace fallar el pipeline si se incumple. Para `Should`/`Could`, `verificado` también admite sostenerse en evidencia empírica archivada sin una clase de prueba dedicada cuando la naturaleza de la medición lo justifica — por ejemplo, REQ-NF-016 y REQ-NF-023 se apoyan en reportes JaCoCo/Lighthouse, no en una clase de test. De los 2 requisitos Must que no alcanzan `verificado`, REQ-NF-009 depende de una demostración operativa (caída/recuperación de contenedor) que por su propia naturaleza no se ejecuta como una clase de prueba del repositorio; REQ-NF-019 sí tiene prueba automatizada (`PaymentServiceImplWebhookTest`, `PaymentServiceImplCancellationTest`, `PayPalReconciliationSchedulerTest`, `PayPalReconciliationExecutorServiceTest`), pero solo contra respuestas de PayPal mockeadas — al ser el requisito de mayor riesgo financiero del corpus, no sube a `verificado` sin evidencia contra el sandbox real. REQ-NF-001a, REQ-NF-001b y REQ-NF-001c ya no figuran aquí: `scripts/verificar-tls-ssllabs.sh` fue registrado como `prueba_automatizada` (el validador solo exige cadena no vacía; el script tiene asserts y exit code 0/1), cerrando los tres sub-requisitos como `verificado`. REQ-F-010, REQ-F-033, REQ-NF-005, REQ-NF-006, REQ-NF-011, REQ-NF-018, REQ-NF-020 y REQ-NF-022 también alcanzaron `verificado` en rondas anteriores.
 
 > **Nota sobre REQ-NF-011 y esta cifra.** Al fijar `AZURE_STORAGE_CONNECTION_STRING` en Render y subir REQ-NF-011 a `verificado`, la columna `evidencia_empirica` de su fila en `matriz.csv` se actualizó de una nota de evidencia parcial (`docs/mediciones/sec/...`, que documentaba el incumplimiento) a la evidencia real del cierre: `docs/despliegue/EVIDENCIA-AZURE.md`, que registra la respuesta `302` de la API hacia una URL firmada `*.blob.core.windows.net` y la descarga `200 OK` posterior directamente desde Azure Blob Storage. Este cambio de NF-011 en particular no altera el total por sí solo — es un swap de evidencia, no una incorporación —; el total de 40 en esta ronda refleja además la incorporación de REQ-NF-019, REQ-F-022b, REQ-F-022c y REQ-NF-020, cada uno respaldado por el mismo estándar de evidencia archivada que el resto (SSL Labs, `REPORTE-RECUPERACION.md`, `BACKUP.md`).
 
